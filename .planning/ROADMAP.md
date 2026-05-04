@@ -37,7 +37,7 @@ Plans:
 - [x] 01-03-PLAN.md — Build high-fidelity public home, teacher dashboard, and lesson editor surfaces.
 - [x] 01-04-PLAN.md — Build student, player, classroom, course, resource, and admin route shells.
 - [x] 01-05-PLAN.md — Finalize PPR/cache loading boundaries and automated Phase 1 shell verification.
-- [ ] 01-06-PLAN.md — Close Human UAT gaps by recalibrating home visual density plus navigation/CTA alignment against Stitch.
+- [x] 01-06-PLAN.md — Close Human UAT gaps by recalibrating home visual density plus navigation/CTA alignment against Stitch.
 **UI hint**: yes
 
 ### Phase 2: Auth, roles, schema, and DAL boundary
