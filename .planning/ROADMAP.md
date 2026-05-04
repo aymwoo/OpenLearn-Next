@@ -30,13 +30,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. User sees homepage, teacher dashboard, student dashboard, editor, player, classroom console, resource, and course surfaces aligned to Stitch project `5322129002350954765` and `DESIGN.md`.
   3. Developer can build pages with shared Lexend design tokens and components that enforce tonal layering, no 1px divider lines, glass surfaces, gradient primary actions, and accessible focus states.
   4. Developer can identify explicit cache tags, PPR boundaries, and Suspense rules before adding user-specific or live classroom data.
-**Plans**: 5 plans
+**Plans**: 6 plans
 Plans:
 - [x] 01-01-PLAN.md — Scaffold Next.js 16 / React 19.2 baseline, Cache Components, Lexend root layout, and Tailwind v4 design tokens.
 - [x] 01-02-PLAN.md — Create shared static data, navigation, cache policy, UI primitives, and shell components.
 - [x] 01-03-PLAN.md — Build high-fidelity public home, teacher dashboard, and lesson editor surfaces.
 - [x] 01-04-PLAN.md — Build student, player, classroom, course, resource, and admin route shells.
 - [x] 01-05-PLAN.md — Finalize PPR/cache loading boundaries and automated Phase 1 shell verification.
+- [ ] 01-06-PLAN.md — Close Human UAT gaps by recalibrating home visual density plus navigation/CTA alignment against Stitch.
 **UI hint**: yes
 
 ### Phase 2: Auth, roles, schema, and DAL boundary
@@ -111,7 +112,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Application foundation and design shell | 5/5 | Complete | 2026-05-04 |
+| 1. Application foundation and design shell | 5/6 | UAT gaps planned | - |
 | 2. Auth, roles, schema, and DAL boundary | 0/TBD | Not started | - |
 | 3. Courses, lessons, steps, and teacher authoring | 0/TBD | Not started | - |
 | 4. Student player, progress, submissions, and feedback | 0/TBD | Not started | - |
