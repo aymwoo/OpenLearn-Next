@@ -1,10 +1,11 @@
 ---
 phase: 1
 slug: application-foundation-and-design-shell
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-05-04
+reviewed_at: 2026-05-04
 ---
 
 # Phase 1 — UI Design Contract
@@ -90,7 +91,7 @@ Additional semantic rules:
 |---------|------|
 | Primary CTA | 开始备课 |
 | Empty state heading | 还没有可展示的课堂内容 |
-| Empty state body | 先从示例课程、课堂外壳或资源入口开始，完成基础结构后再接入真实数据。 |
+| Empty state body | 先从示例课程或资源入口开始，熟悉课堂流程；准备好后即可创建自己的课程内容。 |
 | Error state | 页面外壳暂时无法加载。请刷新页面；如果仍失败，请返回工作台重试。 |
 | Destructive confirmation | 离开课堂外壳：确认离开当前课堂预览？未保存的本地界面状态不会保留。 |
 
@@ -141,11 +142,11 @@ Copywriting constraints:
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS with non-blocking recommendation applied
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved by gsd-ui-checker on 2026-05-04
