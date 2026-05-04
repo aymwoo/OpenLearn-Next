@@ -1,11 +1,28 @@
-import type { ReactNode } from 'react'
-import { RouteShell } from '@/components/shell/route-shell'
-import { adminNavigationItems } from '@/lib/navigation'
+import { redirect } from "next/navigation";
+import { getCurrentUserDTO } from "@/lib/dal/auth";
+import { getUserMembershipsDTO } from "@/lib/dal/membership";
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const user = await getCurrentUserDTO();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const memberships = await getUserMembershipsDTO(user.id);
+  const isAdmin = memberships.some((m) => m.role === "admin" && m.status === "active");
+
+  if (!isAdmin) {
+    redirect("/unauthorized");
+  }
+
   return (
-    <RouteShell sidebarItems={adminNavigationItems} sidebarTitle="管理后台">
+    <div className="admin-layout">
       {children}
-    </RouteShell>
-  )
+    </div>
+  );
 }

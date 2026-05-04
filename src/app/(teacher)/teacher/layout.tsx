@@ -1,11 +1,28 @@
-import type { ReactNode } from 'react'
-import { RouteShell } from '@/components/shell/route-shell'
-import { teacherNavigationItems } from '@/lib/navigation'
+import { redirect } from "next/navigation";
+import { getCurrentUserDTO } from "@/lib/dal/auth";
+import { getUserMembershipsDTO } from "@/lib/dal/membership";
 
-export default function TeacherLayout({ children }: { children: ReactNode }) {
+export default async function TeacherLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const user = await getCurrentUserDTO();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const memberships = await getUserMembershipsDTO(user.id);
+  const isTeacher = memberships.some((m) => m.role === "teacher" && m.status === "active");
+
+  if (!isTeacher) {
+    redirect("/unauthorized");
+  }
+
   return (
-    <RouteShell sidebarItems={teacherNavigationItems} sidebarTitle="教师工作台">
+    <div className="teacher-layout">
       {children}
-    </RouteShell>
-  )
+    </div>
+  );
 }
