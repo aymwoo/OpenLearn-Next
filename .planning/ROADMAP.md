@@ -30,7 +30,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. User sees homepage, teacher dashboard, student dashboard, editor, player, classroom console, resource, and course surfaces aligned to Stitch project `5322129002350954765` and `DESIGN.md`.
   3. Developer can build pages with shared Lexend design tokens and components that enforce tonal layering, no 1px divider lines, glass surfaces, gradient primary actions, and accessible focus states.
   4. Developer can identify explicit cache tags, PPR boundaries, and Suspense rules before adding user-specific or live classroom data.
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 01-01-PLAN.md — Scaffold Next.js 16 / React 19.2 baseline, Cache Components, Lexend root layout, and Tailwind v4 design tokens.
+- [ ] 01-02-PLAN.md — Create shared static data, navigation, cache policy, UI primitives, and shell components.
+- [ ] 01-03-PLAN.md — Build high-fidelity public home, teacher dashboard, and lesson editor surfaces.
+- [ ] 01-04-PLAN.md — Build student, player, classroom, course, resource, and admin route shells.
+- [ ] 01-05-PLAN.md — Finalize PPR/cache loading boundaries and automated Phase 1 shell verification.
 **UI hint**: yes
 
 ### Phase 2: Auth, roles, schema, and DAL boundary
