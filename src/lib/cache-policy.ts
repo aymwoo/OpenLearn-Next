@@ -1,0 +1,75 @@
+export const cacheTags = {
+  publicShell: 'public:shell',
+  navigation: 'navigation:global',
+  course: (courseId: string) => `course:${courseId}`,
+  lesson: (lessonId: string) => `lesson:${lessonId}`,
+  steps: (lessonId: string) => `steps:${lessonId}`,
+  progress: (lessonId: string, userId: string) => `progress:${lessonId}:${userId}`,
+  classroom: (sessionId: string) => `classroom:${sessionId}`,
+} as const
+
+export const routeCacheBoundaries = [
+  {
+    route: '/',
+    staticShell: ['public hero', 'global navigation', 'role preview frame'],
+    suspenseRegions: ['auth toolbar'],
+    cacheTags: [cacheTags.publicShell, cacheTags.navigation],
+    rules: ['cache public landing shell', 'stream future auth toolbar separately'],
+  },
+  {
+    route: '/teacher',
+    staticShell: ['teacher chrome', 'dashboard cards', 'today lesson frame'],
+    suspenseRegions: ['auth toolbar', 'teacher save status'],
+    cacheTags: [cacheTags.navigation, 'lesson:${lessonId}', 'steps:${lessonId}'],
+    rules: ['keep teacher dashboard chrome static', 'stream save status and future session data'],
+  },
+  {
+    route: '/teacher/editor',
+    staticShell: ['editor three-pane shell', 'step rail', 'settings panel'],
+    suspenseRegions: ['auth toolbar', 'teacher save status'],
+    cacheTags: ['lesson:${lessonId}', 'steps:${lessonId}'],
+    rules: ['cache editor structure only', 'invalidate lesson and steps tags after future edits'],
+  },
+  {
+    route: '/student',
+    staticShell: ['student cockpit', 'resume card'],
+    suspenseRegions: ['student progress'],
+    cacheTags: ['lesson:${lessonId}', 'progress:${lessonId}:${userId}'],
+    rules: ['cache student shell separately from personal progress', 'stream progress in localized Suspense'],
+  },
+  {
+    route: '/student/player',
+    staticShell: ['lesson chrome', 'step navigation'],
+    suspenseRegions: ['student progress', 'latest submission', 'classroom live state'],
+    cacheTags: ['lesson:${lessonId}', 'steps:${lessonId}', 'progress:${lessonId}:${userId}', 'classroom:${sessionId}'],
+    rules: ['cache lesson chrome and step navigation', 'stream personal and classroom runtime state'],
+  },
+  {
+    route: '/classroom',
+    staticShell: ['classroom console chrome', 'current step frame'],
+    suspenseRegions: ['classroom live state'],
+    cacheTags: ['lesson:${lessonId}', 'classroom:${sessionId}'],
+    rules: ['cache control shell only', 'stream locked/unlocked and participant state'],
+  },
+  {
+    route: '/courses',
+    staticShell: ['course library shell', 'course cards'],
+    suspenseRegions: ['resource filters'],
+    cacheTags: ['course:${courseId}', cacheTags.publicShell],
+    rules: ['cache course card frame', 'stream future school or filter-specific state'],
+  },
+  {
+    route: '/resources',
+    staticShell: ['resource library shell', 'resource cards'],
+    suspenseRegions: ['resource filters'],
+    cacheTags: [cacheTags.publicShell],
+    rules: ['cache resource library frame', 'stream filter results and permissions later'],
+  },
+  {
+    route: '/admin',
+    staticShell: ['admin proof shell', 'safe empty state'],
+    suspenseRegions: ['auth toolbar'],
+    cacheTags: [cacheTags.navigation],
+    rules: ['keep Phase 1 admin low-emphasis and static', 'stream future authorization state'],
+  },
+] as const
