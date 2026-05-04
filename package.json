@@ -12,13 +12,19 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@auth/drizzle-adapter": "^1.11.2",
+    "@libsql/client": "^0.17.3",
     "@radix-ui/react-slot": "1.2.4",
     "clsx": "2.1.1",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "1.14.0",
     "next": "16.2.4",
+    "next-auth": "5.0.0-beta.31",
     "react": "19.2.5",
     "react-dom": "19.2.5",
-    "tailwind-merge": "3.5.0"
+    "server-only": "^0.0.1",
+    "tailwind-merge": "3.5.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.2.4",
@@ -26,6 +32,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "drizzle-kit": "^0.31.10",
     "eslint": "9.39.1",
     "eslint-config-next": "latest",
     "playwright": "1.59.1",
