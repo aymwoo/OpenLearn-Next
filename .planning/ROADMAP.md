@@ -36,7 +36,7 @@ Plans:
 - [x] 01-02-PLAN.md — Create shared static data, navigation, cache policy, UI primitives, and shell components.
 - [x] 01-03-PLAN.md — Build high-fidelity public home, teacher dashboard, and lesson editor surfaces.
 - [x] 01-04-PLAN.md — Build student, player, classroom, course, resource, and admin route shells.
-- [ ] 01-05-PLAN.md — Finalize PPR/cache loading boundaries and automated Phase 1 shell verification.
+- [x] 01-05-PLAN.md — Finalize PPR/cache loading boundaries and automated Phase 1 shell verification.
 **UI hint**: yes
 
 ### Phase 2: Auth, roles, schema, and DAL boundary
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Application foundation and design shell | 0/TBD | Not started | - |
+| 1. Application foundation and design shell | 5/5 | Complete | 2026-05-04 |
 | 2. Auth, roles, schema, and DAL boundary | 0/TBD | Not started | - |
 | 3. Courses, lessons, steps, and teacher authoring | 0/TBD | Not started | - |
 | 4. Student player, progress, submissions, and feedback | 0/TBD | Not started | - |

@@ -14,7 +14,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **FOUND-03**: User sees Simplified Chinese UI copy using the Lexend-based design system from `DESIGN.md`.
 - [x] **FOUND-04**: User sees homepage, teacher dashboard, student dashboard, editor, player, classroom console, resource, and course surfaces implemented from Stitch project `5322129002350954765` mappings.
 - [x] **FOUND-05**: Developer can use shared design tokens and components that enforce tonal layering, no 1px divider lines, glass surfaces, gradient primary actions, and accessible focus states.
-- [ ] **FOUND-06**: Developer can identify explicit Next.js cache boundaries, cache tags, and PPR/Suspense rules for all route groups.
+- [x] **FOUND-06**: Developer can identify explicit Next.js cache boundaries, cache tags, and PPR/Suspense rules for all route groups.
 
 ### Authentication and authorization
 
@@ -143,7 +143,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOUND-03 | Phase 1 | Complete |
 | FOUND-04 | Phase 1 | Complete |
 | FOUND-05 | Phase 1 | Complete |
-| FOUND-06 | Phase 1 | Pending |
+| FOUND-06 | Phase 1 | Complete |
 | AUTH-01 | Phase 2 | Pending |
 | AUTH-02 | Phase 2 | Pending |
 | AUTH-03 | Phase 2 | Pending |
