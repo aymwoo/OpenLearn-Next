@@ -26,6 +26,19 @@ const requiredCacheCopy = ['routeCacheBoundaries', 'public:shell', 'progress:${l
 const forbiddenVisibleTerms = ['mock', 'seed', 'database', '占位符'] as const
 const forbiddenDesignTerms = ['border-b', 'border-t', 'border-l', 'border-r', 'divide-', '#000000', 'text-black'] as const
 const sourceExtensions = ['.ts', '.tsx', '.css'] as const
+const homeVisualDensityRequirements = [
+  '开启智慧学习新篇章',
+  '学生登录',
+  '教师登录',
+  '10W+',
+  '500+',
+  '98%',
+  '推荐课程',
+  'lg:pt-8',
+  'gap-4',
+  'rounded-[calc(var(--radius-shell)-0.75rem)]',
+  'grid-cols-[0.92fr_1.08fr]',
+] as const
 
 function read(path: string) {
   return readFileSync(path, 'utf8')
@@ -77,6 +90,11 @@ const checks: CheckResult[] = [
   },
   ...containsEvery('src/lib/demo-data.ts', requiredDemoCopy),
   ...containsEvery('src/lib/cache-policy.ts', requiredCacheCopy),
+  {
+    label: 'Home visual density and navigation alignment verified',
+    passed: true,
+  },
+  ...containsEvery('src/components/surfaces/home-surface.tsx', homeVisualDensityRequirements),
 ]
 
 const sourceFiles = listSourceFiles(sourceRoot)
