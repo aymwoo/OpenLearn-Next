@@ -138,67 +138,68 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | TBD | Pending |
-| FOUND-02 | TBD | Pending |
-| FOUND-03 | TBD | Pending |
-| FOUND-04 | TBD | Pending |
-| FOUND-05 | TBD | Pending |
-| FOUND-06 | TBD | Pending |
-| AUTH-01 | TBD | Pending |
-| AUTH-02 | TBD | Pending |
-| AUTH-03 | TBD | Pending |
-| AUTH-04 | TBD | Pending |
-| AUTH-05 | TBD | Pending |
-| AUTH-06 | TBD | Pending |
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| DATA-04 | TBD | Pending |
-| DATA-05 | TBD | Pending |
-| LESSON-01 | TBD | Pending |
-| LESSON-02 | TBD | Pending |
-| LESSON-03 | TBD | Pending |
-| LESSON-04 | TBD | Pending |
-| LESSON-05 | TBD | Pending |
-| LESSON-06 | TBD | Pending |
-| LESSON-07 | TBD | Pending |
-| LESSON-08 | TBD | Pending |
-| LEARN-01 | TBD | Pending |
-| LEARN-02 | TBD | Pending |
-| LEARN-03 | TBD | Pending |
-| LEARN-04 | TBD | Pending |
-| LEARN-05 | TBD | Pending |
-| LEARN-06 | TBD | Pending |
-| LEARN-07 | TBD | Pending |
-| LEARN-08 | TBD | Pending |
-| LEARN-09 | TBD | Pending |
-| CLASS-01 | TBD | Pending |
-| CLASS-02 | TBD | Pending |
-| CLASS-03 | TBD | Pending |
-| CLASS-04 | TBD | Pending |
-| CLASS-05 | TBD | Pending |
-| CLASS-06 | TBD | Pending |
-| CLASS-07 | TBD | Pending |
-| AI-01 | TBD | Pending |
-| AI-02 | TBD | Pending |
-| AI-03 | TBD | Pending |
-| AI-04 | TBD | Pending |
-| AI-05 | TBD | Pending |
-| AI-06 | TBD | Pending |
-| AI-07 | TBD | Pending |
-| PLUGIN-01 | TBD | Pending |
-| PLUGIN-02 | TBD | Pending |
-| PLUGIN-03 | TBD | Pending |
-| PLUGIN-04 | TBD | Pending |
-| PLUGIN-05 | TBD | Pending |
-| PLUGIN-06 | TBD | Pending |
-| PLUGIN-07 | TBD | Pending |
+| FOUND-01 | Phase 1 | Pending |
+| FOUND-02 | Phase 1 | Pending |
+| FOUND-03 | Phase 1 | Pending |
+| FOUND-04 | Phase 1 | Pending |
+| FOUND-05 | Phase 1 | Pending |
+| FOUND-06 | Phase 1 | Pending |
+| AUTH-01 | Phase 2 | Pending |
+| AUTH-02 | Phase 2 | Pending |
+| AUTH-03 | Phase 2 | Pending |
+| AUTH-04 | Phase 2 | Pending |
+| AUTH-05 | Phase 2 | Pending |
+| AUTH-06 | Phase 2 | Pending |
+| DATA-01 | Phase 2 | Pending |
+| DATA-02 | Phase 2 | Pending |
+| DATA-03 | Phase 2 | Pending |
+| DATA-04 | Phase 2 | Pending |
+| DATA-05 | Phase 2 | Pending |
+| LESSON-01 | Phase 3 | Pending |
+| LESSON-02 | Phase 3 | Pending |
+| LESSON-03 | Phase 3 | Pending |
+| LESSON-04 | Phase 3 | Pending |
+| LESSON-05 | Phase 3 | Pending |
+| LESSON-06 | Phase 3 | Pending |
+| LESSON-07 | Phase 3 | Pending |
+| LESSON-08 | Phase 3 | Pending |
+| LEARN-01 | Phase 4 | Pending |
+| LEARN-02 | Phase 4 | Pending |
+| LEARN-03 | Phase 4 | Pending |
+| LEARN-04 | Phase 4 | Pending |
+| LEARN-05 | Phase 4 | Pending |
+| LEARN-06 | Phase 4 | Pending |
+| LEARN-07 | Phase 4 | Pending |
+| LEARN-08 | Phase 4 | Pending |
+| LEARN-09 | Phase 4 | Pending |
+| CLASS-01 | Phase 5 | Pending |
+| CLASS-02 | Phase 5 | Pending |
+| CLASS-03 | Phase 5 | Pending |
+| CLASS-04 | Phase 5 | Pending |
+| CLASS-05 | Phase 5 | Pending |
+| CLASS-06 | Phase 5 | Pending |
+| CLASS-07 | Phase 5 | Pending |
+| AI-01 | Phase 6 | Pending |
+| AI-02 | Phase 6 | Pending |
+| AI-03 | Phase 6 | Pending |
+| AI-04 | Phase 6 | Pending |
+| AI-05 | Phase 6 | Pending |
+| AI-06 | Phase 6 | Pending |
+| AI-07 | Phase 6 | Pending |
+| PLUGIN-01 | Phase 6 | Pending |
+| PLUGIN-02 | Phase 6 | Pending |
+| PLUGIN-03 | Phase 6 | Pending |
+| PLUGIN-04 | Phase 6 | Pending |
+| PLUGIN-05 | Phase 6 | Pending |
+| PLUGIN-06 | Phase 6 | Pending |
+| PLUGIN-07 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 55 total
-- Mapped to phases: 0
-- Unmapped: 55
+- Mapped to phases: 55
+- Unmapped: 0
+- Duplicate mappings: 0
 
 ---
 *Requirements defined: 2026-05-04*  
-*Last updated: 2026-05-04 after initial definition*
+*Last updated: 2026-05-04 after roadmap creation*
