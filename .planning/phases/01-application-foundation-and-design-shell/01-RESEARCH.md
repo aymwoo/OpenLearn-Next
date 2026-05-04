@@ -597,26 +597,25 @@ export const cacheTags = {
 **If this table is empty:** All claims in this research were verified or cited —
 no user confirmation needed.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should scaffold happen in place or through a temporary Next app copy-in?**
+1. **RESOLVED — Scaffold happens through a safe in-place manual scaffold.**
    - What we know: The repo already contains `.planning`, `DESIGN.md`, and
      `AGENTS.md`. [VERIFIED: repository file reads]
-   - What's unclear: The exact execution preference for avoiding scaffold
-     overwrite conflicts is not specified. [VERIFIED: 01-CONTEXT.md]
-   - Recommendation: Planner should include a safe scaffold step that preserves
-     planning docs, either by running `create-next-app` in a temporary directory
-     or by using manual package/config creation. [CITED:
-     https://nextjs.org/docs/app/getting-started/installation]
+   - Resolution: Use a safe in-place manual scaffold that creates only the
+     required package/config/source files and preserves `.planning`,
+     `DESIGN.md`, and `AGENTS.md`. If execution uses a temporary
+     `create-next-app` scaffold for comparison, copy only equivalent app,
+     config, and package fields back into this repo; do not overwrite planning
+     or design documents. [VERIFIED: checker revision]
 
-2. **How much automated UI testing should Phase 1 include?**
+2. **RESOLVED — Phase 1 automated verification scope is command-level shell validation, not Playwright.**
    - What we know: `workflow.nyquist_validation` is explicitly `false`, so the
      Validation Architecture section is skipped. [VERIFIED: .planning/config.json]
-   - What's unclear: The user did not require Playwright screenshots in this
-     research request. [VERIFIED: user prompt]
-   - Recommendation: Planner should at least include `pnpm build`, `pnpm lint`,
-     and a manual route walkthrough; Playwright smoke tests are optional if time
-     allows. [VERIFIED: npm registry]
+   - Resolution: The required automated verification scope is `pnpm typecheck`,
+     `pnpm lint`, `pnpm build`, and `pnpm verify:phase1`. Playwright smoke or
+     screenshot verification is deferred outside Phase 1 planning unless the
+     user explicitly requests it later. [VERIFIED: checker revision]
 
 ## Environment Availability
 
