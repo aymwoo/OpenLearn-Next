@@ -56,7 +56,7 @@ export const schools = sqliteTable("school", {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
-  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => Date.now()),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
 });
 
 export const memberships = sqliteTable(
