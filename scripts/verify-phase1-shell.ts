@@ -39,6 +39,16 @@ const homeVisualDensityRequirements = [
   'rounded-[calc(var(--radius-shell)-0.75rem)]',
   'grid-cols-[0.92fr_1.08fr]',
 ] as const
+const glassNavigationRequirements = [
+  'aria-label="主导航"',
+  'overflow-x-auto',
+  'overscroll-x-contain',
+  'min-h-11',
+  'backdrop-blur-xl',
+  'focus-visible:outline-2',
+] as const
+const sidebarInteractionRequirements = ['min-h-11', 'rounded-full', 'focus-visible:outline-2'] as const
+const teacherCtaRequirements = ['开始备课', '进入课堂', 'href="/teacher/editor"'] as const
 
 function read(path: string) {
   return readFileSync(path, 'utf8')
@@ -95,6 +105,9 @@ const checks: CheckResult[] = [
     passed: true,
   },
   ...containsEvery('src/components/surfaces/home-surface.tsx', homeVisualDensityRequirements),
+  ...containsEvery('src/components/shell/glass-nav.tsx', glassNavigationRequirements),
+  ...containsEvery('src/components/shell/sidebar.tsx', sidebarInteractionRequirements),
+  ...containsEvery('src/components/surfaces/teacher-dashboard-surface.tsx', teacherCtaRequirements),
 ]
 
 const sourceFiles = listSourceFiles(sourceRoot)

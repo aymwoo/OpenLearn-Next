@@ -6,7 +6,7 @@ import { demoCourse, demoLesson, lessonSteps, resourceCards } from '@/lib/demo-d
 export function LessonEditorSurface() {
   return (
     <div className="space-y-5">
-      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient sm:p-6 lg:hidden">
+      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient lg:hidden">
         <div className="flex items-center gap-3">
           <MonitorUp className="size-6 text-primary" aria-hidden />
           <p className="font-semibold">建议使用桌面端编辑，当前为可读预览</p>
@@ -14,7 +14,7 @@ export function LessonEditorSurface() {
       </section>
 
       <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px] xl:gap-4">
-        <aside className="rounded-[calc(var(--radius-shell)-0.5rem)] bg-surface-container-lowest p-5">
+        <aside className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm text-on-surface-variant">课时大纲</p>
@@ -45,7 +45,7 @@ export function LessonEditorSurface() {
           </div>
         </aside>
 
-        <main className="mt-4 min-w-0 rounded-[calc(var(--radius-shell)-0.5rem)] bg-surface-container-lowest p-5 xl:mt-0">
+        <main className="mt-4 min-w-0 rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5 xl:mt-0">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <div>
               <Badge variant="accent" className="mb-4">{demoCourse.subject}</Badge>
@@ -90,7 +90,7 @@ export function LessonEditorSurface() {
           </div>
         </main>
 
-        <aside className="mt-4 rounded-[calc(var(--radius-shell)-0.5rem)] bg-surface-container-lowest p-5 xl:mt-0">
+        <aside className="mt-4 rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5 xl:mt-0">
           <div className="flex items-center gap-3">
             <Settings2 className="size-6 text-primary" aria-hidden />
             <h2 className="text-2xl font-semibold">设置面板</h2>

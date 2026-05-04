@@ -7,19 +7,19 @@ import { demoCourse, demoLesson, lessonSteps, teacherCards } from '@/lib/demo-da
 
 export function TeacherDashboardSurface() {
   return (
-    <div className="space-y-6">
-      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-[var(--radius-shell)] bg-surface-container-low p-6 shadow-ambient sm:p-8">
-          <Badge variant="accent" className="mb-5 bg-surface-container-lowest">
+    <div className="space-y-4">
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient sm:p-6">
+          <Badge variant="accent" className="mb-4 bg-surface-container-lowest">
             {demoCourse.subject} · {demoCourse.classLabel}
           </Badge>
-          <h1 className="max-w-3xl text-[2.25rem] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[3.25rem]">
+          <h1 className="max-w-3xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[2.85rem]">
             今天把“{demoLesson.title}”编排成可运行课堂
           </h1>
-          <p className="mt-5 max-w-2xl text-base leading-8 text-on-surface-variant">
+          <p className="mt-4 max-w-2xl text-base leading-7 text-on-surface-variant">
             按步骤检查导入、讲授、练习和总结，确认资源与课堂模式后即可进入课堂运行。
           </p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <Button asChild className="gap-2 text-base">
               <Link href="/teacher/editor">
                 开始备课
@@ -35,7 +35,7 @@ export function TeacherDashboardSurface() {
           </div>
         </div>
 
-        <Card className="flex flex-col justify-between gap-6">
+        <Card className="flex flex-col justify-between gap-4 p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm text-on-surface-variant">待进入课堂</p>
@@ -54,19 +54,19 @@ export function TeacherDashboardSurface() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {teacherCards.map((card) => (
-          <Card key={card.title} className="min-h-44">
+          <Card key={card.title} className="min-h-40 p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-on-surface-variant">{card.title}</p>
               {card.title === '资源准备' ? <FolderKanban className="size-5 text-primary" aria-hidden /> : <Clock3 className="size-5 text-primary" aria-hidden />}
             </div>
-            <p className="mt-5 text-2xl font-semibold">{card.value}</p>
-            <p className="mt-3 text-sm leading-6 text-on-surface-variant">{card.detail}</p>
+            <p className="mt-4 text-2xl font-semibold">{card.value}</p>
+            <p className="mt-2 text-sm leading-6 text-on-surface-variant">{card.detail}</p>
           </Card>
         ))}
       </section>
 
-      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 sm:p-6">
-        <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5">
+        <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm text-on-surface-variant">今日备课</p>
             <h2 className="mt-2 text-2xl font-semibold">课堂步骤检查</h2>
