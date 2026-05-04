@@ -37,13 +37,13 @@ export function HomeSurface() {
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Button asChild className="min-h-12 gap-2 px-6 text-base">
-                <Link href="/teacher/editor">
+                <Link href="/login?roleIntent=teacher">
                   教师登录
                   <ArrowRight className="size-5" aria-hidden />
                 </Link>
               </Button>
               <Button asChild variant="secondary" className="min-h-12 gap-2 px-6 text-base shadow-none">
-                <Link href="/student">
+                <Link href="/login?roleIntent=student">
                   学生登录
                   <GraduationCap className="size-5" aria-hidden />
                 </Link>
