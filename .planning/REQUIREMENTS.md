@@ -9,7 +9,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Foundation and design
 
-- [ ] **FOUND-01**: User can open a Next.js 16 App Router application bootstrapped with React 19.2, TypeScript, Turbopack, and the required project structure.
+- [x] **FOUND-01**: User can open a Next.js 16 App Router application bootstrapped with React 19.2, TypeScript, Turbopack, and the required project structure.
 - [x] **FOUND-02**: User sees public, teacher, student, classroom, and admin route areas with separate layouts and navigation shells.
 - [x] **FOUND-03**: User sees Simplified Chinese UI copy using the Lexend-based design system from `DESIGN.md`.
 - [x] **FOUND-04**: User sees homepage, teacher dashboard, student dashboard, editor, player, classroom console, resource, and course surfaces implemented from Stitch project `5322129002350954765` mappings.
@@ -138,7 +138,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 1 | Pending |
+| FOUND-01 | Phase 1 | Complete |
 | FOUND-02 | Phase 1 | Complete |
 | FOUND-03 | Phase 1 | Complete |
 | FOUND-04 | Phase 1 | Complete |

@@ -12,7 +12,7 @@ OpenLearn Next v1 按“可信基础 → 教师编排 → 学生学习闭环 →
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Application foundation and design shell** - 建立 Next.js 16 应用骨架、路由外壳、PPR/cache 规则和绑定设计系统。
+- [x] **Phase 1: Application foundation and design shell** - 建立 Next.js 16 应用骨架、路由外壳、PPR/cache 规则和绑定设计系统。 (Completed 2026-05-04)
 - [ ] **Phase 2: Auth, roles, schema, and DAL boundary** - 建立身份、角色、SQLite/Drizzle 数据模型、权限和 server-only DAL 安全边界。
 - [ ] **Phase 3: Courses, lessons, steps, and teacher authoring** - 教师可以创建课程、编排步骤、自动保存、发布稳定课时版本。
 - [ ] **Phase 4: Student player, progress, submissions, and feedback** - 学生可以完成课时流程，教师可以查看进度、提交历史和反馈状态。
@@ -112,7 +112,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Application foundation and design shell | 5/6 | UAT gaps planned | - |
+| 1. Application foundation and design shell | 6/6 | Complete | 2026-05-04 |
 | 2. Auth, roles, schema, and DAL boundary | 0/TBD | Not started | - |
 | 3. Courses, lessons, steps, and teacher authoring | 0/TBD | Not started | - |
 | 4. Student player, progress, submissions, and feedback | 0/TBD | Not started | - |
