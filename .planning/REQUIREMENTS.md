@@ -10,10 +10,10 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Foundation and design
 
 - [ ] **FOUND-01**: User can open a Next.js 16 App Router application bootstrapped with React 19.2, TypeScript, Turbopack, and the required project structure.
-- [ ] **FOUND-02**: User sees public, teacher, student, classroom, and admin route areas with separate layouts and navigation shells.
-- [ ] **FOUND-03**: User sees Simplified Chinese UI copy using the Lexend-based design system from `DESIGN.md`.
-- [ ] **FOUND-04**: User sees homepage, teacher dashboard, student dashboard, editor, player, classroom console, resource, and course surfaces implemented from Stitch project `5322129002350954765` mappings.
-- [ ] **FOUND-05**: Developer can use shared design tokens and components that enforce tonal layering, no 1px divider lines, glass surfaces, gradient primary actions, and accessible focus states.
+- [x] **FOUND-02**: User sees public, teacher, student, classroom, and admin route areas with separate layouts and navigation shells.
+- [x] **FOUND-03**: User sees Simplified Chinese UI copy using the Lexend-based design system from `DESIGN.md`.
+- [x] **FOUND-04**: User sees homepage, teacher dashboard, student dashboard, editor, player, classroom console, resource, and course surfaces implemented from Stitch project `5322129002350954765` mappings.
+- [x] **FOUND-05**: Developer can use shared design tokens and components that enforce tonal layering, no 1px divider lines, glass surfaces, gradient primary actions, and accessible focus states.
 - [ ] **FOUND-06**: Developer can identify explicit Next.js cache boundaries, cache tags, and PPR/Suspense rules for all route groups.
 
 ### Authentication and authorization
@@ -139,10 +139,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | FOUND-01 | Phase 1 | Pending |
-| FOUND-02 | Phase 1 | Pending |
-| FOUND-03 | Phase 1 | Pending |
-| FOUND-04 | Phase 1 | Pending |
-| FOUND-05 | Phase 1 | Pending |
+| FOUND-02 | Phase 1 | Complete |
+| FOUND-03 | Phase 1 | Complete |
+| FOUND-04 | Phase 1 | Complete |
+| FOUND-05 | Phase 1 | Complete |
 | FOUND-06 | Phase 1 | Pending |
 | AUTH-01 | Phase 2 | Pending |
 | AUTH-02 | Phase 2 | Pending |
