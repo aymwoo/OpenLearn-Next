@@ -34,8 +34,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md — Scaffold Next.js 16 / React 19.2 baseline, Cache Components, Lexend root layout, and Tailwind v4 design tokens.
 - [x] 01-02-PLAN.md — Create shared static data, navigation, cache policy, UI primitives, and shell components.
-- [ ] 01-03-PLAN.md — Build high-fidelity public home, teacher dashboard, and lesson editor surfaces.
-- [ ] 01-04-PLAN.md — Build student, player, classroom, course, resource, and admin route shells.
+- [x] 01-03-PLAN.md — Build high-fidelity public home, teacher dashboard, and lesson editor surfaces.
+- [x] 01-04-PLAN.md — Build student, player, classroom, course, resource, and admin route shells.
 - [ ] 01-05-PLAN.md — Finalize PPR/cache loading boundaries and automated Phase 1 shell verification.
 **UI hint**: yes
 
