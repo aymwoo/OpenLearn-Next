@@ -1,7 +1,10 @@
 import NextAuth from "next-auth";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
+import { users } from "@/db/schema";
 import { authConfig } from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -16,10 +19,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // Dummy authentication for now
-        if (credentials?.email === "test@example.com" && credentials?.password === "password") {
-          return { id: "1", name: "Test User", email: "test@example.com" };
+        if (!credentials?.email || !credentials?.password) return null;
+
+        const emailStr = String(credentials.email);
+        const userRecords = await db.select().from(users).where(eq(users.email, emailStr)).limit(1);
+        const user = userRecords[0];
+
+        if (!user || !user.password) return null;
+
+        const isValid = await bcrypt.compare(String(credentials.password), user.password);
+        if (isValid) {
+          return { id: user.id, name: user.name, email: user.email };
         }
+        
         return null;
       }
     })
