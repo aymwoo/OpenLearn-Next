@@ -68,7 +68,14 @@ Plans:
   3. Teacher can add validated `content`, `task`, and `quiz` steps, attach or reference basic materials, and keep drafts hidden from students.
   4. Teacher can reorder steps with LexoRank drag-and-drop without cascading updates across all steps.
   5. Teacher receives clear autosave, publish, conflict, and cache freshness feedback after Server Actions mutate lesson data.
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [ ] 05-01-PLAN.md — Define durable classroom schema, DTO contracts, learning runtime fields, cache vocabulary, and push Drizzle schema.
+- [ ] 05-02-PLAN.md — Implement server-only classroom DAL for launch validation, roster binding, snapshots, controls, and conflict recovery.
+- [ ] 05-03-PLAN.md — Wire classroom Server Actions and convert `/classroom` into a live teacher launch/control console.
+- [ ] 05-04-PLAN.md — Add Node durable snapshot API and Edge SSE stream for versioned classroom state delivery.
+- [ ] 05-05-PLAN.md — Integrate classroom runtime, locked navigation, reconnect reconciliation, and manual snapshot fallback into the student player.
+- [ ] 05-06-PLAN.md — Add and run the final Phase 05 classroom runtime verification gate.
 **UI hint**: yes
 
 ### Phase 4: Student player, progress, submissions, and feedback
