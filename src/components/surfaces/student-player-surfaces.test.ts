@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 const dashboardSource = readFileSync("src/components/surfaces/student-dashboard-surface.tsx", "utf8");
 const playerSource = readFileSync("src/components/surfaces/player-surface.tsx", "utf8");
+const routeSource = readFileSync("src/app/(student)/student/player/page.tsx", "utf8");
 
 describe("Phase 04 student DTO surfaces", () => {
   it("renders dashboard states from learning DTOs instead of demo data", () => {
@@ -20,5 +21,24 @@ describe("Phase 04 student DTO surfaces", () => {
     expect(playerSource).toContain("老师指定");
     expect(playerSource).toContain("已完成阅读");
     expect(playerSource).toContain("overflow-x-auto");
+  });
+
+  it("streams personal player state inside a Suspense boundary", () => {
+    expect(routeSource).toContain("Suspense");
+    expect(routeSource).toContain("getStudentPlayerShellDTO");
+    expect(routeSource).toContain("getStudentPlayerPersonalDTO");
+    expect(routeSource).toContain("PlayerPersonalRegion");
+    expect(routeSource).toContain("<Suspense");
+    expect(routeSource).not.toContain("getStudentPlayerDTO({");
+  });
+
+  it("keeps shell chrome separate from personal learning state", () => {
+    expect(playerSource).toContain("type PlayerSurfaceProps = {");
+    expect(playerSource).toContain("shell:");
+    expect(playerSource).toContain("personalSlot:");
+    expect(playerSource).toContain("export function PlayerPersonalRegion");
+    expect(playerSource).toContain("export function PlayerPersonalFallback");
+    expect(playerSource).toContain("正在加载你的学习进度");
+    expect(playerSource).toContain("正在读取最近一次提交");
   });
 });
