@@ -39,9 +39,9 @@ export default function HomePage() {
       </nav>
 
       {/* Main Content Area */}
-      <div className="flex-1 w-full pt-16 flex flex-col md:flex-row items-center justify-center p-6 md:p-12 gap-12 bg-gradient-to-br from-surface to-surface-container-low">
+      <div className="flex-1 w-full pt-20 overflow-y-auto grid grid-cols-1 lg:grid-cols-2 place-items-center p-6 md:p-12 gap-12 bg-gradient-to-br from-surface to-surface-container-low">
         {/* Left: Brand Messaging & Image */}
-        <div className="flex-1 max-w-2xl flex flex-col items-center text-center space-y-8">
+        <div className="w-full max-w-2xl flex flex-col items-center justify-center text-center space-y-8 justify-self-center lg:justify-self-end lg:pr-8">
           <div className="space-y-4">
             <h1 className="text-[2.5rem] lg:text-[3.5rem] leading-tight font-bold text-on-surface">
               重塑学习体验 <br />
@@ -65,7 +65,7 @@ export default function HomePage() {
         </div>
 
         {/* Right: Login Card */}
-        <div className="w-full max-w-md bg-surface-container-lowest rounded-xl p-8 shadow-[0_8px_32px_rgba(44,47,49,0.06)] border border-surface-container">
+        <div className="w-full max-w-md bg-surface-container-lowest rounded-xl p-8 shadow-[0_8px_32px_rgba(44,47,49,0.06)] border border-surface-container justify-self-center lg:justify-self-start lg:pl-8">
           <div className="text-center mb-8">
             <h2 className="text-[1.75rem] font-bold text-on-surface mb-2">欢迎回来</h2>
             <p className="text-[1rem] text-on-surface-variant">请登录您的账户继续学习</p>
