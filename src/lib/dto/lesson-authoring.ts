@@ -21,6 +21,8 @@ export const taskStepPayloadSchema = z.object({
   prompt: z.string().min(1),
   submissionType: z.enum(["text", "image", "file", "link"]).default("text"),
   successCriteria: z.string().optional(),
+  allowRetry: z.boolean().optional(),
+  retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
   materialRefs: z.array(materialRefSchema).default([]),
 });
 
@@ -30,6 +32,9 @@ export const quizStepPayloadSchema = z.object({
   options: z.array(z.string().min(1)).min(2),
   correctOptionIndex: z.number().int().nonnegative().optional(),
   explanation: z.string().optional(),
+  allowRetry: z.boolean().optional(),
+  retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
+  revealCorrectAnswer: z.boolean().optional(),
 });
 
 export const lessonStepPayloadSchema = z.discriminatedUnion("type", [

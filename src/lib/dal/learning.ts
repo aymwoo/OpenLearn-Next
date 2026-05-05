@@ -66,6 +66,12 @@ type PublishedSnapshot = {
   }>;
 };
 
+type LearningWriteInput = {
+  publishedVersionId: string;
+  lessonId: string;
+  stepId: string;
+};
+
 function toIso(value: Date | number | null | undefined) {
   if (!value) {
     return new Date(0).toISOString();
@@ -95,7 +101,39 @@ function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: strin
     }));
 }
 
-function toTaskAttemptDTO(row: typeof taskSubmissions.$inferSelect, feedback: typeof attemptFeedback.$inferSelect | null = null) {
+function getAttemptPolicy(step?: LearningStepDTO) {
+  const payload = step?.payload as { allowRetry?: boolean; retryPolicy?: string; revealCorrectAnswer?: boolean } | undefined;
+  return {
+    allowRetry: payload?.allowRetry === true || payload?.retryPolicy === "once" || payload?.retryPolicy === "unlimited",
+    revealCorrectAnswer: payload?.revealCorrectAnswer === true,
+  };
+}
+
+function getStepById(steps: LearningStepDTO[], stepId: string, expectedType: LearningStepDTO["type"]) {
+  const step = steps.find((item) => item.id === stepId);
+
+  if (!step || step.type !== expectedType) {
+    throw new Error(INACCESSIBLE_LESSON_MESSAGE);
+  }
+
+  return step;
+}
+
+async function assertStudentMutationTarget(input: LearningWriteInput, scope: StudentScope, expectedType: LearningStepDTO["type"]) {
+  const { lesson, published } = await assertStudentCanAccessLesson(input.lessonId, scope);
+
+  if (input.publishedVersionId !== published.id) {
+    throw new Error(INACCESSIBLE_LESSON_MESSAGE);
+  }
+
+  const snapshot = parseSnapshot(published.snapshotJson);
+  const steps = parseSnapshotSteps(snapshot, lesson.id);
+  const step = getStepById(steps, input.stepId, expectedType);
+
+  return { lesson, published, snapshot, steps, step, policy: getAttemptPolicy(step) };
+}
+
+function toTaskAttemptDTO(row: typeof taskSubmissions.$inferSelect, feedback: typeof attemptFeedback.$inferSelect | null = null, policy = { allowRetry: false }) {
   return {
     id: row.id,
     publishedVersionId: row.publishedVersionId,
@@ -105,13 +143,13 @@ function toTaskAttemptDTO(row: typeof taskSubmissions.$inferSelect, feedback: ty
     attemptNo: row.attemptNo,
     payload: row.payloadJson,
     isLatest: row.isLatest,
-    canRetryTask: true,
+    canRetryTask: policy.allowRetry,
     feedback: feedback ? toFeedbackDTO(feedback, row.lessonId) : null,
     createdAt: toIso(row.createdAt),
   };
 }
 
-function toQuizAttemptDTO(row: typeof quizAttempts.$inferSelect, feedback: typeof attemptFeedback.$inferSelect | null = null) {
+function toQuizAttemptDTO(row: typeof quizAttempts.$inferSelect, feedback: typeof attemptFeedback.$inferSelect | null = null, policy = { allowRetry: false, revealCorrectAnswer: false }) {
   return {
     id: row.id,
     publishedVersionId: row.publishedVersionId,
@@ -122,8 +160,8 @@ function toQuizAttemptDTO(row: typeof quizAttempts.$inferSelect, feedback: typeo
     answer: row.answerJson,
     outcome: row.outcomeJson,
     isLatest: row.isLatest,
-    canRetryQuiz: true,
-    showCorrectAnswer: Boolean((row.outcomeJson as { showCorrectAnswer?: boolean }).showCorrectAnswer),
+    canRetryQuiz: policy.allowRetry,
+    showCorrectAnswer: policy.revealCorrectAnswer && Boolean((row.outcomeJson as { showCorrectAnswer?: boolean }).showCorrectAnswer),
     feedback: feedback ? toFeedbackDTO(feedback, row.lessonId) : null,
     createdAt: toIso(row.createdAt),
   };
@@ -317,6 +355,7 @@ export async function getStudentPlayerDTO(input: { lessonId: string; selectedSte
   const { lesson, published } = await assertStudentCanAccessLesson(input.lessonId, scope);
   const snapshot = parseSnapshot(published.snapshotJson);
   const steps = parseSnapshotSteps(snapshot, lesson.id);
+  const stepById = new Map(steps.map((step) => [step.id, step]));
   const progress = summarizeProgress(steps, await getProgressRecords(published.id, scope.userId));
   const selectedStepId = steps.some((step) => step.id === input.selectedStepId) ? input.selectedStepId : null;
   // first incomplete is the default resume target; trusted teacher-forced runtime wins when supplied.
@@ -349,14 +388,17 @@ export async function getStudentPlayerDTO(input: { lessonId: string; selectedSte
       locked: Boolean(input.forcedStepId),
       inaccessibleMessage: null,
     },
-    canRetryTask: true,
-    canRetryQuiz: true,
+    canRetryTask: false,
+    canRetryQuiz: false,
     showCorrectAnswer: false,
     latestSubmissions: {
-      tasks: taskRows.filter((row) => row.isLatest).map((row) => toTaskAttemptDTO(row)),
-      quizzes: quizRows.filter((row) => row.isLatest).map((row) => toQuizAttemptDTO(row)),
+      tasks: taskRows.filter((row) => row.isLatest).map((row) => toTaskAttemptDTO(row, null, getAttemptPolicy(stepById.get(row.stepId)))),
+      quizzes: quizRows.filter((row) => row.isLatest).map((row) => toQuizAttemptDTO(row, null, getAttemptPolicy(stepById.get(row.stepId)))),
     },
-    history: { tasks: taskRows.map((row) => toTaskAttemptDTO(row)), quizzes: quizRows.map((row) => toQuizAttemptDTO(row)) },
+    history: {
+      tasks: taskRows.map((row) => toTaskAttemptDTO(row, null, getAttemptPolicy(stepById.get(row.stepId)))),
+      quizzes: quizRows.map((row) => toQuizAttemptDTO(row, null, getAttemptPolicy(stepById.get(row.stepId)))),
+    },
     inaccessibleMessage: INACCESSIBLE_LESSON_MESSAGE,
   });
 }
@@ -364,7 +406,7 @@ export async function getStudentPlayerDTO(input: { lessonId: string; selectedSte
 export async function markStepProgress(input: unknown) {
   const scope = await assertActiveStudent();
   const payload = MarkProgressInputSchema.parse(input);
-  await assertStudentCanAccessLesson(payload.lessonId, scope);
+  await assertStudentMutationTarget(payload, scope, "content");
   const completedAt = payload.state === "completed" ? new Date() : null;
   const existing = await db.query.lessonStepProgress.findFirst({
     where: and(
@@ -394,7 +436,7 @@ export async function markStepProgress(input: unknown) {
 export async function submitTaskAttempt(input: unknown) {
   const scope = await assertActiveStudent();
   const payload = SubmitTaskInputSchema.parse(input);
-  await assertStudentCanAccessLesson(payload.lessonId, scope);
+  const { policy } = await assertStudentMutationTarget(payload, scope, "task");
 
   const inserted = await db.transaction(async (tx) => {
     const previous = await tx.query.taskSubmissions.findMany({
@@ -405,6 +447,9 @@ export async function submitTaskAttempt(input: unknown) {
       ),
       orderBy: desc(taskSubmissions.attemptNo),
     });
+    if (previous.length > 0 && !policy.allowRetry) {
+      throw new Error("RETRY_NOT_ALLOWED");
+    }
     const attemptNo = (previous[0]?.attemptNo ?? 0) + 1;
 
     await tx
@@ -435,24 +480,22 @@ export async function submitTaskAttempt(input: unknown) {
   });
 
   // append-only latest marker preserves previous attempts while exposing current read model.
-  return toTaskAttemptDTO(inserted);
+  return toTaskAttemptDTO(inserted, null, policy);
 }
 
 export async function submitQuizAttempt(input: unknown) {
   const scope = await assertActiveStudent();
   const payload = SubmitQuizInputSchema.parse(input);
-  const { published, lesson } = await assertStudentCanAccessLesson(payload.lessonId, scope);
-  const snapshot = parseSnapshot(published.snapshotJson);
-  const step = parseSnapshotSteps(snapshot, lesson.id).find((item) => item.id === payload.stepId);
-  const stepPayload = step?.payload as { correctOptionIndex?: number; explanation?: string } | undefined;
+  const { policy, step } = await assertStudentMutationTarget(payload, scope, "quiz");
+  const stepPayload = step.payload as { correctOptionIndex?: number; explanation?: string } | undefined;
   const answerIndex = typeof payload.answer === "number" ? payload.answer : (payload.answer as { selectedIndex?: number })?.selectedIndex;
   const isCorrect = typeof stepPayload?.correctOptionIndex === "number" ? answerIndex === stepPayload.correctOptionIndex : null;
   const outcomeJson = {
     selectedIndex: answerIndex ?? null,
     isCorrect,
-    correctOptionIndex: stepPayload?.correctOptionIndex ?? null,
-    explanation: stepPayload?.explanation ?? null,
-    showCorrectAnswer: typeof stepPayload?.correctOptionIndex === "number",
+    correctOptionIndex: policy.revealCorrectAnswer ? (stepPayload?.correctOptionIndex ?? null) : null,
+    explanation: policy.revealCorrectAnswer ? (stepPayload?.explanation ?? null) : null,
+    showCorrectAnswer: policy.revealCorrectAnswer && typeof stepPayload?.correctOptionIndex === "number",
   };
 
   const inserted = await db.transaction(async (tx) => {
@@ -464,6 +507,9 @@ export async function submitQuizAttempt(input: unknown) {
       ),
       orderBy: desc(quizAttempts.attemptNo),
     });
+    if (previous.length > 0 && !policy.allowRetry) {
+      throw new Error("RETRY_NOT_ALLOWED");
+    }
     const attemptNo = (previous[0]?.attemptNo ?? 0) + 1;
 
     await tx
@@ -494,7 +540,7 @@ export async function submitQuizAttempt(input: unknown) {
     return row;
   });
 
-  return toQuizAttemptDTO(inserted);
+  return toQuizAttemptDTO(inserted, null, policy);
 }
 
 async function getScopedTeacherLesson(lessonId: string) {
