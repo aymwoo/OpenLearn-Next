@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-05-05T03:23:17.413Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-05-05T03:28:29.159Z"
 last_activity: 2026-05-05
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 19
-  completed_plans: 14
-  percent: 74
+  completed_plans: 15
+  percent: 79
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 ## Current Position
 
 Phase: 04 (student-player-progress-submissions-and-feedback) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-05-05
 
-Progress: [███████░░░] 74%
+Progress: [████████░░] 79%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [███████░░░] 74%
 | Phase 01 P05 | 5 min | 2 tasks | 12 files |
 | Phase 01 P06 | 4 min | 2 tasks | 7 files |
 | Phase 04 P01 | 4 min | 3 tasks | 6 files |
+| Phase 04 P02 | 3 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,9 @@ Progress: [███████░░░] 74%
 - [Phase 1]: Home density and navigation invariants are guarded by exact source checks in `pnpm verify:phase1`.
 - [Phase 2]: DAL and Server Actions are the only data access path; UI components must not access raw database rows.
 - [Phase 04]: Phase 04 attempts use append-only task and quiz tables with attemptNo, isLatest, and latest/history indexes. — This preserves every student attempt while keeping latest reads efficient for student player and teacher review DTOs.
+- [Phase 04]: Learning DAL returns one unified inaccessible message for missing, unauthorized, or unpublished student lessons. — Avoid leaking draft state or permission details to students.
+- [Phase 04]: Learning DAL attempt writes use transactions to clear previous latest rows before inserting append-only latest attempts. — Preserves full attempt history while keeping latest-read queries simple.
+- [Phase 04]: Teacher review remains lightweight with status filters and short feedback only, avoiding gradebook semantics. — Keeps Phase 04 scoped to learning evidence and feedback rather than full gradebook workflows.
 
 ### Pending Todos
 
@@ -94,6 +98,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-05-05T03:23:07.560Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-05-05T03:28:14.583Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
