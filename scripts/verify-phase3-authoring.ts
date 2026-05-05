@@ -26,6 +26,47 @@ const dal = read("src/lib/dal/lesson-authoring.ts");
 const actions = read("src/actions/lesson-authoring-actions.ts");
 const surface = read("src/components/surfaces/lesson-editor-surface.tsx");
 const page = read("src/app/(teacher)/teacher/editor/page.tsx");
+const auth = read("src/lib/auth/auth.ts");
+const authActions = read("src/actions/auth-actions.ts");
+const authConfig = read("src/lib/auth/auth.config.ts");
+const proxy = read("src/proxy.ts");
+const seedTestAccounts = read("scripts/seed-test-accounts.ts");
+
+function hasAuthJsJwtSessionIdCallbacks(source: string) {
+  return (
+    source.includes('session: { strategy: "jwt" }') &&
+    source.includes("callbacks") &&
+    /\bjwt\s*\(\s*\{|\bjwt\s*\(\s*\{/.test(source) &&
+    /\bsession\s*\(\s*\{|\bsession\s*\(\s*\{/.test(source) &&
+    source.includes("session.user.id") &&
+    (source.includes("token.id") || source.includes("token.sub")) &&
+    source.includes("CredentialsProvider") &&
+    source.includes("DrizzleAdapter(db)") &&
+    source.includes("bcrypt.compare")
+  );
+}
+
+function edgeSafeConfigHasNoNodeOnlyImports(source: string) {
+  return ![
+    "@/db",
+    "@auth/drizzle-adapter",
+    "bcryptjs",
+    "next-auth/providers/credentials",
+    "@/lib/auth/auth",
+  ].some((forbidden) => source.includes(forbidden));
+}
+
+function proxyCoversTeacherRoutes(source: string) {
+  return source.includes("authConfig") && /matcher:[\s\S]*(teacher|\.\*)/.test(source);
+}
+
+function seedKeepsStudentOutOfTeacherRole(source: string) {
+  const studentIndex = source.indexOf("student@example.com");
+  if (studentIndex === -1) return false;
+
+  const teacherRoleIndex = source.indexOf('role: "teacher"');
+  return teacherRoleIndex === -1 || teacherRoleIndex > studentIndex + 200;
+}
 
 const checks: Check[] = [
   { label: "schema contains courses", passed: schema.includes("export const courses = sqliteTable") },
@@ -51,6 +92,32 @@ const checks: Check[] = [
   { label: "UI contains autosave copy", passed: surface.includes("已自动保存") },
   { label: "UI contains publish copy", passed: surface.includes("发布课时") },
   { label: "UI contains conflict copy", passed: surface.includes("检测到更新冲突") },
+  {
+    label: "Auth.js credentials JWT session exposes session.user.id",
+    passed: hasAuthJsJwtSessionIdCallbacks(auth),
+  },
+  {
+    label: "credentials login redirects to teacher editor",
+    passed: authActions.includes('signIn("credentials"') && authActions.includes('redirectTo: "/teacher/editor"'),
+  },
+  {
+    label: "edge-safe auth config has no Node-only auth dependencies",
+    passed: edgeSafeConfigHasNoNodeOnlyImports(authConfig),
+  },
+  { label: "proxy imports authConfig and protects teacher routes", passed: proxyCoversTeacherRoutes(proxy) },
+  {
+    label: "test account seed creates active teacher membership",
+    passed:
+      seedTestAccounts.includes("schools") &&
+      seedTestAccounts.includes("memberships") &&
+      seedTestAccounts.includes("teacher@example.com") &&
+      seedTestAccounts.includes('role: "teacher"') &&
+      seedTestAccounts.includes('status: "active"'),
+  },
+  {
+    label: "student test account is not granted teacher membership",
+    passed: seedKeepsStudentOutOfTeacherRole(seedTestAccounts),
+  },
 ];
 
 const failed = checks.filter((check) => !check.passed);
