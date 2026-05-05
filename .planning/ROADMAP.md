@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Application foundation and design shell** - 建立 Next.js 16 应用骨架、路由外壳、PPR/cache 规则和绑定设计系统。 (Completed 2026-05-04)
 - [x] **Phase 2: Auth, roles, schema, and DAL boundary** - 建立身份、角色、SQLite/Drizzle 数据模型、权限和 server-only DAL 安全边界。 (completed 2026-05-04)
 - [ ] **Phase 3: Courses, lessons, steps, and teacher authoring** - 教师可以创建课程、编排步骤、自动保存、发布稳定课时版本。
-- [ ] **Phase 4: Student player, progress, submissions, and feedback** - 学生可以完成课时流程，教师可以查看进度、提交历史和反馈状态。
+- [x] **Phase 4: Student player, progress, submissions, and feedback** - 学生可以完成课时流程，教师可以查看进度、提交历史和反馈状态。 (Completed 2026-05-05)
 - [ ] **Phase 5: Classroom runtime and Edge SSE** - 教师可以启动实时课堂、控制当前步骤和 locked/unlocked 模式，学生端实时同步。
 - [ ] **Phase 6: Resource, AI/RAG/MCP, plugin, and theme foundations** - 建立资源中心与 AI、RAG、MCP、插件、主题的安全可扩展边界。
 
@@ -88,7 +88,7 @@ Plans:
 - [x] 04-03-PLAN.md — Add validated learning Server Actions and explicit cache tags for progress, submissions, and review freshness.
 - [x] 04-04-PLAN.md — Convert student dashboard/player into DTO-backed progress, task, quiz, latest attempt, and history UI.
 - [x] 04-05-PLAN.md — Build teacher review cockpit and short feedback composer without gradebook scope.
-- [ ] 04-06-PLAN.md — Push Drizzle schema and close Phase 04 automated verification.
+- [x] 04-06-PLAN.md — Push Drizzle schema and close Phase 04 automated verification.
 **UI hint**: yes
 
 ### Phase 5: Classroom runtime and Edge SSE
@@ -127,7 +127,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Application foundation and design shell | 6/6 | Complete | 2026-05-04 |
 | 2. Auth, roles, schema, and DAL boundary | 3/3 | Complete   | 2026-05-04 |
 | 3. Courses, lessons, steps, and teacher authoring | 0/TBD | Not started | - |
-| 4. Student player, progress, submissions, and feedback | 0/TBD | Not started | - |
+| 4. Student player, progress, submissions, and feedback | 6/6 | Complete | 2026-05-05 |
 | 5. Classroom runtime and Edge SSE | 0/TBD | Not started | - |
 | 6. Resource, AI/RAG/MCP, plugin, and theme foundations | 0/TBD | Not started | - |
 
