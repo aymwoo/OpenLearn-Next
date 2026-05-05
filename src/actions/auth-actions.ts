@@ -41,7 +41,7 @@ export async function signInAction(
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: "/",
+      redirectTo: "/teacher/editor",
     });
   } catch (error: unknown) {
     if (isCredentialsSigninError(error)) {
