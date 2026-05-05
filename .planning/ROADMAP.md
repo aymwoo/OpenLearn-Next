@@ -81,7 +81,7 @@ Plans:
   3. Student can navigate permitted content, task, and quiz steps and resume from the first incomplete step or teacher-forced active step.
   4. Student can submit immutable append-only task attempts and quiz answers with latest-read optimization and captured or scored outcomes.
   5. Teacher can review progress, latest submissions, attempt history, quiz outcomes, feedback status, and leave short feedback without a full gradebook.
-**Plans**: 6 plans
+**Plans**: 7 plans
 Plans:
 - [x] 04-01-PLAN.md — Define learning schema, DTO contracts, and Phase 04 verification gate.
 - [x] 04-02-PLAN.md — Implement server-only learning DAL for student reads, progress, append-only attempts, teacher review, and feedback.
@@ -89,6 +89,7 @@ Plans:
 - [x] 04-04-PLAN.md — Convert student dashboard/player into DTO-backed progress, task, quiz, latest attempt, and history UI.
 - [x] 04-05-PLAN.md — Build teacher review cockpit and short feedback composer without gradebook scope.
 - [x] 04-06-PLAN.md — Push Drizzle schema and close Phase 04 automated verification.
+- [ ] 04-07-PLAN.md — Close LEARN-02 gap by splitting the player into a cached shell and Suspense-streamed personal learning regions.
 **UI hint**: yes
 
 ### Phase 5: Classroom runtime and Edge SSE
@@ -127,7 +128,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Application foundation and design shell | 6/6 | Complete | 2026-05-04 |
 | 2. Auth, roles, schema, and DAL boundary | 3/3 | Complete   | 2026-05-04 |
 | 3. Courses, lessons, steps, and teacher authoring | 0/TBD | Not started | - |
-| 4. Student player, progress, submissions, and feedback | 6/6 | Complete | 2026-05-05 |
+| 4. Student player, progress, submissions, and feedback | 6/7 | Gaps planned | - |
 | 5. Classroom runtime and Edge SSE | 0/TBD | Not started | - |
 | 6. Resource, AI/RAG/MCP, plugin, and theme foundations | 0/TBD | Not started | - |
 
