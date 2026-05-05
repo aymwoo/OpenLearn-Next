@@ -1,9 +1,18 @@
-import { BookOpenCheck, Clock3, Layers3, MonitorUp, Settings2 } from 'lucide-react'
+import { Layers3, MonitorUp, Settings2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
-import { demoCourse, demoLesson, lessonSteps, resourceCards } from '@/lib/demo-data'
+import { LessonAuthoringWorkspace } from '@/components/authoring/lesson-authoring-workspace'
+import type { LessonEditorDTO, TeacherAuthoringOverviewDTO } from '@/lib/dto/lesson-authoring'
 
-export function LessonEditorSurface() {
+type LessonEditorSurfaceProps = {
+  overview: TeacherAuthoringOverviewDTO
+  lesson: LessonEditorDTO | null
+}
+
+export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfaceProps) {
+  const activeCourse = lesson?.course ?? overview.courses[0]
+  const activeLesson = lesson?.lesson ?? overview.lessons[0]
+  const steps = lesson?.steps ?? []
+
   return (
     <div className="space-y-5">
       <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient lg:hidden">
@@ -17,26 +26,41 @@ export function LessonEditorSurface() {
         <aside className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm text-on-surface-variant">课时大纲</p>
-              <h1 className="mt-2 text-2xl font-semibold">{demoLesson.title}</h1>
-              <p className="mt-2 text-sm text-on-surface-variant">导入 / 讲授 / 练习 / 总结</p>
+              <p className="text-sm text-on-surface-variant">课程 / 班级</p>
+              <h1 className="mt-2 text-2xl font-semibold">{activeCourse?.title ?? '还没有课程'}</h1>
+              <p className="mt-2 text-sm text-on-surface-variant">
+                {activeCourse?.classLabels.join('、') || '尚未绑定班级'} · {activeCourse?.enrollmentCount ?? 0} 名学生
+              </p>
             </div>
             <Layers3 className="size-6 text-primary" aria-hidden />
           </div>
 
+          <div className="mt-5 rounded-3xl bg-surface-container-low p-4">
+            <p className="text-sm text-on-surface-variant">课时列表</p>
+            <div className="mt-3 space-y-2">
+              {overview.lessons.length > 0 ? overview.lessons.map((item) => (
+                <button key={item.id} className="w-full rounded-3xl bg-surface-container-lowest px-4 py-3 text-left">
+                  <span className="font-semibold">{item.title}</span>
+                  <span className="mt-1 block text-sm text-on-surface-variant">修订 {item.revision} · {item.stepCount} 个步骤</span>
+                </button>
+              )) : <p className="text-sm text-on-surface-variant">还没有课时草稿</p>}
+            </div>
+          </div>
+
           <div className="mt-6 space-y-3">
-            {lessonSteps.map((step, index) => (
-              <div key={step.id} className="rounded-3xl bg-surface-container-low p-4">
+            <p className="text-sm text-on-surface-variant">步骤编排</p>
+            {steps.map((step, index) => (
+              <button key={step.id} className="w-full rounded-3xl bg-surface-container-low p-4 text-left">
                 <div className="flex items-center gap-3">
                   <span className="grid size-10 place-items-center rounded-full bg-surface-container-lowest text-sm font-semibold text-primary">
                     {index + 1}
                   </span>
                   <div>
                     <h2 className="font-semibold">{step.title}</h2>
-                    <p className="text-sm text-on-surface-variant">{step.duration} · {step.focus}</p>
+                    <p className="text-sm text-on-surface-variant">{step.type === 'content' ? '内容' : step.type === 'task' ? '任务' : '测验'} · {step.rank}</p>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -48,46 +72,16 @@ export function LessonEditorSurface() {
         <main className="mt-4 min-w-0 rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5 xl:mt-0">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <div>
-              <Badge variant="accent" className="mb-4">{demoCourse.subject}</Badge>
+              <Badge variant="accent" className="mb-4">{activeCourse?.subject ?? '课程'}</Badge>
               <h2 className="text-[2rem] font-semibold leading-tight tracking-[-0.02em]">课堂画布</h2>
-              <p className="mt-3 max-w-2xl leading-8 text-on-surface-variant">{demoLesson.objective}</p>
+              <p className="mt-3 max-w-2xl leading-8 text-on-surface-variant">
+                {activeLesson?.objective ?? '创建第一个课时后，可以在这里编排内容、任务和测验步骤。'}
+              </p>
             </div>
-            <Badge variant="success">{demoLesson.mode}</Badge>
+            <Badge variant="success">草稿仅教师可见</Badge>
           </div>
 
-          <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_0.85fr]">
-            <Card className="bg-surface-container-low p-5 shadow-none">
-              <div className="flex items-center gap-3">
-                <BookOpenCheck className="size-6 text-primary" aria-hidden />
-                <h3 className="text-2xl font-semibold">讲授活动</h3>
-              </div>
-              <p className="mt-4 leading-8 text-on-surface-variant">
-                用舞台坐标示意图说明角色移动的方向和距离，再让学生预测下一条指令执行后的角色位置。
-              </p>
-              <div className="mt-5 rounded-3xl bg-surface-container-lowest p-5">
-                <p className="text-sm text-on-surface-variant">教师提示</p>
-                <p className="mt-2 font-semibold">先问“如果 x 增加 20，角色会往哪里移动？”再展示脚本运行。</p>
-              </div>
-            </Card>
-
-            <Card className="bg-surface-container-low p-5 shadow-none">
-              <div className="flex items-center gap-3">
-                <Clock3 className="size-6 text-primary" aria-hidden />
-                <h3 className="text-2xl font-semibold">练习安排</h3>
-              </div>
-              <p className="mt-4 leading-8 text-on-surface-variant">
-                学生完成“让角色走到目标点并说出提示语”，提交截图和一句调试说明。
-              </p>
-              <div className="mt-5 grid gap-3">
-                {resourceCards.map((resource) => (
-                  <div key={resource.title} className="rounded-3xl bg-surface-container-lowest p-4">
-                    <p className="font-semibold">{resource.title}</p>
-                    <p className="mt-1 text-sm text-on-surface-variant">{resource.usage}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
+          <LessonAuthoringWorkspace overview={overview} lesson={lesson} />
         </main>
 
         <aside className="mt-4 rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5 xl:mt-0">
@@ -96,14 +90,13 @@ export function LessonEditorSurface() {
             <h2 className="text-2xl font-semibold">设置面板</h2>
           </div>
           <div className="mt-6 space-y-3">
-            <MetaRow label="班级" value={demoCourse.classLabel} />
-            <MetaRow label="时长" value={demoLesson.duration} />
-            <MetaRow label="资源" value="变量小抄、素材、任务单" />
-            <MetaRow label="课堂模式" value={demoLesson.mode} />
+            <MetaRow label="班级" value={activeCourse?.classLabels.join('、') || '未绑定'} />
+            <MetaRow label="资源" value={`${lesson?.materials.length ?? 0} 个引用材料`} />
+            <MetaRow label="发布状态" value={lesson?.publishState.latestVersion ? `第 ${lesson.publishState.latestVersion} 版 · 学生将读取已发布版本` : '草稿仅教师可见'} />
           </div>
           <div className="mt-6 rounded-3xl bg-surface-container-low p-5">
             <p className="text-sm text-on-surface-variant">发布前检查</p>
-            <p className="mt-2 leading-7">目标、活动、资源和课堂模式已在画布中形成闭环。</p>
+            <p className="mt-2 leading-7">发布课时前，请确认目标、步骤和引用材料已经形成学习闭环。</p>
           </div>
         </aside>
       </section>
