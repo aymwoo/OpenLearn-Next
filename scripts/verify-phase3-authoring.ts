@@ -115,8 +115,11 @@ const checks: Check[] = [
       seedTestAccounts.includes('status: "active"'),
   },
   {
-    label: "student test account is not granted teacher membership",
-    passed: seedKeepsStudentOutOfTeacherRole(seedTestAccounts),
+    label: "test account seed creates active student membership without teacher role",
+    passed:
+      seedTestAccounts.includes("student@example.com") &&
+      seedTestAccounts.includes('ensureActiveMembership(user.id, testSchool.id, "student")') &&
+      seedKeepsStudentOutOfTeacherRole(seedTestAccounts),
   },
 ];
 

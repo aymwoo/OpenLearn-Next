@@ -20,7 +20,11 @@ async function seedTestAccounts() {
     const user = await upsertTestUser(account, passwordHash);
 
     if (account.email === "teacher@example.com") {
-      await ensureActiveTeacherMembership(user.id, testSchool.id);
+      await ensureActiveMembership(user.id, testSchool.id, "teacher");
+    }
+
+    if (account.email === "student@example.com") {
+      await ensureActiveMembership(user.id, testSchool.id, "student");
     }
   }
 }
@@ -78,7 +82,7 @@ async function upsertTestUser(
   return insertedUsers[0];
 }
 
-async function ensureActiveTeacherMembership(userId: string, schoolId: string) {
+async function ensureActiveMembership(userId: string, schoolId: string, role: "teacher" | "student") {
   const existingMemberships = await db
     .select({ id: memberships.id })
     .from(memberships)
@@ -90,7 +94,7 @@ async function ensureActiveTeacherMembership(userId: string, schoolId: string) {
   if (existingMembership) {
     await db
       .update(memberships)
-      .set({ role: "teacher", status: "active" })
+      .set({ role, status: "active" })
       .where(eq(memberships.id, existingMembership.id));
     return;
   }
@@ -98,7 +102,7 @@ async function ensureActiveTeacherMembership(userId: string, schoolId: string) {
   await db.insert(memberships).values({
     userId,
     schoolId,
-    role: "teacher",
+    role,
     status: "active",
   });
 }
@@ -106,7 +110,7 @@ async function ensureActiveTeacherMembership(userId: string, schoolId: string) {
 seedTestAccounts()
   .then(() => {
     console.log(
-      "测试账号 seed 完成：teacher@example.com 具备 active teacher membership；student@example.com 无 teacher membership"
+      "测试账号 seed 完成：teacher@example.com 具备 active teacher membership；student@example.com 具备 active student membership"
     );
   })
   .catch((error: unknown) => {
