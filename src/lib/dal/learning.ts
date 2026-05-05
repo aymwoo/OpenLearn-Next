@@ -422,7 +422,13 @@ export async function markStepProgress(input: unknown) {
       .set({ state: payload.state, completedAt, updatedAt: new Date() })
       .where(eq(lessonStepProgress.id, existing.id));
   } else {
-    await db.insert(lessonStepProgress).values({ ...payload, studentId: scope.userId, completedAt });
+    await db
+      .insert(lessonStepProgress)
+      .values({ ...payload, studentId: scope.userId, completedAt })
+      .onConflictDoUpdate({
+        target: [lessonStepProgress.publishedVersionId, lessonStepProgress.stepId, lessonStepProgress.studentId],
+        set: { state: payload.state, completedAt, updatedAt: new Date() },
+      });
   }
 
   return MutationResultDTOSchema.parse({
@@ -474,7 +480,12 @@ export async function submitTaskAttempt(input: unknown) {
         payloadJson: payload.payload,
         isLatest: true, // isLatest: 1
       })
+      .onConflictDoNothing()
       .returning();
+
+    if (!row) {
+      throw new Error("DUPLICATE_ATTEMPT");
+    }
 
     return row;
   });
@@ -535,7 +546,12 @@ export async function submitQuizAttempt(input: unknown) {
         outcomeJson,
         isLatest: true, // isLatest: 1
       })
+      .onConflictDoNothing()
       .returning();
+
+    if (!row) {
+      throw new Error("DUPLICATE_ATTEMPT");
+    }
 
     return row;
   });

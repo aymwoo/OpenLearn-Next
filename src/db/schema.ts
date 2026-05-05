@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
 export const users = sqliteTable("user", {
@@ -276,6 +276,7 @@ export const lessonStepProgress = sqliteTable(
     updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
   (table) => [
+    uniqueIndex("lessonStepProgress_identity_unique").on(table.publishedVersionId, table.stepId, table.studentId),
     index("lessonStepProgress_version_student_idx").on(table.publishedVersionId, table.studentId),
     index("lessonStepProgress_lesson_student_idx").on(table.lessonId, table.studentId),
   ]
@@ -305,6 +306,13 @@ export const taskSubmissions = sqliteTable(
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
   (table) => [
+    uniqueIndex("taskSubmissions_attempt_unique").on(table.publishedVersionId, table.stepId, table.studentId, table.attemptNo),
+    uniqueIndex("taskSubmissions_latest_unique").on(
+      table.publishedVersionId,
+      table.stepId,
+      table.studentId,
+      table.isLatest
+    ),
     index("taskSubmissions_latest_idx").on(
       table.publishedVersionId,
       table.stepId,
@@ -340,6 +348,8 @@ export const quizAttempts = sqliteTable(
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
   (table) => [
+    uniqueIndex("quizAttempts_attempt_unique").on(table.publishedVersionId, table.stepId, table.studentId, table.attemptNo),
+    uniqueIndex("quizAttempts_latest_unique").on(table.publishedVersionId, table.stepId, table.studentId, table.isLatest),
     index("quizAttempts_latest_idx").on(table.publishedVersionId, table.stepId, table.studentId, table.isLatest),
     index("quizAttempts_history_idx").on(table.publishedVersionId, table.stepId, table.studentId, table.attemptNo),
   ]
@@ -364,6 +374,7 @@ export const attemptFeedback = sqliteTable(
     updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
   (table) => [
+    uniqueIndex("attemptFeedback_target_unique").on(table.targetType, table.targetId),
     index("attemptFeedback_target_idx").on(table.targetType, table.targetId),
     index("attemptFeedback_student_idx").on(table.studentId),
   ]
