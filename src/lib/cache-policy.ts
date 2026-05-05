@@ -8,6 +8,15 @@ export const cacheTags = {
   submission: (lessonId: string, userId: string) => `submission:${lessonId}:${userId}`,
   teacherReview: (lessonId: string) => `teacher-review:${lessonId}`,
   classroom: (sessionId: string) => `classroom:${sessionId}`,
+  resource: (id: string) => `resource:${id}`,
+  resources: (schoolId: string) => `resources:${schoolId}`,
+  agentRegistry: 'ai:agent-registry',
+  agentProposal: (id: string) => `ai:proposal:${id}`,
+  mcpServer: (id: string) => `mcp:server:${id}`,
+  pluginRegistry: 'plugin:registry',
+  plugin: (id: string) => `plugin:${id}`,
+  themeRegistry: 'theme:registry',
+  theme: (id: string) => `theme:${id}`,
 } as const
 
 export const routeCacheBoundaries = [
