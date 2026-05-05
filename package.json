@@ -12,6 +12,7 @@
     "verify:phase3": "tsx scripts/verify-phase3-authoring.ts",
     "verify:phase4": "tsx scripts/verify-phase4-learning.ts",
     "verify:phase5": "tsx scripts/verify-phase5-classroom.ts",
+    "verify:phase6": "tsx scripts/verify-phase6-foundations.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "test": "vitest"
   },
