@@ -3,7 +3,8 @@ import { ClipboardCheck, MessageCircle, UsersRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import type { TeacherLessonReviewDTO, TeacherReviewFilter } from "@/lib/dto/learning";
+import { FeedbackComposer } from "@/components/learning/feedback-composer";
+import type { QuizAttemptDTO, TaskAttemptDTO, TeacherLessonReviewDTO, TeacherReviewFilter, TeacherStudentReviewDTO } from "@/lib/dto/learning";
 
 type TeacherReviewSurfaceProps = {
   review: TeacherLessonReviewDTO | null;
@@ -19,8 +20,116 @@ const filters: Array<{ value: TeacherReviewFilter; label: string }> = [
   { value: "needs_feedback", label: "待反馈" },
 ];
 
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function attemptText(attempt: TaskAttemptDTO) {
+  const payload = attempt.payload as { text?: string; answer?: string; body?: string } | string | null;
+
+  if (typeof payload === "string") return payload;
+  return payload?.text ?? payload?.answer ?? payload?.body ?? "已提交任务内容";
+}
+
+function quizOutcomeText(attempt: QuizAttemptDTO) {
+  const outcome = attempt.outcome as { isCorrect?: boolean | null; selectedIndex?: number | null } | null;
+
+  if (outcome?.isCorrect === true) return "答对了";
+  if (outcome?.isCorrect === false) return "还可以再想想";
+  return "已记录你的答案";
+}
+
+function StudentDetail({ student }: { student: TeacherStudentReviewDTO }) {
+  const completed = student.progress.filter((item) => item.state === "completed" || item.state === "skipped").length;
+  const total = student.progress.length;
+  const latestTask = student.latestTaskSubmissions[0] ?? null;
+  const latestQuiz = student.latestQuizAttempts[0] ?? null;
+  const feedbackTarget = latestTask
+    ? { targetType: "task_submission" as const, targetId: latestTask.id, feedback: latestTask.feedback }
+    : latestQuiz
+      ? { targetType: "quiz_attempt" as const, targetId: latestQuiz.id, feedback: latestQuiz.feedback }
+      : null;
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-sm text-on-surface-variant">学生详情</p>
+        <h2 className="mt-3 text-2xl font-semibold">{student.studentName}</h2>
+      </div>
+
+      <section className="rounded-3xl bg-surface-container-low p-5">
+        <p className="font-semibold">学习进度</p>
+        <p className="mt-2 text-sm leading-6 text-on-surface-variant">{completed}/{total} 已完成 · {student.needsFeedback ? "待反馈" : "反馈状态已同步"}</p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {student.progress.map((item) => (
+            <div key={item.stepId} className="rounded-3xl bg-surface-container-lowest p-3 text-sm text-on-surface-variant">
+              {item.state === "not_started" ? "未开始" : item.state === "in_progress" ? "进行中" : item.state === "completed" ? "已完成" : "已跳过"}
+            </div>
+          ))}
+          {student.progress.length === 0 ? <p className="rounded-3xl bg-surface-container-lowest p-4 text-sm text-on-surface-variant">暂无学生数据</p> : null}
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <article className="rounded-3xl bg-surface-container-low p-5">
+          <p className="font-semibold">最近任务</p>
+          {latestTask ? (
+            <div className="mt-3 text-sm leading-6 text-on-surface-variant">
+              <p>第 {latestTask.attemptNo} 次尝试 · {formatTime(latestTask.createdAt)}</p>
+              <p className="mt-2">{attemptText(latestTask)}</p>
+              <p className="mt-2">反馈状态：{latestTask.feedback ? "已反馈" : "待反馈"}</p>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-on-surface-variant">还没有提交学习证据</p>
+          )}
+        </article>
+
+        <article className="rounded-3xl bg-surface-container-low p-5">
+          <p className="font-semibold">测验结果</p>
+          {latestQuiz ? (
+            <div className="mt-3 text-sm leading-6 text-on-surface-variant">
+              <p>{quizOutcomeText(latestQuiz)} · 第 {latestQuiz.attemptNo} 次尝试</p>
+              <p className="mt-2">反馈状态：{latestQuiz.feedback ? "已反馈" : "待反馈"}</p>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-on-surface-variant">还没有提交学习证据</p>
+          )}
+        </article>
+      </section>
+
+      <section className="rounded-3xl bg-surface-container-low p-5">
+        <p className="font-semibold">历史尝试</p>
+        <div className="mt-3 grid gap-3">
+          {[...student.latestTaskSubmissions, ...student.latestQuizAttempts]
+            .sort((a, b) => a.attemptNo - b.attemptNo)
+            .map((attempt) => (
+              <article key={attempt.id} className="rounded-3xl bg-surface-container-lowest p-4 text-sm leading-6 text-on-surface-variant">
+                第 {attempt.attemptNo} 次尝试 · {attempt.isLatest ? "最新" : "历史记录"}
+              </article>
+            ))}
+          {student.latestTaskSubmissions.length + student.latestQuizAttempts.length === 0 ? (
+            <p className="rounded-3xl bg-surface-container-lowest p-4 text-sm text-on-surface-variant">第 1 次尝试会在学生提交后出现在这里。</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="rounded-3xl bg-surface-container-low p-5">
+        <p className="font-semibold">反馈状态</p>
+        {feedbackTarget ? (
+          <div className="mt-4">
+            <FeedbackComposer targetType={feedbackTarget.targetType} targetId={feedbackTarget.targetId} latestFeedback={feedbackTarget.feedback} />
+          </div>
+        ) : (
+          <p className="mt-3 text-sm leading-6 text-on-surface-variant">还没有提交学习证据</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function TeacherReviewSurface({ review, selectedStudentId, filter = "all" }: TeacherReviewSurfaceProps) {
   const activeFilter = review?.filter ?? filter;
+  const selectedStudent = review?.students.find((student) => student.studentId === selectedStudentId) ?? review?.students[0] ?? null;
 
   return (
     <div className="space-y-5">
@@ -100,12 +209,18 @@ export function TeacherReviewSurface({ review, selectedStudentId, filter = "all"
         </aside>
 
         <Card className="min-h-[420px] bg-surface-container-lowest">
-          <p className="text-sm text-on-surface-variant">学生详情</p>
-          <h2 className="mt-3 text-2xl font-semibold">请选择学生查看学习证据</h2>
-          <p className="mt-4 leading-8 text-on-surface-variant">
-            详情区域会优先呈现进度，再查看最近任务、测验结果、历史尝试和反馈状态。
-          </p>
-          <p className="mt-6 rounded-3xl bg-surface-container-low p-5 text-sm leading-6 text-on-surface-variant">还没有提交学习证据</p>
+          {selectedStudent ? (
+            <StudentDetail student={selectedStudent} />
+          ) : (
+            <div>
+              <p className="text-sm text-on-surface-variant">学生详情</p>
+              <h2 className="mt-3 text-2xl font-semibold">请选择学生查看学习证据</h2>
+              <p className="mt-4 leading-8 text-on-surface-variant">
+                详情区域会优先呈现学习进度，再查看最近任务、测验结果、历史尝试和反馈状态。
+              </p>
+              <p className="mt-6 rounded-3xl bg-surface-container-low p-5 text-sm leading-6 text-on-surface-variant">还没有提交学习证据</p>
+            </div>
+          )}
         </Card>
       </section>
     </div>
