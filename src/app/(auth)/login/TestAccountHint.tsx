@@ -17,7 +17,7 @@ export function TestAccountHint() {
   };
 
   return (
-    <div className="mt-6 flex flex-col items-center gap-2 border-t border-outline-variant pt-6">
+    <div className="mt-6 flex flex-col items-center gap-2 rounded-[var(--radius-card)] bg-surface-container-low px-4 py-4">
       <span className="text-xs text-on-surface-variant">快速填充测试账号</span>
       <div className="flex gap-2">
         {accounts.map((acc) => (
