@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "verify:phase1": "tsx scripts/verify-phase1-shell.ts",
+    "verify:phase3": "tsx scripts/verify-phase3-authoring.ts",
     "test": "vitest"
   },
   "dependencies": {
