@@ -8,15 +8,15 @@ import { demoCourse, demoLesson, lessonSteps, teacherCards } from '@/lib/demo-da
 export function TeacherDashboardSurface() {
   return (
     <div className="space-y-4">
-      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+      <section className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
         <div className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient sm:p-6">
           <Badge variant="accent" className="mb-4 bg-surface-container-lowest">
             {demoCourse.subject} · {demoCourse.classLabel}
           </Badge>
-          <h1 className="max-w-3xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[2.85rem]">
+          <h1 className="max-w-4xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[2.85rem]">
             今天把“{demoLesson.title}”编排成可运行课堂
           </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-on-surface-variant">
+          <p className="mt-4 max-w-4xl text-base leading-7 text-on-surface-variant">
             按步骤检查导入、讲授、练习和总结，确认资源与课堂模式后即可进入课堂运行。
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
