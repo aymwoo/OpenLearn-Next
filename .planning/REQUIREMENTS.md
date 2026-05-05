@@ -46,15 +46,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Student learning and submissions
 
-- [ ] **LEARN-01**: Student can view assigned or published lessons from a student dashboard and resume the most relevant lesson.
-- [ ] **LEARN-02**: Student can open a PPR lesson player with a cached lesson shell and Suspense-streamed personal progress, runtime state, and latest submission data.
-- [ ] **LEARN-03**: Student can navigate content, task, and quiz steps when classroom mode permits navigation.
-- [ ] **LEARN-04**: Student progress is recorded per step with states such as not started, in progress, completed, and skipped or equivalent.
-- [ ] **LEARN-05**: Student can resume a lesson from the first incomplete step or the teacher-forced active step.
-- [ ] **LEARN-06**: Student can submit task responses as immutable append-only attempts with an `isLatest` marker for latest-read optimization.
-- [ ] **LEARN-07**: Student can answer basic quiz questions and receive simple captured or scored outcomes.
-- [ ] **LEARN-08**: Teacher can review student progress, latest task submissions, attempt history, quiz outcomes, and basic feedback status.
-- [ ] **LEARN-09**: Teacher can leave short feedback on student submissions without requiring a full gradebook.
+- [x] **LEARN-01**: Student can view assigned or published lessons from a student dashboard and resume the most relevant lesson.
+- [x] **LEARN-02**: Student can open a PPR lesson player with a cached lesson shell and Suspense-streamed personal progress, runtime state, and latest submission data.
+- [x] **LEARN-03**: Student can navigate content, task, and quiz steps when classroom mode permits navigation.
+- [x] **LEARN-04**: Student progress is recorded per step with states such as not started, in progress, completed, and skipped or equivalent.
+- [x] **LEARN-05**: Student can resume a lesson from the first incomplete step or the teacher-forced active step.
+- [x] **LEARN-06**: Student can submit task responses as immutable append-only attempts with an `isLatest` marker for latest-read optimization.
+- [x] **LEARN-07**: Student can answer basic quiz questions and receive simple captured or scored outcomes.
+- [x] **LEARN-08**: Teacher can review student progress, latest task submissions, attempt history, quiz outcomes, and basic feedback status.
+- [x] **LEARN-09**: Teacher can leave short feedback on student submissions without requiring a full gradebook.
 
 ### Classroom runtime
 
@@ -163,15 +163,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LESSON-06 | Phase 3 | Complete |
 | LESSON-07 | Phase 3 | Complete |
 | LESSON-08 | Phase 3 | Complete |
-| LEARN-01 | Phase 4 | Pending |
-| LEARN-02 | Phase 4 | Pending |
-| LEARN-03 | Phase 4 | Pending |
-| LEARN-04 | Phase 4 | Pending |
-| LEARN-05 | Phase 4 | Pending |
-| LEARN-06 | Phase 4 | Pending |
-| LEARN-07 | Phase 4 | Pending |
-| LEARN-08 | Phase 4 | Pending |
-| LEARN-09 | Phase 4 | Pending |
+| LEARN-01 | Phase 4 | Complete |
+| LEARN-02 | Phase 4 | Complete |
+| LEARN-03 | Phase 4 | Complete |
+| LEARN-04 | Phase 4 | Complete |
+| LEARN-05 | Phase 4 | Complete |
+| LEARN-06 | Phase 4 | Complete |
+| LEARN-07 | Phase 4 | Complete |
+| LEARN-08 | Phase 4 | Complete |
+| LEARN-09 | Phase 4 | Complete |
 | CLASS-01 | Phase 5 | Pending |
 | CLASS-02 | Phase 5 | Pending |
 | CLASS-03 | Phase 5 | Pending |

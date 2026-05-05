@@ -83,7 +83,7 @@ Plans:
   5. Teacher can review progress, latest submissions, attempt history, quiz outcomes, feedback status, and leave short feedback without a full gradebook.
 **Plans**: 6 plans
 Plans:
-- [ ] 04-01-PLAN.md — Define learning schema, DTO contracts, and Phase 04 verification gate.
+- [x] 04-01-PLAN.md — Define learning schema, DTO contracts, and Phase 04 verification gate.
 - [ ] 04-02-PLAN.md — Implement server-only learning DAL for student reads, progress, append-only attempts, teacher review, and feedback.
 - [ ] 04-03-PLAN.md — Add validated learning Server Actions and explicit cache tags for progress, submissions, and review freshness.
 - [ ] 04-04-PLAN.md — Convert student dashboard/player into DTO-backed progress, task, quiz, latest attempt, and history UI.
