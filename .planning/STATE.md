@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Completed Phase 03 plans 01-04
 last_updated: "2026-05-05T00:21:19.420Z"
-last_activity: 2026-05-05 -- Phase 03 execution started
+last_activity: 2026-05-05 -- Completed quick task 260505-c8c: 修复 Auth.js CredentialsProvider 登录报 UnsupportedStrategy：credentials 登录必须启用 JWT session strategy
 progress:
   total_phases: 6
   completed_phases: 3
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 Phase: 03 (courses-lessons-steps-and-teacher-authoring) — EXECUTING
 Plan: 1 of 4
 Status: Executing Phase 03
-Last activity: 2026-05-05 -- Phase 03 execution started
+Last activity: 2026-05-05 -- Completed quick task 260505-c8c: 修复 Auth.js CredentialsProvider 登录报 UnsupportedStrategy：credentials 登录必须启用 JWT session strategy
 
 Progress: [██████████] 100%
 
@@ -74,6 +74,12 @@ None.
 
 - [Phase 6]: AI SDK version, Qdrant retrieval filters, MCP security, and plugin trust model need phase-specific validation before implementation.
 - [Phase 5]: SSE deployment limits and SQLite burst behavior need validation before live classroom pilot.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260505-c8c | 修复 Auth.js CredentialsProvider 登录报 UnsupportedStrategy：credentials 登录必须启用 JWT session strategy | 2026-05-05 | 28ddfd4 | [260505-c8c-auth-js-credentialsprovider-unsupporteds](./quick/260505-c8c-auth-js-credentialsprovider-unsupporteds/) |
 
 ## Deferred Items
 
