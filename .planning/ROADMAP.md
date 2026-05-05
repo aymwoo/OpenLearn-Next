@@ -21,7 +21,7 @@
   2. System successfully fetches and caches design tokens from Stitch project `5322129002350954765`.
   3. System can query and retrieve page component structures via MCP for local alignment reference.
 **Plans**: 2 plans
-- [ ] 08-01-PLAN.md — Refactor Home Page using Stitch design.
+- [x] 08-01-PLAN.md — Refactor Home Page using Stitch design.
 - [ ] 08-02-PLAN.md — Refactor Teacher Dashboard using Stitch design.
 
 ### Phase 9: Core Page Alignment
