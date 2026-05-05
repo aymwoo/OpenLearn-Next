@@ -109,6 +109,9 @@ export const StudentPlayerDTOSchema = z.object({
     steps: z.array(LearningProgressDTOSchema),
   }),
   runtime: RuntimeStepStateDTOSchema,
+  canRetryTask: z.boolean().default(false),
+  canRetryQuiz: z.boolean().default(false),
+  showCorrectAnswer: z.boolean().default(false),
   latestSubmissions: z.object({
     tasks: z.array(TaskAttemptDTOSchema),
     quizzes: z.array(QuizAttemptDTOSchema),
