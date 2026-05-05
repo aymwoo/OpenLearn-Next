@@ -115,7 +115,7 @@ Plans:
 - [x] 06-02-PLAN.md — Convert `/resources` into a teacher-scoped DTO-backed resource center.
 - [x] 06-03-PLAN.md — Implement AI agent registry, RAG retrieval filters, proposals, approvals, and audit contracts.
 - [x] 06-04-PLAN.md — Implement MCP metadata, credentialRef, disabled capability, and audit boundaries.
-- [ ] 06-05-PLAN.md — Implement declarative plugin/theme safety foundations and admin visibility panels.
+- [x] 06-05-PLAN.md — Implement declarative plugin/theme safety foundations and admin visibility panels.
 - [ ] 06-06-PLAN.md — Add and run final Phase 06 automated verification gate.
 **UI hint**: yes
 
