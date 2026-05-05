@@ -10,7 +10,7 @@ import { authConfig } from "./auth.config";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: DrizzleAdapter(db),
-  session: { strategy: "database" },
+  session: { strategy: "jwt" },
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -31,7 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (isValid) {
           return { id: user.id, name: user.name, email: user.email };
         }
-        
+
         return null;
       }
     })
