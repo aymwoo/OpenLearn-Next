@@ -464,3 +464,169 @@ export const classroomEvents = sqliteTable(
     index("classroomEvents_session_created_idx").on(table.sessionId, table.createdAt),
   ]
 );
+
+export const resources = sqliteTable("resource", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  schoolId: text("schoolId").notNull().references(() => schools.id, { onDelete: "cascade" }),
+  ownerId: text("ownerId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  courseId: text("courseId").references(() => courses.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  visibility: text("visibility", { enum: ["private", "course", "school"] }).notNull().default("private"),
+  classification: text("classification").notNull(),
+  ragEligible: integer("ragEligible", { mode: "boolean" }).notNull().default(false),
+  url: text("url"),
+  content: text("content"),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+}, (table) => [
+  index("resources_schoolId_idx").on(table.schoolId),
+  index("resources_ownerId_idx").on(table.ownerId),
+  index("resources_courseId_idx").on(table.courseId),
+]);
+
+export const knowledgeSources = sqliteTable("knowledgeSource", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  resourceId: text("resourceId").notNull().references(() => resources.id, { onDelete: "cascade" }),
+  status: text("status", { enum: ["pending", "processing", "completed", "failed"] }).notNull().default("pending"),
+  error: text("error"),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const knowledgeChunks = sqliteTable("knowledgeChunk", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sourceId: text("sourceId").notNull().references(() => knowledgeSources.id, { onDelete: "cascade" }),
+  chunkIndex: integer("chunkIndex").notNull(),
+  textHash: text("textHash").notNull(),
+  tokenEstimate: integer("tokenEstimate").notNull(),
+  payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+  metadataJson: text("metadataJson", { mode: "json" }).notNull(),
+  indexingStatus: text("indexingStatus", { enum: ["pending", "indexed", "failed"] }).notNull().default("pending"),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const agentRegistry = sqliteTable("agentRegistry", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  agentKey: text("agentKey").notNull(),
+  displayName: text("displayName").notNull(),
+  capabilityManifestJson: text("capabilityManifestJson", { mode: "json" }).notNull(),
+  featureFlag: text("featureFlag"),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+}, (table) => [
+  uniqueIndex("agentRegistry_agentKey_unique").on(table.agentKey)
+]);
+
+export const agentProposals = sqliteTable("agentProposal", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  agentId: text("agentId").notNull().references(() => agentRegistry.id, { onDelete: "cascade" }),
+  targetType: text("targetType").notNull(),
+  targetId: text("targetId").notNull(),
+  structuredOutputJson: text("structuredOutputJson", { mode: "json" }).notNull(),
+  status: text("status", { enum: ["pending", "approved", "rejected", "applied"] }).notNull().default("pending"),
+  approvalState: text("approvalState").notNull().default("pending"),
+  requestedById: text("requestedById").notNull().references(() => users.id, { onDelete: "cascade" }),
+  approvedById: text("approvedById").references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const agentAuditLogs = sqliteTable("agentAuditLog", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  agentId: text("agentId").notNull().references(() => agentRegistry.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+  actorId: text("actorId").references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const mcpServers = sqliteTable("mcpServer", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  schoolId: text("schoolId").notNull().references(() => schools.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  status: text("status").notNull().default("active"),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const mcpCredentialRefs = sqliteTable("mcpCredentialRef", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  serverId: text("serverId").notNull().references(() => mcpServers.id, { onDelete: "cascade" }),
+  credentialRef: text("credentialRef").notNull(),
+  provider: text("provider").notNull(),
+  status: text("status").notNull().default("active"),
+  scopesJson: text("scopesJson", { mode: "json" }).notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const mcpCapabilities = sqliteTable("mcpCapability", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  serverId: text("serverId").notNull().references(() => mcpServers.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+  allowedRolesJson: text("allowedRolesJson", { mode: "json" }).notNull(),
+  courseId: text("courseId").references(() => courses.id, { onDelete: "cascade" }),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const mcpAuditLogs = sqliteTable("mcpAuditLog", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  serverId: text("serverId").notNull().references(() => mcpServers.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+  actorId: text("actorId").references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const pluginRegistrations = sqliteTable("pluginRegistration", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  schoolId: text("schoolId").notNull().references(() => schools.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  manifestJson: text("manifestJson", { mode: "json" }).notNull(),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+  killSwitchEnabled: integer("killSwitchEnabled", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const pluginHookRuns = sqliteTable("pluginHookRun", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  pluginId: text("pluginId").notNull().references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+  hookAnchor: text("hookAnchor").notNull(),
+  status: text("status", { enum: ["success", "failed"] }).notNull(),
+  durationMs: integer("durationMs").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const pluginActionAudits = sqliteTable("pluginActionAudit", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  pluginId: text("pluginId").notNull().references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+  actorId: text("actorId").references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const themeTokenRegistries = sqliteTable("themeTokenRegistry", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  schoolId: text("schoolId").notNull().references(() => schools.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  tokenJson: text("tokenJson", { mode: "json" }).notNull(),
+  validationStatus: text("validationStatus", { enum: ["valid", "invalid", "pending"] }).notNull().default("pending"),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
+
+export const themeAuditLogs = sqliteTable("themeAuditLog", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  themeId: text("themeId").notNull().references(() => themeTokenRegistries.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+  actorId: text("actorId").references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+});
