@@ -1,5 +1,6 @@
 import { signIn } from "@/lib/auth/auth";
 import { Button } from "@/components/ui/button";
+import { TestAccountHint } from "./TestAccountHint";
 
 export default async function LoginPage({
   searchParams,
@@ -64,6 +65,7 @@ export default async function LoginPage({
             登录
           </Button>
         </form>
+        <TestAccountHint />
       </div>
     </div>
   );
