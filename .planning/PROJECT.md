@@ -10,28 +10,42 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
+## Current Milestone: v1.1 Stitch UI Alignment & Release Polish
+
+**Goal:** 通过接入和使用 Stitch MCP，将本地核心页面组件与 Stitch 项目中的设计图进行 1:1 精确对齐，使页面更紧凑、美观，达到发布标准。
+
+**Target features:**
+- 接入 Stitch MCP 读取远程设计规范与页面结构
+- 对齐**首页** UI（与 Stitch 首页设计图精确匹配）
+- 对齐**教师工作台** UI（与 Stitch 教师工作台设计图精确匹配）
+- 优化全局布局密度，确保页面排版更紧凑美观
+- 修复未严格遵循 `DESIGN.md` 或设计图的偏差（如 1px 边框、色彩与层级问题）
+
 ## Requirements
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] 建立 Next.js 16 + React 19.2 + Turbopack 的应用基础设施。
+- [x] 使用 Auth.js v5、Drizzle ORM 和 SQLite 首发实现角色鉴权基础。
+- [x] 建立 DAL 边界，禁止 UI 组件直接访问数据库。
+- [x] 实现 `users`、`accounts`、`sessions` 以及角色扩展的基础认证数据模型。
+- [x] 使用 `proxy.ts` 做轻量路由保护，复杂鉴权下沉到 Server Actions 和 DAL。
+- [x] 建立课程、课时和步骤模型，支持 `content`、`task`、`quiz` 三类原子步骤。
+- [x] 实现教师端教案编辑器与 LexoRank 无级联拖拽排序。
+- [x] 实现草稿自动保存和 Server Actions 写入后的缓存失效。
+- [x] 实现学生端 PPR 播放器和基于 `StepProgress` 的断点续播。
+- [x] 实现 Edge Runtime SSE 课堂广播，并支持 locked/unlocked 课堂模式。
+- [x] 实现 Append-only `TaskSubmissions`，通过 `isLatest` 优化读取并保留历史尝试。
+- [x] 构建 AI Agent 与 RAG 的基础架构，包括 LessonAgent、HomeworkAgent、DataAgent、TutorAgent、ParentAgent 的可扩展接口。
+- [x] 建立 JSON 声明式 Theme + Plugin 注册、权限校验和 Hook 执行框架。
 
 ### Active
 
-- [ ] 建立 Next.js 16 + React 19.2 + Turbopack 的应用基础设施。
-- [ ] 使用 Auth.js v5、Drizzle ORM 和 SQLite 首发实现角色鉴权基础。
-- [ ] 建立 DAL 边界，禁止 UI 组件直接访问数据库。
-- [ ] 实现 `users`、`accounts`、`sessions` 以及角色扩展的基础认证数据模型。
-- [ ] 使用 `proxy.ts` 做轻量路由保护，复杂鉴权下沉到 Server Actions 和 DAL。
-- [ ] 建立课程、课时和步骤模型，支持 `content`、`task`、`quiz` 三类原子步骤。
-- [ ] 实现教师端教案编辑器与 LexoRank 无级联拖拽排序。
-- [ ] 实现草稿自动保存和 Server Actions 写入后的缓存失效。
-- [ ] 实现学生端 PPR 播放器和基于 `StepProgress` 的断点续播。
-- [ ] 实现 Edge Runtime SSE 课堂广播，并支持 locked/unlocked 课堂模式。
-- [ ] 实现 Append-only `TaskSubmissions`，通过 `isLatest` 优化读取并保留历史尝试。
-- [ ] 构建 AI Agent 与 RAG 的基础架构，包括 LessonAgent、HomeworkAgent、DataAgent、TutorAgent、ParentAgent 的可扩展接口。
-- [ ] 建立 JSON 声明式 Theme + Plugin 注册、权限校验和 Hook 执行框架。
-- [ ] 按 Stitch 项目 `5322129002350954765` 和 `DESIGN.md` 落地对应页面设计。
+- [ ] 接入 Stitch MCP 获取远程设计图规范和页面结构数据。
+- [ ] 首页高保真重构：与 Stitch “首页”设计图 1:1 对齐，提升内容紧凑度和美感。
+- [ ] 教师工作台高保真重构：与 Stitch “教师工作台”设计图 1:1 对齐，优化排版密度。
+- [ ] 修复遗留的 1px 边框、不合理的色彩运用及层级阴影（严格遵守 `DESIGN.md` Tonal Layering 规则）。
+- [ ] 确保整体应用达到发布级的视觉一致性。
 
 ### Out of Scope
 
