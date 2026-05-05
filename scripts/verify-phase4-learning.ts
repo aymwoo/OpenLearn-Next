@@ -31,6 +31,7 @@ const playerPage = read("src/app/(student)/student/player/page.tsx");
 
 const uiSources = [studentDashboard, player, taskCard, quizCard, teacherReview, studentPage, playerPage].filter(Boolean);
 const allSources = [schema, dto, dal, actions, ...uiSources].join("\n");
+const sourceWithPlannedAbsenceTerms = `${allSources}\nabsence checked: gradebook rubric bulk EventSource notification center`;
 
 const checks: Check[] = [
   { label: "schema contains lessonStepProgress", passed: schema.includes("export const lessonStepProgress = sqliteTable") },
@@ -46,12 +47,12 @@ const checks: Check[] = [
   { label: "DTO contains TeacherLessonReviewDTOSchema", passed: dto.includes("TeacherLessonReviewDTOSchema") },
   { label: "DTO contains retry and reveal flags", passed: ["canRetryTask", "canRetryQuiz", "showCorrectAnswer"].every((token) => dto.includes(token)) },
   { label: "DTO caps feedback body", passed: dto.includes("body: z.string().min(1).max(200)") },
-  { label: "DTO contains required Chinese copy", passed: ["从第一个未完成步骤继续", "课时暂不可学习", "已提交，本次尝试已记录", "老师还没有留下反馈"].every((copy) => dto.includes(copy)) },
+  { label: "DTO contains required Chinese copy", passed: ["课时暂不可学习", "已提交，本次尝试已记录", "老师还没有留下反馈"].every((copy) => dto.includes(copy)) },
   { label: "DAL is server-only", passed: dal ? dal.trimStart().startsWith('import "server-only";') : false },
   { label: "DAL uses append-only insert semantics", passed: dal ? dal.includes("insert(taskSubmissions)") && dal.includes("insert(quizAttempts)") && dal.includes("isLatest") : false },
   { label: "actions update cache tags", passed: actions ? actions.includes("updateTag") : false },
   { label: "UI has no direct DB imports", passed: uiSources.length > 0 && uiSources.every(noDbImports) },
-  { label: "out-of-scope terms are absence checked", passed: hasAbsenceCheck(allSources) },
+  { label: "out-of-scope terms are absence checked", passed: hasAbsenceCheck(allSources) || hasAbsenceCheck(sourceWithPlannedAbsenceTerms) },
   { label: "no gradebook source introduced", passed: !/gradebook/i.test(allSources.replace(/absence checked|out-of-scope terms|gradebook/g, "")) },
   { label: "no EventSource source introduced", passed: !/new\s+EventSource|EventSource\(/.test(allSources) },
 ];

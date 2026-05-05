@@ -106,7 +106,7 @@ function toTaskAttemptDTO(row: typeof taskSubmissions.$inferSelect, feedback: ty
     payload: row.payloadJson,
     isLatest: row.isLatest,
     canRetryTask: true,
-    feedback: feedback ? toFeedbackDTO(feedback) : null,
+    feedback: feedback ? toFeedbackDTO(feedback, row.lessonId) : null,
     createdAt: toIso(row.createdAt),
   };
 }
@@ -124,14 +124,15 @@ function toQuizAttemptDTO(row: typeof quizAttempts.$inferSelect, feedback: typeo
     isLatest: row.isLatest,
     canRetryQuiz: true,
     showCorrectAnswer: Boolean((row.outcomeJson as { showCorrectAnswer?: boolean }).showCorrectAnswer),
-    feedback: feedback ? toFeedbackDTO(feedback) : null,
+    feedback: feedback ? toFeedbackDTO(feedback, row.lessonId) : null,
     createdAt: toIso(row.createdAt),
   };
 }
 
-function toFeedbackDTO(row: typeof attemptFeedback.$inferSelect) {
+function toFeedbackDTO(row: typeof attemptFeedback.$inferSelect, lessonId?: string) {
   return {
     id: row.id,
+    lessonId,
     targetType: row.targetType,
     targetId: row.targetId,
     teacherId: row.teacherId,
@@ -381,7 +382,12 @@ export async function markStepProgress(input: unknown) {
     await db.insert(lessonStepProgress).values({ ...payload, studentId: scope.userId, completedAt });
   }
 
-  return MutationResultDTOSchema.parse({ ok: true, successMessage: "学习进度已更新" });
+  return MutationResultDTOSchema.parse({
+    ok: true,
+    lessonId: payload.lessonId,
+    studentId: scope.userId,
+    successMessage: "学习进度已更新",
+  });
 }
 
 export async function submitTaskAttempt(input: unknown) {
@@ -635,7 +641,7 @@ export async function saveAttemptFeedback(input: unknown) {
       .where(eq(attemptFeedback.id, existing.id))
       .returning();
 
-    return toFeedbackDTO(updated);
+    return toFeedbackDTO(updated, target.lessonId);
   }
 
   const [created] = await db
@@ -643,5 +649,5 @@ export async function saveAttemptFeedback(input: unknown) {
     .values({ ...payload, teacherId: scope.userId, studentId: target.studentId })
     .returning();
 
-  return toFeedbackDTO(created);
+  return toFeedbackDTO(created, target.lessonId);
 }

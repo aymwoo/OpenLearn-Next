@@ -22,6 +22,7 @@ export const RuntimeStepStateDTOSchema = z.object({
 
 export const AttemptFeedbackDTOSchema = z.object({
   id: z.string(),
+  lessonId: z.string().optional(),
   targetType: z.enum(["task_submission", "quiz_attempt"]),
   targetId: z.string(),
   teacherId: z.string(),
@@ -178,6 +179,8 @@ export const FeedbackInputSchema = z.object({
 
 export const MutationResultDTOSchema = z.object({
   ok: z.boolean(),
+  lessonId: z.string().optional(),
+  studentId: z.string().optional(),
   successMessage: z.string().optional(),
   error: z.string().optional(),
 });
