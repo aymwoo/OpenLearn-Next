@@ -29,6 +29,27 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain("getStudentDashboardDTO");
     expect(source).toContain("getStudentPlayerDTO");
   });
+
+  it("splits player reads into cached shell and dynamic personal data", () => {
+    expect(source).toContain("export async function getStudentPlayerShellDTO");
+    expect(source).toContain("export async function getStudentPlayerPersonalDTO");
+    expect(source).toContain("export async function getStudentPlayerDTO");
+    expect(source).toContain("cacheLife('hours')");
+    expect(source).toContain("cacheTag(cacheTags.lesson(input.lessonId))");
+    expect(source).toContain("cacheTag(cacheTags.steps(input.lessonId))");
+  });
+
+  it("keeps personal player data dynamic and student-scoped", () => {
+    const personalStart = source.indexOf("export async function getStudentPlayerPersonalDTO");
+    const composerStart = source.indexOf("export async function getStudentPlayerDTO");
+    const personalSource = source.slice(personalStart, composerStart);
+
+    expect(personalSource).not.toContain("'use cache'");
+    expect(personalSource).toContain("assertActiveStudent");
+    expect(personalSource).toContain("lessonStepProgress");
+    expect(personalSource).toContain("taskSubmissions");
+    expect(personalSource).toContain("quizAttempts");
+  });
 });
 
 describe("learning DAL progress, append-only attempts, and teacher review", () => {
