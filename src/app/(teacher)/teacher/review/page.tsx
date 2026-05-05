@@ -20,7 +20,13 @@ export default async function TeacherReviewPage({ searchParams }: TeacherReviewP
   const params = await searchParams;
   const lessonId = params?.lessonId;
   const filter = parseFilter(params?.filter);
-  const review = lessonId ? await getTeacherLessonReviewDTO({ lessonId, filter }) : null;
+  let review = null;
+
+  try {
+    review = lessonId ? await getTeacherLessonReviewDTO({ lessonId, filter }) : null;
+  } catch {
+    review = null;
+  }
 
   return <TeacherReviewSurface review={review} selectedStudentId={params?.studentId ?? null} filter={filter} />;
 }
