@@ -58,6 +58,7 @@ export async function markStepProgressAction(input: FormData | Record<string, un
     if (result.studentId) {
       updateTag(cacheTags.progress(parsed.data.lessonId, result.studentId));
     }
+    updateTag(cacheTags.teacherReview(parsed.data.lessonId));
     return { ok: true, data: result };
   } catch (error) {
     return handleLearningActionError(error);
