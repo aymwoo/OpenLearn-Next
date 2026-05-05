@@ -14,10 +14,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Application foundation and design shell** - 建立 Next.js 16 应用骨架、路由外壳、PPR/cache 规则和绑定设计系统。 (Completed 2026-05-04)
 - [x] **Phase 2: Auth, roles, schema, and DAL boundary** - 建立身份、角色、SQLite/Drizzle 数据模型、权限和 server-only DAL 安全边界。 (completed 2026-05-04)
-- [ ] **Phase 3: Courses, lessons, steps, and teacher authoring** - 教师可以创建课程、编排步骤、自动保存、发布稳定课时版本。
+- [x] **Phase 3: Courses, lessons, steps, and teacher authoring** - 教师可以创建课程、编排步骤、自动保存、发布稳定课时版本。 (Completed 2026-05-05)
 - [x] **Phase 4: Student player, progress, submissions, and feedback** - 学生可以完成课时流程，教师可以查看进度、提交历史和反馈状态。 (Completed 2026-05-05)
-- [ ] **Phase 5: Classroom runtime and Edge SSE** - 教师可以启动实时课堂、控制当前步骤和 locked/unlocked 模式，学生端实时同步。
-- [ ] **Phase 6: Resource, AI/RAG/MCP, plugin, and theme foundations** - 建立资源中心与 AI、RAG、MCP、插件、主题的安全可扩展边界。
+- [x] **Phase 5: Classroom runtime and Edge SSE** - 教师可以启动实时课堂、控制当前步骤和 locked/unlocked 模式，学生端实时同步。 (Completed 2026-05-05)
+- [x] **Phase 6: Resource, AI/RAG/MCP, plugin, and theme foundations** - 建立资源中心与 AI、RAG、MCP、插件、主题的安全可扩展边界。 (Completed 2026-05-05)
 
 ## Phase Details
 
@@ -50,12 +50,11 @@ Plans:
   3. Unauthenticated users are redirected away from protected teacher, student, classroom, admin, and API route families by `proxy.ts`.
   4. Developer can use SQLite-first Drizzle migrations, cascades, indexes, Zod validation, and server-only DAL modules for all auth, school, course, classroom, AI, MCP, plugin, and theme table groups.
   5. UI receives sanitized DTOs only after DAL and Server Actions verify actor identity, role, membership, ownership, enrollment, and resource scope.
-**Plans**: 4 plans
+**Plans**: 3 plans
 Plans:
-- [x] 03-01-PLAN.md — Define authoring schema, DTO contracts, rank-string ordering, and push SQLite schema.
-- [x] 03-02-PLAN.md — Implement server-only teacher authoring DAL with DTO-safe reads, scoped mutations, reorder, and publish snapshots.
-- [x] 03-03-PLAN.md — Add Zod-validated authoring Server Actions, cache tag updates, conflict handling, and Phase 3 verification script.
-- [x] 03-04-PLAN.md — Replace static editor with data-backed teacher authoring UI, step editing, reorder controls, and publish/status feedback.
+- [x] 02-01-PLAN.md — Setup Drizzle ORM, Auth.js SQLite schema, RBAC tables, cascade deletes, and local schema push.
+- [x] 02-02-PLAN.md — Setup split Auth.js configuration, protected proxy routing, auth route, login page, and unauthorized boundary.
+- [x] 02-03-PLAN.md — Implement DTO-safe DAL boundary, Server Actions, and role-verified protected route layouts.
 **UI hint**: yes
 
 ### Phase 3: Courses, lessons, steps, and teacher authoring
@@ -68,14 +67,12 @@ Plans:
   3. Teacher can add validated `content`, `task`, and `quiz` steps, attach or reference basic materials, and keep drafts hidden from students.
   4. Teacher can reorder steps with LexoRank drag-and-drop without cascading updates across all steps.
   5. Teacher receives clear autosave, publish, conflict, and cache freshness feedback after Server Actions mutate lesson data.
-**Plans**: 6 plans
+**Plans**: 4 plans
 Plans:
-- [ ] 05-01-PLAN.md — Define durable classroom schema, DTO contracts, learning runtime fields, cache vocabulary, and push Drizzle schema.
-- [ ] 05-02-PLAN.md — Implement server-only classroom DAL for launch validation, roster binding, snapshots, controls, and conflict recovery.
-- [ ] 05-03-PLAN.md — Wire classroom Server Actions and convert `/classroom` into a live teacher launch/control console.
-- [ ] 05-04-PLAN.md — Add Node durable snapshot API and Edge SSE stream for versioned classroom state delivery.
-- [ ] 05-05-PLAN.md — Integrate classroom runtime, locked navigation, reconnect reconciliation, and manual snapshot fallback into the student player.
-- [ ] 05-06-PLAN.md — Add and run the final Phase 05 classroom runtime verification gate.
+- [x] 03-01-PLAN.md — Define authoring schema, DTO contracts, rank-string ordering, and push SQLite schema.
+- [x] 03-02-PLAN.md — Implement server-only teacher authoring DAL with DTO-safe reads, scoped mutations, reorder, and publish snapshots.
+- [x] 03-03-PLAN.md — Add Zod-validated authoring Server Actions, cache tag updates, conflict handling, and Phase 3 verification script.
+- [x] 03-04-PLAN.md — Replace static editor with data-backed teacher authoring UI, step editing, reorder controls, and publish/status feedback.
 **UI hint**: yes
 
 ### Phase 4: Student player, progress, submissions, and feedback
@@ -111,12 +108,12 @@ Plans:
   5. Teacher can recover from classroom control conflicts or stale UI with clear state feedback.
 **Plans**: 6 plans
 Plans:
-- [x] 06-01-PLAN.md — Define Phase 06 schema, DTO, cache tags, and push Drizzle schema.
-- [x] 06-02-PLAN.md — Convert `/resources` into a teacher-scoped DTO-backed resource center.
-- [x] 06-03-PLAN.md — Implement AI agent registry, RAG retrieval filters, proposals, approvals, and audit contracts.
-- [x] 06-04-PLAN.md — Implement MCP metadata, credentialRef, disabled capability, and audit boundaries.
-- [x] 06-05-PLAN.md — Implement declarative plugin/theme safety foundations and admin visibility panels.
-- [x] 06-06-PLAN.md — Add and run final Phase 06 automated verification gate. (completed 2026-05-05)
+- [x] 05-01-PLAN.md — Define durable classroom schema, DTO contracts, learning runtime fields, cache vocabulary, and push Drizzle schema.
+- [x] 05-02-PLAN.md — Implement server-only classroom DAL for launch validation, roster binding, snapshots, controls, and conflict recovery.
+- [x] 05-03-PLAN.md — Wire classroom Server Actions and convert `/classroom` into a live teacher launch/control console.
+- [x] 05-04-PLAN.md — Add Node durable snapshot API and Edge SSE stream for versioned classroom state delivery.
+- [x] 05-05-PLAN.md — Integrate classroom runtime, locked navigation, reconnect reconciliation, and manual snapshot fallback into the student player.
+- [x] 05-06-PLAN.md — Add and run the final Phase 05 classroom runtime verification gate. (completed 2026-05-05)
 **UI hint**: yes
 
 ### Phase 6: Resource, AI/RAG/MCP, plugin, and theme foundations
@@ -129,7 +126,14 @@ Plans:
   3. Developer can define RAG `KnowledgeSource`, chunk metadata, Qdrant-ready retrieval filters, and MCP server/credential/capability/audit tables behind server-side adapter boundaries.
   4. Developer can register declarative JSON plugins with permissions, safe context injection, hook anchors, action allowlists, denied-action audit logs, and kill-switch state.
   5. Admin or developer can define declarative theme tokens that preserve `DESIGN.md`, Lexend, Simplified Chinese UI, no-line tonal surfaces, and accessibility constraints.
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [x] 06-01-PLAN.md — Define Phase 06 schema, DTO, cache tags, and push Drizzle schema.
+- [x] 06-02-PLAN.md — Convert `/resources` into a teacher-scoped DTO-backed resource center.
+- [x] 06-03-PLAN.md — Implement AI agent registry, RAG retrieval filters, proposals, approvals, and audit contracts.
+- [x] 06-04-PLAN.md — Implement MCP metadata, credentialRef, disabled capability, and audit boundaries.
+- [x] 06-05-PLAN.md — Implement declarative plugin/theme safety foundations and admin visibility panels.
+- [x] 06-06-PLAN.md — Add and run final Phase 06 automated verification gate. (completed 2026-05-05)
 **UI hint**: yes
 
 ## Progress
@@ -141,10 +145,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Application foundation and design shell | 6/6 | Complete | 2026-05-04 |
 | 2. Auth, roles, schema, and DAL boundary | 3/3 | Complete   | 2026-05-04 |
-| 3. Courses, lessons, steps, and teacher authoring | 0/TBD | Not started | - |
+| 3. Courses, lessons, steps, and teacher authoring | 4/4 | Complete | 2026-05-05 |
 | 4. Student player, progress, submissions, and feedback | 7/7 | Complete | 2026-05-05 |
-| 5. Classroom runtime and Edge SSE | 0/TBD | Not started | - |
-| 6. Resource, AI/RAG/MCP, plugin, and theme foundations | 0/TBD | Not started | - |
+| 5. Classroom runtime and Edge SSE | 6/6 | Complete | 2026-05-05 |
+| 6. Resource, AI/RAG/MCP, plugin, and theme foundations | 6/6 | Complete | 2026-05-05 |
 
 ## Coverage
 
