@@ -52,10 +52,10 @@ Plans:
   5. UI receives sanitized DTOs only after DAL and Server Actions verify actor identity, role, membership, ownership, enrollment, and resource scope.
 **Plans**: 4 plans
 Plans:
-- [ ] 03-01-PLAN.md — Define authoring schema, DTO contracts, rank-string ordering, and push SQLite schema.
-- [ ] 03-02-PLAN.md — Implement server-only teacher authoring DAL with DTO-safe reads, scoped mutations, reorder, and publish snapshots.
-- [ ] 03-03-PLAN.md — Add Zod-validated authoring Server Actions, cache tag updates, conflict handling, and Phase 3 verification script.
-- [ ] 03-04-PLAN.md — Replace static editor with data-backed teacher authoring UI, step editing, reorder controls, and publish/status feedback.
+- [x] 03-01-PLAN.md — Define authoring schema, DTO contracts, rank-string ordering, and push SQLite schema.
+- [x] 03-02-PLAN.md — Implement server-only teacher authoring DAL with DTO-safe reads, scoped mutations, reorder, and publish snapshots.
+- [x] 03-03-PLAN.md — Add Zod-validated authoring Server Actions, cache tag updates, conflict handling, and Phase 3 verification script.
+- [x] 03-04-PLAN.md — Replace static editor with data-backed teacher authoring UI, step editing, reorder controls, and publish/status feedback.
 **UI hint**: yes
 
 ### Phase 3: Courses, lessons, steps, and teacher authoring

@@ -35,14 +35,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Courses, lessons, and teacher authoring
 
-- [ ] **LESSON-01**: Teacher can create and manage courses or classes with enrolled students.
-- [ ] **LESSON-02**: Teacher can create, edit, duplicate, archive, and publish lessons inside a course or class.
-- [ ] **LESSON-03**: Teacher can add ordered lesson steps of type `content`, `task`, and `quiz` with validated structured payloads.
-- [ ] **LESSON-04**: Teacher can attach or reference basic materials such as links, uploaded resources, and rich text content from a minimal resource center.
-- [ ] **LESSON-05**: Teacher can autosave draft lesson and step changes without exposing drafts to students.
-- [ ] **LESSON-06**: Teacher can publish a stable lesson version that students and classroom sessions consume.
-- [ ] **LESSON-07**: Teacher can drag and drop steps using LexoRank ordering without cascading updates across all steps.
-- [ ] **LESSON-08**: Teacher receives clear save, publish, conflict, and cache freshness feedback after Server Actions mutate lesson data.
+- [x] **LESSON-01**: Teacher can create and manage courses or classes with enrolled students.
+- [x] **LESSON-02**: Teacher can create, edit, duplicate, archive, and publish lessons inside a course or class.
+- [x] **LESSON-03**: Teacher can add ordered lesson steps of type `content`, `task`, and `quiz` with validated structured payloads.
+- [x] **LESSON-04**: Teacher can attach or reference basic materials such as links, uploaded resources, and rich text content from a minimal resource center.
+- [x] **LESSON-05**: Teacher can autosave draft lesson and step changes without exposing drafts to students.
+- [x] **LESSON-06**: Teacher can publish a stable lesson version that students and classroom sessions consume.
+- [x] **LESSON-07**: Teacher can drag and drop steps using LexoRank ordering without cascading updates across all steps.
+- [x] **LESSON-08**: Teacher receives clear save, publish, conflict, and cache freshness feedback after Server Actions mutate lesson data.
 
 ### Student learning and submissions
 
@@ -155,14 +155,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-03 | Phase 2 | Pending |
 | DATA-04 | Phase 2 | Pending |
 | DATA-05 | Phase 2 | Pending |
-| LESSON-01 | Phase 3 | Pending |
-| LESSON-02 | Phase 3 | Pending |
-| LESSON-03 | Phase 3 | Pending |
-| LESSON-04 | Phase 3 | Pending |
-| LESSON-05 | Phase 3 | Pending |
-| LESSON-06 | Phase 3 | Pending |
-| LESSON-07 | Phase 3 | Pending |
-| LESSON-08 | Phase 3 | Pending |
+| LESSON-01 | Phase 3 | Complete |
+| LESSON-02 | Phase 3 | Complete |
+| LESSON-03 | Phase 3 | Complete |
+| LESSON-04 | Phase 3 | Complete |
+| LESSON-05 | Phase 3 | Complete |
+| LESSON-06 | Phase 3 | Complete |
+| LESSON-07 | Phase 3 | Complete |
+| LESSON-08 | Phase 3 | Complete |
 | LEARN-01 | Phase 4 | Pending |
 | LEARN-02 | Phase 4 | Pending |
 | LEARN-03 | Phase 4 | Pending |
