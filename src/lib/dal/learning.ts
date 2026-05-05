@@ -604,9 +604,17 @@ async function getLessonStudentIds(courseId: string) {
   return [...new Set([...directEnrollments.map((item) => item.studentId), ...members.map((item) => item.userId)])];
 }
 
-async function buildTeacherStudentReview(studentId: string, lessonId: string, publishedVersionId: string, totalSteps: number) {
+async function buildTeacherStudentReview(studentId: string, lessonId: string, publishedVersionId: string, steps: LearningStepDTO[]) {
   const student = await db.query.users.findFirst({ where: eq(users.id, studentId) });
   const progressRows = await getProgressRecords(publishedVersionId, studentId);
+  const progress = summarizeProgress(steps, progressRows).steps;
+  const stepById = new Map(steps.map((step) => [step.id, step]));
+  const taskHistory = await db.query.taskSubmissions.findMany({
+    where: and(eq(taskSubmissions.publishedVersionId, publishedVersionId), eq(taskSubmissions.studentId, studentId)),
+  });
+  const quizHistory = await db.query.quizAttempts.findMany({
+    where: and(eq(quizAttempts.publishedVersionId, publishedVersionId), eq(quizAttempts.studentId, studentId)),
+  });
   const latestTasks = await db.query.taskSubmissions.findMany({
     where: and(eq(taskSubmissions.publishedVersionId, publishedVersionId), eq(taskSubmissions.studentId, studentId), eq(taskSubmissions.isLatest, true)),
   });
@@ -616,21 +624,22 @@ async function buildTeacherStudentReview(studentId: string, lessonId: string, pu
   const feedbackRows = await db.query.attemptFeedback.findMany({ where: eq(attemptFeedback.studentId, studentId) });
   const latestAttempts = [...latestTasks.map((row) => row.id), ...latestQuizzes.map((row) => row.id)];
   const needsFeedback = latestAttempts.some((id) => !feedbackRows.some((feedback) => feedback.targetId === id));
-  const completed = progressRows.filter((row) => row.state === "completed" || row.state === "skipped").length;
+  const completed = progress.filter((row) => row.state === "completed" || row.state === "skipped").length;
 
   return TeacherStudentReviewDTOSchema.parse({
     studentId,
     studentName: student?.name ?? "学生",
-    progress: progressRows.map((row) => ({
-      stepId: row.stepId,
-      state: row.state,
-      completedAt: nullableIso(row.completedAt),
-      updatedAt: toIso(row.updatedAt),
-    })),
-    latestTaskSubmissions: latestTasks.map((row) => toTaskAttemptDTO(row, feedbackRows.find((item) => item.targetId === row.id) ?? null)),
-    latestQuizAttempts: latestQuizzes.map((row) => toQuizAttemptDTO(row, feedbackRows.find((item) => item.targetId === row.id) ?? null)),
+    progress,
+    latestTaskSubmissions: latestTasks.map((row) => toTaskAttemptDTO(row, feedbackRows.find((item) => item.targetId === row.id) ?? null, getAttemptPolicy(stepById.get(row.stepId)))),
+    latestQuizAttempts: latestQuizzes.map((row) => toQuizAttemptDTO(row, feedbackRows.find((item) => item.targetId === row.id) ?? null, getAttemptPolicy(stepById.get(row.stepId)))),
+    taskSubmissionHistory: taskHistory
+      .sort((a, b) => a.attemptNo - b.attemptNo)
+      .map((row) => toTaskAttemptDTO(row, feedbackRows.find((item) => item.targetId === row.id) ?? null, getAttemptPolicy(stepById.get(row.stepId)))),
+    quizAttemptHistory: quizHistory
+      .sort((a, b) => a.attemptNo - b.attemptNo)
+      .map((row) => toQuizAttemptDTO(row, feedbackRows.find((item) => item.targetId === row.id) ?? null, getAttemptPolicy(stepById.get(row.stepId)))),
     needsFeedback,
-    _status: completed === 0 ? "not_started" : completed >= totalSteps ? "completed" : "in_progress",
+    _status: completed === 0 ? "not_started" : completed >= steps.length ? "completed" : "in_progress",
   });
 }
 
@@ -641,7 +650,7 @@ export async function getTeacherLessonReviewDTO(input: { lessonId: string; filte
   const steps = parseSnapshotSteps(snapshot, lesson.id);
   const studentIds = await getLessonStudentIds(course.id);
   const allStudents = await Promise.all(
-    studentIds.map(async (studentId) => buildTeacherStudentReview(studentId, lesson.id, published.id, steps.length))
+    studentIds.map(async (studentId) => buildTeacherStudentReview(studentId, lesson.id, published.id, steps))
   );
   const withStatus = allStudents.map((student) => {
     const completed = student.progress.filter((row) => row.state === "completed" || row.state === "skipped").length;
@@ -668,11 +677,16 @@ export async function getTeacherLessonReviewDTO(input: { lessonId: string; filte
 }
 
 export async function getTeacherStudentReviewDTO(input: { lessonId: string; studentId: string }) {
-  const { lesson, published } = await getScopedTeacherLesson(input.lessonId);
+  const { lesson, course, published } = await getScopedTeacherLesson(input.lessonId);
   const snapshot = parseSnapshot(published.snapshotJson);
   const steps = parseSnapshotSteps(snapshot, lesson.id);
+  const studentIds = await getLessonStudentIds(course.id);
 
-  return buildTeacherStudentReview(input.studentId, lesson.id, published.id, steps.length);
+  if (!studentIds.includes(input.studentId)) {
+    throw new Error("STUDENT_NOT_IN_LESSON_ROSTER");
+  }
+
+  return buildTeacherStudentReview(input.studentId, lesson.id, published.id, steps);
 }
 
 export async function saveAttemptFeedback(input: unknown) {

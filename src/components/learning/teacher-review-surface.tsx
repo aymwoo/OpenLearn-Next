@@ -44,11 +44,10 @@ function StudentDetail({ student }: { student: TeacherStudentReviewDTO }) {
   const total = student.progress.length;
   const latestTask = student.latestTaskSubmissions[0] ?? null;
   const latestQuiz = student.latestQuizAttempts[0] ?? null;
-  const feedbackTarget = latestTask
-    ? { targetType: "task_submission" as const, targetId: latestTask.id, feedback: latestTask.feedback }
-    : latestQuiz
-      ? { targetType: "quiz_attempt" as const, targetId: latestQuiz.id, feedback: latestQuiz.feedback }
-      : null;
+  const feedbackTargets = [
+    ...student.latestTaskSubmissions.map((attempt) => ({ label: "任务反馈", targetType: "task_submission" as const, targetId: attempt.id, feedback: attempt.feedback })),
+    ...student.latestQuizAttempts.map((attempt) => ({ label: "测验反馈", targetType: "quiz_attempt" as const, targetId: attempt.id, feedback: attempt.feedback })),
+  ].sort((a, b) => Number(Boolean(a.feedback)) - Number(Boolean(b.feedback)));
 
   return (
     <div className="space-y-5">
@@ -100,14 +99,14 @@ function StudentDetail({ student }: { student: TeacherStudentReviewDTO }) {
       <section className="rounded-3xl bg-surface-container-low p-5">
         <p className="font-semibold">历史尝试</p>
         <div className="mt-3 grid gap-3">
-          {[...student.latestTaskSubmissions, ...student.latestQuizAttempts]
+          {[...student.taskSubmissionHistory, ...student.quizAttemptHistory]
             .sort((a, b) => a.attemptNo - b.attemptNo)
             .map((attempt) => (
               <article key={attempt.id} className="rounded-3xl bg-surface-container-lowest p-4 text-sm leading-6 text-on-surface-variant">
                 第 {attempt.attemptNo} 次尝试 · {attempt.isLatest ? "最新" : "历史记录"}
               </article>
             ))}
-          {student.latestTaskSubmissions.length + student.latestQuizAttempts.length === 0 ? (
+          {student.taskSubmissionHistory.length + student.quizAttemptHistory.length === 0 ? (
             <p className="rounded-3xl bg-surface-container-lowest p-4 text-sm text-on-surface-variant">第 1 次尝试会在学生提交后出现在这里。</p>
           ) : null}
         </div>
@@ -115,9 +114,14 @@ function StudentDetail({ student }: { student: TeacherStudentReviewDTO }) {
 
       <section className="rounded-3xl bg-surface-container-low p-5">
         <p className="font-semibold">反馈状态</p>
-        {feedbackTarget ? (
-          <div className="mt-4">
-            <FeedbackComposer targetType={feedbackTarget.targetType} targetId={feedbackTarget.targetId} latestFeedback={feedbackTarget.feedback} />
+        {feedbackTargets.length > 0 ? (
+          <div className="mt-4 grid gap-4">
+            {feedbackTargets.map((target) => (
+              <div key={`${target.targetType}-${target.targetId}`}>
+                <p className="mb-2 text-sm font-semibold text-on-surface-variant">{target.label}</p>
+                <FeedbackComposer targetType={target.targetType} targetId={target.targetId} latestFeedback={target.feedback} />
+              </div>
+            ))}
           </div>
         ) : (
           <p className="mt-3 text-sm leading-6 text-on-surface-variant">还没有提交学习证据</p>

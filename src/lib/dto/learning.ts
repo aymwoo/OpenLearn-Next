@@ -154,6 +154,8 @@ export const TeacherStudentReviewDTOSchema = z.object({
   progress: z.array(LearningProgressDTOSchema),
   latestTaskSubmissions: z.array(TaskAttemptDTOSchema),
   latestQuizAttempts: z.array(QuizAttemptDTOSchema),
+  taskSubmissionHistory: z.array(TaskAttemptDTOSchema).default([]),
+  quizAttemptHistory: z.array(QuizAttemptDTOSchema).default([]),
   needsFeedback: z.boolean(),
   feedbackEmptyLabel: z.string().default("老师还没有留下反馈"),
 });
