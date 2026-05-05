@@ -5,17 +5,36 @@ import { z } from "zod";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(1, "Password is required"),
+  password: z.string().min(1, "请输入密码。"),
 });
 
-export async function signInAction(formData: FormData) {
+export type SignInActionState = {
+  error?: string;
+};
+
+function isCredentialsSigninError(error: unknown) {
+  if (typeof error !== "object" || error === null) return false;
+
+  const candidate = error as { type?: unknown; code?: unknown; message?: unknown };
+  return (
+    candidate.type === "CredentialsSignin" ||
+    candidate.code === "credentials" ||
+    (typeof candidate.message === "string" &&
+      candidate.message.includes("CredentialsSignin"))
+  );
+}
+
+export async function signInAction(
+  _prevState: SignInActionState,
+  formData: FormData
+): Promise<SignInActionState> {
   const email = formData.get("email");
   const password = formData.get("password");
 
   const parsed = credentialsSchema.safeParse({ email, password });
 
   if (!parsed.success) {
-    return { error: "Invalid credentials format" };
+    return { error: "请输入有效邮箱和密码。" };
   }
 
   try {
@@ -25,16 +44,13 @@ export async function signInAction(formData: FormData) {
       redirectTo: "/",
     });
   } catch (error: unknown) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "type" in error &&
-      error.type === "CredentialsSignin"
-    ) {
-      return { error: "Invalid credentials" };
+    if (isCredentialsSigninError(error)) {
+      return { error: "邮箱或密码不正确。" };
     }
     throw error;
   }
+
+  return {};
 }
 
 export async function signOutAction() {
