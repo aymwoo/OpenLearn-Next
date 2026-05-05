@@ -1,0 +1,14 @@
+<verification_context>
+**Phase:** 02
+**Phase Goal:** 用户可以安全登录并进入角色对应工作区，开发者只能通过授权 DAL 和 Server Actions 访问 SQLite-first Drizzle 数据。
+
+<files_to_read>
+- .planning/phases/02-auth-roles-schema-and-dal-boundary/*-PLAN.md (Plans to verify)
+- .planning/ROADMAP.md (Roadmap)
+- .planning/REQUIREMENTS.md (Requirements)
+- .planning/phases/02-auth-roles-schema-and-dal-boundary/02-CONTEXT.md (USER DECISIONS from /gsd-discuss-phase)
+- .planning/phases/02-auth-roles-schema-and-dal-boundary/02-RESEARCH.md (Technical Research — includes Validation Architecture)
+</files_to_read>
+
+**Phase requirement IDs (MUST ALL be covered):** AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, DATA-01, DATA-02, DATA-03, DATA-04, DATA-05
+</verification_context>
