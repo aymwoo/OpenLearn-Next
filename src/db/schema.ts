@@ -250,3 +250,121 @@ export const publishedLessonVersions = sqliteTable(
   },
   (table) => [index("publishedLessonVersions_lessonId_version_idx").on(table.lessonId, table.version)]
 );
+
+export const lessonStepProgress = sqliteTable(
+  "lessonStepProgress",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    publishedVersionId: text("publishedVersionId")
+      .notNull()
+      .references(() => publishedLessonVersions.id, { onDelete: "cascade" }),
+    lessonId: text("lessonId")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    stepId: text("stepId")
+      .notNull()
+      .references(() => lessonSteps.id, { onDelete: "cascade" }),
+    studentId: text("studentId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    state: text("state", { enum: ["not_started", "in_progress", "completed", "skipped"] })
+      .notNull()
+      .default("not_started"),
+    completedAt: integer("completedAt", { mode: "timestamp_ms" }),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("lessonStepProgress_version_student_idx").on(table.publishedVersionId, table.studentId),
+    index("lessonStepProgress_lesson_student_idx").on(table.lessonId, table.studentId),
+  ]
+);
+
+export const taskSubmissions = sqliteTable(
+  "taskSubmission",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    publishedVersionId: text("publishedVersionId")
+      .notNull()
+      .references(() => publishedLessonVersions.id, { onDelete: "cascade" }),
+    lessonId: text("lessonId")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    stepId: text("stepId")
+      .notNull()
+      .references(() => lessonSteps.id, { onDelete: "cascade" }),
+    studentId: text("studentId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    attemptNo: integer("attemptNo").notNull(),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    isLatest: integer("isLatest", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("taskSubmissions_latest_idx").on(
+      table.publishedVersionId,
+      table.stepId,
+      table.studentId,
+      table.isLatest
+    ),
+    index("taskSubmissions_history_idx").on(table.publishedVersionId, table.stepId, table.studentId, table.attemptNo),
+  ]
+);
+
+export const quizAttempts = sqliteTable(
+  "quizAttempt",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    publishedVersionId: text("publishedVersionId")
+      .notNull()
+      .references(() => publishedLessonVersions.id, { onDelete: "cascade" }),
+    lessonId: text("lessonId")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    stepId: text("stepId")
+      .notNull()
+      .references(() => lessonSteps.id, { onDelete: "cascade" }),
+    studentId: text("studentId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    attemptNo: integer("attemptNo").notNull(),
+    answerJson: text("answerJson", { mode: "json" }).notNull(),
+    outcomeJson: text("outcomeJson", { mode: "json" }).notNull(),
+    isLatest: integer("isLatest", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("quizAttempts_latest_idx").on(table.publishedVersionId, table.stepId, table.studentId, table.isLatest),
+    index("quizAttempts_history_idx").on(table.publishedVersionId, table.stepId, table.studentId, table.attemptNo),
+  ]
+);
+
+export const attemptFeedback = sqliteTable(
+  "attemptFeedback",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    targetType: text("targetType", { enum: ["task_submission", "quiz_attempt"] }).notNull(),
+    targetId: text("targetId").notNull(),
+    teacherId: text("teacherId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    studentId: text("studentId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("attemptFeedback_target_idx").on(table.targetType, table.targetId),
+    index("attemptFeedback_student_idx").on(table.studentId),
+  ]
+);
