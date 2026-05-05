@@ -20,6 +20,10 @@ function withoutLineComments(source: string) {
     .join("\n");
 }
 
+function nonCommentSourceIncludes(source: string, token: string) {
+  return withoutLineComments(source).includes(token);
+}
+
 function noDeferredScopeTokens(source: string) {
   const filtered = withoutLineComments(source);
 
@@ -63,6 +67,8 @@ const checks: Check[] = [
   { label: "schema contains cascade deletes", passed: (schema.match(/onDelete: "cascade"/g)?.length ?? 0) >= 12 },
   { label: "DTO contains StudentDashboardDTOSchema", passed: dto.includes("StudentDashboardDTOSchema") },
   { label: "DTO contains StudentPlayerDTOSchema", passed: dto.includes("StudentPlayerDTOSchema") },
+  { label: "DTO contains split player shell schema", passed: dto.includes("StudentPlayerShellDTOSchema") },
+  { label: "DTO contains split player personal schema", passed: dto.includes("StudentPlayerPersonalDTOSchema") },
   { label: "DTO contains task and quiz attempt schemas", passed: dto.includes("TaskAttemptDTOSchema") && dto.includes("QuizAttemptDTOSchema") },
   { label: "DTO contains TeacherLessonReviewDTOSchema", passed: dto.includes("TeacherLessonReviewDTOSchema") },
   { label: "DTO contains retry and reveal flags", passed: ["canRetryTask", "canRetryQuiz", "showCorrectAnswer"].every((token) => dto.includes(token)) },
@@ -70,6 +76,8 @@ const checks: Check[] = [
   { label: "DTO contains required Chinese copy", passed: ["课时暂不可学习", "已提交，本次尝试已记录", "老师还没有留下反馈"].every((copy) => dto.includes(copy)) },
   { label: "DAL is server-only", passed: dal ? dal.trimStart().startsWith('import "server-only";') : false },
   { label: "DAL reads published lesson snapshots", passed: dal.includes("publishedLessonVersions") && dal.includes("snapshotJson") },
+  { label: "DAL exposes split student player loaders", passed: dal.includes("getStudentPlayerShellDTO") && dal.includes("getStudentPlayerPersonalDTO") },
+  { label: "DAL caches only the player shell", passed: dal.includes("'use cache'") && dal.includes("cacheLife('hours')") && dal.includes("cacheTag(cacheTags.lesson(input.lessonId))") && dal.includes("cacheTag(cacheTags.steps(input.lessonId))") },
   { label: "DAL uses transactions for append-only latest writes", passed: dal.includes("db.transaction") && dal.includes("insert(taskSubmissions)") && dal.includes("insert(quizAttempts)") },
   { label: "DAL clears previous latest markers", passed: dal.includes("isLatest: false") && dal.includes("isLatest: true") && dal.includes("isLatest: 0") && dal.includes("isLatest: 1") },
   { label: "DAL exposes teacher review and feedback", passed: dal.includes("getTeacherLessonReviewDTO") && dal.includes("saveAttemptFeedback") },
@@ -81,6 +89,9 @@ const checks: Check[] = [
   { label: "UI has no direct DB imports", passed: uiSources.length > 0 && uiSources.every(noDbImports) },
   { label: "student dashboard required copy", passed: studentDashboard.includes("继续学习") && studentDashboard.includes("还没有可学习的课时") },
   { label: "player required copy", passed: player.includes("老师指定") && player.includes("正在加载你的学习进度") && player.includes("正在读取最近一次提交") },
+  { label: "player route uses Suspense split loaders", passed: playerPage.includes("Suspense") && playerPage.includes("getStudentPlayerShellDTO") && playerPage.includes("getStudentPlayerPersonalDTO") },
+  { label: "player route avoids full DTO loader", passed: !nonCommentSourceIncludes(playerPage, "getStudentPlayerDTO({") },
+  { label: "player surface exposes personal region and fallback", passed: player.includes("PlayerPersonalRegion") && player.includes("PlayerPersonalFallback") && player.includes("personalSlot") },
   { label: "task card required copy", passed: taskCard.includes("提交任务") && taskCard.includes("提交后会保留为一次新的尝试记录") },
   { label: "quiz card required copy", passed: quizCard.includes("提交答案") && quizCard.includes("已记录你的答案") },
   { label: "teacher review required copy", passed: teacherReview.includes("TeacherReviewSurface") && teacherReview.includes("待反馈") },
