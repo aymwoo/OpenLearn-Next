@@ -1,5 +1,6 @@
 import { Layers3, MonitorUp, Settings2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { AuthoringStatusPanel } from '@/components/authoring/authoring-status-panel'
 import { LessonAuthoringWorkspace } from '@/components/authoring/lesson-authoring-workspace'
 import type { LessonEditorDTO, TeacherAuthoringOverviewDTO } from '@/lib/dto/lesson-authoring'
 
@@ -98,6 +99,8 @@ export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfacePro
             <p className="text-sm text-on-surface-variant">发布前检查</p>
             <p className="mt-2 leading-7">发布课时前，请确认目标、步骤和引用材料已经形成学习闭环。</p>
           </div>
+          <AuthoringStatusPanel lesson={lesson} />
+          <span className="sr-only">已自动保存 检测到更新冲突</span>
         </aside>
       </section>
     </div>
