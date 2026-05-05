@@ -4,6 +4,8 @@ import { BookOpen, CheckCircle2, Focus, MonitorPlay } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { QuizStepCard } from '@/components/learning/quiz-step-card'
+import { TaskStepCard } from '@/components/learning/task-step-card'
 import { markStepProgressAction } from '@/actions/learning-actions'
 import type { LearningStepDTO, ProgressState, StudentPlayerDTO } from '@/lib/dto/learning'
 
@@ -71,6 +73,33 @@ function CurrentStepRenderer({ player, step }: { player: StudentPlayerDTO; step:
 
   if (step.type === 'content') {
     return <ContentStepCard player={player} step={step} state={state} />
+  }
+
+  if (step.type === 'task') {
+    return (
+      <TaskStepCard
+        lessonId={player.shell.lessonId}
+        publishedVersionId={player.shell.publishedVersionId}
+        step={step}
+        latestAttempt={player.latestSubmissions.tasks.find((attempt) => attempt.stepId === step.id) ?? null}
+        attempts={player.history.tasks.filter((attempt) => attempt.stepId === step.id)}
+      />
+    )
+  }
+
+  if (step.type === 'quiz') {
+    const latestAttempt = player.latestSubmissions.quizzes.find((attempt) => attempt.stepId === step.id) ?? null
+    return (
+      <QuizStepCard
+        lessonId={player.shell.lessonId}
+        publishedVersionId={player.shell.publishedVersionId}
+        step={step}
+        latestAttempt={latestAttempt}
+        attempts={player.history.quizzes.filter((attempt) => attempt.stepId === step.id)}
+        canRetryQuiz={latestAttempt?.canRetryQuiz ?? player.canRetryQuiz}
+        showCorrectAnswer={latestAttempt?.showCorrectAnswer ?? player.showCorrectAnswer}
+      />
+    )
   }
 
   return (
