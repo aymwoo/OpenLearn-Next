@@ -116,7 +116,7 @@ Plans:
 - [x] 06-03-PLAN.md — Implement AI agent registry, RAG retrieval filters, proposals, approvals, and audit contracts.
 - [x] 06-04-PLAN.md — Implement MCP metadata, credentialRef, disabled capability, and audit boundaries.
 - [x] 06-05-PLAN.md — Implement declarative plugin/theme safety foundations and admin visibility panels.
-- [ ] 06-06-PLAN.md — Add and run final Phase 06 automated verification gate.
+- [x] 06-06-PLAN.md — Add and run final Phase 06 automated verification gate. (completed 2026-05-05)
 **UI hint**: yes
 
 ### Phase 6: Resource, AI/RAG/MCP, plugin, and theme foundations
