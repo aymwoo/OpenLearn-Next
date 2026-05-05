@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "verify:phase1": "tsx scripts/verify-phase1-shell.ts",
     "verify:phase3": "tsx scripts/verify-phase3-authoring.ts",
+    "verify:phase4": "tsx scripts/verify-phase4-learning.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "test": "vitest"
   },
