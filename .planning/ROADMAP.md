@@ -111,7 +111,7 @@ Plans:
   5. Teacher can recover from classroom control conflicts or stale UI with clear state feedback.
 **Plans**: 6 plans
 Plans:
-- [ ] 06-01-PLAN.md — Define Phase 06 schema, DTO, cache tags, and push Drizzle schema.
+- [x] 06-01-PLAN.md — Define Phase 06 schema, DTO, cache tags, and push Drizzle schema.
 - [ ] 06-02-PLAN.md — Convert `/resources` into a teacher-scoped DTO-backed resource center.
 - [ ] 06-03-PLAN.md — Implement AI agent registry, RAG retrieval filters, proposals, approvals, and audit contracts.
 - [ ] 06-04-PLAN.md — Implement MCP metadata, credentialRef, disabled capability, and audit boundaries.

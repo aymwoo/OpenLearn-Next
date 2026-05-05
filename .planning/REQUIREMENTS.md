@@ -68,23 +68,23 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Resource, AI, RAG, and MCP foundations
 
-- [ ] **AI-01**: Teacher can manage a minimal resource center that records resource metadata, ownership, visibility, and future RAG eligibility.
-- [ ] **AI-02**: Developer can register AI agent capability interfaces for LessonAgent, HomeworkAgent, DataAgent, TutorAgent, and ParentAgent without granting raw database access.
-- [ ] **AI-03**: Developer can store agent run metadata, audit logs, feature flags, and structured outputs for future AI workflows.
-- [ ] **AI-04**: Developer can define RAG `KnowledgeSource` and chunk metadata contracts with school, course, subject, grade, visibility, and source filters.
-- [ ] **AI-05**: Developer can configure a Qdrant-ready retrieval boundary without enabling cross-school or cross-course retrieval by default.
-- [ ] **AI-06**: Developer can define MCP server, credential, capability, and audit-log tables behind a server-side adapter boundary.
-- [ ] **AI-07**: Teacher approval is required before AI-generated or MCP-derived content changes lessons, classroom state, or student-visible output.
+- [x] **AI-01**: Teacher can manage a minimal resource center that records resource metadata, ownership, visibility, and future RAG eligibility.
+- [x] **AI-02**: Developer can register AI agent capability interfaces for LessonAgent, HomeworkAgent, DataAgent, TutorAgent, and ParentAgent without granting raw database access.
+- [x] **AI-03**: Developer can store agent run metadata, audit logs, feature flags, and structured outputs for future AI workflows.
+- [x] **AI-04**: Developer can define RAG `KnowledgeSource` and chunk metadata contracts with school, course, subject, grade, visibility, and source filters.
+- [x] **AI-05**: Developer can configure a Qdrant-ready retrieval boundary without enabling cross-school or cross-course retrieval by default.
+- [x] **AI-06**: Developer can define MCP server, credential, capability, and audit-log tables behind a server-side adapter boundary.
+- [x] **AI-07**: Teacher approval is required before AI-generated or MCP-derived content changes lessons, classroom state, or student-visible output.
 
 ### Plugin and theme foundations
 
-- [ ] **PLUGIN-01**: Developer can register plugins through validated declarative JSON manifests containing name, type, version, permissions, UI declarations, and hooks.
-- [ ] **PLUGIN-02**: Plugin execution follows `Event -> Hook -> Action -> Core API` and cannot use `eval()`, dynamic third-party code execution, direct database access, or direct core API access.
-- [ ] **PLUGIN-03**: Plugin permissions are checked before injecting safe context parameters such as `userId`, `lessonId`, and `courseId`.
-- [ ] **PLUGIN-04**: Developer can expose a limited action allowlist, including safe actions such as `addPoints` and `createNotification`.
-- [ ] **PLUGIN-05**: Developer can register UI hook anchors such as `dashboard.widget` and `lesson.sidebar` without allowing arbitrary script execution.
-- [ ] **PLUGIN-06**: Admin or developer can define declarative theme tokens that respect `DESIGN.md`, Lexend, Simplified Chinese UI, no-line surfaces, tonal layering, and accessibility constraints.
-- [ ] **PLUGIN-07**: System records plugin hook runs, denied actions, permission failures, and kill-switch state for auditability.
+- [x] **PLUGIN-01**: Developer can register plugins through validated declarative JSON manifests containing name, type, version, permissions, UI declarations, and hooks.
+- [x] **PLUGIN-02**: Plugin execution follows `Event -> Hook -> Action -> Core API` and cannot use `eval()`, dynamic third-party code execution, direct database access, or direct core API access.
+- [x] **PLUGIN-03**: Plugin permissions are checked before injecting safe context parameters such as `userId`, `lessonId`, and `courseId`.
+- [x] **PLUGIN-04**: Developer can expose a limited action allowlist, including safe actions such as `addPoints` and `createNotification`.
+- [x] **PLUGIN-05**: Developer can register UI hook anchors such as `dashboard.widget` and `lesson.sidebar` without allowing arbitrary script execution.
+- [x] **PLUGIN-06**: Admin or developer can define declarative theme tokens that respect `DESIGN.md`, Lexend, Simplified Chinese UI, no-line surfaces, tonal layering, and accessibility constraints.
+- [x] **PLUGIN-07**: System records plugin hook runs, denied actions, permission failures, and kill-switch state for auditability.
 
 ## v2 Requirements
 
@@ -179,20 +179,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLASS-05 | Phase 5 | Pending |
 | CLASS-06 | Phase 5 | Pending |
 | CLASS-07 | Phase 5 | Pending |
-| AI-01 | Phase 6 | Pending |
-| AI-02 | Phase 6 | Pending |
-| AI-03 | Phase 6 | Pending |
-| AI-04 | Phase 6 | Pending |
-| AI-05 | Phase 6 | Pending |
-| AI-06 | Phase 6 | Pending |
-| AI-07 | Phase 6 | Pending |
-| PLUGIN-01 | Phase 6 | Pending |
-| PLUGIN-02 | Phase 6 | Pending |
-| PLUGIN-03 | Phase 6 | Pending |
-| PLUGIN-04 | Phase 6 | Pending |
-| PLUGIN-05 | Phase 6 | Pending |
-| PLUGIN-06 | Phase 6 | Pending |
-| PLUGIN-07 | Phase 6 | Pending |
+| AI-01 | Phase 6 | Complete |
+| AI-02 | Phase 6 | Complete |
+| AI-03 | Phase 6 | Complete |
+| AI-04 | Phase 6 | Complete |
+| AI-05 | Phase 6 | Complete |
+| AI-06 | Phase 6 | Complete |
+| AI-07 | Phase 6 | Complete |
+| PLUGIN-01 | Phase 6 | Complete |
+| PLUGIN-02 | Phase 6 | Complete |
+| PLUGIN-03 | Phase 6 | Complete |
+| PLUGIN-04 | Phase 6 | Complete |
+| PLUGIN-05 | Phase 6 | Complete |
+| PLUGIN-06 | Phase 6 | Complete |
+| PLUGIN-07 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 55 total
