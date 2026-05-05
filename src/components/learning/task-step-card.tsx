@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { submitTaskAttemptAction } from "@/actions/learning-actions";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ function formatAttemptTime(value: string) {
 }
 
 export function TaskStepCard({ lessonId, publishedVersionId, step, latestAttempt, attempts }: TaskStepCardProps) {
+  const router = useRouter();
   const payload = step.payload as { prompt?: string; successCriteria?: string; submissionType?: string };
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -45,6 +47,7 @@ export function TaskStepCard({ lessonId, publishedVersionId, step, latestAttempt
       if (result.ok) {
         setStatus("已提交，本次尝试已记录");
         setDraft("");
+        router.refresh();
       } else {
         setStatus(result.message || "提交暂时失败，请保留当前内容后重试。");
       }

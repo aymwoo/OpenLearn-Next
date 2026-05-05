@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { sendAttemptFeedbackAction } from "@/actions/learning-actions";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ function formatUpdatedTime(value: string) {
 }
 
 export function FeedbackComposer({ targetType, targetId, latestFeedback }: FeedbackComposerProps) {
+  const router = useRouter();
   const [body, setBody] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -28,6 +30,7 @@ export function FeedbackComposer({ targetType, targetId, latestFeedback }: Feedb
       if (result.ok) {
         setStatus("反馈已发送给学生");
         setBody("");
+        router.refresh();
       } else {
         setStatus(result.message || "反馈暂时没有发送成功，请保留内容后重试。");
       }

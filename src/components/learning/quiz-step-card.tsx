@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { submitQuizAttemptAction } from "@/actions/learning-actions";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,7 @@ function getOutcome(attempt?: QuizAttemptDTO | null): QuizOutcome {
 }
 
 export function QuizStepCard({ lessonId, publishedVersionId, step, latestAttempt, attempts, canRetryQuiz, showCorrectAnswer }: QuizStepCardProps) {
+  const router = useRouter();
   const payload = step.payload as { question?: string; options?: string[]; explanation?: string };
   const [selectedIndex, setSelectedIndex] = useState<number | null>(getSelectedIndex(latestAttempt) ?? null);
   const [status, setStatus] = useState<string | null>(latestAttempt ? "已记录你的答案" : null);
@@ -57,6 +59,7 @@ export function QuizStepCard({ lessonId, publishedVersionId, step, latestAttempt
 
       if (result.ok) {
         setStatus("已记录你的答案");
+        router.refresh();
       } else {
         setStatus(result.message || "提交暂时失败，请保留当前选择后重试。");
       }
