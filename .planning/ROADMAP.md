@@ -50,7 +50,12 @@ Plans:
   3. Unauthenticated users are redirected away from protected teacher, student, classroom, admin, and API route families by `proxy.ts`.
   4. Developer can use SQLite-first Drizzle migrations, cascades, indexes, Zod validation, and server-only DAL modules for all auth, school, course, classroom, AI, MCP, plugin, and theme table groups.
   5. UI receives sanitized DTOs only after DAL and Server Actions verify actor identity, role, membership, ownership, enrollment, and resource scope.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 03-01-PLAN.md — Define authoring schema, DTO contracts, rank-string ordering, and push SQLite schema.
+- [ ] 03-02-PLAN.md — Implement server-only teacher authoring DAL with DTO-safe reads, scoped mutations, reorder, and publish snapshots.
+- [ ] 03-03-PLAN.md — Add Zod-validated authoring Server Actions, cache tag updates, conflict handling, and Phase 3 verification script.
+- [ ] 03-04-PLAN.md — Replace static editor with data-backed teacher authoring UI, step editing, reorder controls, and publish/status feedback.
 **UI hint**: yes
 
 ### Phase 3: Courses, lessons, steps, and teacher authoring
