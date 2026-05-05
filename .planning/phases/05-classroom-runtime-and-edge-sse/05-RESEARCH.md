@@ -407,22 +407,22 @@ Next.js docs say `updateTag()` provides read-your-writes behavior and is Server 
 | A2 | A 1.5 to 3 second polling interval is acceptable for v1 classroom step/mode updates. [ASSUMED] | Environment Availability / Architecture | User may require lower latency, which affects SQLite load and deployment limits. |
 | A3 | Existing class roster data from Phase 3 is sufficient for launch selection and no new roster management UI is needed. [ASSUMED] | Standard Stack / Architecture | Planner may need extra roster seed or selection tasks if data is incomplete. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **What polling interval is acceptable for live classroom control?**
+1. **RESOLVED: What polling interval is acceptable for live classroom control?**
    - What we know: Phase 05 permits the agent to choose the interval. [VERIFIED: 05-CONTEXT.md]
-   - What's unclear: product tolerance for latency versus SQLite/read load.
-   - Recommendation: plan a conservative 1500-3000 ms interval and make it a constant.
+   - Resolution: use a conservative 2000 ms named constant, `CLASSROOM_SSE_POLL_INTERVAL_MS`, inside the Edge SSE route. This stays within the researched 1500-3000 ms range and avoids a tighter SQLite polling loop for v1.
+   - Plan binding: `05-04-PLAN.md` Task 2 and `05-06-PLAN.md` verification require this exact constant and value.
 
-2. **Should SSE auth use same-origin cookies or a signed classroom token?**
+2. **RESOLVED: Should SSE auth use same-origin cookies or a signed classroom token?**
    - What we know: DAL/Server Actions must enforce actor identity and scope. [VERIFIED: AGENTS.md]
-   - What's unclear: the final auth mechanism for Edge routes in this deployment.
-   - Recommendation: prefer same-origin `EventSource` with existing cookies, and verify via Node snapshot authz before emitting sensitive state.
+   - Resolution: use same-origin `EventSource` cookies, but do not rely on implicit cookie propagation from the Edge route to the Node snapshot endpoint. The Edge SSE route must read `request.headers.get("cookie")` and explicitly forward that value as the `Cookie` header when fetching `/api/classroom/${sessionId}/snapshot`; the Node snapshot endpoint remains the authz boundary.
+   - Plan binding: `05-04-PLAN.md` Task 2 requires explicit `Cookie` header forwarding and the final verifier scans for it.
 
-3. **How many concurrent classroom sessions are expected in the pilot?**
+3. **RESOLVED: How many concurrent classroom sessions are expected in the pilot?**
    - What we know: SQLite burst behavior is already a Phase 5 concern in `STATE.md`. [VERIFIED: .planning/STATE.md]
-   - What's unclear: expected concurrent teachers/students.
-   - Recommendation: keep events compact, poll by version, and include a verification note for pilot concurrency.
+   - Resolution: Phase 05 targets v1 pilot load with compact versioned snapshots, indexed `(sessionId, version)` reads, and no per-student writes in the SSE polling loop. Exact production concurrency limits remain an operations concern outside Phase 05 implementation scope.
+   - Plan binding: `05-01-PLAN.md` requires event indexes, `05-04-PLAN.md` emits only when `snapshot.version > lastVersion`, and `05-06-PLAN.md` verifies bounded polling and no authoritative in-memory stream state.
 
 ## Environment Availability
 
