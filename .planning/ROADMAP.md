@@ -81,7 +81,14 @@ Plans:
   3. Student can navigate permitted content, task, and quiz steps and resume from the first incomplete step or teacher-forced active step.
   4. Student can submit immutable append-only task attempts and quiz answers with latest-read optimization and captured or scored outcomes.
   5. Teacher can review progress, latest submissions, attempt history, quiz outcomes, feedback status, and leave short feedback without a full gradebook.
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [ ] 04-01-PLAN.md — Define learning schema, DTO contracts, and Phase 04 verification gate.
+- [ ] 04-02-PLAN.md — Implement server-only learning DAL for student reads, progress, append-only attempts, teacher review, and feedback.
+- [ ] 04-03-PLAN.md — Add validated learning Server Actions and explicit cache tags for progress, submissions, and review freshness.
+- [ ] 04-04-PLAN.md — Convert student dashboard/player into DTO-backed progress, task, quiz, latest attempt, and history UI.
+- [ ] 04-05-PLAN.md — Build teacher review cockpit and short feedback composer without gradebook scope.
+- [ ] 04-06-PLAN.md — Push Drizzle schema and close Phase 04 automated verification.
 **UI hint**: yes
 
 ### Phase 5: Classroom runtime and Edge SSE
