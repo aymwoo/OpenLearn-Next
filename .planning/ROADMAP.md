@@ -86,7 +86,7 @@ Plans:
 - [x] 04-01-PLAN.md — Define learning schema, DTO contracts, and Phase 04 verification gate.
 - [x] 04-02-PLAN.md — Implement server-only learning DAL for student reads, progress, append-only attempts, teacher review, and feedback.
 - [x] 04-03-PLAN.md — Add validated learning Server Actions and explicit cache tags for progress, submissions, and review freshness.
-- [ ] 04-04-PLAN.md — Convert student dashboard/player into DTO-backed progress, task, quiz, latest attempt, and history UI.
+- [x] 04-04-PLAN.md — Convert student dashboard/player into DTO-backed progress, task, quiz, latest attempt, and history UI.
 - [ ] 04-05-PLAN.md — Build teacher review cockpit and short feedback composer without gradebook scope.
 - [ ] 04-06-PLAN.md — Push Drizzle schema and close Phase 04 automated verification.
 **UI hint**: yes
