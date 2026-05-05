@@ -3,6 +3,7 @@ import { z } from "zod";
 import { lessonStepPayloadSchema } from "./lesson-authoring";
 
 export const ProgressStateSchema = z.enum(["not_started", "in_progress", "completed", "skipped"]);
+export const StudentProgressMutationStateSchema = z.enum(["in_progress", "completed"]);
 
 export const LearningStepDTOSchema = z.object({
   id: z.string(),
@@ -142,7 +143,7 @@ export const MarkProgressInputSchema = z.object({
   publishedVersionId: z.string(),
   lessonId: z.string(),
   stepId: z.string(),
-  state: ProgressStateSchema,
+  state: StudentProgressMutationStateSchema,
 });
 
 export const TeacherReviewFilterSchema = z.enum(["all", "not_started", "in_progress", "completed", "needs_feedback"]);
