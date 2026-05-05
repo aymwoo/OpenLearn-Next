@@ -1,51 +1,40 @@
 ---
 phase: 04-student-player-progress-submissions-and-feedback
 verified: 2026-05-05T04:55:54Z
-status: gaps_found
-score: 4/5 must-haves verified
+status: verified
+score: 5/5 must-haves verified
 overrides_applied: 0
-gaps:
-  - truth: "Student can open a PPR lesson player with a cached shell and Suspense-streamed progress, runtime state, and latest submission data."
-    status: partial
-    reason: "The player route opens and renders real DTO data, but it awaits one DAL call and passes one complete StudentPlayerDTO into PlayerSurface. No Suspense boundary, cached shell component/function, cacheTag/cacheLife, or separately streamed personal progress/runtime/submission regions were found for the player."
-    artifacts:
-      - path: "src/app/(student)/student/player/page.tsx"
-        issue: "Loads dashboard and full player DTO synchronously, then renders <PlayerSurface player={player} />; no Suspense or cached shell/personal-region split."
-      - path: "src/components/surfaces/player-surface.tsx"
-        issue: "Renders shell, progress, runtime state, latest submissions, and history from one already-resolved DTO."
-      - path: "src/lib/dal/learning.ts"
-        issue: "getStudentPlayerDTO returns shell plus personal progress/submission/history together; no cached shell read separated from per-student reads."
-    missing:
-      - "Split player data loading into cached lesson shell and separately streamed personal progress/runtime/latest submission regions."
-      - "Add Suspense boundaries around personal progress, runtime, and latest submission sections or otherwise implement the roadmap PPR contract."
-      - "Apply explicit Next.js cache tags/lifetimes to the cached shell read while keeping user-specific data dynamic."
+gaps: []
+gap_fixed_at: 2026-05-05T13:50:04Z
+gap_fix_summary: "LEARN-02 now uses a dynamic authorization wrapper plus a pure cached published shell reader. Request-specific auth/session/membership is outside cached code, and personal progress/submissions stream through Suspense."
 ---
 
 # Phase 4: Student player, progress, submissions, and feedback Verification Report
 
 **Phase Goal:** 学生可以按进度完成已发布课时并提交学习证据，教师可以查看进度、最新提交、尝试历史和基础反馈。
 **Verified:** 2026-05-05T04:55:54Z
-**Status:** gaps_found
+**Status:** verified
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
 
-Phase 04 mostly implements the student learning loop and teacher review loop in
-actual source code. However, one roadmap success criterion is only partially met:
-the student player is DTO-backed and runnable, but not implemented as a cached
-PPR shell with Suspense-streamed personal progress/runtime/submission regions.
+Phase 04 implements the student learning loop and teacher review loop in actual
+source code. The LEARN-02 gap has been closed: the student player now separates
+dynamic authorization from a pure cached published shell reader, then streams
+personal progress, runtime state, latest submissions, and history under
+`<Suspense>`.
 
 ### Observable Truths
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
 | 1 | Student can see assigned or published lessons from a student dashboard and resume the most relevant lesson. | ✓ VERIFIED | `src/app/(student)/student/page.tsx` calls `getStudentDashboardDTO()`; `src/lib/dal/learning.ts` filters active student course enrollments/classes, published lessons, and `publishedLessonVersions`; `StudentDashboardSurface` renders ordered cards, `继续学习`, resume step links, and empty copy `还没有可学习的课时`. |
-| 2 | Student can open a PPR lesson player with a cached shell and Suspense-streamed progress, runtime state, and latest submission data. | ✗ FAILED | `src/app/(student)/student/player/page.tsx` awaits `getStudentDashboardDTO()` and `getStudentPlayerDTO()` before rendering one `PlayerSurface`; `PlayerSurface` receives one complete DTO. No `Suspense`, cached shell split, `cacheTag`, `cacheLife`, or separate personal-region loaders were found for player data. |
+| 2 | Student can open a PPR lesson player with a cached shell and Suspense-streamed progress, runtime state, and latest submission data. | ✓ VERIFIED | `src/app/(student)/student/player/page.tsx` renders `PlayerSurface` with cached shell data and streams `PlayerPersonalRegion` through `<Suspense>`; `src/lib/dal/learning.ts` runs `assertStudentCanOpenPlayer()` outside cached code and keeps the internal cached shell reader limited to stable `lessonId`, `cacheLife`, and lesson/steps tags. |
 | 3 | Student can navigate permitted content, task, and quiz steps and resume from the first incomplete step or teacher-forced active step. | ✓ VERIFIED | `getStudentPlayerDTO()` distinguishes `selectedStepId` from trusted `forcedStepId`; `summarizeProgress()` computes first incomplete step; `PlayerSurface` renders route links per step and labels `老师指定`; content completion does not auto-advance. |
 | 4 | Student can submit immutable append-only task attempts and quiz answers with latest-read optimization and captured or scored outcomes. | ✓ VERIFIED | `taskSubmissions` and `quizAttempts` have append-only attempt tables, history/latest indexes, unique attempt constraints, and `isLatest`; DAL mutations validate published version/step/type and insert attempts inside transactions; actions call `submitTaskAttempt`/`submitQuizAttempt`; task/quiz cards call Server Actions and refresh after success. |
 | 5 | Teacher can review progress, latest submissions, attempt history, quiz outcomes, feedback status, and leave short feedback without a full gradebook. | ✓ VERIFIED | `teacher/review/page.tsx` loads `getTeacherLessonReviewDTO`; DAL builds normalized student progress, latest evidence, `taskSubmissionHistory`/`quizAttemptHistory`, outcome DTOs, and feedback status; `TeacherReviewSurface` renders filters and detail; `FeedbackComposer` calls `sendAttemptFeedbackAction` with `maxLength={200}`. Out-of-scope gradebook/rubric/bulk tokens are absent from non-test runtime source. |
 
-**Score:** 4/5 truths verified
+**Score:** 5/5 truths verified
 
 ### Required Artifacts
 
@@ -56,7 +45,7 @@ PPR shell with Suspense-streamed personal progress/runtime/submission regions.
 | `src/lib/dal/learning.ts` | Server-only learning reads/writes and review DAL | ✓ VERIFIED | Starts with `import "server-only";`; reads published snapshots; validates student/teacher scope; implements progress, task/quiz submissions, teacher review, student detail, and feedback. |
 | `src/actions/learning-actions.ts` | Zod-validated Server Actions with cache updates | ✓ VERIFIED | Starts with `"use server";`; uses `.safeParse`; calls DAL mutations; updates `progress`, `submission`, and `teacherReview` tags. |
 | `src/components/surfaces/student-dashboard-surface.tsx` | DTO-backed student dashboard | ✓ VERIFIED | Renders dashboard DTO, resume cards, empty state, and Chinese copy; no DB import. |
-| `src/components/surfaces/player-surface.tsx` | DTO-backed player surface | ⚠️ PARTIAL | Renders real DTO shell/progress/task/quiz UI, but not as separated cached shell plus streamed personal regions. |
+| `src/components/surfaces/player-surface.tsx` | DTO-backed player surface | ✓ VERIFIED | Renders cached shell chrome separately from `PlayerPersonalRegion` and `PlayerPersonalFallback`; personal state is supplied through the streamed region. |
 | `src/components/learning/task-step-card.tsx` | Task submission UI | ✓ VERIFIED | Client component calls `submitTaskAttemptAction`, preserves failed draft, shows latest/history attempts, and refreshes on success. |
 | `src/components/learning/quiz-step-card.tsx` | Quiz answer UI | ✓ VERIFIED | Client component calls `submitQuizAttemptAction`, preserves selection on failure, follows `canRetryQuiz` and `showCorrectAnswer`, and refreshes on success. |
 | `src/app/(teacher)/teacher/review/page.tsx` | Teacher review route | ✓ VERIFIED | Loads review DTO through DAL and catches invalid access into safe null review state; no DB import. |
@@ -69,7 +58,7 @@ PPR shell with Suspense-streamed personal progress/runtime/submission regions.
 | From | To | Via | Status | Details |
 |---|---|---|---|---|
 | `src/app/(student)/student/page.tsx` | `src/lib/dal/learning.ts` | Dashboard DTO loading | ✓ WIRED | Calls `getStudentDashboardDTO()`. |
-| `src/app/(student)/student/player/page.tsx` | `src/lib/dal/learning.ts` | Player DTO loading | ✓ WIRED | Calls `getStudentPlayerDTO({ lessonId, selectedStepId, forcedStepId: null })`; not streamed. |
+| `src/app/(student)/student/player/page.tsx` | `src/lib/dal/learning.ts` | Split player loading | ✓ WIRED | Calls `assertStudentCanOpenPlayer()`, `getStudentPlayerShellDTO({ lessonId, scope })`, and `getStudentPlayerPersonalDTO({ lessonId, selectedStepId, forcedStepId: null, scope })`; personal state streams under Suspense. |
 | `src/components/learning/task-step-card.tsx` | `src/actions/learning-actions.ts` | Task Server Action | ✓ WIRED | Calls `submitTaskAttemptAction()` and `router.refresh()` on success. |
 | `src/components/learning/quiz-step-card.tsx` | `src/actions/learning-actions.ts` | Quiz Server Action | ✓ WIRED | Calls `submitQuizAttemptAction()` and `router.refresh()` on success. |
 | `src/components/learning/feedback-composer.tsx` | `src/actions/learning-actions.ts` | Feedback Server Action | ✓ WIRED | Calls `sendAttemptFeedbackAction()` and `router.refresh()` on success. |
@@ -82,7 +71,7 @@ PPR shell with Suspense-streamed personal progress/runtime/submission regions.
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 |---|---|---|---|---|
 | `StudentDashboardSurface` | `dashboard.lessons` | `StudentPage` → `getStudentDashboardDTO()` → DB queries for enrollments/classes/lessons/published versions/progress | Yes | ✓ FLOWING |
-| `PlayerSurface` | `player.shell`, `player.progress`, `player.latestSubmissions`, `player.history` | `StudentPlayerPage` → `getStudentPlayerDTO()` → published snapshot + progress/submission queries | Yes, but not streamed/cached by region | ⚠️ HOLLOW_FOR_PPR |
+| `PlayerSurface` and `PlayerPersonalRegion` | `shell`, `personal.progress`, `personal.latestSubmissions`, `personal.history` | `StudentPlayerPage` → `assertStudentCanOpenPlayer()` → cached shell reader + dynamic personal reader | Yes; shell is cached by lesson/steps tags and personal data streams separately | ✓ FLOWING |
 | `TaskStepCard` | `latestAttempt`, `attempts`, `draft` | Props from `PlayerSurface`; writes through `submitTaskAttemptAction()` → DAL → DB; refresh after success | Yes | ✓ FLOWING |
 | `QuizStepCard` | `latestAttempt`, `attempts`, `selectedIndex`, outcome | Props from `PlayerSurface`; writes through `submitQuizAttemptAction()` → DAL → DB; refresh after success | Yes | ✓ FLOWING |
 | `TeacherReviewSurface` | `review.students`, `overview`, histories | `TeacherReviewPage` → `getTeacherLessonReviewDTO()` → DB roster/progress/submission/quiz/feedback queries | Yes | ✓ FLOWING |
@@ -101,7 +90,7 @@ PPR shell with Suspense-streamed personal progress/runtime/submission regions.
 | Requirement | Source Plan | Description | Status | Evidence |
 |---|---|---|---|---|
 | LEARN-01 | 04-01, 04-02, 04-04, 04-06 | Student can view assigned or published lessons from dashboard and resume the most relevant lesson. | ✓ SATISFIED | Dashboard route loads DAL DTO; DAL scopes active student course/class membership and published lessons; dashboard renders resume CTA and ordered lesson cards. |
-| LEARN-02 | 04-01, 04-02, 04-03, 04-04, 04-06 | Student can open a PPR lesson player with cached shell and Suspense-streamed personal progress/runtime/latest submissions. | ✗ PARTIAL | Player opens and renders real DTO data, but no cached shell/Suspense-streamed personal regions are implemented. |
+| LEARN-02 | 04-01, 04-02, 04-03, 04-04, 04-06 | Student can open a PPR lesson player with cached shell and Suspense-streamed personal progress/runtime/latest submissions. | ✓ SATISFIED | Player authorization runs outside cached code; the cached published shell reader receives stable `lessonId` only, and progress/runtime/submissions/history render through `PlayerPersonalRegion` inside `<Suspense>`. |
 | LEARN-03 | 04-01, 04-04, 04-06 | Student can navigate content, task, and quiz steps when classroom mode permits navigation. | ✓ SATISFIED | Player renders route links for each step; content/task/quiz renderers are wired; Phase 05 classroom locking is deferred. |
 | LEARN-04 | 04-01, 04-02, 04-03, 04-04, 04-06 | Student progress is recorded per step with not started/in progress/completed/skipped or equivalent. | ✓ SATISFIED | `lessonStepProgress` schema, `ProgressStateSchema`, `StudentProgressMutationStateSchema`, `markStepProgress()`, and `markStepProgressAction()` exist; direct student writes are limited to `in_progress`/`completed`. |
 | LEARN-05 | 04-01, 04-02, 04-04, 04-06 | Student can resume from first incomplete or teacher-forced active step. | ✓ SATISFIED | `summarizeProgress()` finds first incomplete; `getStudentPlayerDTO()` prioritizes trusted `forcedStepId`; route separates `selectedStepId` from forced step. |
@@ -127,7 +116,6 @@ appears in at least one PLAN frontmatter `requirements` list and in
 
 | File | Line | Pattern | Severity | Impact |
 |---|---:|---|---|---|
-| `src/app/(student)/student/player/page.tsx` | 15-25 | Full DTO awaited before render; no Suspense/cached shell split | 🛑 Blocker | Blocks roadmap PPR/Suspense success criterion. |
 | `src/lib/dal/learning.test.ts` and related tests | multiple | Source-string tests | ⚠️ Warning | Tests pass but do not exercise authorization, DB race, and UI behavior end-to-end. |
 
 General stub scan found no Phase 04 runtime placeholder/TODO implementations
@@ -162,13 +150,13 @@ browser/session and visual behavior validation.
 ### Gaps Summary
 
 The main learning and teacher feedback functionality is implemented and wired
-through DAL + Server Actions + DTO-backed UI. The blocking gap is narrower but
-contractual: roadmap success criterion 2 requires a PPR lesson player with cached
-shell and Suspense-streamed personal progress/runtime/latest submission data.
-Current code renders the correct data from a single resolved DTO, so the user can
-open the player, but the PPR/cached-shell/streamed-region architecture is absent.
+through DAL + Server Actions + DTO-backed UI. The previous LEARN-02 blocker is
+closed: the player now uses cached published shell data and Suspense-streamed
+personal progress/runtime/submission regions, with request-specific
+auth/session/membership reads kept outside cached code.
 
 ---
 
 _Verified: 2026-05-05T04:55:54Z_
+_Gap fixed: 2026-05-05T13:50:04Z_
 _Verifier: the agent (gsd-verifier)_

@@ -24,6 +24,35 @@ function nonCommentSourceIncludes(source: string, token: string) {
   return withoutLineComments(source).includes(token);
 }
 
+function functionBody(source: string, name: string) {
+  const start = source.indexOf(`function ${name}`);
+
+  if (start === -1) {
+    return "";
+  }
+
+  const bodyStart = source.indexOf("{\n", start);
+  let depth = 0;
+
+  for (let index = bodyStart; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (char === "{") {
+      depth += 1;
+    }
+
+    if (char === "}") {
+      depth -= 1;
+
+      if (depth === 0) {
+        return source.slice(bodyStart, index + 1);
+      }
+    }
+  }
+
+  return "";
+}
+
 function noDeferredScopeTokens(source: string) {
   const filtered = withoutLineComments(source);
 
@@ -53,6 +82,8 @@ const packageJson = read("package.json");
 
 const uiSources = [studentDashboard, player, taskCard, quizCard, teacherReview, feedbackComposer, studentPage, playerPage, teacherReviewPage].filter(Boolean);
 const allSources = [schema, dto, dal, actions, ...uiSources].join("\n");
+const cachedShellSource = functionBody(dal, "getPublishedStudentPlayerShellDTO");
+const shellWrapperSource = functionBody(dal, "getStudentPlayerShellDTO");
 
 const checks: Check[] = [
   { label: "schema contains lessonStepProgress", passed: schema.includes("export const lessonStepProgress = sqliteTable") },
@@ -77,7 +108,8 @@ const checks: Check[] = [
   { label: "DAL is server-only", passed: dal ? dal.trimStart().startsWith('import "server-only";') : false },
   { label: "DAL reads published lesson snapshots", passed: dal.includes("publishedLessonVersions") && dal.includes("snapshotJson") },
   { label: "DAL exposes split student player loaders", passed: dal.includes("getStudentPlayerShellDTO") && dal.includes("getStudentPlayerPersonalDTO") },
-  { label: "DAL caches only the player shell", passed: dal.includes("'use cache'") && dal.includes("cacheLife('hours')") && dal.includes("cacheTag(cacheTags.lesson(input.lessonId))") && dal.includes("cacheTag(cacheTags.steps(input.lessonId))") },
+  { label: "DAL caches only the player shell", passed: cachedShellSource.includes("'use cache'") && cachedShellSource.includes("cacheLife('hours')") && cachedShellSource.includes("cacheTag(cacheTags.lesson(input.lessonId))") && cachedShellSource.includes("cacheTag(cacheTags.steps(input.lessonId))") },
+  { label: "cached player shell avoids request auth", passed: cachedShellSource.length > 0 && !cachedShellSource.includes("assertActiveStudent") && !cachedShellSource.includes("assertStudentCanAccessLesson") && !cachedShellSource.includes("getCurrentUserDTO") && !cachedShellSource.includes("getUserMembershipsDTO") && shellWrapperSource.includes("input.scope") },
   { label: "DAL uses transactions for append-only latest writes", passed: dal.includes("db.transaction") && dal.includes("insert(taskSubmissions)") && dal.includes("insert(quizAttempts)") },
   { label: "DAL clears previous latest markers", passed: dal.includes("isLatest: false") && dal.includes("isLatest: true") && dal.includes("isLatest: 0") && dal.includes("isLatest: 1") },
   { label: "DAL exposes teacher review and feedback", passed: dal.includes("getTeacherLessonReviewDTO") && dal.includes("saveAttemptFeedback") },
@@ -89,7 +121,7 @@ const checks: Check[] = [
   { label: "UI has no direct DB imports", passed: uiSources.length > 0 && uiSources.every(noDbImports) },
   { label: "student dashboard required copy", passed: studentDashboard.includes("继续学习") && studentDashboard.includes("还没有可学习的课时") },
   { label: "player required copy", passed: player.includes("老师指定") && player.includes("正在加载你的学习进度") && player.includes("正在读取最近一次提交") },
-  { label: "player route uses Suspense split loaders", passed: playerPage.includes("Suspense") && playerPage.includes("getStudentPlayerShellDTO") && playerPage.includes("getStudentPlayerPersonalDTO") },
+  { label: "player route uses Suspense split loaders", passed: playerPage.includes("Suspense") && playerPage.includes("assertStudentCanOpenPlayer") && playerPage.includes("getStudentPlayerShellDTO") && playerPage.includes("getStudentPlayerPersonalDTO") },
   { label: "player route avoids full DTO loader", passed: !nonCommentSourceIncludes(playerPage, "getStudentPlayerDTO({") },
   { label: "player surface exposes personal region and fallback", passed: player.includes("PlayerPersonalRegion") && player.includes("PlayerPersonalFallback") && player.includes("personalSlot") },
   { label: "task card required copy", passed: taskCard.includes("提交任务") && taskCard.includes("提交后会保留为一次新的尝试记录") },

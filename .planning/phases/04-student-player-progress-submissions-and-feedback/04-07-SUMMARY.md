@@ -31,7 +31,7 @@ key-files:
     - scripts/verify-phase4-learning.ts
 
 key-decisions:
-  - "Student player shell data is cached with lesson and steps tags, while personal progress and submissions remain dynamic and student-scoped."
+  - "Student player authorization runs outside the cached shell reader; the cached reader receives only stable lesson parameters and uses lesson and steps tags."
   - "The existing getStudentPlayerDTO API remains as a compatibility composer, but the route now uses split shell and personal loaders."
 
 patterns-established:
@@ -97,8 +97,11 @@ Each task was committed atomically:
 
 ## Decisions made
 
-- Cached shell reads still call `assertStudentCanAccessLesson()` before
-  returning shell data, preserving the unified `课时暂不可学习` boundary.
+- Student authorization now runs in `assertStudentCanOpenPlayer()` before the
+  cached shell reader executes, preserving the unified `课时暂不可学习` boundary
+  without reading session or membership inside cached code.
+- The cached shell reader receives only the stable `lessonId`, applies lesson and
+  step cache tags, and returns published shell data.
 - Personal player reads are intentionally not cached because they depend on the
   active student, progress rows, task submissions, quiz attempts, and future
   classroom runtime state.
@@ -129,9 +132,19 @@ and Suspense fallback behavior.
 
 ## Verification
 
-- `pnpm exec vitest run "src/lib/dto/learning.test.ts" "src/lib/dal/learning.test.ts" "src/components/surfaces/student-player-surfaces.test.ts" "src/components/learning/student-step-cards.test.ts"` — PASS, 4 files / 19 tests
+- `pnpm exec vitest run "src/lib/dto/learning.test.ts" "src/lib/dal/learning.test.ts" "src/components/surfaces/student-player-surfaces.test.ts" "src/components/learning/student-step-cards.test.ts"` — PASS, 4 files / 20 tests
 - `pnpm verify:phase4` — PASS, prints `Phase 4 learning verification passed`
 - `pnpm exec tsc --noEmit` — PASS
+
+## Gap fix addendum
+
+- Moved request-specific student auth/session/membership reads out of the cached
+  player shell reader. `getStudentPlayerShellDTO()` now receives an explicit
+  authorized `scope` from `assertStudentCanOpenPlayer()`, while the internal
+  cached shell reader uses only the stable `lessonId` plus cache tags.
+- Extended DAL and Phase 04 verification checks to fail if the cached shell reader
+  calls `assertActiveStudent()`, `assertStudentCanAccessLesson()`,
+  `getCurrentUserDTO()`, or `getUserMembershipsDTO()`.
 
 ## User setup required
 

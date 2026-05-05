@@ -4,6 +4,35 @@ import { describe, expect, it } from "vitest";
 
 const source = readFileSync("src/lib/dal/learning.ts", "utf8");
 
+function functionBody(name: string) {
+  const start = source.indexOf(`function ${name}`);
+
+  if (start === -1) {
+    return "";
+  }
+
+  const bodyStart = source.indexOf("{\n", start);
+  let depth = 0;
+
+  for (let index = bodyStart; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (char === "{") {
+      depth += 1;
+    }
+
+    if (char === "}") {
+      depth -= 1;
+
+      if (depth === 0) {
+        return source.slice(bodyStart, index + 1);
+      }
+    }
+  }
+
+  return "";
+}
+
 describe("learning DAL student read boundary", () => {
   it("is server-only and requires an active student", () => {
     expect(source.trimStart().startsWith('import "server-only";')).toBe(true);
@@ -34,9 +63,23 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain("export async function getStudentPlayerShellDTO");
     expect(source).toContain("export async function getStudentPlayerPersonalDTO");
     expect(source).toContain("export async function getStudentPlayerDTO");
+    expect(source).toContain("getPublishedStudentPlayerShellDTO");
     expect(source).toContain("cacheLife('hours')");
     expect(source).toContain("cacheTag(cacheTags.lesson(input.lessonId))");
     expect(source).toContain("cacheTag(cacheTags.steps(input.lessonId))");
+  });
+
+  it("keeps request-specific authorization outside the cached shell reader", () => {
+    const cachedShellSource = functionBody("getPublishedStudentPlayerShellDTO");
+    const publicShellSource = functionBody("getStudentPlayerShellDTO");
+
+    expect(cachedShellSource).toContain("'use cache'");
+    expect(cachedShellSource).not.toContain("assertActiveStudent");
+    expect(cachedShellSource).not.toContain("assertStudentCanAccessLesson");
+    expect(cachedShellSource).not.toContain("getCurrentUserDTO");
+    expect(cachedShellSource).not.toContain("getUserMembershipsDTO");
+    expect(publicShellSource).toContain("input.scope");
+    expect(source).toContain("assertStudentCanOpenPlayer");
   });
 
   it("keeps personal player data dynamic and student-scoped", () => {
