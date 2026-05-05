@@ -89,7 +89,7 @@ Plans:
 - [x] 04-04-PLAN.md — Convert student dashboard/player into DTO-backed progress, task, quiz, latest attempt, and history UI.
 - [x] 04-05-PLAN.md — Build teacher review cockpit and short feedback composer without gradebook scope.
 - [x] 04-06-PLAN.md — Push Drizzle schema and close Phase 04 automated verification.
-- [ ] 04-07-PLAN.md — Close LEARN-02 gap by splitting the player into a cached shell and Suspense-streamed personal learning regions.
+- [x] 04-07-PLAN.md — Close LEARN-02 gap by splitting the player into a cached shell and Suspense-streamed personal learning regions.
 **UI hint**: yes
 
 ### Phase 5: Classroom runtime and Edge SSE
@@ -128,7 +128,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Application foundation and design shell | 6/6 | Complete | 2026-05-04 |
 | 2. Auth, roles, schema, and DAL boundary | 3/3 | Complete   | 2026-05-04 |
 | 3. Courses, lessons, steps, and teacher authoring | 0/TBD | Not started | - |
-| 4. Student player, progress, submissions, and feedback | 6/7 | Gaps planned | - |
+| 4. Student player, progress, submissions, and feedback | 7/7 | Complete | 2026-05-05 |
 | 5. Classroom runtime and Edge SSE | 0/TBD | Not started | - |
 | 6. Resource, AI/RAG/MCP, plugin, and theme foundations | 0/TBD | Not started | - |
 
