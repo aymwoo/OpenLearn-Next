@@ -86,6 +86,13 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **PLUGIN-06**: Admin or developer can define declarative theme tokens that respect `DESIGN.md`, Lexend, Simplified Chinese UI, no-line surfaces, tonal layering, and accessibility constraints.
 - [x] **PLUGIN-07**: System records plugin hook runs, denied actions, permission failures, and kill-switch state for auditability.
 
+### v1.1 Stitch UI Alignment & Release Polish
+
+- [ ] **UI-01**: System can access Stitch MCP to retrieve remote design system tokens and page structural data.
+- [ ] **UI-02**: Home page is refactored to align 1:1 with the Stitch "首页" design, optimizing compactness and aesthetics.
+- [ ] **UI-03**: Teacher dashboard is refactored to align 1:1 with the Stitch "教师工作台" design, improving layout density.
+- [ ] **UI-04**: Application globally eliminates 1px borders, enforces correct tonal layering, shadows, and color usage strictly per `DESIGN.md`.
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -193,10 +200,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLUGIN-05 | Phase 6 | Complete |
 | PLUGIN-06 | Phase 6 | Complete |
 | PLUGIN-07 | Phase 6 | Complete |
+| UI-01 | Phase 8 | Pending |
+| UI-02 | Phase 9 | Pending |
+| UI-03 | Phase 9 | Pending |
+| UI-04 | Phase 10 | Pending |
 
 **Coverage:**
-- v1 requirements: 55 total
-- Mapped to phases: 55
+- v1/v1.1 requirements: 59 total
+- Mapped to phases: 59
 - Unmapped: 0
 - Duplicate mappings: 0
 
