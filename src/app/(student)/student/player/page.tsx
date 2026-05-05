@@ -2,9 +2,9 @@ import { Suspense } from 'react'
 
 import {
   PlayerPersonalFallback,
-  PlayerPersonalRegion,
   PlayerSurface,
 } from '@/components/surfaces/player-surface'
+import { ClassroomRuntimeClient } from '@/components/learning/classroom-runtime-client'
 import {
   getStudentDashboardDTO,
   assertStudentCanOpenPlayer,
@@ -35,7 +35,7 @@ async function PlayerPersonalLoader({
 }) {
   const personal = await getStudentPlayerPersonalDTO({ lessonId, selectedStepId, forcedStepId: null, scope })
 
-  return <PlayerPersonalRegion shell={shell} personal={personal} />
+  return <ClassroomRuntimeClient shell={shell} personal={personal} />
 }
 
 export default async function StudentPlayerPage({ searchParams }: StudentPlayerPageProps) {

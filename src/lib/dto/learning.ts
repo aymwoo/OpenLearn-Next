@@ -19,6 +19,14 @@ export const RuntimeStepStateDTOSchema = z.object({
   forcedLabel: z.string().default("老师指定"),
   locked: z.boolean().default(false),
   inaccessibleMessage: z.string().nullable().default(null),
+  classroomSessionId: z.string().nullable().default(null),
+  classroomVersion: z.number().int().nullable().default(null),
+  connectionState: z.enum(["connected", "reconnecting", "offline", "snapshot_fallback"]).default("offline"),
+  teacherRecommendedStepId: z.string().nullable().default(null),
+  disabledStepIds: z.array(z.string()).default([]),
+  disabledReason: z.string().nullable().default(null),
+  snapshotStatusCopy: z.string().nullable().default(null),
+  manualRefreshAvailable: z.boolean().default(false),
 });
 
 export const AttemptFeedbackDTOSchema = z.object({

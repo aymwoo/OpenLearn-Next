@@ -7,6 +7,8 @@ import { db } from "@/db";
 import {
   classMembers,
   classes,
+  classroomParticipants,
+  classroomSessions,
   courseClasses,
   courseEnrollments,
   courses,
@@ -405,6 +407,38 @@ export async function getStudentPlayerShellDTO(input: { lessonId: string; scope:
   return getPublishedStudentPlayerShellDTO({ lessonId: input.lessonId });
 }
 
+export async function getStudentClassroomRuntime(input: { lessonId: string; scope: StudentScope }) {
+  const activeParticipant = await db
+    .select({
+      sessionId: classroomSessions.id,
+      version: classroomSessions.version,
+      locked: classroomSessions.locked,
+      activeStepId: classroomSessions.activeStepId,
+    })
+    .from(classroomParticipants)
+    .innerJoin(classroomSessions, eq(classroomParticipants.sessionId, classroomSessions.id))
+    .where(
+      and(
+        eq(classroomSessions.lessonId, input.lessonId),
+        eq(classroomSessions.status, "live"),
+        eq(classroomParticipants.studentId, input.scope.userId)
+      )
+    )
+    .limit(1);
+
+  if (activeParticipant.length === 0) {
+    return null;
+  }
+
+  const { sessionId, version, locked, activeStepId } = activeParticipant[0];
+  return {
+    sessionId,
+    version,
+    locked: Boolean(locked),
+    activeStepId,
+  };
+}
+
 export async function getStudentPlayerPersonalDTO(input: { lessonId: string; selectedStepId?: string | null; forcedStepId?: string | null; scope?: StudentScope }): Promise<StudentPlayerPersonalDTO> {
   const scope = input.scope ?? await assertActiveStudent();
   const { lesson, published } = await assertStudentCanAccessLesson(input.lessonId, scope);
@@ -416,8 +450,29 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
   });
   const progress = summarizeProgress(steps, progressRows);
   const selectedStepId = steps.some((step) => step.id === input.selectedStepId) ? input.selectedStepId : null;
+
+  const classroomRuntime = await getStudentClassroomRuntime({ lessonId: input.lessonId, scope });
+  
+  let forcedStepId = input.forcedStepId ?? null;
+  let teacherRecommendedStepId = null;
+  let locked = Boolean(input.forcedStepId);
+  let classroomSessionId = null;
+  let classroomVersion = null;
+
+  if (classroomRuntime) {
+    classroomSessionId = classroomRuntime.sessionId;
+    classroomVersion = classroomRuntime.version;
+    if (classroomRuntime.locked) {
+      forcedStepId = classroomRuntime.activeStepId;
+      locked = true;
+    } else {
+      teacherRecommendedStepId = classroomRuntime.activeStepId;
+      locked = false;
+    }
+  }
+
   // first incomplete is the default resume target; trusted teacher-forced runtime wins when supplied.
-  const resumeStepId = input.forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId;
+  const resumeStepId = forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId;
   const taskRows = await db.query.taskSubmissions.findMany({
     where: and(eq(taskSubmissions.publishedVersionId, published.id), eq(taskSubmissions.studentId, scope.userId)),
     orderBy: desc(taskSubmissions.attemptNo),
@@ -430,14 +485,22 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
   return StudentPlayerPersonalDTOSchema.parse({
     progress: {
       resumeStepId,
-      resumeLabel: input.forcedStepId ? "老师指定" : "继续学习",
+      resumeLabel: forcedStepId ? "老师指定" : "继续学习",
       steps: progress.steps,
     },
     runtime: {
-      forcedStepId: input.forcedStepId ?? null,
+      forcedStepId: forcedStepId,
       forcedLabel: "老师指定",
-      locked: Boolean(input.forcedStepId),
+      locked: locked,
       inaccessibleMessage: null,
+      classroomSessionId,
+      classroomVersion,
+      connectionState: classroomSessionId ? "reconnecting" : "offline", // Initial load is reconnecting
+      teacherRecommendedStepId,
+      disabledStepIds: locked ? steps.map(s => s.id).filter(id => id !== forcedStepId) : [],
+      disabledReason: locked ? "老师已开启锁定跟随，你将停留在当前步骤。" : null,
+      snapshotStatusCopy: (classroomSessionId && locked && forcedStepId !== progress.firstIncompleteStepId) ? "已恢复课堂状态，你现在看到的是最新步骤。" : null,
+      manualRefreshAvailable: false,
     },
     canRetryTask: false,
     canRetryQuiz: false,

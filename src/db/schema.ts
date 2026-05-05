@@ -379,3 +379,88 @@ export const attemptFeedback = sqliteTable(
     index("attemptFeedback_student_idx").on(table.studentId),
   ]
 );
+
+export const classroomSessions = sqliteTable(
+  "classroomSession",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    lessonId: text("lessonId")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    publishedVersionId: text("publishedVersionId")
+      .notNull()
+      .references(() => publishedLessonVersions.id, { onDelete: "cascade" }),
+    classId: text("classId")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    teacherId: text("teacherId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    activeStepId: text("activeStepId")
+      .notNull()
+      .references(() => lessonSteps.id, { onDelete: "cascade" }),
+    locked: integer("locked", { mode: "boolean" }).notNull().default(false),
+    status: text("status", { enum: ["live", "ended"] }).notNull().default("live"),
+    version: integer("version").notNull().default(1),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    endedAt: integer("endedAt", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("classroomSessions_lesson_class_status_idx").on(table.lessonId, table.classId, table.status),
+    index("classroomSessions_version_idx").on(table.version),
+  ]
+);
+
+export const classroomParticipants = sqliteTable(
+  "classroomParticipant",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sessionId: text("sessionId")
+      .notNull()
+      .references(() => classroomSessions.id, { onDelete: "cascade" }),
+    studentId: text("studentId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    classMemberId: text("classMemberId")
+      .notNull()
+      .references(() => classMembers.id, { onDelete: "cascade" }),
+    connectionState: text("connectionState", { enum: ["connected", "reconnecting", "offline"] }).notNull().default("offline"),
+    currentStepId: text("currentStepId")
+      .notNull()
+      .references(() => lessonSteps.id, { onDelete: "cascade" }),
+    lastSeenAt: integer("lastSeenAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("classroomParticipants_session_student_unique").on(table.sessionId, table.studentId),
+    index("classroomParticipants_session_idx").on(table.sessionId),
+    index("classroomParticipants_student_idx").on(table.studentId),
+  ]
+);
+
+export const classroomEvents = sqliteTable(
+  "classroomEvent",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sessionId: text("sessionId")
+      .notNull()
+      .references(() => classroomSessions.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    type: text("type", { enum: ["launched", "active_step_changed", "lock_mode_changed", "snapshot_refreshed", "ended"] }).notNull(),
+    actorId: text("actorId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("classroomEvents_session_version_idx").on(table.sessionId, table.version),
+    index("classroomEvents_session_created_idx").on(table.sessionId, table.createdAt),
+  ]
+);
