@@ -312,14 +312,15 @@ export async function getStudentDashboardDTO() {
   return StudentDashboardDTOSchema.parse({ studentName: scope.studentName, lessons: cards, emptyState: {} });
 }
 
-export async function getStudentPlayerDTO(input: { lessonId: string; forcedStepId?: string | null }) {
+export async function getStudentPlayerDTO(input: { lessonId: string; selectedStepId?: string | null; forcedStepId?: string | null }) {
   const scope = await assertActiveStudent();
   const { lesson, published } = await assertStudentCanAccessLesson(input.lessonId, scope);
   const snapshot = parseSnapshot(published.snapshotJson);
   const steps = parseSnapshotSteps(snapshot, lesson.id);
   const progress = summarizeProgress(steps, await getProgressRecords(published.id, scope.userId));
-  // first incomplete is the default resume target; teacher-forced wins when supplied.
-  const resumeStepId = input.forcedStepId ?? progress.firstIncompleteStepId;
+  const selectedStepId = steps.some((step) => step.id === input.selectedStepId) ? input.selectedStepId : null;
+  // first incomplete is the default resume target; trusted teacher-forced runtime wins when supplied.
+  const resumeStepId = input.forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId;
   const taskRows = await db.query.taskSubmissions.findMany({
     where: and(eq(taskSubmissions.publishedVersionId, published.id), eq(taskSubmissions.studentId, scope.userId)),
     orderBy: desc(taskSubmissions.attemptNo),

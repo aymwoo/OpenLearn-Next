@@ -13,7 +13,7 @@ export default async function StudentPlayerPage({ searchParams }: StudentPlayerP
   const dashboard = await getStudentDashboardDTO()
   const lessonId = params?.lessonId ?? dashboard.lessons[0]?.lessonId
   const player = lessonId
-    ? await getStudentPlayerDTO({ lessonId, forcedStepId: params?.stepId ?? null })
+    ? await getStudentPlayerDTO({ lessonId, selectedStepId: params?.stepId ?? null, forcedStepId: null })
     : null
 
   return <PlayerSurface player={player} />
