@@ -30,3 +30,32 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain("getStudentPlayerDTO");
   });
 });
+
+describe("learning DAL progress, append-only attempts, and teacher review", () => {
+  it("records progress and append-only task/quiz attempts in transactions", () => {
+    expect(source).toContain("export async function markStepProgress");
+    expect(source).toContain("export async function submitTaskAttempt");
+    expect(source).toContain("export async function submitQuizAttempt");
+    expect(source).toContain("db.transaction");
+    expect(source).toContain("append-only");
+    expect(source).toContain("isLatest: 0");
+    expect(source).toContain("isLatest: 1");
+  });
+
+  it("keeps quiz outcomes server-controlled without gradebook terms", () => {
+    expect(source).toContain("correctOptionIndex");
+    expect(source).toContain("showCorrectAnswer");
+    expect(source).not.toContain("gradebook");
+    expect(source).not.toContain("percentage");
+  });
+
+  it("supports teacher filters and short feedback validation", () => {
+    expect(source).toContain("export async function getTeacherLessonReviewDTO");
+    expect(source).toContain("export async function getTeacherStudentReviewDTO");
+    expect(source).toContain("export async function saveAttemptFeedback");
+    expect(source).toContain("needs_feedback");
+    expect(source).toContain("FeedbackInputSchema.parse");
+    expect(source).toContain("assertActiveTeacher");
+    expect(source).toContain("body.length > 200");
+  });
+});
