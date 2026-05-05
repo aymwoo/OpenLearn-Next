@@ -2,8 +2,15 @@ import { BookOpen, CheckCircle2, Focus, MonitorPlay } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { demoLesson, lessonSteps, studentProgress } from '@/lib/demo-data'
+import type { StudentPlayerDTO } from '@/lib/dto/learning'
 
-export function PlayerSurface() {
+type PlayerSurfaceProps = {
+  player?: StudentPlayerDTO | null
+}
+
+export function PlayerSurface({ player }: PlayerSurfaceProps = {}) {
+  void player
+
   const currentStep = lessonSteps.find((step) => step.status === 'current') ?? lessonSteps[0]
 
   return (

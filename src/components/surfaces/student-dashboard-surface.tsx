@@ -4,8 +4,15 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { demoCourse, demoLesson, lessonSteps, studentProgress } from '@/lib/demo-data'
+import type { StudentDashboardDTO } from '@/lib/dto/learning'
 
-export function StudentDashboardSurface() {
+type StudentDashboardSurfaceProps = {
+  dashboard?: StudentDashboardDTO
+}
+
+export function StudentDashboardSurface({ dashboard }: StudentDashboardSurfaceProps = {}) {
+  void dashboard
+
   return (
     <div className="space-y-6">
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
