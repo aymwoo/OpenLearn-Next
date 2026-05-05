@@ -1,5 +1,16 @@
-import { PlayerSurface } from '@/components/surfaces/player-surface'
-import { getStudentDashboardDTO, getStudentPlayerDTO } from '@/lib/dal/learning'
+import { Suspense } from 'react'
+
+import {
+  PlayerPersonalFallback,
+  PlayerPersonalRegion,
+  PlayerSurface,
+} from '@/components/surfaces/player-surface'
+import {
+  getStudentDashboardDTO,
+  getStudentPlayerPersonalDTO,
+  getStudentPlayerShellDTO,
+} from '@/lib/dal/learning'
+import type { StudentPlayerShellDTO } from '@/lib/dto/learning'
 
 type StudentPlayerPageProps = {
   searchParams?: Promise<{
@@ -8,19 +19,42 @@ type StudentPlayerPageProps = {
   }>
 }
 
+async function PlayerPersonalLoader({
+  lessonId,
+  selectedStepId,
+  shell,
+}: {
+  lessonId: string
+  selectedStepId: string | null
+  shell: StudentPlayerShellDTO
+}) {
+  const personal = await getStudentPlayerPersonalDTO({ lessonId, selectedStepId, forcedStepId: null })
+
+  return <PlayerPersonalRegion shell={shell} personal={personal} />
+}
+
 export default async function StudentPlayerPage({ searchParams }: StudentPlayerPageProps) {
   const params = await searchParams
-  let player = null
+  let shell = null
 
   try {
     const dashboard = await getStudentDashboardDTO()
     const lessonId = params?.lessonId ?? dashboard.lessons[0]?.lessonId
-    player = lessonId
-      ? await getStudentPlayerDTO({ lessonId, selectedStepId: params?.stepId ?? null, forcedStepId: null })
-      : null
+    shell = lessonId ? await getStudentPlayerShellDTO({ lessonId }) : null
   } catch {
-    player = null
+    shell = null
   }
 
-  return <PlayerSurface player={player} />
+  return (
+    <PlayerSurface
+      shell={shell}
+      personalSlot={
+        shell ? (
+          <Suspense fallback={<PlayerPersonalFallback shell={shell} />}>
+            <PlayerPersonalLoader lessonId={shell.lessonId} selectedStepId={params?.stepId ?? null} shell={shell} />
+          </Suspense>
+        ) : null
+      }
+    />
+  )
 }
