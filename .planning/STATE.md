@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Completed Phase 03 plans 01-04
 last_updated: "2026-05-05T00:21:19.420Z"
-last_activity: 2026-05-05 -- Completed quick task 260505-c8c: 修复 Auth.js CredentialsProvider 登录报 UnsupportedStrategy：credentials 登录必须启用 JWT session strategy
+last_activity: 2026-05-05 -- Completed quick task 260505-cin: 修复 Next.js 16 /login blocking route：searchParams 必须在 Suspense 边界内读取
 progress:
   total_phases: 6
   completed_phases: 3
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 Phase: 03 (courses-lessons-steps-and-teacher-authoring) — EXECUTING
 Plan: 1 of 4
 Status: Executing Phase 03
-Last activity: 2026-05-05 -- Completed quick task 260505-c8c: 修复 Auth.js CredentialsProvider 登录报 UnsupportedStrategy：credentials 登录必须启用 JWT session strategy
+Last activity: 2026-05-05 -- Completed quick task 260505-cin: 修复 Next.js 16 /login blocking route：searchParams 必须在 Suspense 边界内读取
 
 Progress: [██████████] 100%
 
@@ -80,6 +80,7 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260505-c8c | 修复 Auth.js CredentialsProvider 登录报 UnsupportedStrategy：credentials 登录必须启用 JWT session strategy | 2026-05-05 | 28ddfd4 | [260505-c8c-auth-js-credentialsprovider-unsupporteds](./quick/260505-c8c-auth-js-credentialsprovider-unsupporteds/) |
+| 260505-cin | 修复 Next.js 16 /login blocking route：searchParams 必须在 Suspense 边界内读取 | 2026-05-05 | 5422349 | [260505-cin-next-js-16-login-blocking-route-searchpa](./quick/260505-cin-next-js-16-login-blocking-route-searchpa/) |
 
 ## Deferred Items
 
