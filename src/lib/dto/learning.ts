@@ -125,6 +125,9 @@ export const StudentPlayerDTOSchema = z.object({
   inaccessibleMessage: z.string().default("课时暂不可学习"),
 });
 
+export const StudentPlayerShellDTOSchema = StudentPlayerDTOSchema.shape.shell;
+export const StudentPlayerPersonalDTOSchema = StudentPlayerDTOSchema.omit({ shell: true });
+
 export const SubmitTaskInputSchema = z.object({
   publishedVersionId: z.string(),
   lessonId: z.string(),
@@ -196,6 +199,8 @@ export type RuntimeStepStateDTO = z.infer<typeof RuntimeStepStateDTOSchema>;
 export type TaskAttemptDTO = z.infer<typeof TaskAttemptDTOSchema>;
 export type QuizAttemptDTO = z.infer<typeof QuizAttemptDTOSchema>;
 export type AttemptFeedbackDTO = z.infer<typeof AttemptFeedbackDTOSchema>;
+export type StudentPlayerShellDTO = z.infer<typeof StudentPlayerShellDTOSchema>;
+export type StudentPlayerPersonalDTO = z.infer<typeof StudentPlayerPersonalDTOSchema>;
 export type StudentPlayerDTO = z.infer<typeof StudentPlayerDTOSchema>;
 export type SubmitTaskInput = z.infer<typeof SubmitTaskInputSchema>;
 export type SubmitQuizInput = z.infer<typeof SubmitQuizInputSchema>;

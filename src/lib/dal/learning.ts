@@ -1,6 +1,7 @@
 import "server-only";
 
 import { and, desc, eq, inArray } from "drizzle-orm";
+import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
 import {
@@ -20,6 +21,7 @@ import {
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
+import { cacheTags } from "@/lib/cache-policy";
 import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
 import {
   FeedbackInputSchema,
@@ -27,6 +29,8 @@ import {
   MutationResultDTOSchema,
   StudentDashboardDTOSchema,
   StudentPlayerDTOSchema,
+  StudentPlayerPersonalDTOSchema,
+  StudentPlayerShellDTOSchema,
   SubmitQuizInputSchema,
   SubmitTaskInputSchema,
   TeacherLessonReviewDTOSchema,
@@ -35,6 +39,7 @@ import {
   type LearningStepDTO,
   type ProgressState,
   type StudentLessonCardDTO,
+  type StudentPlayerShellDTO,
   type TeacherReviewFilter,
 } from "@/lib/dto/learning";
 
@@ -350,13 +355,36 @@ export async function getStudentDashboardDTO() {
   return StudentDashboardDTOSchema.parse({ studentName: scope.studentName, lessons: cards, emptyState: {} });
 }
 
-export async function getStudentPlayerDTO(input: { lessonId: string; selectedStepId?: string | null; forcedStepId?: string | null }) {
+export async function getStudentPlayerShellDTO(input: { lessonId: string }): Promise<StudentPlayerShellDTO> {
+  'use cache'
+  cacheLife('hours')
+  cacheTag(cacheTags.lesson(input.lessonId))
+  cacheTag(cacheTags.steps(input.lessonId))
+
+  const scope = await assertActiveStudent();
+  const { lesson, published } = await assertStudentCanAccessLesson(input.lessonId, scope);
+  const snapshot = parseSnapshot(published.snapshotJson);
+  const steps = parseSnapshotSteps(snapshot, lesson.id);
+
+  return StudentPlayerShellDTOSchema.parse({
+    lessonId: lesson.id,
+    publishedVersionId: published.id,
+    title: snapshot.lesson?.title ?? lesson.title,
+    objective: snapshot.lesson?.objective ?? lesson.objective,
+    steps,
+  });
+}
+
+export async function getStudentPlayerPersonalDTO(input: { lessonId: string; selectedStepId?: string | null; forcedStepId?: string | null }) {
   const scope = await assertActiveStudent();
   const { lesson, published } = await assertStudentCanAccessLesson(input.lessonId, scope);
   const snapshot = parseSnapshot(published.snapshotJson);
   const steps = parseSnapshotSteps(snapshot, lesson.id);
   const stepById = new Map(steps.map((step) => [step.id, step]));
-  const progress = summarizeProgress(steps, await getProgressRecords(published.id, scope.userId));
+  const progressRows = await db.query.lessonStepProgress.findMany({
+    where: and(eq(lessonStepProgress.publishedVersionId, published.id), eq(lessonStepProgress.studentId, scope.userId)),
+  });
+  const progress = summarizeProgress(steps, progressRows);
   const selectedStepId = steps.some((step) => step.id === input.selectedStepId) ? input.selectedStepId : null;
   // first incomplete is the default resume target; trusted teacher-forced runtime wins when supplied.
   const resumeStepId = input.forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId;
@@ -369,14 +397,7 @@ export async function getStudentPlayerDTO(input: { lessonId: string; selectedSte
     orderBy: desc(quizAttempts.attemptNo),
   });
 
-  return StudentPlayerDTOSchema.parse({
-    shell: {
-      lessonId: lesson.id,
-      publishedVersionId: published.id,
-      title: snapshot.lesson?.title ?? lesson.title,
-      objective: snapshot.lesson?.objective ?? lesson.objective,
-      steps,
-    },
+  return StudentPlayerPersonalDTOSchema.parse({
     progress: {
       resumeStepId,
       resumeLabel: input.forcedStepId ? "老师指定" : "继续学习",
@@ -401,6 +422,13 @@ export async function getStudentPlayerDTO(input: { lessonId: string; selectedSte
     },
     inaccessibleMessage: INACCESSIBLE_LESSON_MESSAGE,
   });
+}
+
+export async function getStudentPlayerDTO(input: { lessonId: string; selectedStepId?: string | null; forcedStepId?: string | null }) {
+  const shell = await getStudentPlayerShellDTO({ lessonId: input.lessonId });
+  const personal = await getStudentPlayerPersonalDTO(input);
+
+  return StudentPlayerDTOSchema.parse({ shell, ...personal });
 }
 
 export async function markStepProgress(input: unknown) {
