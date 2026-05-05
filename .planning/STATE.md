@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 6 context gathered
-last_updated: "2026-05-05T13:43:38.453Z"
-last_activity: 2026-05-05 -- Phase 06 planning complete
+last_updated: "2026-05-05T13:48:13.741Z"
+last_activity: 2026-05-05 -- Completed 06-01-PLAN.md
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 32
-  completed_plans: 28
-  percent: 88
+  completed_plans: 29
+  percent: 91
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 ## Current Position
 
 Phase: 6
-Plan: 02
+Plan: 03
 Status: Ready to execute
-Last activity: 2026-05-05 -- Completed 06-01-PLAN.md
+Last activity: 2026-05-05 -- Completed 06-02-PLAN.md
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -65,6 +65,9 @@ Progress: [█████████░] 88%
 
 ### Decisions
 
+- [Phase 06]: Resource mutations strictly return validated ResourceCardDTO to prevent internal schema leaks.
+- [Phase 06]: RAG eligibility explicitly defaults to false on creation per D-08 requirement.
+- [Phase 06]: LibrarySurface maps visibility, classification, and URL into missing UI metadata fields for immediate value.
 - [Phase 1]: UI implementation must follow Stitch project `5322129002350954765` and `DESIGN.md`.
 - [Phase 1]: Next.js 16 cache tags, PPR boundaries, and Suspense rules must be explicit before feature data is added.
 - [Phase 1]: Route cache boundaries use explicit `cacheTags` and `rules` fields so future auth/progress/classroom runtime data stays out of static shells.
@@ -109,6 +112,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-05-05T13:43:38.449Z
+Last session: 2026-05-05T13:48:13.737Z
 Stopped at: Phase 6 context gathered
 Resume file: None
