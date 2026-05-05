@@ -5,6 +5,8 @@ export const cacheTags = {
   lesson: (lessonId: string) => `lesson:${lessonId}`,
   steps: (lessonId: string) => `steps:${lessonId}`,
   progress: (lessonId: string, userId: string) => `progress:${lessonId}:${userId}`,
+  submission: (lessonId: string, userId: string) => `submission:${lessonId}:${userId}`,
+  teacherReview: (lessonId: string) => `teacher-review:${lessonId}`,
   classroom: (sessionId: string) => `classroom:${sessionId}`,
 } as const
 
