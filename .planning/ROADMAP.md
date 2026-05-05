@@ -109,7 +109,14 @@ Plans:
   3. Student player reflects active step and lock mode changes through an Edge Runtime SSE stream.
   4. Late-joining or reconnecting students receive a consistent snapshot from durable SQLite classroom state rather than SSE memory.
   5. Teacher can recover from classroom control conflicts or stale UI with clear state feedback.
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [ ] 06-01-PLAN.md — Define Phase 06 schema, DTO, cache tags, and push Drizzle schema.
+- [ ] 06-02-PLAN.md — Convert `/resources` into a teacher-scoped DTO-backed resource center.
+- [ ] 06-03-PLAN.md — Implement AI agent registry, RAG retrieval filters, proposals, approvals, and audit contracts.
+- [ ] 06-04-PLAN.md — Implement MCP metadata, credentialRef, disabled capability, and audit boundaries.
+- [ ] 06-05-PLAN.md — Implement declarative plugin/theme safety foundations and admin visibility panels.
+- [ ] 06-06-PLAN.md — Add and run final Phase 06 automated verification gate.
 **UI hint**: yes
 
 ### Phase 6: Resource, AI/RAG/MCP, plugin, and theme foundations
