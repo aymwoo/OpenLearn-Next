@@ -110,3 +110,143 @@ export const classMembers = sqliteTable(
     index("classMember_userId_idx").on(table.userId)
   ]
 );
+
+export const courses = sqliteTable(
+  "course",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    ownerId: text("ownerId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    subject: text("subject").notNull(),
+    grade: text("grade").notNull(),
+    status: text("status").notNull().default("draft"),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("courses_schoolId_idx").on(table.schoolId),
+    index("courses_ownerId_idx").on(table.ownerId),
+  ]
+);
+
+export const courseClasses = sqliteTable(
+  "courseClass",
+  {
+    courseId: text("courseId")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    classId: text("classId")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.courseId, table.classId] })]
+);
+
+export const courseEnrollments = sqliteTable(
+  "courseEnrollment",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    courseId: text("courseId")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    studentId: text("studentId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("active"),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("courseEnrollments_courseId_idx").on(table.courseId),
+    index("courseEnrollments_studentId_idx").on(table.studentId),
+  ]
+);
+
+export const lessons = sqliteTable(
+  "lesson",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    courseId: text("courseId")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    createdById: text("createdById")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    objective: text("objective").notNull(),
+    status: text("status").notNull().default("draft"),
+    revision: integer("revision").notNull().default(1),
+    publishedVersionId: text("publishedVersionId"),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [index("lessons_courseId_idx").on(table.courseId)]
+);
+
+export const lessonSteps = sqliteTable(
+  "lessonStep",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    lessonId: text("lessonId")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    rank: text("rank").notNull(),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    archivedAt: integer("archivedAt", { mode: "timestamp_ms" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [index("lessonSteps_lessonId_rank_idx").on(table.lessonId, table.rank)]
+);
+
+export const lessonMaterials = sqliteTable(
+  "lessonMaterial",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    lessonId: text("lessonId")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    stepId: text("stepId").references(() => lessonSteps.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    kind: text("kind").notNull().default("link"),
+    url: text("url"),
+    note: text("note"),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [index("lessonMaterials_lessonId_idx").on(table.lessonId)]
+);
+
+export const publishedLessonVersions = sqliteTable(
+  "publishedLessonVersion",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    lessonId: text("lessonId")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    snapshotJson: text("snapshotJson", { mode: "json" }).notNull(),
+    publishedById: text("publishedById")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    publishedAt: integer("publishedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [index("publishedLessonVersions_lessonId_version_idx").on(table.lessonId, table.version)]
+);
