@@ -1,7 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-
 export function TestAccountHint() {
   const accounts = [
     { label: "测试教师", email: "teacher@example.com", password: "password" },

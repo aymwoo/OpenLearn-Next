@@ -24,8 +24,13 @@ export async function signInAction(formData: FormData) {
       password: parsed.data.password,
       redirectTo: "/",
     });
-  } catch (error: any) {
-    if (error.type === "CredentialsSignin") {
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "type" in error &&
+      error.type === "CredentialsSignin"
+    ) {
       return { error: "Invalid credentials" };
     }
     throw error;
