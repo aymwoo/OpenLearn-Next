@@ -29,7 +29,7 @@ export function PlayerPersonalFallback({ shell }: { shell: StudentPlayerShellDTO
       <aside className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient">
         <div className="flex gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-1 xl:overflow-visible xl:pb-0">
           {shell.steps.map((step, index) => (
-            <div key={step.id} className="min-w-56 rounded-full bg-surface-container-lowest/70 p-4 xl:min-w-0 xl:rounded-3xl">
+            <div key={step.id} className="min-w-56 rounded-full bg-surface-container-lowest p-4 xl:min-w-0 xl:rounded-3xl">
               <div className="flex items-center gap-3">
                 <span className="grid size-10 place-items-center rounded-full bg-primary-container/25 text-sm font-semibold text-primary">{index + 1}</span>
                 <div>
