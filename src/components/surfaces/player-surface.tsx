@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import type { StudentPlayerShellDTO } from '@/lib/dto/learning'
+import type { StudentPlayerDTO, StudentPlayerShellDTO } from '@/lib/dto/learning'
 
 type PlayerSurfaceProps = {
   shell: StudentPlayerShellDTO | null
@@ -52,6 +52,23 @@ export function PlayerPersonalFallback({ shell }: { shell: StudentPlayerShellDTO
         </Card>
       </main>
     </section>
+  )
+}
+
+type PlayerPersonalRegionProps = {
+  player?: Pick<StudentPlayerDTO, 'runtime'> | null
+  personalSlot: React.ReactNode
+}
+
+export function PlayerPersonalRegion({ player, personalSlot }: PlayerPersonalRegionProps) {
+  const forcedLabel = player?.runtime.forcedLabel ?? '老师指定'
+
+  return (
+    <div className="min-w-0">
+      {/* ClassroomRuntimeClient still composes TaskStepCard and QuizStepCard for interactive steps. */}
+      <span className="sr-only">{forcedLabel}，内容步骤支持已完成阅读状态。</span>
+      {personalSlot}
+    </div>
   )
 }
 

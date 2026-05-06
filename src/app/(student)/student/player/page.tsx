@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 
 import {
   PlayerPersonalFallback,
+  PlayerPersonalRegion,
   PlayerSurface,
 } from '@/components/surfaces/player-surface'
 import { ClassroomRuntimeClient } from '@/components/learning/classroom-runtime-client'
@@ -61,9 +62,14 @@ export default async function StudentPlayerPage({ searchParams }: StudentPlayerP
       shell={shell}
       personalSlot={
         shell && scope ? (
-          <Suspense fallback={<PlayerPersonalFallback shell={shell} />}>
-            <PlayerPersonalLoader lessonId={shell.lessonId} selectedStepId={params?.stepId ?? null} shell={shell} scope={scope} />
-          </Suspense>
+          <PlayerPersonalRegion
+            player={null}
+            personalSlot={
+              <Suspense fallback={<PlayerPersonalFallback shell={shell} />}>
+                <PlayerPersonalLoader lessonId={shell.lessonId} selectedStepId={params?.stepId ?? null} shell={shell} scope={scope} />
+              </Suspense>
+            }
+          />
         ) : null
       }
     />
