@@ -15,6 +15,8 @@ export function LoginForm({ initialError }: LoginFormProps) {
     error: initialError,
   });
   const error = state.error;
+  const inputClassName =
+    "rounded-full bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/70 focus:bg-surface-container-lowest focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/20";
 
   return (
     <>
@@ -34,7 +36,7 @@ export function LoginForm({ initialError }: LoginFormProps) {
             type="email"
             placeholder="you@example.com"
             required
-            className="rounded-full bg-surface-container-low px-4 py-2.5 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/20"
+            className={inputClassName}
           />
         </div>
         <div className="grid gap-2">
@@ -49,13 +51,13 @@ export function LoginForm({ initialError }: LoginFormProps) {
             name="password"
             type="password"
             required
-            className="rounded-full bg-surface-container-low px-4 py-2.5 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/20"
+            className={inputClassName}
           />
         </div>
         <Button
           type="submit"
           disabled={isPending}
-          className="mt-4 min-h-12 w-full rounded-full bg-linear-135 from-primary to-primary-container px-6 text-base font-semibold text-on-primary shadow-ambient disabled:opacity-70"
+          className="mt-4 min-h-12 w-full px-6 text-base disabled:opacity-70"
         >
           {isPending ? "登录中..." : "登录"}
         </Button>

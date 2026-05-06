@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { signInAction } from "@/actions/auth-actions";
 import { TestAccountHint } from "@/app/(auth)/login/TestAccountHint";
+import { Button } from "@/components/ui/button";
 
 type RoleIntent = "teacher" | "student";
 
@@ -25,15 +26,17 @@ export function HomeLoginCard() {
   const [state, formAction, isPending] = useActionState(signInAction, {});
   const error = state.error;
   const copy = useMemo(() => roleCopy[roleIntent], [roleIntent]);
+  const inputClassName =
+    "w-full rounded-full bg-surface-container-low px-4 py-3 text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/70 focus:bg-surface-container-lowest focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/20";
 
   return (
-    <div className="w-full max-w-[28rem] justify-self-center rounded-xl border border-surface-container bg-surface-container-lowest p-8 shadow-[0_8px_32px_rgba(44,47,49,0.06)] lg:justify-self-start lg:pl-8">
+    <div className="w-full max-w-[28rem] justify-self-center rounded-[2rem] bg-surface-container-lowest p-8 shadow-ambient lg:justify-self-start lg:pl-8">
       <div className="mb-8 text-center">
         <h2 className="mb-2 text-[1.75rem] font-bold text-on-surface">欢迎回来</h2>
         <p className="text-[1rem] text-on-surface-variant">请选择教师或学生入口继续登录</p>
       </div>
 
-      <div className="mb-3 flex rounded-lg bg-surface-container-low p-1">
+      <div className="mb-3 flex rounded-full bg-surface-container-low p-1.5">
         {(["teacher", "student"] as const).map((role) => {
           const active = roleIntent === role;
 
@@ -44,8 +47,8 @@ export function HomeLoginCard() {
               onClick={() => setRoleIntent(role)}
               className={
                 active
-                  ? "flex-1 rounded-md bg-surface-container-lowest py-2 text-center text-sm font-medium text-primary shadow-sm transition-colors"
-                  : "flex-1 rounded-md py-2 text-center text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface"
+                  ? "flex-1 rounded-full bg-surface-container-lowest py-2.5 text-center text-sm font-medium text-primary shadow-ambient transition-colors"
+                  : "flex-1 rounded-full py-2.5 text-center text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface"
               }
             >
               {roleCopy[role].tab}
@@ -74,7 +77,7 @@ export function HomeLoginCard() {
             name="email"
             type="email"
             required
-            className="w-full rounded-lg border-transparent bg-surface-container-low px-4 py-3 text-on-surface transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className={inputClassName}
             placeholder="name@example.com"
           />
         </div>
@@ -88,7 +91,7 @@ export function HomeLoginCard() {
             name="password"
             type="password"
             required
-            className="w-full rounded-lg border-transparent bg-surface-container-low px-4 py-3 text-on-surface transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className={inputClassName}
             placeholder="••••••••"
           />
         </div>
@@ -103,13 +106,13 @@ export function HomeLoginCard() {
           </Link>
         </div>
 
-        <button
-          className="flex w-full items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary-container py-3 font-medium text-on-primary transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-70"
+        <Button
+          className="flex w-full items-center justify-center py-3 font-medium disabled:opacity-70"
           type="submit"
           disabled={isPending}
         >
           {isPending ? "登录中..." : copy.submit}
-        </button>
+        </Button>
       </form>
 
       <TestAccountHint
