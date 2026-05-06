@@ -1,5 +1,7 @@
 import { Layers3, MonitorUp, Settings2, Sparkles, TimerReset } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { AuthoringStatusPanel } from '@/components/authoring/authoring-status-panel'
 import { LessonAuthoringWorkspace } from '@/components/authoring/lesson-authoring-workspace'
 import type { LessonEditorDTO, TeacherAuthoringOverviewDTO } from '@/lib/dto/lesson-authoring'
@@ -24,7 +26,7 @@ export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfacePro
         </div>
       </section>
 
-      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-[0_16px_40px_rgba(44,47,49,0.05)] xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px] xl:gap-4">
+      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px] xl:gap-4">
         <aside className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -51,7 +53,10 @@ export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfacePro
           </div>
 
           <div className="mt-6 space-y-3">
-            <p className="text-sm text-on-surface-variant">步骤编排</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-on-surface-variant">步骤编排</p>
+              <Badge className="bg-surface-container-low text-on-surface-variant">{activeStepCount} 个有效步骤</Badge>
+            </div>
             {steps.map((step, index) => (
               <button key={step.id} className="w-full rounded-3xl bg-surface-container-low p-4 text-left">
                 <div className="flex items-center gap-3">
@@ -67,31 +72,42 @@ export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfacePro
             ))}
           </div>
 
-          <div className="mt-4 rounded-3xl bg-surface-container-low p-5 text-center text-sm text-on-surface-variant">
+          <Card className="mt-4 rounded-3xl bg-surface-container-low p-5 text-center text-sm text-on-surface-variant shadow-none">
             将新的课堂步骤放在这里
-          </div>
+          </Card>
         </aside>
 
         <main className="mt-4 min-w-0 rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5 xl:mt-0">
           <div className="flex flex-col gap-5">
             <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-            <div>
+              <div>
                 <div className="flex flex-wrap items-center gap-3">
                   <Badge variant="accent">{activeCourse?.subject ?? '课程'}</Badge>
                   <Badge variant="default" className="bg-surface-container-low">第 {activeLesson?.revision ?? 0} 次修订</Badge>
                 </div>
                 <h2 className="mt-4 text-[2rem] font-semibold leading-tight tracking-[-0.02em]">{activeLesson?.title ?? '课堂画布'}</h2>
-              <p className="mt-3 max-w-2xl leading-8 text-on-surface-variant">
-                {activeLesson?.objective ?? '创建第一个课时后，可以在这里编排内容、任务和测验步骤。'}
-              </p>
-            </div>
-              <Badge variant="success">草稿仅教师可见</Badge>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-on-surface-variant sm:text-base">
+                  {activeLesson?.objective ?? '创建第一个课时后，可以在这里编排内容、任务和测验步骤。'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge variant="success">草稿仅教师可见</Badge>
+                <Button variant="secondary" className="min-h-10 px-4 text-sm">预览课堂</Button>
+              </div>
             </div>
 
-            <div className="rounded-[1.5rem] bg-linear-135 from-primary to-primary-container p-5 text-on-primary shadow-ambient">
-              <p className="text-sm text-on-primary/80">当前编排焦点</p>
-              <p className="mt-2 text-2xl font-semibold">{activeStepCount > 0 ? `${activeStepCount} 个有效步骤` : '等待新增第一个步骤'}</p>
-              <p className="mt-3 text-sm leading-6 text-on-primary/85">保持导入、讲授、练习、总结的节奏层级，让课堂运行页能够直接读取同样的结构。</p>
+            <div className="rounded-[1.5rem] bg-surface-container-low p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-sm text-on-surface-variant">当前编排焦点</p>
+                  <p className="mt-2 text-2xl font-semibold text-on-surface">{activeStepCount > 0 ? `${activeStepCount} 个有效步骤` : '等待新增第一个步骤'}</p>
+                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">保持导入、讲授、练习、总结的节奏层级，让课堂运行页能够直接读取同样的结构。</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button className="min-h-10 px-4 text-sm">新增步骤</Button>
+                  <Button variant="tertiary" className="min-h-10 px-2 text-sm">整理结构</Button>
+                </div>
+              </div>
             </div>
 
             <div className="grid gap-3 md:grid-cols-4">
@@ -117,7 +133,11 @@ export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfacePro
           </div>
           <div className="mt-6 rounded-3xl bg-surface-container-low p-5">
             <p className="text-sm text-on-surface-variant">发布前检查</p>
-            <p className="mt-2 leading-7">发布课时前，请确认目标、步骤和引用材料已经形成学习闭环。</p>
+            <p className="mt-2 text-sm leading-7 text-on-surface">发布课时前，请确认目标、步骤和引用材料已经形成学习闭环。</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button className="min-h-10 px-4 text-sm">发布当前版本</Button>
+              <Button variant="secondary" className="min-h-10 px-4 text-sm">保存草稿</Button>
+            </div>
           </div>
           <AuthoringStatusPanel lesson={lesson} />
           <span className="sr-only">已自动保存 检测到更新冲突</span>
@@ -143,7 +163,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-3xl bg-surface-container-low p-4">
       <p className="text-sm text-on-surface-variant">{label}</p>
-      <p className="mt-2 font-semibold">{value}</p>
+      <p className="mt-2 text-sm font-semibold text-on-surface">{value}</p>
     </div>
   )
 }

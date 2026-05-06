@@ -2,6 +2,7 @@ import { Download, Filter, Pencil, Plus, Search, Trash2, Upload } from 'lucide-r
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 const filters = [
   {
@@ -59,18 +60,29 @@ export function StudentsManagementSurface() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-5">
           <div className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient sm:p-6">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-on-surface-variant">当前上下文</p>
+                <p className="mt-1 text-lg font-semibold text-on-surface">优先保留筛选条件、主操作和待核对学生名单。</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge className="bg-surface-container-lowest">九年级 / 全部班级</Badge>
+                <Badge className="bg-surface-container-lowest">待核对 12 人</Badge>
+              </div>
+            </div>
+
             <div className="grid gap-3 lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.1fr)]">
               {filters.map((group) => (
                 <div key={group.label} className="rounded-[1.5rem] bg-surface-container-lowest p-4">
                   <p className="text-sm text-on-surface-variant">{group.label}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {group.options.map((option, index) => (
-                      <span
+                      <Badge
                         key={option}
-                        className={index === 0 ? 'rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary' : 'rounded-full bg-surface-container-low px-3 py-1.5 text-sm text-on-surface-variant'}
+                        className={index === 0 ? 'bg-primary/10 text-primary' : 'bg-surface-container-low text-on-surface-variant'}
                       >
                         {option}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 </div>
@@ -92,13 +104,13 @@ export function StudentsManagementSurface() {
           <div className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-full bg-surface-container-lowest px-4 py-2 text-sm font-medium text-on-surface">全选</span>
-                <span className="rounded-full bg-surface-container-lowest px-4 py-2 text-sm text-on-surface-variant">已选择 0 名学生</span>
+                <Button variant="secondary" className="min-h-10 px-4 text-sm shadow-none">全选</Button>
+                <Badge className="bg-surface-container-lowest text-on-surface-variant">已选择 0 名学生</Badge>
               </div>
               <div className="flex flex-wrap gap-3 text-sm">
-                <button className="rounded-full bg-surface-container-lowest px-4 py-2 text-on-surface-variant transition hover:text-on-surface">批量操作</button>
-                <button className="rounded-full bg-surface-container-lowest px-4 py-2 text-on-surface-variant transition hover:text-on-surface">批量导出</button>
-                <button className="rounded-full bg-surface-container-lowest px-4 py-2 text-[#b31b25] transition hover:bg-[#fff2f3]">批量删除</button>
+                <Button variant="secondary" className="min-h-10 px-4 text-sm shadow-none">批量操作</Button>
+                <Button variant="secondary" className="min-h-10 px-4 text-sm shadow-none">批量导出</Button>
+                <Button variant="secondary" className="min-h-10 bg-error-container px-4 text-sm text-on-error-container hover:bg-error-container/90">批量删除</Button>
               </div>
             </div>
 
@@ -122,12 +134,12 @@ export function StudentsManagementSurface() {
                     <Badge variant={student.tone} className="mt-2 w-fit">{student.status}</Badge>
                   </div>
                   <div className="flex items-center gap-2 lg:justify-end">
-                    <button className="rounded-full bg-surface-container-low p-2.5 text-on-surface-variant transition hover:bg-surface hover:text-on-surface">
+                    <Button variant="secondary" className="min-h-10 px-3 text-on-surface-variant shadow-none hover:text-on-surface">
                       <Pencil className="size-4" aria-hidden />
-                    </button>
-                    <button className="rounded-full bg-surface-container-low p-2.5 text-[#b31b25] transition hover:bg-[#fff2f3]">
+                    </Button>
+                    <Button variant="secondary" className="min-h-10 bg-error-container px-3 text-on-error-container shadow-none hover:bg-error-container/90">
                       <Trash2 className="size-4" aria-hidden />
-                    </button>
+                    </Button>
                   </div>
                 </article>
               ))}
@@ -148,24 +160,24 @@ export function StudentsManagementSurface() {
 
         <aside className="grid gap-4 self-start">
           {stats.map((stat) => (
-            <section key={stat.label} className="rounded-[var(--radius-shell)] bg-surface-container-lowest p-5 shadow-ambient">
+            <Card key={stat.label} className="rounded-[var(--radius-shell)] bg-surface-container-lowest p-5">
               <p className="text-sm text-on-surface-variant">{stat.label}</p>
               <p className="mt-3 text-[2rem] font-semibold text-on-surface">{stat.value}</p>
               <p className="mt-2 text-sm text-on-surface-variant">{stat.detail}</p>
-            </section>
+            </Card>
           ))}
 
           <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
             <p className="text-sm text-on-surface-variant">快捷操作</p>
             <div className="mt-4 grid gap-3">
-              <button className="flex items-center justify-between rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-left text-on-surface">
+              <Button variant="secondary" className="min-h-12 justify-between rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-left text-on-surface shadow-none">
                 导出学生名册
                 <Download className="size-4 text-primary" aria-hidden />
-              </button>
-              <button className="flex items-center justify-between rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-left text-on-surface">
+              </Button>
+              <Button variant="secondary" className="min-h-12 justify-between rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-left text-on-surface shadow-none">
                 导出缺勤名单
                 <Download className="size-4 text-primary" aria-hidden />
-              </button>
+              </Button>
             </div>
           </section>
         </aside>
