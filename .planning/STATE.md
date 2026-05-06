@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 current_phase: 10
-current_plan: 4
+current_plan: 5
 status: executing
-last_updated: "2026-05-06T22:23:37.162Z"
+last_updated: "2026-05-06T22:30:19Z"
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 11
-  completed_plans: 9
-  percent: 82
+  completed_plans: 10
+  percent: 91
 ---
 
 # Project State
@@ -19,19 +19,19 @@ progress:
 ## Position
 
 **Current Phase:** 10
-**Current Plan:** 4
+**Current Plan:** 5
 **Status:** Ready to execute
 **Progress:**
-[████████░░] 82%
+[█████████░] 91%
 
 ## Context
 
 **Recent Decisions:**
 
-- Started v1.1 milestone focusing on Stitch UI alignment and release polish.
-- Mapped 4 new UI requirements (UI-01 to UI-04) to Phases 8-10.
+- 将课堂运行页保持为单一渐变主舞台，其余控制与名册模块全部回落到 tonal cards，避免高频教师页面出现多重 hero 竞争。
+- 结束课堂与待反馈状态继续使用语义色，而不是并入品牌蓝 CTA 体系，满足实时操作风险识别。
+- 课堂 launch 表单改为 ghost-outline input treatment，并让 review 筛选 pills 明显退居主 hero 之后。
 - Aligned the global brand gradient tokens to `DESIGN.md` as the only shared primary CTA source.
-- Kept shared button hierarchy limited to primary, secondary, and tertiary with token-driven emphasis.
 - Preserved semantic-first badge tones so success and accent states stay visually distinct.
 
 **Active Blockers:**
@@ -40,9 +40,9 @@ progress:
 
 ## Next Steps
 
-1. Execute Phase 10 Plan 02 for shell and navigation convergence.
-2. Reuse tightened shared Button/Card/Badge primitives in downstream Phase 10 page polish.
-3. Verify remaining Phase 10 routes remove local border and shadow drift.
+1. Execute Phase 10 Plan 05 for public, student, library, and settings polish.
+2. Reuse the single-hero plus tonal-support pattern on remaining release surfaces.
+3. Run final Phase 10 verification for border removal, hierarchy, and semantic-state clarity.
 
 ### Quick Tasks Completed
 
