@@ -15,9 +15,9 @@ export function RouteShell({ children, sidebarItems, activePath, sidebarTitle, s
   return (
     <div className="min-h-screen bg-surface pb-12 pt-4 text-on-surface">
       {showTopNav ? <GlassNav /> : null}
-      <div className="mx-auto mt-4 flex w-[min(1160px,calc(100%-24px))] gap-4">
+      <div className="mx-auto mt-4 flex w-[min(1180px,calc(100%-24px))] gap-4 xl:gap-5">
         {sidebarItems ? <Sidebar items={sidebarItems} activePath={activePath} title={sidebarTitle} /> : null}
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1 rounded-[var(--radius-shell)] bg-surface">{children}</main>
       </div>
     </div>
   )

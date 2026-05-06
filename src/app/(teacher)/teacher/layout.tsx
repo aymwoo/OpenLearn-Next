@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { Sidebar } from "@/components/shell/sidebar";
+import { Button } from "@/components/ui/button";
 import { Bell, Search, CalendarDays } from "lucide-react";
 
 export default function TeacherLayout({
@@ -52,35 +53,38 @@ async function TeacherLayoutContent({
   const avatarInitial = avatarName.charAt(0).toUpperCase();
 
   return (
-    <main className="my-2 mr-2 flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] bg-surface-container-low shadow-[0_16px_48px_rgba(44,47,49,0.05)]">
+    <main className="my-2 mr-2 flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] bg-surface-container-low shadow-ambient">
       <header className="shrink-0 rounded-t-[2rem] bg-surface-container-low px-6 py-5 lg:px-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 space-y-3">
+          <div className="min-w-0 space-y-3.5">
             <div className="flex flex-wrap items-center gap-3">
-              <h2 className="whitespace-nowrap text-lg font-semibold text-on-surface">教师工作台</h2>
-              <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-primary shadow-[0_8px_24px_rgba(44,47,49,0.04)]">
+              <h2 className="whitespace-nowrap text-lg font-semibold text-on-surface lg:text-xl">教师工作台</h2>
+              <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-primary shadow-ambient">
                 今日 3 节课
               </span>
             </div>
-            <nav className="flex flex-wrap gap-2">
-              <a href="#" className="rounded-full bg-surface-container-lowest px-4 py-2 text-sm font-medium text-primary shadow-[0_8px_24px_rgba(44,47,49,0.04)]">今日概览</a>
+            <nav className="flex flex-wrap gap-2" aria-label="教师工作区分区导航">
+              <a href="#" className="rounded-full bg-surface-container-lowest px-4 py-2 text-sm font-medium text-primary shadow-ambient">今日概览</a>
               <a href="#" className="rounded-full px-4 py-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-lowest hover:text-on-surface">教学日历</a>
               <a href="#" className="rounded-full px-4 py-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-lowest hover:text-on-surface">消息通知</a>
             </nav>
           </div>
 
-          <div className="flex items-center gap-3 self-start lg:self-auto">
-            <button className="relative rounded-full bg-surface-container-lowest p-2.5 text-on-surface-variant transition-colors hover:text-on-surface">
+          <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
+            <Button type="button" className="px-5 text-sm">
+              开启新课堂
+            </Button>
+            <button className="relative rounded-full bg-surface-container-lowest p-2.5 text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/40">
               <Bell className="size-5" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500"></span>
             </button>
-            <button className="rounded-full bg-surface-container-lowest p-2.5 text-on-surface-variant transition-colors hover:text-on-surface">
+            <button className="rounded-full bg-surface-container-lowest p-2.5 text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/40">
               <Search className="size-5" />
             </button>
-            <button className="rounded-full bg-surface-container-lowest p-2.5 text-on-surface-variant transition-colors hover:text-on-surface">
+            <button className="rounded-full bg-surface-container-lowest p-2.5 text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/40">
               <CalendarDays className="size-5" />
             </button>
-            <div className="flex cursor-pointer items-center gap-3 rounded-full bg-surface-container-lowest px-2 py-2 shadow-[0_8px_24px_rgba(44,47,49,0.04)]">
+            <div className="flex cursor-pointer items-center gap-3 rounded-full bg-surface-container-lowest px-2 py-2 shadow-ambient">
               <div className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
                 {avatarInitial}
               </div>
