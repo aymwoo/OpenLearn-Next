@@ -8,7 +8,7 @@
 
 - [ ] **Phase 8: Stitch MCP Integration** - Integrate Stitch MCP to fetch design tokens and UI structural data
 - [ ] **Phase 9: Core Page Alignment** - Refactor Home Page and Teacher Dashboard to strictly match Stitch designs
-- [ ] **Phase 10: Global Visual Polish** - Fix 1px borders, tonal layering, and ensure release-ready visual consistency
+- [x] **Phase 10: Global Visual Polish** - Fix 1px borders, tonal layering, and ensure release-ready visual consistency (completed 2026-05-06)
 
 ### Phase Details
 
@@ -51,7 +51,7 @@
 - [x] 10-02-PLAN.md — Converge shell, navigation, and login entry surfaces.
 - [x] 10-03-PLAN.md — Polish teacher dashboard, editor, and students management density.
 - [x] 10-04-PLAN.md — Tighten classroom runtime, launch, roster, and review flows.
-- [ ] 10-05-PLAN.md — Harmonize public, student, library, and settings page polish.
+- [x] 10-05-PLAN.md — Harmonize public, student, library, and settings page polish.
 **UI hint**: yes
 
 ### Progress
@@ -60,4 +60,4 @@
 |-------|----------------|--------|-----------|
 | 8. Stitch MCP Integration | 0/0 | Not started | - |
 | 9. Core Page Alignment | 3/3 | Complete | 2026-05-06 |
-| 10. Global Visual Polish | 4/5 | In Progress|  |
+| 10. Global Visual Polish | 5/5 | Complete   | 2026-05-06 |
