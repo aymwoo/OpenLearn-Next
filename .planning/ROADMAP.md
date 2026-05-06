@@ -46,7 +46,12 @@
   1. User navigates the application and sees no 1px divider lines, only surface tonal layering.
   2. All buttons and interactive elements use correct Primary Blue gradients, glassmorphism, and rounded-full styles.
   3. Ambient shadows and surface elevations consistently reflect the "Luminous Academy" design language.
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 10-01-PLAN.md — Harden global visual tokens and shared UI primitives.
+- [ ] 10-02-PLAN.md — Converge shell, navigation, and login entry surfaces.
+- [ ] 10-03-PLAN.md — Polish teacher dashboard, editor, and students management density.
+- [ ] 10-04-PLAN.md — Tighten classroom runtime, launch, roster, and review flows.
+- [ ] 10-05-PLAN.md — Harmonize public, student, library, and settings page polish.
 **UI hint**: yes
 
 ### Progress
@@ -55,4 +60,4 @@
 |-------|----------------|--------|-----------|
 | 8. Stitch MCP Integration | 0/0 | Not started | - |
 | 9. Core Page Alignment | 3/3 | Complete | 2026-05-06 |
-| 10. Global Visual Polish | 0/0 | Not started | - |
+| 10. Global Visual Polish | 0/5 | Planned | - |
