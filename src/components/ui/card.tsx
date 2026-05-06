@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 export function Card({ className, ...props }: ComponentPropsWithoutRef<'section'>) {
   return (
     <section
-      className={cn('rounded-[var(--radius-shell)] bg-surface-container-lowest p-6 shadow-ambient', className)}
+      className={cn('rounded-[var(--radius-card)] bg-surface-container-lowest p-6 shadow-ambient', className)}
       {...props}
     />
   )
