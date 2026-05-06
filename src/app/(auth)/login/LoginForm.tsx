@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { signInAction } from "@/actions/auth-actions";
 import { Button } from "@/components/ui/button";
+import { ghostTextFieldClassName } from "@/components/ui/ghost-field";
 import { TestAccountHint } from "./TestAccountHint";
 
 type LoginFormProps = {
@@ -15,8 +16,6 @@ export function LoginForm({ initialError }: LoginFormProps) {
     error: initialError,
   });
   const error = state.error;
-  const inputClassName =
-    "rounded-full bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/70 focus:bg-surface-container-lowest focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/20";
 
   return (
     <>
@@ -36,7 +35,7 @@ export function LoginForm({ initialError }: LoginFormProps) {
             type="email"
             placeholder="you@example.com"
             required
-            className={inputClassName}
+            className={ghostTextFieldClassName}
           />
         </div>
         <div className="grid gap-2">
@@ -51,7 +50,7 @@ export function LoginForm({ initialError }: LoginFormProps) {
             name="password"
             type="password"
             required
-            className={inputClassName}
+            className={ghostTextFieldClassName}
           />
         </div>
         <Button
