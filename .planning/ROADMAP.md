@@ -25,14 +25,17 @@
 - [x] 08-02-PLAN.md — Refactor Teacher Dashboard using Stitch design.
 
 ### Phase 9: Core Page Alignment
-**Goal**: Home page and Teacher Dashboard UI perfectly align with their Stitch high-fidelity designs.
+**Goal**: All mapped Stitch pages align to their corresponding application routes, including newly added management and settings routes.
 **Depends on**: Phase 8
 **Requirements**: UI-02, UI-03
 **Success Criteria**:
-  1. User sees the Home page layout, typography, and spacing match the Stitch "首页" design 1:1.
-  2. Teacher sees the Dashboard layout, widgets, and density perfectly mirror the Stitch "教师工作台" design.
-  3. Responsive behavior correctly collapses or wraps aligned components according to design rules.
-**Plans**: TBD
+  1. User sees `/`, `/teacher`, `/classroom`, `/teacher/editor`, `/student`, `/student/player`, `/resources`, `/courses`, and `/teacher/review` match their mapped Stitch screens in layout, typography, density, and hierarchy.
+  2. User can navigate to `/teacher/students`, `/settings`, and `/settings/labs` and see newly added pages that visually align with their mapped Stitch screens.
+  3. Variant screens are rationalized consistently: `/classroom` uses `课堂教学流程运行管理` as the primary source with `课堂教学运行管理 - 优化版` as a supplement, and `/student` uses `学生学习页面 - OpenLear-Next` as the primary source.
+**Plans**: 3 plans
+- [x] 09-01-PLAN.md — Align home, teacher, classroom, and lesson editor pages.
+- [x] 09-02-PLAN.md — Align student, player, resources, courses, and review pages.
+- [x] 09-03-PLAN.md — Add students, settings, and lab settings routes.
 **UI hint**: yes
 
 ### Phase 10: Global Visual Polish
@@ -51,5 +54,5 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 8. Stitch MCP Integration | 0/0 | Not started | - |
-| 9. Core Page Alignment | 0/0 | Not started | - |
+| 9. Core Page Alignment | 3/3 | Complete | 2026-05-06 |
 | 10. Global Visual Polish | 0/0 | Not started | - |

@@ -1,7 +1,5 @@
 import { getClassroomSnapshotDTO } from "@/lib/dal/classroom";
 
-export const dynamic = "force-dynamic";
-
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ sessionId: string }> }

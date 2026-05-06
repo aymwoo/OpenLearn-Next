@@ -137,14 +137,24 @@ export function TeacherReviewSurface({ review, selectedStudentId, filter = "all"
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-6 shadow-ambient sm:p-8">
-        <Badge variant="accent" className="mb-4 bg-surface-container-lowest">教师复盘</Badge>
-        <h1 className="text-[2.25rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[3rem]">
-          {review?.title ?? "学习证据复盘"}
-        </h1>
-        <p className="mt-4 max-w-3xl leading-8 text-on-surface-variant">
-          查看学生进度、最新提交、测验结果和基础反馈状态，保持轻量复盘，不进入完整成绩册流程。
-        </p>
+      <section className="overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-low shadow-ambient">
+        <div className="bg-linear-135 from-primary to-primary-container px-6 py-7 text-on-primary sm:px-8">
+          <Badge variant="accent" className="mb-4 bg-white/15 text-white">教师复盘</Badge>
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <h1 className="text-[2.25rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[3rem]">
+                {review?.title ?? "学习证据复盘"}
+              </h1>
+              <p className="mt-4 max-w-3xl leading-8 text-on-primary/85">
+                查看学生进度、最新提交、测验结果和基础反馈状态，保持轻量复盘，不进入完整成绩册流程。
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:w-[360px]">
+              <HeroMetric label="待反馈" value={String(review?.overview.needsFeedbackCount ?? 0)} />
+              <HeroMetric label="已完成" value={String(review?.overview.completedCount ?? 0)} />
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
@@ -229,4 +239,13 @@ export function TeacherReviewSurface({ review, selectedStudentId, filter = "all"
       </section>
     </div>
   );
+}
+
+function HeroMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[1.5rem] bg-white/12 px-4 py-4 backdrop-blur-sm">
+      <p className="text-sm text-on-primary/75">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+    </div>
+  )
 }

@@ -1,8 +1,21 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 
-export default async function StudentLayout({
+export default function StudentLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={<StudentLayoutFallback />}>
+      <StudentLayoutContent>{children}</StudentLayoutContent>
+    </Suspense>
+  );
+}
+
+async function StudentLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -25,4 +38,8 @@ export default async function StudentLayout({
       {children}
     </div>
   );
+}
+
+function StudentLayoutFallback() {
+  return <div className="student-layout" />;
 }

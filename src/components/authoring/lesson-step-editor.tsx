@@ -17,7 +17,7 @@ export function LessonStepEditor({ step }: LessonStepEditorProps) {
 
   return (
     <Card className="bg-surface-container-low p-5 shadow-none">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 rounded-[1.5rem] bg-surface-container-lowest px-4 py-4">
         <div>
           <p className="text-sm text-on-surface-variant">步骤编辑器</p>
           <h3 className="mt-2 text-2xl font-semibold">{step.title}</h3>
@@ -30,18 +30,18 @@ export function LessonStepEditor({ step }: LessonStepEditorProps) {
       <div className="mt-5 grid gap-4">
         <label className="grid gap-2">
           <span className="text-sm text-on-surface-variant">标题</span>
-          <input className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none focus-visible:outline-2" defaultValue={step.title} />
+          <input className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20" defaultValue={step.title} />
         </label>
 
         {step.type === "content" && (
           <>
             <label className="grid gap-2">
               <span className="text-sm text-on-surface-variant">正文</span>
-              <textarea className="min-h-32 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none focus-visible:outline-2" defaultValue={step.payload.type === "content" ? step.payload.body : ""} />
+              <textarea className="min-h-32 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20" defaultValue={step.payload.type === "content" ? step.payload.body : ""} />
             </label>
             <label className="grid gap-2">
               <span className="text-sm text-on-surface-variant">教师提示</span>
-              <textarea className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none focus-visible:outline-2" defaultValue={step.payload.type === "content" ? step.payload.teacherNotes : ""} />
+              <textarea className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20" defaultValue={step.payload.type === "content" ? step.payload.teacherNotes : ""} />
             </label>
           </>
         )}
@@ -50,11 +50,11 @@ export function LessonStepEditor({ step }: LessonStepEditorProps) {
           <>
             <label className="grid gap-2">
               <span className="text-sm text-on-surface-variant">任务说明</span>
-              <textarea className="min-h-32 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none focus-visible:outline-2" defaultValue={step.payload.prompt} />
+              <textarea className="min-h-32 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20" defaultValue={step.payload.prompt} />
             </label>
             <label className="grid gap-2">
               <span className="text-sm text-on-surface-variant">提交要求</span>
-              <input className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none focus-visible:outline-2" defaultValue={step.payload.submissionType} />
+              <input className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20" defaultValue={step.payload.submissionType} />
             </label>
           </>
         )}
@@ -63,22 +63,22 @@ export function LessonStepEditor({ step }: LessonStepEditorProps) {
           <>
             <label className="grid gap-2">
               <span className="text-sm text-on-surface-variant">题目</span>
-              <textarea className="min-h-28 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none focus-visible:outline-2" defaultValue={step.payload.question} />
+              <textarea className="min-h-28 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20" defaultValue={step.payload.question} />
             </label>
             <label className="grid gap-2">
               <span className="text-sm text-on-surface-variant">选项</span>
-              <textarea className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none focus-visible:outline-2" defaultValue={step.payload.options.join("\n")} />
+              <textarea className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20" defaultValue={step.payload.options.join("\n")} />
             </label>
             <label className="grid gap-2">
               <span className="text-sm text-on-surface-variant">答案说明</span>
-              <textarea className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none focus-visible:outline-2" defaultValue={step.payload.explanation} />
+              <textarea className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20" defaultValue={step.payload.explanation} />
             </label>
           </>
         )}
 
         <label className="grid gap-2">
           <span className="text-sm text-on-surface-variant">引用材料</span>
-          <input className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none focus-visible:outline-2" placeholder="输入材料标题或链接" />
+          <input className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20" placeholder="输入材料标题或链接" />
         </label>
       </div>
     </Card>

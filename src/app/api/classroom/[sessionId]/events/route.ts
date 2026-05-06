@@ -1,8 +1,5 @@
 import { ClassroomSnapshotDTOSchema } from "@/lib/dto/classroom";
 
-export const runtime = "edge";
-export const dynamic = "force-dynamic";
-
 const CLASSROOM_SSE_POLL_INTERVAL_MS = 2000;
 
 export async function GET(

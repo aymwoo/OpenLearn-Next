@@ -62,14 +62,25 @@ export function PlayerSurface({ shell, personalSlot }: PlayerSurfaceProps) {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <Badge variant="accent" className="mb-4 bg-surface-container-lowest">学生学习页面</Badge>
-            <h1 className="text-[2.25rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[3rem]">{shell.title}</h1>
-            <p className="mt-4 max-w-3xl leading-8 text-on-surface-variant">{shell.objective}</p>
+      <section className="overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-low shadow-ambient">
+        <div className="bg-linear-135 from-primary to-primary-container px-5 py-6 text-on-primary sm:px-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <Badge variant="accent" className="mb-4 bg-white/15 text-white">全屏沉浸学习模式</Badge>
+              <h1 className="text-[2.25rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[3rem]">{shell.title}</h1>
+              <p className="mt-4 max-w-3xl leading-8 text-on-primary/85">{shell.objective}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[1.5rem] bg-white/12 px-5 py-4 backdrop-blur-sm">
+                <p className="text-sm text-on-primary/75">步骤数量</p>
+                <p className="mt-2 text-2xl font-semibold">{shell.steps.length}</p>
+              </div>
+              <div className="rounded-[1.5rem] bg-white/12 px-5 py-4 backdrop-blur-sm">
+                <p className="text-sm text-on-primary/75">学习模式</p>
+                <p className="mt-2 text-2xl font-semibold">锁定跟随</p>
+              </div>
+            </div>
           </div>
-          <div className="rounded-full bg-surface-container-lowest px-5 py-3 text-sm text-primary shadow-ambient">{shell.steps.length} 个步骤</div>
         </div>
       </section>
       {personalSlot}

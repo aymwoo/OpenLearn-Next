@@ -39,7 +39,7 @@ export function AuthoringStatusPanel({ lesson }: AuthoringStatusPanelProps) {
         </p>
         <p className="mt-2 text-sm text-on-surface-variant">学生将读取已发布版本，草稿仅教师可见。</p>
         <form action={publish} className="mt-4">
-          <Button type="submit" disabled={!lesson || !canPublish}>发布课时</Button>
+          <Button type="submit" disabled={!lesson || !canPublish} className="w-full">发布课时</Button>
         </form>
       </div>
 

@@ -14,7 +14,7 @@ export function LibrarySurface({ mode, resources = [] }: LibrarySurfaceProps) {
   const isCourses = mode === 'courses'
   const title = isCourses ? '课程中心' : '资源中心'
   const action = isCourses ? '创建课程' : '登记链接资源'
-  const eyebrow = isCourses ? '初中信息科技' : '教学资源中心'
+  const eyebrow = isCourses ? '课程中心' : '教学资源中心'
 
   return (
     <div className="space-y-6">
@@ -24,13 +24,26 @@ export function LibrarySurface({ mode, resources = [] }: LibrarySurfaceProps) {
             <Badge variant="accent" className="mb-4 bg-surface-container-lowest">{eyebrow}</Badge>
             <h1 className="text-[2.25rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[3rem]">{title}</h1>
             <p className="mt-4 max-w-2xl leading-8 text-on-surface-variant">
-              {isCourses ? '围绕初中信息科技组织课程与课时外壳，方便后续接入真实编排流程。' : '集中查看变量小抄、Scratch 角色运动素材和课堂任务单等课堂支持材料。'}
+              {isCourses ? '围绕学段、主题和教学节奏组织课程结构，持续补齐课时外壳与教学进度。' : '集中查看变量小抄、Scratch 素材、课堂任务单与外部链接资源，保持检索与整理体验一致。'}
             </p>
           </div>
           <Button className="gap-2 text-base">
             {isCourses ? <BookMarked className="size-5" aria-hidden /> : <LinkIcon className="size-5" aria-hidden />}
             {action}
           </Button>
+        </div>
+
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {[
+            ['内容分层', isCourses ? '课程 / 单元 / 课时' : '资源 / 分类 / 适用场景'],
+            ['检索方式', '关键词 + 学段 + 主题'],
+            ['视觉节奏', '高密度卡片 + 大留白标题'],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-3xl bg-surface-container-lowest p-4 shadow-ambient">
+              <p className="text-sm text-on-surface-variant">{label}</p>
+              <p className="mt-2 text-lg font-semibold text-on-surface">{value}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -50,9 +63,12 @@ export function LibrarySurface({ mode, resources = [] }: LibrarySurfaceProps) {
           {isCourses ? (
             courseCards.map((item) => (
               <Card key={item.title} className="min-h-56 bg-surface-container-lowest p-5">
-                <Badge variant="default">{item.subject}</Badge>
+                <div className="flex items-center justify-between gap-3">
+                  <Badge variant="default">{item.subject}</Badge>
+                  <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs text-on-surface-variant">{item.lessons}</span>
+                </div>
                 <h3 className="mt-5 text-2xl font-semibold">{item.title}</h3>
-                <p className="mt-4 leading-7 text-on-surface-variant">{`${item.subject} · ${item.lessons} · ${item.status}`}</p>
+                <p className="mt-4 leading-7 text-on-surface-variant">{`${item.subject} · ${item.status}`}</p>
                 <div className="mt-6 rounded-3xl bg-surface-container-low p-4 text-sm text-primary">
                   查看课程结构
                 </div>
@@ -74,7 +90,7 @@ export function LibrarySurface({ mode, resources = [] }: LibrarySurfaceProps) {
                     <a href={item.url} target="_blank" rel="noopener noreferrer">{item.url}</a>
                   </p>
                 )}
-                <div className="mt-4 text-sm text-on-surface-variant">
+                <div className="mt-4 rounded-3xl bg-surface-container-low p-4 text-sm text-on-surface-variant">
                   <p>年级/学科: (暂无数据)</p>
                   <p>教材/版本: (暂无数据)</p>
                   <p>册/章/节: (暂无数据)</p>

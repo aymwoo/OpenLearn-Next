@@ -1,11 +1,15 @@
 "use server";
 
+import { eq, and } from "drizzle-orm";
 import { signIn, signOut } from "@/lib/auth/auth";
+import { db } from "@/db";
+import { memberships, users } from "@/db/schema";
 import { z } from "zod";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1, "请输入密码。"),
+  roleIntent: z.enum(["teacher", "student"]).default("teacher"),
 });
 
 export type SignInActionState = {
@@ -30,18 +34,51 @@ export async function signInAction(
 ): Promise<SignInActionState> {
   const email = formData.get("email");
   const password = formData.get("password");
+  const roleIntent = formData.get("roleIntent");
 
-  const parsed = credentialsSchema.safeParse({ email, password });
+  const parsed = credentialsSchema.safeParse({ email, password, roleIntent });
 
   if (!parsed.success) {
     return { error: "请输入有效邮箱和密码。" };
+  }
+
+  const userRecords = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, parsed.data.email))
+    .limit(1);
+
+  const user = userRecords[0];
+
+  if (user) {
+    const roleMemberships = await db
+      .select({ id: memberships.id })
+      .from(memberships)
+      .where(
+        and(
+          eq(memberships.userId, user.id),
+          eq(memberships.role, parsed.data.roleIntent),
+          eq(memberships.status, "active")
+        )
+      )
+      .limit(1);
+
+    if (roleMemberships.length === 0) {
+      return {
+        error:
+          parsed.data.roleIntent === "teacher"
+            ? "该账号没有教师权限，请切换到学生登录或使用教师账号。"
+            : "该账号没有学生权限，请切换到教师登录或使用学生账号。",
+      };
+    }
   }
 
   try {
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: "/teacher/editor",
+      redirectTo:
+        parsed.data.roleIntent === "student" ? "/student" : "/teacher/editor",
     });
   } catch (error: unknown) {
     if (isCredentialsSigninError(error)) {

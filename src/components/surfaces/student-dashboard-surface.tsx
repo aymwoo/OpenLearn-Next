@@ -104,16 +104,16 @@ export function StudentDashboardSurface({ dashboard }: StudentDashboardSurfacePr
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
         <div className="rounded-[var(--radius-shell)] bg-surface-container-low p-6 shadow-ambient sm:p-8">
-          <Badge variant="accent" className="mb-5 bg-surface-container-lowest">
-            {resumeLesson.courseTitle}{resumeLesson.classLabel ? ` · ${resumeLesson.classLabel}` : ''}
+          <Badge variant="accent" className="bg-surface-container-lowest">
+            学生学习空间 · {resumeLesson.courseTitle}
           </Badge>
-          <h1 className="max-w-3xl text-[2.25rem] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[3rem]">
-            {dashboard.studentName}，今天继续完成学习任务
+          <h1 className="mt-5 max-w-3xl text-[2.4rem] font-semibold leading-[1.08] tracking-[-0.02em] sm:text-[3.2rem]">
+            {dashboard.studentName}，继续保持今天的学习节奏
           </h1>
-          <p className="mt-5 max-w-2xl text-base leading-8 text-on-surface-variant">
-            {resumeLesson.title} · {resumeReason(resumeLesson)}。当前进度为 {resumeLesson.completedSteps}/{resumeLesson.totalSteps}。
+          <p className="mt-4 max-w-2xl text-base leading-8 text-on-surface-variant">
+            当前任务是《{resumeLesson.title}》。{resumeReason(resumeLesson)}，课堂进度会和老师的运行节奏保持同步。
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Button asChild className="gap-2 text-base">
@@ -126,6 +126,12 @@ export function StudentDashboardSurface({ dashboard }: StudentDashboardSurfacePr
               <Link href="/courses">查看课程列表</Link>
             </Button>
           </div>
+
+          <div className="mt-7 grid gap-3 sm:grid-cols-3">
+            <ProgressMetric label="已完成步骤" value={`${resumeLesson.completedSteps}/${resumeLesson.totalSteps}`} icon={<BookOpenCheck className="size-4" aria-hidden />} />
+            <ProgressMetric label="当前状态" value={progressCopy[resumeLesson.progressState]} icon={<Clock3 className="size-4" aria-hidden />} />
+            <ProgressMetric label="推荐动作" value={resumeLesson.resumeLabel || '继续学习'} icon={<Sparkles className="size-4" aria-hidden />} />
+          </div>
         </div>
 
         <LessonCard lesson={resumeLesson} featured />
@@ -137,7 +143,7 @@ export function StudentDashboardSurface({ dashboard }: StudentDashboardSurfacePr
             <p className="text-sm text-on-surface-variant">学习进度</p>
             <h2 className="mt-2 text-2xl font-semibold">可继续学习的课时</h2>
           </div>
-          <Badge variant="success">{progressCopy[resumeLesson.progressState]}</Badge>
+          <Badge variant="success">主任务 · {progressCopy[resumeLesson.progressState]}</Badge>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {[resumeLesson, ...otherLessons].map((lesson) => (
@@ -150,10 +156,26 @@ export function StudentDashboardSurface({ dashboard }: StudentDashboardSurfacePr
               <p className="mt-3 text-sm leading-6 text-on-surface-variant">
                 {lesson.completedSteps}/{lesson.totalSteps} · {resumeReason(lesson)}
               </p>
+              <Link href={playerHref(lesson)} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                打开课时
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
             </div>
           ))}
         </div>
       </section>
+    </div>
+  )
+}
+
+function ProgressMetric({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-3xl bg-surface-container-lowest p-4 shadow-ambient">
+      <div className="flex items-center gap-2 text-xs font-medium text-on-surface-variant">
+        <span className="rounded-full bg-surface-container-low p-2 text-primary">{icon}</span>
+        {label}
+      </div>
+      <p className="mt-3 text-lg font-semibold text-on-surface">{value}</p>
     </div>
   )
 }

@@ -57,18 +57,28 @@ export function LessonAuthoringWorkspace({ overview, lesson }: LessonAuthoringWo
   return (
     <div className="mt-6 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
       <Card className="bg-surface-container-low p-5 shadow-none">
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={() => addStep("content")}>新增内容</Button>
-          <Button type="button" variant="secondary" onClick={() => addStep("task")}>新增任务</Button>
-          <Button type="button" variant="secondary" onClick={() => addStep("quiz")}>新增测验</Button>
+        <div className="rounded-[1.5rem] bg-surface-container-lowest p-4">
+          <p className="text-sm text-on-surface-variant">课堂步骤库</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button type="button" onClick={() => addStep("content")}>新增内容</Button>
+            <Button type="button" variant="secondary" onClick={() => addStep("task")}>新增任务</Button>
+            <Button type="button" variant="secondary" onClick={() => addStep("quiz")}>新增测验</Button>
+          </div>
         </div>
 
         <div className="mt-5 space-y-3">
           {steps.map((step) => (
-            <div key={step.id} className="rounded-3xl bg-surface-container-lowest p-4">
+            <div key={step.id} className={`rounded-3xl p-4 ${selectedStep?.id === step.id ? 'bg-primary/8' : 'bg-surface-container-lowest'}`}>
               <button type="button" className="w-full text-left" onClick={() => setSelectedStepId(step.id)}>
-                <span className="text-sm text-on-surface-variant">{stepLabels[step.type]}</span>
-                <span className="mt-1 block font-semibold">{step.title}</span>
+                <div className="flex items-center gap-3">
+                  <span className={`grid size-10 place-items-center rounded-full text-sm font-semibold ${selectedStep?.id === step.id ? 'bg-primary text-white' : 'bg-surface-container-low text-primary'}`}>
+                    {steps.findIndex((item) => item.id === step.id) + 1}
+                  </span>
+                  <div>
+                    <span className="text-sm text-on-surface-variant">{stepLabels[step.type]}</span>
+                    <span className="mt-1 block font-semibold">{step.title}</span>
+                  </div>
+                </div>
               </button>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button type="button" variant="tertiary" onClick={() => duplicateLessonStepAction({ stepId: step.id })}>复制</Button>
