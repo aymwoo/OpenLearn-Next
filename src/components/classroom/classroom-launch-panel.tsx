@@ -6,6 +6,7 @@ import { launchClassroomSessionAction } from '@/actions/classroom-actions'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ghostSelectFieldClassName } from '@/components/ui/ghost-field'
 import { BookOpen, Users } from 'lucide-react'
 
 type PublishedLessonOption = {
@@ -24,7 +25,6 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
   const router = useRouter()
 
   const selectedLesson = publishedLessons.find(l => l.id === selectedLessonId)
-  const fieldClassName = 'w-full min-h-[52px] rounded-[1.25rem] bg-surface-container-low px-4 text-on-surface outline-none shadow-[inset_0_0_0_1px_rgba(89,92,94,0.08)] transition-colors focus:bg-surface-container-lowest focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[rgba(0,80,212,0.16)]'
 
   const handleLaunch = () => {
     if (!selectedLessonId || !selectedClassId) return
@@ -75,7 +75,7 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
         <div className="grid gap-2">
           <label className="text-sm text-on-surface-variant">选择课时</label>
           <select 
-            className={fieldClassName}
+            className={ghostSelectFieldClassName}
             value={selectedLessonId}
             onChange={e => {
               setSelectedLessonId(e.target.value)
@@ -93,7 +93,7 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
           <div className="grid gap-2">
             <label className="text-sm text-on-surface-variant">选择班级</label>
             <select 
-              className={fieldClassName}
+              className={ghostSelectFieldClassName}
               value={selectedClassId}
               onChange={e => setSelectedClassId(e.target.value)}
               disabled={isPending}
