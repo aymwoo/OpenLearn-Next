@@ -8,7 +8,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { BookOpen, Users } from 'lucide-react'
 
-export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { publishedLessons: any[], emptyStateCopy: string }) {
+type PublishedLessonOption = {
+  id: string
+  title: string
+  publishedVersionId: string
+  courseId: string
+  classes: Array<{ id: string; name: string }>
+}
+
+export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { publishedLessons: PublishedLessonOption[], emptyStateCopy: string }) {
   const [selectedLessonId, setSelectedLessonId] = useState<string>('')
   const [selectedClassId, setSelectedClassId] = useState<string>('')
   const [isPending, startTransition] = useTransition()
@@ -16,6 +24,7 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
   const router = useRouter()
 
   const selectedLesson = publishedLessons.find(l => l.id === selectedLessonId)
+  const fieldClassName = 'w-full min-h-[52px] rounded-[1.25rem] bg-surface-container-low px-4 text-on-surface outline-none shadow-[inset_0_0_0_1px_rgba(89,92,94,0.08)] transition-colors focus:bg-surface-container-lowest focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[rgba(0,80,212,0.16)]'
 
   const handleLaunch = () => {
     if (!selectedLessonId || !selectedClassId) return
@@ -37,7 +46,7 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
 
   if (publishedLessons.length === 0) {
     return (
-      <Card className="bg-surface-container-lowest p-6 shadow-[0_16px_40px_rgba(44,47,49,0.05)]">
+      <Card className="bg-surface-container-lowest p-6">
         <h2 className="text-2xl font-semibold mb-4">{emptyStateCopy}</h2>
         <p className="mt-2 text-on-surface-variant">请先在编辑器发布至少一个课时。</p>
       </Card>
@@ -45,34 +54,28 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
   }
 
   return (
-    <Card className="bg-surface-container-lowest p-6 shadow-[0_16px_40px_rgba(44,47,49,0.05)] sm:p-7">
-      <Badge variant="accent" className="bg-surface-container-low mb-4">课堂预备区</Badge>
-      <h2 className="mb-3 text-2xl font-semibold">开始课堂</h2>
-      <p className="mb-5 text-on-surface-variant">选择一个已发布课时并指定班级名单后，即可进入实时课堂运行台。</p>
-      {error && <div className="mb-4 text-destructive font-semibold">{error}</div>}
-
-      <div className="mb-5 grid gap-3 md:grid-cols-2">
-        <div className="rounded-[1.4rem] bg-surface-container-low px-4 py-4">
-          <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-            <BookOpen className="size-4 text-primary" />
-            已发布课时
+    <Card className="bg-surface-container-lowest p-6 sm:p-7">
+      <div className="rounded-[1.5rem] bg-surface-container-low p-5">
+        <Badge variant="accent" className="mb-4">课堂预备区</Badge>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold">开始课堂</h2>
+            <p className="mt-3 max-w-2xl text-on-surface-variant">选择一个已发布课时并指定班级名单后，即可进入实时课堂运行台。</p>
           </div>
-          <p className="mt-2 text-[1.6rem] font-semibold text-on-surface">{publishedLessons.length}</p>
-        </div>
-        <div className="rounded-[1.4rem] bg-surface-container-low px-4 py-4">
-          <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-            <Users className="size-4 text-primary" />
-            可用班级
+          <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[18rem]">
+            <MetricTile icon={<BookOpen className="size-4 text-primary" />} label="已发布课时" value={String(publishedLessons.length)} />
+            <MetricTile icon={<Users className="size-4 text-primary" />} label="可用班级" value={selectedLesson ? String(selectedLesson.classes.length) : '--'} />
           </div>
-          <p className="mt-2 text-[1.6rem] font-semibold text-on-surface">{selectedLesson ? selectedLesson.classes.length : '--'}</p>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div>
-          <label className="mb-2 block text-sm text-on-surface-variant">选择课时</label>
+      {error && <div className="mt-5 rounded-[1.25rem] bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-red-600">{error}</div>}
+
+      <div className="mt-5 space-y-4 rounded-[1.5rem] bg-surface-container-low p-5">
+        <div className="grid gap-2">
+          <label className="text-sm text-on-surface-variant">选择课时</label>
           <select 
-            className="w-full min-h-[52px] rounded-[1.25rem] bg-surface-container-low px-4 outline-none transition focus-visible:bg-surface-container-lowest focus-visible:outline-2 focus-visible:outline-primary/20"
+            className={fieldClassName}
             value={selectedLessonId}
             onChange={e => {
               setSelectedLessonId(e.target.value)
@@ -87,16 +90,16 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
           </select>
         </div>
         {selectedLesson && (
-          <div>
-            <label className="mb-2 block text-sm text-on-surface-variant">选择班级</label>
+          <div className="grid gap-2">
+            <label className="text-sm text-on-surface-variant">选择班级</label>
             <select 
-              className="w-full min-h-[52px] rounded-[1.25rem] bg-surface-container-low px-4 outline-none transition focus-visible:bg-surface-container-lowest focus-visible:outline-2 focus-visible:outline-primary/20"
+              className={fieldClassName}
               value={selectedClassId}
               onChange={e => setSelectedClassId(e.target.value)}
               disabled={isPending}
             >
               <option value="">-- 选择名单 --</option>
-              {selectedLesson.classes.map((c: any) => (
+              {selectedLesson.classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
@@ -105,11 +108,23 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
         <Button 
           onClick={handleLaunch} 
           disabled={!selectedLessonId || !selectedClassId || isPending}
-          className="min-h-[52px] w-full"
+          className="min-h-[52px] w-full text-base"
         >
           {isPending ? "正在创建课堂，请稍候。" : "开始课堂"}
         </Button>
       </div>
     </Card>
+  )
+}
+
+function MetricTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-[1.25rem] bg-surface-container-lowest p-4 shadow-ambient">
+      <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+        {icon}
+        {label}
+      </div>
+      <p className="mt-2 text-[1.6rem] font-semibold text-on-surface">{value}</p>
+    </div>
   )
 }

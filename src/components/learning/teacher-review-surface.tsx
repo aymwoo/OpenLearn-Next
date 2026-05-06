@@ -52,7 +52,12 @@ function StudentDetail({ student }: { student: TeacherStudentReviewDTO }) {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-sm text-on-surface-variant">学生详情</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-on-surface-variant">学生详情</p>
+          <Badge variant={student.needsFeedback ? "default" : "success"} className={student.needsFeedback ? "bg-[#fff3cd] text-[#856404]" : undefined}>
+            {student.needsFeedback ? '待反馈' : '反馈已同步'}
+          </Badge>
+        </div>
         <h2 className="mt-3 text-2xl font-semibold">{student.studentName}</h2>
       </div>
 
@@ -71,7 +76,12 @@ function StudentDetail({ student }: { student: TeacherStudentReviewDTO }) {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-3xl bg-surface-container-low p-5">
-          <p className="font-semibold">最近任务</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-semibold">最近任务</p>
+            <Badge variant={latestTask?.feedback ? 'success' : 'default'} className={!latestTask?.feedback && latestTask ? 'bg-[#fff3cd] text-[#856404]' : undefined}>
+              {latestTask ? (latestTask.feedback ? '已反馈' : '待反馈') : '暂无提交'}
+            </Badge>
+          </div>
           {latestTask ? (
             <div className="mt-3 text-sm leading-6 text-on-surface-variant">
               <p>第 {latestTask.attemptNo} 次尝试 · {formatTime(latestTask.createdAt)}</p>
@@ -84,7 +94,12 @@ function StudentDetail({ student }: { student: TeacherStudentReviewDTO }) {
         </article>
 
         <article className="rounded-3xl bg-surface-container-low p-5">
-          <p className="font-semibold">测验结果</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-semibold">测验结果</p>
+            <Badge variant={latestQuiz?.feedback ? 'success' : 'default'} className={!latestQuiz?.feedback && latestQuiz ? 'bg-[#fff3cd] text-[#856404]' : undefined}>
+              {latestQuiz ? (latestQuiz.feedback ? '已反馈' : '待反馈') : '暂无测验'}
+            </Badge>
+          </div>
           {latestQuiz ? (
             <div className="mt-3 text-sm leading-6 text-on-surface-variant">
               <p>{quizOutcomeText(latestQuiz)} · 第 {latestQuiz.attemptNo} 次尝试</p>
@@ -134,6 +149,7 @@ function StudentDetail({ student }: { student: TeacherStudentReviewDTO }) {
 export function TeacherReviewSurface({ review, selectedStudentId, filter = "all" }: TeacherReviewSurfaceProps) {
   const activeFilter = review?.filter ?? filter;
   const selectedStudent = review?.students.find((student) => student.studentId === selectedStudentId) ?? review?.students[0] ?? null;
+  const filterBadgeClass = "bg-surface-container-lowest text-on-surface-variant shadow-none hover:bg-surface-container-high";
 
   return (
     <div className="space-y-5">
@@ -159,7 +175,7 @@ export function TeacherReviewSurface({ review, selectedStudentId, filter = "all"
 
       <section className="grid gap-4 md:grid-cols-4">
         <Card className="bg-surface-container-lowest">
-          <UsersRound className="mb-4 size-6 text-primary" aria-hidden />
+          <UsersRound className="mb-4 size-6 text-on-surface-variant" aria-hidden />
           <p className="text-sm text-on-surface-variant">未开始</p>
           <p className="mt-2 text-2xl font-semibold">{review?.overview.notStartedCount ?? 0}</p>
         </Card>
@@ -174,7 +190,7 @@ export function TeacherReviewSurface({ review, selectedStudentId, filter = "all"
           <p className="mt-2 text-2xl font-semibold">{review?.overview.completedCount ?? 0}</p>
         </Card>
         <Card className="bg-surface-container-lowest">
-          <MessageCircle className="mb-4 size-6 text-primary" aria-hidden />
+          <MessageCircle className="mb-4 size-6 text-[#856404]" aria-hidden />
           <p className="text-sm text-on-surface-variant">待反馈</p>
           <p className="mt-2 text-2xl font-semibold">{review?.overview.needsFeedbackCount ?? 0}</p>
         </Card>
@@ -189,7 +205,7 @@ export function TeacherReviewSurface({ review, selectedStudentId, filter = "all"
             <Link
               key={item.value}
               href={href}
-              className={`rounded-full px-4 py-2 text-sm transition focus-visible:outline-2 focus-visible:outline-primary ${active ? "bg-primary text-on-primary shadow-ambient" : "bg-surface-container-lowest text-on-surface-variant"}`}
+              className={`inline-flex items-center rounded-full px-4 py-2 text-sm transition focus-visible:outline-2 focus-visible:outline-primary ${active ? 'bg-primary text-on-primary shadow-ambient' : filterBadgeClass}`}
             >
               {item.label}
             </Link>
@@ -209,8 +225,13 @@ export function TeacherReviewSurface({ review, selectedStudentId, filter = "all"
                     href={`/teacher/review?lessonId=${encodeURIComponent(review.lessonId)}&filter=${activeFilter}&studentId=${encodeURIComponent(student.studentId)}`}
                     className={`rounded-3xl p-4 transition focus-visible:outline-2 focus-visible:outline-primary ${selected ? "bg-surface-container-lowest shadow-ambient" : "bg-surface-container-lowest/70"}`}
                   >
-                    <p className="font-semibold">{student.studentName}</p>
-                    <p className="mt-2 text-sm text-on-surface-variant">{student.needsFeedback ? "待反馈" : "反馈状态已同步"}</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-semibold">{student.studentName}</p>
+                      <Badge variant={student.needsFeedback ? 'default' : 'success'} className={student.needsFeedback ? 'bg-[#fff3cd] text-[#856404]' : undefined}>
+                        {student.needsFeedback ? '待反馈' : '已同步'}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-sm text-on-surface-variant">{student.needsFeedback ? "优先查看最近任务与测验反馈。" : "反馈状态已同步"}</p>
                   </Link>
                 );
               })}
