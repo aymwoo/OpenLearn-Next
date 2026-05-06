@@ -2,20 +2,25 @@
 
 @theme {
   --font-sans: var(--font-lexend), sans-serif;
-  --color-surface: #f5f6f7;
-  --color-surface-container-low: #eff1f2;
+  --color-surface: #f5f7f9;
+  --color-surface-container-low: #eef1f3;
   --color-surface-container-lowest: #ffffff;
-  --color-primary: #005da7;
-  --color-primary-container: #68abff;
+  --color-surface-container-high: #e7ebef;
+  --color-surface-container-highest: #dde3e8;
+  --color-primary: #0050d4;
+  --color-primary-container: #7b9cff;
   --color-on-primary: #ffffff;
-  --color-on-surface: #2c2f30;
-  --color-on-surface-variant: #595c5d;
-  --color-outline-variant: #abadae;
+  --color-on-surface: #2c2f31;
+  --color-on-surface-variant: #595c5e;
+  --color-outline-variant: #abadaf;
   --color-tertiary: #386700;
   --color-tertiary-container: #a4fd4c;
   --color-error: #b31b25;
-  --shadow-ambient: 0 16px 48px rgba(44, 47, 48, 0.06);
+  --color-error-container: #fbe7e8;
+  --color-on-error-container: #7d1219;
+  --shadow-ambient: 0 14px 40px rgba(44, 47, 49, 0.055);
   --radius-shell: 2rem;
+  --radius-card: 1.5rem;
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
@@ -48,6 +53,6 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-surface-container-lowest));
   outline-offset: 4px;
 }
