@@ -63,12 +63,12 @@ function GeneralSettingsSurface() {
             })}
           </nav>
 
-          <Link href="/settings/labs" className="mt-5 flex items-center justify-between rounded-[1.5rem] bg-linear-135 from-primary to-primary-container px-5 py-4 text-on-primary shadow-ambient">
+          <Link href="/settings/labs" className="mt-5 flex items-center justify-between rounded-[1.5rem] bg-surface-container-lowest px-5 py-4 text-on-surface shadow-ambient transition hover:bg-surface-container-lowest/90">
             <div>
-              <p className="text-sm text-on-primary/80">扩展模块</p>
+              <p className="text-sm text-on-surface-variant">扩展模块</p>
               <p className="mt-1 font-semibold">进入实验室布局管理</p>
             </div>
-            <ChevronRight className="size-5" aria-hidden />
+            <ChevronRight className="size-5 text-primary" aria-hidden />
           </Link>
         </aside>
 
@@ -215,8 +215,8 @@ function LabsSettingsSurface() {
             <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
               <p className="text-sm text-on-surface-variant">快速操作</p>
               <div className="mt-4 grid gap-3">
-                <button className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-left font-medium text-on-surface">导出考勤报告</button>
-                <button className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-left font-medium text-[#b31b25]">一键关机全实验室</button>
+                <button className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-left font-medium text-on-surface shadow-ambient">导出考勤报告</button>
+                <button className="rounded-[1.5rem] bg-[#fff1f2] px-4 py-4 text-left font-medium text-[#b31b25] shadow-ambient">一键关机全实验室</button>
               </div>
             </section>
           </aside>
@@ -251,7 +251,7 @@ function PreferenceCard({ title, items }: { title: string; items: ReadonlyArray<
 
 function QuickLink({ href, title, description }: { href: string; title: string; description: string }) {
   return (
-    <Link href={href} className="rounded-[1.5rem] bg-surface-container-low px-4 py-4 transition hover:bg-primary/8">
+    <Link href={href} className="rounded-[1.5rem] bg-surface-container-low px-4 py-4 transition hover:bg-surface-container-lowest/80">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-semibold text-on-surface">{title}</p>

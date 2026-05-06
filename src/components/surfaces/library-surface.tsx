@@ -1,4 +1,4 @@
-import { BookMarked, Search, UploadCloud, Link as LinkIcon } from 'lucide-react'
+import { BookMarked, Search, Link as LinkIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -69,24 +69,24 @@ export function LibrarySurface({ mode, resources = [] }: LibrarySurfaceProps) {
                 </div>
                 <h3 className="mt-5 text-2xl font-semibold">{item.title}</h3>
                 <p className="mt-4 leading-7 text-on-surface-variant">{`${item.subject} · ${item.status}`}</p>
-                <div className="mt-6 rounded-3xl bg-surface-container-low p-4 text-sm text-primary">
+                <Button variant="tertiary" className="mt-5 min-h-10 justify-start px-0 text-sm">
                   查看课程结构
-                </div>
+                </Button>
               </Card>
             ))
           ) : (
             resources.map((item) => (
               <Card key={item.id} className="min-h-56 bg-surface-container-lowest p-5">
-                <div className="flex flex-wrap gap-2 mb-2">
+                <div className="mb-2 flex flex-wrap gap-2">
                   <Badge variant="default">{item.classification}</Badge>
-                  <Badge variant={item.ragEligible ? "success" : "default"}>
-                    {item.ragEligible ? "可进入 RAG" : "RAG 未启用"}
+                  <Badge variant={item.ragEligible ? 'success' : 'default'}>
+                    {item.ragEligible ? '可进入 RAG' : 'RAG 未启用'}
                   </Badge>
                 </div>
                 <h3 className="mt-3 text-2xl font-semibold">{item.title}</h3>
                 <p className="mt-2 text-sm text-on-surface-variant">可见性: {item.visibility} | 所有者: {item.ownerId}</p>
                 {item.url && (
-                  <p className="mt-2 text-sm text-blue-500 truncate">
+                  <p className="mt-2 truncate text-sm text-primary">
                     <a href={item.url} target="_blank" rel="noopener noreferrer">{item.url}</a>
                   </p>
                 )}
@@ -96,9 +96,9 @@ export function LibrarySurface({ mode, resources = [] }: LibrarySurfaceProps) {
                   <p>册/章/节: (暂无数据)</p>
                   <p>知识标签: (暂无数据)</p>
                 </div>
-                <div className="mt-6 rounded-3xl bg-surface-container-low p-4 text-sm text-primary">
+                <Button variant="tertiary" className="mt-5 min-h-10 justify-start px-0 text-sm">
                   查看资源详情
-                </div>
+                </Button>
               </Card>
             ))
           )}
