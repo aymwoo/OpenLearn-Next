@@ -91,7 +91,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **UI-01**: System can access Stitch MCP to retrieve remote design system tokens and page structural data.
 - [ ] **UI-02**: Home page is refactored to align 1:1 with the Stitch "首页" design, optimizing compactness and aesthetics.
 - [ ] **UI-03**: Teacher dashboard is refactored to align 1:1 with the Stitch "教师工作台" design, improving layout density.
-- [ ] **UI-04**: Application globally eliminates 1px borders, enforces correct tonal layering, shadows, and color usage strictly per `DESIGN.md`.
+- [x] **UI-04**: Application globally eliminates 1px borders, enforces correct tonal layering, shadows, and color usage strictly per `DESIGN.md`.
 
 ## v2 Requirements
 
@@ -203,7 +203,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-01 | Phase 8 | Complete |
 | UI-02 | Phase 9 | Pending |
 | UI-03 | Phase 9 | Pending |
-| UI-04 | Phase 10 | Pending |
+| UI-04 | Phase 10 | Complete |
 
 **Coverage:**
 - v1/v1.1 requirements: 59 total
