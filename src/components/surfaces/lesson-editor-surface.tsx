@@ -26,7 +26,35 @@ export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfacePro
         </div>
       </section>
 
-      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px] xl:gap-4">
+      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient">
+        <div className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5 sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge variant="accent">{activeCourse?.subject ?? '课程'}</Badge>
+                <Badge variant="default" className="bg-surface-container-low">第 {activeLesson?.revision ?? 0} 次修订</Badge>
+                <Badge variant="success">草稿仅教师可见</Badge>
+              </div>
+              <h2 className="mt-4 text-[2.2rem] font-semibold leading-tight tracking-[-0.03em] text-on-surface">{activeLesson?.title ?? '课堂教学活动编排'}</h2>
+              <p className="mt-3 text-sm leading-7 text-on-surface-variant sm:text-base">
+                {activeLesson?.objective ?? '创建第一个课时后，可以在这里围绕导入、讲授、互动与总结编排课堂主线。'}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="secondary" className="min-h-10 px-4 text-sm">预览课堂</Button>
+              <Button className="min-h-10 px-4 text-sm">发布当前版本</Button>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-4">
+            <EditorMetric label="步骤总数" value={String(activeStepCount)} icon={<Layers3 className="size-4" />} />
+            <EditorMetric label="关联班级" value={String(activeCourse?.classLabels.length ?? 0)} icon={<Sparkles className="size-4" />} />
+            <EditorMetric label="引用资料" value={String(lesson?.materials.length ?? 0)} icon={<Settings2 className="size-4" />} />
+            <EditorMetric label="预计时长" value="45 分钟" icon={<TimerReset className="size-4" />} />
+          </div>
+        </div>
+
+        <div className="mt-4 xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px] xl:gap-4">
         <aside className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -79,23 +107,6 @@ export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfacePro
 
         <main className="mt-4 min-w-0 rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5 xl:mt-0">
           <div className="flex flex-col gap-5">
-            <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-              <div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Badge variant="accent">{activeCourse?.subject ?? '课程'}</Badge>
-                  <Badge variant="default" className="bg-surface-container-low">第 {activeLesson?.revision ?? 0} 次修订</Badge>
-                </div>
-                <h2 className="mt-4 text-[2rem] font-semibold leading-tight tracking-[-0.02em]">{activeLesson?.title ?? '课堂画布'}</h2>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-on-surface-variant sm:text-base">
-                  {activeLesson?.objective ?? '创建第一个课时后，可以在这里编排内容、任务和测验步骤。'}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge variant="success">草稿仅教师可见</Badge>
-                <Button variant="secondary" className="min-h-10 px-4 text-sm">预览课堂</Button>
-              </div>
-            </div>
-
             <div className="rounded-[1.5rem] bg-surface-container-low p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -108,13 +119,6 @@ export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfacePro
                   <Button variant="tertiary" className="min-h-10 px-2 text-sm">整理结构</Button>
                 </div>
               </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-4">
-              <EditorMetric label="步骤总数" value={String(activeStepCount)} icon={<Layers3 className="size-4" />} />
-              <EditorMetric label="关联班级" value={String(activeCourse?.classLabels.length ?? 0)} icon={<Sparkles className="size-4" />} />
-              <EditorMetric label="引用资料" value={String(lesson?.materials.length ?? 0)} icon={<Settings2 className="size-4" />} />
-              <EditorMetric label="预计时长" value="45 分钟" icon={<TimerReset className="size-4" />} />
             </div>
           </div>
 
@@ -142,6 +146,7 @@ export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfacePro
           <AuthoringStatusPanel lesson={lesson} />
           <span className="sr-only">已自动保存 检测到更新冲突</span>
         </aside>
+        </div>
       </section>
     </div>
   )
