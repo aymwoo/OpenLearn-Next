@@ -413,7 +413,7 @@ function StudentCard({
 }) {
   const ringColor = progress >= 75 ? "text-primary" : "text-tertiary";
   return (
-    <article className="flex aspect-square flex-col items-center justify-center gap-0.5 rounded-[1.25rem] bg-surface-container-lowest p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-colors hover:bg-white">
+    <article className="flex flex-col items-center justify-center gap-1 rounded-[1.25rem] bg-surface-container-lowest px-2 py-3 shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-colors hover:bg-white">
       {/* Avatar + ring container */}
       <div className="relative flex size-10 items-center justify-center">
         <svg
