@@ -1,7 +1,7 @@
 ---
 phase: 10-global-visual-polish
-verified: 2026-05-06T23:24:51Z
-status: human_needed
+verified: 2026-05-07T03:58:55Z
+status: passed
 score: 8/8 must-haves verified
 overrides_applied: 0
 re_verification:
@@ -16,20 +16,23 @@ human_verification:
   - test: "桌面端全局视觉走查"
     expected: "首页、教师端、课堂、学生端、资源页、设置页都不再出现 1px divider line，glass 只主要出现在浮动导航/浮层。"
     why_human: "是否真正符合 DESIGN.md 的整体气质、层级与一致性，仍需人工视觉判断。"
+    result: pass
   - test: "登录与课堂 launch 焦点交互检查"
     expected: "输入框、toggle、select 都表现为 ghost-focus/no-line 语言，没有默认 checkbox chrome 或旧 ring 回退。"
     why_human: "键盘 focus、hover、pressed 的真实观感无法仅靠静态代码完全确认。"
+    result: pass
   - test: "响应式稳定性检查"
     expected: "teacher / student / player / settings 在 tablet/mobile 下无明显 overflow、层级坍塌或主 CTA 丢失。"
     why_human: "Phase 10 明确包含 responsive polish，需实际 viewport 观察。"
+    result: pass
 ---
 
 # Phase 10: Global Visual Polish Verification Report
 
 **Phase Goal:** Application is visually consistent, free of legacy 1px borders,
 and strictly follows `DESIGN.md`.
-**Verified:** 2026-05-06T23:24:51Z
-**Status:** human_needed
+**Verified:** 2026-05-07T03:58:55Z
+**Status:** passed
 **Re-verification:** Yes — after gap closure
 
 ## Goal Achievement
@@ -96,7 +99,7 @@ and strictly follows `DESIGN.md`.
 
 | Requirement | Source Plan | Description | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| `UI-04` | `10-01`..`10-06` | Application globally eliminates 1px borders, enforces correct tonal layering, shadows, and color usage strictly per `DESIGN.md`. | ? NEEDS HUMAN | Automated evidence shows the two previous blockers are fixed, shared tokens/primitives are wired, and no targeted 1px/ring regressions remain. Final visual sign-off still requires human walkthrough. |
+| `UI-04` | `10-01`..`10-06` | Application globally eliminates 1px borders, enforces correct tonal layering, shadows, and color usage strictly per `DESIGN.md`. | ✓ SATISFIED | Automated evidence passed, and manual UAT confirmed desktop visual consistency, ghost-focus interactions, and responsive stability on 2026-05-07. |
 
 ### Anti-Patterns Found
 
@@ -110,23 +113,7 @@ and strictly follows `DESIGN.md`.
 
 ### Human Verification Required
 
-### 1. 桌面端全局视觉走查
-
-**Test:** 逐页检查 `/`、`/login`、`/teacher`、`/classroom`、`/student`、`/student/player`、`/resources`、`/courses`、`/settings`。  
-**Expected:** 没有 1px divider line；页面主要靠 tonal layering 分层；glass 主要只出现在浮动导航/浮层。  
-**Why human:** `DESIGN.md` 的整体视觉语言与“是否看起来一致”需要人工判断。
-
-### 2. 登录与 launch 控件交互检查
-
-**Test:** 用键盘 Tab/Shift+Tab、鼠标 hover/click 检查登录页、首页登录卡、课堂 launch 两个 select。  
-**Expected:** focus 为 ghost-outline 观感；无默认 checkbox 边框/浏览器 ring 回退；主 CTA 层级清晰。  
-**Why human:** 真实 focus glow、pressed state、hover 节奏无法仅通过静态源码完全确认。
-
-### 3. 响应式稳定性检查
-
-**Test:** 在 mobile/tablet viewport 检查 teacher dashboard、student dashboard、player、settings。  
-**Expected:** 无 overflow；主 CTA、当前上下文与状态信息优先保留；层级不坍塌。  
-**Why human:** Responsive polish 属于真实布局体验问题，静态检查不能充分覆盖。
+None — required human walkthrough completed on 2026-05-07 and all three checks passed.
 
 ### Gaps Summary
 
@@ -137,9 +124,7 @@ and strictly follows `DESIGN.md`.
 
 因此，Phase 10 的 **must-haves 在代码层面已全部满足**，`UI-04` 的自动化证据也基本成立。
 
-但由于本阶段目标本质上是 **global visual polish**，最终是否达到 `DESIGN.md`
-要求仍需要人工视觉走查，所以状态从之前的 `gaps_found` 更新为
-`human_needed`，而不是直接 `passed`。
+2026-05-07 已完成所需人工视觉走查，三项人工验证全部通过，因此本报告从 `human_needed` 更新为 `passed`。
 
 另外，代码里仍存在若干 **非本阶段 must-have blocker** 之外的用户可见问题：
 roleIntent 数据流未贯通、player 学习模式写死、若干 `href="#"` 占位链接、
@@ -147,5 +132,5 @@ roleIntent 数据流未贯通、player 学习模式写死、若干 `href="#"` �
 
 ---
 
-_Verified: 2026-05-06T23:24:51Z_  
+_Verified: 2026-05-07T03:58:55Z_  
 _Verifier: the agent (gsd-verifier)_
