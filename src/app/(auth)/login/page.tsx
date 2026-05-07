@@ -39,7 +39,7 @@ async function LoginContent({
   searchParams,
 }: LoginPageProps) {
   const params = await searchParams;
-  const roleIntent = params.roleIntent;
+  const roleIntent = params.roleIntent === "teacher" ? "teacher" : "student";
   const initialError =
     params.error === "CredentialsSignin" ? "邮箱或密码不正确。" : undefined;
 
@@ -49,12 +49,10 @@ async function LoginContent({
         <h1 className="text-center text-[2rem] font-semibold tracking-[-0.02em] text-on-surface">
           登录
         </h1>
-        {roleIntent && (
-          <p className="mt-2 text-center text-sm text-on-surface-variant">
-            欢迎登录，您即将作为 {roleIntent === "teacher" ? "教师" : "学生"} 访问工作区。
-          </p>
-        )}
-        <LoginForm initialError={initialError} />
+        <p className="mt-2 text-center text-sm text-on-surface-variant">
+          欢迎登录，您即将作为 {roleIntent === "teacher" ? "教师" : "学生"} 访问工作区。
+        </p>
+        <LoginForm initialError={initialError} roleIntent={roleIntent} />
       </div>
     </div>
   );

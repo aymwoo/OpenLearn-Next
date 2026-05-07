@@ -9,7 +9,7 @@ import { z } from "zod";
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1, "请输入密码。"),
-  roleIntent: z.enum(["teacher", "student"]).default("teacher"),
+  roleIntent: z.enum(["teacher", "student"]).default("student"),
 });
 
 export type SignInActionState = {
@@ -77,8 +77,7 @@ export async function signInAction(
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo:
-        parsed.data.roleIntent === "student" ? "/student" : "/teacher/editor",
+      redirectTo: parsed.data.roleIntent === "student" ? "/student" : "/teacher",
     });
   } catch (error: unknown) {
     if (isCredentialsSigninError(error)) {
