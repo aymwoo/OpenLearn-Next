@@ -13,6 +13,7 @@
     "verify:phase4": "tsx scripts/verify-phase4-learning.ts",
     "verify:phase5": "tsx scripts/verify-phase5-classroom.ts",
     "verify:phase6": "tsx scripts/verify-phase6-foundations.ts",
+    "verify:phase11": "tsx scripts/verify-phase11-readiness.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "db:bootstrap:dev": "drizzle-kit push && tsx scripts/bootstrap-dev-db.ts",
     "test": "vitest"
@@ -43,6 +44,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "9.39.1",
     "eslint-config-next": "latest",
+    "jsdom": "^29.1.1",
     "playwright": "1.59.1",
     "tailwindcss": "4.2.4",
     "tsx": "latest",

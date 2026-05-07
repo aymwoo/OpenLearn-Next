@@ -1,5 +1,21 @@
 # 主题系统设计
 
+## Phase 11 implemented state
+
+- `src/lib/dal/themes.ts` 现已提供 `getValidThemesForSchool(schoolId)` 和 `getActiveThemeForCurrentActor(themeId)`，主题解析受当前用户学校范围约束。
+- `src/lib/theme-cookie.ts` 使用 `activeThemeId` cookie 持久化当前主题。
+- `src/actions/theme-actions.ts` 已提供 `setActiveThemeAction()` 和 `registerThemeTokensAction()`，并在成功后刷新 layout 与 theme cache tags。
+- `src/components/theme/theme-injector.tsx` 已在 `src/app/layout.tsx` 中通过 `<ThemeInjector />` 接入，运行时会把合法主题编译为 `:root` CSS 变量。
+- 当前 surface 编译结果采用 `--color-surface-container-low`、`--color-surface` 等命名，不再使用 `--surface-*` 作为现行行为。
+
+### 明确不在 Phase 11 范围内
+
+- light/dark 双主题扩展
+- 共享主题市场
+- 新的用户偏好表
+
+> 下文“发现的问题/推荐修复方案”主要保留为 Phase 11 之前的设计审查背景。
+
 ## 架构总览
 
 主题系统设计为**服务端 per-school 主题注册表**，分为三层：

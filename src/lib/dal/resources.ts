@@ -10,6 +10,8 @@ import {
   UpdateResourceInput,
 } from "../dto/resource-ai";
 
+type ResourceUpdatePatch = Partial<typeof resources.$inferInsert>;
+
 export async function getTeacherResourceLibraryDTO(): Promise<ResourceCardDTO[]> {
   const scope = await assertActiveTeacher();
 
@@ -109,7 +111,7 @@ export async function updateTeacherResource(
     }
   }
 
-  const updateData: any = { updatedAt: new Date() };
+  const updateData: ResourceUpdatePatch = { updatedAt: new Date() };
   if (input.schoolId !== undefined) updateData.schoolId = input.schoolId;
   if (input.courseId !== undefined) updateData.courseId = input.courseId;
   if (input.title !== undefined) updateData.title = input.title;

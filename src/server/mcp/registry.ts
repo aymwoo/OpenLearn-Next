@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 export const MCP_SUPPORTED_PROVIDERS = [
   "moodle",
   "github",
@@ -65,7 +63,7 @@ export interface McpCredentialRef {
 
 const FORBIDDEN_KEYS = ["secret", "tokenValue", "apiKey", "password", "clientSecret"];
 
-export function assertNoSecretMaterial(input: Record<string, any>) {
+export function assertNoSecretMaterial(input: Record<string, unknown>) {
   for (const key of Object.keys(input)) {
     if (FORBIDDEN_KEYS.includes(key)) {
       throw new Error(`Input contains forbidden secret key: ${key}`);

@@ -26,7 +26,7 @@ const stepLabels = {
 
 export function LessonAuthoringWorkspace({ overview, lesson }: LessonAuthoringWorkspaceProps) {
   const [selectedStepId, setSelectedStepId] = useState(lesson?.steps[0]?.id ?? null);
-  const steps = lesson?.steps.filter((step) => !step.archivedAt) ?? [];
+  const steps = useMemo(() => lesson?.steps.filter((step) => !step.archivedAt) ?? [], [lesson?.steps]);
   const selectedStep = useMemo(
     () => steps.find((step) => step.id === selectedStepId) ?? steps[0] ?? null,
     [selectedStepId, steps]
@@ -97,7 +97,7 @@ export function LessonAuthoringWorkspace({ overview, lesson }: LessonAuthoringWo
         </div>
       </Card>
 
-      <LessonStepEditor step={selectedStep} />
+      <LessonStepEditor key={selectedStep?.id ?? "empty-step"} step={selectedStep} />
     </div>
   );
 }

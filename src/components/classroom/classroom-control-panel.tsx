@@ -194,7 +194,7 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
                       onClick={() => handleChangeMode(true)}
                     >
                       <span className="text-base font-semibold">锁定跟随</span>
-                      <span className="text-xs font-medium opacity-80">学生端同步同一步骤</span>
+                      <span className="text-xs font-medium opacity-80">学生端跟随教师当前步骤</span>
                     </Button>
                     <Button
                       variant={!currentSnapshot.locked ? 'primary' : 'secondary'}
@@ -203,7 +203,7 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
                       onClick={() => handleChangeMode(false)}
                     >
                       <span className="text-base font-semibold">自由浏览</span>
-                      <span className="text-xs font-medium opacity-80">允许回看已开放内容</span>
+                      <span className="text-xs font-medium opacity-80">学生可回看已开放</span>
                     </Button>
                   </div>
                   <div className="mt-4 hidden sm:block">

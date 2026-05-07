@@ -9,7 +9,7 @@
 - [ ] **Phase 8: Stitch MCP Integration** - Integrate Stitch MCP to fetch design tokens and UI structural data
 - [ ] **Phase 9: Core Page Alignment** - Refactor Home Page and Teacher Dashboard to strictly match Stitch designs
 - [x] **Phase 10: Global Visual Polish** - Fix 1px borders, tonal layering, and ensure release-ready visual consistency (completed 2026-05-06)
-- [ ] **Phase 11: Plugin, Theme, and Classroom Readiness** - Make plugin hooks, theme plugins, and teacher classroom workflows usable end-to-end from existing docs
+- [x] **Phase 11: Plugin, Theme, and Classroom Readiness** - Make plugin hooks, theme plugins, and teacher classroom workflows usable end-to-end from existing docs
 
 ### Phase Details
 
@@ -66,12 +66,12 @@
   3. Teacher authoring autosaves editable lesson-step payloads, live classroom control enforces lock mode server-side, and student connection/snapshot behavior supports reliable teacher-led classroom flow.
   4. Plugin widgets and theme controls are surfaced in the existing dashboard/editor/settings UI without arbitrary plugin JavaScript, direct DB access, or unsafe runtime execution.
 **Plans**: 6 plans
-- [ ] 11-01-PLAN.md — Harden plugin DAL, Server Actions, school isolation, permissions, and audit paths.
-- [ ] 11-02-PLAN.md — Build theme plugin registration and runtime theme injection foundation.
-- [ ] 11-03-PLAN.md — Wire safe plugin widgets, anchors, settings theme selector, and labs plugin manager UI.
-- [ ] 11-04-PLAN.md — Make lesson step editor payload edits persist through autosave/save actions.
-- [ ] 11-05-PLAN.md — Harden classroom snapshot, presence, SSE reliability, and server-side lock enforcement.
-- [ ] 11-06-PLAN.md — Add cross-flow Phase 11 verification, seed support, and docs alignment.
+- [x] 11-01-PLAN.md — Harden plugin DAL, Server Actions, school isolation, permissions, and audit paths.
+- [x] 11-04-PLAN.md — Make lesson step editor payload edits persist through autosave/save actions.
+- [x] 11-05-PLAN.md — Harden classroom snapshot, presence, SSE reliability, and server-side lock enforcement.
+- [x] 11-02-PLAN.md — Build theme plugin registration and runtime theme injection foundation.
+- [x] 11-03-PLAN.md — Wire safe plugin widgets, anchors, settings theme selector, and labs plugin manager UI.
+- [x] 11-06-PLAN.md — Add cross-flow Phase 11 verification, seed support, and docs alignment.
 **UI hint**: yes
 
 ### Progress
@@ -81,4 +81,4 @@
 | 8. Stitch MCP Integration | 0/0 | Not started | - |
 | 9. Core Page Alignment | 3/3 | Complete | 2026-05-06 |
 | 10. Global Visual Polish | 6/6 | Complete    | 2026-05-06 |
-| 11. Plugin, Theme, and Classroom Readiness | 0/6 | Ready to execute | - |
+| 11. Plugin, Theme, and Classroom Readiness | 6/6 | Complete | 2026-05-07 |

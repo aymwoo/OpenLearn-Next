@@ -17,7 +17,10 @@ import {
   EndClassroomInputSchema,
   LaunchClassroomInputSchema,
   RefreshClassroomSnapshotInputSchema,
+  TouchClassroomPresenceInputSchema,
 } from "@/lib/dto/classroom";
+import { getCurrentUserDTO } from "@/lib/dal/auth";
+import { updateClassroomParticipantConnection } from "@/lib/dal/classroom";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; message: string; latest?: unknown; attemptedAction?: unknown };
 
@@ -139,6 +142,30 @@ export async function endClassroomSessionAction(input: FormData | Record<string,
       updateTag(cacheTags.classroom(result.sessionId));
     }
     return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function touchClassroomPresenceAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = TouchClassroomPresenceInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const user = await getCurrentUserDTO();
+    if (!user?.id) {
+      return { ok: false, error: "CLASSROOM_PARTICIPANT_REQUIRED", message: "请先登录后再进入课堂。" };
+    }
+
+    await updateClassroomParticipantConnection({
+      sessionId: parsed.data.sessionId,
+      studentId: user.id,
+      connectionState: parsed.data.connectionState,
+      currentStepId: parsed.data.currentStepId ?? undefined,
+    });
+
+    updateTag(cacheTags.classroom(parsed.data.sessionId));
+    return { ok: true, data: { sessionId: parsed.data.sessionId } };
   } catch (error) {
     return handleClassroomActionError(error);
   }

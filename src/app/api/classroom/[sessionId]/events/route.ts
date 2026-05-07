@@ -16,8 +16,8 @@ export async function GET(
       const encoder = new TextEncoder();
       let lastVersion = 0;
 
-      const fetchSnapshot = async () => {
-        try {
+        const fetchSnapshot = async () => {
+          try {
           const res = await fetch(snapshotUrl, {
             headers: cookie ? { Cookie: cookie } : {},
             cache: "no-store",
@@ -48,8 +48,8 @@ export async function GET(
               controller.close();
             }
           }
-        } catch (err) {
-          // fetch failed, just ignore and retry next interval
+        } catch {
+          console.warn("[classroom-events] snapshot fetch failed; retrying on next poll");
         }
       };
 

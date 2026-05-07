@@ -120,7 +120,7 @@ const checks: Check[] = [
   { label: "D-10 actions validate with safeParse", passed: (classroomActions.match(/safeParse/g)?.length ?? 0) >= 5 },
   { label: "D-10 actions invalidate classroom tag", passed: classroomActions.includes("updateTag(cacheTags.classroom") },
   { label: "D-11 snapshot route uses DAL snapshot, no-store, and no updateTag", passed: snapshotRoute.includes("getClassroomSnapshotDTO") && snapshotRoute.includes("no-store") && !snapshotRoute.includes("updateTag") },
-  { label: "D-12 Edge SSE route uses Edge runtime", passed: eventsRoute.includes('export const runtime = "edge"') },
+  { label: "D-12 SSE route keeps no-store event stream without unsupported edge runtime export", passed: eventsRoute.includes("text/event-stream") && eventsRoute.includes("no-store") && !eventsRoute.includes('export const runtime = "edge"') },
   { label: "D-12 Edge SSE route emits event-stream snapshot and keepalive", passed: eventsRoute.includes("text/event-stream") && eventsRoute.includes("event: snapshot") && eventsRoute.includes("keepalive") },
   { label: "D-12 Edge SSE route validates payload", passed: eventsRoute.includes("ClassroomSnapshotDTOSchema.safeParse") || eventsRoute.includes("ClassroomSnapshotDTOSchema.parse") },
   { label: "D-12 Edge SSE route forwards Cookie header", passed: eventsRoute.includes('request.headers.get("cookie")') && eventsRoute.includes("Cookie: cookie") },

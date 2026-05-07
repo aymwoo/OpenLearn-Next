@@ -22,4 +22,12 @@ describe("lesson authoring DAL boundary", () => {
     expect(source).toContain("publishedLessonVersions");
     expect(source).toContain("snapshotJson");
   });
+
+  it("persists updated lesson step payloads and bumps lesson revision", () => {
+    expect(source).toContain("export async function updateLessonStep");
+    expect(source).toContain("lessonStepPayloadSchema.parse(input.payload)");
+    expect(source).toContain("revision: lesson.revision + 1");
+    expect(source).toContain("await getScopedStep");
+    expect(source).toContain("getLessonEditorDTO");
+  });
 });

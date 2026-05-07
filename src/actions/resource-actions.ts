@@ -43,7 +43,7 @@ export async function createResourceAction(input: FormData | Record<string, unkn
     updateTag(cacheTags.resource(data.id));
 
     return { ok: true, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("createResourceAction failed", error);
     return { ok: false, message: "资源保存失败，请重试。" };
   }
@@ -72,7 +72,7 @@ export async function updateResourceAction(
     updateTag(cacheTags.resource(data.id));
 
     return { ok: true, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("updateResourceAction failed", error);
     return { ok: false, message: "资源保存失败，请重试。" };
   }
@@ -96,7 +96,7 @@ export async function setResourceRagEligibilityAction(input: FormData | Record<s
     updateTag(cacheTags.resource(data.id));
 
     return { ok: true, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("setResourceRagEligibilityAction failed", error);
     return { ok: false, message: "资源保存失败，请重试。" };
   }

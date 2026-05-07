@@ -308,7 +308,7 @@ export async function updateLessonDraft(input: LessonDraftInput & { lessonId: st
 }
 
 export async function duplicateLesson(lessonId: string) {
-  const scope = await assertActiveTeacher();
+  await assertActiveTeacher();
   const editor = await getLessonEditorDTO(lessonId);
   const draft = await createLessonDraft({
     courseId: editor.lesson.courseId,

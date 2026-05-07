@@ -122,12 +122,21 @@ export const McpAuditDTOSchema = z.object({
 });
 export type McpAuditDTO = z.infer<typeof McpAuditDTOSchema>;
 
+export const ThemeTokenRegistrySchema = z.object({
+  colors: z.record(z.string(), z.string()).optional(),
+  surfaces: z.record(z.string(), z.string()).optional(),
+  radius: z.record(z.string(), z.string()).optional(),
+  typography: z.record(z.string(), z.string()).optional(),
+});
+export type ThemeTokenRegistry = z.infer<typeof ThemeTokenRegistrySchema>;
+
 export const PluginManifestSchema = z.object({
   id: z.string(),
   version: z.string(),
   permissions: z.array(z.string()).default([]),
   anchors: z.array(z.enum(["dashboard.widget", "lesson.sidebar"])),
   actions: z.array(z.enum(["addStepSuggestion", "annotateLesson", "createNotificationStub"])),
+  theme: ThemeTokenRegistrySchema.optional(),
 });
 export type PluginManifest = z.infer<typeof PluginManifestSchema>;
 
@@ -157,14 +166,6 @@ export const PluginAuditDTOSchema = z.object({
   createdAt: z.number(),
 });
 export type PluginAuditDTO = z.infer<typeof PluginAuditDTOSchema>;
-
-export const ThemeTokenRegistrySchema = z.object({
-  colors: z.record(z.string(), z.string()).optional(),
-  surfaces: z.record(z.string(), z.string()).optional(),
-  radius: z.record(z.string(), z.string()).optional(),
-  typography: z.record(z.string(), z.string()).optional(),
-});
-export type ThemeTokenRegistry = z.infer<typeof ThemeTokenRegistrySchema>;
 
 export const ThemeRegistryDTOSchema = z.object({
   id: z.string(),

@@ -73,6 +73,12 @@ export const RefreshClassroomSnapshotInputSchema = z.object({
   expectedVersion: z.number().int().optional(),
 });
 
+export const TouchClassroomPresenceInputSchema = z.object({
+  sessionId: z.string().min(1),
+  connectionState: ClassroomConnectionStateSchema,
+  currentStepId: z.string().nullable().optional(),
+});
+
 export const EndClassroomInputSchema = z.object({
   sessionId: z.string(),
 });
@@ -103,6 +109,7 @@ export type LaunchClassroomInput = z.infer<typeof LaunchClassroomInputSchema>;
 export type ChangeClassroomStepInput = z.infer<typeof ChangeClassroomStepInputSchema>;
 export type ChangeClassroomModeInput = z.infer<typeof ChangeClassroomModeInputSchema>;
 export type RefreshClassroomSnapshotInput = z.infer<typeof RefreshClassroomSnapshotInputSchema>;
+export type TouchClassroomPresenceInput = z.infer<typeof TouchClassroomPresenceInputSchema>;
 export type EndClassroomInput = z.infer<typeof EndClassroomInputSchema>;
 export type PendingTeacherControlDTO = z.infer<typeof PendingTeacherControlDTOSchema>;
 export type ClassroomActionResultDTO = z.infer<typeof ClassroomActionResultDTOSchema>;

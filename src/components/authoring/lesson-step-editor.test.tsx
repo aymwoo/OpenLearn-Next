@@ -1,0 +1,161 @@
+// @vitest-environment jsdom
+
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach } from "vitest";
+
+import { LessonStepEditor } from "./lesson-step-editor";
+import type { LessonStepDTO } from "@/lib/dto/lesson-authoring";
+
+const autosaveLessonStepAction = vi.fn();
+
+vi.mock("@/actions/lesson-authoring-actions", () => ({
+  autosaveLessonStepAction: (...args: unknown[]) => autosaveLessonStepAction(...args),
+}));
+
+function makeStep(step: LessonStepDTO): LessonStepDTO {
+  return step;
+}
+
+describe("lesson step editor persistence", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  beforeEach(() => {
+    autosaveLessonStepAction.mockReset();
+    autosaveLessonStepAction.mockResolvedValue({ ok: true, data: { lessonId: "lesson-1", stepId: "step-1" } });
+  });
+
+  it("submits content payload updates while preserving materialRefs", async () => {
+    const step = makeStep({
+      id: "step-1",
+      lessonId: "lesson-1",
+      type: "content",
+      title: "原始标题",
+      rank: "a0",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      payload: {
+        type: "content",
+        title: "原始标题",
+        body: "原始正文",
+        teacherNotes: "原始提示",
+        materialRefs: [{ title: "教材链接", kind: "link", url: "https://example.com" }],
+      },
+    });
+
+    render(<LessonStepEditor step={step} />);
+
+    fireEvent.change(screen.getByLabelText("标题"), { target: { value: "更新标题" } });
+    fireEvent.change(screen.getByLabelText("正文"), { target: { value: "更新正文" } });
+    fireEvent.change(screen.getByLabelText("教师提示"), { target: { value: "更新提示" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存步骤" }));
+
+    await waitFor(() => expect(autosaveLessonStepAction).toHaveBeenCalledTimes(1));
+    expect(autosaveLessonStepAction).toHaveBeenCalledWith({
+      stepId: "step-1",
+      title: "更新标题",
+      payload: {
+        type: "content",
+        title: "更新标题",
+        body: "更新正文",
+        teacherNotes: "更新提示",
+        materialRefs: [{ title: "https://example.com", kind: "link", url: "https://example.com" }],
+      },
+    });
+    await waitFor(() => expect(screen.getByText("已保存")).toBeTruthy());
+  });
+
+  it("submits task payload updates with valid submissionType and successCriteria", async () => {
+    const step = makeStep({
+      id: "step-2",
+      lessonId: "lesson-1",
+      type: "task",
+      title: "任务标题",
+      rank: "a1",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      payload: {
+        type: "task",
+        prompt: "原始任务",
+        submissionType: "text",
+        successCriteria: "原始标准",
+        allowRetry: true,
+        retryPolicy: "once",
+        materialRefs: [{ title: "素材", kind: "link" }],
+      },
+    });
+
+    render(<LessonStepEditor step={step} />);
+
+    fireEvent.change(screen.getByLabelText("标题"), { target: { value: "任务更新" } });
+    fireEvent.change(screen.getByLabelText("任务说明"), { target: { value: "新的任务说明" } });
+    fireEvent.change(screen.getByLabelText("提交要求"), { target: { value: "image" } });
+    fireEvent.change(screen.getByLabelText("成功标准"), { target: { value: "提交一张图片" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存步骤" }));
+
+    await waitFor(() => expect(autosaveLessonStepAction).toHaveBeenCalledTimes(1));
+    expect(autosaveLessonStepAction).toHaveBeenCalledWith({
+      stepId: "step-2",
+      title: "任务更新",
+      payload: {
+        type: "task",
+        prompt: "新的任务说明",
+        submissionType: "image",
+        successCriteria: "提交一张图片",
+        allowRetry: true,
+        retryPolicy: "once",
+        materialRefs: [{ title: "素材", kind: "link" }],
+      },
+    });
+  });
+
+  it("submits quiz payload updates with filtered options and numeric correct answer", async () => {
+    const step = makeStep({
+      id: "step-3",
+      lessonId: "lesson-1",
+      type: "quiz",
+      title: "测验标题",
+      rank: "a2",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      payload: {
+        type: "quiz",
+        question: "原始题目",
+        options: ["A", "B"],
+        correctOptionIndex: 1,
+        explanation: "原始说明",
+        allowRetry: true,
+        retryPolicy: "unlimited",
+        revealCorrectAnswer: true,
+      },
+    });
+
+    render(<LessonStepEditor step={step} />);
+
+    fireEvent.change(screen.getByLabelText("标题"), { target: { value: "测验更新" } });
+    fireEvent.change(screen.getByLabelText("题目"), { target: { value: "新的题目" } });
+    fireEvent.change(screen.getByLabelText("选项"), { target: { value: "选项一\n\n选项二\n选项三" } });
+    fireEvent.change(screen.getByLabelText("正确答案序号"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("答案说明"), { target: { value: "新的说明" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存步骤" }));
+
+    await waitFor(() => expect(autosaveLessonStepAction).toHaveBeenCalledTimes(1));
+    expect(autosaveLessonStepAction).toHaveBeenCalledWith({
+      stepId: "step-3",
+      title: "测验更新",
+      payload: {
+        type: "quiz",
+        question: "新的题目",
+        options: ["选项一", "选项二", "选项三"],
+        correctOptionIndex: 2,
+        explanation: "新的说明",
+        allowRetry: true,
+        retryPolicy: "unlimited",
+        revealCorrectAnswer: true,
+      },
+    });
+  });
+});

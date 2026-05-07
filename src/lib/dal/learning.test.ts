@@ -93,6 +93,13 @@ describe("learning DAL student read boundary", () => {
     expect(personalSource).toContain("taskSubmissions");
     expect(personalSource).toContain("quizAttempts");
   });
+
+  it("enforces locked runtime server-side before selectedStepId", () => {
+    expect(source).toContain("forcedStepId = classroomRuntime.activeStepId");
+    expect(source).toContain("const resumeStepId = forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId");
+    expect(source).toContain('teacherRecommendedStepId = classroomRuntime.activeStepId');
+    expect(source).toContain("disabledStepIds: locked ? steps.map(s => s.id).filter(id => id !== forcedStepId) : []");
+  });
 });
 
 describe("learning DAL progress, append-only attempts, and teacher review", () => {

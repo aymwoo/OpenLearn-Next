@@ -7,7 +7,6 @@ import { db } from "@/db";
 import {
   classMembers,
   classes,
-  classroomParticipants,
   classroomSessions,
   courseClasses,
   courseEnrollments,
@@ -21,6 +20,7 @@ import {
   users,
 } from "@/db/schema";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
+import { ensureClassroomParticipant } from "@/lib/dal/classroom";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { cacheTags } from "@/lib/cache-policy";
@@ -408,29 +408,32 @@ export async function getStudentPlayerShellDTO(input: { lessonId: string; scope:
 }
 
 export async function getStudentClassroomRuntime(input: { lessonId: string; scope: StudentScope }) {
-  const activeParticipant = await db
+  const activeSession = await db
     .select({
       sessionId: classroomSessions.id,
       version: classroomSessions.version,
       locked: classroomSessions.locked,
       activeStepId: classroomSessions.activeStepId,
     })
-    .from(classroomParticipants)
-    .innerJoin(classroomSessions, eq(classroomParticipants.sessionId, classroomSessions.id))
+    .from(classroomSessions)
+    .innerJoin(classMembers, eq(classMembers.classId, classroomSessions.classId))
     .where(
       and(
         eq(classroomSessions.lessonId, input.lessonId),
         eq(classroomSessions.status, "live"),
-        eq(classroomParticipants.studentId, input.scope.userId)
+        eq(classMembers.userId, input.scope.userId),
+        eq(classMembers.role, "student"),
       )
     )
     .limit(1);
 
-  if (activeParticipant.length === 0) {
+  if (activeSession.length === 0) {
     return null;
   }
 
-  const { sessionId, version, locked, activeStepId } = activeParticipant[0];
+  const { sessionId, version, locked, activeStepId } = activeSession[0];
+  await ensureClassroomParticipant({ sessionId, studentId: input.scope.userId });
+
   return {
     sessionId,
     version,

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { UserDTOSchema, type UserDTO } from "@/lib/dto/user";
 
 export async function getCurrentUserDTO(): Promise<UserDTO | null> {
@@ -26,4 +27,15 @@ export async function getCurrentUserDTO(): Promise<UserDTO | null> {
   }
 
   return result.data;
+}
+
+export async function getCurrentUserSchoolIds(): Promise<string[]> {
+  const user = await getCurrentUserDTO();
+  if (!user) {
+    return [];
+  }
+
+  const memberships = await getUserMembershipsDTO(user.id);
+
+  return [...new Set(memberships.filter((membership) => membership.status === "active").map((membership) => membership.schoolId))];
 }

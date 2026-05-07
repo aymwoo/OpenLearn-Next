@@ -42,7 +42,7 @@ export function compileThemeTokensToCssVariables(tokens: ThemeTokenRegistry): Re
 
   if (tokens.surfaces) {
     for (const [key, value] of Object.entries(tokens.surfaces)) {
-      cssVars[`--surface-${key}`] = value;
+      cssVars[`--color-${key}`] = value;
     }
   }
 

@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'node:fs';
 const content = fs.readFileSync('.planning/ROADMAP.md', 'utf8');
 
 const regex = /(### Phase 8: Stitch MCP Integration[\s\S]*?\*\*Plans\*\*:\s*)(.*)/;

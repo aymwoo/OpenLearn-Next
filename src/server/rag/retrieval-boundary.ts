@@ -1,7 +1,13 @@
 import { RetrievalFilterDTO } from "@/lib/dto/resource-ai";
 
-export function buildSafeRetrievalFilter(input: RetrievalFilterDTO): Record<string, any> {
-  const filter: Record<string, any> = {
+type RetrievalMatch = { key: string; match: { value: string | boolean } };
+
+type RetrievalFilterPayload = {
+  must: RetrievalMatch[];
+};
+
+export function buildSafeRetrievalFilter(input: RetrievalFilterDTO): RetrievalFilterPayload {
+  const filter: RetrievalFilterPayload = {
     must: [
       { key: "schoolId", match: { value: input.schoolId } },
       { key: "ragEligible", match: { value: true } },

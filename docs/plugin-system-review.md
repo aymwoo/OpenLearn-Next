@@ -1,5 +1,22 @@
 # 插件系统架构回顾
 
+## Phase 11 implemented state
+
+- `src/lib/dal/plugins.ts` 已提供 `setPluginEnabled`、`setPluginKillSwitch`、`listPluginsForSchool`、`getPluginForSchool`、`deletePluginForSchool`、`getEnabledPluginsForAnchor`、`runPluginHook`。
+- `runPluginHook()` 现在在分发前强制检查学校隔离、成员资格和 manifest 权限；拒绝路径会记录 `permission_denied`、`school_mismatch`、`disabled`、`kill_switch`、`not_allowed` 等审计原因。
+- `src/actions/plugin-actions.ts` 已在 action 边界使用 `PluginManifestSchema` 校验 manifest，不再以 `manifestJson: z.any()` 作为第一道用户输入边界。
+- `src/components/plugins/plugin-renderer.tsx` 已将 `dashboard.widget` 与 `lesson.sidebar` 接入真实页面，并通过本地安全 widget 渲染 `stepSuggestion`、`lessonAnnotation`、`notificationStub`。
+- `src/components/surfaces/settings-surface.tsx` 的 labs 区域已提供插件启用/停用控制，且仍然只走 Server Actions，不允许任意插件脚本执行。
+
+### 明确不在 Phase 11 范围内
+
+- 外部 plugin marketplace / registry
+- arbitrary plugin JavaScript、WASM sandbox、remote dynamic import
+- plugin-to-plugin communication
+- plugin direct DB / Core API / provider-key access
+
+> 下文“发现的问题/推荐修复优先级”保留为 Phase 11 之前的历史审计背景，不再代表当前实现状态。
+
 ## 架构总览
 
 插件系统是一个**纯服务端**的扩展机制，以学校（school）为作用域。学校可以注册插件清单（manifest），声明 UI 锚点和允许的动作。当 hook 在指定锚点触发时，系统验证插件状态后通过 dispatcher 执行动作，并记录审计日志。

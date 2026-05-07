@@ -1,5 +1,22 @@
 # 插件系统 + 主题插件实现方案
 
+## Phase 11 implemented state
+
+- `setPluginEnabled(true)` 已能在插件启用时自动注册 `manifest.theme`，并刷新 plugin/theme cache tags。
+- `src/actions/theme-actions.ts` 已提供 `setActiveThemeAction` 与 `registerThemeTokensAction`。
+- `src/lib/theme-cookie.ts` 已提供 `activeThemeId` cookie 读写；`src/components/theme/theme-injector.tsx` 会在根布局按当前 actor + school scope 注入主题变量。
+- `compileThemeTokensToCssVariables()` 现在输出 `--color-surface-container-low` 这类变量，不再输出 `--surface-*`。
+- `PluginRenderer`、settings 主题选择器、labs 插件管理 UI 已接入现有页面。
+
+### 明确不在 Phase 11 范围内
+
+- shared theme marketplace / discovery
+- light/dark variant expansion
+- arbitrary plugin JS or remote execution
+- external marketplace integration
+
+> 下文保留为实施方案与设计推演记录；当前仓库状态以上述实现为准。
+
 ## 背景
 
 当前插件系统骨架存在但不可用（无法启用插件、权限未执行、无 UI 集成）。主题系统有存储和验证层，但运行时应用链路完全缺失（`compileThemeTokensToCssVariables` 从未被调用）。

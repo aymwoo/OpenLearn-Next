@@ -3,8 +3,20 @@
 import { MonitorUp } from 'lucide-react'
 import { ClassroomLaunchPanel } from '@/components/classroom/classroom-launch-panel'
 import { ClassroomControlPanel } from '@/components/classroom/classroom-control-panel'
+import type { ClassroomSnapshotDTO } from '@/lib/dto/classroom'
 
-export function ClassroomConsoleSurface({ consoleData, initialSnapshot }: { consoleData: any, initialSnapshot: any }) {
+type ClassroomConsoleDTO = {
+  publishedLessons: Array<{
+    id: string
+    title: string
+    publishedVersionId: string
+    courseId: string
+    classes: Array<{ id: string; name: string }>
+  }>
+  emptyStateCopy: string
+}
+
+export function ClassroomConsoleSurface({ consoleData, initialSnapshot }: { consoleData: ClassroomConsoleDTO; initialSnapshot: ClassroomSnapshotDTO | null }) {
   if (initialSnapshot) {
     return (
       <div className="space-y-5">

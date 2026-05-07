@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'node:fs';
 
 const uatFile = '.planning/phases/08-stitch-mcp-integration/08-UAT.md';
 let content = fs.readFileSync(uatFile, 'utf8');

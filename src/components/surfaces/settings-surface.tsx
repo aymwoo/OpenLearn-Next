@@ -4,14 +4,18 @@ import {
   ChevronRight,
   Cpu,
   Globe,
+  Palette,
   Lock,
-  MoonStar,
   Shield,
   SunMedium,
 } from 'lucide-react'
 
+import { listPluginsAction, setPluginEnabledAction } from '@/actions/plugin-actions'
+import { setActiveThemeAction } from '@/actions/theme-actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { getCurrentUserSchoolIds } from '@/lib/dal/auth'
+import { getValidThemesForSchool } from '@/lib/dal/themes'
 
 type SettingsSurfaceProps = {
   mode: 'general' | 'labs'
@@ -29,15 +33,23 @@ const settingsSections = [
 const labRows = ['A', 'B', 'C', 'D', 'E', 'F'] as const
 const labColumns = Array.from({ length: 8 }, (_, index) => index + 1)
 
-export function SettingsSurface({ mode }: SettingsSurfaceProps) {
+export async function SettingsSurface({ mode }: SettingsSurfaceProps) {
+  const schoolIds = await getCurrentUserSchoolIds()
+  const schoolId = schoolIds[0] ?? null
+
   if (mode === 'labs') {
-    return <LabsSettingsSurface />
+    return <LabsSettingsSurface schoolId={schoolId} />
   }
 
-  return <GeneralSettingsSurface />
+  return <GeneralSettingsSurface schoolId={schoolId} />
 }
 
-function GeneralSettingsSurface() {
+async function GeneralSettingsSurface({ schoolId }: { schoolId: string | null }) {
+  const themes = schoolId ? await getValidThemesForSchool(schoolId) : []
+  const resetTheme = async (formData: FormData) => {
+    await setActiveThemeAction(formData)
+  }
+
   return (
     <main className="min-h-screen bg-surface px-4 py-6 text-on-surface sm:px-6 lg:px-8">
       <div className="mx-auto grid w-full max-w-[1280px] gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
@@ -86,24 +98,48 @@ function GeneralSettingsSurface() {
 
           <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient sm:p-6">
-              <p className="text-sm text-on-surface-variant">外观</p>
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
-                {[
-                  { label: '浅色', icon: SunMedium, active: true },
-                  { label: '深色', icon: MoonStar, active: false },
-                  { label: '自动', icon: Globe, active: false },
-                ].map((option) => {
-                  const Icon = option.icon
-                  return (
-                    <div key={option.label} className={option.active ? 'rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient' : 'rounded-[1.5rem] bg-surface-container-lowest/75 p-5'}>
-                      <div className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
-                        <Icon className="size-5" aria-hidden />
-                      </div>
-                      <p className="mt-4 text-lg font-semibold">{option.label}</p>
-                      <p className="mt-2 text-sm text-on-surface-variant">{option.active ? '当前已启用' : '可切换'}</p>
+              <div className="flex items-start gap-3">
+                <div className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
+                  <Palette className="size-5" aria-hidden />
+                </div>
+                <div>
+                  <p className="text-sm text-on-surface-variant">外观</p>
+                  <h3 className="mt-2 text-lg font-semibold text-on-surface">主题切换</h3>
+                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">通过学校范围内的有效主题切换课堂界面，或恢复默认主题。</p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <form action={resetTheme} className="rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-semibold text-on-surface">默认主题</p>
+                      <p className="mt-2 text-sm leading-6 text-on-surface-variant">清除当前 `activeThemeId`，恢复系统默认外观。</p>
                     </div>
-                  )
-                })}
+                    <SunMedium className="size-5 text-primary" aria-hidden />
+                  </div>
+                  <Button variant="secondary" className="mt-4 min-h-10 px-4 text-sm shadow-none">恢复默认</Button>
+                </form>
+
+                {themes.map((theme) => (
+                  <form key={theme.id} action={resetTheme} className="rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
+                    <input type="hidden" name="themeId" value={theme.id} />
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-lg font-semibold text-on-surface">{theme.name}</p>
+                        <p className="mt-2 text-sm leading-6 text-on-surface-variant">已通过校验，可作为当前学校的界面主题使用。</p>
+                      </div>
+                      <Badge className="bg-surface-container-low text-on-surface-variant">有效主题</Badge>
+                    </div>
+                    <Button variant="secondary" className="mt-4 min-h-10 px-4 text-sm shadow-none">应用主题</Button>
+                  </form>
+                ))}
+
+                {themes.length === 0 ? (
+                  <div className="rounded-[1.5rem] bg-surface-container-lowest p-5 text-sm leading-6 text-on-surface-variant">
+                    当前学校还没有可用主题。启用带有 `manifest.theme` 的插件后，这里会显示可选项。
+                  </div>
+                ) : null}
               </div>
             </section>
 
@@ -140,7 +176,17 @@ function GeneralSettingsSurface() {
   )
 }
 
-function LabsSettingsSurface() {
+async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
+  const pluginResult = schoolId ? await listPluginsAction({ schoolId }) : { success: true as const, data: [] }
+  const plugins = pluginResult.success ? (pluginResult.data ?? []) : []
+  const submitPluginToggle = async (formData: FormData) => {
+    await setPluginEnabledAction({
+      pluginId: String(formData.get('pluginId') ?? ''),
+      schoolId: String(formData.get('schoolId') ?? ''),
+      enabled: String(formData.get('enabled') ?? '') === 'true',
+    })
+  }
+
   return (
     <main className="min-h-screen bg-surface px-4 py-6 text-on-surface sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-6">
@@ -217,6 +263,49 @@ function LabsSettingsSurface() {
               <div className="mt-4 grid gap-3">
                 <button className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-left font-medium text-on-surface shadow-ambient">导出考勤报告</button>
                 <button className="rounded-[1.5rem] bg-[#fff1f2] px-4 py-4 text-left font-medium text-[#b31b25] shadow-ambient">一键关机全实验室</button>
+              </div>
+            </section>
+
+            <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-on-surface-variant">插件管理</p>
+                  <p className="mt-2 text-lg font-semibold text-on-surface">按学校启停安全插件</p>
+                </div>
+                <Badge className="bg-surface-container-lowest text-on-surface-variant">Labs</Badge>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                {plugins.map((plugin) => (
+                  <div key={plugin.id} className="rounded-[1.5rem] bg-surface-container-lowest p-4 shadow-ambient">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-on-surface">{plugin.name}</p>
+                        <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                          {plugin.enabled ? '已启用' : '未启用'} · {plugin.killSwitchEnabled ? 'Kill Switch 已开启' : 'Kill Switch 关闭'}
+                        </p>
+                      </div>
+                      <Badge className="bg-surface-container-low text-on-surface-variant">{plugin.manifestJson.id}</Badge>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <form action={submitPluginToggle}>
+                        <input type="hidden" name="pluginId" value={plugin.id} />
+                        <input type="hidden" name="schoolId" value={plugin.schoolId} />
+                        <input type="hidden" name="enabled" value={plugin.enabled ? 'false' : 'true'} />
+                        <Button variant="secondary" className="min-h-10 px-4 text-sm shadow-none">
+                          {plugin.enabled ? '停用插件' : '启用插件'}
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
+                ))}
+
+                {plugins.length === 0 ? (
+                  <div className="rounded-[1.5rem] bg-surface-container-lowest p-4 text-sm leading-6 text-on-surface-variant">
+                    当前学校尚未注册插件。完成插件注册后，这里会显示启用状态与 kill-switch 状态。
+                  </div>
+                ) : null}
               </div>
             </section>
           </aside>

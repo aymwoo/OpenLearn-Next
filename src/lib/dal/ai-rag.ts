@@ -23,6 +23,8 @@ import {
   KnowledgeSourceDTO,
 } from "@/lib/dto/resource-ai";
 
+type JsonRecord = Record<string, unknown>;
+
 export async function getAgentRegistryDTO(): Promise<AgentRegistryDTO[]> {
   await assertActiveTeacher();
 
@@ -86,8 +88,8 @@ export async function recordKnowledgeChunkMetadata(input: {
   chunkIndex: number;
   textHash: string;
   tokenEstimate: number;
-  payloadJson: Record<string, any>;
-  metadataJson: Record<string, any>;
+  payloadJson: JsonRecord;
+  metadataJson: JsonRecord;
 }) {
   await assertActiveTeacher();
   // We trust the teacher scope, but in a real system we'd verify the source's resource is in scope.
@@ -113,7 +115,7 @@ export async function createAgentProposal(input: {
   agentId: string;
   targetType: string;
   targetId: string;
-  structuredOutputJson: Record<string, any>;
+  structuredOutputJson: JsonRecord;
 }): Promise<AgentProposalDTO> {
   const scope = await assertActiveTeacher();
 
@@ -179,7 +181,7 @@ export async function approveAgentProposal(input: { proposalId: string }): Promi
 export async function recordAgentAudit(input: {
   agentId: string;
   action: string;
-  payloadJson: Record<string, any>;
+  payloadJson: JsonRecord;
 }) {
   const scope = await assertActiveTeacher();
   await db.insert(agentAuditLogs).values({

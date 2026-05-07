@@ -130,7 +130,7 @@ export async function setMcpCapabilityEnabled(input: SetMcpCapabilityEnabledInpu
 }
 
 export async function getMcpRegistryDTO() {
-  const scope = await assertActiveTeacher();
+  await assertActiveTeacher();
   
   // This would typically return all servers/capabilities the teacher can see
   return {

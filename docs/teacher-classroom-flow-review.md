@@ -1,5 +1,22 @@
 # 教师上课流程回顾
 
+## Phase 11 implemented state
+
+- `src/components/authoring/lesson-step-editor.tsx` 已通过 `autosaveLessonStepAction` 和显式 `保存步骤` 动作持久化 content/task/quiz payload。
+- `src/lib/dal/classroom.ts` 已提供 `ensureClassroomParticipant` 与 `updateClassroomParticipantConnection`，用于晚加入、重连和心跳更新。
+- `src/actions/classroom-actions.ts` 已提供 `touchClassroomPresenceAction`，学生运行时会在 connected / reconnecting 流程中更新 presence。
+- `src/lib/dal/learning.ts` 已实现 server-side locked runtime enforcement：学生端优先使用 `forcedStepId`，并在 DTO 中返回 `disabledStepIds` / `teacherRecommendedStepId`。
+- `src/app/api/classroom/[sessionId]/events/route.ts` 继续使用 `no-store` SSE event-stream + polling snapshot；这是当前 `cacheComponents` 约束下可构建的实现。
+
+### 明确不在 Phase 11 范围内
+
+- production pub/sub realtime infrastructure
+- full gradebook or session-scoped grading model
+- advanced branching classroom flows
+- fully interactive teacher-side live event stream UI beyond current snapshot/refresh model
+
+> 下文“发现的问题/需要优先改进”保留为 Phase 11 之前的回顾背景，不再代表当前已修复项。
+
 ## 流程全景
 
 ```

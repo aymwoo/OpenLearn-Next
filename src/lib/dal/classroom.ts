@@ -57,6 +57,67 @@ function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: strin
     }));
 }
 
+async function getSessionWithLessonSteps(sessionId: string) {
+  const session = await db.query.classroomSessions.findFirst({ where: eq(classroomSessions.id, sessionId) });
+  if (!session) {
+    throw new Error("CLASSROOM_ENDED");
+  }
+
+  return session;
+}
+
+async function getStudentClassMember(classId: string, studentId: string) {
+  return db.query.classMembers.findFirst({
+    where: and(eq(classMembers.classId, classId), eq(classMembers.userId, studentId), eq(classMembers.role, "student")),
+  });
+}
+
+export async function ensureClassroomParticipant(input: { sessionId: string; studentId: string }) {
+  const session = await getSessionWithLessonSteps(input.sessionId);
+  const currentUser = await getCurrentUserDTO();
+
+  if (!currentUser || currentUser.id !== input.studentId) {
+    throw new Error("CLASSROOM_PARTICIPANT_REQUIRED");
+  }
+
+  const classMember = await getStudentClassMember(session.classId, input.studentId);
+  if (!classMember) {
+    throw new Error("CLASSROOM_PARTICIPANT_REQUIRED");
+  }
+
+  await db.insert(classroomParticipants).values({
+    sessionId: session.id,
+    studentId: input.studentId,
+    classMemberId: classMember.id,
+    connectionState: "reconnecting",
+    currentStepId: session.activeStepId,
+  }).onConflictDoNothing();
+}
+
+export async function updateClassroomParticipantConnection(input: {
+  sessionId: string;
+  studentId: string;
+  connectionState: "connected" | "reconnecting" | "offline";
+  currentStepId?: string | null;
+}) {
+  const session = await getSessionWithLessonSteps(input.sessionId);
+  const currentUser = await getCurrentUserDTO();
+
+  if (!currentUser || currentUser.id !== input.studentId) {
+    throw new Error("CLASSROOM_PARTICIPANT_REQUIRED");
+  }
+
+  await ensureClassroomParticipant({ sessionId: input.sessionId, studentId: input.studentId });
+
+  await db.update(classroomParticipants)
+    .set({
+      connectionState: input.connectionState,
+      lastSeenAt: new Date(),
+      ...(input.currentStepId ? { currentStepId: input.currentStepId } : {}),
+    })
+    .where(and(eq(classroomParticipants.sessionId, session.id), eq(classroomParticipants.studentId, input.studentId)));
+}
+
 export async function getClassroomConsoleDTO() {
   const scope = await assertActiveTeacher();
 
@@ -95,10 +156,7 @@ export async function getClassroomConsoleDTO() {
 }
 
 export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
-  const session = await db.query.classroomSessions.findFirst({ where: eq(classroomSessions.id, input.sessionId) });
-  if (!session) {
-    throw new Error("CLASSROOM_ENDED");
-  }
+  const session = await getSessionWithLessonSteps(input.sessionId);
 
   const user = await getCurrentUserDTO();
   if (!user) {
@@ -107,15 +165,7 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
 
   const isTeacher = session.teacherId === user.id;
   if (!isTeacher) {
-    const participant = await db.query.classroomParticipants.findFirst({
-      where: and(
-        eq(classroomParticipants.sessionId, session.id),
-        eq(classroomParticipants.studentId, user.id)
-      )
-    });
-    if (!participant) {
-      throw new Error("CLASSROOM_PARTICIPANT_REQUIRED");
-    }
+    await ensureClassroomParticipant({ sessionId: session.id, studentId: user.id });
   }
 
   const lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, session.lessonId) });

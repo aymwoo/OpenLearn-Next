@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { BookOpen, CheckCircle2, Focus, MonitorPlay } from 'lucide-react'
 
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { QuizStepCard } from '@/components/learning/quiz-step-card'
 import { TaskStepCard } from '@/components/learning/task-step-card'
+import { touchClassroomPresenceAction } from '@/actions/classroom-actions'
 import { markStepProgressAction } from '@/actions/learning-actions'
 import type {
   LearningStepDTO,
@@ -18,6 +19,7 @@ import type {
   StudentPlayerPersonalDTO,
   StudentPlayerShellDTO,
 } from '@/lib/dto/learning'
+import type { ClassroomSnapshotDTO } from '@/lib/dto/classroom'
 
 const stateCopy: Record<ProgressState, string> = {
   not_started: '未开始',
@@ -140,6 +142,20 @@ export function ClassroomRuntimeClient({
 
   const [runtime, setRuntime] = useState(initialRuntime)
   const [snapshotStatusCopy, setSnapshotStatusCopy] = useState<string | null>(initialRuntime.snapshotStatusCopy)
+  const currentRuntimeStepId = runtime.forcedStepId ?? personal.progress.resumeStepId ?? shell.steps[0]?.id ?? null
+
+  const touchPresence = useCallback(async (
+    connectionState: 'connected' | 'reconnecting' | 'offline',
+    currentStepId?: string | null,
+  ) => {
+    if (!sessionId) return
+
+    try {
+      await touchClassroomPresenceAction({ sessionId, connectionState, currentStepId })
+    } catch {
+      // ignore presence update failures in the player shell
+    }
+  }, [sessionId])
 
   const fetchDurableSnapshot = async (sid: string) => {
     try {
@@ -158,18 +174,20 @@ export function ClassroomRuntimeClient({
 
   const handleManualRefresh = async () => {
     if (!sessionId) return
+    await touchPresence('reconnecting', runtime.forcedStepId ?? null)
     setRuntime((prev) => ({ ...prev, connectionState: 'reconnecting' }))
     setSnapshotStatusCopy('正在重新连接课堂，会先显示最近一次课堂状态。')
     const snapshot = await fetchDurableSnapshot(sessionId)
     if (snapshot) {
-      applySnapshot(snapshot, 'snapshot_fallback')
+      applySnapshot(snapshot, 'connected')
+      await touchPresence('connected', snapshot.activeStepId)
       setSnapshotStatusCopy('已恢复课堂状态，你现在看到的是最新步骤。')
     } else {
       setRuntime((prev) => ({ ...prev, connectionState: 'snapshot_fallback' }))
     }
   }
 
-  const applySnapshot = (snapshot: any, state: 'connected' | 'reconnecting' | 'snapshot_fallback') => {
+  const applySnapshot = (snapshot: ClassroomSnapshotDTO, state: 'connected' | 'reconnecting' | 'snapshot_fallback') => {
     let forcedStepId = null
     let teacherRecommendedStepId = null
     const locked = Boolean(snapshot.locked)
@@ -195,7 +213,6 @@ export function ClassroomRuntimeClient({
 
   useEffect(() => {
     if (!sessionId) {
-      setRuntime((prev) => ({ ...prev, connectionState: 'offline' }))
       return
     }
 
@@ -205,6 +222,7 @@ export function ClassroomRuntimeClient({
       source = new EventSource(`/api/classroom/${sessionId}/events`)
 
       source.onopen = () => {
+        void touchPresence('connected', currentRuntimeStepId)
         setRuntime((prev) => ({ ...prev, connectionState: 'connected' }))
         setSnapshotStatusCopy((prev) => prev === '正在重新连接课堂，会先显示最近一次课堂状态。' ? null : prev)
       }
@@ -217,6 +235,7 @@ export function ClassroomRuntimeClient({
             const durable = await fetchDurableSnapshot(sessionId)
             if (durable && durable.version >= parsed.data.version) {
               applySnapshot(durable, 'connected')
+              await touchPresence('connected', durable.activeStepId)
             }
           }
         } catch {
@@ -226,6 +245,7 @@ export function ClassroomRuntimeClient({
 
       source.onerror = () => {
         source?.close()
+        void touchPresence('reconnecting', currentRuntimeStepId)
         setRuntime((prev) => ({ ...prev, connectionState: 'reconnecting' }))
         setSnapshotStatusCopy('正在重新连接课堂，会先显示最近一次课堂状态。')
       }
@@ -236,7 +256,15 @@ export function ClassroomRuntimeClient({
     return () => {
       source?.close()
     }
-  }, [sessionId])
+  }, [currentRuntimeStepId, sessionId, touchPresence])
+
+  useEffect(() => {
+    if (!sessionId || !currentRuntimeStepId || runtime.connectionState === 'offline') {
+      return
+    }
+
+    void touchPresence(runtime.connectionState === 'snapshot_fallback' ? 'reconnecting' : runtime.connectionState, currentRuntimeStepId)
+  }, [currentRuntimeStepId, runtime.connectionState, sessionId, touchPresence])
 
   const player = { shell, ...personal, runtime } satisfies StudentPlayerDTO
   const currentStep = player.shell.steps.find((step) => step.id === player.runtime.forcedStepId)
