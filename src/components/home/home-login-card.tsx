@@ -49,6 +49,7 @@ export function HomeLoginCard() {
             <button
               key={role}
               type="button"
+              aria-pressed={active}
               onClick={() => setRoleIntent(role)}
               className={
                 active
