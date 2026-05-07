@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { 
   LayoutDashboard, 
   BookOpen, 
+  GraduationCap,
   Users, 
   FolderKanban, 
   CheckSquare, 
@@ -36,6 +37,7 @@ export function Sidebar({ items, activePath }: SidebarProps) {
     switch (iconName) {
       case 'LayoutDashboard': return <LayoutDashboard className="size-5 shrink-0" />
       case 'BookOpen': return <BookOpen className="size-5 shrink-0" />
+      case 'GraduationCap': return <GraduationCap className="size-5 shrink-0" />
       case 'Users': return <Users className="size-5 shrink-0" />
       case 'FolderKanban': return <FolderKanban className="size-5 shrink-0" />
       case 'CheckSquare': return <CheckSquare className="size-5 shrink-0" />

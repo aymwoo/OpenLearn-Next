@@ -13,12 +13,13 @@ export default function TeacherLayout({
 }) {
   return (
     <div className="flex h-screen bg-surface overflow-hidden">
-      <Sidebar 
-        items={[
-          { label: '工作台', href: '/teacher', icon: 'LayoutDashboard' },
-          { label: '课程管理', href: '/teacher/courses', icon: 'BookOpen' },
-          { label: '学生档案', href: '/teacher/students', icon: 'Users' },
-          { label: '教学资源', href: '/resources', icon: 'FolderKanban' },
+        <Sidebar 
+          items={[
+            { label: '工作台', href: '/teacher', icon: 'LayoutDashboard' },
+            { label: '班级管理', href: '/teacher/classes', icon: 'GraduationCap' },
+            { label: '课程管理', href: '/teacher/courses', icon: 'BookOpen' },
+            { label: '学生档案', href: '/teacher/students', icon: 'Users' },
+            { label: '教学资源', href: '/resources', icon: 'FolderKanban' },
           { label: '批改中心', href: '/teacher/review', icon: 'CheckSquare' },
           { label: '数据报表', href: '/teacher/reports', icon: 'LineChart' },
         ]} 
