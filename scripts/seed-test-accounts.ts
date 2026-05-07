@@ -1,23 +1,33 @@
+import { pathToFileURL } from "node:url";
+
 import bcrypt from "bcryptjs";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { memberships, schools, users } from "@/db/schema";
 
-const TEST_SCHOOL_NAME = "OpenLearn 测试学校";
+export const TEST_SCHOOL_NAME = "OpenLearn 测试学校";
 
-const TEST_ACCOUNTS = [
+export const TEST_ACCOUNTS = [
   { name: "测试教师", email: "teacher@example.com", password: "password" },
   { name: "测试学生", email: "student@example.com", password: "password" },
 ] as const;
 
-async function seedTestAccounts() {
+type SeededTestAccounts = {
+  school: { id: string; name: string };
+  teacher: { id: string; email: string; name: string };
+  student: { id: string; email: string; name: string };
+};
+
+export async function seedTestAccounts(): Promise<SeededTestAccounts> {
   const testSchool = await getOrCreateTestSchool();
+  const seededUsers = new Map<string, { id: string; email: string; name: string }>();
 
   for (const account of TEST_ACCOUNTS) {
     const passwordHash = await bcrypt.hash(account.password, 12);
 
     const user = await upsertTestUser(account, passwordHash);
+    seededUsers.set(account.email, { id: user.id, email: account.email, name: account.name });
 
     if (account.email === "teacher@example.com") {
       await ensureActiveMembership(user.id, testSchool.id, "teacher");
@@ -27,6 +37,12 @@ async function seedTestAccounts() {
       await ensureActiveMembership(user.id, testSchool.id, "student");
     }
   }
+
+  return {
+    school: testSchool,
+    teacher: seededUsers.get("teacher@example.com")!,
+    student: seededUsers.get("student@example.com")!,
+  };
 }
 
 async function getOrCreateTestSchool() {
@@ -107,13 +123,16 @@ async function ensureActiveMembership(userId: string, schoolId: string, role: "t
   });
 }
 
-seedTestAccounts()
-  .then(() => {
-    console.log(
-      "测试账号 seed 完成：teacher@example.com 具备 active teacher membership；student@example.com 具备 active student membership"
-    );
-  })
-  .catch((error: unknown) => {
+async function main() {
+  await seedTestAccounts();
+  console.log(
+    "测试账号 seed 完成：teacher@example.com 具备 active teacher membership；student@example.com 具备 active student membership"
+  );
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error: unknown) => {
     console.error("测试账号 seed 失败：", error);
     process.exit(1);
   });
+}
