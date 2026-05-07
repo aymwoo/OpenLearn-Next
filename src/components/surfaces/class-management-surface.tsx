@@ -224,7 +224,7 @@ export function ClassManagementSurface() {
                     className="mt-1 size-3 rounded border border-outline-variant bg-surface-container-high"
                   />
                 </div>
-                <div className="grid size-7 place-items-center rounded-full bg-surface-container-highest text-xs font-semibold text-on-surface-variant">
+                <div className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                   {student.avatar}
                 </div>
                 <div>
