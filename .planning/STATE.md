@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 11
 current_plan: 6 of 6
 status: completed
-stopped_at: Completed Phase 11 verification and docs alignment
-last_updated: "2026-05-07T20:58:00+08:00"
+stopped_at: Completed quick task 260507-tcl: 班级管理页面 filter pills、批量操作、student avatar 对齐 Stitch
+last_updated: "2026-05-07T21:10:00+08:00"
 last_activity: 2026-05-07
 progress:
   total_phases: 4
@@ -28,8 +28,8 @@ progress:
 [██████████] 100%
 **Last Activity:** 2026-05-07 - Completed quick task 260507-t1c: 将 class-management、home、login、settings 与 teacher layout 等处残留的用户可见英文文案替换为简体中文，并补充界面语言约定。
 
-**Last session:** 2026-05-06T23:17:52.854Z
-**Stopped At:** Completed Phase 11 verification and docs alignment
+**Last session:** 2026-05-07T13:10:00.000Z
+**Stopped At:** Completed quick task 260507-tcl: 班级管理页面 filter pills、批量操作、student avatar 对齐 Stitch
 **Resume File:** None
 
 ## Accumulated Context
@@ -75,4 +75,5 @@ progress:
 | 260507-rto | 首页的布局需要稍微调整一下，左边占三分之二，右边占三分之一，注意图片中有些组件的 max width 过于狭窄，需要修正这个问题。 | 2026-05-07 | 4f66729 | [260507-rto-max-width](./quick/260507-rto-max-width/) |
 | 260507-saw | 新建一个班级管理页面，并添加到左边栏的导航中，班级管理页面完全按照 Stitch 项目 5322129002350954765 的屏幕 154c66ef0dc643a7a3edd7ed520fc999 实现。 | 2026-05-07 | aeef097 | [260507-saw-stitch-5322129002350954765-154c66ef0dc64](./quick/260507-saw-stitch-5322129002350954765-154c66ef0dc64/) |
 | 260507-rto | 首页的布局需要稍微调整一下，左边占三分之二，右边占三分之一，注意图片中有些组件的 max width 过于狭窄，需要修正这个问题。 | 2026-05-07 | 4f66729 | [260507-rto-max-width](./quick/260507-rto-max-width/) |
-| 260507-t1c | 将所有页面改为中文界面，继续替换 class-management、home、login、settings、teacher layout 等处残留英文，并补充中文界面约定与更新 STATE。 | 2026-05-07 | 未提交 | [260507-t1c-ui-copy-chinese](./quick/260507-t1c-ui-copy-chinese/) |
+| 260507-t1c | 将所有页面改为中文界面，继续替换 class-management、home、login、settings、teacher layout 等处残留英文，并补充中文界面约定与更新 STATE。 | 2026-05-07 | b72498a | [260507-t1c-ui-copy-chinese](./quick/260507-t1c-ui-copy-chinese/) |
+| 260507-tcl | 班级管理页面 filter pills 替换为独立可选芯片（在读/请假/男/女）、批量操作图标对齐 Stitch（Trash2）、student avatar 调整为 Stitch 比例 | 2026-05-07 | f0ede6e | [260507-tcl-stitch](./quick/260507-tcl-stitch/) |
