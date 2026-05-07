@@ -125,9 +125,35 @@ export function ClassManagementSurface() {
 
       <section className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-on-surface">
-            学生名册
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-on-surface">
+              学生名册
+            </h2>
+            <div className="flex items-center rounded-full bg-surface-container-high p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={`min-h-8 rounded-full px-3 text-xs font-medium transition-colors ${
+                  viewMode === "table"
+                    ? "bg-surface-container-lowest text-primary shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                表格视图
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("card")}
+                className={`min-h-8 rounded-full px-3 text-xs font-medium transition-colors ${
+                  viewMode === "card"
+                    ? "bg-surface-container-lowest text-primary shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                卡片视图
+              </button>
+            </div>
+          </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -209,64 +235,82 @@ export function ClassManagementSurface() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="hidden grid-cols-[40px_minmax(0,2fr)_minmax(0,1fr)] gap-3 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant md:grid">
-            <div>
-              <input
-                type="checkbox"
-                className="size-3 rounded border border-outline-variant bg-surface-container-high"
-              />
-            </div>
-            <div>学生</div>
-            <div>学号</div>
-          </div>
-
-          {filteredStudents.map((student) => (
-            <article
-              key={student.idNumber}
-              className="group grid gap-3 rounded-[var(--radius-card)] bg-surface-container-lowest px-3 py-3 shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-colors hover:bg-white md:grid-cols-[40px_minmax(0,2fr)_minmax(0,1fr)] md:items-center md:px-4"
-            >
-              <div className="hidden md:flex">
+        {/* Table view */}
+        {viewMode === "table" && (
+          <div className="space-y-2">
+            <div className="hidden grid-cols-[40px_minmax(0,2fr)_minmax(0,1fr)] gap-3 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant md:grid">
+              <div>
                 <input
                   type="checkbox"
                   className="size-3 rounded border border-outline-variant bg-surface-container-high"
                 />
               </div>
+              <div>学生</div>
+              <div>学号</div>
+            </div>
 
-              <div className="flex items-center gap-3">
-                <div className="flex md:hidden">
+            {filteredStudents.map((student) => (
+              <article
+                key={student.idNumber}
+                className="group grid gap-3 rounded-[var(--radius-card)] bg-surface-container-lowest px-3 py-3 shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-colors hover:bg-white md:grid-cols-[40px_minmax(0,2fr)_minmax(0,1fr)] md:items-center md:px-4"
+              >
+                <div className="hidden md:flex">
                   <input
                     type="checkbox"
-                    className="mt-1 size-3 rounded border border-outline-variant bg-surface-container-high"
+                    className="size-3 rounded border border-outline-variant bg-surface-container-high"
                   />
                 </div>
-                {student.avatar.startsWith("http") ? (
-                  <img
-                    src={student.avatar}
-                    alt={student.name}
-                    className="size-9 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                    {student.avatar}
-                  </div>
-                )}
-                <div>
-                  <h3 className="text-sm font-semibold text-on-surface">
-                    {student.name}
-                  </h3>
-                  <p className="text-[10px] text-on-surface-variant md:hidden">
-                    学号：{student.idNumber}
-                  </p>
-                </div>
-              </div>
 
-              <p className="hidden text-xs text-on-surface-variant md:block">
-                {student.idNumber}
-              </p>
-            </article>
-          ))}
-        </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex md:hidden">
+                    <input
+                      type="checkbox"
+                      className="mt-1 size-3 rounded border border-outline-variant bg-surface-container-high"
+                    />
+                  </div>
+                  {student.avatar.startsWith("http") ? (
+                    <img
+                      src={student.avatar}
+                      alt={student.name}
+                      className="size-9 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                      {student.avatar}
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-sm font-semibold text-on-surface">
+                      {student.name}
+                    </h3>
+                    <p className="text-[10px] text-on-surface-variant md:hidden">
+                      学号：{student.idNumber}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="hidden text-xs text-on-surface-variant md:block">
+                  {student.idNumber}
+                </p>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {/* Card view */}
+        {viewMode === "card" && (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+            {filteredStudents.map((student) => (
+              <StudentCard
+                key={student.idNumber}
+                avatar={student.avatar}
+                name={student.name}
+                idNumber={student.idNumber}
+                progress={student.progress}
+              />
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-4 pt-1 text-xs text-on-surface-variant">
           <span>显示第 1 - 5 位学生，共 45 位</span>
