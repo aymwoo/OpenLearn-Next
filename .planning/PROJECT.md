@@ -14,6 +14,8 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 **Goal:** 通过接入和使用 Stitch MCP，将本地核心页面与新增管理设置页面和 Stitch 项目中的设计图进行 1:1 精确对齐，使整体应用达到发布标准。
 
+**Status:** v1.1 的路线图阶段已全部完成，当前可进入 milestone completion / archive 流程。
+
 **Target features:**
 - 接入 Stitch MCP 读取远程设计规范与页面结构
 - 对齐首页、教师工作台、课堂控制台、教案编辑器、学生中心、沉浸学习页、资源中心、课程中心和批改中心 UI
@@ -38,14 +40,12 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - [x] 实现 Append-only `TaskSubmissions`，通过 `isLatest` 优化读取并保留历史尝试。
 - [x] 构建 AI Agent 与 RAG 的基础架构，包括 LessonAgent、HomeworkAgent、DataAgent、TutorAgent、ParentAgent 的可扩展接口。
 - [x] 建立 JSON 声明式 Theme + Plugin 注册、权限校验和 Hook 执行框架。
+- [x] 完成 Stitch MCP 读取与本地页面映射对齐，覆盖首页、教师端、课堂控制台、教案编辑器、学生端、资源页、课程页、批改页以及新增管理/设置页面。（Validated in Phases 8-9）
+- [x] 完成全局视觉收敛，移除遗留 1px border/outline 交互样式，并统一 tonal layering、Primary Blue CTA、ghost-focus、glass nav 与响应式视觉层级。（Validated in Phase 10: Global Visual Polish）
 
 ### Active
 
-- [ ] 接入 Stitch MCP 获取远程设计图规范和页面结构数据。
-- [ ] 基于 Stitch screen 映射批量重构核心页面：首页、教师工作台、课堂控制台、教案编辑器、学生中心、沉浸学习页、资源中心、课程中心、批改中心。
-- [ ] 新增并完成学生管理、系统设置、机房设置页面的高保真落地。
-- [ ] 修复遗留的 1px 边框、不合理的色彩运用及层级阴影（严格遵守 `DESIGN.md` Tonal Layering 规则）。
-- [ ] 确保整体应用达到发布级的视觉一致性。
+- None — 当前 milestone 的 UI alignment / release polish 需求已在 Phases 8-10 中完成，后续继续项转入 milestone 收尾或新 milestone 规划。
 
 ### Out of Scope
 
@@ -115,4 +115,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-04 after initialization*
+*Last updated: 2026-05-06 after Phase 10 completion*
