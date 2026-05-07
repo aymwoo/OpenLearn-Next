@@ -31,35 +31,41 @@ const students = [
       "https://lh3.googleusercontent.com/aida/ADBb0uj_SR2YDoQ3rEHcGvUgonEaf9K1o2FJpezH2ayUdPvvv-ssOj298IbbYbzGMrJV0kMQwUQb7Cc6F-qO4igjL25ONMJobB6NtwV0E7fm9amRcTSct2jDhAqBq7p6XBPHWHI2psFBaD7MCdvRQcs7R-Gt2U_BLhg85iIV4pXsIpoyV5g6WdW62vWFAKgvY8VAakxvdQ1psnYEyxNeNMg-Zehuz956DU0gKJbrBf7ILcki9W6Yb9Xdg9KW9g",
     name: "陈宇",
     idNumber: "202309001",
+    progress: 90,
   },
   {
     avatar:
       "https://lh3.googleusercontent.com/aida/ADBb0uhnnotePweaFDceiuqlcUrPlU_a2i4x9oRr3iXfUc9loytRVSU19pqfDR_4LCCliesxX_SaV0aVYjgGWK39-ZGCfhYgNpqMLxyd7sFoDjaPFCBxMErqWerxsnfZEZCdE8M9nkOjA28mUNMmhBdb2a-bSTomdPUBTbWpWY8dlIZoNWlz_Mu8vGYDD20lH2q8Eeqrr0HPBXJijMAadAlyreVclBx48MfNG642diuj7svm51ob3zbUEr9xHZA",
     name: "林梅",
     idNumber: "202309002",
+    progress: 85,
   },
   {
     avatar: "王",
     name: "王强",
     idNumber: "202309003",
+    progress: 60,
   },
   {
     avatar:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuAJ_ieUMLYFbwdEVazHJdN-x2yh6bi797hewbhMBNUZcnf7Zi4TZloZJEsDPUxQV2OmA-yLIU60uBYgxZnOBh-hgg_kqdfA45Odq4hxr29NjNeDrrR7P6x_rQxOVo741QvF0BccYGWafj0SbNXmT1GRQ7HGoHegwgom3JWjZA8_AwdsA3C-g8goZbf-2lmqJRN0f4Maj06n-mf3yLCB0T8Oshi408QzdTmm5G5DfDdTXE7GyfC2QUaytPr6dC1M410wxtVzs7sP8rTM",
     name: "张华",
     idNumber: "202309004",
+    progress: 75,
   },
   {
     avatar:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuDhT2it-PnR7-mFii2g_qkm63Cpx8KE7BO3uQJvx3D8gT_dg_x59ZsGNPYd-EpGOGxEOCRHLU4yQ8lS5SkCYASISco06vuYCk3X-nXjjRH1XRIoE85hefil6DcYl-NSGnbnq_u0yEfkseay9FYdvTb4hX3WC9LNh6lXWFxsgQCOlT2F_ya-cK5bFOzQvUE1_dGjGNpFe-rSDNwvUDG-1PMQ5gMdEbIgzpoI_O9qJledfQoJwDDvDbqTXuauD_WDm3TPflxuwjRH2GA",
     name: "李静",
     idNumber: "202309005",
+    progress: 95,
   },
-] as const;
+];
 
 export function ClassManagementSurface() {
   const [activeStatus, setActiveStatus] = useState<string>("所有状态");
   const [activeGender, setActiveGender] = useState<string>("所有性别");
+  const [viewMode, setViewMode] = useState<"table" | "card">("table");
 
   // Filter by status and gender — 当前数据无 status/gender 字段，
   // 非"所有"选项返回空结果（UI pill 切换仍正常工作）
@@ -347,5 +353,68 @@ function PaginationButton({
     >
       {children}
     </button>
+  );
+}
+
+function StudentCard({
+  avatar,
+  name,
+  idNumber,
+  progress,
+}: {
+  avatar: string;
+  name: string;
+  idNumber: string;
+  progress: number;
+}) {
+  const ringColor = progress >= 75 ? "text-primary" : "text-tertiary";
+  return (
+    <article className="flex flex-col items-center justify-center gap-1 rounded-[1.5rem] bg-surface-container-lowest p-2 shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-colors hover:bg-white">
+      {/* Avatar + ring container */}
+      <div className="relative flex size-12 items-center justify-center">
+        <svg
+          className="absolute inset-0 size-full -rotate-90"
+          viewBox="0 0 36 36"
+          aria-hidden
+        >
+          {/* Track */}
+          <path
+            className="text-surface-container-highest"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+          />
+          {/* Progress arc */}
+          <path
+            className={ringColor}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray={`${progress}, 100`}
+            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+          />
+        </svg>
+        {avatar.startsWith("http") ? (
+          <img
+            src={avatar}
+            alt={name}
+            className="relative z-10 size-9 rounded-full object-cover"
+          />
+        ) : (
+          <div className="relative z-10 grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            {avatar}
+          </div>
+        )}
+      </div>
+      {/* Text */}
+      <div className="flex flex-col items-center">
+        <span className="text-xs font-bold leading-tight text-on-surface">
+          {name}
+        </span>
+        <span className="text-[9px] text-on-surface-variant">{idNumber}</span>
+      </div>
+    </article>
   );
 }
