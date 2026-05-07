@@ -21,7 +21,7 @@ import { Card } from '@/components/ui/card'
 
 export function TeacherDashboardSurface() {
   return (
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 pb-12 pt-3">
+    <div className="mx-auto flex w-full flex-col gap-6 pb-12 pt-3">
       <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 sm:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 max-w-[68rem] space-y-3">
