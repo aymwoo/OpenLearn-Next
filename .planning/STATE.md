@@ -77,3 +77,4 @@ progress:
 | 260507-rto | 首页的布局需要稍微调整一下，左边占三分之二，右边占三分之一，注意图片中有些组件的 max width 过于狭窄，需要修正这个问题。 | 2026-05-07 | 4f66729 | [260507-rto-max-width](./quick/260507-rto-max-width/) |
 | 260507-t1c | 将所有页面改为中文界面，继续替换 class-management、home、login、settings、teacher layout 等处残留英文，并补充中文界面约定与更新 STATE。 | 2026-05-07 | b72498a | [260507-t1c-ui-copy-chinese](./quick/260507-t1c-ui-copy-chinese/) |
 | 260507-tcl | 班级管理页面 filter pills 替换为独立可选芯片（在读/请假/男/女）、批量操作图标对齐 Stitch（Trash2）、student avatar 调整为 Stitch 比例 | 2026-05-07 | f0ede6e | [260507-tcl-stitch](./quick/260507-tcl-stitch/) |
+| 260507-u75 | 学生列表对齐 Stitch bb82bea4 紧凑 3 列布局：5 名学生、图片头像、筛选增加"所有"选项 | 2026-05-07 | 12f7a3b | [260507-u75-stitch-bb82bea424fd4a7eb9d21cf206fe56fe](./quick/260507-u75-stitch-bb82bea424fd4a7eb9d21cf206fe56fe/) |
