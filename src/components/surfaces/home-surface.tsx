@@ -1,127 +1,89 @@
+import Image from 'next/image'
 import Link from 'next/link'
-import { BookOpen, Sparkles } from 'lucide-react'
-import { GlassNav } from '@/components/shell/glass-nav'
+import { Bell, Search, ShoppingCart } from 'lucide-react'
 import { HomeLoginCard } from '@/components/home/home-login-card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { demoCourse, demoLesson, lessonSteps, recommendedCourses } from '@/lib/demo-data'
 
-const homeMetrics = [
-  { value: '10W+', label: '活跃学生' },
-  { value: '500+', label: '精品课程' },
-  { value: '98%', label: '好评率' },
-] as const
+const navItems = ['探索课程', '名师阵容', '学习路径', '教育社区'] as const
+
+const featuredPreview = {
+  alt: 'A highly detailed 3D illustration of a modern educational workspace. The scene features a sleek laptop displaying a data dashboard, surrounded by floating geometric shapes and learning icons. The lighting is bright and high-key, creating a clean-tech aesthetic with a sophisticated palette of pristine whites, subtle grays, and vibrant blue accents. The mood is inspiring and forward-looking, perfectly suited for an advanced online learning platform.',
+  src: 'https://lh3.googleusercontent.com/aida/ADBb0ugP27qcIEohg7CcCRSTkSjgvjIUdHb53d_DcYiK5VYCZ5tmCj7Vd7jITllQpCO_xLdOnG2teyM_G9MzW6RP_Un_uUUW6ArzGQANCxlFkcvjXhaaab01zgjSD-rhAm-OhXkT3UQMjEooRC9hG-JrIndknbsp-6sg_IVAftIn9_aExM4FREQWBLl-NhR-G2wCxIYilYuJCLGXOGi135LlnAjfUwWMVj6F0NeChlo2zlAC5Y328QzgvqslmZk',
+} as const
+
+const navIconClassName =
+  'rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface'
 
 export function HomeSurface() {
   return (
-    <main className="min-h-screen overflow-hidden bg-surface pb-8 pt-4 text-on-surface">
-      <GlassNav />
+    <main className="min-h-screen bg-linear-to-br from-[#f8f9fb] to-[#f2f4f6] text-on-surface">
+      <nav className="fixed inset-x-0 top-0 z-50 bg-white/80 backdrop-blur-xl shadow-[0_8px_24px_rgba(44,47,49,0.05)]">
+        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-6 py-3 md:px-8">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="text-xl font-bold tracking-[-0.04em] text-primary md:text-2xl">
+              OpenLear-Next
+            </Link>
 
-      <section className="mx-auto grid w-[min(1120px,calc(100%-24px))] gap-4 pt-6 lg:items-stretch lg:pt-8">
-        <section className="relative overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient sm:p-5">
-          <div className="absolute -left-10 top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
-          <div className="absolute bottom-0 right-0 h-40 w-40 rounded-full bg-primary-container/20 blur-3xl" />
-
-          <div className="relative grid gap-4 rounded-[calc(var(--radius-shell)-0.75rem)] bg-linear-135 from-primary to-primary-container p-5 text-on-primary shadow-ambient lg:grid-cols-[minmax(0,1.1fr)_minmax(24rem,0.9fr)] lg:items-center sm:p-6">
-            <div>
-            <Badge variant="accent" className="mb-4 gap-2 bg-white/15 text-white">
-              <Sparkles className="size-4" aria-hidden />
-              OpenLear-Next · {demoCourse.subject}
-            </Badge>
-
-            <p className="text-sm text-on-primary/80">开启智慧学习新篇章</p>
-            <h1 className="mt-3 text-[2.25rem] font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[3rem]">
-              把一节课编排成可追踪的学习流程
-            </h1>
-              <p className="mt-4 text-base leading-7 text-on-primary/85">
-                从备课、课堂步骤到学生完成状态，教师用可编程流程组织真实课堂，学生按节奏完成每个学习动作。
-              </p>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                {homeMetrics.map((metric) => (
-                  <div key={metric.value} className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-white/14 p-4 text-center backdrop-blur-sm">
-                    <p className="text-2xl font-semibold text-white">{metric.value}</p>
-                    <p className="mt-1 text-sm text-on-primary/78">{metric.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Button asChild variant="secondary" className="min-h-11 bg-white/92 px-5 text-primary shadow-none hover:bg-white">
-                  <Link href="/teacher/editor">开始备课</Link>
-                </Button>
-                <Button asChild variant="tertiary" className="min-h-11 px-5 text-white hover:bg-white/12">
-                  <Link href="/courses">查看课程目录</Link>
-                </Button>
-              </div>
+            <div className="hidden items-center gap-6 md:flex">
+              {navItems.map((item) => (
+                <a
+                  key={item}
+                  href="#"
+                  className="text-sm font-medium tracking-tight text-on-surface-variant transition-colors hover:text-primary"
+                >
+                  {item}
+                </a>
+              ))}
             </div>
+          </div>
 
-            <HomeLoginCard />
+          <div className="flex items-center gap-2 text-on-surface-variant md:gap-4">
+            <button type="button" aria-label="搜索" className={navIconClassName}>
+              <Search className="size-4" aria-hidden />
+            </button>
+            <button type="button" aria-label="通知" className={navIconClassName}>
+              <Bell className="size-4" aria-hidden />
+            </button>
+            <button type="button" aria-label="购物车" className={navIconClassName}>
+              <ShoppingCart className="size-4" aria-hidden />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <section className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col justify-center gap-10 px-6 pb-10 pt-28 md:px-12 lg:flex-row lg:items-center lg:gap-12 lg:px-16">
+        <section className="flex flex-1 flex-col items-center space-y-8 text-center">
+          <div className="space-y-4">
+            <h1 className="text-[2.75rem] font-bold leading-[1.1] tracking-[-0.04em] text-on-surface sm:text-[3rem] md:text-[3.5rem]">
+              重塑学习体验
+              <br />
+              <span className="bg-linear-to-r from-primary to-[#08658f] bg-clip-text text-transparent">
+                赋能未来
+              </span>
+            </h1>
+            <p className="mx-auto max-w-lg text-base leading-7 text-on-surface-variant">
+              加入OpenLear-Next，探索世界级课程，连接全球顶尖导师。我们致力于为您提供最优质的在线教育体验。
+            </p>
+          </div>
+
+          <div className="relative w-full max-w-md overflow-hidden rounded-[1rem] bg-surface-container-lowest shadow-[0_8px_32px_rgba(44,47,49,0.06)]">
+            <Image
+              src={featuredPreview.src}
+              alt={featuredPreview.alt}
+              width={640}
+              height={256}
+              className="h-64 w-full object-cover"
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent p-4 text-left">
+              <span className="inline-block rounded-full bg-secondary/20 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
+                Featured
+              </span>
+              <h2 className="mt-2 text-lg font-semibold text-white">数据科学基础</h2>
+            </div>
           </div>
         </section>
 
-        <div className="grid gap-4">
-          <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient sm:p-5">
-            <div className="grid gap-4 rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5 lg:grid-cols-[1fr_0.78fr]">
-              <div>
-                <Badge variant="accent" className="mb-4 bg-surface-container-low">
-                  {demoCourse.classLabel} · {demoLesson.duration}
-                </Badge>
-                <h2 className="text-[2rem] font-semibold leading-tight tracking-[-0.02em]">{demoLesson.title}</h2>
-                <p className="mt-3 leading-7 text-on-surface-variant">{demoLesson.objective}</p>
-                <div className="mt-5 rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-low p-4">
-                  <p className="text-sm text-on-surface-variant">课时流程</p>
-                  <p className="mt-2 text-2xl font-semibold">{demoLesson.flowLabel}</p>
-                </div>
-              </div>
-
-              <div className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-low p-5">
-                <div className="grid size-12 place-items-center rounded-full bg-primary/12 text-primary">
-                  <BookOpen className="size-6" aria-hidden />
-                </div>
-                <p className="mt-5 text-sm text-on-surface-variant">教师优先路径</p>
-                <p className="mt-2 text-2xl font-semibold">先编排，再运行课堂</p>
-                <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                  用清晰的步骤骨架先搭起课堂节奏，再把互动、练习和总结收进同一条教学流程。
-                </p>
-                <Button asChild className="mt-5 min-h-11 px-5">
-                  <Link href="/teacher/editor">开始备课</Link>
-                </Button>
-              </div>
-            </div>
-          </section>
-
-          <section className="grid gap-4 lg:grid-cols-[1fr_0.78fr]">
-            <div className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 sm:p-5">
-              <div className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5">
-                <p className="text-sm text-on-surface-variant">课堂步骤</p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {lessonSteps.map((step) => (
-                    <div key={step.id} className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-low p-4">
-                      <p className="text-sm text-on-surface-variant">{step.duration}</p>
-                      <p className="mt-2 text-xl font-semibold">{step.title}</p>
-                      <p className="mt-1 text-sm text-on-surface-variant">{step.focus}</p>
-                    </div>
-                ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 sm:p-5">
-              <div className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5">
-                <p className="text-sm text-on-surface-variant">推荐课程</p>
-                <div className="mt-4 grid gap-3">
-                  {recommendedCourses.map((course) => (
-                    <div key={course.title} className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-low p-4">
-                      <Badge variant="accent" className="mb-3 bg-surface-container-lowest">{course.tag}</Badge>
-                      <p className="text-xl font-semibold">{course.title}</p>
-                      <p className="mt-2 text-sm leading-6 text-on-surface-variant">{course.detail}</p>
-                    </div>
-                ))}
-                </div>
-              </div>
-            </div>
-          </section>
+        <div className="w-full max-w-md shrink-0">
+          <HomeLoginCard />
         </div>
       </section>
     </main>
