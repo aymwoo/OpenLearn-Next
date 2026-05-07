@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 import {
   CheckCircle2,
   ChevronLeft,
@@ -8,6 +12,7 @@ import {
   Plus,
   School,
   Search,
+  Trash2,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +65,9 @@ const tableColumns = [
 ] as const;
 
 export function ClassManagementSurface() {
+  const [activeStatus, setActiveStatus] = useState<string | null>(null);
+  const [activeGender, setActiveGender] = useState<string | null>(null);
+
   return (
     <div className="mx-auto flex w-full flex-col gap-4 pb-10 pt-2">
       <section className="relative overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-low px-5 py-5 sm:px-6 sm:py-6">
@@ -143,17 +151,43 @@ export function ClassManagementSurface() {
               />
             </div>
 
-            <FilterPill label="全部状态" />
-            <FilterPill label="全部性别" />
+            <FilterPill
+              label="在读"
+              active={activeStatus === "在读"}
+              onClick={() =>
+                setActiveStatus((prev) => (prev === "在读" ? null : "在读"))
+              }
+            />
+            <FilterPill
+              label="请假"
+              active={activeStatus === "请假"}
+              onClick={() =>
+                setActiveStatus((prev) => (prev === "请假" ? null : "请假"))
+              }
+            />
+            <FilterPill
+              label="男"
+              active={activeGender === "男"}
+              onClick={() =>
+                setActiveGender((prev) => (prev === "男" ? null : "男"))
+              }
+            />
+            <FilterPill
+              label="女"
+              active={activeGender === "女"}
+              onClick={() =>
+                setActiveGender((prev) => (prev === "女" ? null : "女"))
+              }
+            />
           </div>
 
           <div className="flex items-center justify-end gap-1.5 text-xs text-on-surface-variant">
             <span>批量操作：</span>
-            <IconButton label="导出">
+            <IconButton label="下载">
               <Download className="size-4" aria-hidden />
             </IconButton>
-            <IconButton label="更多操作">
-              <EllipsisVertical className="size-4" aria-hidden />
+            <IconButton label="删除">
+              <Trash2 className="size-4" aria-hidden />
             </IconButton>
           </div>
         </div>
@@ -258,11 +292,24 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function FilterPill({ label }: { label: string }) {
+function FilterPill({
+  label,
+  active = false,
+  onClick,
+}: {
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
   return (
     <button
       type="button"
-      className="min-h-9 rounded-[0.75rem] bg-surface-container-high px-3 text-xs font-medium text-on-surface transition-colors hover:bg-surface-container-highest"
+      onClick={onClick}
+      className={
+        active
+          ? "min-h-9 rounded-[0.75rem] bg-primary/10 px-3 text-xs font-medium text-primary ring-1 ring-primary/20 transition-colors"
+          : "min-h-9 rounded-[0.75rem] bg-surface-container-high px-3 text-xs font-medium text-on-surface transition-colors hover:bg-surface-container-highest"
+      }
     >
       {label}
     </button>
