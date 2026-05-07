@@ -9,8 +9,8 @@ type TestAccountHintProps = {
 };
 
 const accountsByRole: Record<RoleIntent, { label: string; email: string; password: string }> = {
-  teacher: { label: "测试教师", email: "teacher@example.com", password: "password" },
-  student: { label: "测试学生", email: "student@example.com", password: "password" },
+  teacher: { label: "测试教师", email: "teacher01@openlearn.local", password: "password" },
+  student: { label: "测试学生", email: "student01@openlearn.local", password: "password" },
 };
 
 export function TestAccountHint({

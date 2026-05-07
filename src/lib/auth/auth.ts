@@ -32,10 +32,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: "账号密码登录",
       credentials: {
-        email: { label: "Email", type: "email", placeholder: "you@example.com" },
-        password: { label: "Password", type: "password" }
+        email: { label: "邮箱", type: "email", placeholder: "请输入登录邮箱" },
+        password: { label: "密码", type: "password" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;

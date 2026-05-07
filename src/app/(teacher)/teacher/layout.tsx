@@ -50,7 +50,7 @@ async function TeacherLayoutContent({
     redirect("/unauthorized");
   }
 
-  const avatarName = user.name?.trim() || "User";
+  const avatarName = user.name?.trim() || "用户";
   const avatarInitial = avatarName.charAt(0).toUpperCase();
 
   return (

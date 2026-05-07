@@ -17,7 +17,7 @@ describe("settings and plugin entry surfaces", () => {
   it("renders plugin management controls in labs settings", () => {
     expect(source).toContain("插件管理");
     expect(source).toContain("setPluginEnabledAction");
-    expect(source).toContain("Kill Switch");
+    expect(source).toContain("总开关");
   });
 
   it("adds plugin renderer anchors to teacher, student, and editor pages", () => {

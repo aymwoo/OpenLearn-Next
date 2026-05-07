@@ -22,12 +22,12 @@ type SettingsSurfaceProps = {
 }
 
 const settingsSections = [
-  { label: 'General', icon: SunMedium },
-  { label: 'Security', icon: Shield },
-  { label: 'Notifications', icon: Bell },
-  { label: 'Privacy', icon: Lock },
-  { label: 'Language', icon: Globe },
-  { label: 'About', icon: Cpu },
+  { label: '通用', icon: SunMedium },
+  { label: '安全', icon: Shield },
+  { label: '通知', icon: Bell },
+  { label: '隐私', icon: Lock },
+  { label: '语言', icon: Globe },
+  { label: '关于', icon: Cpu },
 ] as const
 
 const labRows = ['A', 'B', 'C', 'D', 'E', 'F'] as const
@@ -55,7 +55,7 @@ async function GeneralSettingsSurface({ schoolId }: { schoolId: string | null })
       <div className="mx-auto grid w-full max-w-[1280px] gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
           <div className="rounded-[1.5rem] bg-surface-container-lowest p-5">
-            <p className="text-sm text-on-surface-variant">OpenLear-Next</p>
+            <p className="text-sm text-on-surface-variant">开放学习</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.02em]">系统设置</h1>
             <p className="mt-3 text-sm leading-6 text-on-surface-variant">管理系统界面、通知和实验室模块的使用偏好。</p>
           </div>
@@ -272,7 +272,7 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
                   <p className="text-sm text-on-surface-variant">插件管理</p>
                   <p className="mt-2 text-lg font-semibold text-on-surface">按学校启停安全插件</p>
                 </div>
-                <Badge className="bg-surface-container-lowest text-on-surface-variant">Labs</Badge>
+                <Badge className="bg-surface-container-lowest text-on-surface-variant">实验室</Badge>
               </div>
 
               <div className="mt-4 grid gap-3">
@@ -282,7 +282,7 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
                       <div>
                         <p className="font-semibold text-on-surface">{plugin.name}</p>
                         <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                          {plugin.enabled ? '已启用' : '未启用'} · {plugin.killSwitchEnabled ? 'Kill Switch 已开启' : 'Kill Switch 关闭'}
+                          {plugin.enabled ? '已启用' : '未启用'} · {plugin.killSwitchEnabled ? '总开关已开启' : '总开关已关闭'}
                         </p>
                       </div>
                       <Badge className="bg-surface-container-low text-on-surface-variant">{plugin.manifestJson.id}</Badge>
@@ -303,7 +303,7 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
 
                 {plugins.length === 0 ? (
                   <div className="rounded-[1.5rem] bg-surface-container-lowest p-4 text-sm leading-6 text-on-surface-variant">
-                    当前学校尚未注册插件。完成插件注册后，这里会显示启用状态与 kill-switch 状态。
+                    当前学校尚未注册插件。完成插件注册后，这里会显示启用状态与总开关状态。
                   </div>
                 ) : null}
               </div>

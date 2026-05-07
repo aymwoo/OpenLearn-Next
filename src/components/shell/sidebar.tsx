@@ -51,10 +51,10 @@ export function Sidebar({ items, activePath }: SidebarProps) {
       <div className="flex flex-col gap-7">
         <div className="flex items-center gap-3 px-2 py-1">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-container-lowest text-sm font-semibold text-primary shadow-ambient">
-            L
+            学
           </div>
           <div className="flex flex-col">
-            <h1 className="text-base font-bold leading-tight tracking-tight text-on-surface">Luminous<br/>Academy</h1>
+            <h1 className="text-base font-bold leading-tight tracking-tight text-on-surface">光启<br/>书院</h1>
             <span className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-on-surface-variant">高级教师版</span>
           </div>
         </div>

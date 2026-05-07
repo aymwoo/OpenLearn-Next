@@ -8,7 +8,7 @@ import { ThemeInjector } from '@/components/theme/theme-injector'
 const lexend = Lexend({ subsets: ['latin'], variable: '--font-lexend' })
 
 export const metadata: Metadata = {
-  title: 'OpenLearn Next',
+  title: '开放学习 Next',
   description: '面向未来教育的 AI 原生开源课堂操作系统',
 }
 

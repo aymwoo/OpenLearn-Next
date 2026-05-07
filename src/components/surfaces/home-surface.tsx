@@ -6,7 +6,7 @@ import { HomeLoginCard } from '@/components/home/home-login-card'
 const navItems = ['探索课程', '名师阵容', '学习路径', '教育社区'] as const
 
 const featuredPreview = {
-  alt: 'A highly detailed 3D illustration of a modern educational workspace. The scene features a sleek laptop displaying a data dashboard, surrounded by floating geometric shapes and learning icons. The lighting is bright and high-key, creating a clean-tech aesthetic with a sophisticated palette of pristine whites, subtle grays, and vibrant blue accents. The mood is inspiring and forward-looking, perfectly suited for an advanced online learning platform.',
+  alt: '一张现代教育工作台的三维插画，画面中有展示数据面板的笔记本电脑、悬浮的几何图形与学习图标，整体以明亮的白灰色调和蓝色点缀呈现未来课堂氛围。',
   src: 'https://lh3.googleusercontent.com/aida/ADBb0ugP27qcIEohg7CcCRSTkSjgvjIUdHb53d_DcYiK5VYCZ5tmCj7Vd7jITllQpCO_xLdOnG2teyM_G9MzW6RP_Un_uUUW6ArzGQANCxlFkcvjXhaaab01zgjSD-rhAm-OhXkT3UQMjEooRC9hG-JrIndknbsp-6sg_IVAftIn9_aExM4FREQWBLl-NhR-G2wCxIYilYuJCLGXOGi135LlnAjfUwWMVj6F0NeChlo2zlAC5Y328QzgvqslmZk',
 } as const
 
@@ -20,7 +20,7 @@ export function HomeSurface() {
         <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-6 py-3 md:px-8">
           <div className="flex items-center gap-8">
             <Link href="/" className="text-xl font-bold tracking-[-0.04em] text-primary md:text-2xl">
-              OpenLear-Next
+              开放学习
             </Link>
 
             <div className="hidden items-center gap-6 md:flex">
@@ -61,7 +61,7 @@ export function HomeSurface() {
               </span>
             </h1>
             <p className="mx-auto max-w-[44rem] text-base leading-7 text-on-surface-variant">
-              加入OpenLear-Next，探索世界级课程，连接全球顶尖导师。我们致力于为您提供最优质的在线教育体验。
+              加入开放学习，探索高质量课程，连接优质教师与学习资源，开启更清晰、更沉浸的未来课堂体验。
             </p>
           </div>
 
@@ -75,7 +75,7 @@ export function HomeSurface() {
             />
             <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent p-4 text-left">
               <span className="inline-block rounded-full bg-secondary/20 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
-                Featured
+                精选课程
               </span>
               <h2 className="mt-2 text-lg font-semibold text-white">数据科学基础</h2>
             </div>

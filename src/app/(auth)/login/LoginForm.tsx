@@ -49,7 +49,7 @@ export function LoginForm({ initialError, roleIntent = "student" }: LoginFormPro
             id="email"
             name="email"
             type="email"
-            placeholder="you@example.com"
+            placeholder="请输入登录邮箱"
             required
             className={ghostTextFieldClassName}
           />

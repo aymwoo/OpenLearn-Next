@@ -6,7 +6,7 @@ current_phase: 11
 current_plan: 6 of 6
 status: completed
 stopped_at: Completed Phase 11 verification and docs alignment
-last_updated: "2026-05-07T20:29:56+08:00"
+last_updated: "2026-05-07T20:58:00+08:00"
 last_activity: 2026-05-07
 progress:
   total_phases: 4
@@ -26,7 +26,7 @@ progress:
 **Status:** Completed
 **Progress:**
 [██████████] 100%
-**Last Activity:** 2026-05-07 - Completed quick task 260507-saw: 新建一个班级管理页面，并添加到左边栏的导航中，班级管理页面完全按照 Stitch 项目 5322129002350954765 的屏幕 154c66ef0dc643a7a3edd7ed520fc999 实现。
+**Last Activity:** 2026-05-07 - Completed quick task 260507-t1c: 将 class-management、home、login、settings 与 teacher layout 等处残留的用户可见英文文案替换为简体中文，并补充界面语言约定。
 
 **Last session:** 2026-05-06T23:17:52.854Z
 **Stopped At:** Completed Phase 11 verification and docs alignment
@@ -39,6 +39,7 @@ progress:
 - 首页与学生中心继续保留单一 justified gradient stage，次级动作和说明模块全部退回 tonal cards。
 - student/player 保持沉浸式主舞台，但把步骤骨架和回退态保持在低对比 tonal 容器中，优先保证当前学习上下文。
 - settings 与 labs 快捷操作保留语义红橙风险色，不把危险动作并入品牌蓝 CTA 体系。
+- 所有用户可见界面文案默认使用简体中文；仅在品牌名、协议名或技术名确有必要时保留英文。
 - 将课堂运行页保持为单一渐变主舞台，其余控制与名册模块全部回落到 tonal cards，避免高频教师页面出现多重 hero 竞争。
 - 结束课堂与待反馈状态继续使用语义色，而不是并入品牌蓝 CTA 体系，满足实时操作风险识别。
 - [Phase 10]: 将 ghost-focus 输入、下拉与切换控件收敛到同一个 shared contract，避免登录与课堂 launch 再出现局部焦点漂移。
@@ -74,3 +75,4 @@ progress:
 | 260507-rto | 首页的布局需要稍微调整一下，左边占三分之二，右边占三分之一，注意图片中有些组件的 max width 过于狭窄，需要修正这个问题。 | 2026-05-07 | 4f66729 | [260507-rto-max-width](./quick/260507-rto-max-width/) |
 | 260507-saw | 新建一个班级管理页面，并添加到左边栏的导航中，班级管理页面完全按照 Stitch 项目 5322129002350954765 的屏幕 154c66ef0dc643a7a3edd7ed520fc999 实现。 | 2026-05-07 | aeef097 | [260507-saw-stitch-5322129002350954765-154c66ef0dc64](./quick/260507-saw-stitch-5322129002350954765-154c66ef0dc64/) |
 | 260507-rto | 首页的布局需要稍微调整一下，左边占三分之二，右边占三分之一，注意图片中有些组件的 max width 过于狭窄，需要修正这个问题。 | 2026-05-07 | 4f66729 | [260507-rto-max-width](./quick/260507-rto-max-width/) |
+| 260507-t1c | 将所有页面改为中文界面，继续替换 class-management、home、login、settings、teacher layout 等处残留英文，并补充中文界面约定与更新 STATE。 | 2026-05-07 | 未提交 | [260507-t1c-ui-copy-chinese](./quick/260507-t1c-ui-copy-chinese/) |

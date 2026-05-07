@@ -10,7 +10,7 @@ type RoleIntent = "teacher" | "student";
 
 const roleTabs = [
   { label: "学生登录", value: "student" },
-  { label: "导师登录", value: "teacher" },
+  { label: "教师登录", value: "teacher" },
 ] as const;
 
 export function HomeLoginCard() {
@@ -69,7 +69,7 @@ export function HomeLoginCard() {
             type="email"
             required
             className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/70 focus:bg-surface-container-lowest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/20"
-            placeholder="name@example.com"
+            placeholder="请输入邮箱地址"
           />
         </div>
 
