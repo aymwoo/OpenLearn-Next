@@ -299,7 +299,7 @@ export function ClassManagementSurface() {
 
         {/* Card view */}
         {viewMode === "card" && (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
             {filteredStudents.map((student) => (
               <StudentCard
                 key={student.idNumber}
@@ -413,9 +413,9 @@ function StudentCard({
 }) {
   const ringColor = progress >= 75 ? "text-primary" : "text-tertiary";
   return (
-    <article className="flex flex-col items-center justify-center gap-1 rounded-[1.5rem] bg-surface-container-lowest p-2 shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-colors hover:bg-white">
+    <article className="flex aspect-square flex-col items-center justify-center gap-0.5 rounded-[1.25rem] bg-surface-container-lowest p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-colors hover:bg-white">
       {/* Avatar + ring container */}
-      <div className="relative flex size-12 items-center justify-center">
+      <div className="relative flex size-10 items-center justify-center">
         <svg
           className="absolute inset-0 size-full -rotate-90"
           viewBox="0 0 36 36"
@@ -444,20 +444,20 @@ function StudentCard({
           <img
             src={avatar}
             alt={name}
-            className="relative z-10 size-9 rounded-full object-cover"
+            className="relative z-10 size-7 rounded-full object-cover"
           />
         ) : (
-          <div className="relative z-10 grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+          <div className="relative z-10 grid size-7 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
             {avatar}
           </div>
         )}
       </div>
       {/* Text */}
       <div className="flex flex-col items-center">
-        <span className="text-xs font-bold leading-tight text-on-surface">
+        <span className="text-[10px] font-semibold leading-tight text-on-surface">
           {name}
         </span>
-        <span className="text-[9px] text-on-surface-variant">{idNumber}</span>
+        <span className="text-[9px] leading-none text-on-surface-variant">{idNumber}</span>
       </div>
     </article>
   );
