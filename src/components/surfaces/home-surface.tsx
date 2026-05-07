@@ -50,9 +50,9 @@ export function HomeSurface() {
         </div>
       </nav>
 
-      <section className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col justify-center gap-10 px-6 pb-10 pt-28 md:px-12 lg:flex-row lg:items-center lg:gap-12 lg:px-16">
-        <section className="flex flex-1 flex-col items-center space-y-8 text-center">
-          <div className="space-y-4">
+      <section className="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col justify-center gap-10 px-6 pb-10 pt-28 md:px-12 lg:flex-row lg:items-center lg:gap-16 lg:px-16">
+        <section className="flex flex-1 flex-col items-center space-y-8 text-center lg:basis-2/3">
+          <div className="w-full max-w-[52rem] space-y-4">
             <h1 className="text-[2.75rem] font-bold leading-[1.1] tracking-[-0.04em] text-on-surface sm:text-[3rem] md:text-[3.5rem]">
               重塑学习体验
               <br />
@@ -60,18 +60,18 @@ export function HomeSurface() {
                 赋能未来
               </span>
             </h1>
-            <p className="mx-auto max-w-lg text-base leading-7 text-on-surface-variant">
+            <p className="mx-auto max-w-[44rem] text-base leading-7 text-on-surface-variant">
               加入OpenLear-Next，探索世界级课程，连接全球顶尖导师。我们致力于为您提供最优质的在线教育体验。
             </p>
           </div>
 
-          <div className="relative w-full max-w-md overflow-hidden rounded-[1rem] bg-surface-container-lowest shadow-[0_8px_32px_rgba(44,47,49,0.06)]">
+          <div className="relative w-full max-w-[48rem] overflow-hidden rounded-[1rem] bg-surface-container-lowest shadow-[0_8px_32px_rgba(44,47,49,0.06)]">
             <Image
               src={featuredPreview.src}
               alt={featuredPreview.alt}
-              width={640}
-              height={256}
-              className="h-64 w-full object-cover"
+              width={960}
+              height={416}
+              className="h-64 w-full object-cover md:h-72 lg:h-80"
             />
             <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent p-4 text-left">
               <span className="inline-block rounded-full bg-secondary/20 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
@@ -82,7 +82,7 @@ export function HomeSurface() {
           </div>
         </section>
 
-        <div className="w-full max-w-md shrink-0">
+        <div className="w-full lg:basis-1/3 lg:max-w-[28rem] lg:min-w-[22rem] xl:max-w-[30rem]">
           <HomeLoginCard />
         </div>
       </section>
