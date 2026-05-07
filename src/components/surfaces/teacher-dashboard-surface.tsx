@@ -73,7 +73,7 @@ export function TeacherDashboardSurface() {
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">Co-primary module</p>
                 <h2 className="mt-2 text-[1.5rem] font-semibold text-on-surface">今日课表与运行节奏</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-on-surface-variant">
+                <p className="mt-2 text-sm leading-7 text-on-surface-variant">
                   保持上午直播、下午英语课和批改闭环在同一视野里。这里展示的是今天必须推进的课堂节奏，
                   不再把主信息压缩到狭窄侧栏中。
                 </p>
