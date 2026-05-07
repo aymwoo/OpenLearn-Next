@@ -14,34 +14,35 @@ import { cn } from "@/lib/utils";
 type RoleIntent = "teacher" | "student";
 
 const roleCopy: Record<RoleIntent, { tab: string; submit: string; helper: string }> = {
-  teacher: {
-    tab: "教师登录",
-    submit: "登录教师工作台",
-    helper: "登录后进入教师工作台与备课入口",
-  },
   student: {
     tab: "学生登录",
     submit: "登录学生学习台",
     helper: "登录后进入学生学习与课堂入口",
   },
+  teacher: {
+    tab: "教师登录",
+    submit: "登录教师工作台",
+    helper: "登录后进入教师工作台与课堂入口",
+  },
 };
 
 export function HomeLoginCard() {
-  const [roleIntent, setRoleIntent] = useState<RoleIntent>("teacher");
+  const [roleIntent, setRoleIntent] = useState<RoleIntent>("student");
   const [rememberMe, setRememberMe] = useState(false);
   const [state, formAction, isPending] = useActionState(signInAction, {});
   const error = state.error;
   const copy = useMemo(() => roleCopy[roleIntent], [roleIntent]);
 
   return (
-    <div className="w-full max-w-[28rem] justify-self-center rounded-[2rem] bg-surface-container-lowest p-8 shadow-ambient lg:justify-self-start lg:pl-8">
-      <div className="mb-8 text-center">
-        <h2 className="mb-2 text-[1.75rem] font-bold text-on-surface">欢迎回来</h2>
-        <p className="text-[1rem] text-on-surface-variant">请选择教师或学生入口继续登录</p>
+    <div className="w-full max-w-[28rem] justify-self-center rounded-[2rem] bg-surface-container-lowest/96 p-6 shadow-ambient backdrop-blur-sm lg:justify-self-start sm:p-8">
+      <div className="mb-7 text-center sm:text-left">
+        <p className="text-sm font-medium text-primary">首页直接登录</p>
+        <h2 className="mt-2 text-[1.75rem] font-bold text-on-surface">欢迎回来</h2>
+        <p className="mt-2 text-sm leading-6 text-on-surface-variant">请选择学生或教师入口，提交后会直接进入对应首页。</p>
       </div>
 
       <div className="mb-3 flex rounded-full bg-surface-container-low p-1.5">
-        {(["teacher", "student"] as const).map((role) => {
+        {(["student", "teacher"] as const).map((role) => {
           const active = roleIntent === role;
 
           return (
@@ -61,7 +62,7 @@ export function HomeLoginCard() {
         })}
       </div>
 
-      <p className="mb-6 text-center text-sm text-on-surface-variant">{copy.helper}</p>
+      <p className="mb-6 text-center text-sm text-on-surface-variant sm:text-left">{copy.helper}</p>
 
       {error && (
         <p className="mb-4 rounded-xl bg-error-container px-4 py-3 text-sm font-medium text-on-error-container">
