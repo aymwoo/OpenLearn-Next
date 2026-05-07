@@ -26,7 +26,7 @@ progress:
 **Status:** Milestone complete
 **Progress:**
 [██████████] 100%
-**Last Activity:** 2026-05-07 - Completed quick task 260507-hly: 修改首页的样式，参照 Stitch 首页，分为学生和教师两个入口，默认学生登录，点击登录后直接验证并跳转到学生或教师首页
+**Last Activity:** 2026-05-07 - Completed quick task 260507-kdx: 为添加一个用于开发环境的脚本，用来初始化数据库和基础的测试的数据
 
 **Last session:** 2026-05-06T23:17:52.854Z
 **Stopped At:** Completed 10-06-PLAN.md
@@ -67,3 +67,4 @@ progress:
 |---|-------------|------|--------|-----------|
 | 260506-04q | 使用stitch中的以下页面重构首页, Stitch Project ID: 5322129002350954765, Screen 1: 首页 - OpenLear-Next ID: 79dd3433e6c44f0792e0ada2ebf71337 | 2026-05-05 | 939b608 | [260506-04q-stitch-stitch-project-id-532212900235095](./quick/260506-04q-stitch-stitch-project-id-532212900235095/) |
 | 260507-hly | 修改首页的样式，参照 Stitch 首页，分为学生和教师两个入口，默认学生登录，点击登录后直接验证并跳转到学生或教师首页 | 2026-05-07 | aeab00f | [260507-hly-stitch](./quick/260507-hly-stitch/) |
+| 260507-kdx | 为添加一个用于开发环境的脚本，用来初始化数据库和基础的测试的数据 | 2026-05-07 | 94e3d56 | [260507-kdx-dev-db-bootstrap](./quick/260507-kdx-dev-db-bootstrap/) |
