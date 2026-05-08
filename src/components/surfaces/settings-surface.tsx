@@ -82,6 +82,15 @@ async function GeneralSettingsSurface({ schoolId }: { schoolId: string | null })
             </div>
             <ChevronRight className="size-5 text-primary" aria-hidden />
           </Link>
+
+          <Link href="/settings/plugins" className="flex items-center justify-between rounded-[1.5rem] bg-surface-container-lowest px-5 py-4 text-on-surface shadow-ambient transition hover:bg-surface-container-lowest/90">
+            <div>
+              <p className="text-sm text-on-surface-variant">插件市场</p>
+              <p className="mt-1 font-semibold">查看系统内置教学环节</p>
+            </div>
+            <ChevronRight className="size-5 text-primary" aria-hidden />
+          </Link>
+
         </aside>
 
         <section className="space-y-6">
@@ -146,6 +155,7 @@ async function GeneralSettingsSurface({ schoolId }: { schoolId: string | null })
             <section className="rounded-[var(--radius-shell)] bg-surface-container-lowest p-5 shadow-ambient sm:p-6">
               <p className="text-sm text-on-surface-variant">快捷入口</p>
               <div className="mt-4 grid gap-3">
+                <QuickLink href="/settings/plugins" title="插件市场" description="浏览系统内置教学环节与默认开启状态。" />
                 <QuickLink href="/settings/labs" title="实验室布局管理" description="配置 204 机房座位、设备和在线状态。" />
                 <QuickLink href="/teacher/students" title="学生管理" description="进入学生名册，继续批量导入与状态核对。" />
               </div>
