@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 current_phase: 12
-current_plan: 2
+current_plan: 3
 status: executing
-stopped_at: Completed 12-06-PLAN.md
-last_updated: "2026-05-08T23:14:13.252Z"
+stopped_at: Completed 12-08-PLAN.md
+last_updated: "2026-05-08T23:32:33.853Z"
 last_activity: 2026-05-08
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 27
-  completed_plans: 24
-  percent: 89
+  completed_plans: 25
+  percent: 93
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 ## Position
 
 **Current Phase:** 12
-**Current Plan:** 2
+**Current Plan:** 3
 **Total Plans in Phase:** 9
 **Status:** Ready to execute
 **Progress:**
-[█████████░] 89%
+[█████████░] 93%
 **Last Activity:** 2026-05-08
 
-**Last session:** 2026-05-08T23:13:55.045Z
-**Stopped At:** Completed 12-06-PLAN.md
+**Last session:** 2026-05-08T23:32:33.849Z
+**Stopped At:** Completed 12-08-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -57,6 +57,8 @@ progress:
 - [Phase 12]: Phase 12 通过 `verify:phase12` 守住 launch routing、built-in exposure、管理标签与 unsafe pattern 禁止。
 - [Phase 12]: 五个内置教学环节 seed manifest 直接声明 suggestBuiltInTeachingStep / insertBuiltInTeachingStepTemplate，避免与 registry allowlist 漂移。
 - [Phase 12]: Built-in template 解析只信任启用中的 registry record，缺少 template action 或 hook 未返回 typed template 时一律不产出模板。
+- [Phase 12]: 将 built-in plugin 可见性落到独立 /settings/plugins route，明确满足 marketplace visibility 合同而不是继续复用 labs-only surface。
+- [Phase 12]: built-in plugin marketplace 只保留启用/停用语义，不展示删除动作，避免系统内置插件被误解为可移除扩展。
 
 **Active Blockers:**
 
@@ -78,6 +80,7 @@ progress:
 | Phase 12 P03 | 2 min | 3 tasks | 5 files |
 | Phase 12 P04 | 1 min | 3 tasks | 10 files |
 | Phase 12 P06 | 2 min | 2 tasks | 2 files |
+| Phase 12 P08 | 2 min | 2 tasks | 4 files |
 
 ### Quick Tasks Completed
 
