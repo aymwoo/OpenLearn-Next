@@ -5,13 +5,20 @@ import { Card } from '@/components/ui/card'
 import { AuthoringStatusPanel } from '@/components/authoring/authoring-status-panel'
 import { LessonAuthoringWorkspace } from '@/components/authoring/lesson-authoring-workspace'
 import type { LessonEditorDTO, TeacherAuthoringOverviewDTO } from '@/lib/dto/lesson-authoring'
+import type { BuiltInTeachingStepTemplatePayload } from '@/lib/dto/resource-ai'
+
+type BuiltInTemplateForAuthoring = BuiltInTeachingStepTemplatePayload & {
+  id: string
+  pluginId: string
+}
 
 type LessonEditorSurfaceProps = {
   overview: TeacherAuthoringOverviewDTO
   lesson: LessonEditorDTO | null
+  builtInTemplates: BuiltInTemplateForAuthoring[]
 }
 
-export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfaceProps) {
+export function LessonEditorSurface({ overview, lesson, builtInTemplates }: LessonEditorSurfaceProps) {
   const activeCourse = lesson?.course ?? overview.courses[0]
   const activeLesson = lesson?.lesson ?? overview.lessons[0]
   const steps = lesson?.steps ?? []
@@ -122,7 +129,7 @@ export function LessonEditorSurface({ overview, lesson }: LessonEditorSurfacePro
             </div>
           </div>
 
-          <LessonAuthoringWorkspace overview={overview} lesson={lesson} />
+          <LessonAuthoringWorkspace overview={overview} lesson={lesson} builtInTemplates={builtInTemplates} />
         </main>
 
         <aside className="mt-4 rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5 xl:mt-0">
