@@ -15,7 +15,7 @@ describe("Phase 04 teacher review cockpit", () => {
   });
 
   it("prioritizes progress, attempts, outcomes, feedback, and composer in student detail", () => {
-    for (const copy of ["学习进度", "最近任务", "测验结果", "历史尝试", "反馈状态", "第 1 次尝试"]) {
+    for (const copy of ["当前已完成", "最近任务", "测验结果", "历史尝试", "反馈状态", "第 1 次尝试"]) {
       expect(reviewSource).toContain(copy);
     }
 

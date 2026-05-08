@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 
 const taskSource = readFileSync("src/components/learning/task-step-card.tsx", "utf8");
 const quizSource = readFileSync("src/components/learning/quiz-step-card.tsx", "utf8");
-const playerSource = readFileSync("src/components/surfaces/player-surface.tsx", "utf8");
+const playerRouteSource = readFileSync("src/app/(student)/student/player/page.tsx", "utf8");
+const runtimeSource = readFileSync("src/components/learning/classroom-runtime-client.tsx", "utf8");
 
 describe("Phase 04 interactive student step cards", () => {
   it("keeps task submissions client-side and draft preserving", () => {
@@ -26,7 +27,8 @@ describe("Phase 04 interactive student step cards", () => {
   });
 
   it("wires task and quiz cards into the player surface", () => {
-    expect(playerSource).toContain("TaskStepCard");
-    expect(playerSource).toContain("QuizStepCard");
+    expect(playerRouteSource).toContain("ClassroomRuntimeClient");
+    expect(runtimeSource).toContain("TaskStepCard");
+    expect(runtimeSource).toContain("QuizStepCard");
   });
 });

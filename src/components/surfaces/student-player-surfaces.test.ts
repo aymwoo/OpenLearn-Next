@@ -20,7 +20,7 @@ describe("Phase 04 student DTO surfaces", () => {
     expect(playerSource).toContain("StudentPlayerDTO");
     expect(playerSource).toContain("老师指定");
     expect(playerSource).toContain("已完成阅读");
-    expect(playerSource).toContain("overflow-x-auto");
+    expect(routeSource).toContain("ClassroomRuntimeClient");
   });
 
   it("streams personal player state inside a Suspense boundary", () => {
