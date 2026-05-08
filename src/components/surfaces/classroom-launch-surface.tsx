@@ -5,29 +5,10 @@ import { ClassroomLaunchPanel } from '@/components/classroom/classroom-launch-pa
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import type { ClassroomConsoleDTO } from '@/lib/dto/classroom'
 
 type ClassroomLaunchSurfaceProps = {
-  consoleData: {
-    publishedLessons: Array<{
-      id: string
-      title: string
-      publishedVersionId: string
-      courseId: string
-      classes: Array<{ id: string; name: string }>
-    }>
-    liveSessions: Array<{
-      id: string
-      lessonId: string
-      lessonTitle: string
-      classId: string
-      className: string
-      updatedAt: string
-      locked: boolean
-      version: number
-      status: 'live'
-    }>
-    emptyStateCopy: string
-  }
+  consoleData: ClassroomConsoleDTO
 }
 
 const formatter = new Intl.DateTimeFormat('zh-CN', {
@@ -67,6 +48,7 @@ export function ClassroomLaunchSurface({ consoleData }: ClassroomLaunchSurfacePr
         <ClassroomLaunchPanel
           publishedLessons={consoleData.publishedLessons}
           emptyStateCopy={consoleData.emptyStateCopy}
+          launchPreviewEmptyState={consoleData.launchPreviewEmptyState}
           successHref="/classroom"
           title="新课堂准备"
           description="从已发布课时中选择本次课堂内容，并指定要同步进入课堂的班级。创建成功后会直接切换到运行台。"

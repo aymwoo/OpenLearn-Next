@@ -4,23 +4,21 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { launchClassroomSessionAction } from '@/actions/classroom-actions'
+import { ClassroomLaunchPreview } from '@/components/classroom/classroom-launch-preview'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ghostSelectFieldClassName } from '@/components/ui/ghost-field'
+import type {
+  ClassroomLaunchLessonOptionDTO,
+  ClassroomLaunchPreviewEmptyStateDTO,
+} from '@/lib/dto/classroom'
 import { BookOpen, Users } from 'lucide-react'
 
-type PublishedLessonOption = {
-  id: string
-  title: string
-  publishedVersionId: string
-  courseId: string
-  classes: Array<{ id: string; name: string }>
-}
-
 type ClassroomLaunchPanelProps = {
-  publishedLessons: PublishedLessonOption[]
+  publishedLessons: ClassroomLaunchLessonOptionDTO[]
   emptyStateCopy: string
+  launchPreviewEmptyState: ClassroomLaunchPreviewEmptyStateDTO
   successHref?: string
   badgeLabel?: string
   title?: string
@@ -31,6 +29,7 @@ type ClassroomLaunchPanelProps = {
 export function ClassroomLaunchPanel({
   publishedLessons,
   emptyStateCopy,
+  launchPreviewEmptyState,
   successHref,
   badgeLabel = '课堂预备区',
   title = '开启新课堂',
@@ -137,6 +136,13 @@ export function ClassroomLaunchPanel({
         >
           {isPending ? '正在创建课堂，请稍候。' : ctaLabel}
         </Button>
+      </div>
+
+      <div className="mt-5">
+        <ClassroomLaunchPreview
+          preview={selectedLesson?.launchPreview ?? null}
+          emptyState={launchPreviewEmptyState}
+        />
       </div>
     </Card>
   )
