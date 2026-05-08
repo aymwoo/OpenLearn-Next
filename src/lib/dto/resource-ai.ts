@@ -136,6 +136,9 @@ export const PluginManifestSchema = z.object({
   permissions: z.array(z.string()).default([]),
   anchors: z.array(z.enum(["dashboard.widget", "lesson.sidebar"])),
   actions: z.array(z.enum(["addStepSuggestion", "annotateLesson", "createNotificationStub"])),
+  builtIn: z.boolean().default(false),
+  defaultEnabled: z.boolean().default(false),
+  nonDeletable: z.boolean().default(false),
   theme: ThemeTokenRegistrySchema.optional(),
 });
 export type PluginManifest = z.infer<typeof PluginManifestSchema>;
@@ -147,6 +150,9 @@ export const PluginRegistrationDTOSchema = z.object({
   manifestJson: PluginManifestSchema,
   enabled: z.boolean(),
   killSwitchEnabled: z.boolean(),
+  builtIn: z.boolean(),
+  defaultEnabled: z.boolean(),
+  nonDeletable: z.boolean(),
 });
 export type PluginRegistrationDTO = z.infer<typeof PluginRegistrationDTOSchema>;
 

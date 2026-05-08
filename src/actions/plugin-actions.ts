@@ -49,6 +49,14 @@ const RunHookSchema = z.object({
   input: PluginActionInputSchema,
 });
 
+function getPluginActionError(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 async function requireCurrentActorId() {
   const user = await getCurrentUserDTO();
   if (!user?.id) {
@@ -69,7 +77,7 @@ export async function registerPluginManifestAction(data: z.infer<typeof Register
     updateTag(cacheTags.plugin(result.id));
     return { success: true, data: result };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "PLUGIN_REGISTER_FAILED" };
+    return { success: false, error: getPluginActionError(error, "PLUGIN_REGISTER_FAILED") };
   }
 }
 
@@ -90,7 +98,7 @@ export async function setPluginEnabledAction(data: z.infer<typeof SetEnabledSche
 
     return { success: true, data: result };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "PLUGIN_SET_ENABLED_FAILED" };
+    return { success: false, error: getPluginActionError(error, "PLUGIN_SET_ENABLED_FAILED") };
   }
 }
 
@@ -105,7 +113,7 @@ export async function setPluginKillSwitchAction(data: z.infer<typeof KillSwitchS
     updateTag(cacheTags.plugin(parsed.data.pluginId));
     return { success: true, data: result };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "PLUGIN_KILL_SWITCH_FAILED" };
+    return { success: false, error: getPluginActionError(error, "PLUGIN_KILL_SWITCH_FAILED") };
   }
 }
 
@@ -118,7 +126,7 @@ export async function listPluginsAction(data: z.infer<typeof PluginListSchema>) 
     const result = await listPluginsForSchool({ ...parsed.data, actorId });
     return { success: true, data: result };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "PLUGIN_LIST_FAILED" };
+    return { success: false, error: getPluginActionError(error, "PLUGIN_LIST_FAILED") };
   }
 }
 
@@ -131,7 +139,7 @@ export async function getPluginAction(data: z.infer<typeof PluginBySchoolSchema>
     const result = await getPluginForSchool({ ...parsed.data, actorId });
     return { success: true, data: result };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "PLUGIN_GET_FAILED" };
+    return { success: false, error: getPluginActionError(error, "PLUGIN_GET_FAILED") };
   }
 }
 
@@ -146,7 +154,7 @@ export async function deletePluginAction(data: z.infer<typeof PluginBySchoolSche
     updateTag(cacheTags.plugin(parsed.data.pluginId));
     return { success: true, data: result };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "PLUGIN_DELETE_FAILED" };
+    return { success: false, error: getPluginActionError(error, "PLUGIN_DELETE_FAILED") };
   }
 }
 
@@ -160,6 +168,6 @@ export async function runPluginHookAction(data: z.infer<typeof RunHookSchema>) {
     updateTag(cacheTags.plugin(parsed.data.pluginId));
     return { success: true, data: result };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "PLUGIN_HOOK_FAILED" };
+    return { success: false, error: getPluginActionError(error, "PLUGIN_HOOK_FAILED") };
   }
 }

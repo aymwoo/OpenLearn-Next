@@ -72,13 +72,18 @@ async function hasActiveSchoolMembership(actorId: string, schoolId: string) {
 }
 
 function toPluginDTO(record: typeof pluginRegistrations.$inferSelect): PluginRegistrationDTO {
+  const manifest = PluginManifestSchema.parse(record.manifestJson);
+
   return PluginRegistrationDTOSchema.parse({
     id: record.id,
     schoolId: record.schoolId,
     name: record.name,
-    manifestJson: PluginManifestSchema.parse(record.manifestJson),
+    manifestJson: manifest,
     enabled: record.enabled,
     killSwitchEnabled: record.killSwitchEnabled,
+    builtIn: manifest.builtIn,
+    defaultEnabled: manifest.defaultEnabled,
+    nonDeletable: manifest.nonDeletable,
   });
 }
 
@@ -147,7 +152,7 @@ export async function registerPluginManifest(input: RegisterPluginManifestInput)
       schoolId: input.schoolId,
       name: input.name,
       manifestJson: parsedManifest,
-      enabled: false,
+      enabled: parsedManifest.defaultEnabled,
       killSwitchEnabled: false,
     })
     .returning();
@@ -241,6 +246,19 @@ export async function getPluginForSchool(input: PluginBySchoolInput) {
 
 export async function deletePluginForSchool(input: PluginBySchoolInput) {
   await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
+
+  const plugin = await db.query.pluginRegistrations.findFirst({
+    where: and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)),
+  });
+
+  if (!plugin) {
+    return null;
+  }
+
+  const manifest = PluginManifestSchema.parse(plugin.manifestJson);
+  if (manifest.builtIn || manifest.nonDeletable) {
+    throw new Error("PLUGIN_BUILT_IN_NOT_DELETABLE");
+  }
 
   const [record] = await db
     .delete(pluginRegistrations)
