@@ -281,11 +281,24 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-on-surface">{plugin.name}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {plugin.builtIn ? (
+                            <Badge className="bg-primary/10 text-primary">系统内置</Badge>
+                          ) : null}
+                          {plugin.defaultEnabled ? (
+                            <Badge className="bg-surface-container-low text-on-surface">默认开启</Badge>
+                          ) : null}
+                          <Badge className="bg-surface-container-low text-on-surface-variant">{plugin.manifestJson.id}</Badge>
+                        </div>
                         <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                           {plugin.enabled ? '已启用' : '未启用'} · {plugin.killSwitchEnabled ? '总开关已开启' : '总开关已关闭'}
                         </p>
+                        {plugin.builtIn ? (
+                          <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                            该教学环节由系统提供，可停用但不可删除。
+                          </p>
+                        ) : null}
                       </div>
-                      <Badge className="bg-surface-container-low text-on-surface-variant">{plugin.manifestJson.id}</Badge>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-3">
@@ -294,7 +307,13 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
                         <input type="hidden" name="schoolId" value={plugin.schoolId} />
                         <input type="hidden" name="enabled" value={plugin.enabled ? 'false' : 'true'} />
                         <Button variant="secondary" className="min-h-10 px-4 text-sm shadow-none">
-                          {plugin.enabled ? '停用插件' : '启用插件'}
+                          {plugin.builtIn
+                            ? plugin.enabled
+                              ? '停用环节'
+                              : '重新启用'
+                            : plugin.enabled
+                              ? '停用插件'
+                              : '启用插件'}
                         </Button>
                       </form>
                     </div>
