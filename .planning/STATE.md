@@ -2,35 +2,35 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-current_phase: 11
-current_plan: 6 of 6
-status: completed
-stopped_at: In progress quick task 260508-9np: Stitch 6 屏页面对齐与视觉精修（typecheck 通过，scoped eslint 仅剩 class-management <img> warning）
-last_updated: "2026-05-08T07:13:36+08:00"
+current_phase: 12
+current_plan: 2
+status: executing
+stopped_at: Phase 12 UI-SPEC approved
+last_updated: "2026-05-08T13:28:19.311Z"
 last_activity: 2026-05-08
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
-  percent: 100
+  total_plans: 22
+  completed_plans: 19
+  percent: 86
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 11
-**Current Plan:** 6
-**Total Plans in Phase:** 6
-**Status:** Completed
+**Current Phase:** 12
+**Current Plan:** 2
+**Total Plans in Phase:** 4
+**Status:** Ready to execute
 **Progress:**
-[██████████] 100%
-**Last Activity:** 2026-05-08 - In progress quick task 260508-9np: 根据 Stitch 的 6 个屏幕继续对齐课堂运行、批量评价、沉浸学习、学生学习页与学生管理页面，并完成首轮 typecheck / scoped eslint。
+[█████████░] 86%
+**Last Activity:** 2026-05-08
 
-**Last session:** 2026-05-08T07:13:36+08:00
-**Stopped At:** In progress quick task 260508-9np: Stitch 6 屏页面对齐与视觉精修（typecheck 通过，scoped eslint 仅剩 class-management `<img>` warning）
-**Resume File:** `.planning/quick/260508-9np-stitch-6/260508-9np-PLAN.md`
+**Last session:** 2026-05-08T13:27:25.932Z
+**Stopped At:** Completed 12-01-PLAN.md
+**Resume File:** None
 
 ## Accumulated Context
 
@@ -45,6 +45,8 @@ progress:
 - [Phase 10]: 将 ghost-focus 输入、下拉与切换控件收敛到同一个 shared contract，避免登录与课堂 launch 再出现局部焦点漂移。
 - [Phase 10]: 首页 remember-me 改成 aria-pressed 可见切换按钮并通过 hidden input 提交值，既去掉 checkbox 边框例外，也保留明确表单语义。
 - [Phase 10]: 课堂 launch select 直接复用 tokenized ghost-focus field，不再保留任何本地 inset 1px outline 或自定义 RGBA focus recipe。
+- [Phase 12]: 将 /teacher/launch 作为教师唯一的新开课堂准备入口 — /classroom 保持为 live runtime 控制台，避免准备页与运行台职责混合
+- [Phase 12]: 恢复卡片通过 sessionId 精确回到目标课堂 — 恢复入口只暴露 teacher-scoped DTO 字段，且避免多 live classroom 时落回第一条会话
 
 **Active Blockers:**
 
@@ -61,6 +63,7 @@ progress:
 | Scope | Duration | Tasks | Files |
 |-------|----------|-------|-------|
 | Phase 10 P06 | 4 min | 2 tasks | 4 files |
+| Phase 12 P01 | 2 min | 2 tasks | 8 files |
 
 ### Quick Tasks Completed
 
