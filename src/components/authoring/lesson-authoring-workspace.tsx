@@ -13,15 +13,19 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LessonStepEditor } from "@/components/authoring/lesson-step-editor";
 import {
-  BUILT_IN_TEACHING_STEP_DEFINITIONS,
-  type BuiltInTeachingPluginName,
-  type BuiltInTeachingStepDefinition,
+  type BuiltInTeachingStepTemplatePayload,
 } from "@/lib/dto/resource-ai";
 import type { LessonEditorDTO, LessonStepDTO, TeacherAuthoringOverviewDTO } from "@/lib/dto/lesson-authoring";
+
+type BuiltInTemplateForAuthoring = BuiltInTeachingStepTemplatePayload & {
+  id: string;
+  pluginId: string;
+};
 
 type LessonAuthoringWorkspaceProps = {
   overview: TeacherAuthoringOverviewDTO;
   lesson: LessonEditorDTO | null;
+  builtInTemplates: BuiltInTemplateForAuthoring[];
 };
 
 const stepLabels = {
@@ -77,16 +81,21 @@ const resourceTemplates = [
 
 const resourceFilters = ["全部", "视频", "习题", "文档"] as const;
 
-const builtInTeachingStepButtonOrder: BuiltInTeachingPluginName[] = ["教师讲授", "问卷调查", "学生探究", "课堂测验", "评价"];
+const builtInTeachingStepButtonOrder = ["教师讲授", "问卷调查", "学生探究", "课堂测验", "评价"] as const;
 
-const builtInTeachingSteps = builtInTeachingStepButtonOrder
-  .map((pluginName) => BUILT_IN_TEACHING_STEP_DEFINITIONS.find((definition) => definition.pluginName === pluginName))
-  .filter((definition): definition is BuiltInTeachingStepDefinition => Boolean(definition));
-
-export function LessonAuthoringWorkspace({ overview, lesson }: LessonAuthoringWorkspaceProps) {
+export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }: LessonAuthoringWorkspaceProps) {
   const [selectedStepId, setSelectedStepId] = useState(lesson?.steps[0]?.id ?? null);
   const [activeResourceId, setActiveResourceId] = useState<string>(resourceTemplates[0].id);
   const steps = useMemo(() => lesson?.steps.filter((step) => !step.archivedAt) ?? [], [lesson?.steps]);
+  const orderedBuiltInTemplates = useMemo(() => {
+    const orderMap = new Map<string, number>(builtInTeachingStepButtonOrder.map((pluginName, index) => [pluginName, index]));
+
+    return [...builtInTemplates].sort((left, right) => {
+      const leftOrder = orderMap.get(left.pluginName) ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = orderMap.get(right.pluginName) ?? Number.MAX_SAFE_INTEGER;
+      return leftOrder - rightOrder;
+    });
+  }, [builtInTemplates]);
   const selectedStep = useMemo(
     () => steps.find((step) => step.id === selectedStepId) ?? steps[0] ?? null,
     [selectedStepId, steps]
@@ -117,7 +126,7 @@ export function LessonAuthoringWorkspace({ overview, lesson }: LessonAuthoringWo
     await addLessonStepAction({ lessonId: lesson.lesson.id, type, title: type === "content" ? "新内容" : type === "task" ? "新任务" : "新测验", payload });
   }
 
-  async function addBuiltInStep(definition: BuiltInTeachingStepDefinition) {
+  async function addBuiltInStep(definition: Pick<BuiltInTeachingStepTemplatePayload, "stepType" | "initialTitle" | "initialPayload">) {
     if (!lesson) return;
 
     await addLessonStepAction({
@@ -202,21 +211,21 @@ export function LessonAuthoringWorkspace({ overview, lesson }: LessonAuthoringWo
                     <p className="text-sm font-semibold text-on-surface">内置教学环节</p>
                     <p className="mt-1 text-xs leading-5 text-on-surface-variant">系统内置的课堂节奏模板，可直接加入当前课时，不增加第二层选择器。</p>
                   </div>
-                  <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-primary shadow-ambient">5 个可用环节</span>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {builtInTeachingSteps.map((definition) => (
+                    <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-primary shadow-ambient">{orderedBuiltInTemplates.length} 个可用环节</span>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                  {orderedBuiltInTemplates.map((template) => (
                     <Button
-                      key={definition.builtInKey}
+                      key={template.pluginId}
                       type="button"
                       variant="secondary"
                       className="min-h-10 bg-surface-container-lowest px-4 text-sm shadow-none"
-                      onClick={() => addBuiltInStep(definition)}
+                      onClick={() => addBuiltInStep(template)}
                     >
-                      {definition.pluginName}
+                      {template.pluginName}
                     </Button>
                   ))}
-                </div>
+                  </div>
               </div>
             </div>
           </div>
