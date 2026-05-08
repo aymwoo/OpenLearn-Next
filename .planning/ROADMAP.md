@@ -89,8 +89,8 @@
 - [x] 12-02-PLAN.md — Audit and complete lesson orchestration preview coverage in the current teacher flow.
 - [x] 12-03-PLAN.md — Add seeded built-in teaching-step plugin manifests, marketplace entries, and default enablement.
 - [x] 12-04-PLAN.md — Extend safe plugin actions and authoring/runtime integration for built-in teaching-step plugins.
-- [ ] 12-05-PLAN.md — Close school-scope launch leaks and route launch success to the exact live classroom session.
-- [ ] 12-06-PLAN.md — Align built-in seed manifests with registry hook actions and enabled-template resolution.
+- [x] 12-05-PLAN.md — Close school-scope launch leaks and route launch success to the exact live classroom session.
+- [x] 12-06-PLAN.md — Align built-in seed manifests with registry hook actions and enabled-template resolution.
 - [ ] 12-07-PLAN.md — Rewire authoring quick-add to school-enabled built-in templates instead of hardcoded system constants.
 - [ ] 12-08-PLAN.md — Add a dedicated plugin marketplace surface for built-in teaching-step visibility.
 - [ ] 12-09-PLAN.md — Replace Phase 12 string-match checks with behavior-level regression coverage.
@@ -104,4 +104,4 @@
 | 9. Core Page Alignment | 3/3 | Complete | 2026-05-06 |
 | 10. Global Visual Polish | 6/6 | Complete    | 2026-05-06 |
 | 11. Plugin, Theme, and Classroom Readiness | 6/6 | Complete | 2026-05-07 |
-| 12. Classroom Launch and Built-in Teaching Steps | 4/9 | In progress | 2026-05-08 |
+| 12. Classroom Launch and Built-in Teaching Steps | 6/9 | In Progress|  |

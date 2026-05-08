@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 current_phase: 12
-current_plan: 4
+current_plan: 2
 status: executing
-stopped_at: Completed 12-04-PLAN.md
-last_updated: "2026-05-08T22:54:54.603Z"
+stopped_at: Completed 12-06-PLAN.md
+last_updated: "2026-05-08T23:14:13.252Z"
 last_activity: 2026-05-08
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 27
-  completed_plans: 22
-  percent: 81
+  completed_plans: 24
+  percent: 89
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 ## Position
 
 **Current Phase:** 12
-**Current Plan:** 4
+**Current Plan:** 2
 **Total Plans in Phase:** 9
 **Status:** Ready to execute
 **Progress:**
-[██████████] 100%
+[█████████░] 89%
 **Last Activity:** 2026-05-08
 
-**Last session:** 2026-05-08T22:25:52.611Z
-**Stopped At:** Completed 12-04-PLAN.md
+**Last session:** 2026-05-08T23:13:55.045Z
+**Stopped At:** Completed 12-06-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -55,6 +55,8 @@ progress:
 - [Phase 12]: 内置教学环节插件继续走 allowlisted action 到本地 typed widget 的安全链路，不新增任意脚本执行入口。
 - [Phase 12]: 编排区把内置教学环节放在 `新增步骤` 同一层级的独立分组中，保持教师 direct quick-add 心智模型。
 - [Phase 12]: Phase 12 通过 `verify:phase12` 守住 launch routing、built-in exposure、管理标签与 unsafe pattern 禁止。
+- [Phase 12]: 五个内置教学环节 seed manifest 直接声明 suggestBuiltInTeachingStep / insertBuiltInTeachingStepTemplate，避免与 registry allowlist 漂移。
+- [Phase 12]: Built-in template 解析只信任启用中的 registry record，缺少 template action 或 hook 未返回 typed template 时一律不产出模板。
 
 **Active Blockers:**
 
@@ -75,6 +77,7 @@ progress:
 | Phase 12 P02 | 1 min | 2 tasks | 5 files |
 | Phase 12 P03 | 2 min | 3 tasks | 5 files |
 | Phase 12 P04 | 1 min | 3 tasks | 10 files |
+| Phase 12 P06 | 2 min | 2 tasks | 2 files |
 
 ### Quick Tasks Completed
 
