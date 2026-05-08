@@ -9,6 +9,62 @@ export const ClassroomStepDTOSchema = z.object({
   rank: z.string(),
 });
 
+export const ClassroomLaunchPreviewStepDTOSchema = z.object({
+  id: z.string(),
+  order: z.number().int().positive(),
+  title: z.string(),
+  family: z.string(),
+  summary: z.string(),
+  estimatedMinutes: z.number().int().nonnegative(),
+  materialCues: z.array(z.string()).default([]),
+});
+
+export const ClassroomLaunchPreviewDTOSchema = z.object({
+  lessonId: z.string(),
+  lessonTitle: z.string(),
+  totalEstimatedMinutes: z.number().int().nonnegative(),
+  stepCount: z.number().int().nonnegative(),
+  steps: z.array(ClassroomLaunchPreviewStepDTOSchema),
+});
+
+export const ClassroomLaunchPreviewEmptyStateDTOSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+});
+
+export const ClassroomLaunchLessonOptionDTOSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  publishedVersionId: z.string(),
+  courseId: z.string(),
+  classes: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+    })
+  ),
+  launchPreview: ClassroomLaunchPreviewDTOSchema,
+});
+
+export const ClassroomLiveSessionSummaryDTOSchema = z.object({
+  id: z.string(),
+  lessonId: z.string(),
+  lessonTitle: z.string(),
+  classId: z.string(),
+  className: z.string(),
+  updatedAt: z.string(),
+  locked: z.boolean(),
+  version: z.number().int(),
+  status: z.literal("live"),
+});
+
+export const ClassroomConsoleDTOSchema = z.object({
+  liveSessions: z.array(ClassroomLiveSessionSummaryDTOSchema),
+  publishedLessons: z.array(ClassroomLaunchLessonOptionDTOSchema),
+  emptyStateCopy: z.string(),
+  launchPreviewEmptyState: ClassroomLaunchPreviewEmptyStateDTOSchema,
+});
+
 export const ClassroomParticipantDTOSchema = z.object({
   studentId: z.string(),
   studentName: z.string(),
@@ -102,6 +158,12 @@ export const ClassroomActionResultDTOSchema = z.object({
 export type ClassroomMode = z.infer<typeof ClassroomModeSchema>;
 export type ClassroomConnectionState = z.infer<typeof ClassroomConnectionStateSchema>;
 export type ClassroomStepDTO = z.infer<typeof ClassroomStepDTOSchema>;
+export type ClassroomLaunchPreviewStepDTO = z.infer<typeof ClassroomLaunchPreviewStepDTOSchema>;
+export type ClassroomLaunchPreviewDTO = z.infer<typeof ClassroomLaunchPreviewDTOSchema>;
+export type ClassroomLaunchPreviewEmptyStateDTO = z.infer<typeof ClassroomLaunchPreviewEmptyStateDTOSchema>;
+export type ClassroomLaunchLessonOptionDTO = z.infer<typeof ClassroomLaunchLessonOptionDTOSchema>;
+export type ClassroomLiveSessionSummaryDTO = z.infer<typeof ClassroomLiveSessionSummaryDTOSchema>;
+export type ClassroomConsoleDTO = z.infer<typeof ClassroomConsoleDTOSchema>;
 export type ClassroomParticipantDTO = z.infer<typeof ClassroomParticipantDTOSchema>;
 export type ClassroomSnapshotDTO = z.infer<typeof ClassroomSnapshotDTOSchema>;
 export type ClassroomEventDTO = z.infer<typeof ClassroomEventDTOSchema>;

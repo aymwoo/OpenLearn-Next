@@ -17,6 +17,7 @@ import {
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import {
+  ClassroomConsoleDTOSchema,
   ClassroomActionResultDTOSchema,
   ClassroomSnapshotDTOSchema,
   LaunchClassroomInputSchema,
@@ -38,6 +39,14 @@ type PublishedSnapshot = {
   lesson?: { id?: string; title?: string; objective?: string; };
   course?: { title?: string; };
   steps?: Array<{ id: string; lessonId: string; type: string; title: string; rank: string; payload: unknown; }>;
+  materials?: Array<{
+    id?: string;
+    stepId?: string | null;
+    title?: string;
+    kind?: string;
+    url?: string | null;
+    note?: string | null;
+  }>;
 };
 
 function parseSnapshot(value: unknown): PublishedSnapshot {
@@ -47,14 +56,97 @@ function parseSnapshot(value: unknown): PublishedSnapshot {
 function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string) {
   return [...(snapshot.steps ?? [])]
     .sort((a, b) => a.rank.localeCompare(b.rank))
-    .map((step) => ({
+    .map((step) => {
+      const payload = lessonStepPayloadSchema.parse(step.payload);
+
+      return {
+        id: step.id,
+        lessonId: step.lessonId ?? fallbackLessonId,
+        type: payload.type,
+        title: step.title,
+        rank: step.rank,
+        payload,
+      };
+    });
+}
+
+const STEP_FAMILY_LABELS: Record<"content" | "task" | "quiz", string> = {
+  content: "教师讲授",
+  task: "学生任务",
+  quiz: "课堂测验",
+};
+
+const STEP_DEFAULT_MINUTES: Record<"content" | "task" | "quiz", number> = {
+  content: 12,
+  task: 15,
+  quiz: 8,
+};
+
+function summarizeText(value: string | undefined, fallback: string) {
+  const normalized = value?.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return fallback;
+  }
+
+  return normalized.length > 56 ? `${normalized.slice(0, 56).trim()}…` : normalized;
+}
+
+function getEstimatedMinutes(payload: ReturnType<typeof lessonStepPayloadSchema.parse>) {
+  if (payload.type === "content") {
+    return payload.teacherNotes ? 15 : STEP_DEFAULT_MINUTES.content;
+  }
+
+  if (payload.type === "task") {
+    return payload.allowRetry ? 15 : 12;
+  }
+
+  return payload.options.length > 3 ? 10 : STEP_DEFAULT_MINUTES.quiz;
+}
+
+function getMaterialCues(snapshot: PublishedSnapshot, stepId: string, payload: ReturnType<typeof lessonStepPayloadSchema.parse>) {
+  const stepMaterials = (snapshot.materials ?? [])
+    .filter((material) => !material.stepId || material.stepId === stepId)
+    .map((material) => material.title?.trim() || material.kind?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  const payloadMaterials = ("materialRefs" in payload ? payload.materialRefs : [])
+    .map((material) => material.title?.trim() || material.kind?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  return [...new Set([...stepMaterials, ...payloadMaterials])].slice(0, 3);
+}
+
+function buildLaunchPreview(snapshot: PublishedSnapshot, fallbackLessonId: string, fallbackLessonTitle: string) {
+  const steps = parseSnapshotSteps(snapshot, fallbackLessonId).map((step, index) => {
+    const family = STEP_FAMILY_LABELS[step.type];
+    let summary = "课堂将按已发布步骤继续推进。";
+
+    if (step.payload.type === "content") {
+      summary = summarizeText(step.payload.body, "课堂将从讲授内容与教师提示开始。");
+    } else if (step.payload.type === "task") {
+      summary = summarizeText(step.payload.prompt, "学生会根据任务提示完成本环节。");
+    } else {
+      summary = summarizeText(step.payload.question, "学生会围绕核心问题完成随堂测验。");
+    }
+
+    return {
       id: step.id,
-      lessonId: step.lessonId ?? fallbackLessonId,
-      type: step.type,
+      order: index + 1,
       title: step.title,
-      rank: step.rank,
-      payload: lessonStepPayloadSchema.parse(step.payload),
-    }));
+      family,
+      summary,
+      estimatedMinutes: getEstimatedMinutes(step.payload),
+      materialCues: getMaterialCues(snapshot, step.id, step.payload),
+    };
+  });
+
+  return {
+    lessonId: fallbackLessonId,
+    lessonTitle: snapshot.lesson?.title ?? fallbackLessonTitle,
+    totalEstimatedMinutes: steps.reduce((total, step) => total + step.estimatedMinutes, 0),
+    stepCount: steps.length,
+    steps,
+  };
 }
 
 async function getSessionWithLessonSteps(sessionId: string) {
@@ -172,11 +264,24 @@ export async function getClassroomConsoleDTO() {
   const classesRows = await db.query.classes.findMany();
   const courseClassesRows = await db.query.courseClasses.findMany();
   
+  const publishedVersionIds = publishedLessonsRows
+    .map((lesson) => lesson.publishedVersionId)
+    .filter((value): value is string => Boolean(value));
+
+  const publishedVersionRows = publishedVersionIds.length
+    ? await db.query.publishedLessonVersions.findMany({
+        where: inArray(publishedLessonVersions.id, publishedVersionIds),
+      })
+    : [];
+  const publishedVersionMap = new Map(publishedVersionRows.map((version) => [version.id, version]));
+
   const publishedLessons = publishedLessonsRows
     .filter((lesson) => Boolean(lesson.publishedVersionId))
     .map((lesson) => {
       const courseClassIds = courseClassesRows.filter((courseClass) => courseClass.courseId === lesson.courseId).map((courseClass) => courseClass.classId);
       const linkedClasses = classesRows.filter((clazz) => courseClassIds.includes(clazz.id));
+      const publishedVersion = publishedVersionMap.get(lesson.publishedVersionId!);
+      const snapshot = parseSnapshot(publishedVersion?.snapshotJson);
 
       return {
         id: lesson.id,
@@ -184,15 +289,20 @@ export async function getClassroomConsoleDTO() {
         publishedVersionId: lesson.publishedVersionId!,
         courseId: lesson.courseId,
         classes: linkedClasses.map((clazz) => ({ id: clazz.id, name: clazz.name })),
+        launchPreview: buildLaunchPreview(snapshot, lesson.id, lesson.title),
       };
     })
     .filter((lesson) => lesson.classes.length > 0);
 
-  return {
+  return ClassroomConsoleDTOSchema.parse({
     liveSessions,
     publishedLessons,
-    emptyStateCopy: "还没有可开课的已发布课时"
-  };
+    emptyStateCopy: "还没有可开课的已发布课时",
+    launchPreviewEmptyState: {
+      title: "先选择一个已发布课时",
+      description: "选定课时后，这里会展示上课步骤顺序、每一步摘要、预计时长与所需材料提示，方便你在开课前快速确认课堂节奏。",
+    },
+  });
 }
 
 export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
