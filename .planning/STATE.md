@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 current_phase: 12
-current_plan: 2
+current_plan: 3
 status: executing
-stopped_at: Phase 12 UI-SPEC approved
-last_updated: "2026-05-08T13:28:19.311Z"
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-05-08T13:47:05.096Z"
 last_activity: 2026-05-08
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 22
-  completed_plans: 19
-  percent: 86
+  completed_plans: 20
+  percent: 91
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 ## Position
 
 **Current Phase:** 12
-**Current Plan:** 2
+**Current Plan:** 3
 **Total Plans in Phase:** 4
 **Status:** Ready to execute
 **Progress:**
-[█████████░] 86%
+[█████████░] 91%
 **Last Activity:** 2026-05-08
 
-**Last session:** 2026-05-08T13:27:25.932Z
-**Stopped At:** Completed 12-01-PLAN.md
+**Last session:** 2026-05-08T13:47:05.092Z
+**Stopped At:** Completed 12-02-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -47,6 +47,8 @@ progress:
 - [Phase 10]: 课堂 launch select 直接复用 tokenized ghost-focus field，不再保留任何本地 inset 1px outline 或自定义 RGBA focus recipe。
 - [Phase 12]: 将 /teacher/launch 作为教师唯一的新开课堂准备入口 — /classroom 保持为 live runtime 控制台，避免准备页与运行台职责混合
 - [Phase 12]: 恢复卡片通过 sessionId 精确回到目标课堂 — 恢复入口只暴露 teacher-scoped DTO 字段，且避免多 live classroom 时落回第一条会话
+- [Phase 12]: 开课预览只读取已发布课时快照与已验证 payload，避免把草稿态误展示为可开课内容。
+- [Phase 12]: 预览保持在 /teacher/launch 页面内联呈现，并在未选课时时显示平静占位说明。
 
 **Active Blockers:**
 
@@ -64,6 +66,7 @@ progress:
 |-------|----------|-------|-------|
 | Phase 10 P06 | 4 min | 2 tasks | 4 files |
 | Phase 12 P01 | 2 min | 2 tasks | 8 files |
+| Phase 12 P02 | 1 min | 2 tasks | 5 files |
 
 ### Quick Tasks Completed
 
