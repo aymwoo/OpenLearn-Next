@@ -12,6 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LessonStepEditor } from "@/components/authoring/lesson-step-editor";
+import {
+  BUILT_IN_TEACHING_STEP_DEFINITIONS,
+  type BuiltInTeachingPluginName,
+  type BuiltInTeachingStepDefinition,
+} from "@/lib/dto/resource-ai";
 import type { LessonEditorDTO, LessonStepDTO, TeacherAuthoringOverviewDTO } from "@/lib/dto/lesson-authoring";
 
 type LessonAuthoringWorkspaceProps = {
@@ -72,6 +77,12 @@ const resourceTemplates = [
 
 const resourceFilters = ["全部", "视频", "习题", "文档"] as const;
 
+const builtInTeachingStepButtonOrder: BuiltInTeachingPluginName[] = ["教师讲授", "问卷调查", "学生探究", "课堂测验", "评价"];
+
+const builtInTeachingSteps = builtInTeachingStepButtonOrder
+  .map((pluginName) => BUILT_IN_TEACHING_STEP_DEFINITIONS.find((definition) => definition.pluginName === pluginName))
+  .filter((definition): definition is BuiltInTeachingStepDefinition => Boolean(definition));
+
 export function LessonAuthoringWorkspace({ overview, lesson }: LessonAuthoringWorkspaceProps) {
   const [selectedStepId, setSelectedStepId] = useState(lesson?.steps[0]?.id ?? null);
   const [activeResourceId, setActiveResourceId] = useState<string>(resourceTemplates[0].id);
@@ -104,6 +115,17 @@ export function LessonAuthoringWorkspace({ overview, lesson }: LessonAuthoringWo
         : { type, question: "填写题目", options: ["选项 A", "选项 B"] };
 
     await addLessonStepAction({ lessonId: lesson.lesson.id, type, title: type === "content" ? "新内容" : type === "task" ? "新任务" : "新测验", payload });
+  }
+
+  async function addBuiltInStep(definition: BuiltInTeachingStepDefinition) {
+    if (!lesson) return;
+
+    await addLessonStepAction({
+      lessonId: lesson.lesson.id,
+      type: definition.stepType,
+      title: definition.initialTitle,
+      payload: definition.initialPayload,
+    });
   }
 
   return (
@@ -162,12 +184,40 @@ export function LessonAuthoringWorkspace({ overview, lesson }: LessonAuthoringWo
               })}
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Button type="button" className="min-h-10 px-4 text-sm" onClick={() => addStep("content")}>
-                <Plus className="mr-2 size-4" />新增内容
-              </Button>
-              <Button type="button" variant="secondary" className="min-h-10 px-4 text-sm" onClick={() => addStep("task")}>新增任务</Button>
-              <Button type="button" variant="secondary" className="min-h-10 px-4 text-sm" onClick={() => addStep("quiz")}>新增测验</Button>
+            <div className="mt-5 space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">新增步骤</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button type="button" className="min-h-10 px-4 text-sm" onClick={() => addStep("content")}>
+                    <Plus className="mr-2 size-4" />新增内容
+                  </Button>
+                  <Button type="button" variant="secondary" className="min-h-10 px-4 text-sm" onClick={() => addStep("task")}>新增任务</Button>
+                  <Button type="button" variant="secondary" className="min-h-10 px-4 text-sm" onClick={() => addStep("quiz")}>新增测验</Button>
+                </div>
+              </div>
+
+              <div className="rounded-[1.5rem] bg-surface-container-low p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-on-surface">内置教学环节</p>
+                    <p className="mt-1 text-xs leading-5 text-on-surface-variant">系统内置的课堂节奏模板，可直接加入当前课时，不增加第二层选择器。</p>
+                  </div>
+                  <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-primary shadow-ambient">5 个可用环节</span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {builtInTeachingSteps.map((definition) => (
+                    <Button
+                      key={definition.builtInKey}
+                      type="button"
+                      variant="secondary"
+                      className="min-h-10 bg-surface-container-lowest px-4 text-sm shadow-none"
+                      onClick={() => addBuiltInStep(definition)}
+                    >
+                      {definition.pluginName}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </Card>
