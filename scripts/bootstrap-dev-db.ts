@@ -11,8 +11,10 @@ import {
   courses,
   lessonSteps,
   lessons,
+  pluginRegistrations,
   publishedLessonVersions,
 } from "@/db/schema";
+import { PluginManifestSchema } from "@/lib/dto/resource-ai";
 
 import { seedTestAccounts } from "./seed-test-accounts";
 
@@ -66,6 +68,74 @@ const DEV_STEP_DEFINITIONS = [
     },
   },
 ];
+
+const BUILT_IN_PLUGIN_DEFINITIONS = [
+  {
+    name: "教师讲授",
+    manifest: {
+      id: "builtin-teaching-step-direct-instruction",
+      version: "1.0.0",
+      permissions: ["lesson:write:suggestion"],
+      anchors: ["lesson.sidebar"],
+      actions: ["addStepSuggestion"],
+      builtIn: true,
+      defaultEnabled: true,
+      nonDeletable: true,
+    },
+  },
+  {
+    name: "问卷调查",
+    manifest: {
+      id: "builtin-teaching-step-survey",
+      version: "1.0.0",
+      permissions: ["lesson:write:suggestion"],
+      anchors: ["lesson.sidebar"],
+      actions: ["addStepSuggestion"],
+      builtIn: true,
+      defaultEnabled: true,
+      nonDeletable: true,
+    },
+  },
+  {
+    name: "学生探究",
+    manifest: {
+      id: "builtin-teaching-step-inquiry",
+      version: "1.0.0",
+      permissions: ["lesson:write:suggestion"],
+      anchors: ["lesson.sidebar"],
+      actions: ["addStepSuggestion"],
+      builtIn: true,
+      defaultEnabled: true,
+      nonDeletable: true,
+    },
+  },
+  {
+    name: "课堂测验",
+    manifest: {
+      id: "builtin-teaching-step-quiz",
+      version: "1.0.0",
+      permissions: ["lesson:write:suggestion"],
+      anchors: ["lesson.sidebar"],
+      actions: ["addStepSuggestion"],
+      builtIn: true,
+      defaultEnabled: true,
+      nonDeletable: true,
+    },
+  },
+  {
+    name: "评价",
+    manifest: {
+      id: "builtin-teaching-step-evaluation",
+      version: "1.0.0",
+      permissions: ["lesson:write:suggestion"],
+      anchors: ["lesson.sidebar"],
+      actions: ["addStepSuggestion"],
+      builtIn: true,
+      defaultEnabled: true,
+      nonDeletable: true,
+    },
+  },
+] as const;
 
 async function getOrCreateClass(schoolId: string) {
   const existing = await db.query.classes.findFirst({
@@ -268,6 +338,37 @@ async function publishLessonVersion(input: {
   return published;
 }
 
+async function upsertBuiltInPlugins(schoolId: string) {
+  for (const definition of BUILT_IN_PLUGIN_DEFINITIONS) {
+    const manifest = PluginManifestSchema.parse(definition.manifest);
+    const existing = await db.query.pluginRegistrations.findFirst({
+      where: and(eq(pluginRegistrations.schoolId, schoolId), eq(pluginRegistrations.name, definition.name)),
+    });
+
+    if (existing) {
+      await db
+        .update(pluginRegistrations)
+        .set({
+          manifestJson: manifest,
+          enabled: true,
+          killSwitchEnabled: false,
+          updatedAt: new Date(),
+        })
+        .where(eq(pluginRegistrations.id, existing.id));
+
+      continue;
+    }
+
+    await db.insert(pluginRegistrations).values({
+      schoolId,
+      name: definition.name,
+      manifestJson: manifest,
+      enabled: true,
+      killSwitchEnabled: false,
+    });
+  }
+}
+
 export async function bootstrapDevDb() {
   const seeded = await seedTestAccounts();
   const devClass = await getOrCreateClass(seeded.school.id);
@@ -289,6 +390,7 @@ export async function bootstrapDevDb() {
     courseTitle: DEV_COURSE_TITLE,
     steps,
   });
+  await upsertBuiltInPlugins(seeded.school.id);
 
   console.log("开发数据库 bootstrap 完成：");
   console.log(`- 学校：${seeded.school.name}`);
@@ -296,6 +398,7 @@ export async function bootstrapDevDb() {
   console.log(`- 课程：${DEV_COURSE_TITLE}（${DEV_COURSE_GRADE} / ${DEV_COURSE_SUBJECT}）`);
   console.log(`- 课时：${DEV_LESSON_TITLE}`);
   console.log(`- 发布版本：v${published.version}`);
+  console.log(`- 内置教学环节：${BUILT_IN_PLUGIN_DEFINITIONS.map((plugin) => plugin.name).join("、")}`);
   console.log(`- 教师账号：${seeded.teacher.email} / password`);
   console.log(`- 学生账号：${seeded.student.email} / password`);
 }
