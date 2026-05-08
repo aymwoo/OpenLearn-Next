@@ -86,9 +86,11 @@ export function Sidebar({ items, activePath }: SidebarProps) {
       </div>
 
       <div className="flex flex-col gap-2 pt-4">
-        <Button type="button" className="mb-2 w-full gap-2 text-base">
-          <Plus className="size-5" />
-          开启新课堂
+        <Button asChild className="mb-2 w-full gap-2 text-base">
+          <Link href="/teacher/launch">
+            <Plus className="size-5" />
+            开启新课堂
+          </Link>
         </Button>
         
         <Link href="/settings" className="flex min-h-11 items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-lowest hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/40">

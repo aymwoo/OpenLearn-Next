@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
@@ -72,8 +73,8 @@ async function TeacherLayoutContent({
           </div>
 
           <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
-            <Button type="button" className="px-5 text-sm">
-              开启新课堂
+            <Button asChild className="px-5 text-sm">
+              <Link href="/teacher/launch">开启新课堂</Link>
             </Button>
             <button className="relative rounded-full bg-surface-container-lowest p-2.5 text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/40">
               <Bell className="size-5" />
