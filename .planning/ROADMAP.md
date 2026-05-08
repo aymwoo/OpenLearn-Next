@@ -10,7 +10,7 @@
 - [ ] **Phase 9: Core Page Alignment** - Refactor Home Page and Teacher Dashboard to strictly match Stitch designs
 - [x] **Phase 10: Global Visual Polish** - Fix 1px borders, tonal layering, and ensure release-ready visual consistency (completed 2026-05-06)
 - [x] **Phase 11: Plugin, Theme, and Classroom Readiness** - Make plugin hooks, theme plugins, and teacher classroom workflows usable end-to-end from existing docs
-- [ ] **Phase 12: Classroom Launch and Built-in Teaching Steps** - Add a dedicated classroom launch flow, complete lesson preview coverage, and ship first-party teaching-step plugins through the existing plugin system
+- [x] **Phase 12: Classroom Launch and Built-in Teaching Steps** - Add a dedicated classroom launch flow, complete lesson preview coverage, and ship first-party teaching-step plugins through the existing plugin system (completed 2026-05-08)
 
 ### Phase Details
 
@@ -88,7 +88,7 @@
 - [x] 12-01-PLAN.md — Build the dedicated classroom launch page and route existing launch/resume entry through it.
 - [x] 12-02-PLAN.md — Audit and complete lesson orchestration preview coverage in the current teacher flow.
 - [x] 12-03-PLAN.md — Add seeded built-in teaching-step plugin manifests, marketplace entries, and default enablement.
-- [ ] 12-04-PLAN.md — Extend safe plugin actions and authoring/runtime integration for built-in teaching-step plugins.
+- [x] 12-04-PLAN.md — Extend safe plugin actions and authoring/runtime integration for built-in teaching-step plugins.
 **UI hint**: yes
 
 ### Progress
@@ -99,4 +99,4 @@
 | 9. Core Page Alignment | 3/3 | Complete | 2026-05-06 |
 | 10. Global Visual Polish | 6/6 | Complete    | 2026-05-06 |
 | 11. Plugin, Theme, and Classroom Readiness | 6/6 | Complete | 2026-05-07 |
-| 12. Classroom Launch and Built-in Teaching Steps | 3/4 | In Progress|  |
+| 12. Classroom Launch and Built-in Teaching Steps | 4/4 | Complete   | 2026-05-08 |

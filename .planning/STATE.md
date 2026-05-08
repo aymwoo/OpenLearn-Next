@@ -4,16 +4,16 @@ milestone: v1.1
 milestone_name: milestone
 current_phase: 12
 current_plan: 4
-status: executing
-stopped_at: Completed 12-03-PLAN.md
-last_updated: "2026-05-08T15:49:17.413Z"
+status: verifying
+stopped_at: Completed 12-04-PLAN.md
+last_updated: "2026-05-08T22:25:53.111Z"
 last_activity: 2026-05-08
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 22
-  completed_plans: 21
-  percent: 95
+  completed_plans: 22
+  percent: 100
 ---
 
 # Project State
@@ -23,13 +23,13 @@ progress:
 **Current Phase:** 12
 **Current Plan:** 4
 **Total Plans in Phase:** 4
-**Status:** Ready to execute
+**Status:** Phase complete — ready for verification
 **Progress:**
-[██████████] 95%
+[██████████] 100%
 **Last Activity:** 2026-05-08
 
-**Last session:** 2026-05-08T15:49:17.408Z
-**Stopped At:** Completed 12-03-PLAN.md
+**Last session:** 2026-05-08T22:25:52.611Z
+**Stopped At:** Completed 12-04-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -52,6 +52,9 @@ progress:
 - [Phase 12]: 内置教学环节元数据从 manifest 直接流向 DAL 与 labs UI，避免通过名称推断系统插件身份。
 - [Phase 12]: 删除保护固定收敛在 DAL 层并返回 PLUGIN_BUILT_IN_NOT_DELETABLE，确保任何调用方都不能绕过普通删除路径。
 - [Phase 12]: 开发 bootstrap 通过 upsert 真实写入五个默认启用的内置教学环节插件，保证 authoring 和管理界面共享同一 registry 数据源。
+- [Phase 12]: 内置教学环节插件继续走 allowlisted action 到本地 typed widget 的安全链路，不新增任意脚本执行入口。
+- [Phase 12]: 编排区把内置教学环节放在 `新增步骤` 同一层级的独立分组中，保持教师 direct quick-add 心智模型。
+- [Phase 12]: Phase 12 通过 `verify:phase12` 守住 launch routing、built-in exposure、管理标签与 unsafe pattern 禁止。
 
 **Active Blockers:**
 
@@ -59,8 +62,8 @@ progress:
 
 ## Next Steps
 
-1. Phase 11 is complete; next work should start from the next approved roadmap item.
-2. Reuse `verify:phase11` for future regression checks touching plugin/theme/classroom flows.
+1. Phase 12 is complete; next work should start from the next approved roadmap item.
+2. Reuse `verify:phase12` for future regression checks touching classroom launch、built-in plugins、authoring exposure, and plugin safety flows.
 3. Keep excluded scope explicit: marketplace, arbitrary plugin JS, gradebook, advanced branching classroom flows.
 
 ## Performance Metrics
@@ -71,6 +74,7 @@ progress:
 | Phase 12 P01 | 2 min | 2 tasks | 8 files |
 | Phase 12 P02 | 1 min | 2 tasks | 5 files |
 | Phase 12 P03 | 2 min | 3 tasks | 5 files |
+| Phase 12 P04 | 1 min | 3 tasks | 10 files |
 
 ### Quick Tasks Completed
 

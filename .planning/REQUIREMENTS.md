@@ -59,9 +59,9 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Classroom runtime
 
 - [x] **CLASS-01**: Teacher can launch a published lesson as a classroom session with a roster of participants.
-- [ ] **CLASS-02**: Teacher can see and change the active step of a live classroom session.
-- [ ] **CLASS-03**: Teacher can switch a classroom session between locked mode, where students follow the active step, and unlocked mode, where students can move independently.
-- [ ] **CLASS-04**: Student player reflects active step and lock mode changes through an Edge Runtime SSE stream.
+- [x] **CLASS-02**: Teacher can see and change the active step of a live classroom session.
+- [x] **CLASS-03**: Teacher can switch a classroom session between locked mode, where students follow the active step, and unlocked mode, where students can move independently.
+- [x] **CLASS-04**: Student player reflects active step and lock mode changes through an Edge Runtime SSE stream.
 - [ ] **CLASS-05**: Classroom session state, current step, lock mode, participants, and events are durable in SQLite and not stored only in SSE memory.
 - [x] **CLASS-06**: Reconnecting or late-joining students receive a consistent snapshot of classroom session state.
 - [x] **CLASS-07**: Teacher can recover from classroom control conflicts or stale UI with clear state feedback.
@@ -180,9 +180,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LEARN-08 | Phase 4 | Complete |
 | LEARN-09 | Phase 4 | Complete |
 | CLASS-01 | Phase 5 | Complete |
-| CLASS-02 | Phase 5 | Pending |
-| CLASS-03 | Phase 5 | Pending |
-| CLASS-04 | Phase 5 | Pending |
+| CLASS-02 | Phase 5 | Complete |
+| CLASS-03 | Phase 5 | Complete |
+| CLASS-04 | Phase 5 | Complete |
 | CLASS-05 | Phase 5 | Pending |
 | CLASS-06 | Phase 5 | Complete |
 | CLASS-07 | Phase 5 | Complete |
