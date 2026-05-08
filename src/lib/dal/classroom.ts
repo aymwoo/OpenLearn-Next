@@ -121,12 +121,48 @@ export async function updateClassroomParticipantConnection(input: {
 export async function getClassroomConsoleDTO() {
   const scope = await assertActiveTeacher();
 
-  const liveSessions = await db.query.classroomSessions.findMany({
+  const liveSessionRows = await db.query.classroomSessions.findMany({
     where: and(
       eq(classroomSessions.teacherId, scope.userId),
       eq(classroomSessions.status, "live")
     )
   });
+
+  const [liveSessionLessons, liveSessionClasses] = await Promise.all([
+    liveSessionRows.length > 0
+      ? db.query.lessons.findMany({
+          where: inArray(
+            lessons.id,
+            [...new Set(liveSessionRows.map((session) => session.lessonId))]
+          ),
+        })
+      : Promise.resolve([]),
+    liveSessionRows.length > 0
+      ? db.query.classes.findMany({
+          where: inArray(
+            classes.id,
+            [...new Set(liveSessionRows.map((session) => session.classId))]
+          ),
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const liveLessonMap = new Map(liveSessionLessons.map((lesson) => [lesson.id, lesson.title]));
+  const liveClassMap = new Map(liveSessionClasses.map((clazz) => [clazz.id, clazz.name]));
+
+  const liveSessions = [...liveSessionRows]
+    .sort((a, b) => Number(b.updatedAt ?? 0) - Number(a.updatedAt ?? 0))
+    .map((session) => ({
+      id: session.id,
+      lessonId: session.lessonId,
+      lessonTitle: liveLessonMap.get(session.lessonId) ?? "课堂",
+      classId: session.classId,
+      className: liveClassMap.get(session.classId) ?? "班级",
+      updatedAt: toIso(session.updatedAt),
+      locked: Boolean(session.locked),
+      version: session.version,
+      status: "live" as const,
+    }));
 
   const publishedLessonsRows = await db.query.lessons.findMany({
     where: eq(lessons.status, "published")
@@ -136,22 +172,26 @@ export async function getClassroomConsoleDTO() {
   const classesRows = await db.query.classes.findMany();
   const courseClassesRows = await db.query.courseClasses.findMany();
   
-  const publishedLessons = publishedLessonsRows.map(l => {
-    const courseClassIds = courseClassesRows.filter(cc => cc.courseId === l.courseId).map(cc => cc.classId);
-    const linkedClasses = classesRows.filter(c => courseClassIds.includes(c.id));
-    return {
-      id: l.id,
-      title: l.title,
-      publishedVersionId: l.publishedVersionId!,
-      courseId: l.courseId,
-      classes: linkedClasses.map(c => ({ id: c.id, name: c.name })),
-    };
-  });
+  const publishedLessons = publishedLessonsRows
+    .filter((lesson) => Boolean(lesson.publishedVersionId))
+    .map((lesson) => {
+      const courseClassIds = courseClassesRows.filter((courseClass) => courseClass.courseId === lesson.courseId).map((courseClass) => courseClass.classId);
+      const linkedClasses = classesRows.filter((clazz) => courseClassIds.includes(clazz.id));
+
+      return {
+        id: lesson.id,
+        title: lesson.title,
+        publishedVersionId: lesson.publishedVersionId!,
+        courseId: lesson.courseId,
+        classes: linkedClasses.map((clazz) => ({ id: clazz.id, name: clazz.name })),
+      };
+    })
+    .filter((lesson) => lesson.classes.length > 0);
 
   return {
     liveSessions,
     publishedLessons,
-    emptyStateCopy: "还没有正在运行的课堂"
+    emptyStateCopy: "还没有可开课的已发布课时"
   };
 }
 

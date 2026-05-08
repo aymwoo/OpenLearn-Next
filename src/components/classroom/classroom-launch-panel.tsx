@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+
 import { launchClassroomSessionAction } from '@/actions/classroom-actions'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { ghostSelectFieldClassName } from '@/components/ui/ghost-field'
 import { BookOpen, Users } from 'lucide-react'
 
@@ -17,7 +18,25 @@ type PublishedLessonOption = {
   classes: Array<{ id: string; name: string }>
 }
 
-export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { publishedLessons: PublishedLessonOption[], emptyStateCopy: string }) {
+type ClassroomLaunchPanelProps = {
+  publishedLessons: PublishedLessonOption[]
+  emptyStateCopy: string
+  successHref?: string
+  badgeLabel?: string
+  title?: string
+  description?: string
+  ctaLabel?: string
+}
+
+export function ClassroomLaunchPanel({
+  publishedLessons,
+  emptyStateCopy,
+  successHref,
+  badgeLabel = '课堂预备区',
+  title = '开启新课堂',
+  description = '选择一个已发布课时并指定班级名单后，即可进入实时课堂运行台。',
+  ctaLabel = '开启新课堂',
+}: ClassroomLaunchPanelProps) {
   const [selectedLessonId, setSelectedLessonId] = useState<string>('')
   const [selectedClassId, setSelectedClassId] = useState<string>('')
   const [isPending, startTransition] = useTransition()
@@ -37,6 +56,11 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
       
       const result = await launchClassroomSessionAction(formData)
       if (result.ok) {
+        if (successHref) {
+          router.push(successHref)
+          return
+        }
+
         router.refresh()
       } else {
         setError(result.message)
@@ -47,7 +71,8 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
   if (publishedLessons.length === 0) {
     return (
       <Card className="bg-surface-container-lowest p-6">
-        <h2 className="text-2xl font-semibold mb-4">{emptyStateCopy}</h2>
+        <Badge variant="accent" className="mb-4">{badgeLabel}</Badge>
+        <h2 className="mb-4 text-2xl font-semibold">{emptyStateCopy}</h2>
         <p className="mt-2 text-on-surface-variant">请先在编辑器发布至少一个课时。</p>
       </Card>
     )
@@ -56,11 +81,11 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
   return (
     <Card className="bg-surface-container-lowest p-6 sm:p-7">
       <div className="rounded-[1.5rem] bg-surface-container-low p-5">
-        <Badge variant="accent" className="mb-4">课堂预备区</Badge>
+        <Badge variant="accent" className="mb-4">{badgeLabel}</Badge>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-2xl font-semibold">开始课堂</h2>
-            <p className="mt-3 max-w-2xl text-on-surface-variant">选择一个已发布课时并指定班级名单后，即可进入实时课堂运行台。</p>
+            <h2 className="text-2xl font-semibold">{title}</h2>
+            <p className="mt-3 max-w-2xl text-on-surface-variant">{description}</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[18rem]">
             <MetricTile icon={<BookOpen className="size-4 text-primary" />} label="已发布课时" value={String(publishedLessons.length)} />
@@ -69,7 +94,7 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
         </div>
       </div>
 
-      {error && <div className="mt-5 rounded-[1.25rem] bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-red-600">{error}</div>}
+      {error ? <div className="mt-5 rounded-[1.25rem] bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-red-600">{error}</div> : null}
 
       <div className="mt-5 space-y-4 rounded-[1.5rem] bg-surface-container-low p-5">
         <div className="grid gap-2">
@@ -110,7 +135,7 @@ export function ClassroomLaunchPanel({ publishedLessons, emptyStateCopy }: { pub
           disabled={!selectedLessonId || !selectedClassId || isPending}
           className="min-h-[52px] w-full text-base"
         >
-          {isPending ? "正在创建课堂，请稍候。" : "开始课堂"}
+          {isPending ? '正在创建课堂，请稍候。' : ctaLabel}
         </Button>
       </div>
     </Card>
