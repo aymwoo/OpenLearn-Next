@@ -87,7 +87,7 @@
 **Plans**: 4 plans
 - [x] 12-01-PLAN.md — Build the dedicated classroom launch page and route existing launch/resume entry through it.
 - [x] 12-02-PLAN.md — Audit and complete lesson orchestration preview coverage in the current teacher flow.
-- [ ] 12-03-PLAN.md — Add seeded built-in teaching-step plugin manifests, marketplace entries, and default enablement.
+- [x] 12-03-PLAN.md — Add seeded built-in teaching-step plugin manifests, marketplace entries, and default enablement.
 - [ ] 12-04-PLAN.md — Extend safe plugin actions and authoring/runtime integration for built-in teaching-step plugins.
 **UI hint**: yes
 
@@ -99,4 +99,4 @@
 | 9. Core Page Alignment | 3/3 | Complete | 2026-05-06 |
 | 10. Global Visual Polish | 6/6 | Complete    | 2026-05-06 |
 | 11. Plugin, Theme, and Classroom Readiness | 6/6 | Complete | 2026-05-07 |
-| 12. Classroom Launch and Built-in Teaching Steps | 2/4 | In Progress|  |
+| 12. Classroom Launch and Built-in Teaching Steps | 3/4 | In Progress|  |

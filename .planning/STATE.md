@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 current_phase: 12
-current_plan: 3
+current_plan: 4
 status: executing
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-05-08T13:47:05.096Z"
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-05-08T15:49:17.413Z"
 last_activity: 2026-05-08
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 22
-  completed_plans: 20
-  percent: 91
+  completed_plans: 21
+  percent: 95
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 ## Position
 
 **Current Phase:** 12
-**Current Plan:** 3
+**Current Plan:** 4
 **Total Plans in Phase:** 4
 **Status:** Ready to execute
 **Progress:**
-[█████████░] 91%
+[██████████] 95%
 **Last Activity:** 2026-05-08
 
-**Last session:** 2026-05-08T13:47:05.092Z
-**Stopped At:** Completed 12-02-PLAN.md
+**Last session:** 2026-05-08T15:49:17.408Z
+**Stopped At:** Completed 12-03-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -49,6 +49,9 @@ progress:
 - [Phase 12]: 恢复卡片通过 sessionId 精确回到目标课堂 — 恢复入口只暴露 teacher-scoped DTO 字段，且避免多 live classroom 时落回第一条会话
 - [Phase 12]: 开课预览只读取已发布课时快照与已验证 payload，避免把草稿态误展示为可开课内容。
 - [Phase 12]: 预览保持在 /teacher/launch 页面内联呈现，并在未选课时时显示平静占位说明。
+- [Phase 12]: 内置教学环节元数据从 manifest 直接流向 DAL 与 labs UI，避免通过名称推断系统插件身份。
+- [Phase 12]: 删除保护固定收敛在 DAL 层并返回 PLUGIN_BUILT_IN_NOT_DELETABLE，确保任何调用方都不能绕过普通删除路径。
+- [Phase 12]: 开发 bootstrap 通过 upsert 真实写入五个默认启用的内置教学环节插件，保证 authoring 和管理界面共享同一 registry 数据源。
 
 **Active Blockers:**
 
@@ -67,6 +70,7 @@ progress:
 | Phase 10 P06 | 4 min | 2 tasks | 4 files |
 | Phase 12 P01 | 2 min | 2 tasks | 8 files |
 | Phase 12 P02 | 1 min | 2 tasks | 5 files |
+| Phase 12 P03 | 2 min | 3 tasks | 5 files |
 
 ### Quick Tasks Completed
 
