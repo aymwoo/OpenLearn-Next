@@ -6,16 +6,7 @@ import { db } from "@/db";
 import { pluginActionAudits, pluginHookRuns, pluginRegistrations } from "@/db/schema";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
-import {
-  BUILT_IN_TEACHING_STEP_DEFINITIONS,
-  type BuiltInTeachingPluginName,
-  PluginActionInput,
-  PluginActionResult,
-  PluginManifest,
-  PluginManifestSchema,
-  PluginRegistrationDTO,
-  PluginRegistrationDTOSchema,
-} from "@/lib/dto/resource-ai";
+import { PluginActionInput, PluginActionResult, PluginManifest, PluginManifestSchema, PluginRegistrationDTO, PluginRegistrationDTOSchema } from "@/lib/dto/resource-ai";
 import { dispatchPluginAction, PLUGIN_ACTION_PERMISSION_REQUIREMENTS } from "@/server/plugins/registry";
 import { registerThemeTokens } from "@/lib/dal/themes";
 
@@ -406,43 +397,47 @@ export async function runPluginHook(input: RunPluginHookInput) {
   return result;
 }
 
-const BUILT_IN_PLUGIN_REGISTRY = new Map(
-  BUILT_IN_TEACHING_STEP_DEFINITIONS.map((definition) => [definition.pluginName, definition] as const),
-);
+const BUILT_IN_TEMPLATE_ACTION = "insertBuiltInTeachingStepTemplate" as const;
 
-export function getBuiltInTeachingStepTemplate(pluginName: string) {
-  return BUILT_IN_PLUGIN_REGISTRY.get(pluginName as BuiltInTeachingPluginName) ?? null;
+function canResolveBuiltInTemplate(plugin: PluginRegistrationDTO) {
+  return plugin.builtIn && plugin.enabled && plugin.manifestJson.actions.includes(BUILT_IN_TEMPLATE_ACTION);
 }
 
 export async function listBuiltInTeachingStepTemplates(input: PluginManagerScopeInput) {
   const plugins = await listPluginsForSchool(input);
 
-  return plugins
-    .filter((plugin) => plugin.builtIn && plugin.enabled)
-    .map((plugin) => {
-      const definition = getBuiltInTeachingStepTemplate(plugin.name);
-      if (!definition) {
+  const templates = await Promise.all(
+    plugins.filter(canResolveBuiltInTemplate).map(async (plugin) => {
+      const result = await runPluginHook({
+        actorId: input.actorId,
+        pluginId: plugin.id,
+        schoolId: input.schoolId,
+        hookAnchor: "lesson.sidebar",
+        input: {
+          pluginId: plugin.id,
+          action: BUILT_IN_TEMPLATE_ACTION,
+          payload: {},
+        },
+      });
+
+      if (!result || result.proposalType !== "builtInTeachingStepTemplate") {
         return null;
       }
 
       return {
         id: plugin.id,
         pluginId: plugin.id,
-        pluginName: plugin.name,
-        builtInKey: definition.builtInKey,
-        title: definition.title,
-        summary: definition.summary,
-        stepType: definition.stepType,
-        initialTitle: definition.initialTitle,
-        initialPayload: definition.initialPayload,
+        ...result.payload,
       };
-    })
-    .filter((template): template is NonNullable<typeof template> => Boolean(template));
+    }),
+  );
+
+  return templates.filter((template): template is NonNullable<typeof template> => Boolean(template));
 }
 
 export async function getBuiltInTeachingStepTemplateForSchool(input: PluginBySchoolInput) {
   const plugin = await getPluginForSchool(input);
-  if (!plugin || !plugin.builtIn || !plugin.enabled) {
+  if (!plugin || !canResolveBuiltInTemplate(plugin)) {
     return null;
   }
 
@@ -453,7 +448,7 @@ export async function getBuiltInTeachingStepTemplateForSchool(input: PluginBySch
     hookAnchor: "lesson.sidebar",
     input: {
       pluginId: plugin.id,
-      action: "insertBuiltInTeachingStepTemplate",
+      action: BUILT_IN_TEMPLATE_ACTION,
       payload: {},
     },
   });
