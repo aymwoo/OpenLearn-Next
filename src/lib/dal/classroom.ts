@@ -9,6 +9,7 @@ import {
   classroomEvents,
   classroomParticipants,
   classroomSessions,
+  courses,
   courseClasses,
   lessons,
   publishedLessonVersions,
@@ -256,13 +257,25 @@ export async function getClassroomConsoleDTO() {
       status: "live" as const,
     }));
 
-  const publishedLessonsRows = await db.query.lessons.findMany({
-    where: eq(lessons.status, "published")
+  const scopedCourses = await db.query.courses.findMany({
+    where: inArray(courses.schoolId, scope.schoolIds),
   });
-  
-  // Actually we need the course classes to know the rosters.
-  const classesRows = await db.query.classes.findMany();
-  const courseClassesRows = await db.query.courseClasses.findMany();
+  const scopedCourseIds = scopedCourses.map((course) => course.id);
+
+  const publishedLessonsRows = scopedCourseIds.length
+    ? await db.query.lessons.findMany({
+        where: and(eq(lessons.status, "published"), inArray(lessons.courseId, scopedCourseIds)),
+      })
+    : [];
+
+  const classesRows = await db.query.classes.findMany({
+    where: inArray(classes.schoolId, scope.schoolIds),
+  });
+  const courseClassesRows = scopedCourseIds.length
+    ? await db.query.courseClasses.findMany({
+        where: inArray(courseClasses.courseId, scopedCourseIds),
+      })
+    : [];
   
   const publishedVersionIds = publishedLessonsRows
     .map((lesson) => lesson.publishedVersionId)
@@ -370,9 +383,22 @@ export async function launchClassroomSession(input: unknown) {
   const payload = LaunchClassroomInputSchema.parse(input);
   const scope = await assertActiveTeacher();
 
+  const scopedCourses = await db.query.courses.findMany({
+    where: inArray(courses.schoolId, scope.schoolIds),
+  });
+  const scopedCourseIds = new Set(scopedCourses.map((course) => course.id));
+
   const lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, payload.lessonId) });
   if (!lesson || lesson.status !== "published" || !lesson.publishedVersionId || lesson.publishedVersionId !== payload.publishedVersionId) {
     throw new Error("CLASSROOM_LESSON_NOT_PUBLISHED");
+  }
+  if (!scopedCourseIds.has(lesson.courseId)) {
+    throw new Error("TEACHER_AUTH_REQUIRED");
+  }
+
+  const clazz = await db.query.classes.findFirst({ where: eq(classes.id, payload.classId) });
+  if (!clazz || !scope.schoolIds.includes(clazz.schoolId)) {
+    throw new Error("TEACHER_AUTH_REQUIRED");
   }
 
   const courseClass = await db.query.courseClasses.findFirst({

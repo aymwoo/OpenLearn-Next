@@ -44,6 +44,18 @@ export function ClassroomLaunchPanel({
 
   const selectedLesson = publishedLessons.find(l => l.id === selectedLessonId)
 
+  const resolveLaunchTarget = (sessionId: string | undefined, fallbackHref: string | undefined) => {
+    if (sessionId) {
+      return `/classroom?sessionId=${encodeURIComponent(sessionId)}`
+    }
+
+    if (fallbackHref) {
+      return fallbackHref
+    }
+
+    return null
+  }
+
   const handleLaunch = () => {
     if (!selectedLessonId || !selectedClassId) return
     setError('')
@@ -55,8 +67,17 @@ export function ClassroomLaunchPanel({
       
       const result = await launchClassroomSessionAction(formData)
       if (result.ok) {
-        if (successHref) {
-          router.push(successHref)
+        const sessionId =
+          result.data &&
+          typeof result.data === 'object' &&
+          'sessionId' in result.data &&
+          typeof result.data.sessionId === 'string'
+            ? result.data.sessionId
+            : undefined
+        const targetHref = resolveLaunchTarget(sessionId, successHref)
+
+        if (targetHref) {
+          router.push(targetHref)
           return
         }
 
