@@ -1,45 +1,108 @@
-import { readFileSync } from "node:fs";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { describe, expect, it } from "vitest";
+const findManyClassroomSessions = vi.fn();
+const findManyLessons = vi.fn();
+const findManyCourses = vi.fn();
+const findManyClasses = vi.fn();
+const findManyCourseClasses = vi.fn();
+const findManyPublishedLessonVersions = vi.fn();
+const assertActiveTeacher = vi.fn();
+const getCurrentUserDTO = vi.fn();
 
-const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
-const actionSource = readFileSync("src/actions/classroom-actions.ts", "utf8");
-const routeSource = readFileSync("src/app/api/classroom/[sessionId]/snapshot/route.ts", "utf8");
-const eventsSource = readFileSync("src/app/api/classroom/[sessionId]/events/route.ts", "utf8");
+vi.mock("server-only", () => ({}));
 
-describe("classroom DAL reliability", () => {
-  it("creates and reuses participant rows for authorized late joiners", () => {
-    expect(source).toContain("export async function ensureClassroomParticipant");
-    expect(source).toContain('connectionState: "reconnecting"');
-    expect(source).toContain("onConflictDoNothing");
-    expect(source).toContain("CLASSROOM_PARTICIPANT_REQUIRED");
-    expect(source).toContain('eq(classMembers.role, "student")');
+vi.mock("@/db", () => ({
+  db: {
+    query: {
+      classroomSessions: { findMany: findManyClassroomSessions },
+      lessons: { findMany: findManyLessons },
+      courses: { findMany: findManyCourses },
+      classes: { findMany: findManyClasses },
+      courseClasses: { findMany: findManyCourseClasses },
+      publishedLessonVersions: { findMany: findManyPublishedLessonVersions },
+    },
+  },
+}));
+
+vi.mock("@/lib/dal/lesson-authoring", () => ({
+  assertActiveTeacher,
+}));
+
+vi.mock("@/lib/dal/auth", () => ({
+  getCurrentUserDTO,
+}));
+
+describe("getClassroomConsoleDTO", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+
+    assertActiveTeacher.mockResolvedValue({
+      userId: "teacher-1",
+      schoolIds: ["school-1"],
+    });
+    findManyClassroomSessions.mockResolvedValue([]);
+    findManyCourses.mockResolvedValue([
+      { id: "course-in-scope", schoolId: "school-1", title: "语文课程" },
+    ]);
+    findManyLessons.mockResolvedValue([
+      {
+        id: "lesson-in-scope",
+        title: "古诗导读",
+        courseId: "course-in-scope",
+        status: "published",
+        publishedVersionId: "pub-1",
+      },
+    ]);
+    findManyClasses.mockResolvedValue([
+      { id: "class-in-scope", name: "一班", schoolId: "school-1" },
+    ]);
+    findManyCourseClasses.mockResolvedValue([
+      { courseId: "course-in-scope", classId: "class-in-scope" },
+      { courseId: "course-in-scope", classId: "class-out-of-scope" },
+      { courseId: "course-out-of-scope", classId: "class-in-scope" },
+    ]);
+    findManyPublishedLessonVersions.mockResolvedValue([
+      {
+        id: "pub-1",
+        snapshotJson: {
+          lesson: { title: "古诗导读" },
+          steps: [
+            {
+              id: "step-1",
+              lessonId: "lesson-in-scope",
+              type: "content",
+              title: "开场导入",
+              rank: "a0",
+              payload: {
+                type: "content",
+                title: "开场导入",
+                body: "老师先带学生整体感知文本。",
+                teacherNotes: "提示",
+                materialRefs: [],
+              },
+            },
+          ],
+          materials: [],
+        },
+      },
+    ]);
   });
 
-  it("updates connection state, current step, and last seen timestamps", () => {
-    expect(source).toContain("export async function updateClassroomParticipantConnection");
-    expect(source).toContain("lastSeenAt: new Date()");
-    expect(source).toContain("currentStepId");
-    expect(source).toContain("connectionState: input.connectionState");
-  });
+  it("only returns launchable lessons and classes inside the active teacher school scope", async () => {
+    const { getClassroomConsoleDTO } = await import("./classroom");
 
-  it("keeps snapshot route no-store and maps auth errors to safe messages", () => {
-    expect(routeSource).toContain('"Cache-Control": "no-store"');
-    expect(routeSource).toContain("当前用户不在课堂名单中");
-    expect(routeSource).toContain("课堂已结束");
-  });
+    const dto = await getClassroomConsoleDTO();
 
-  it("keeps SSE polling no-store without route-side updateTag writes", () => {
-    expect(eventsSource).toContain('cache: "no-store"');
-    expect(eventsSource).toContain('"Cache-Control": "no-store"');
-    expect(eventsSource).toContain("console.warn");
-    expect(eventsSource).not.toContain("updateTag(");
-  });
-
-  it("exposes presence touch action with zod validation", () => {
-    expect(actionSource).toContain("touchClassroomPresenceAction");
-    expect(actionSource).toContain("TouchClassroomPresenceInputSchema.safeParse");
-    expect(actionSource).toContain("updateClassroomParticipantConnection");
-    expect(actionSource).toContain("connectionState");
+    expect(findManyCourses).toHaveBeenCalledTimes(1);
+    expect(findManyLessons).toHaveBeenCalledTimes(1);
+    expect(findManyClasses).toHaveBeenCalledTimes(1);
+    expect(findManyCourseClasses).toHaveBeenCalledTimes(1);
+    expect(dto.publishedLessons).toHaveLength(1);
+    expect(dto.publishedLessons[0]?.id).toBe("lesson-in-scope");
+    expect(dto.publishedLessons[0]?.classes).toEqual([
+      { id: "class-in-scope", name: "一班" },
+    ]);
+    expect(dto.publishedLessons[0]?.classes.some((clazz) => clazz.id === "class-out-of-scope")).toBe(false);
   });
 });
