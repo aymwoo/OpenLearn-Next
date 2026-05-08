@@ -1,19 +1,19 @@
+import type { PluginActionResult } from "@/lib/dto/resource-ai";
+
+import { BuiltInTeachingStepSuggestionWidget } from "./built-in-teaching-step-suggestion-widget";
+import { BuiltInTeachingStepTemplateWidget } from "./built-in-teaching-step-template-widget";
 import { LessonAnnotationWidget } from "./lesson-annotation-widget";
 import { NotificationStubWidget } from "./notification-stub-widget";
 import { StepSuggestionWidget } from "./step-suggestion-widget";
 
-type PluginProposal = {
-  proposalType: string;
-  payload: Record<string, unknown>;
-  denied?: boolean;
-} | null;
+type PluginProposal = PluginActionResult | null;
 
 type PluginWidgetProps = {
   proposal: PluginProposal;
 };
 
 export function PluginWidget({ proposal }: PluginWidgetProps) {
-  if (!proposal || proposal.denied) {
+  if (!proposal || ("denied" in proposal && proposal.denied)) {
     return null;
   }
 
@@ -24,6 +24,10 @@ export function PluginWidget({ proposal }: PluginWidgetProps) {
       return <LessonAnnotationWidget payload={proposal.payload} />;
     case "notificationStub":
       return <NotificationStubWidget payload={proposal.payload} />;
+    case "builtInTeachingStepSuggestion":
+      return <BuiltInTeachingStepSuggestionWidget payload={proposal.payload} />;
+    case "builtInTeachingStepTemplate":
+      return <BuiltInTeachingStepTemplateWidget payload={proposal.payload} />;
     default:
       return null;
   }

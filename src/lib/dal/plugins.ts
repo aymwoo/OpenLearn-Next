@@ -7,7 +7,10 @@ import { pluginActionAudits, pluginHookRuns, pluginRegistrations } from "@/db/sc
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import {
+  BUILT_IN_TEACHING_STEP_DEFINITIONS,
+  type BuiltInTeachingPluginName,
   PluginActionInput,
+  PluginActionResult,
   PluginManifest,
   PluginManifestSchema,
   PluginRegistrationDTO,
@@ -377,7 +380,17 @@ export async function runPluginHook(input: RunPluginHookInput) {
     });
   }
 
-  const result = dispatchPluginAction(input.input);
+  const actionInput: PluginActionInput = manifest.builtIn
+    ? {
+        ...input.input,
+        payload: {
+          ...input.input.payload,
+          pluginName: plugin.name,
+        },
+      }
+    : input.input;
+
+  const result = dispatchPluginAction(actionInput);
 
   await createHookRun(plugin.id, input.hookAnchor, "success", Date.now() - startedAt);
   await createPluginAudit(
@@ -392,3 +405,79 @@ export async function runPluginHook(input: RunPluginHookInput) {
 
   return result;
 }
+
+const BUILT_IN_PLUGIN_REGISTRY = new Map(
+  BUILT_IN_TEACHING_STEP_DEFINITIONS.map((definition) => [definition.pluginName, definition] as const),
+);
+
+export function getBuiltInTeachingStepTemplate(pluginName: string) {
+  return BUILT_IN_PLUGIN_REGISTRY.get(pluginName as BuiltInTeachingPluginName) ?? null;
+}
+
+export async function listBuiltInTeachingStepTemplates(input: PluginManagerScopeInput) {
+  const plugins = await listPluginsForSchool(input);
+
+  return plugins
+    .filter((plugin) => plugin.builtIn && plugin.enabled)
+    .map((plugin) => {
+      const definition = getBuiltInTeachingStepTemplate(plugin.name);
+      if (!definition) {
+        return null;
+      }
+
+      return {
+        id: plugin.id,
+        pluginId: plugin.id,
+        pluginName: plugin.name,
+        builtInKey: definition.builtInKey,
+        title: definition.title,
+        summary: definition.summary,
+        stepType: definition.stepType,
+        initialTitle: definition.initialTitle,
+        initialPayload: definition.initialPayload,
+      };
+    })
+    .filter((template): template is NonNullable<typeof template> => Boolean(template));
+}
+
+export async function getBuiltInTeachingStepTemplateForSchool(input: PluginBySchoolInput) {
+  const plugin = await getPluginForSchool(input);
+  if (!plugin || !plugin.builtIn || !plugin.enabled) {
+    return null;
+  }
+
+  const result = await runPluginHook({
+    actorId: input.actorId,
+    pluginId: plugin.id,
+    schoolId: input.schoolId,
+    hookAnchor: "lesson.sidebar",
+    input: {
+      pluginId: plugin.id,
+      action: "insertBuiltInTeachingStepTemplate",
+      payload: {},
+    },
+  });
+
+  if (!result || result.proposalType !== "builtInTeachingStepTemplate") {
+    return null;
+  }
+
+  return result.payload;
+}
+
+export async function listBuiltInTeachingStepSuggestions(input: PluginManagerScopeInput) {
+  const templates = await listBuiltInTeachingStepTemplates(input);
+
+  return templates.map((template) => ({
+    pluginId: template.pluginId,
+    pluginName: template.pluginName,
+    builtInKey: template.builtInKey,
+    title: template.title,
+    summary: template.summary,
+    stepType: template.stepType,
+  }));
+}
+
+export type BuiltInTeachingStepTemplateResult = Awaited<ReturnType<typeof getBuiltInTeachingStepTemplateForSchool>>;
+export type BuiltInTeachingStepSuggestionResult = Awaited<ReturnType<typeof listBuiltInTeachingStepSuggestions>>[number];
+export type PluginHookResult = PluginActionResult;

@@ -1,13 +1,8 @@
 import { getCurrentUserDTO } from "@/lib/dal/auth";
+import type { PluginActionResult } from "@/lib/dto/resource-ai";
 import { getEnabledPluginsForAnchor, runPluginHook } from "@/lib/dal/plugins";
 
 import { PluginWidget } from "./widgets";
-
-type PluginProposal = {
-  proposalType: string;
-  payload: Record<string, unknown>;
-  denied?: boolean;
-};
 
 type PluginRendererProps = {
   anchor: "dashboard.widget" | "lesson.sidebar";
@@ -51,7 +46,10 @@ export async function PluginRenderer({ anchor, schoolId, actorId, contextPayload
     )
   );
 
-  const visibleProposals = proposals.filter((proposal): proposal is PluginProposal => Boolean(proposal && !proposal.denied));
+  const visibleProposals = proposals.filter(
+    (proposal): proposal is Exclude<PluginActionResult, { proposalType: "unknown"; denied: true }> =>
+      Boolean(proposal && !("denied" in proposal && proposal.denied)),
+  );
   if (visibleProposals.length === 0) {
     return null;
   }
