@@ -89,9 +89,22 @@ Requirements for initial release. Each maps to roadmap phases.
 ### v1.1 Stitch UI Alignment & Release Polish
 
 - [x] **UI-01**: System can access Stitch MCP to retrieve remote design system tokens and page structural data.
-- [ ] **UI-02**: Home page is refactored to align 1:1 with the Stitch "首页" design, optimizing compactness and aesthetics.
-- [ ] **UI-03**: Teacher dashboard is refactored to align 1:1 with the Stitch "教师工作台" design, improving layout density.
+- [x] **UI-02**: Home page is refactored to align 1:1 with the Stitch "首页" design, optimizing compactness and aesthetics.
+- [x] **UI-03**: Teacher dashboard is refactored to align 1:1 with the Stitch "教师工作台" design, improving layout density.
 - [x] **UI-04**: Application globally eliminates 1px borders, enforces correct tonal layering, shadows, and color usage strictly per `DESIGN.md`.
+
+### v1.2 Course import and management
+
+- [ ] **COURSE-01**: Teacher can open a teacher-scoped course center that lists each visible course with title, subject, grade, status, lesson count, class links, enrollment count, and updated time.
+- [ ] **COURSE-02**: Teacher can create a course manually through a validated form inside the teacher workflow.
+- [ ] **COURSE-03**: Teacher can edit course base information such as title, subject, grade, and status and see read-your-writes feedback after save.
+- [ ] **COURSE-04**: Teacher can publish, unpublish, or archive a course without making archived or inactive courses appear in the wrong teacher flows.
+- [ ] **COURSE-05**: Teacher can delete an eligible course with explicit confirmation and clear feedback when deletion is blocked.
+- [ ] **COURSE-06**: Teacher can associate or remove classes from a course within the teacher's school scope.
+- [ ] **COURSE-07**: Teacher can manage course student enrollment associations within the course management workflow.
+- [ ] **COURSE-08**: Teacher can import multiple courses from a structured batch file and receive row-level validation results before changes are applied.
+- [ ] **COURSE-09**: Teacher can review import outcomes as created, updated, skipped, or failed rows without silently creating duplicates.
+- [ ] **COURSE-10**: Teacher can open a course and continue directly into lesson or teaching-plan management from a dedicated entry point.
 
 ## v2 Requirements
 
@@ -108,6 +121,8 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### Ecosystem and integrations
 
+- **COURSE-V2-01**: School can import courses from real external systems such as Moodle, Notion, or other MCP-connected sources after the local course-center workflow is stable.
+- **COURSE-V2-02**: School can run bidirectional course sync with remote systems after remote identifiers, conflict ownership, and retry semantics are validated.
 - **ECO-V2-01**: School can connect production Moodle, GitHub, Notion, WeCom, or DingTalk integrations through scoped MCP connectors.
 - **ECO-V2-02**: School can use LTI or OneRoster-style integrations after institutional demand validates the scope.
 - **ECO-V2-03**: Developer can build step-type plugins after built-in step contracts and plugin security are stable.
@@ -138,6 +153,8 @@ Explicitly excluded. Documented to prevent scope creep.
 | Ungrounded student AI tutoring in v1 | Hallucination, age appropriateness, and privacy risks require dedicated evaluation first. |
 | Production-grade multimodal textbook RAG in v1 | Chinese PDF parsing, formulas, images, tables, chunking, and evaluation need separate validation. |
 | Public social feed or public class stream | Adds moderation, privacy, and distraction risks outside the core workflow. |
+| Real external system course import in v1.2 | This milestone focuses on local course-center usability; external auth and mapping are deferred. |
+| Bidirectional course sync in v1.2 | Remote conflict ownership and retry behavior need separate validation after local import works. |
 
 ## Traceability
 
@@ -201,16 +218,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLUGIN-06 | Phase 6 | Complete |
 | PLUGIN-07 | Phase 6 | Complete |
 | UI-01 | Phase 8 | Complete |
-| UI-02 | Phase 9 | Pending |
-| UI-03 | Phase 9 | Pending |
+| UI-02 | Phase 9 | Complete |
+| UI-03 | Phase 9 | Complete |
 | UI-04 | Phase 10 | Complete |
+| COURSE-01 | Phase 13 | Pending |
+| COURSE-02 | Phase 13 | Pending |
+| COURSE-03 | Phase 13 | Pending |
+| COURSE-04 | Phase 14 | Pending |
+| COURSE-05 | Phase 14 | Pending |
+| COURSE-06 | Phase 14 | Pending |
+| COURSE-07 | Phase 14 | Pending |
+| COURSE-08 | Phase 15 | Pending |
+| COURSE-09 | Phase 15 | Pending |
+| COURSE-10 | Phase 13 | Pending |
 
 **Coverage:**
-- v1/v1.1 requirements: 59 total
-- Mapped to phases: 59
+- v1/v1.1/v1.2 requirements: 69 total
+- Mapped to phases: 69
 - Unmapped: 0
 - Duplicate mappings: 0
 
 ---
 *Requirements defined: 2026-05-04*  
-*Last updated: 2026-05-04 after roadmap creation*
+*Last updated: 2026-05-09 after milestone v1.2 requirements definition*
