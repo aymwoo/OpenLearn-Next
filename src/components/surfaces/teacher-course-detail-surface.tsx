@@ -20,6 +20,7 @@ const courseStatusMeta = {
 
 export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfaceProps) {
   const statusMeta = courseStatusMeta[course.status as keyof typeof courseStatusMeta] ?? courseStatusMeta.draft;
+  const lessonsEntryHref = `/teacher/courses/${course.id}/lessons`;
 
   return (
     <div className="space-y-6">
@@ -56,7 +57,9 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
               先进入该课程的课时列表或空态，再决定继续已有课时还是新建第一个课时。
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <Button className="px-5 text-sm">进入课时管理</Button>
+              <Button asChild className="px-5 text-sm">
+                <Link href={lessonsEntryHref}>进入课时管理</Link>
+              </Button>
               <Button variant="secondary" className="px-5 text-sm">当前页直接编辑课程信息</Button>
             </div>
           </div>
@@ -147,7 +150,9 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
               这里继续保留“进入课时管理”主 CTA，确保教师不会从列表页直接跳到全局 editor，而是始终保留课程上下文。
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Button className="px-5 text-sm">进入课时管理</Button>
+              <Button asChild className="px-5 text-sm">
+                <Link href={lessonsEntryHref}>进入课时管理</Link>
+              </Button>
               <Button variant="secondary" className="px-5 text-sm">已在本页完成课程编辑</Button>
             </div>
           </div>

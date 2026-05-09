@@ -13,6 +13,7 @@ import {
   TeacherCourseCardDTOSchema,
   TeacherCourseCenterDTOSchema,
   TeacherCourseDetailDTOSchema,
+  TeacherCourseLessonsEntryDTOSchema,
   type CourseCreateInput,
   type CourseUpdateInput,
 } from "@/lib/dto/course-authoring";
@@ -245,6 +246,65 @@ async function getCachedTeacherCourseDetailDTO(input: ScopedCourseQueryInput & C
   });
 }
 
+async function getCachedTeacherCourseLessonsEntryDTO(input: ScopedCourseQueryInput & CourseDetailInput) {
+  "use cache";
+
+  cacheLife("minutes");
+  cacheTag(cacheTags.teacherCourses(input.actorId));
+  cacheTag(cacheTags.course(input.courseId));
+
+  const scopedCourses = await getScopedCourses(input);
+  const course = scopedCourses.find((item) => item.id === input.courseId);
+
+  if (!course) {
+    throw new Error("COURSE_NOT_FOUND");
+  }
+
+  const { lessonRows, lessonCountByCourseId, enrollmentCountByCourseId, classLabelsByCourseId } = await getCourseAggregation(
+    [course.id],
+    input.schoolIds
+  );
+
+  const scopedLessons = lessonRows
+    .filter((lesson) => lesson.courseId === course.id)
+    .sort((left, right) => new Date(right.updatedAt ?? 0).getTime() - new Date(left.updatedAt ?? 0).getTime());
+
+  const stepRows = scopedLessons.length
+    ? await db.query.lessonSteps.findMany({
+        where: inArray(lessonSteps.lessonId, scopedLessons.map((lesson) => lesson.id)),
+      })
+    : [];
+
+  const stepCountByLessonId = new Map<string, number>();
+  for (const step of stepRows) {
+    if (step.archivedAt) {
+      continue;
+    }
+
+    stepCountByLessonId.set(step.lessonId, (stepCountByLessonId.get(step.lessonId) ?? 0) + 1);
+  }
+
+  const lessonEntries = scopedLessons.map((lesson) =>
+    CourseLessonEntryDTOSchema.parse({
+      ...lesson,
+      stepCount: stepCountByLessonId.get(lesson.id) ?? 0,
+      updatedAt: toIso(lesson.updatedAt),
+    })
+  );
+
+  return TeacherCourseLessonsEntryDTOSchema.parse({
+    course: {
+      ...course,
+      lessonCount: lessonCountByCourseId.get(course.id) ?? 0,
+      classLabels: classLabelsByCourseId.get(course.id) ?? [],
+      enrollmentCount: enrollmentCountByCourseId.get(course.id) ?? 0,
+      updatedAt: toIso(course.updatedAt),
+      lessons: lessonEntries,
+    },
+    lessons: lessonEntries,
+  });
+}
+
 export async function getTeacherCourseCenterDTO(input: CourseCenterInput = {}) {
   const scope = await assertActiveTeacher();
 
@@ -259,6 +319,16 @@ export async function getTeacherCourseDetailDTO(input: CourseDetailInput) {
   const scope = await assertActiveTeacher();
 
   return getCachedTeacherCourseDetailDTO({
+    actorId: scope.userId,
+    schoolIds: scope.schoolIds,
+    courseId: input.courseId,
+  });
+}
+
+export async function getTeacherCourseLessonsEntryDTO(input: CourseDetailInput) {
+  const scope = await assertActiveTeacher();
+
+  return getCachedTeacherCourseLessonsEntryDTO({
     actorId: scope.userId,
     schoolIds: scope.schoolIds,
     courseId: input.courseId,

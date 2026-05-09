@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findManyCourses = vi.fn();
@@ -212,5 +214,29 @@ describe("course authoring DAL", () => {
     expect(dto.lessons.map((lesson) => lesson.id)).toEqual(["lesson-2", "lesson-1"]);
     expect(dto.lessons[0]).toEqual(expect.objectContaining({ id: "lesson-2", stepCount: 1, status: "published" }));
     expect(dto.lessons[1]).toEqual(expect.objectContaining({ id: "lesson-1", stepCount: 2, status: "draft" }));
+  });
+
+  it("returns only current course lesson summaries for the course-aware lessons entry per D-09 D-10", async () => {
+    const { getTeacherCourseLessonsEntryDTO } = await import("./course-authoring");
+
+    const dto = await getTeacherCourseLessonsEntryDTO({ courseId: "course-draft-new" });
+
+    expect(dto.course.id).toBe("course-draft-new");
+    expect(dto.lessons.map((lesson) => lesson.id)).toEqual(["lesson-2", "lesson-1"]);
+    expect(dto.lessons.some((lesson) => lesson.id === "lesson-out-of-scope")).toBe(false);
+  });
+
+  it("renders the empty-state primary CTA copy as 新建第一个课时 per D-11", () => {
+    const surfacePath = "src/components/surfaces/course-lessons-entry-surface.tsx";
+
+    expect(existsSync(surfacePath)).toBe(true);
+    expect(readFileSync(surfacePath, "utf8")).toContain("新建第一个课时");
+  });
+
+  it("routes the course detail primary CTA to /teacher/courses/[courseId]/lessons per D-09", () => {
+    const source = readFileSync("src/components/surfaces/teacher-course-detail-surface.tsx", "utf8");
+
+    expect(source).toContain("/teacher/courses/");
+    expect(source).toContain("/lessons");
   });
 });

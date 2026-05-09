@@ -73,10 +73,18 @@ export const TeacherCourseDetailDTOSchema = z.object({
   lessons: z.array(CourseLessonEntryDTOSchema).default([]),
 });
 
+export const TeacherCourseLessonsEntryDTOSchema = z.object({
+  course: TeacherCourseCardDTOSchema.extend({
+    lessons: z.array(CourseLessonEntryDTOSchema).default([]),
+  }),
+  lessons: z.array(CourseLessonEntryDTOSchema).default([]),
+});
+
 export type TeacherCourseCardDTO = z.infer<typeof TeacherCourseCardDTOSchema>;
 export type TeacherCourseCenterDTO = z.infer<typeof TeacherCourseCenterDTOSchema>;
 export type CourseLessonEntryDTO = z.infer<typeof CourseLessonEntryDTOSchema>;
 export type CourseClassLinkDTO = z.infer<typeof CourseClassLinkDTOSchema>;
 export type TeacherCourseDetailDTO = z.infer<typeof TeacherCourseDetailDTOSchema>;
+export type TeacherCourseLessonsEntryDTO = z.infer<typeof TeacherCourseLessonsEntryDTOSchema>;
 export type CourseCreateInput = z.infer<typeof CourseCreateInputSchema>;
 export type CourseUpdateInput = z.infer<typeof CourseUpdateInputSchema>;
