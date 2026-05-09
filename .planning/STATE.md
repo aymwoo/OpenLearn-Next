@@ -123,10 +123,11 @@ progress:
 | 2026-05-08 | fast | 移除教师工作台页面的 max-w-[1280px] 限制 | ✅ |
 | 2026-05-09 | fast | 资源中心页面/resources和设置页面/settings没有左边导航，需要改成和/teacher一致 | ✅ |
 | 260510-07a | settings页面设置主题除了默认的主题之外，提示当前学校还没有可用主题。启用带有 manifest.theme 的插件后，这里会显示可选项。 | 2026-05-09 | 304ce1b | [260510-07a-settings-manifest-theme](./quick/260510-07a-settings-manifest-theme/) |
+| 260510-0kh | 再创建一个版式也不一样的主题 | 2026-05-09 | d4fce9d | [260510-0kh-second-distinct-theme](./quick/260510-0kh-second-distinct-theme/) |
 
 ## Current Position
 
 Phase: 13 (course-center-foundation) — VERIFYING
 Plan: 5 of 5
 Status: Phase complete — ready for verification
-Last activity: 2026-05-09 - Completed quick task 260510-07a: settings页面设置主题除了默认的主题之外，提示当前学校还没有可用主题。启用带有 manifest.theme 的插件后，这里会显示可选项。
+Last activity: 2026-05-09 - Completed quick task 260510-0kh: 再创建一个版式也不一样的主题
