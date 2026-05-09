@@ -1,203 +1,138 @@
 ---
 phase: 12-classroom-launch-and-built-in-teaching-steps
-verified: 2026-05-08T22:39:54Z
-status: gaps_found
-score: 5/11 must-haves verified
+verified: 2026-05-09T09:10:00Z
+status: passed
+score: 11/11 must-haves verified
 overrides_applied: 0
-gaps:
-  - truth: "教师可以从专用开课页安全地选择可开课内容，并在创建后进入正确的 live classroom 运行台"
-    status: failed
-    reason: "`/teacher/launch` 已存在，但其数据源未按教师学校范围过滤，且开课成功后固定跳转 `/classroom`，多 live session 时会回到错误课堂。"
-    artifacts:
-      - path: "src/lib/dal/classroom.ts"
-        issue: "259-265 行直接读取全部 published lessons / classes / courseClasses，没有按 `scope.schoolIds` 过滤。"
-      - path: "src/components/classroom/classroom-launch-panel.tsx"
-        issue: "56-60 行忽略 `launchClassroomSessionAction()` 返回的 `sessionId`，固定 `router.push(successHref)`。"
-    missing:
-      - "按教师 school scope 过滤 published lessons、classes、courseClasses。"
-      - "创建课堂成功后带上返回的 `sessionId` 跳转到 `/classroom?sessionId=...`。"
-  - truth: "系统内置教学环节插件作为真实、可用、默认启用的 registry 记录存在"
-    status: failed
-    reason: "五个 seeded built-in plugin 仍声明旧 action `addStepSuggestion`，导致 12-04 新增的 typed built-in template/suggestion 通路对真实 seed 数据不可达。"
-    artifacts:
-      - path: "scripts/bootstrap-dev-db.ts"
-        issue: "72-137 行五个 built-in manifest 的 `actions` 全是 `addStepSuggestion`。"
-      - path: "src/lib/dal/plugins.ts"
-        issue: "449-461 行会调用 `insertBuiltInTeachingStepTemplate`，但真实 seeded manifest 不允许该 action。"
-    missing:
-      - "将 built-in manifests 升级为显式声明 `suggestBuiltInTeachingStep` / `insertBuiltInTeachingStepTemplate`。"
-      - "补充执行级测试，验证 seeded built-ins 能真实跑通 hook。"
-  - truth: "作者编排页中的内置教学环节与插件启停状态保持一致"
-    status: failed
-    reason: "编排页直接硬编码内置教学环节定义并直接调用 `addLessonStepAction()`，绕过 plugin registry / DAL / enabled state；即使内置插件被停用，教师仍可继续插入。"
-    artifacts:
-      - path: "src/components/authoring/lesson-authoring-workspace.tsx"
-        issue: "16-19、80-84、120-128、208-218 行直接依赖 `BUILT_IN_TEACHING_STEP_DEFINITIONS` 和本地按钮，而不是学校范围的 enabled built-ins。"
-    missing:
-      - "从 DAL / Server Action 拉取当前学校启用的 built-in templates。"
-      - "禁用 built-in 时不再在 quick-add 中展示或插入。"
-  - truth: "内置教学环节在 plugin marketplace 中可见，或有已接受的等价替代实现"
-    status: failed
-    reason: "路线图成功标准明确写的是 plugin marketplace，但当前代码只有 `/settings/labs` 管理卡片，没有 marketplace route/surface，也没有 override 记录把 labs 视为已接受替代。"
-    artifacts:
-      - path: "src/app/settings/labs/page.tsx"
-        issue: "只渲染 Labs settings surface。"
-      - path: "src/components/surfaces/settings-surface.tsx"
-        issue: "269-329 行提供的是 labs 内的插件管理，不是 marketplace surface。"
-    missing:
-      - "实现 roadmap 所述的 plugin marketplace 可见性；或"
-      - "在 VERIFICATION frontmatter 添加 override，明确接受 labs/plugin-management 作为本阶段 marketplace 替代。"
-  - truth: "Phase 12 自带的 verifier 能实际拦截 launch / built-in 回归"
-    status: failed
-    reason: "`verify:phase12` 和相关测试主要做字符串匹配；在存在真实 blocker 的情况下仍然全部通过，不能证明阶段目标达成。"
-    artifacts:
-      - path: "scripts/verify-phase12-launch-and-builtins.ts"
-        issue: "44-101 行只检查字符串/文件存在，无法发现数据越权、错误跳转、seed/action 不匹配、disabled built-in 仍可插入。"
-      - path: "src/lib/dal/classroom.test.ts"
-        issue: "5-45 行为源码字符串断言。"
-      - path: "src/actions/classroom-actions.test.ts"
-        issue: "5-26 行为源码字符串断言。"
-      - path: "src/lib/dal/plugins.test.ts"
-        issue: "5-61 行为源码字符串断言。"
-    missing:
-      - "增加行为级测试：school scope、launch redirect sessionId、disabled built-in 隐藏、seeded built-in hook 执行。"
+re_verification:
+  previous_status: gaps_found
+  previous_score: 5/11
+  gaps_closed:
+    - "教师可以从专用开课页安全地选择可开课内容，并在创建后进入正确的 live classroom 运行台"
+    - "系统内置教学环节插件作为真实、可用、默认启用的 registry 记录存在"
+    - "作者编排页中的内置教学环节与插件启停状态保持一致"
+    - "内置教学环节在 plugin marketplace 中可见，或有已接受的等价替代实现"
+    - "Phase 12 自带的 verifier 能实际拦截 launch / built-in 回归"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 12: Classroom Launch and Built-in Teaching Steps Verification Report
+
+本次为 **re-verification**。结论基于代码与可执行验证，不采信
+SUMMARY 自述作为证据。
 
 **Phase Goal:** Teachers can start a new classroom from a dedicated launch
 surface, preview lesson orchestration in context, and use first-party built-in
 teaching-step plugins that are enabled by default in the authoring flow and
 plugin marketplace.
-**Verified:** 2026-05-08T22:39:54Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
 
-## Goal Achievement
+**Verified:** 2026-05-09T09:10:00Z
+**Status:** passed
+**Re-verification:** Yes — after gap closure
 
-### Observable Truths
+## Goal achievement
+
+本次复核重点追打旧版 `12-VERIFICATION.md` 的 5 个 blocker，并对此前已通过项做回归检查。结果是：旧 blocker 已全部闭合，未发现回归。
+
+### Observable truths
 
 | # | Truth | Status | Evidence |
 | --- | --- | --- | --- |
-| 1 | 教师可打开专用“开启新课堂”页，并从那里选择已发布课时/班级后启动或恢复运行台 | ✗ FAILED | `src/app/(teacher)/teacher/launch/page.tsx:1-8` 与 `classroom-launch-surface.tsx:21-121` 确实存在；但 `src/lib/dal/classroom.ts:259-265` 未按学校范围过滤，`classroom-launch-panel.tsx:56-60` 启动后固定跳转裸 `/classroom`。 |
-| 2 | 开课预览以内联方式留在 launch page，不跳新路由/不弹 modal | ✓ VERIFIED | `src/components/classroom/classroom-launch-panel.tsx:141-145` 直接内联 `ClassroomLaunchPreview`；未发现 preview route。 |
-| 3 | 预览展示步骤顺序、摘要、预计时长、材料提示 | ✓ VERIFIED | `src/lib/dal/classroom.ts:119-149` 构造 `order/summary/estimatedMinutes/materialCues`；`classroom-launch-preview.tsx:51-91` 全部渲染。 |
-| 4 | 未选课时有平静占位态说明预览会显示什么 | ✓ VERIFIED | `src/lib/dal/classroom.ts:300-304` 提供 empty-state copy；`classroom-launch-preview.tsx:17-31` 渲染占位态。 |
-| 5 | 新开课堂是主动作，live classroom 恢复区是次级区域 | ✓ VERIFIED | `classroom-launch-surface.tsx:47-119` 使用主列 launch panel + 侧栏次级恢复区，并在文案中明确“不会压过新开课堂主动作”。 |
-| 6 | `/classroom` 仍负责 active runtime control，不复制 launch prep | ✓ VERIFIED | `classroom/page.tsx:12-17` 有 active session 时加载 snapshot；`classroom-console-surface.tsx:37-69` 渲染 `ClassroomControlPanel`，无 live session 时仅引导回 `/teacher/launch`。 |
-| 7 | 五个 built-in teaching-step plugins 作为真实默认启用记录存在，并可沿安全链路使用 | ✗ FAILED | `bootstrap-dev-db.ts:72-137` 虽 seeded 五个插件，但 actions 仍是 `addStepSuggestion`；`plugins.ts:449-461` 需要 `insertBuiltInTeachingStepTemplate`，真实 seed 数据走不通。 |
-| 8 | 管理 UI 清晰标记 `系统内置`、`默认开启`，允许停用但不允许删除 | ✓ VERIFIED | `settings-surface.tsx:279-319` 渲染标签与启停按钮；`plugins.ts:250-264` 在 DAL 阻止 built-in 删除。 |
-| 9 | 作者页内置教学环节与插件启停状态一致，禁用后不会继续插入 | ✗ FAILED | `lesson-authoring-workspace.tsx:16-19,80-84,120-128,208-218` 直接用常量和 `addLessonStepAction()`，未读取 enabled built-ins。 |
-| 10 | Built-in plugin 行为保持在 allowlisted action + local renderer 内，无任意脚本路径 | ✗ FAILED | `registry.ts:39-77` allowlist 本身存在；但真实 seed manifest 未声明新 action，且 authoring 直接绕过 registry，故“已落地的 built-in 行为”并未稳定停留在该安全链路中。 |
-| 11 | Phase 12 自带 verifier 能覆盖 launch routing、preview、seeded built-ins、authoring exposure | ✗ FAILED | `scripts/verify-phase12-launch-and-builtins.ts:44-101` 仅做静态字符串检查；`pnpm exec tsx scripts/verify-phase12-launch-and-builtins.ts` 仍通过，却没发现本次 4 个 blocker。 |
+| 1 | 教师可以从专用开课页安全地选择可开课内容，并在创建后进入正确的 live classroom 运行台 | ✓ VERIFIED | `src/app/(teacher)/teacher/launch/page.tsx:1-7` 挂载专用页面；`src/lib/dal/classroom.ts:260-308,382-412` 以 `scope.schoolIds` 过滤课程/课时/班级并在 launch mutation 再次校验；`src/components/classroom/classroom-launch-panel.tsx:47-57,68-80` 成功后优先跳转 `/classroom?sessionId=...`。 |
+| 2 | 开课预览以内联方式留在 launch page，不跳新路由/不弹 modal | ✓ VERIFIED | `src/components/classroom/classroom-launch-panel.tsx:162-167` 直接内联 `ClassroomLaunchPreview`；未发现额外 preview route 或 modal 入口。 |
+| 3 | 预览展示步骤顺序、摘要、预计时长、材料提示 | ✓ VERIFIED | `src/lib/dal/classroom.ts:120-150` 生成 `order/summary/estimatedMinutes/materialCues`；`src/components/classroom/classroom-launch-preview.tsx:51-90` 全量渲染。 |
+| 4 | 未选课时有平静占位态说明预览会显示什么 | ✓ VERIFIED | `src/lib/dal/classroom.ts:313-317` 提供 empty-state copy；`src/components/classroom/classroom-launch-preview.tsx:17-31` 渲染占位态。 |
+| 5 | 新开课堂是主动作，live classroom 恢复区是次级区域 | ✓ VERIFIED | `src/components/surfaces/classroom-launch-surface.tsx:26-56,58-118` 主舞台为 launch，恢复区单独次级卡片呈现。 |
+| 6 | `/classroom` 继续负责 active runtime control，不复制 launch prep | ✓ VERIFIED | `src/app/(classroom)/classroom/page.tsx:9-17` 根据 live session 加载 snapshot；`src/components/surfaces/classroom-console-surface.tsx:37-69,73-137` live 时渲染 `ClassroomControlPanel`，非 live 时只引导回 `/teacher/launch`。 |
+| 7 | 五个 built-in teaching-step plugins 作为真实、默认启用的 registry 记录存在，并可沿安全链路使用 | ✓ VERIFIED | `scripts/bootstrap-dev-db.ts:72-138` 五个 built-in manifest 已声明 `suggestBuiltInTeachingStep` 与 `insertBuiltInTeachingStepTemplate`；`src/lib/dal/plugins.ts:400-461` 只从 enabled built-in registry record 解析模板。 |
+| 8 | 管理/市场 UI 清晰标记 `系统内置`、`默认开启`，允许停用但不允许删除 | ✓ VERIFIED | `src/components/surfaces/plugin-marketplace-surface.tsx:66-103` 与 `src/components/surfaces/settings-surface.tsx:293-333` 都显示 built-in 标签和 enable/disable 语义；`src/lib/dal/plugins.ts:241-255` 阻止删除 built-in。 |
+| 9 | 作者页内置教学环节与插件启停状态保持一致，停用后不会继续插入 | ✓ VERIFIED | `src/app/(teacher)/teacher/editor/page.tsx:8-18` 从 `listBuiltInTeachingStepTemplates()` 注入学校范围模板；`src/components/authoring/lesson-authoring-workspace.tsx:86-98,208-228` 仅从 `builtInTemplates` 渲染 quick-add；`src/components/authoring/lesson-authoring-workspace.test.tsx:20-93` 断言未启用项不显示。 |
+| 10 | Built-in plugin 行为保持在 allowlisted action + local renderer 内，无任意脚本路径 | ✓ VERIFIED | `src/server/plugins/registry.ts:11-24,39-77` 明确 allowlist；`src/components/plugins/plugin-renderer.tsx:21-63` 仅运行 enabled plugin hook；`src/components/plugins/widgets/index.tsx:15-33` 只做本地 typed widget 分发；`scripts/verify-phase12-launch-and-builtins.ts:23-30,80-87` 对 `eval(` / `dangerouslySetInnerHTML` / `<script` 做静态阻断。 |
+| 11 | Phase 12 自带 verifier 能拦截 launch / built-in 关键回归，且不再主要依赖字符串匹配 | ✓ VERIFIED | `scripts/verify-phase12-launch-and-builtins.ts:32-47,115-119` 真实执行目标 Vitest 套件；`src/lib/dal/classroom.test.ts:93-111` 覆盖 school scope；`src/components/classroom/classroom-launch-panel.test.tsx:32-83` 覆盖 session redirect；`src/lib/dal/plugins.builtins.test.ts:97-218` 覆盖 seeded hook/template gating；`src/components/authoring/lesson-authoring-workspace.test.tsx:20-93` 覆盖 disabled built-in hidden。 |
 
-**Score:** 5/11 truths verified
+**Score:** 11/11 truths verified
 
-### Required Artifacts
+### Required artifacts
 
 | Artifact | Expected | Status | Details |
 | --- | --- | --- | --- |
-| `src/app/(teacher)/teacher/launch/page.tsx` | 教师专用 launch route | ⚠️ HOLLOW | 路由存在并调用 DAL，但依赖的 `getClassroomConsoleDTO()` 数据源未按学校范围过滤。 |
-| `src/components/surfaces/classroom-launch-surface.tsx` | 开课主舞台与次级恢复区 | ✓ VERIFIED | 布局、恢复卡片、主 CTA 均存在。 |
-| `src/components/classroom/classroom-launch-panel.tsx` | 开课表单与成功跳转 | ⚠️ HOLLOW | 表单存在，但成功后未带 `sessionId` 跳转。 |
-| `src/components/classroom/classroom-launch-preview.tsx` | 内联预览 | ✓ VERIFIED | 渲染顺序、摘要、时长、材料与空态。 |
-| `src/app/(classroom)/classroom/page.tsx` | live runtime route | ✓ VERIFIED | 仍按 active session 组装 runtime。 |
-| `src/lib/dal/classroom.ts` | 教师开课 DTO 与 live session 恢复数据 | ⚠️ HOLLOW | live sessions 教师 scoped；published lessons/classes 非 scoped。 |
-| `src/lib/dto/classroom.ts` | launch preview DTO contract | ✓ VERIFIED | Zod schema 完整定义 launch preview。 |
-| `scripts/bootstrap-dev-db.ts` | 五个 built-in seed records | ⚠️ HOLLOW | 记录存在且默认启用，但 action 集与真实 runtime 需求不一致。 |
-| `src/lib/dto/resource-ai.ts` | built-in metadata / action schema | ✓ VERIFIED | builtIn/defaultEnabled/nonDeletable 与新 action enum 已定义。 |
-| `src/lib/dal/plugins.ts` | built-in metadata flow 与 delete guard | ⚠️ HOLLOW | delete guard 正常；template hook 路径被旧 manifest action 阻断。 |
-| `src/components/surfaces/settings-surface.tsx` | built-in 标签与 non-delete framing | ✓ VERIFIED | labs 管理页标记和 toggle framing 已实现。 |
-| `src/components/authoring/lesson-authoring-workspace.tsx` | 一级 `内置教学环节` quick-add | ⚠️ HOLLOW | UI 存在，但与 registry enabled state 断开。 |
-| `src/server/plugins/registry.ts` | built-in first-party allowlist | ✓ VERIFIED | allowlisted actions 与 typed proposal dispatch 均存在。 |
-| `scripts/verify-phase12-launch-and-builtins.ts` | Phase 12 回归 verifier | ⚠️ HOLLOW | 文件存在且可运行，但覆盖深度不足。 |
+| `src/app/(teacher)/teacher/launch/page.tsx` | 教师专用 launch route | ✓ VERIFIED | 服务端拉取 `getClassroomConsoleDTO()` 并渲染 `ClassroomLaunchSurface`。 |
+| `src/components/surfaces/classroom-launch-surface.tsx` | 开课主舞台与次级恢复区 | ✓ VERIFIED | 主 launch + 次级恢复区布局完整。 |
+| `src/components/classroom/classroom-launch-panel.tsx` | 开课表单与精确跳转 | ✓ VERIFIED | 使用返回的 `sessionId` 精确 handoff。 |
+| `src/components/classroom/classroom-launch-preview.tsx` | 内联预览 | ✓ VERIFIED | 呈现顺序、摘要、时长、材料与空态。 |
+| `src/lib/dal/classroom.ts` | teacher-scoped launch DTO 与 runtime launch boundary | ✓ VERIFIED | DTO 查询和 launch mutation 都做 school scope 收口。 |
+| `scripts/bootstrap-dev-db.ts` | 五个 built-in seed records | ✓ VERIFIED | manifest 动作与 shipped allowlist 对齐。 |
+| `src/lib/dal/plugins.ts` | built-in 模板解析与删除保护 | ✓ VERIFIED | 只信任 enabled + declared action 的 registry record。 |
+| `src/app/(teacher)/teacher/editor/page.tsx` | school-scoped built-in template 注入 | ✓ VERIFIED | 路由边界注入 `builtInTemplates`。 |
+| `src/components/authoring/lesson-authoring-workspace.tsx` | registry-backed built-in quick-add | ✓ VERIFIED | built-ins 从模板数组渲染并通过 `addLessonStepAction()` 插入。 |
+| `src/app/settings/plugins/page.tsx` | 专用 plugin marketplace route | ✓ VERIFIED | 独立 route 挂载 `PluginMarketplaceSurface`。 |
+| `scripts/verify-phase12-launch-and-builtins.ts` | 行为优先 phase verifier | ✓ VERIFIED | 运行真实回归测试，非仅源码 token 命中。 |
 
-### Key Link Verification
+### Key link verification
 
 | From | To | Via | Status | Details |
 | --- | --- | --- | --- | --- |
-| `teacher/launch/page.tsx` | `src/lib/dal/classroom.ts` | `getClassroomConsoleDTO()` | ⚠️ PARTIAL | 已调用，但 `publishedLessons/classes` 查询未按 `scope.schoolIds` 过滤。 |
-| `classroom-launch-surface.tsx` | `classroom-launch-panel.tsx` | `ClassroomLaunchPanel` | ✓ WIRED | `classroom-launch-surface.tsx:47-56` 直接组合。 |
-| `classroom-launch-panel.tsx` | `classroom-launch-preview.tsx` | `ClassroomLaunchPreview` | ✓ WIRED | `classroom-launch-panel.tsx:141-145` 内联渲染。 |
-| `src/lib/dal/classroom.ts` | `src/lib/dto/lesson-authoring.ts` | `lessonStepPayloadSchema` | ✓ WIRED | `classroom.ts:56-70,29` 解析已发布 step payload。 |
-| `src/components/shell/sidebar.tsx` | `/teacher/launch` | CTA link | ✓ WIRED | `sidebar.tsx:89-94`。 |
-| `src/app/(teacher)/teacher/layout.tsx` | `/teacher/launch` | header CTA | ✓ WIRED | `layout.tsx:76-78`。 |
-| `classroom-launch-panel.tsx` | `/classroom` target session | launch success redirect | ✗ NOT_WIRED | `classroom-launch-panel.tsx:57-60` 未使用返回的 `sessionId`。 |
-| `scripts/bootstrap-dev-db.ts` | `src/server/plugins/registry.ts` | built-in action vocabulary | ✗ NOT_WIRED | seed manifest 只声明 `addStepSuggestion`，与 registry 新 action 不匹配。 |
-| `src/lib/dal/plugins.ts` | `settings-surface.tsx` | `builtIn/defaultEnabled` DTO flow | ✓ WIRED | `plugins.ts:77-91,230-247` → `settings-surface.tsx:279-319`。 |
-| `lesson-authoring-workspace.tsx` | plugin registry enabled state | school-scoped built-ins | ✗ NOT_WIRED | 作者页直接用常量，未接入 DAL / hook / enabled state。 |
-| `verify-phase12-launch-and-builtins.ts` | 实际行为回归 | dedicated verifier | ⚠️ PARTIAL | 有脚本与 package script，但只校验字符串存在。 |
+| `teacher/launch/page.tsx` | `src/lib/dal/classroom.ts` | `getClassroomConsoleDTO()` | ✓ WIRED | `page.tsx:1-7` → `classroom.ts:214-319`。 |
+| `classroom-launch-panel.tsx` | `/classroom?sessionId=` | launch success redirect | ✓ WIRED | `classroom-launch-panel.tsx:68-80` 使用返回 `sessionId`。 |
+| `src/lib/dal/classroom.ts` | school scope | `courses/classes/courseClasses` filtering | ✓ WIRED | `classroom.ts:260-308,386-412`。 |
+| `scripts/bootstrap-dev-db.ts` | `src/server/plugins/registry.ts` | built-in action vocabulary | ✓ WIRED | seed manifest actions 与 `PLUGIN_ACTION_ALLOWLIST` 一致。 |
+| `src/app/(teacher)/teacher/editor/page.tsx` | `src/lib/dal/plugins.ts` | `listBuiltInTeachingStepTemplates()` | ✓ WIRED | `editor/page.tsx:11-13`。 |
+| `lesson-authoring-workspace.tsx` | `addLessonStepAction()` | `initialPayload` insertion | ✓ WIRED | `lesson-authoring-workspace.tsx:129-138,217-227`。 |
+| `src/app/settings/plugins/page.tsx` | `PluginMarketplaceSurface` | dedicated marketplace assembly | ✓ WIRED | `settings/plugins/page.tsx:5-10`。 |
+| `settings-surface.tsx` | `/settings/plugins` | settings entry link | ✓ WIRED | `settings-surface.tsx:88-94,160-161`。 |
+| `verify-phase12-launch-and-builtins.ts` | targeted Vitest suites | behavior-level release gate | ✓ WIRED | `verify-phase12-launch-and-builtins.ts:32-47,115-117`。 |
 
-### Data-Flow Trace (Level 4)
+### Data-flow trace (level 4)
 
-| Artifact | Data Variable | Source | Produces Real Data | Status |
+| Artifact | Data variable | Source | Produces real data | Status |
 | --- | --- | --- | --- | --- |
-| `src/app/(teacher)/teacher/launch/page.tsx` | `consoleData` | `getClassroomConsoleDTO()` → DB | Yes | ⚠️ LEAKY — 数据真实但未按学校隔离。 |
-| `src/components/classroom/classroom-launch-preview.tsx` | `selectedLesson.launchPreview` | `buildLaunchPreview()` → published snapshot | Yes | ✓ FLOWING |
-| `src/components/surfaces/settings-surface.tsx` | `plugins` | `listPluginsAction()` → `listPluginsForSchool()` → `pluginRegistrations` | Yes | ✓ FLOWING |
-| `src/components/authoring/lesson-authoring-workspace.tsx` | `builtInTeachingSteps` | `BUILT_IN_TEACHING_STEP_DEFINITIONS` 常量 | No | ✗ DISCONNECTED — 未经过 registry enabled state。 |
-| `src/lib/dal/plugins.ts#getBuiltInTeachingStepTemplateForSchool` | `result.payload` | `runPluginHook()` → seeded manifest actions | No | ✗ DISCONNECTED — 真实 seeded manifest 不允许 template action。 |
+| `src/app/(teacher)/teacher/launch/page.tsx` | `consoleData` | `getClassroomConsoleDTO()` → DB queries on courses/lessons/classes | Yes | ✓ FLOWING |
+| `src/components/classroom/classroom-launch-preview.tsx` | `selectedLesson.launchPreview` | published snapshot → `buildLaunchPreview()` | Yes | ✓ FLOWING |
+| `src/app/(teacher)/teacher/editor/page.tsx` | `builtInTemplates` | `listBuiltInTeachingStepTemplates()` → enabled plugin rows → `runPluginHook()` | Yes | ✓ FLOWING |
+| `src/components/surfaces/plugin-marketplace-surface.tsx` | `plugins` | `listPluginsAction()` → `listPluginsForSchool()` | Yes | ✓ FLOWING |
 
-### Behavioral Spot-Checks
+### Behavioral spot-checks
 
 | Behavior | Command | Result | Status |
 | --- | --- | --- | --- |
-| Phase 12 静态 verifier 可运行 | `pnpm exec tsx scripts/verify-phase12-launch-and-builtins.ts` | exits 0, 输出 `Phase 12 launch and built-ins verification passed` | ✓ PASS |
-| 当前仓库类型约束通过 | `pnpm typecheck` | exits 0 | ✓ PASS |
-| Phase 12 相关测试通过 | `pnpm test -- src/lib/dal/classroom.test.ts src/actions/classroom-actions.test.ts src/lib/dal/plugins.test.ts` | 22 files / 80 tests passed | ✓ PASS（但这些测试主要是源码字符串断言，未覆盖本次 blocker） |
+| Phase 12 verifier | `pnpm exec tsx scripts/verify-phase12-launch-and-builtins.ts` | 通过；执行 launch/built-in/marketplace 目标回归套件后输出 `Phase 12 launch and built-ins verification passed` | ✓ PASS |
+| 类型约束 | `pnpm typecheck` | 通过 | ✓ PASS |
 
-### Requirements Coverage
+### Requirements coverage
 
-| Requirement | Source Plan | Description | Status | Evidence |
+| Requirement | Source plan | Description | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| `CLASS-01` | 12-01, 12-02 | Teacher can launch a published lesson as a classroom session with a roster | ✗ BLOCKED | 专用 launch 页已存在，但 `classroom.ts:259-295` 暴露未 scoped 的 lesson/class 数据，且 `classroom-launch-panel.tsx:56-60` 启动后可能跳回错误 live session。 |
-| `CLASS-02` | 12-04 | Teacher can see and change the active step of a live classroom session | ✓ SATISFIED | `classroom-console-surface.tsx:37-69` 渲染 `ClassroomControlPanel`；`classroom-control-panel.tsx:32-45,165-170+` 处理 step change。 |
-| `CLASS-03` | 12-04 | Teacher can switch classroom locked/unlocked mode | ✓ SATISFIED | `classroom-control-panel.tsx:48-62,116-133` 调用 `changeClassroomModeAction()`。 |
-| `CLASS-04` | 12-04 | Student player reflects active step and lock mode via Edge Runtime SSE | ✓ SATISFIED | `student/player/page.tsx:37-39` 装配 `ClassroomRuntimeClient`；`classroom-runtime-client.tsx:214-259` 使用 `EventSource`，`190-211` 应用 snapshot 中的 `locked/activeStepId`；`api/classroom/[sessionId]/events/route.ts:1-83` 提供 SSE。 |
-| `CLASS-06` | 12-01, 12-02 | Reconnecting or late-joining students receive a consistent snapshot | ✓ SATISFIED | `learning.ts:457-505` 恢复 classroom runtime；`classroom-runtime-client.tsx:175-188,230-239` 断线后抓 durable snapshot。 |
-| `CLASS-07` | 12-01, 12-02 | Teacher can recover from classroom control conflicts or stale UI with clear feedback | ✓ SATISFIED | `classroom-control-panel.tsx:32-62` 处理 `VERSION_CONFLICT`；`classroom.ts:358-363` 提供 stale/reconnect/restored copy。 |
-| `LESSON-03` | 12-04 | Teacher can add ordered lesson steps of type content/task/quiz with validated structured payloads | ✓ SATISFIED | `lesson-authoring-workspace.tsx:109-128` 仍通过 `addLessonStepAction()` 添加 `content/task/quiz` payload；基础类型未回退。 |
-| `PLUGIN-04` | 12-03, 12-04 | Developer can expose a limited action allowlist | ✗ BLOCKED | `resource-ai.ts:138-145`、`registry.ts:11-24` 有 allowlist，但真实 seeded built-ins 仍未声明新 action，导致 shipped 内置插件不能真实使用该 allowlist。 |
-| `PLUGIN-05` | 12-03, 12-04 | Developer can register UI hook anchors without arbitrary script execution | ✗ BLOCKED | 安全 anchor/renderer 仍存在，但作者页直接硬编码 built-ins、绕过 registry enabled state，Phase 12 的 built-in authoring integration 未真正通过受控 hook 链路落地。 |
+| `CLASS-01` | 12-01, 12-02, 12-05, 12-09 | Teacher can launch a published lesson as a classroom session with a roster | ✓ SATISFIED | `classroom.ts:260-319,382-469` + `classroom-launch-panel.tsx:68-80` + `classroom.test.ts:93-111`。 |
+| `CLASS-02` | 12-04 | Teacher can see and change the active step of a live classroom session | ✓ SATISFIED | `classroom-control-panel.tsx:32-46,165-199`。 |
+| `CLASS-03` | 12-04 | Teacher can switch classroom locked/unlocked mode | ✓ SATISFIED | `classroom-control-panel.tsx:48-62,116-133`。 |
+| `CLASS-04` | 12-04 | Student player reflects active step and lock mode via Edge Runtime SSE | ✓ SATISFIED | `src/components/learning/classroom-runtime-client.tsx:190-259` + `src/app/api/classroom/[sessionId]/events/route.ts:14-83`。 |
+| `CLASS-06` | 12-01, 12-02 | Reconnecting or late-joining students receive a consistent snapshot | ✓ SATISFIED | `classroom-runtime-client.tsx:175-188,230-239` 使用 durable snapshot 恢复。 |
+| `CLASS-07` | 12-01, 12-02, 12-05, 12-09 | Teacher can recover from classroom control conflicts or stale UI with clear feedback | ✓ SATISFIED | `classroom-actions.ts:76-83,101-108` 返回 `latest` snapshot；`classroom-control-panel.tsx:22-27,39-45,55-60,79` 处理冲突恢复。 |
+| `LESSON-03` | 12-04, 12-07 | Teacher can add ordered lesson steps of type content/task/quiz with validated structured payloads | ✓ SATISFIED | `lesson-authoring-workspace.tsx:118-138` 仍经 `addLessonStepAction()` 写入 content/task/quiz payload。 |
+| `PLUGIN-04` | 12-03, 12-04, 12-06, 12-09 | Developer can expose a limited action allowlist | ✓ SATISFIED | `resource-ai.ts:138-145` + `registry.ts:11-24` + `plugins.builtins.test.ts:97-218`。 |
+| `PLUGIN-05` | 12-03, 12-04, 12-06, 12-07, 12-08, 12-09 | Developer can register UI hook anchors without arbitrary script execution | ✓ SATISFIED | `plugin-renderer.tsx:21-63`、`widgets/index.tsx:15-33`、`plugin-marketplace-surface.tsx:95-102`、`settings/plugins/page.tsx:5-10`。 |
 
-**交叉核对备注：**
+### Anti-patterns found
 
-- 4 份 PLAN frontmatter 中声明的 requirement IDs 都能在
-  `.planning/REQUIREMENTS.md` 找到对应定义。
-- 但 `REQUIREMENTS.md` 末尾 Traceability 表仍将这些需求映射到更早阶段
-  （例如 `LESSON-03`→Phase 3，`CLASS-*`→Phase 5，`PLUGIN-*`→Phase 6），
-  没有体现 Phase 12 对这些既有能力的再集成/回归范围。
-
-### Anti-Patterns Found
+本次未发现阻塞 Phase 12 goal 的 blocker anti-pattern。仅保留 1 条非阻塞 warning：
 
 | File | Line | Pattern | Severity | Impact |
 | --- | --- | --- | --- | --- |
-| `src/lib/dal/classroom.ts` | 259-265 | 未按 teacher school scope 过滤 published lessons/classes | 🛑 Blocker | `/teacher/launch` / `/classroom` 可暴露跨学校课时与班级信息。 |
-| `src/components/classroom/classroom-launch-panel.tsx` | 57-60 | launch 成功后忽略返回的 `sessionId` | 🛑 Blocker | 多 live session 时教师可能被送回错误课堂。 |
-| `scripts/bootstrap-dev-db.ts` | 80/93/106/119/132 | built-in seed 仍使用旧 action `addStepSuggestion` | 🛑 Blocker | 12-04 新 built-in template/suggestion 安全链路对真实 seed 数据不可用。 |
-| `src/components/authoring/lesson-authoring-workspace.tsx` | 16-19, 80-84, 120-128, 208-218 | 直接硬编码 built-ins，绕过 registry / enabled state | 🛑 Blocker | 停用 built-in 后仍可插入，违背 Phase 12 built-in contract。 |
-| `scripts/verify-phase12-launch-and-builtins.ts` | 44-101 | 回归验证仅做字符串匹配 | ⚠️ Warning | 真实 blocker 存在时仍能显示“verification passed”。 |
+| `scripts/verify-phase12-launch-and-builtins.ts`, `src/components/surfaces/settings-surface.test.tsx` | `32-47`, `59-68` | marketplace toggle 回归仍未直接断言表单提交会触发 `setPluginEnabledAction` | ⚠️ Warning | 这是 release-gate 覆盖深度问题，不是功能缺失。实际 surface 已在 `plugin-marketplace-surface.tsx:15-23,95-102` 使用 server action form wiring，故不构成 blocker。 |
 
-### Gaps Summary
+### Gaps summary
 
-Phase 12 **没有达成阶段目标**。最核心的缺口不是“文件没写”，而是
-“目标链路未闭环”：
+旧版 5 个 blocker 已全部关闭：
 
-1. **开课链路不可靠也不安全**：专用 launch 页已经有了，但教师可见课时/班级
-   数据没有按学校隔离；新开课堂后又可能跳回旧 live classroom。
-2. **内置教学环节不是稳定可用的 registry-backed 真相源**：seed manifest、DAL
-   hook、authoring quick-add 三层没有对齐，导致 built-in plugins 看起来存在，
-   实际上要么跑不通新 action，要么被前端硬编码绕过启停控制。
-3. **验证护栏失效**：Phase 12 verifier 和相关测试都通过了，但没发现这些真实
-   blocker，说明“自动验证通过”不能作为目标已达成的证据。
+1. **launch school scope / session redirect 已真实成立**：查询和 mutation 两端都按教师学校范围收口，launch 成功后进入精确 session。
+2. **built-in seed action / template resolution / authoring gating / marketplace 已闭环**：seed manifest、registry allowlist、DAL template resolution、authoring quick-add、marketplace visibility 已对齐。
+3. **Phase 12 verifier 已从字符串匹配升级为行为优先**：当前会真实执行关键回归套件，并在 unsafe pattern 上继续做静态阻断。
+4. **最新 code review 剩余 warning 不是 blocker**：它指出的是 verifier 对 marketplace toggle 提交行为的覆盖还不够深，但代码 wiring 已存在，未观察到实现缺口。
 
-> **可能的 intentional deviation：plugin marketplace**
->
-> 当前实现显然把 labs/plugin-management surface 当作 marketplace 的临时替代。
-> 如果团队接受这个偏差，需要在后续 VERIFICATION frontmatter 里显式加入
-> override；否则按 roadmap 合同，这一项仍应判定为未达成。
+结论：**Phase 12 goal 已达到。**
 
 ---
 
-_Verified: 2026-05-08T22:39:54Z_
+_Verified: 2026-05-09T09:10:00Z_
 _Verifier: the agent (gsd-verifier)_
