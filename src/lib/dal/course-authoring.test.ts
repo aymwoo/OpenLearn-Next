@@ -197,6 +197,8 @@ describe("course authoring DAL", () => {
     expect(dto.courses.map((course) => course.id)).not.toContain("course-same-school-foreign");
     expect(dto.courses.every((course) => course.schoolId === "school-1")).toBe(true);
     expect(dto.courses.every((course) => course.ownerId === "teacher-1")).toBe(true);
+    expect(dto.defaultSchoolId).toBe("school-1");
+    expect(dto.availableSchools).toEqual([{ id: "school-1", name: "晨曦实验学校" }]);
   });
 
   it("applies D-13 D-14 D-15 ordering and archived visibility rules by default", async () => {
@@ -272,6 +274,24 @@ describe("course authoring DAL", () => {
     await expect(getTeacherCourseLessonsEntryDTO({ courseId: "course-same-school-foreign" })).rejects.toThrow(
       "COURSE_NOT_FOUND"
     );
+  });
+
+  it("returns all scoped school metadata for multi-school teachers without hardcoded defaults", async () => {
+    assertActiveTeacher.mockResolvedValue({
+      userId: "teacher-1",
+      schoolIds: ["school-2", "school-1"],
+    });
+
+    const { getTeacherCourseCenterDTO } = await import("./course-authoring");
+
+    const dto = await getTeacherCourseCenterDTO();
+
+    expect(dto.defaultSchoolId).toBe("school-2");
+    expect(dto.availableSchools).toEqual([
+      { id: "school-2", name: "星河联合校区" },
+      { id: "school-1", name: "晨曦实验学校" },
+    ]);
+    expect(dto.availableSchools.every((school) => ["school-2", "school-1"].includes(school.id))).toBe(true);
   });
 
   it("renders the empty-state primary CTA copy as 新建第一个课时 per D-11", () => {
