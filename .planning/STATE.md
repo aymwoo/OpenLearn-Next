@@ -5,16 +5,16 @@ milestone_name: Course Import & Management
 current_phase: 13
 current_phase_name: course-center-foundation
 current_plan: 5
-status: executing
-stopped_at: Completed 13-04-PLAN.md
-last_updated: "2026-05-09T13:18:34.492Z"
+status: verifying
+stopped_at: Completed 13-05-PLAN.md
+last_updated: "2026-05-09T13:26:30.860Z"
 last_activity: 2026-05-09
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 4
-  percent: 80
+  completed_plans: 5
+  percent: 100
 ---
 
 # Project State
@@ -25,13 +25,13 @@ progress:
 **Current Phase Name:** course-center-foundation
 **Current Plan:** 5
 **Total Plans in Phase:** 5
-**Status:** Ready to execute
+**Status:** Phase complete — ready for verification
 **Progress:**
-[████████░░] 80%
+[██████████] 100%
 **Last Activity:** 2026-05-09
 
-**Last session:** 2026-05-09T13:18:34.487Z
-**Stopped At:** Completed 13-04-PLAN.md
+**Last session:** 2026-05-09T13:26:30.856Z
+**Stopped At:** Completed 13-05-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -71,6 +71,8 @@ progress:
 - [Phase 13]: 课程保存成功反馈保留在详情页表单区，而不是只依赖瞬时 toast。
 - [Phase 13]: 课程中心 teacher read path 必须同时校验 school scope 与 ownerId，same-school foreign course 统一按 COURSE_NOT_FOUND 处理。
 - [Phase 13]: TeacherCourseCenterDTO 由服务端输出 defaultSchoolId 与 availableSchools，建课流程不再硬编码 school-1。
+- [Phase 13]: 建课抽屉只消费服务端 DTO 提供的 defaultSchoolId 与 availableSchools，不再保留任何 school-1 客户端默认值。
+- [Phase 13]: 多学校教师在抽屉内显式选择学校，单学校教师显示只读学校摘要，无学校 scope 时直接禁用创建。
 
 **Active Blockers:**
 
@@ -99,6 +101,7 @@ progress:
 | Phase 13 P02 | 4 min | 2 tasks | 8 files |
 | Phase 13 P03 | 23 min | 2 tasks | 8 files |
 | Phase 13 P04 | 2 min | 2 tasks | 3 files |
+| Phase 13 P05 | 3 min | 2 tasks | 3 files |
 
 ### Quick Tasks Completed
 
@@ -121,7 +124,7 @@ progress:
 
 ## Current Position
 
-Phase: 13 (course-center-foundation) — EXECUTING
+Phase: 13 (course-center-foundation) — VERIFYING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-09
