@@ -23,13 +23,13 @@ export function TeacherDashboardSurface() {
   return (
     <div className="mx-auto flex w-full flex-col gap-6 pb-12 pt-3">
       <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 sm:p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div className="min-w-0 max-w-[68rem] space-y-3">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,22rem)] xl:items-start">
+          <div className="min-w-0 space-y-3 xl:pr-6">
             <Badge variant="accent" className="bg-surface-container-lowest text-primary">
               教师指挥台
             </Badge>
             <div className="space-y-2">
-              <h1 className="max-w-5xl text-[2.5rem] font-semibold tracking-[-0.03em] text-on-surface sm:text-[2.85rem]">
+              <h1 className="max-w-none text-[2.5rem] font-semibold tracking-[-0.03em] text-on-surface sm:text-[2.85rem]">
                 今天把《编程基础：让角色动起来》编排成可运行课堂
               </h1>
               <p className="max-w-4xl text-sm leading-7 text-on-surface-variant sm:text-base">
@@ -39,7 +39,7 @@ export function TeacherDashboardSurface() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:w-[22rem] xl:grid-cols-1">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             <div className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4">
               <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">今日节奏</p>
               <p className="mt-2 text-2xl font-semibold text-on-surface">3 节课 / 1 节直播中</p>

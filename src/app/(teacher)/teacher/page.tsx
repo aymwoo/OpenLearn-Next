@@ -10,7 +10,7 @@ export default async function TeacherPage() {
     <div className="p-6 lg:p-8 min-h-full">
       <TeacherDashboardSurface />
       {schoolId ? (
-        <section className="mx-auto mt-6 flex w-full max-w-[1280px] flex-col gap-3">
+        <section className="mx-auto mt-6 flex w-full flex-col gap-3">
           <PluginRenderer anchor="dashboard.widget" schoolId={schoolId} actorId={scope.userId} />
         </section>
       ) : null}
