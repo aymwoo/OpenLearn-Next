@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 current_phase: 12
-current_plan: 4
-status: executing
-stopped_at: Completed 12-08-PLAN.md
-last_updated: "2026-05-09T00:00:07.235Z"
-last_activity: 2026-05-08
+current_plan: 9
+status: verifying
+stopped_at: Completed 12-09-PLAN.md
+last_updated: "2026-05-09T00:46:37.249Z"
+last_activity: 2026-05-09
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 27
-  completed_plans: 26
-  percent: 96
+  completed_plans: 27
+  percent: 100
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 ## Position
 
 **Current Phase:** 12
-**Current Plan:** 4
+**Current Plan:** 9
 **Total Plans in Phase:** 9
-**Status:** Ready to execute
+**Status:** Phase complete — ready for verification
 **Progress:**
-[██████████] 96%
-**Last Activity:** 2026-05-08
+[██████████] 100%
+**Last Activity:** 2026-05-09
 
-**Last session:** 2026-05-08T23:59:31.915Z
-**Stopped At:** Completed 12-08-PLAN.md
+**Last session:** 2026-05-09T00:46:37.244Z
+**Stopped At:** Completed 12-09-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -59,6 +59,8 @@ progress:
 - [Phase 12]: Built-in template 解析只信任启用中的 registry record，缺少 template action 或 hook 未返回 typed template 时一律不产出模板。
 - [Phase 12]: 将 built-in plugin 可见性落到独立 /settings/plugins route，明确满足 marketplace visibility 合同而不是继续复用 labs-only surface。
 - [Phase 12]: built-in plugin marketplace 只保留启用/停用语义，不展示删除动作，避免系统内置插件被误解为可移除扩展。
+- [Phase 12]: 将 Phase 12 verifier 的主证明面切到定向行为测试，而不是继续依赖源码字符串命中。 — 用真实回归替代字符串匹配，避免 broken phase 被误判通过。
+- [Phase 12]: verify:phase12 同时保留 unsafe pattern 静态检查与 required-file 守卫。 — 但成功结论必须建立在目标 Vitest 回归套件全部通过之上。
 
 **Active Blockers:**
 
@@ -84,6 +86,7 @@ progress:
 | Phase 12 P06 | 2 min | 2 tasks | 2 files |
 | Phase 12 P08 | 2 min | 2 tasks | 4 files |
 | Phase 12 P07 | 3 min | 2 tasks | 3 files |
+| Phase 12 P09 | 12 min | 2 tasks | 5 files |
 
 ### Quick Tasks Completed
 

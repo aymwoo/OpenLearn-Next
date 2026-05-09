@@ -93,7 +93,7 @@
 - [x] 12-06-PLAN.md — Align built-in seed manifests with registry hook actions and enabled-template resolution.
 - [x] 12-07-PLAN.md — Rewire authoring quick-add to school-enabled built-in templates instead of hardcoded system constants.
 - [x] 12-08-PLAN.md — Add a dedicated plugin marketplace surface for built-in teaching-step visibility.
-- [ ] 12-09-PLAN.md — Replace Phase 12 string-match checks with behavior-level regression coverage.
+- [x] 12-09-PLAN.md — Replace Phase 12 string-match checks with behavior-level regression coverage. (completed 2026-05-09)
 **UI hint**: yes
 
 ### Progress
@@ -104,4 +104,4 @@
 | 9. Core Page Alignment | 3/3 | Complete | 2026-05-06 |
 | 10. Global Visual Polish | 6/6 | Complete    | 2026-05-06 |
 | 11. Plugin, Theme, and Classroom Readiness | 6/6 | Complete | 2026-05-07 |
-| 12. Classroom Launch and Built-in Teaching Steps | 8/9 | In Progress|  |
+| 12. Classroom Launch and Built-in Teaching Steps | 9/9 | Complete   | 2026-05-09 |
