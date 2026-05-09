@@ -44,6 +44,7 @@ describe("getClassroomConsoleDTO", () => {
     findManyClassroomSessions.mockResolvedValue([]);
     findManyCourses.mockResolvedValue([
       { id: "course-in-scope", schoolId: "school-1", title: "语文课程" },
+      { id: "course-out-of-scope", schoolId: "school-2", title: "外校课程" },
     ]);
     findManyLessons.mockResolvedValue([
       {
@@ -104,5 +105,8 @@ describe("getClassroomConsoleDTO", () => {
       { id: "class-in-scope", name: "一班" },
     ]);
     expect(dto.publishedLessons[0]?.classes.some((clazz) => clazz.id === "class-out-of-scope")).toBe(false);
+    expect(findManyCourses).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
+    expect(findManyLessons).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
+    expect(findManyClasses).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
   });
 });
