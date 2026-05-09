@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { BookMarked, Clock3, FolderArchive, GraduationCap, Layers3, Users } from "lucide-react";
+import { Clock3, FolderArchive, GraduationCap, Layers3, Users } from "lucide-react";
 
+import { createCourseAction } from "@/actions/course-authoring-actions";
+import { CourseCreateDrawer } from "@/components/courses/course-create-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,10 +38,7 @@ export function TeacherCourseCenterSurface({ data }: TeacherCourseCenterSurfaceP
             <Button asChild variant={data.includeArchived ? "secondary" : "tertiary"} className="px-5 text-sm">
               <Link href={archivedHref}>{data.includeArchived ? "隐藏已归档" : "查看已归档"}</Link>
             </Button>
-            <Button className="gap-2 px-5 text-sm">
-              <BookMarked className="size-5" aria-hidden />
-              新建课程
-            </Button>
+            <CourseCreateDrawer createCourseAction={createCourseAction} />
           </div>
         </div>
 
@@ -112,7 +111,7 @@ export function TeacherCourseCenterSurface({ data }: TeacherCourseCenterSurfaceP
               你可以先创建第一门课程，或切换查看已归档课程，继续衔接后续的课时与教案管理。
             </p>
             <div className="mt-5 flex justify-center gap-3">
-              <Button className="px-5 text-sm">新建课程</Button>
+              <CourseCreateDrawer createCourseAction={createCourseAction} triggerLabel="新建课程" />
               <Button asChild variant="secondary" className="px-5 text-sm">
                 <Link href={archivedHref}>{data.includeArchived ? "返回活跃课程" : "查看已归档"}</Link>
               </Button>

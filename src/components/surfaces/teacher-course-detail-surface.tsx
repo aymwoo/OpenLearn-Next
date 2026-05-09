@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, BookOpen, Clock3, GraduationCap, Layers3, Users } from "lucide-react";
 
+import { updateCourseAction } from "@/actions/course-authoring-actions";
+import { CourseDetailForm } from "@/components/courses/course-detail-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -43,7 +45,7 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
               {course.title}
             </h1>
             <p className="mt-4 leading-8 text-on-surface-variant">
-              这是课程详情的只读骨架：先确认课程基础信息、班级与课时状态，再从这里进入课程内的课时管理流程。
+              先在这里完成课程基础信息更新，再继续进入课程内的课时管理流程，始终保留课程上下文。
             </p>
           </div>
 
@@ -55,7 +57,7 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Button className="px-5 text-sm">进入课时管理</Button>
-              <Button variant="secondary" className="px-5 text-sm">后续在这里接入编辑课程信息</Button>
+              <Button variant="secondary" className="px-5 text-sm">当前页直接编辑课程信息</Button>
             </div>
           </div>
         </div>
@@ -72,6 +74,10 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
         <Card className="bg-surface-container-low p-5">
           <p className="text-sm text-on-surface-variant">课程概览</p>
           <h2 className="mt-2 text-2xl font-semibold">基础信息与课时摘要</h2>
+
+          <div className="mt-5">
+            <CourseDetailForm course={course} updateCourseAction={updateCourseAction} />
+          </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <InfoCard label="课程标题" value={course.title} />
@@ -107,7 +113,7 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
               </div>
             ) : (
               <div className="mt-4 rounded-3xl bg-surface-container-low p-5 text-sm leading-7 text-on-surface-variant">
-                当前课程还没有课时，后续将从这里直接承接“新建第一个课时”的主入口。
+                当前课程还没有课时，接下来会从这里直接承接“新建第一个课时”的主入口。
               </div>
             )}
           </div>
@@ -136,13 +142,13 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
           </div>
 
           <div className="mt-4 rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
-            <p className="text-sm text-on-surface-variant">后续动作预留</p>
+            <p className="text-sm text-on-surface-variant">课程内下一步</p>
             <p className="mt-2 text-sm leading-7 text-on-surface-variant">
-              这里预留“进入课时管理”主 CTA 区域，确保教师不会从列表页直接跳到全局 editor，而是始终保留课程上下文。
+              这里继续保留“进入课时管理”主 CTA，确保教师不会从列表页直接跳到全局 editor，而是始终保留课程上下文。
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Button className="px-5 text-sm">进入课时管理</Button>
-              <Button variant="secondary" className="px-5 text-sm">后续接入课程编辑</Button>
+              <Button variant="secondary" className="px-5 text-sm">已在本页完成课程编辑</Button>
             </div>
           </div>
         </Card>
