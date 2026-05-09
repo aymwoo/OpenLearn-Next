@@ -97,7 +97,7 @@ async function getScopedCourses(input: ScopedCourseQueryInput) {
     where: inArray(courses.schoolId, input.schoolIds),
   });
 
-  return courseRows.filter((course) => input.schoolIds.includes(course.schoolId));
+  return courseRows.filter((course) => input.schoolIds.includes(course.schoolId) && course.ownerId === input.actorId);
 }
 
 async function getCourseAggregation(courseIds: string[], schoolIds: string[]) {
