@@ -2,6 +2,26 @@ import { z } from "zod";
 
 export const TeacherCourseStatusSchema = z.enum(["draft", "published", "archived"]);
 
+export const CourseCreateInputSchema = z
+  .object({
+    schoolId: z.string().min(1),
+    title: z.string().min(1),
+    subject: z.string().min(1),
+    grade: z.string().min(1),
+    status: z.literal("draft").optional(),
+  })
+  .strict();
+
+export const CourseUpdateInputSchema = z
+  .object({
+    courseId: z.string().min(1),
+    title: z.string().min(1),
+    subject: z.string().min(1),
+    grade: z.string().min(1),
+    status: TeacherCourseStatusSchema,
+  })
+  .strict();
+
 export const TeacherCourseCardDTOSchema = z.object({
   id: z.string(),
   schoolId: z.string(),
@@ -58,3 +78,5 @@ export type TeacherCourseCenterDTO = z.infer<typeof TeacherCourseCenterDTOSchema
 export type CourseLessonEntryDTO = z.infer<typeof CourseLessonEntryDTOSchema>;
 export type CourseClassLinkDTO = z.infer<typeof CourseClassLinkDTOSchema>;
 export type TeacherCourseDetailDTO = z.infer<typeof TeacherCourseDetailDTOSchema>;
+export type CourseCreateInput = z.infer<typeof CourseCreateInputSchema>;
+export type CourseUpdateInput = z.infer<typeof CourseUpdateInputSchema>;

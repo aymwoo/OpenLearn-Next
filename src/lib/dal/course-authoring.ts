@@ -1,16 +1,20 @@
 import "server-only";
 
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
 import { classes, courseClasses, courseEnrollments, courses, lessons, lessonSteps } from "@/db/schema";
 import { cacheTags } from "@/lib/cache-policy";
 import {
+  CourseCreateInputSchema,
   CourseLessonEntryDTOSchema,
+  CourseUpdateInputSchema,
   TeacherCourseCardDTOSchema,
   TeacherCourseCenterDTOSchema,
   TeacherCourseDetailDTOSchema,
+  type CourseCreateInput,
+  type CourseUpdateInput,
 } from "@/lib/dto/course-authoring";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 
@@ -32,6 +36,35 @@ type ScopedCourseQueryInput = {
   actorId: string;
   schoolIds: string[];
 };
+
+type TeacherScope = {
+  userId: string;
+  schoolIds: string[];
+};
+
+function assertSchoolAccess(scope: TeacherScope, schoolId: string) {
+  if (!scope.schoolIds.includes(schoolId)) {
+    throw new Error("TEACHER_AUTH_REQUIRED");
+  }
+}
+
+function ensureCourseOwnership(scope: TeacherScope, course: typeof courses.$inferSelect) {
+  assertSchoolAccess(scope, course.schoolId);
+  if (course.ownerId !== scope.userId) {
+    throw new Error("TEACHER_AUTH_REQUIRED");
+  }
+}
+
+async function getScopedOwnedCourse(courseId: string, scope: TeacherScope) {
+  const course = await db.query.courses.findFirst({ where: eq(courses.id, courseId) });
+
+  if (!course) {
+    throw new Error("COURSE_NOT_FOUND");
+  }
+
+  ensureCourseOwnership(scope, course);
+  return course;
+}
 
 function toIso(value: Date | number | null | undefined) {
   if (!value) {
@@ -230,4 +263,52 @@ export async function getTeacherCourseDetailDTO(input: CourseDetailInput) {
     schoolIds: scope.schoolIds,
     courseId: input.courseId,
   });
+}
+
+export async function createCourseForTeacherScoped(input: CourseCreateInput) {
+  const scope = await assertActiveTeacher();
+  const parsed = CourseCreateInputSchema.parse(input);
+
+  assertSchoolAccess(scope, parsed.schoolId);
+
+  const [course] = await db
+    .insert(courses)
+    .values({
+      schoolId: parsed.schoolId,
+      ownerId: scope.userId,
+      title: parsed.title,
+      subject: parsed.subject,
+      grade: parsed.grade,
+      status: parsed.status ?? "draft",
+    })
+    .returning();
+
+  return TeacherCourseCardDTOSchema.parse({
+    ...course,
+    lessonCount: 0,
+    classLabels: [],
+    enrollmentCount: 0,
+    updatedAt: toIso(course.updatedAt),
+  });
+}
+
+export async function updateCourseForTeacherScoped(input: CourseUpdateInput) {
+  const scope = await assertActiveTeacher();
+  const parsed = CourseUpdateInputSchema.parse(input);
+  const course = await getScopedOwnedCourse(parsed.courseId, scope);
+
+  const [updated] = await db
+    .update(courses)
+    .set({
+      title: parsed.title,
+      subject: parsed.subject,
+      grade: parsed.grade,
+      status: parsed.status,
+      updatedAt: new Date(),
+    })
+    .where(eq(courses.id, course.id))
+    .returning();
+
+  const detail = await getTeacherCourseDetailDTO({ courseId: updated.id });
+  return TeacherCourseDetailDTOSchema.parse(detail);
 }
