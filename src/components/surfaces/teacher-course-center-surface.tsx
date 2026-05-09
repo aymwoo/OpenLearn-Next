@@ -38,7 +38,11 @@ export function TeacherCourseCenterSurface({ data }: TeacherCourseCenterSurfaceP
             <Button asChild variant={data.includeArchived ? "secondary" : "tertiary"} className="px-5 text-sm">
               <Link href={archivedHref}>{data.includeArchived ? "隐藏已归档" : "查看已归档"}</Link>
             </Button>
-            <CourseCreateDrawer createCourseAction={createCourseAction} />
+            <CourseCreateDrawer
+              createCourseAction={createCourseAction}
+              defaultSchoolId={data.defaultSchoolId}
+              availableSchools={data.availableSchools}
+            />
           </div>
         </div>
 
@@ -111,7 +115,12 @@ export function TeacherCourseCenterSurface({ data }: TeacherCourseCenterSurfaceP
               你可以先创建第一门课程，或切换查看已归档课程，继续衔接后续的课时与教案管理。
             </p>
             <div className="mt-5 flex justify-center gap-3">
-              <CourseCreateDrawer createCourseAction={createCourseAction} triggerLabel="新建课程" />
+              <CourseCreateDrawer
+                createCourseAction={createCourseAction}
+                defaultSchoolId={data.defaultSchoolId}
+                availableSchools={data.availableSchools}
+                triggerLabel="新建课程"
+              />
               <Button asChild variant="secondary" className="px-5 text-sm">
                 <Link href={archivedHref}>{data.includeArchived ? "返回活跃课程" : "查看已归档"}</Link>
               </Button>

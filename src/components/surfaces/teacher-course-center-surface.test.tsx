@@ -2,7 +2,7 @@
 
 import { readFileSync } from "node:fs";
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TeacherCourseCenterSurface } from "./teacher-course-center-surface";
@@ -24,6 +24,7 @@ vi.mock("next/navigation", () => ({
 
 describe("TeacherCourseCenterSurface create flow", () => {
   beforeEach(() => {
+    cleanup();
     vi.clearAllMocks();
     createCourseAction.mockResolvedValue({
       ok: true,
@@ -91,7 +92,7 @@ describe("TeacherCourseCenterSurface create flow", () => {
 });
 
 function openDrawerAndFillBaseFields() {
-  fireEvent.click(screen.getByRole("button", { name: "新建课程" }));
+  fireEvent.click(screen.getAllByRole("button", { name: "新建课程" })[0]!);
   fireEvent.change(screen.getByLabelText("课程名称"), { target: { value: "七年级科学探究" } });
   fireEvent.change(screen.getByLabelText("学科"), { target: { value: "科学" } });
   fireEvent.change(screen.getByLabelText("年级"), { target: { value: "七年级" } });

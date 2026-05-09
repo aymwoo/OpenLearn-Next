@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BookMarked, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ghostTextFieldClassName } from "@/components/ui/ghost-field";
+import { ghostSelectFieldClassName, ghostTextFieldClassName } from "@/components/ui/ghost-field";
+import type { TeacherCourseScopeSchoolDTO } from "@/lib/dto/course-authoring";
 
 type CourseCreateResult =
   | { ok: true; data: { id: string } }
@@ -13,7 +14,8 @@ type CourseCreateResult =
 
 type CourseCreateDrawerProps = {
   createCourseAction: (input: Record<string, unknown>) => Promise<CourseCreateResult>;
-  schoolId?: string;
+  defaultSchoolId: string | null;
+  availableSchools: TeacherCourseScopeSchoolDTO[];
   triggerLabel?: string;
   triggerVariant?: "primary" | "secondary" | "tertiary";
 };
@@ -26,22 +28,38 @@ const initialForm = {
 
 export function CourseCreateDrawer({
   createCourseAction,
-  schoolId = "school-1",
+  defaultSchoolId,
+  availableSchools,
   triggerLabel = "新建课程",
   triggerVariant = "primary",
 }: CourseCreateDrawerProps) {
   const router = useRouter();
+  const initialSchoolId = useMemo(
+    () => defaultSchoolId ?? availableSchools[0]?.id ?? "",
+    [availableSchools, defaultSchoolId],
+  );
+  const selectedSchool = availableSchools.find((school) => school.id === initialSchoolId) ?? availableSchools[0] ?? null;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
+  const [selectedSchoolId, setSelectedSchoolId] = useState(initialSchoolId);
   const [isPending, startTransition] = useTransition();
 
+  useEffect(() => {
+    setSelectedSchoolId(initialSchoolId);
+  }, [initialSchoolId]);
+
   const submit = () => {
+    if (!selectedSchoolId) {
+      setError("当前教师身份没有可用学校，暂时无法创建课程。");
+      return;
+    }
+
     setError("");
 
     startTransition(async () => {
       const result = await createCourseAction({
-        schoolId,
+        schoolId: selectedSchoolId,
         title: form.title,
         subject: form.subject,
         grade: form.grade,
@@ -53,6 +71,7 @@ export function CourseCreateDrawer({
       }
 
       setForm(initialForm);
+      setSelectedSchoolId(initialSchoolId);
       setOpen(false);
       router.refresh();
     });
@@ -88,6 +107,35 @@ export function CourseCreateDrawer({
             ) : null}
 
             <div className="mt-6 space-y-4 rounded-[1.75rem] bg-surface-container-lowest p-5 shadow-ambient">
+              {availableSchools.length > 1 ? (
+                <div className="grid gap-2">
+                  <label htmlFor="course-create-school" className="text-sm font-medium text-on-surface">
+                    授课学校
+                  </label>
+                  <select
+                    id="course-create-school"
+                    value={selectedSchoolId}
+                    onChange={(event) => setSelectedSchoolId(event.target.value)}
+                    className={ghostSelectFieldClassName}
+                    disabled={isPending}
+                  >
+                    {availableSchools.map((school) => (
+                      <option key={school.id} value={school.id}>
+                        {school.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : selectedSchool ? (
+                <div className="rounded-[1.5rem] bg-surface-container-low px-4 py-3 text-sm leading-7 text-on-surface-variant">
+                  当前将为 <span className="font-semibold text-on-surface">{selectedSchool.name}</span> 创建课程。
+                </div>
+              ) : (
+                <div className="rounded-[1.5rem] bg-error-container px-4 py-3 text-sm font-medium text-on-error-container">
+                  当前教师身份没有可用学校，暂时无法创建课程。
+                </div>
+              )}
+
               <div className="grid gap-2">
                 <label htmlFor="course-create-title" className="text-sm font-medium text-on-surface">
                   课程名称
@@ -142,7 +190,7 @@ export function CourseCreateDrawer({
               <Button
                 className="flex-1 min-w-[9rem]"
                 onClick={submit}
-                disabled={isPending || !form.title.trim() || !form.subject.trim() || !form.grade.trim()}
+                disabled={isPending || !selectedSchoolId || !form.title.trim() || !form.subject.trim() || !form.grade.trim()}
               >
                 {isPending ? "正在创建课程..." : "创建课程"}
               </Button>
