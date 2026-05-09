@@ -122,10 +122,11 @@ progress:
 | 260507-v0p | 新增学生卡片视图：圆形头像 SVG 进度环、姓名学号，表格/卡片双视图切换 | 2026-05-07 | 1f5f783 | [260507-v0p-stitch-bb82bea4](./quick/260507-v0p-stitch-bb82bea4/) |
 | 2026-05-08 | fast | 移除教师工作台页面的 max-w-[1280px] 限制 | ✅ |
 | 2026-05-09 | fast | 资源中心页面/resources和设置页面/settings没有左边导航，需要改成和/teacher一致 | ✅ |
+| 260510-07a | settings页面设置主题除了默认的主题之外，提示当前学校还没有可用主题。启用带有 manifest.theme 的插件后，这里会显示可选项。 | 2026-05-09 | 304ce1b | [260510-07a-settings-manifest-theme](./quick/260510-07a-settings-manifest-theme/) |
 
 ## Current Position
 
 Phase: 13 (course-center-foundation) — VERIFYING
 Plan: 5 of 5
 Status: Phase complete — ready for verification
-Last activity: 2026-05-09
+Last activity: 2026-05-09 - Completed quick task 260510-07a: settings页面设置主题除了默认的主题之外，提示当前学校还没有可用主题。启用带有 manifest.theme 的插件后，这里会显示可选项。
