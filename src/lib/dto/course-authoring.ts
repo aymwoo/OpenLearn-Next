@@ -36,8 +36,15 @@ export const TeacherCourseCardDTOSchema = z.object({
   updatedAt: z.string(),
 });
 
+export const TeacherCourseScopeSchoolDTOSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
 export const TeacherCourseCenterDTOSchema = z.object({
   includeArchived: z.boolean().default(false),
+  defaultSchoolId: z.string().nullable(),
+  availableSchools: z.array(TeacherCourseScopeSchoolDTOSchema).default([]),
   courses: z.array(TeacherCourseCardDTOSchema),
 });
 
@@ -81,6 +88,7 @@ export const TeacherCourseLessonsEntryDTOSchema = z.object({
 });
 
 export type TeacherCourseCardDTO = z.infer<typeof TeacherCourseCardDTOSchema>;
+export type TeacherCourseScopeSchoolDTO = z.infer<typeof TeacherCourseScopeSchoolDTOSchema>;
 export type TeacherCourseCenterDTO = z.infer<typeof TeacherCourseCenterDTOSchema>;
 export type CourseLessonEntryDTO = z.infer<typeof CourseLessonEntryDTOSchema>;
 export type CourseClassLinkDTO = z.infer<typeof CourseClassLinkDTOSchema>;

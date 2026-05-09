@@ -4,7 +4,7 @@ import { eq, inArray } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
-import { classes, courseClasses, courseEnrollments, courses, lessons, lessonSteps } from "@/db/schema";
+import { classes, courseClasses, courseEnrollments, courses, lessons, lessonSteps, schools } from "@/db/schema";
 import { cacheTags } from "@/lib/cache-policy";
 import {
   CourseCreateInputSchema,
@@ -166,15 +166,29 @@ async function getCachedTeacherCourseCenterDTO(input: ScopedCourseQueryInput & {
   cacheLife("minutes");
   cacheTag(cacheTags.teacherCourses(input.actorId));
 
-  const scopedCourses = await getScopedCourses(input);
+  const [scopedCourses, availableSchoolRows] = await Promise.all([
+    getScopedCourses(input),
+    input.schoolIds.length
+      ? db.query.schools.findMany({
+          where: inArray(schools.id, input.schoolIds),
+        })
+      : Promise.resolve([]),
+  ]);
   const filteredCourses = scopedCourses.filter((course) => input.includeArchived || course.status !== "archived");
   const { lessonCountByCourseId, enrollmentCountByCourseId, classLabelsByCourseId } = await getCourseAggregation(
     filteredCourses.map((course) => course.id),
     input.schoolIds
   );
+  const schoolMap = new Map(availableSchoolRows.map((school) => [school.id, school]));
+  const availableSchools = input.schoolIds
+    .map((schoolId) => schoolMap.get(schoolId))
+    .filter((school): school is (typeof availableSchoolRows)[number] => Boolean(school))
+    .map((school) => ({ id: school.id, name: school.name }));
 
   return TeacherCourseCenterDTOSchema.parse({
     includeArchived: input.includeArchived,
+    defaultSchoolId: input.schoolIds[0] ?? null,
+    availableSchools,
     courses: sortByStatusThenUpdatedAt(filteredCourses).map((course) =>
       TeacherCourseCardDTOSchema.parse({
         ...course,
