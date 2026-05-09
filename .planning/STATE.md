@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Course Import & Management
 current_phase: 13
-current_phase_name: Course center foundation
-current_plan: Not started
+current_phase_name: course-center-foundation
+current_plan: 2
 status: executing
 stopped_at: Phase 13 context gathered
-last_updated: "2026-05-09T11:46:46.023Z"
+last_updated: "2026-05-09T12:08:16.593Z"
 last_activity: 2026-05-09
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 ## Position
 
 **Current Phase:** 13
-**Current Phase Name:** Course center foundation
-**Current Plan:** Not started
+**Current Phase Name:** course-center-foundation
+**Current Plan:** 2
 **Total Plans in Phase:** 3
 **Status:** Ready to execute
 **Progress:**
-[░░░░░░░░░░] 0%
+[███░░░░░░░] 33%
 **Last Activity:** 2026-05-09
 
-**Last session:** 2026-05-09T11:39:29.138Z
-**Stopped At:** Phase 13 context gathered
-**Resume File:** .planning/phases/13-course-center-foundation/13-CONTEXT.md
+**Last session:** 2026-05-09T12:05:31.775Z
+**Stopped At:** Completed 13-01-PLAN.md
+**Resume File:** None
 
 ## Accumulated Context
 
@@ -63,6 +63,9 @@ progress:
 - [Phase 12]: built-in plugin marketplace 只保留启用/停用语义，不展示删除动作，避免系统内置插件被误解为可移除扩展。
 - [Phase 12]: 将 Phase 12 verifier 的主证明面切到定向行为测试，而不是继续依赖源码字符串命中。 — 用真实回归替代字符串匹配，避免 broken phase 被误判通过。
 - [Phase 12]: verify:phase12 同时保留 unsafe pattern 静态检查与 required-file 守卫。 — 但成功结论必须建立在目标 Vitest 回归套件全部通过之上。
+- [Phase 13]: 课程中心读模型拆到独立 course-authoring DAL，避免 lesson-authoring 继续膨胀。
+- [Phase 13]: 课程列表排序固定为 draft->published->archived，再按 updatedAt 倒序，避免 UI 二次排序漂移。
+- [Phase 13]: 教师从课程卡先进入独立详情页，再进入课时管理，不再直接跳全局 editor。
 
 **Active Blockers:**
 
@@ -87,6 +90,7 @@ progress:
 | Phase 12 P08 | 2 min | 2 tasks | 4 files |
 | Phase 12 P07 | 3 min | 2 tasks | 3 files |
 | Phase 12 P09 | 12 min | 2 tasks | 5 files |
+| Phase 13 P01 | 6 min | 2 tasks | 8 files |
 
 ### Quick Tasks Completed
 
@@ -109,7 +113,7 @@ progress:
 
 ## Current Position
 
-Phase: 13 (Course center foundation) — READY
-Plan: 3 plans ready
+Phase: 13 (course-center-foundation) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-05-09 -- Phase 13 planning complete
+Last activity: 2026-05-09

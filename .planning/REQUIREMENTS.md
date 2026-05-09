@@ -95,7 +95,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### v1.2 Course import and management
 
-- [ ] **COURSE-01**: Teacher can open a teacher-scoped course center that lists each visible course with title, subject, grade, status, lesson count, class links, enrollment count, and updated time.
+- [x] **COURSE-01**: Teacher can open a teacher-scoped course center that lists each visible course with title, subject, grade, status, lesson count, class links, enrollment count, and updated time.
 - [ ] **COURSE-02**: Teacher can create a course manually through a validated form inside the teacher workflow.
 - [ ] **COURSE-03**: Teacher can edit course base information such as title, subject, grade, and status and see read-your-writes feedback after save.
 - [ ] **COURSE-04**: Teacher can publish, unpublish, or archive a course without making archived or inactive courses appear in the wrong teacher flows.
@@ -221,7 +221,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-02 | Phase 9 | Complete |
 | UI-03 | Phase 9 | Complete |
 | UI-04 | Phase 10 | Complete |
-| COURSE-01 | Phase 13 | Pending |
+| COURSE-01 | Phase 13 | Complete |
 | COURSE-02 | Phase 13 | Pending |
 | COURSE-03 | Phase 13 | Pending |
 | COURSE-04 | Phase 14 | Pending |
