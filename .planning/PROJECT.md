@@ -10,18 +10,16 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## Current Milestone: v1.1 Stitch UI Alignment & Release Polish
+## Current Milestone: v1.2 Course Import & Management
 
-**Goal:** 通过接入和使用 Stitch MCP，将本地核心页面与新增管理设置页面和 Stitch 项目中的设计图进行 1:1 精确对齐，使整体应用达到发布标准。
-
-**Status:** v1.1 的路线图阶段已全部完成，当前可进入 milestone completion / archive 流程。
+**Goal:** 补齐课程导入与课程管理核心能力，让教师可以实际添加课程、管理课程，并从课程进入后续课时/教案管理流程。
 
 **Target features:**
-- 接入 Stitch MCP 读取远程设计规范与页面结构
-- 对齐首页、教师工作台、课堂控制台、教案编辑器、学生中心、沉浸学习页、资源中心、课程中心和批改中心 UI
-- 新增并对齐学生管理、系统设置、机房设置页面
-- 优化全局布局密度，确保页面排版更紧凑美观
-- 修复未严格遵循 `DESIGN.md` 或设计图的偏差（如 1px 边框、色彩与层级问题）
+- 提供教师可用的课程中心，支持课程列表、查看和基础信息管理
+- 支持手动新建课程，并补齐编辑、发布/下线、归档/删除等生命周期动作
+- 支持课程与班级、学生的关联管理
+- 支持批量导入课程，并返回逐行校验与导入结果反馈
+- 提供从课程进入课时/教案管理的明确入口
 
 ## Requirements
 
@@ -45,7 +43,9 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ### Active
 
-- None — 当前 milestone 的 UI alignment / release polish 需求已在 Phases 8-10 中完成，后续继续项转入 milestone 收尾或新 milestone 规划。
+- [ ] 教师可以在课程中心查看、创建、编辑、发布、归档和删除课程。
+- [ ] 教师可以批量导入课程，并获得逐行校验、重复冲突与导入结果反馈。
+- [ ] 教师可以为课程关联班级/学生，并从课程直接进入课时/教案管理流程。
 
 ### Out of Scope
 
@@ -59,6 +59,8 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应变成可计算流程。核心业务围绕教师编排课堂、学生按步骤参与、系统记录学习进度和提交、AI Agent 辅助生成与分析展开。
 
+当前代码已经具备 `courses`、`courseClasses`、`courseEnrollments`、`lessons` 等基础 schema 与部分 DAL / Server Action 能力，也已经支持教师创建课程草稿和课时草稿。但 `/teacher/courses` 的可用课程中心、批量导入闭环、课程关联管理以及从课程进入教案管理的教师工作流仍未完成，这也是本 milestone 的直接补齐目标。
+
 用户角色采用 RBAC 与 ABAC 混合模型，包含超级管理员、学校管理员、教师、学生、家长、开发者和 AI Agent。所有 Server Actions 与 DAL 函数都必须验证 `userId`、`role` 和必要资源权限。
 
 技术栈明确采用 Next.js 16 App Router、React 19.2、Turbopack、Auth.js v5、`@auth/drizzle-adapter`、Drizzle ORM、SQLite 首发、Nuqs 和 Zustand。Next.js 16 缓存策略必须显式控制，静态或长周期内容使用 `"use cache"`，写入后通过 `updateTag()` 或 `revalidateTag()` 保证 read-your-writes。
@@ -68,6 +70,8 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 数据库约束要求所有关联表设置 `onDelete: cascade`。高频提交表采用 Append-only 机制，`TaskSubmissions` 使用 `isLatest` 标记当前读取版本，并配合 Zod 做结构化校验。
 
 AI 生态包括多 Agent 协同和 RAG 知识库。教材库支持 PDF 等多模态解析，向量库目标为 Qdrant；MCP 连接 Moodle、GitHub、Notion、企业微信/钉钉，并可接入 Next.js Devtools MCP 辅助开发期调试。
+
+v1.2 的课程导入范围明确限定为手动新建与批量导入，不在本 milestone 接入真实外部系统导入。Moodle、Notion 等外部平台的真实同步或导入能力继续保留在后续 milestone，通过 MCP 或专门的集成边界接入。
 
 UI 设计源来自 Stitch 项目 `5322129002350954765`，项目名为“晨曦在线课堂”。后续实现页面时必须优先匹配同名或同职能页面：`首页 - OpenLear-Next (一屏精简版)` 对应首页，`教师工作台 - 简体中文版` 对应教师 dashboard，`课堂教学流程编排 - 优化布局版` 对应教案/步骤编排器，`学生仪表盘 - OpenLear-Next (新亮色版)` 对应学生 dashboard，`学生学习页面 - OpenLear-Next` 和 `全屏沉浸学习模式 - OpenLear-Next` 对应学生播放器，`课堂教学流程运行管理` 和 `课堂教学运行管理 - 优化版` 对应实时课堂控制台，`教学资源中心` 和 `课程中心` 对应资源与课程管理。
 
@@ -96,6 +100,8 @@ UI 设计源来自 Stitch 项目 `5322129002350954765`，项目名为“晨曦�
 | 学生提交采用 Append-only + `isLatest` | 保留所有尝试历史，同时优化最新提交读取 | — Pending |
 | 插件系统采用声明式 JSON + Hook + Core API | 保持扩展能力同时控制安全边界 | — Pending |
 | UI 实现绑定 Stitch 项目 `5322129002350954765` | 让首页、教师中心、学生端和课堂控制台继承既定设计 | — Pending |
+| v1.2 先做手动新建与批量导入课程 | 先补齐教师真实可用的课程运营闭环，避免在同一 milestone 混入外部系统集成复杂度 | — Pending |
+| 课程管理继续沿用 DAL + Server Actions + school-scoped 授权边界 | 课程、班级、学生关联都属于高风险学校数据，必须复用现有权限模型与缓存失效策略 | — Pending |
 
 ## Evolution
 
@@ -115,4 +121,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-06 after Phase 10 completion*
+*Last updated: 2026-05-09 after milestone v1.2 definition*

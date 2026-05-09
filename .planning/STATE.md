@@ -1,35 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: milestone
-current_phase: 12
+milestone: v1.2
+milestone_name: Course Import & Management
+current_phase: 13
+current_phase_name: Course center foundation
 current_plan: Not started
-status: milestone_complete
-stopped_at: Completed 12-09-PLAN.md
-last_updated: "2026-05-09T01:18:13Z"
+status: ready_to_execute
+last_updated: "2026-05-09T09:24:09.465Z"
 last_activity: 2026-05-09
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 27
-  completed_plans: 27
-  percent: 100
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 9
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 12
+**Current Phase:** 13
+**Current Phase Name:** Course center foundation
 **Current Plan:** Not started
-**Total Plans in Phase:** 9
-**Status:** Milestone complete
+**Total Plans in Phase:** 3
+**Status:** Ready to execute
 **Progress:**
-[██████████] 100%
+[░░░░░░░░░░] 0%
 **Last Activity:** 2026-05-09
 
 **Last session:** 2026-05-09T00:46:37.244Z
-**Stopped At:** Completed 12-09-PLAN.md
+**Stopped At:** Milestone v1.2 roadmap approved
 **Resume File:** None
 
 ## Accumulated Context
@@ -65,14 +66,12 @@ progress:
 **Active Blockers:**
 
 - Full `pnpm lint` is blocked by pre-existing lint errors in `.claude/`, `.opencode/`, and unrelated source files outside Plan 11-01.
-- [Phase 12]: 教师编排页 built-in quick-add 只从学校范围内已启用的 registry templates 注入，禁用即不显示。
-- [Phase 12]: built-in quick-add 继续复用 addLessonStepAction 持久化路径，只替换按钮数据来源。
 
 ## Next Steps
 
-1. Phase 12 is complete; the milestone is ready for completion and archival.
-2. Reuse `verify:phase12` for future regression checks touching classroom launch、built-in plugins、authoring exposure, and plugin safety flows.
-3. Keep excluded scope explicit: marketplace, arbitrary plugin JS, gradebook, advanced branching classroom flows.
+1. Start Phase 13 to build the teacher course center and manual course management flows.
+2. Reuse the existing DAL, DTO, and cache-tag boundaries instead of creating a parallel course-management write path.
+3. Keep v1.2 scope explicit: no real external system import, no bidirectional sync, and no SIS automation in this milestone.
 
 ## Performance Metrics
 
@@ -106,3 +105,10 @@ progress:
 | 260507-u75 | 学生列表对齐 Stitch bb82bea4 紧凑 3 列布局：5 名学生、图片头像、筛选增加"所有"选项 | 2026-05-07 | 12f7a3b | [260507-u75-stitch-bb82bea424fd4a7eb9d21cf206fe56fe](./quick/260507-u75-stitch-bb82bea424fd4a7eb9d21cf206fe56fe/) |
 | 260507-v0p | 新增学生卡片视图：圆形头像 SVG 进度环、姓名学号，表格/卡片双视图切换 | 2026-05-07 | 1f5f783 | [260507-v0p-stitch-bb82bea4](./quick/260507-v0p-stitch-bb82bea4/) |
 | 2026-05-08 | fast | 移除教师工作台页面的 max-w-[1280px] 限制 | ✅ |
+
+## Current Position
+
+Phase: 13 (Course center foundation) — READY
+Plan: 3 plans ready
+Status: Ready to execute
+Last activity: 2026-05-09 -- Phase 13 planning complete
