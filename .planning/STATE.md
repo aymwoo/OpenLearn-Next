@@ -6,8 +6,8 @@ current_phase: 13
 current_phase_name: course-center-foundation
 current_plan: 3
 status: verifying
-stopped_at: Completed 13-02-PLAN.md
-last_updated: "2026-05-09T12:46:18.869Z"
+stopped_at: Completed 13-03-PLAN.md
+last_updated: "2026-05-09T12:46:58.777Z"
 last_activity: 2026-05-09
 progress:
   total_phases: 3
@@ -30,8 +30,8 @@ progress:
 [██████████] 100%
 **Last Activity:** 2026-05-09
 
-**Last session:** 2026-05-09T12:44:56.308Z
-**Stopped At:** Completed 13-02-PLAN.md
+**Last session:** 2026-05-09T12:46:57.957Z
+**Stopped At:** Completed 13-03-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -73,9 +73,6 @@ progress:
 **Active Blockers:**
 
 - Full `pnpm lint` is blocked by pre-existing lint errors in `.claude/`, `.opencode/`, and unrelated source files outside Plan 11-01.
-- [Phase 13]: 课程详情主 CTA 固定先进入 /teacher/courses/[courseId]/lessons，再由课程内上下文决定继续编辑或新建课时。
-- [Phase 13]: 无课时状态只暴露‘新建第一个课时’动作，并在创建成功后携带 courseId 与 lessonId 重定向到 editor。
-- [Phase 13]: teacher editor 只接受显式 searchParams.courseId 与可选 lessonId，禁止回退到 overview 中的全局第一课时。
 
 ## Next Steps
 
