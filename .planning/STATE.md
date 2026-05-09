@@ -4,17 +4,17 @@ milestone: v1.2
 milestone_name: Course Import & Management
 current_phase: 13
 current_phase_name: course-center-foundation
-current_plan: 3
+current_plan: 5
 status: executing
-stopped_at: Completed 13-03-PLAN.md
-last_updated: "2026-05-09T13:09:09.088Z"
+stopped_at: Completed 13-04-PLAN.md
+last_updated: "2026-05-09T13:18:34.492Z"
 last_activity: 2026-05-09
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
-  percent: 60
+  completed_plans: 4
+  percent: 80
 ---
 
 # Project State
@@ -23,15 +23,15 @@ progress:
 
 **Current Phase:** 13
 **Current Phase Name:** course-center-foundation
-**Current Plan:** 3
+**Current Plan:** 5
 **Total Plans in Phase:** 5
 **Status:** Ready to execute
 **Progress:**
-[██████████] 100%
+[████████░░] 80%
 **Last Activity:** 2026-05-09
 
-**Last session:** 2026-05-09T12:46:57.957Z
-**Stopped At:** Completed 13-03-PLAN.md
+**Last session:** 2026-05-09T13:18:34.487Z
+**Stopped At:** Completed 13-04-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -69,6 +69,8 @@ progress:
 - [Phase 13]: 课程 create action 只接受 schoolId、title、subject、grade 与可选 draft status，并在 schema 层拒绝未声明字段。
 - [Phase 13]: 课程 update 继续收敛到 teacher-owned DAL 写路径，跨教师或跨学校课程一律返回未授权。
 - [Phase 13]: 课程保存成功反馈保留在详情页表单区，而不是只依赖瞬时 toast。
+- [Phase 13]: 课程中心 teacher read path 必须同时校验 school scope 与 ownerId，same-school foreign course 统一按 COURSE_NOT_FOUND 处理。
+- [Phase 13]: TeacherCourseCenterDTO 由服务端输出 defaultSchoolId 与 availableSchools，建课流程不再硬编码 school-1。
 
 **Active Blockers:**
 
@@ -96,6 +98,7 @@ progress:
 | Phase 13 P01 | 6 min | 2 tasks | 8 files |
 | Phase 13 P02 | 4 min | 2 tasks | 8 files |
 | Phase 13 P03 | 23 min | 2 tasks | 8 files |
+| Phase 13 P04 | 2 min | 2 tasks | 3 files |
 
 ### Quick Tasks Completed
 
@@ -119,6 +122,6 @@ progress:
 ## Current Position
 
 Phase: 13 (course-center-foundation) — EXECUTING
-Plan: 3 of 3
+Plan: 5 of 5
 Status: Ready to execute
-Last activity: 2026-05-09 -- Phase 13 planning complete
+Last activity: 2026-05-09

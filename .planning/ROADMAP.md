@@ -26,7 +26,7 @@
 - [x] 13-01-PLAN.md — Build the teacher-scoped course center read model and route surface.
 - [x] 13-02-PLAN.md — Add manual course create and edit flows through Server Actions and DAL.
 - [x] 13-03-PLAN.md — Wire the course detail workflow into lesson and teaching-plan management entry points.
-- [ ] 13-04-PLAN.md — Close the teacher-owned read leak and expose real course-center school scope metadata.
+- [x] 13-04-PLAN.md — Close the teacher-owned read leak and expose real course-center school scope metadata.
 - [ ] 13-05-PLAN.md — Replace hardcoded create scope with DTO-driven single-school and multi-school create flow wiring.
 **UI hint**: yes
 
@@ -64,6 +64,6 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 13. Course center foundation | 3/5 | Gap closure planned | - |
+| 13. Course center foundation | 4/5 | In Progress|  |
 | 14. Course lifecycle and associations | 0/3 | Not started | - |
 | 15. Batch course import | 0/3 | Not started | - |
