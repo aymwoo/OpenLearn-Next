@@ -8,6 +8,7 @@ const findManyLessonSteps = vi.fn();
 const findManyCourseEnrollments = vi.fn();
 const findManyCourseClasses = vi.fn();
 const findManyClasses = vi.fn();
+const findManySchools = vi.fn();
 const assertActiveTeacher = vi.fn();
 const cacheLife = vi.fn();
 const cacheTag = vi.fn();
@@ -28,6 +29,7 @@ vi.mock("@/db", () => ({
       courseEnrollments: { findMany: findManyCourseEnrollments },
       courseClasses: { findMany: findManyCourseClasses },
       classes: { findMany: findManyClasses },
+      schools: { findMany: findManySchools },
     },
   },
 }));
@@ -60,7 +62,7 @@ describe("course authoring DAL", () => {
       {
         id: "course-published-newer",
         schoolId: "school-1",
-        ownerId: "teacher-2",
+        ownerId: "teacher-1",
         title: "整本书阅读",
         subject: "语文",
         grade: "八年级",
@@ -70,12 +72,22 @@ describe("course authoring DAL", () => {
       {
         id: "course-draft-older",
         schoolId: "school-1",
-        ownerId: "teacher-3",
+        ownerId: "teacher-1",
         title: "函数入门",
         subject: "数学",
         grade: "七年级",
         status: "draft",
         updatedAt: new Date("2026-05-07T10:00:00.000Z"),
+      },
+      {
+        id: "course-same-school-foreign",
+        schoolId: "school-1",
+        ownerId: "teacher-2",
+        title: "同校其他教师课程",
+        subject: "历史",
+        grade: "七年级",
+        status: "published",
+        updatedAt: new Date("2026-05-11T10:00:00.000Z"),
       },
       {
         id: "course-archived",
@@ -127,6 +139,15 @@ describe("course authoring DAL", () => {
         revision: 1,
         updatedAt: new Date("2026-05-11T08:00:00.000Z"),
       },
+      {
+        id: "lesson-same-school-foreign",
+        courseId: "course-same-school-foreign",
+        title: "同校越权课时",
+        objective: "不应出现",
+        status: "draft",
+        revision: 1,
+        updatedAt: new Date("2026-05-12T08:00:00.000Z"),
+      },
     ]);
 
     findManyLessonSteps.mockResolvedValue([
@@ -135,18 +156,21 @@ describe("course authoring DAL", () => {
       { id: "step-3", lessonId: "lesson-1", archivedAt: new Date("2026-05-09T09:00:00.000Z") },
       { id: "step-4", lessonId: "lesson-2", archivedAt: null },
       { id: "step-5", lessonId: "lesson-out-of-scope", archivedAt: null },
+      { id: "step-6", lessonId: "lesson-same-school-foreign", archivedAt: null },
     ]);
 
     findManyCourseEnrollments.mockResolvedValue([
       { id: "enrollment-1", courseId: "course-draft-new" },
       { id: "enrollment-2", courseId: "course-draft-new" },
       { id: "enrollment-3", courseId: "course-published-newer" },
+      { id: "enrollment-foreign", courseId: "course-same-school-foreign" },
       { id: "enrollment-4", courseId: "course-out-of-scope" },
     ]);
 
     findManyCourseClasses.mockResolvedValue([
       { courseId: "course-draft-new", classId: "class-1" },
       { courseId: "course-draft-new", classId: "class-2" },
+      { courseId: "course-same-school-foreign", classId: "class-2" },
       { courseId: "course-archived", classId: "class-2" },
       { courseId: "course-out-of-scope", classId: "class-3" },
     ]);
@@ -156,15 +180,23 @@ describe("course authoring DAL", () => {
       { id: "class-2", schoolId: "school-1", name: "七年级二班" },
       { id: "class-3", schoolId: "school-2", name: "外校实验班" },
     ]);
+
+    findManySchools.mockResolvedValue([
+      { id: "school-1", name: "晨曦实验学校" },
+      { id: "school-2", name: "星河联合校区" },
+      { id: "school-3", name: "未授权学校" },
+    ]);
   });
 
-  it("filters to teacher school scope only per D-16 and hides cross-school courses", async () => {
+  it("filters to teacher-owned school scope only per D-16 and hides foreign courses", async () => {
     const { getTeacherCourseCenterDTO } = await import("./course-authoring");
 
     const dto = await getTeacherCourseCenterDTO();
 
     expect(dto.courses.map((course) => course.id)).not.toContain("course-out-of-scope");
+    expect(dto.courses.map((course) => course.id)).not.toContain("course-same-school-foreign");
     expect(dto.courses.every((course) => course.schoolId === "school-1")).toBe(true);
+    expect(dto.courses.every((course) => course.ownerId === "teacher-1")).toBe(true);
   });
 
   it("applies D-13 D-14 D-15 ordering and archived visibility rules by default", async () => {
@@ -224,6 +256,22 @@ describe("course authoring DAL", () => {
     expect(dto.course.id).toBe("course-draft-new");
     expect(dto.lessons.map((lesson) => lesson.id)).toEqual(["lesson-2", "lesson-1"]);
     expect(dto.lessons.some((lesson) => lesson.id === "lesson-out-of-scope")).toBe(false);
+  });
+
+  it("rejects same-school foreign course detail reads with COURSE_NOT_FOUND", async () => {
+    const { getTeacherCourseDetailDTO } = await import("./course-authoring");
+
+    await expect(getTeacherCourseDetailDTO({ courseId: "course-same-school-foreign" })).rejects.toThrow(
+      "COURSE_NOT_FOUND"
+    );
+  });
+
+  it("rejects same-school foreign course lessons entry reads with COURSE_NOT_FOUND", async () => {
+    const { getTeacherCourseLessonsEntryDTO } = await import("./course-authoring");
+
+    await expect(getTeacherCourseLessonsEntryDTO({ courseId: "course-same-school-foreign" })).rejects.toThrow(
+      "COURSE_NOT_FOUND"
+    );
   });
 
   it("renders the empty-state primary CTA copy as 新建第一个课时 per D-11", () => {
