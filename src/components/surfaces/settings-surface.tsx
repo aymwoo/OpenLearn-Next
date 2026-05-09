@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getCurrentUserSchoolIds } from '@/lib/dal/auth'
 import { getValidThemesForSchool } from '@/lib/dal/themes'
+import { getActiveThemeId } from '@/lib/theme-cookie'
 
 type SettingsSurfaceProps = {
   mode: 'general' | 'labs'
@@ -46,6 +47,7 @@ export async function SettingsSurface({ mode }: SettingsSurfaceProps) {
 
 async function GeneralSettingsSurface({ schoolId }: { schoolId: string | null }) {
   const themes = schoolId ? await getValidThemesForSchool(schoolId) : []
+  const activeThemeId = await getActiveThemeId()
   const resetTheme = async (formData: FormData) => {
     'use server'
 
@@ -121,26 +123,48 @@ async function GeneralSettingsSurface({ schoolId }: { schoolId: string | null })
               </div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <form action={resetTheme} className="rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
+                <form
+                  action={resetTheme}
+                  className={activeThemeId ? 'rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient' : 'rounded-[1.5rem] border-2 border-primary bg-surface-container-lowest p-5 shadow-ambient'}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-lg font-semibold text-on-surface">默认主题</p>
                       <p className="mt-2 text-sm leading-6 text-on-surface-variant">清除当前 `activeThemeId`，恢复系统默认外观。</p>
                     </div>
-                    <SunMedium className="size-5 text-primary" aria-hidden />
+                    <div className="flex items-center gap-2">
+                      {!activeThemeId ? <Badge className="bg-primary text-white">当前使用中</Badge> : null}
+                      <SunMedium className="size-5 text-primary" aria-hidden />
+                    </div>
                   </div>
+                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-on-surface-variant">柔和浅色 tonal layer，适合日常备课与系统默认浏览。</p>
                   <Button variant="secondary" className="mt-4 min-h-10 px-4 text-sm shadow-none">恢复默认</Button>
                 </form>
 
                 {themes.map((theme) => (
-                  <form key={theme.id} action={resetTheme} className="rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
+                  <form
+                    key={theme.id}
+                    action={resetTheme}
+                    className={
+                      activeThemeId === theme.id
+                        ? 'rounded-[1.5rem] border-2 border-primary bg-surface-container-lowest p-5 shadow-ambient'
+                        : 'rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient'
+                    }
+                  >
                     <input type="hidden" name="themeId" value={theme.id} />
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-lg font-semibold text-on-surface">{theme.name}</p>
-                        <p className="mt-2 text-sm leading-6 text-on-surface-variant">已通过校验，可作为当前学校的界面主题使用。</p>
+                        <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                          {theme.name.includes('星夜')
+                            ? '偏深色夜空语义，强化蓝紫主色与沉浸式课堂氛围。'
+                            : '已通过校验，可作为当前学校的界面主题使用。'}
+                        </p>
                       </div>
-                      <Badge className="bg-surface-container-low text-on-surface-variant">有效主题</Badge>
+                      <div className="flex items-center gap-2">
+                        {activeThemeId === theme.id ? <Badge className="bg-primary text-white">当前使用中</Badge> : null}
+                        <Badge className="bg-surface-container-low text-on-surface-variant">有效主题</Badge>
+                      </div>
                     </div>
                     <Button variant="secondary" className="mt-4 min-h-10 px-4 text-sm shadow-none">应用主题</Button>
                   </form>

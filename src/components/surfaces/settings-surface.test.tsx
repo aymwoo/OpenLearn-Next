@@ -41,6 +41,28 @@ vi.mock("@/lib/dal/auth", () => ({
   getCurrentUserSchoolIds: vi.fn(async () => ["school-1"]),
 }));
 
+vi.mock("@/lib/dal/themes", () => ({
+  getValidThemesForSchool: vi.fn(async () => [
+    {
+      id: "theme-1",
+      schoolId: "school-1",
+      name: "星夜课堂主题",
+      tokenJson: {},
+      validationStatus: "valid",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    },
+  ]),
+}));
+
+vi.mock("@/lib/theme-cookie", () => ({
+  getActiveThemeId: vi.fn(async () => "theme-1"),
+}));
+
+vi.mock("@/actions/theme-actions", () => ({
+  setActiveThemeAction: vi.fn(),
+}));
+
 describe("settings and plugin entry surfaces", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -50,6 +72,16 @@ describe("settings and plugin entry surfaces", () => {
     expect(source).toContain("默认主题");
     expect(source).toContain("setActiveThemeAction");
     expect(source).toContain("getValidThemesForSchool");
+    expect(source).toContain("getActiveThemeId");
+    expect(source).toContain("当前使用中");
+  });
+
+  it("tracks active theme state for default and alternate theme cards", () => {
+    expect(source).toContain("const activeThemeId = await getActiveThemeId()");
+    expect(source).toContain("activeThemeId === theme.id");
+    expect(source).toContain("!activeThemeId ? <Badge className=\"bg-primary text-white\">当前使用中</Badge> : null");
+    expect(source).toContain("theme.name.includes('星夜')");
+    expect(source).toContain("偏深色夜空语义，强化蓝紫主色与沉浸式课堂氛围。");
   });
 
   it("renders plugin management controls in labs settings", () => {

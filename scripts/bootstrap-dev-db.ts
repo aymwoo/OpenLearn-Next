@@ -13,8 +13,10 @@ import {
   lessons,
   pluginRegistrations,
   publishedLessonVersions,
+  themeTokenRegistries,
 } from "@/db/schema";
 import { PluginManifestSchema } from "@/lib/dto/resource-ai";
+import { registerThemeTokens } from "@/lib/dal/themes";
 
 import { seedTestAccounts } from "./seed-test-accounts";
 
@@ -136,6 +138,45 @@ const BUILT_IN_PLUGIN_DEFINITIONS = [
     },
   },
 ] as const;
+
+const DEV_THEME_PLUGIN_DEFINITION = {
+  name: "星夜课堂",
+  themeName: "星夜课堂主题",
+  manifest: {
+    id: "dev-theme-starlight-classroom",
+    version: "1.0.0",
+    permissions: [],
+    anchors: ["dashboard.widget"],
+    actions: ["createNotificationStub"],
+    builtIn: false,
+    defaultEnabled: true,
+    nonDeletable: false,
+    theme: {
+      colors: {
+        primary: "#5b6cff",
+        "primary-container": "#dbe1ff",
+        "on-primary": "#ffffff",
+        "on-surface": "#f3f6ff",
+        "on-surface-variant": "#b8c0e6",
+        tertiary: "#89d2ff",
+        "tertiary-container": "#123a56",
+      },
+      surfaces: {
+        surface: "#0f172d",
+        "surface-container-low": "#16203b",
+        "surface-container-lowest": "#1d2947",
+        primary: "#5b6cff",
+        "primary-container": "#dbe1ff",
+      },
+      radius: {
+        shell: "2rem",
+      },
+      typography: {
+        fontFamily: "Lexend",
+      },
+    },
+  },
+} as const;
 
 async function getOrCreateClass(schoolId: string) {
   const existing = await db.query.classes.findFirst({
@@ -369,6 +410,40 @@ async function upsertBuiltInPlugins(schoolId: string) {
   }
 }
 
+async function upsertDevThemePlugin(schoolId: string, actorId: string) {
+  const manifest = PluginManifestSchema.parse(DEV_THEME_PLUGIN_DEFINITION.manifest);
+  const existing = await db.query.pluginRegistrations.findFirst({
+    where: and(eq(pluginRegistrations.schoolId, schoolId), eq(pluginRegistrations.name, DEV_THEME_PLUGIN_DEFINITION.name)),
+  });
+
+  if (existing) {
+    await db
+      .update(pluginRegistrations)
+      .set({
+        manifestJson: manifest,
+        enabled: true,
+        killSwitchEnabled: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(pluginRegistrations.id, existing.id));
+  } else {
+    await db.insert(pluginRegistrations).values({
+      schoolId,
+      name: DEV_THEME_PLUGIN_DEFINITION.name,
+      manifestJson: manifest,
+      enabled: true,
+      killSwitchEnabled: false,
+    });
+  }
+
+  await registerThemeTokens(
+    schoolId,
+    DEV_THEME_PLUGIN_DEFINITION.themeName,
+    manifest.theme,
+    actorId,
+  );
+}
+
 export async function bootstrapDevDb() {
   const seeded = await seedTestAccounts();
   const devClass = await getOrCreateClass(seeded.school.id);
@@ -391,6 +466,10 @@ export async function bootstrapDevDb() {
     steps,
   });
   await upsertBuiltInPlugins(seeded.school.id);
+  await upsertDevThemePlugin(seeded.school.id, seeded.teacher.id);
+  const validThemeRows = await db.query.themeTokenRegistries.findMany({
+    where: and(eq(themeTokenRegistries.schoolId, seeded.school.id), eq(themeTokenRegistries.validationStatus, "valid")),
+  });
 
   console.log("开发数据库 bootstrap 完成：");
   console.log(`- 学校：${seeded.school.name}`);
@@ -399,6 +478,7 @@ export async function bootstrapDevDb() {
   console.log(`- 课时：${DEV_LESSON_TITLE}`);
   console.log(`- 发布版本：v${published.version}`);
   console.log(`- 内置教学环节：${BUILT_IN_PLUGIN_DEFINITIONS.map((plugin) => plugin.name).join("、")}`);
+  console.log(`- 可用主题：${validThemeRows.map((theme) => theme.name).join("、")}`);
   console.log(`- 教师账号：${seeded.teacher.email} / password`);
   console.log(`- 学生账号：${seeded.student.email} / password`);
 }
