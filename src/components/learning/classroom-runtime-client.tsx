@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { BookOpen, CheckCircle2, Focus, MonitorPlay } from 'lucide-react'
+import { BookOpen, CheckCircle2, Focus, MonitorPlay, Users, Waves } from 'lucide-react'
 
 import { ClassroomSnapshotDTOSchema } from '@/lib/dto/classroom'
 import { Badge } from '@/components/ui/badge'
@@ -277,7 +277,7 @@ export function ClassroomRuntimeClient({
   }
 
   return (
-    <div className="relative">
+      <div className="relative">
       <div aria-live="polite" className="sr-only">
         {snapshotStatusCopy}
       </div>
@@ -298,12 +298,15 @@ export function ClassroomRuntimeClient({
         </div>
       )}
 
-      <section className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient">
-          <div className="mb-4 rounded-full bg-surface-container-lowest px-4 py-2 text-sm text-primary shadow-ambient">
-            {completedSteps}/{player.shell.steps.length} 已完成
+      <section className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="rounded-[var(--radius-shell)] bg-[#111926] p-4 text-white shadow-ambient">
+          <div className="rounded-[1.4rem] bg-white/6 p-4 backdrop-blur-sm">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/55">课堂助手</p>
+            <p className="mt-2 text-lg font-semibold">专注学习模式</p>
+            <p className="mt-2 text-sm leading-6 text-white/65">{completedSteps}/{player.shell.steps.length} 已完成，当前页面会优先聚焦老师指定或推荐的步骤。</p>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-1 xl:overflow-visible xl:pb-0">
+
+          <div className="mt-4 grid gap-3">
             {player.shell.steps.map((step, index) => {
               const state = getStepState(player, step.id)
               const isCurrent = step.id === currentStep.id
@@ -316,23 +319,23 @@ export function ClassroomRuntimeClient({
                   {isDisabled ? (
                     <div
                       aria-disabled="true"
-                      className={`block rounded-full p-4 transition-colors duration-150 xl:rounded-3xl ${isCurrent ? 'bg-surface-container-lowest shadow-ambient' : 'bg-surface-container-lowest/50 opacity-60'}`}
+                      className={`block rounded-[1.4rem] p-4 transition-colors duration-150 ${isCurrent ? 'bg-white/12 shadow-ambient' : 'bg-white/6 opacity-60'}`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className={`grid size-10 place-items-center rounded-full text-sm font-semibold ${state === 'completed' ? 'bg-tertiary-container text-tertiary' : 'bg-primary-container/25 text-primary'}`}>{index + 1}</span>
+                        <span className={`grid size-10 place-items-center rounded-full text-sm font-semibold ${state === 'completed' ? 'bg-[#d8ffaf] text-[#335e00]' : 'bg-white/10 text-white'}`}>{String(index + 1).padStart(2, '0')}</span>
                         <div>
-                          <h2 className="font-semibold">{step.title}</h2>
-                          <p className="text-sm text-on-surface-variant">老师已开启锁定跟随，你将停留在当前步骤。</p>
+                          <h2 className="font-semibold text-white">{step.title}</h2>
+                          <p className="text-sm text-white/60">老师已开启锁定跟随，你将停留在当前步骤。</p>
                         </div>
                       </div>
                     </div>
                   ) : (
                     <Link
                       href={stepHref(player, step)}
-                      className={`block rounded-full p-4 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-primary xl:rounded-3xl ${isCurrent ? 'bg-surface-container-lowest shadow-ambient' : 'bg-surface-container-lowest/70'}`}
+                      className={`block rounded-[1.4rem] p-4 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-primary ${isCurrent ? 'bg-white text-[#111926] shadow-ambient' : 'bg-white/6 text-white'}`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className={`grid size-10 place-items-center rounded-full text-sm font-semibold ${state === 'completed' ? 'bg-tertiary-container text-tertiary' : 'bg-primary-container/25 text-primary'}`}>{index + 1}</span>
+                        <span className={`grid size-10 place-items-center rounded-full text-sm font-semibold ${isCurrent ? 'bg-primary/10 text-primary' : state === 'completed' ? 'bg-[#d8ffaf] text-[#335e00]' : 'bg-white/10 text-white'}`}>{String(index + 1).padStart(2, '0')}</span>
                         <div>
                           <div className="flex items-center gap-2">
                             <h2 className="font-semibold">{step.title}</h2>
@@ -340,7 +343,7 @@ export function ClassroomRuntimeClient({
                               <Badge variant="accent" className="px-1.5 py-0 text-[10px]">老师推荐</Badge>
                             )}
                           </div>
-                          <p className="text-sm text-on-surface-variant">{isForced ? '老师指定' : stateCopy[state]}</p>
+                          <p className={isCurrent ? 'text-sm text-on-surface-variant' : 'text-sm text-white/60'}>{isForced ? '老师指定' : stateCopy[state]}</p>
                         </div>
                       </div>
                     </Link>
@@ -348,6 +351,11 @@ export function ClassroomRuntimeClient({
                 </div>
               )
             })}
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <QuickTool icon={<BookOpen className="size-4" aria-hidden />} label="课堂笔记" />
+            <QuickTool icon={<Users className="size-4" aria-hidden />} label="同伴列表" />
           </div>
         </aside>
 
@@ -383,13 +391,26 @@ export function ClassroomRuntimeClient({
 
           <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient sm:p-6">
             <div className="flex items-center gap-3">
-              <Focus className="size-6 text-primary" aria-hidden />
+              <Waves className="size-6 text-primary" aria-hidden />
               <h2 className="text-2xl font-semibold">沉浸学习</h2>
             </div>
             <p className="mt-4 leading-8 text-on-surface-variant">完成当前步骤后不会自动跳转，请按自己的节奏选择下一步。</p>
+            <div className="mt-4 flex items-center gap-3 text-sm text-on-surface-variant">
+              <Focus className="size-4 text-primary" aria-hidden />
+              保持低干扰视图，优先展示当前步骤、老师状态和最近提交。
+            </div>
           </section>
         </main>
       </section>
+    </div>
+  )
+}
+
+function QuickTool({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="rounded-[1.3rem] bg-white/6 p-4 text-sm font-medium text-white/78 backdrop-blur-sm">
+      <div className="mb-3 inline-flex rounded-full bg-white/8 p-2 text-white">{icon}</div>
+      <p>{label}</p>
     </div>
   )
 }

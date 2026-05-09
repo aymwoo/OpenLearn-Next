@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BookOpenCheck, Focus, Layers3 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,13 +26,13 @@ function InaccessibleState() {
 
 export function PlayerPersonalFallback({ shell }: { shell: StudentPlayerShellDTO }) {
   return (
-    <section className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
+    <section className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
       <aside className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient">
-        <div className="flex gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-1 xl:overflow-visible xl:pb-0">
+        <div className="grid gap-3">
           {shell.steps.map((step, index) => (
-            <div key={step.id} className="min-w-56 rounded-full bg-surface-container-lowest p-4 xl:min-w-0 xl:rounded-3xl">
+            <div key={step.id} className="rounded-[1.4rem] bg-surface-container-lowest p-4 shadow-ambient">
               <div className="flex items-center gap-3">
-                <span className="grid size-10 place-items-center rounded-full bg-primary-container/25 text-sm font-semibold text-primary">{index + 1}</span>
+                <span className="grid size-10 place-items-center rounded-full bg-primary-container/25 text-sm font-semibold text-primary">{String(index + 1).padStart(2, '0')}</span>
                 <div>
                   <h2 className="font-semibold">{step.title}</h2>
                   <p className="text-sm text-on-surface-variant">正在加载你的学习进度</p>
@@ -65,7 +66,6 @@ export function PlayerPersonalRegion({ player, personalSlot }: PlayerPersonalReg
 
   return (
     <div className="min-w-0">
-      {/* ClassroomRuntimeClient still composes TaskStepCard and QuizStepCard for interactive steps. */}
       <span className="sr-only">{forcedLabel}，内容步骤支持已完成阅读状态。</span>
       {personalSlot}
     </div>
@@ -78,29 +78,42 @@ export function PlayerSurface({ shell, personalSlot }: PlayerSurfaceProps) {
   }
 
   return (
-    <div className="space-y-5">
-      <section className="overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-low shadow-ambient">
-        <div className="bg-linear-135 from-primary to-primary-container px-5 py-6 text-on-primary sm:px-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="space-y-5 p-4 sm:p-5 lg:p-6">
+      <section className="overflow-hidden rounded-[var(--radius-shell)] bg-[#0f1722] text-white shadow-ambient">
+        <div className="px-5 py-6 sm:px-6 sm:py-7">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <Badge variant="accent" className="mb-4 bg-white/15 text-white">全屏沉浸学习模式</Badge>
-              <h1 className="text-[2.25rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[3rem]">{shell.title}</h1>
-              <p className="mt-4 max-w-3xl leading-8 text-on-primary/85">{shell.objective}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge variant="accent" className="bg-white/10 text-white">全屏沉浸学习模式</Badge>
+                <Badge className="bg-white/8 text-white/80">学生学习页面</Badge>
+              </div>
+              <h1 className="mt-4 text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[3rem]">{shell.title}</h1>
+              <p className="mt-3 text-sm leading-7 text-white/72 sm:text-base sm:leading-8">{shell.objective}</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[1.5rem] bg-white/12 px-5 py-4 backdrop-blur-sm">
-                <p className="text-sm text-on-primary/75">步骤数量</p>
-                <p className="mt-2 text-2xl font-semibold">{shell.steps.length}</p>
-              </div>
-              <div className="rounded-[1.5rem] bg-white/12 px-5 py-4 backdrop-blur-sm">
-                <p className="text-sm text-on-primary/75">学习模式</p>
-                <p className="mt-2 text-2xl font-semibold">锁定跟随</p>
-              </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 lg:w-[26rem]">
+              <ImmersiveMetric icon={<Layers3 className="size-4" aria-hidden />} label="环节数量" value={`${shell.steps.length}`} detail="跟随课堂流程" />
+              <ImmersiveMetric icon={<BookOpenCheck className="size-4" aria-hidden />} label="学习方式" value="沉浸" detail="保留现有数据交互" />
+              <ImmersiveMetric icon={<Focus className="size-4" aria-hidden />} label="当前体验" value="低干扰" detail="聚焦当前步骤" />
             </div>
           </div>
         </div>
       </section>
+
       {personalSlot}
+    </div>
+  )
+}
+
+function ImmersiveMetric({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail: string }) {
+  return (
+    <div className="rounded-[1.4rem] bg-white/6 px-4 py-4 backdrop-blur-sm">
+      <div className="flex items-center gap-2 text-xs font-medium text-white/65">
+        <span className="rounded-full bg-white/8 p-2 text-white">{icon}</span>
+        {label}
+      </div>
+      <p className="mt-3 text-[1.7rem] font-semibold text-white">{value}</p>
+      <p className="mt-1 text-xs text-white/60">{detail}</p>
     </div>
   )
 }

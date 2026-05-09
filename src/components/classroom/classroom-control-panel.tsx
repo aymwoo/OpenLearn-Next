@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
 import { Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
-import { ClassroomRosterPanel } from './classroom-roster-panel'
+
+import { changeClassroomModeAction, changeClassroomStepAction, endClassroomSessionAction } from '@/actions/classroom-actions'
 import { ClassroomConflictPanel } from './classroom-conflict-panel'
-import { changeClassroomStepAction, changeClassroomModeAction, endClassroomSessionAction } from '@/actions/classroom-actions'
+import { ClassroomRosterPanel } from './classroom-roster-panel'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import type { ClassroomSnapshotDTO, ClassroomStepDTO } from '@/lib/dto/classroom'
 
 type ConflictState = { latest?: ClassroomSnapshotDTO } | null
@@ -26,9 +27,7 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
   const currentStep = currentSnapshot.steps.find((step: ClassroomStepDTO) => step.id === currentSnapshot.activeStepId)
   const connectedCount = currentSnapshot.participants.filter((participant) => participant.connectionState === 'connected').length
   const totalParticipants = currentSnapshot.participants.length
-  const completionRate = currentSnapshot.participants.length > 0
-    ? Math.round((connectedCount / currentSnapshot.participants.length) * 100)
-    : 0
+  const completionRate = totalParticipants > 0 ? Math.round((connectedCount / totalParticipants) * 100) : 0
 
   const handleChangeStep = (stepId: string) => {
     if (conflict || isPending) return
@@ -38,7 +37,7 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
       formData.append('targetStepId', stepId)
       formData.append('expectedVersion', String(currentSnapshot.version))
       const result = await changeClassroomStepAction(formData)
-      if (!result.ok && result.error === "VERSION_CONFLICT") {
+      if (!result.ok && result.error === 'VERSION_CONFLICT') {
         setConflict(hasLatestSnapshot(result) ? result : null)
       } else if (result.ok) {
         router.refresh()
@@ -54,7 +53,7 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
       formData.append('locked', String(locked))
       formData.append('expectedVersion', String(currentSnapshot.version))
       const result = await changeClassroomModeAction(formData)
-      if (!result.ok && result.error === "VERSION_CONFLICT") {
+      if (!result.ok && result.error === 'VERSION_CONFLICT') {
         setConflict(hasLatestSnapshot(result) ? result : null)
       } else if (result.ok) {
         router.refresh()
@@ -75,177 +74,154 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
   }
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient sm:p-6">
-        {conflict && (
-          <ClassroomConflictPanel 
-            sessionId={currentSnapshot.sessionId} 
-            onRefresh={() => setConflict(null)} 
-          />
-        )}
+    <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="space-y-5">
+        {conflict ? <ClassroomConflictPanel sessionId={currentSnapshot.sessionId} onRefresh={() => setConflict(null)} /> : null}
 
-          <div className="flex flex-col gap-5">
-            <div className="overflow-hidden rounded-[1.75rem] bg-linear-135 from-primary to-primary-container p-6 text-on-primary shadow-ambient">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div>
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_320px]">
+          <Card className="bg-surface-container-lowest p-5 sm:p-6">
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-2xl">
                   <div className="flex flex-wrap items-center gap-3">
-                    <Badge variant="accent" className="bg-white/15 text-white">
-                      {currentSnapshot.className} · 课堂运行
-                    </Badge>
-                    <Badge variant="default" className="bg-white/15 text-white">
-                      第 {currentSnapshot.version} 次同步
-                    </Badge>
+                    <Badge variant="accent">{currentSnapshot.className}</Badge>
+                    <Badge className="bg-surface-container-low text-on-surface-variant">第 {currentSnapshot.version} 次同步</Badge>
                   </div>
-                  <h1 className="mt-4 max-w-3xl text-[2.2rem] font-semibold leading-[1.08] tracking-[-0.02em] sm:text-[3rem]">
-                    {currentSnapshot.lessonTitle}
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-on-primary/85">
-                    保持教师端对讲授、提问和练习环节的统一调度。当前正在执行“{currentStep?.title ?? '未开始步骤'}”。
+                  <h2 className="mt-4 text-[2rem] font-semibold leading-[1.08] tracking-[-0.02em] text-on-surface sm:text-[2.5rem]">
+                    {currentStep?.title ?? '未开始环节'}
+                  </h2>
+                  <p className="mt-3 text-sm leading-7 text-on-surface-variant sm:text-base sm:leading-8">
+                    课堂正在运行《{currentSnapshot.lessonTitle}》。当前以更紧凑的运行面板承接环节切换、模式控制和学生在线状态。
                   </p>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3 xl:w-[23rem] xl:grid-cols-1">
-                  <MetricOrb icon={<Users className="size-4" />} label="出勤率" value={`${completionRate}%`} detail={`${connectedCount}/${totalParticipants} 在线`} inverted />
-                  <MetricOrb icon={<Sparkles className="size-4" />} label="模式" value={currentSnapshot.locked ? '锁定跟随' : '自由浏览'} detail={currentSnapshot.locked ? '全员同步同一步骤' : '学生可自主浏览'} inverted />
-                  <MetricOrb icon={<Clock3 className="size-4" />} label="课堂状态" value="进行中" detail={`更新于 ${new Date(currentSnapshot.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`} inverted />
+                <div className="grid gap-3 sm:grid-cols-3 lg:w-[22rem] lg:grid-cols-1">
+                  <MetricOrb icon={<Users className="size-4" aria-hidden />} label="在线学生" value={`${connectedCount}/${totalParticipants}`} detail="课堂名册实时同步" />
+                  <MetricOrb icon={<Radio className="size-4" aria-hidden />} label="当前模式" value={currentSnapshot.locked ? '锁定跟随' : '自由浏览'} detail={currentSnapshot.locked ? '学生锁定在当前步骤' : '学生可回看已开放步骤'} />
+                  <MetricOrb icon={<Clock3 className="size-4" aria-hidden />} label="课堂活跃度" value={`${completionRate}%`} detail={`更新于 ${new Date(currentSnapshot.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`} />
                 </div>
               </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <StageMeta label="课程名称" value={currentSnapshot.lessonTitle} />
+                <StageMeta label="当前步骤" value={currentStep?.title ?? '待开始'} />
+                <StageMeta label="课堂状态" value={currentSnapshot.status === 'live' ? '进行中' : '已结束'} />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-surface-container-low p-5 sm:p-6">
+            <p className="text-sm text-on-surface-variant">实时课堂控制</p>
+            <div className="mt-4 grid gap-3">
+              <Button
+                variant={currentSnapshot.locked ? 'primary' : 'secondary'}
+                disabled={isPending || !!conflict}
+                className="min-h-[56px] justify-between rounded-[1.35rem] px-5"
+                onClick={() => handleChangeMode(true)}
+              >
+                <span className="text-base font-semibold">锁定跟随</span>
+                <span className="text-xs opacity-80">同步当前步骤</span>
+              </Button>
+              <Button
+                variant={!currentSnapshot.locked ? 'primary' : 'secondary'}
+                disabled={isPending || !!conflict}
+                className="min-h-[56px] justify-between rounded-[1.35rem] px-5"
+                onClick={() => handleChangeMode(false)}
+              >
+                <span className="text-base font-semibold">自由浏览</span>
+                <span className="text-xs opacity-80">保留课堂上下文</span>
+              </Button>
+              <Button
+                variant="secondary"
+                className="min-h-[52px] rounded-[1.35rem] bg-[#fef2f2] text-red-600 shadow-none hover:bg-[#fee2e2]"
+                disabled={isPending || !!conflict}
+                onClick={handleEndClassroom}
+              >
+                结束课堂
+              </Button>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-              <Card className="bg-surface-container-lowest p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-on-surface-variant">当前步骤</p>
-                    <h2 className="mt-2 text-2xl font-semibold">{currentStep?.title}</h2>
-                  </div>
-                  <Radio className="size-6 text-primary" aria-hidden />
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <StageMeta label="课堂模式" value={currentSnapshot.locked ? '锁定跟随' : '自由浏览'} />
-                  <StageMeta label="在线人数" value={`${connectedCount}/${totalParticipants}`} />
-                  <StageMeta label="课堂节奏" value={currentStep?.title ?? '待开始'} />
-                </div>
-
-                <div className="mt-6 rounded-[1.35rem] bg-surface-container-low p-4 sm:hidden">
-                  <p className="text-sm text-on-surface-variant">当前控制</p>
-                  <div className="mt-3 grid gap-3">
-                    <Button
-                      variant={currentSnapshot.locked ? 'primary' : 'secondary'}
-                      disabled={isPending || !!conflict}
-                      className="min-h-[46px] justify-between rounded-[1.2rem] px-4"
-                      onClick={() => handleChangeMode(true)}
-                    >
-                      <span>锁定跟随</span>
-                      <span className="text-xs font-medium opacity-80">同步当前步骤</span>
-                    </Button>
-                    <Button
-                      variant={!currentSnapshot.locked ? 'primary' : 'secondary'}
-                      disabled={isPending || !!conflict}
-                      className="min-h-[46px] justify-between rounded-[1.2rem] px-4"
-                      onClick={() => handleChangeMode(false)}
-                    >
-                      <span>自由浏览</span>
-                      <span className="text-xs font-medium opacity-80">保留课堂上下文</span>
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="min-h-[46px] rounded-[1.2rem] bg-[#fef2f2] px-4 text-red-600 shadow-none hover:bg-[#fee2e2]"
-                      disabled={isPending || !!conflict}
-                      onClick={handleEndClassroom}
-                    >
-                      结束课堂
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-3">
-                  <p className="text-sm text-on-surface-variant">步骤流转</p>
-                    {currentSnapshot.steps.map((step) => (
-                      <div key={step.id} className={`flex flex-col gap-3 rounded-[1.25rem] p-4 sm:flex-row sm:items-center sm:justify-between ${currentSnapshot.activeStepId === step.id ? 'bg-primary/8' : 'bg-surface-container-low'}`}>
-                        <div className="flex items-center gap-3">
-                          <span className={`grid size-9 place-items-center rounded-full text-sm font-semibold ${currentSnapshot.activeStepId === step.id ? 'bg-primary text-white' : 'bg-surface-container-lowest text-primary'}`}>
-                          {currentSnapshot.steps.findIndex((item) => item.id === step.id) + 1}
-                          </span>
-                          <span className="font-medium text-on-surface">{step.title}</span>
-                        </div>
-                      <Button
-                        variant={currentSnapshot.activeStepId === step.id ? 'primary' : 'secondary'}
-                        disabled={currentSnapshot.activeStepId === step.id || isPending || !!conflict}
-                        className="min-h-[44px] px-5"
-                        onClick={() => handleChangeStep(step.id)}
-                      >
-                        {currentSnapshot.activeStepId === step.id ? '当前步骤' : '进入下一环节'}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              <Card className="bg-surface-container-lowest p-5 sm:p-6">
-                <div className="rounded-[1.35rem] bg-surface-container-low p-4">
-                  <p className="text-sm text-on-surface-variant">课堂模式</p>
-                  <div className="mt-4 hidden gap-3 sm:grid">
-                    <Button
-                      variant={currentSnapshot.locked ? 'primary' : 'secondary'}
-                      disabled={isPending || !!conflict}
-                      className="min-h-[68px] justify-between rounded-[1.35rem] px-5"
-                      onClick={() => handleChangeMode(true)}
-                    >
-                      <span className="text-base font-semibold">锁定跟随</span>
-                      <span className="text-xs font-medium opacity-80">学生端跟随教师当前步骤</span>
-                    </Button>
-                    <Button
-                      variant={!currentSnapshot.locked ? 'primary' : 'secondary'}
-                      disabled={isPending || !!conflict}
-                      className="min-h-[68px] justify-between rounded-[1.35rem] px-5"
-                      onClick={() => handleChangeMode(false)}
-                    >
-                      <span className="text-base font-semibold">自由浏览</span>
-                      <span className="text-xs font-medium opacity-80">学生可回看已开放</span>
-                    </Button>
-                  </div>
-                  <div className="mt-4 hidden sm:block">
-                    <Button variant="secondary" className="min-h-[48px] w-full bg-[#fef2f2] text-red-600 shadow-none hover:bg-[#fee2e2]" disabled={isPending || !!conflict} onClick={handleEndClassroom}>结束课堂</Button>
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-[1.35rem] bg-surface-container-low p-4">
-                  <p className="text-sm text-on-surface-variant">实时互动工具</p>
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <UtilityOrb icon={<TimerReset className="size-5" />} label="随机点名" />
-                    <UtilityOrb icon={<Clock3 className="size-5" />} label="快速测速" />
-                    <UtilityOrb icon={<Users className="size-5" />} label="随堂小测" />
-                    <UtilityOrb icon={<Sparkles className="size-5" />} label="目标共享" />
-                  </div>
-                </div>
-              </Card>
+            <div className="mt-5 rounded-[1.5rem] bg-surface-container-lowest p-4 shadow-ambient">
+              <p className="text-sm text-on-surface-variant">互动工具</p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <UtilityOrb icon={<TimerReset className="size-5" aria-hidden />} label="随机点名" />
+                <UtilityOrb icon={<Clock3 className="size-5" aria-hidden />} label="快速提问" />
+                <UtilityOrb icon={<Users className="size-5" aria-hidden />} label="随堂小测" />
+                <UtilityOrb icon={<Sparkles className="size-5" aria-hidden />} label="白板共享" />
+              </div>
             </div>
+          </Card>
+        </section>
+
+        <Card className="bg-surface-container-low p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm text-on-surface-variant">教学环节流程</p>
+              <h3 className="mt-2 text-2xl font-semibold text-on-surface">课堂教学流程运行管理</h3>
+            </div>
+            <Badge className="bg-surface-container-lowest text-on-surface-variant">保持现有 step 切换动作</Badge>
           </div>
-        </div>
+
+          <div className="mt-5 grid gap-3">
+            {currentSnapshot.steps.map((step, index) => {
+              const isActive = currentSnapshot.activeStepId === step.id
+              return (
+                <article
+                  key={step.id}
+                  className={isActive ? 'rounded-[1.6rem] bg-primary/8 p-4 sm:p-5' : 'rounded-[1.6rem] bg-surface-container-lowest p-4 shadow-ambient sm:p-5'}
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={isActive ? 'grid size-11 place-items-center rounded-full bg-primary text-sm font-semibold text-white' : 'grid size-11 place-items-center rounded-full bg-surface-container-low text-sm font-semibold text-primary'}>
+                        {String(index + 1).padStart(2, '0')}
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="text-lg font-semibold text-on-surface">{step.title}</h4>
+                          {isActive ? <Badge variant="accent">进行中</Badge> : null}
+                        </div>
+                        <p className="mt-1 text-sm text-on-surface-variant">
+                          {isActive ? '当前教学流程已同步到学生端。' : '保留现有 action，点击后切换到该环节。'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant={isActive ? 'primary' : 'secondary'}
+                      disabled={isActive || isPending || !!conflict}
+                      className="min-h-[44px] px-5"
+                      onClick={() => handleChangeStep(step.id)}
+                    >
+                      {isActive ? '当前环节' : '切换到此环节'}
+                    </Button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </Card>
+      </div>
 
       <ClassroomRosterPanel participants={currentSnapshot.participants} />
     </section>
   )
 }
 
-function MetricOrb({ icon, label, value, detail, inverted = false }: { icon: React.ReactNode; label: string; value: string; detail: string; inverted?: boolean }) {
+function MetricOrb({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail: string }) {
   return (
-    <div className={inverted ? 'rounded-[1.5rem] bg-white/12 px-4 py-4 backdrop-blur-sm' : 'rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 shadow-ambient'}>
-      <div className={inverted ? 'flex items-center gap-2 text-xs font-medium text-on-primary/75' : 'flex items-center gap-2 text-xs font-medium text-on-surface-variant'}>
-        <span className={inverted ? 'rounded-full bg-white/15 p-2 text-white' : 'rounded-full bg-surface-container-low p-2 text-primary'}>{icon}</span>
+    <div className="rounded-[1.5rem] bg-surface-container-low p-4">
+      <div className="flex items-center gap-2 text-xs font-medium text-on-surface-variant">
+        <span className="rounded-full bg-surface-container-lowest p-2 text-primary shadow-ambient">{icon}</span>
         {label}
       </div>
-      <p className={inverted ? 'mt-3 text-[1.6rem] font-semibold tracking-tight text-white' : 'mt-3 text-[1.6rem] font-semibold tracking-tight text-on-surface'}>{value}</p>
-      <p className={inverted ? 'mt-1 text-xs text-on-primary/75' : 'mt-1 text-xs text-on-surface-variant'}>{detail}</p>
+      <p className="mt-3 text-[1.6rem] font-semibold tracking-tight text-on-surface">{value}</p>
+      <p className="mt-1 text-xs text-on-surface-variant">{detail}</p>
     </div>
   )
 }
 
 function StageMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.25rem] bg-surface-container-low p-4">
+    <div className="rounded-[1.3rem] bg-surface-container-lowest p-4 shadow-ambient">
       <p className="text-xs uppercase tracking-[0.18em] text-on-surface-variant">{label}</p>
       <p className="mt-2 text-lg font-semibold text-on-surface">{value}</p>
     </div>
@@ -254,8 +230,8 @@ function StageMeta({ label, value }: { label: string; value: string }) {
 
 function UtilityOrb({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <button className="flex min-h-[96px] flex-col items-center justify-center gap-3 rounded-[1.4rem] bg-surface-container-lowest text-center text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high">
-      <span className="rounded-full bg-surface-container-low p-3 text-primary shadow-ambient">{icon}</span>
+    <button className="flex min-h-[88px] flex-col items-center justify-center gap-3 rounded-[1.3rem] bg-surface-container-low text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high">
+      <span className="rounded-full bg-surface-container-lowest p-3 text-primary shadow-ambient">{icon}</span>
       <span>{label}</span>
     </button>
   )
