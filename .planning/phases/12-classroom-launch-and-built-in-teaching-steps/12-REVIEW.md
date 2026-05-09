@@ -1,79 +1,58 @@
 ---
 phase: 12-classroom-launch-and-built-in-teaching-steps
-reviewed: 2026-05-09T01:00:23Z
+reviewed: 2026-05-09T01:18:23Z
 depth: standard
-files_reviewed: 6
+files_reviewed: 8
 files_reviewed_list:
   - src/actions/plugin-actions.ts
+  - src/actions/plugin-actions.test.ts
   - src/app/settings/plugins/page.tsx
   - src/components/surfaces/plugin-marketplace-surface.tsx
   - src/components/surfaces/settings-surface.tsx
   - src/components/surfaces/settings-surface.test.tsx
+  - src/components/ui/button.tsx
   - scripts/verify-phase12-launch-and-builtins.ts
 findings:
   critical: 0
-  warning: 1
+  warning: 0
   info: 0
-  total: 1
-status: issues_found
+  total: 0
+status: clean
 ---
 
 # Phase 12: Code Review Report
 
-**Reviewed:** 2026-05-09T01:00:23Z
+**Reviewed:** 2026-05-09T01:18:23Z
 **Depth:** standard
-**Files Reviewed:** 6
-**Status:** issues_found
+**Files Reviewed:** 8
+**Status:** clean
 
 ## Summary
 
-本次只读复审聚焦此前唯一 blocker 和 marketplace warning。
+本次按只读方式对 Phase 12 做最终复审，重点追查此前的 marketplace
+回归缺口是否真正闭环。
 
-- **此前 blocker 已解决**：`plugin-marketplace-surface.tsx:15-23`、
-  `settings-surface.tsx:49-53`、`settings-surface.tsx:194-202`
-  的表单 wrapper 现在都已显式声明 `'use server'`，未再发现该问题。
-- **marketplace warning 未完全解决**：release gate 仍未覆盖 marketplace
-  启停动作的真实提交行为，因此本次结论不是 no findings。
+结论如下：
 
-## Warnings
+- `src/components/surfaces/settings-surface.test.tsx:16-38` 已改为
+  `vi.hoisted(...)` 承载 `listPluginsAction` 与
+  `setPluginEnabledAction` mock，不再触发 Vitest mock hoist 的
+  `ReferenceError`。
+- `src/components/surfaces/settings-surface.test.tsx:68-89` 现在会真实渲染
+  `PluginMarketplaceSurface`，提交“停用环节”按钮所在 `<form>`，并断言
+  `setPluginEnabledAction` 收到 `{ pluginId, schoolId, enabled }`。
+- `src/components/surfaces/plugin-marketplace-surface.tsx:15-23,95-102`
+  仍然通过 `<form action={submitPluginToggle}>` →
+  `setPluginEnabledAction(...)` 的链路提交 marketplace 启停。
+- 实测 `pnpm test -- src/components/surfaces/settings-surface.test.tsx`
+  与 `pnpm exec tsx scripts/verify-phase12-launch-and-builtins.ts`
+  均已通过，说明 marketplace 行为测试可执行，且 phase verifier 已恢复可用。
 
-### WR-01: marketplace 回归仍未验证启停表单是否真正触发 Server Action
-
-**Classification:** WARNING
-
-**File:** `scripts/verify-phase12-launch-and-builtins.ts:44-47`, `src/components/surfaces/settings-surface.test.tsx:59-67`
-
-**Issue:** `verify:phase12` 对 marketplace 仍只执行
-`settings-surface.test.tsx`；该测试现在会真实渲染
-`PluginMarketplaceSurface`，但只断言卡片文案和按钮存在，没有提交表单，
-也没有断言 `setPluginEnabledAction` 被调用。因此它仍无法拦截
-marketplace 启停链路失效、表单参数错误或 action 未触发这类运行时回归。
-
-**Fix:** 为 marketplace 增加行为级测试：提交“停用环节/重新启用”按钮，
-并断言 `setPluginEnabledAction` 以正确 `pluginId`、`schoolId`、`enabled`
- 参数被调用；然后把该测试纳入 `verify:phase12`。
-
-```ts
-it("submits marketplace toggle action", async () => {
-  render(await PluginMarketplaceSurface())
-
-  const form = screen.getByRole("button", { name: "停用环节" }).closest("form")
-  expect(form).toBeTruthy()
-
-  fireEvent.submit(form!)
-
-  await waitFor(() => {
-    expect(setPluginEnabledAction).toHaveBeenCalledWith({
-      pluginId: "plugin-1",
-      schoolId: "school-1",
-      enabled: false,
-    })
-  })
-})
-```
+本轮复审未发现新的 bug、security issue 或质量缺陷；当前结论为
+**no findings**。
 
 ---
 
-_Reviewed: 2026-05-09T01:00:23Z_
+_Reviewed: 2026-05-09T01:18:23Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_

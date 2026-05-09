@@ -13,6 +13,8 @@ export async function PluginMarketplaceSurface() {
   const plugins = (pluginResult.success ? pluginResult.data ?? [] : []).filter((plugin) => plugin.builtIn)
 
   const submitPluginToggle = async (formData: FormData) => {
+    'use server'
+
     await setPluginEnabledAction({
       pluginId: String(formData.get('pluginId') ?? ''),
       schoolId: String(formData.get('schoolId') ?? ''),

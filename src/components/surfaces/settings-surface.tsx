@@ -47,6 +47,8 @@ export async function SettingsSurface({ mode }: SettingsSurfaceProps) {
 async function GeneralSettingsSurface({ schoolId }: { schoolId: string | null }) {
   const themes = schoolId ? await getValidThemesForSchool(schoolId) : []
   const resetTheme = async (formData: FormData) => {
+    'use server'
+
     await setActiveThemeAction(formData)
   }
 
@@ -190,6 +192,8 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
   const pluginResult = schoolId ? await listPluginsAction({ schoolId }) : { success: true as const, data: [] }
   const plugins = pluginResult.success ? (pluginResult.data ?? []) : []
   const submitPluginToggle = async (formData: FormData) => {
+    'use server'
+
     await setPluginEnabledAction({
       pluginId: String(formData.get('pluginId') ?? ''),
       schoolId: String(formData.get('schoolId') ?? ''),

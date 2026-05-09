@@ -10,7 +10,7 @@
 - [ ] **Phase 9: Core Page Alignment** - Refactor Home Page and Teacher Dashboard to strictly match Stitch designs
 - [x] **Phase 10: Global Visual Polish** - Fix 1px borders, tonal layering, and ensure release-ready visual consistency (completed 2026-05-06)
 - [x] **Phase 11: Plugin, Theme, and Classroom Readiness** - Make plugin hooks, theme plugins, and teacher classroom workflows usable end-to-end from existing docs
-- [x] **Phase 12: Classroom Launch and Built-in Teaching Steps** - Add a dedicated classroom launch flow, complete lesson preview coverage, and ship first-party teaching-step plugins through the existing plugin system (completed 2026-05-08)
+- [x] **Phase 12: Classroom Launch and Built-in Teaching Steps** - Add a dedicated classroom launch flow, complete lesson preview coverage, and ship first-party teaching-step plugins through the existing plugin system (completed 2026-05-09)
 
 ### Phase Details
 
