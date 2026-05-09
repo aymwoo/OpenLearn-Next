@@ -1,12 +1,12 @@
 import "server-only";
 
 import { db } from "@/db";
-import { themeTokenRegistries, themeAuditLogs } from "@/db/schema";
+import { themeTokenRegistries } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
-import { ThemeTokenRegistrySchema, ThemeTokenRegistry, ThemeRegistryDTO } from "@/lib/dto/resource-ai";
-import { validateThemeTokens } from "@/server/themes/tokens";
+import { ThemeTokenRegistry, ThemeRegistryDTO } from "@/lib/dto/resource-ai";
+import { recordThemeAudit, registerThemeTokens } from "@/server/themes/registry";
 
 function toThemeDTO(record: typeof themeTokenRegistries.$inferSelect): ThemeRegistryDTO {
   return {
@@ -20,42 +20,7 @@ function toThemeDTO(record: typeof themeTokenRegistries.$inferSelect): ThemeRegi
   };
 }
 
-export async function registerThemeTokens(schoolId: string, name: string, tokenJson: unknown, actorId?: string) {
-  const parsedTokens = ThemeTokenRegistrySchema.parse(tokenJson);
-  const isValid = validateThemeTokens(parsedTokens);
-  const validationStatus = isValid ? "valid" : "invalid";
-
-  const existing = await db.query.themeTokenRegistries.findFirst({
-    where: and(eq(themeTokenRegistries.schoolId, schoolId), eq(themeTokenRegistries.name, name)),
-  });
-
-  if (existing) {
-    const [record] = await db
-      .update(themeTokenRegistries)
-      .set({
-        tokenJson: parsedTokens,
-        validationStatus,
-        updatedAt: new Date(),
-      })
-      .where(eq(themeTokenRegistries.id, existing.id))
-      .returning();
-
-    await recordThemeAudit(record.id, "register", { validationStatus, tokens: parsedTokens }, actorId);
-
-    return record;
-  }
-
-  const [record] = await db.insert(themeTokenRegistries).values({
-    schoolId,
-    name,
-    tokenJson: parsedTokens,
-    validationStatus,
-  }).returning();
-
-  await recordThemeAudit(record.id, "register", { validationStatus, tokens: parsedTokens }, actorId);
-
-  return record;
-}
+export { registerThemeTokens, recordThemeAudit };
 
 export async function getThemeRegistryDTO(themeId: string): Promise<ThemeRegistryDTO | null> {
   const record = await db.query.themeTokenRegistries.findFirst({
@@ -94,20 +59,4 @@ export async function getActiveThemeForCurrentActor(themeId: string): Promise<Th
   }
 
   return schoolIds.includes(theme.schoolId) ? theme : null;
-}
-
-export async function recordThemeAudit(
-  themeId: string,
-  action: string,
-  payloadJson: Record<string, unknown>,
-  actorId?: string | null,
-) {
-  const [record] = await db.insert(themeAuditLogs).values({
-    themeId,
-    action,
-    payloadJson,
-    actorId: actorId || null,
-  }).returning();
-  
-  return record;
 }

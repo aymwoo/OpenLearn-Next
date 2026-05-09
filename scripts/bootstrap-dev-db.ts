@@ -16,7 +16,7 @@ import {
   themeTokenRegistries,
 } from "@/db/schema";
 import { PluginManifestSchema } from "@/lib/dto/resource-ai";
-import { registerThemeTokens } from "@/lib/dal/themes";
+import { registerThemeTokens } from "@/server/themes/registry";
 
 import { seedTestAccounts } from "./seed-test-accounts";
 
