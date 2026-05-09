@@ -1,9 +1,51 @@
 import { existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 
-type Check = {
+type StaticCheck = {
   label: string;
   passed: boolean;
+  detail?: string;
 };
+
+const REQUIRED_FILES = [
+  "src/app/(teacher)/teacher/launch/page.tsx",
+  "src/components/classroom/classroom-launch-panel.tsx",
+  "src/components/classroom/classroom-launch-panel.test.tsx",
+  "src/lib/dal/classroom.test.ts",
+  "src/lib/dal/plugins.builtins.test.ts",
+  "src/components/authoring/lesson-authoring-workspace.test.tsx",
+  "src/app/settings/plugins/page.tsx",
+  "src/components/surfaces/plugin-marketplace-surface.tsx",
+  "src/components/surfaces/settings-surface.test.tsx",
+  "package.json",
+] as const;
+
+const UNSAFE_PATTERN_TARGETS = [
+  "src/server/plugins/registry.ts",
+  "src/components/plugins/plugin-renderer.tsx",
+  "src/components/plugins/widgets/index.tsx",
+  "src/components/surfaces/plugin-marketplace-surface.tsx",
+] as const;
+
+const UNSAFE_PATTERNS = [/eval\(/, /dangerouslySetInnerHTML/, /<script/i];
+
+const BEHAVIOR_SUITES = [
+  {
+    label: "launch and built-in behavior regression suite",
+    args: [
+      "test",
+      "--",
+      "src/lib/dal/classroom.test.ts",
+      "src/components/classroom/classroom-launch-panel.test.tsx",
+      "src/lib/dal/plugins.builtins.test.ts",
+      "src/components/authoring/lesson-authoring-workspace.test.tsx",
+    ],
+  },
+  {
+    label: "marketplace/settings regression suite",
+    args: ["test", "--", "src/components/surfaces/settings-surface.test.tsx"],
+  },
+] as const;
 
 function read(path: string) {
   return existsSync(path) ? readFileSync(path, "utf8") : "";
@@ -16,98 +58,62 @@ function withoutLineComments(source: string) {
     .join("\n");
 }
 
-function nonCommentIncludes(source: string, token: string) {
-  return withoutLineComments(source).includes(token);
+function runPnpm(args: readonly string[], label: string) {
+  try {
+    execFileSync("pnpm", [...args], {
+      stdio: "inherit",
+    });
+  } catch (error) {
+    console.error(`Phase 12 verification failed while running: ${label}`);
+    throw error;
+  }
 }
 
-function hasNoneOf(source: string, patterns: RegExp[]) {
-  const filtered = withoutLineComments(source);
-  return patterns.every((pattern) => !pattern.test(filtered));
+function requireFile(path: string): StaticCheck {
+  return {
+    label: `required file exists: ${path}`,
+    passed: existsSync(path),
+    detail: path,
+  };
 }
 
-const launchPage = read("src/app/(teacher)/teacher/launch/page.tsx");
-const launchSurface = read("src/components/surfaces/classroom-launch-surface.tsx");
-const sidebar = read("src/components/shell/sidebar.tsx");
-const teacherLayout = read("src/app/(teacher)/teacher/layout.tsx");
-const launchPanel = read("src/components/classroom/classroom-launch-panel.tsx");
-const preview = read("src/components/classroom/classroom-launch-preview.tsx");
-const authoring = read("src/components/authoring/lesson-authoring-workspace.tsx");
-const bootstrap = read("scripts/bootstrap-dev-db.ts");
-const settingsSurface = read("src/components/surfaces/settings-surface.tsx");
-const registry = read("src/server/plugins/registry.ts");
-const pluginRenderer = read("src/components/plugins/plugin-renderer.tsx");
-const widgetIndex = read("src/components/plugins/widgets/index.tsx");
-const packageJson = read("package.json");
+function checkUnsafePatterns(path: string): StaticCheck {
+  const source = withoutLineComments(read(path));
+  return {
+    label: `unsafe runtime patterns are blocked in ${path}`,
+    passed: existsSync(path) && UNSAFE_PATTERNS.every((pattern) => !pattern.test(source)),
+    detail: path,
+  };
+}
 
-const builtInNames = ["教师讲授", "问卷调查", "学生探究", "课堂测验", "评价"];
+function checkPackageScript(): StaticCheck {
+  const source = read("package.json");
+  return {
+    label: "package.json exposes verify:phase12",
+    passed:
+      source.includes('"verify:phase12"') &&
+      source.includes("tsx scripts/verify-phase12-launch-and-builtins.ts"),
+  };
+}
 
-const checks: Check[] = [
-  {
-    label: "dedicated teacher launch route exists and renders ClassroomLaunchSurface",
-    passed:
-      existsSync("src/app/(teacher)/teacher/launch/page.tsx") &&
-      nonCommentIncludes(launchPage, "ClassroomLaunchSurface"),
-  },
-  {
-    label: "teacher launch CTAs route to /teacher/launch",
-    passed:
-      nonCommentIncludes(sidebar, 'href="/teacher/launch"') &&
-      nonCommentIncludes(teacherLayout, 'href="/teacher/launch"'),
-  },
-  {
-    label: "launch UI keeps preview and primary launch markers",
-    passed:
-      ["开启新课堂", "ClassroomLaunchPreview", "课堂节奏预览"].every((token) =>
-        [launchSurface, launchPanel, preview].some((source) => nonCommentIncludes(source, token)),
-      ),
-  },
-  {
-    label: "authoring exposes 内置教学环节 in first-level action zone",
-    passed:
-      nonCommentIncludes(authoring, "内置教学环节") &&
-      nonCommentIncludes(authoring, "新增步骤") &&
-      builtInNames.every((name) => nonCommentIncludes(authoring, name)),
-  },
-  {
-    label: "bootstrap seeds all five built-in teaching-step plugins",
-    passed: builtInNames.every((name) => nonCommentIncludes(bootstrap, name)),
-  },
-  {
-    label: "management UI labels built-ins as 系统内置 and 默认开启",
-    passed:
-      nonCommentIncludes(settingsSurface, "系统内置") &&
-      nonCommentIncludes(settingsSurface, "默认开启"),
-  },
-  {
-    label: "registry contains explicit built-in first-party action handling",
-    passed:
-      [
-        "suggestBuiltInTeachingStep",
-        "insertBuiltInTeachingStepTemplate",
-        "builtInTeachingStepSuggestion",
-        "builtInTeachingStepTemplate",
-      ].every((token) => nonCommentIncludes(registry, token)),
-  },
-  {
-    label: "plugin runtime files remain free of eval and raw HTML rendering",
-    passed: hasNoneOf(registry + pluginRenderer + widgetIndex, [/eval\(/, /dangerouslySetInnerHTML/, /<script/]),
-  },
-  {
-    label: "package.json exposes verify:phase12 script",
-    passed:
-      packageJson.includes('"verify:phase12"') &&
-      packageJson.includes("tsx scripts/verify-phase12-launch-and-builtins.ts"),
-  },
+const staticChecks: StaticCheck[] = [
+  ...REQUIRED_FILES.map((path) => requireFile(path)),
+  ...UNSAFE_PATTERN_TARGETS.map((path) => checkUnsafePatterns(path)),
+  checkPackageScript(),
 ];
 
-const failed = checks.filter((check) => !check.passed);
+const failedStaticChecks = staticChecks.filter((check) => !check.passed);
 
-if (failed.length > 0) {
+if (failedStaticChecks.length > 0) {
   console.error("Phase 12 launch and built-ins verification failed");
-  for (const check of failed) {
+  for (const check of failedStaticChecks) {
     console.error(`- ${check.label}`);
   }
   process.exit(1);
+}
+
+for (const suite of BEHAVIOR_SUITES) {
+  runPnpm(suite.args, suite.label);
 }
 
 console.log("Phase 12 launch and built-ins verification passed");
