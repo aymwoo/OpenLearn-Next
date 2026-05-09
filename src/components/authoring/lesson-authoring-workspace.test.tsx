@@ -142,7 +142,11 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
 
     expect(explanationCard).toBeTruthy();
 
-    fireEvent.click(within(explanationCard!).getByRole("button", { name: "下移" }));
+    if (!(explanationCard instanceof HTMLElement)) {
+      throw new Error("Expected explanation card container to be an HTMLElement");
+    }
+
+    fireEvent.click(within(explanationCard).getByRole("button", { name: "下移" }));
 
     await waitFor(() => {
       expect(reorderLessonStepAction).toHaveBeenCalledWith({
