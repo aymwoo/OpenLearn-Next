@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 current_phase: 12
-current_plan: 3
+current_plan: 4
 status: executing
 stopped_at: Completed 12-08-PLAN.md
-last_updated: "2026-05-08T23:32:33.853Z"
+last_updated: "2026-05-09T00:00:07.235Z"
 last_activity: 2026-05-08
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 27
-  completed_plans: 25
-  percent: 93
+  completed_plans: 26
+  percent: 96
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 ## Position
 
 **Current Phase:** 12
-**Current Plan:** 3
+**Current Plan:** 4
 **Total Plans in Phase:** 9
 **Status:** Ready to execute
 **Progress:**
-[█████████░] 93%
+[██████████] 96%
 **Last Activity:** 2026-05-08
 
-**Last session:** 2026-05-08T23:32:33.849Z
+**Last session:** 2026-05-08T23:59:31.915Z
 **Stopped At:** Completed 12-08-PLAN.md
 **Resume File:** None
 
@@ -63,6 +63,8 @@ progress:
 **Active Blockers:**
 
 - Full `pnpm lint` is blocked by pre-existing lint errors in `.claude/`, `.opencode/`, and unrelated source files outside Plan 11-01.
+- [Phase 12]: 教师编排页 built-in quick-add 只从学校范围内已启用的 registry templates 注入，禁用即不显示。
+- [Phase 12]: built-in quick-add 继续复用 addLessonStepAction 持久化路径，只替换按钮数据来源。
 
 ## Next Steps
 
@@ -81,6 +83,7 @@ progress:
 | Phase 12 P04 | 1 min | 3 tasks | 10 files |
 | Phase 12 P06 | 2 min | 2 tasks | 2 files |
 | Phase 12 P08 | 2 min | 2 tasks | 4 files |
+| Phase 12 P07 | 3 min | 2 tasks | 3 files |
 
 ### Quick Tasks Completed
 
