@@ -139,44 +139,90 @@ const BUILT_IN_PLUGIN_DEFINITIONS = [
   },
 ] as const;
 
-const DEV_THEME_PLUGIN_DEFINITION = {
-  name: "星夜课堂",
-  themeName: "星夜课堂主题",
-  manifest: {
-    id: "dev-theme-starlight-classroom",
-    version: "1.0.0",
-    permissions: [],
-    anchors: ["dashboard.widget"],
-    actions: ["createNotificationStub"],
-    builtIn: false,
-    defaultEnabled: true,
-    nonDeletable: false,
-    theme: {
-      colors: {
-        primary: "#5b6cff",
-        "primary-container": "#dbe1ff",
-        "on-primary": "#ffffff",
-        "on-surface": "#f3f6ff",
-        "on-surface-variant": "#b8c0e6",
-        tertiary: "#89d2ff",
-        "tertiary-container": "#123a56",
-      },
-      surfaces: {
-        surface: "#0f172d",
-        "surface-container-low": "#16203b",
-        "surface-container-lowest": "#1d2947",
-        primary: "#5b6cff",
-        "primary-container": "#dbe1ff",
-      },
-      radius: {
-        shell: "2rem",
-      },
-      typography: {
-        fontFamily: "Lexend",
+const DEV_THEME_PLUGIN_DEFINITIONS = [
+  {
+    name: "星夜课堂",
+    themeName: "星夜课堂主题",
+    manifest: {
+      id: "dev-theme-starlight-classroom",
+      version: "1.0.0",
+      permissions: [],
+      anchors: ["dashboard.widget"],
+      actions: ["createNotificationStub"],
+      builtIn: false,
+      defaultEnabled: true,
+      nonDeletable: false,
+      theme: {
+        colors: {
+          primary: "#5b6cff",
+          "primary-container": "#dbe1ff",
+          "on-primary": "#ffffff",
+          "on-surface": "#f3f6ff",
+          "on-surface-variant": "#b8c0e6",
+          tertiary: "#89d2ff",
+          "tertiary-container": "#123a56",
+        },
+        surfaces: {
+          surface: "#0f172d",
+          "surface-container-low": "#16203b",
+          "surface-container-lowest": "#1d2947",
+          primary: "#5b6cff",
+          "primary-container": "#dbe1ff",
+        },
+        radius: {
+          shell: "2rem",
+        },
+        typography: {
+          fontFamily: "Lexend",
+        },
       },
     },
   },
-} as const;
+  {
+    name: "晨光教务台",
+    themeName: "晨光教务台主题",
+    manifest: {
+      id: "dev-theme-morning-admin-studio",
+      version: "1.0.0",
+      permissions: [],
+      anchors: ["dashboard.widget"],
+      actions: ["createNotificationStub"],
+      builtIn: false,
+      defaultEnabled: true,
+      nonDeletable: false,
+      theme: {
+        colors: {
+          primary: "#0f766e",
+          "primary-container": "#ccfbf1",
+          "on-primary": "#ffffff",
+          "on-surface": "#163047",
+          "on-surface-variant": "#60758a",
+          tertiary: "#ea580c",
+          "tertiary-container": "#ffedd5",
+        },
+        surfaces: {
+          surface: "#f6fbff",
+          "surface-container-low": "#eaf4fb",
+          "surface-container-lowest": "#ffffff",
+          primary: "#0f766e",
+          "primary-container": "#ccfbf1",
+        },
+        radius: {
+          shell: "1.25rem",
+        },
+        typography: {
+          fontFamily: "Lexend",
+        },
+        layout: {
+          "shell-gap": "1rem",
+          "shell-inset": "0.75rem",
+          "content-radius": "1.25rem",
+          "sidebar-width": "18rem",
+        },
+      },
+    },
+  },
+] as const;
 
 async function getOrCreateClass(schoolId: string) {
   const existing = await db.query.classes.findFirst({
@@ -410,10 +456,14 @@ async function upsertBuiltInPlugins(schoolId: string) {
   }
 }
 
-async function upsertDevThemePlugin(schoolId: string, actorId: string) {
-  const manifest = PluginManifestSchema.parse(DEV_THEME_PLUGIN_DEFINITION.manifest);
+async function upsertDevThemePlugin(
+  schoolId: string,
+  actorId: string,
+  definition: (typeof DEV_THEME_PLUGIN_DEFINITIONS)[number],
+) {
+  const manifest = PluginManifestSchema.parse(definition.manifest);
   const existing = await db.query.pluginRegistrations.findFirst({
-    where: and(eq(pluginRegistrations.schoolId, schoolId), eq(pluginRegistrations.name, DEV_THEME_PLUGIN_DEFINITION.name)),
+    where: and(eq(pluginRegistrations.schoolId, schoolId), eq(pluginRegistrations.name, definition.name)),
   });
 
   if (existing) {
@@ -429,7 +479,7 @@ async function upsertDevThemePlugin(schoolId: string, actorId: string) {
   } else {
     await db.insert(pluginRegistrations).values({
       schoolId,
-      name: DEV_THEME_PLUGIN_DEFINITION.name,
+      name: definition.name,
       manifestJson: manifest,
       enabled: true,
       killSwitchEnabled: false,
@@ -438,7 +488,7 @@ async function upsertDevThemePlugin(schoolId: string, actorId: string) {
 
   await registerThemeTokens(
     schoolId,
-    DEV_THEME_PLUGIN_DEFINITION.themeName,
+    definition.themeName,
     manifest.theme,
     actorId,
   );
@@ -466,7 +516,9 @@ export async function bootstrapDevDb() {
     steps,
   });
   await upsertBuiltInPlugins(seeded.school.id);
-  await upsertDevThemePlugin(seeded.school.id, seeded.teacher.id);
+  for (const definition of DEV_THEME_PLUGIN_DEFINITIONS) {
+    await upsertDevThemePlugin(seeded.school.id, seeded.teacher.id, definition);
+  }
   const validThemeRows = await db.query.themeTokenRegistries.findMany({
     where: and(eq(themeTokenRegistries.schoolId, seeded.school.id), eq(themeTokenRegistries.validationStatus, "valid")),
   });

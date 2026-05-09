@@ -7,16 +7,20 @@ const themeSource = readFileSync("src/lib/dal/themes.ts", "utf8");
 const registrySource = readFileSync("src/server/themes/registry.ts", "utf8");
 
 describe("bootstrap dev theme seeding", () => {
-  it("defines a second theme plugin using manifest.theme tokens", () => {
-    expect(source).toContain("DEV_THEME_PLUGIN_DEFINITION");
+  it("defines multiple dev theme plugins using manifest.theme tokens", () => {
+    expect(source).toContain("DEV_THEME_PLUGIN_DEFINITIONS");
     expect(source).toContain('id: "dev-theme-starlight-classroom"');
     expect(source).toContain('themeName: "星夜课堂主题"');
+    expect(source).toContain('id: "dev-theme-morning-admin-studio"');
+    expect(source).toContain('themeName: "晨光教务台主题"');
+    expect(source).toContain('"sidebar-width": "18rem"');
     expect(source).toContain('fontFamily: "Lexend"');
     expect(source).toContain('"surface-container-low"');
   });
 
   it("registers the alternate theme during bootstrap", () => {
-    expect(source).toContain("await upsertDevThemePlugin(seeded.school.id, seeded.teacher.id)");
+    expect(source).toContain("for (const definition of DEV_THEME_PLUGIN_DEFINITIONS)");
+    expect(source).toContain("await upsertDevThemePlugin(seeded.school.id, seeded.teacher.id, definition)");
     expect(source).toContain('from "@/server/themes/registry"');
     expect(source).not.toContain('from "@/lib/dal/themes"');
     expect(registrySource).toContain("export async function registerThemeTokens");

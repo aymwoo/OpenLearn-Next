@@ -34,6 +34,18 @@ const settingsSections = [
 const labRows = ['A', 'B', 'C', 'D', 'E', 'F'] as const
 const labColumns = Array.from({ length: 8 }, (_, index) => index + 1)
 
+function getThemeDescription(themeName: string) {
+  if (themeName.includes('星夜')) {
+    return '偏深色夜空语义，强化蓝紫主色与沉浸式课堂氛围。'
+  }
+
+  if (themeName.includes('晨光')) {
+    return '更明亮的教务工作台语义，拉开侧栏宽度与壳层留白，形成更强的运营台布局节奏。'
+  }
+
+  return '已通过校验，可作为当前学校的界面主题使用。'
+}
+
 export async function SettingsSurface({ mode }: SettingsSurfaceProps) {
   const schoolIds = await getCurrentUserSchoolIds()
   const schoolId = schoolIds[0] ?? null
@@ -156,9 +168,7 @@ async function GeneralSettingsSurface({ schoolId }: { schoolId: string | null })
                       <div>
                         <p className="text-lg font-semibold text-on-surface">{theme.name}</p>
                         <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                          {theme.name.includes('星夜')
-                            ? '偏深色夜空语义，强化蓝紫主色与沉浸式课堂氛围。'
-                            : '已通过校验，可作为当前学校的界面主题使用。'}
+                          {getThemeDescription(theme.name)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">

@@ -52,6 +52,15 @@ vi.mock("@/lib/dal/themes", () => ({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     },
+    {
+      id: "theme-2",
+      schoolId: "school-1",
+      name: "晨光教务台主题",
+      tokenJson: {},
+      validationStatus: "valid",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    },
   ]),
 }));
 
@@ -80,8 +89,10 @@ describe("settings and plugin entry surfaces", () => {
     expect(source).toContain("const activeThemeId = await getActiveThemeId()");
     expect(source).toContain("activeThemeId === theme.id");
     expect(source).toContain("!activeThemeId ? <Badge className=\"bg-primary text-white\">当前使用中</Badge> : null");
-    expect(source).toContain("theme.name.includes('星夜')");
+    expect(source).toContain("function getThemeDescription(themeName: string)");
+    expect(source).toContain("themeName.includes('晨光')");
     expect(source).toContain("偏深色夜空语义，强化蓝紫主色与沉浸式课堂氛围。");
+    expect(source).toContain("更明亮的教务工作台语义，拉开侧栏宽度与壳层留白，形成更强的运营台布局节奏。");
   });
 
   it("renders plugin management controls in labs settings", () => {

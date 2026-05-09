@@ -11,7 +11,19 @@ export const DESIGN_SYSTEM_GUARDS = {
     "primary",
     "primary-container",
   ],
+  permittedLayoutRoles: [
+    "shell-gap",
+    "shell-inset",
+    "content-radius",
+    "sidebar-width",
+  ],
 };
+
+const CSS_LENGTH_PATTERN = /^(?:0|\d+(?:\.\d+)?(?:px|rem|vw|vh|%))$/;
+
+function isValidLayoutValue(value: string) {
+  return CSS_LENGTH_PATTERN.test(value.trim());
+}
 
 export function validateThemeTokens(tokens: ThemeTokenRegistry): boolean {
   if (tokens.typography) {
@@ -23,6 +35,14 @@ export function validateThemeTokens(tokens: ThemeTokenRegistry): boolean {
   if (tokens.surfaces) {
     for (const key of Object.keys(tokens.surfaces)) {
       if (!DESIGN_SYSTEM_GUARDS.permittedSurfaceRoles.includes(key)) {
+        return false;
+      }
+    }
+  }
+
+  if (tokens.layout) {
+    for (const [key, value] of Object.entries(tokens.layout)) {
+      if (!DESIGN_SYSTEM_GUARDS.permittedLayoutRoles.includes(key) || !isValidLayoutValue(value)) {
         return false;
       }
     }
@@ -55,6 +75,14 @@ export function compileThemeTokensToCssVariables(tokens: ThemeTokenRegistry): Re
   if (tokens.typography) {
     for (const [key, value] of Object.entries(tokens.typography)) {
       cssVars[`--typography-${key}`] = value;
+    }
+  }
+
+  if (tokens.layout) {
+    for (const [key, value] of Object.entries(tokens.layout)) {
+      if (DESIGN_SYSTEM_GUARDS.permittedLayoutRoles.includes(key) && isValidLayoutValue(value)) {
+        cssVars[`--layout-${key}`] = value;
+      }
     }
   }
 

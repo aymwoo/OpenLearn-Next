@@ -129,6 +129,7 @@ export const ThemeTokenRegistrySchema = z.object({
   surfaces: z.record(z.string(), z.string()).optional(),
   radius: z.record(z.string(), z.string()).optional(),
   typography: z.record(z.string(), z.string()).optional(),
+  layout: z.record(z.string(), z.string()).optional(),
 });
 export type ThemeTokenRegistry = z.infer<typeof ThemeTokenRegistrySchema>;
 
