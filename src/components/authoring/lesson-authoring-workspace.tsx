@@ -107,10 +107,11 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
   async function moveStep(step: LessonStepDTO, direction: "up" | "down") {
     const index = steps.findIndex((item) => item.id === step.id);
     const targetIndex = direction === "up" ? index - 1 : index + 1;
-    const beforeRank = steps[targetIndex - 1]?.rank ?? null;
-    const afterRank = steps[targetIndex]?.rank ?? null;
 
     if (!lesson || targetIndex < 0 || targetIndex >= steps.length) return;
+
+    const beforeRank = direction === "up" ? steps[index - 2]?.rank ?? null : steps[index + 1]?.rank ?? null;
+    const afterRank = direction === "up" ? steps[index - 1]?.rank ?? null : steps[index + 2]?.rank ?? null;
 
     await reorderLessonStepAction({ stepId: step.id, lessonId: lesson.lesson.id, beforeRank, afterRank });
   }

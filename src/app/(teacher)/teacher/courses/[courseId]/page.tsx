@@ -20,7 +20,11 @@ export default async function TeacherCourseDetailPage({ params }: TeacherCourseD
         <TeacherCourseDetailSurface course={course} />
       </div>
     );
-  } catch {
-    notFound();
+  } catch (error) {
+    if (error instanceof Error && error.message === "COURSE_NOT_FOUND") {
+      notFound();
+    }
+
+    throw error;
   }
 }

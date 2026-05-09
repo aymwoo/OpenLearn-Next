@@ -9,14 +9,21 @@ import type { TeacherCourseLessonsEntryDTO } from "@/lib/dto/course-authoring";
 
 type CourseLessonsEntrySurfaceProps = {
   data: TeacherCourseLessonsEntryDTO;
+  errorMessage?: string | null;
 };
 
-export function CourseLessonsEntrySurface({ data }: CourseLessonsEntrySurfaceProps) {
+export function CourseLessonsEntrySurface({ data, errorMessage }: CourseLessonsEntrySurfaceProps) {
   const { course, lessons } = data;
   const hasLessons = lessons.length > 0;
 
   return (
     <div className="space-y-6">
+      {errorMessage ? (
+        <div className="rounded-[1.5rem] bg-error-container px-4 py-3 text-sm font-medium text-on-error-container">
+          {errorMessage}
+        </div>
+      ) : null}
+
       <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-6 shadow-ambient sm:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -137,8 +144,12 @@ async function createLessonDraftFromCourse(courseId: string) {
     objective: "请补充本课时的教学目标。",
   });
 
-  if (!result.ok || !result.data || typeof result.data !== "object" || !("id" in result.data) || typeof result.data.id !== "string") {
-    throw new Error("LESSON_DRAFT_CREATE_FAILED");
+  if (!result.ok) {
+    redirect(`/teacher/courses/${courseId}/lessons?error=${encodeURIComponent(result.message)}`);
+  }
+
+  if (!result.data || typeof result.data !== "object" || !("id" in result.data) || typeof result.data.id !== "string") {
+    redirect(`/teacher/courses/${courseId}/lessons?error=${encodeURIComponent("课时草稿暂时创建失败，请稍后重试。")}`);
   }
 
   redirect(`/teacher/editor?courseId=${courseId}&lessonId=${result.data.id}`);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,24 @@ export function CourseDetailForm({ course, updateCourseAction }: CourseDetailFor
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [form, setForm] = useState({
+  const courseSnapshot = {
     title: course.title,
     subject: course.subject,
     grade: course.grade,
     status: course.status,
-  });
+  };
+  const [form, setForm] = useState(courseSnapshot);
+
+  useEffect(() => {
+    setForm(courseSnapshot);
+  }, [courseSnapshot.grade, courseSnapshot.status, courseSnapshot.subject, courseSnapshot.title]);
+
+  const resetForm = () => {
+    setForm(courseSnapshot);
+    setError("");
+    setSuccessMessage("");
+    router.refresh();
+  };
 
   const submit = () => {
     setError("");
@@ -143,7 +155,7 @@ export function CourseDetailForm({ course, updateCourseAction }: CourseDetailFor
         >
           {isPending ? "正在保存课程信息..." : "保存课程信息"}
         </Button>
-        <Button variant="secondary" className="min-w-[9rem]" onClick={() => router.refresh()} disabled={isPending}>
+        <Button variant="secondary" className="min-w-[9rem]" onClick={resetForm} disabled={isPending}>
           还原当前视图
         </Button>
       </div>

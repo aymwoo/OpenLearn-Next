@@ -87,6 +87,14 @@ function assertSchoolAccess(scope: TeacherScope, schoolId: string) {
   }
 }
 
+function ensureCourseOwnership(scope: TeacherScope, course: typeof courses.$inferSelect) {
+  assertSchoolAccess(scope, course.schoolId);
+
+  if (course.ownerId !== scope.userId) {
+    throw new Error("TEACHER_AUTH_REQUIRED");
+  }
+}
+
 export async function assertActiveTeacher(): Promise<TeacherScope> {
   const user = await getCurrentUserDTO();
 
@@ -113,7 +121,7 @@ async function getScopedCourse(courseId: string, scope: TeacherScope) {
     throw new Error("COURSE_NOT_FOUND");
   }
 
-  assertSchoolAccess(scope, course.schoolId);
+  ensureCourseOwnership(scope, course);
   return course;
 }
 
@@ -172,12 +180,38 @@ async function getLessonSummaryDTO(lesson: typeof lessons.$inferSelect) {
   });
 }
 
+async function getCourseClassDtos(courseId: string, scope: TeacherScope) {
+  const linkedClassRows = await db.query.courseClasses.findMany({ where: eq(courseClasses.courseId, courseId) });
+
+  if (linkedClassRows.length === 0) {
+    return [];
+  }
+
+  const linkedClassIds = linkedClassRows.map((link) => link.classId);
+  const classRows = await db.query.classes.findMany({ where: inArray(classes.id, linkedClassIds) });
+  const scopedClassRows = classRows.filter((classRow) => scope.schoolIds.includes(classRow.schoolId));
+
+  return Promise.all(
+    scopedClassRows.map(async (classRow) => {
+      const members = await db.query.classMembers.findMany({ where: eq(classMembers.classId, classRow.id) });
+
+      return {
+        id: classRow.id,
+        schoolId: classRow.schoolId,
+        name: classRow.name,
+        studentCount: members.filter((member) => member.role === "student").length,
+      };
+    })
+  );
+}
+
 export async function getTeacherAuthoringOverview() {
   const scope = await assertActiveTeacher();
   const courseRows = await db.query.courses.findMany({ where: inArray(courses.schoolId, scope.schoolIds) });
+  const scopedCourseRows = courseRows.filter((course) => course.ownerId === scope.userId);
   const classRows = await db.query.classes.findMany({ where: inArray(classes.schoolId, scope.schoolIds) });
-  const lessonRows = courseRows.length
-    ? await db.query.lessons.findMany({ where: inArray(lessons.courseId, courseRows.map((course) => course.id)) })
+  const lessonRows = scopedCourseRows.length
+    ? await db.query.lessons.findMany({ where: inArray(lessons.courseId, scopedCourseRows.map((course) => course.id)) })
     : [];
 
   const classDtos = await Promise.all(
@@ -194,7 +228,7 @@ export async function getTeacherAuthoringOverview() {
   );
 
   return TeacherAuthoringOverviewDTOSchema.parse({
-    courses: await Promise.all(courseRows.map(getCourseDTO)),
+    courses: await Promise.all(scopedCourseRows.map(getCourseDTO)),
     classes: classDtos,
     lessons: await Promise.all(lessonRows.map(getLessonSummaryDTO)),
   });
@@ -204,9 +238,7 @@ export async function getLessonEditorDTO(lessonId: string) {
   const scope = await assertActiveTeacher();
   const { lesson, course } = await getScopedLesson(lessonId, scope);
   const courseDto = await getCourseDTO(course);
-  const classDtos = (await getTeacherAuthoringOverview()).classes.filter((classDto) =>
-    courseDto.classLabels.includes(classDto.name)
-  );
+  const classDtos = await getCourseClassDtos(course.id, scope);
   const stepRows = await db.query.lessonSteps.findMany({
     where: eq(lessonSteps.lessonId, lesson.id),
     orderBy: (step, { asc }) => [asc(step.rank)],
@@ -302,6 +334,7 @@ export async function updateLessonDraft(input: LessonDraftInput & { lessonId: st
   return AutosaveResultDTOSchema.parse({
     ok: true,
     lessonId: updated.id,
+    courseId: updated.courseId,
     revision: updated.revision,
     savedAt: toIso(updated.updatedAt),
   });
@@ -333,7 +366,13 @@ export async function archiveLesson(lessonId: string): Promise<AutosaveResultDTO
     .where(eq(lessons.id, lessonId))
     .returning();
 
-  return AutosaveResultDTOSchema.parse({ ok: true, lessonId, revision: updated.revision, savedAt: toIso(updated.updatedAt) });
+  return AutosaveResultDTOSchema.parse({
+    ok: true,
+    lessonId,
+    courseId: lesson.courseId,
+    revision: updated.revision,
+    savedAt: toIso(updated.updatedAt),
+  });
 }
 
 export async function addLessonStep(input: AddLessonStepInput): Promise<AutosaveResultDTO> {
@@ -355,12 +394,18 @@ export async function addLessonStep(input: AddLessonStepInput): Promise<Autosave
     .set({ revision: lesson.revision + 1, updatedAt: new Date() })
     .where(eq(lessons.id, input.lessonId));
 
-  return AutosaveResultDTOSchema.parse({ ok: true, lessonId: input.lessonId, stepId: step.id, savedAt: toIso(step.updatedAt) });
+  return AutosaveResultDTOSchema.parse({
+    ok: true,
+    lessonId: input.lessonId,
+    courseId: lesson.courseId,
+    stepId: step.id,
+    savedAt: toIso(step.updatedAt),
+  });
 }
 
 export async function updateLessonStep(input: UpdateLessonStepInput): Promise<AutosaveResultDTO> {
   const scope = await assertActiveTeacher();
-  const { step, lesson } = await getScopedStep(input.stepId, scope);
+  const { step, lesson, course } = await getScopedStep(input.stepId, scope);
   const payload = lessonStepPayloadSchema.parse(input.payload);
   const [updated] = await db
     .update(lessonSteps)
@@ -373,7 +418,13 @@ export async function updateLessonStep(input: UpdateLessonStepInput): Promise<Au
     .set({ revision: lesson.revision + 1, updatedAt: new Date() })
     .where(eq(lessons.id, step.lessonId));
 
-  return AutosaveResultDTOSchema.parse({ ok: true, lessonId: step.lessonId, stepId: updated.id, savedAt: toIso(updated.updatedAt) });
+  return AutosaveResultDTOSchema.parse({
+    ok: true,
+    lessonId: step.lessonId,
+    courseId: course.id,
+    stepId: updated.id,
+    savedAt: toIso(updated.updatedAt),
+  });
 }
 
 export async function duplicateLessonStep(stepId: string): Promise<AutosaveResultDTO> {
@@ -391,7 +442,7 @@ export async function duplicateLessonStep(stepId: string): Promise<AutosaveResul
 
 export async function archiveLessonStep(stepId: string): Promise<AutosaveResultDTO> {
   const scope = await assertActiveTeacher();
-  const { step, lesson } = await getScopedStep(stepId, scope);
+  const { step, lesson, course } = await getScopedStep(stepId, scope);
   const [updated] = await db
     .update(lessonSteps)
     .set({ archivedAt: new Date(), updatedAt: new Date() })
@@ -403,12 +454,18 @@ export async function archiveLessonStep(stepId: string): Promise<AutosaveResultD
     .set({ revision: lesson.revision + 1, updatedAt: new Date() })
     .where(eq(lessons.id, step.lessonId));
 
-  return AutosaveResultDTOSchema.parse({ ok: true, lessonId: step.lessonId, stepId: updated.id, savedAt: toIso(updated.updatedAt) });
+  return AutosaveResultDTOSchema.parse({
+    ok: true,
+    lessonId: step.lessonId,
+    courseId: course.id,
+    stepId: updated.id,
+    savedAt: toIso(updated.updatedAt),
+  });
 }
 
 export async function reorderLessonStep(input: ReorderLessonStepInput): Promise<AutosaveResultDTO> {
   const scope = await assertActiveTeacher();
-  const { step, lesson } = await getScopedStep(input.stepId, scope);
+  const { step, lesson, course } = await getScopedStep(input.stepId, scope);
   const rank = input.beforeRank && input.afterRank
     ? createRankBetween(input.beforeRank, input.afterRank)
     : input.beforeRank
@@ -428,7 +485,13 @@ export async function reorderLessonStep(input: ReorderLessonStepInput): Promise<
     .set({ revision: lesson.revision + 1, updatedAt: new Date() })
     .where(eq(lessons.id, step.lessonId));
 
-  return AutosaveResultDTOSchema.parse({ ok: true, lessonId: step.lessonId, stepId: updated.id, savedAt: toIso(updated.updatedAt) });
+  return AutosaveResultDTOSchema.parse({
+    ok: true,
+    lessonId: step.lessonId,
+    courseId: course.id,
+    stepId: updated.id,
+    savedAt: toIso(updated.updatedAt),
+  });
 }
 
 export async function publishLesson(input: { lessonId: string; expectedRevision?: number }): Promise<PublishResultDTO> {
@@ -470,6 +533,7 @@ export async function publishLesson(input: { lessonId: string; expectedRevision?
   return PublishResultDTOSchema.parse({
     ok: true,
     lessonId: input.lessonId,
+    courseId: lesson.courseId,
     version,
     publishedVersionId: published.id,
     publishedAt: toIso(published.publishedAt),

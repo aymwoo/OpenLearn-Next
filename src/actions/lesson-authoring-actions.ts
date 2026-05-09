@@ -5,9 +5,9 @@ import { z } from "zod";
 
 import {
   addLessonStep,
+  assertActiveTeacher,
   archiveLesson,
   archiveLessonStep,
-  createCourseForTeacher,
   createLessonDraft,
   duplicateLesson,
   duplicateLessonStep,
@@ -20,13 +20,6 @@ import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
 import { cacheTags } from "@/lib/cache-policy";
 
 const conflictMessage = "检测到更新冲突，请刷新后重试。";
-
-const createCourseSchema = z.object({
-  schoolId: z.string().min(1),
-  title: z.string().min(1),
-  subject: z.string().min(1),
-  grade: z.string().min(1),
-});
 
 const lessonDraftSchema = z.object({
   courseId: z.string().min(1),
@@ -79,9 +72,27 @@ function validationError() {
   return { ok: false as const, error: "VALIDATION_ERROR", message: "输入内容不完整，请检查后再保存。" };
 }
 
+function invalidateLessonAuthoringTags(actorId: string, courseId: string, lessonId: string) {
+  updateTag(cacheTags.teacherCourses(actorId));
+  updateTag(cacheTags.course(courseId));
+  updateTag(cacheTags.lesson(lessonId));
+  updateTag(cacheTags.steps(lessonId));
+}
+
 function handleActionError(error: unknown) {
   if (error instanceof Error && error.message === "CONFLICT") {
     return { ok: false as const, error: "CONFLICT", message: conflictMessage };
+  }
+
+  if (error instanceof Error && error.message === "TEACHER_AUTH_REQUIRED") {
+    return { ok: false as const, error: "UNAUTHORIZED", message: "您没有权限执行此操作。" };
+  }
+
+  if (
+    error instanceof Error &&
+    (error.message === "COURSE_NOT_FOUND" || error.message === "LESSON_NOT_FOUND" || error.message === "STEP_NOT_FOUND")
+  ) {
+    return { ok: false as const, error: "NOT_FOUND", message: "当前课程、课时或步骤已不存在，请刷新后重试。" };
   }
 
   if (error instanceof z.ZodError) {
@@ -91,27 +102,14 @@ function handleActionError(error: unknown) {
   throw error;
 }
 
-export async function createCourseAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
-  const parsed = createCourseSchema.safeParse(normalizeInput(input));
-  if (!parsed.success) return validationError();
-
-  try {
-    const course = await createCourseForTeacher(parsed.data);
-    updateTag(cacheTags.course(course.id));
-    return { ok: true, data: course };
-  } catch (error) {
-    return handleActionError(error);
-  }
-}
-
 export async function createLessonDraftAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
   const parsed = lessonDraftSchema.safeParse(normalizeInput(input));
   if (!parsed.success) return validationError();
 
   try {
+    const actor = await assertActiveTeacher();
     const lesson = await createLessonDraft(parsed.data);
-    updateTag(cacheTags.course(parsed.data.courseId));
-    updateTag(cacheTags.lesson(lesson.id));
+    invalidateLessonAuthoringTags(actor.userId, parsed.data.courseId, lesson.id);
     return { ok: true, data: lesson };
   } catch (error) {
     return handleActionError(error);
@@ -123,8 +121,9 @@ export async function autosaveLessonAction(input: FormData | Record<string, unkn
   if (!parsed.success) return validationError();
 
   try {
+    const actor = await assertActiveTeacher();
     const result = await updateLessonDraft({ ...parsed.data, lessonId: parsed.data.lessonId });
-    updateTag(cacheTags.lesson(parsed.data.lessonId));
+    invalidateLessonAuthoringTags(actor.userId, parsed.data.courseId, parsed.data.lessonId);
     return { ok: true, data: result };
   } catch (error) {
     return handleActionError(error);
@@ -136,9 +135,10 @@ export async function duplicateLessonAction(input: FormData | Record<string, unk
   if (!parsed.success) return validationError();
 
   try {
+    const actor = await assertActiveTeacher();
     const lesson = await duplicateLesson(parsed.data.lessonId);
-    updateTag(cacheTags.lesson(parsed.data.lessonId));
-    updateTag(cacheTags.lesson(lesson.id));
+    invalidateLessonAuthoringTags(actor.userId, lesson.courseId, parsed.data.lessonId);
+    invalidateLessonAuthoringTags(actor.userId, lesson.courseId, lesson.id);
     return { ok: true, data: lesson };
   } catch (error) {
     return handleActionError(error);
@@ -150,8 +150,13 @@ export async function archiveLessonAction(input: FormData | Record<string, unkno
   if (!parsed.success) return validationError();
 
   try {
+    const actor = await assertActiveTeacher();
     const result = await archiveLesson(parsed.data.lessonId);
-    updateTag(cacheTags.lesson(parsed.data.lessonId));
+    if (result.lessonId && result.courseId) {
+      invalidateLessonAuthoringTags(actor.userId, result.courseId, result.lessonId);
+    } else if (result.lessonId) {
+      updateTag(cacheTags.lesson(result.lessonId));
+    }
     return { ok: true, data: result };
   } catch (error) {
     return handleActionError(error);
@@ -163,9 +168,11 @@ export async function addLessonStepAction(input: FormData | Record<string, unkno
   if (!parsed.success) return validationError();
 
   try {
+    const actor = await assertActiveTeacher();
     const result = await addLessonStep(parsed.data);
-    updateTag(cacheTags.lesson(parsed.data.lessonId));
-    updateTag(cacheTags.steps(parsed.data.lessonId));
+    if (result.lessonId && result.courseId) {
+      invalidateLessonAuthoringTags(actor.userId, result.courseId, result.lessonId);
+    }
     return { ok: true, data: result };
   } catch (error) {
     return handleActionError(error);
@@ -177,8 +184,11 @@ export async function autosaveLessonStepAction(input: FormData | Record<string, 
   if (!parsed.success) return validationError();
 
   try {
+    const actor = await assertActiveTeacher();
     const result = await updateLessonStep(parsed.data);
-    if (result.lessonId) {
+    if (result.lessonId && result.courseId) {
+      invalidateLessonAuthoringTags(actor.userId, result.courseId, result.lessonId);
+    } else if (result.lessonId) {
       updateTag(cacheTags.lesson(result.lessonId));
       updateTag(cacheTags.steps(result.lessonId));
     }
@@ -193,8 +203,11 @@ export async function duplicateLessonStepAction(input: FormData | Record<string,
   if (!parsed.success) return validationError();
 
   try {
+    const actor = await assertActiveTeacher();
     const result = await duplicateLessonStep(parsed.data.stepId);
-    if (result.lessonId) {
+    if (result.lessonId && result.courseId) {
+      invalidateLessonAuthoringTags(actor.userId, result.courseId, result.lessonId);
+    } else if (result.lessonId) {
       updateTag(cacheTags.lesson(result.lessonId));
       updateTag(cacheTags.steps(result.lessonId));
     }
@@ -209,8 +222,11 @@ export async function archiveLessonStepAction(input: FormData | Record<string, u
   if (!parsed.success) return validationError();
 
   try {
+    const actor = await assertActiveTeacher();
     const result = await archiveLessonStep(parsed.data.stepId);
-    if (result.lessonId) {
+    if (result.lessonId && result.courseId) {
+      invalidateLessonAuthoringTags(actor.userId, result.courseId, result.lessonId);
+    } else if (result.lessonId) {
       updateTag(cacheTags.lesson(result.lessonId));
       updateTag(cacheTags.steps(result.lessonId));
     }
@@ -225,9 +241,14 @@ export async function reorderLessonStepAction(input: FormData | Record<string, u
   if (!parsed.success) return validationError();
 
   try {
+    const actor = await assertActiveTeacher();
     const result = await reorderLessonStep(parsed.data);
-    updateTag(cacheTags.lesson(parsed.data.lessonId));
-    updateTag(cacheTags.steps(parsed.data.lessonId));
+    if (result.lessonId && result.courseId) {
+      invalidateLessonAuthoringTags(actor.userId, result.courseId, result.lessonId);
+    } else {
+      updateTag(cacheTags.lesson(parsed.data.lessonId));
+      updateTag(cacheTags.steps(parsed.data.lessonId));
+    }
     return { ok: true, data: result };
   } catch (error) {
     return handleActionError(error);
@@ -239,9 +260,14 @@ export async function publishLessonAction(input: FormData | Record<string, unkno
   if (!parsed.success) return validationError();
 
   try {
+    const actor = await assertActiveTeacher();
     const result = await publishLesson(parsed.data);
-    updateTag(cacheTags.lesson(parsed.data.lessonId));
-    updateTag(cacheTags.steps(parsed.data.lessonId));
+    if (result.courseId) {
+      invalidateLessonAuthoringTags(actor.userId, result.courseId, parsed.data.lessonId);
+    } else {
+      updateTag(cacheTags.lesson(parsed.data.lessonId));
+      updateTag(cacheTags.steps(parsed.data.lessonId));
+    }
     return { ok: true, data: result };
   } catch (error) {
     return handleActionError(error);

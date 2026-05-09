@@ -1,15 +1,19 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LessonAuthoringWorkspace } from "./lesson-authoring-workspace";
+
+const { reorderLessonStepAction } = vi.hoisted(() => ({
+  reorderLessonStepAction: vi.fn(),
+}));
 
 vi.mock("@/actions/lesson-authoring-actions", () => ({
   addLessonStepAction: vi.fn(),
   archiveLessonStepAction: vi.fn(),
   duplicateLessonStepAction: vi.fn(),
-  reorderLessonStepAction: vi.fn(),
+  reorderLessonStepAction,
 }));
 
 vi.mock("@/components/authoring/lesson-step-editor", () => ({
@@ -17,6 +21,10 @@ vi.mock("@/components/authoring/lesson-step-editor", () => ({
 }));
 
 describe("LessonAuthoringWorkspace built-in quick add", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("only renders enabled built-in teaching steps from the injected template list", () => {
     render(
       <LessonAuthoringWorkspace
@@ -90,5 +98,59 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
     expect(screen.queryByRole("button", { name: "问卷调查" })).toBeNull();
     expect(screen.queryByRole("button", { name: "学生探究" })).toBeNull();
     expect(screen.queryByRole("button", { name: "评价" })).toBeNull();
+  });
+
+  it("uses the next sibling rank as the lower anchor when moving a step down", async () => {
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [
+            {
+              id: "step-1",
+              title: "导入",
+              type: "content",
+              rank: "a0",
+              archivedAt: null,
+              payload: { type: "content", title: "导入", body: "从图片观察开始。", materialRefs: [] },
+            },
+            {
+              id: "step-2",
+              title: "讲解",
+              type: "content",
+              rank: "b0",
+              archivedAt: null,
+              payload: { type: "content", title: "讲解", body: "讲解概念。", materialRefs: [] },
+            },
+            {
+              id: "step-3",
+              title: "练习",
+              type: "task",
+              rank: "c0",
+              archivedAt: null,
+              payload: { type: "task", prompt: "完成练习", submissionType: "text", materialRefs: [] },
+            },
+          ],
+        } as any}
+        builtInTemplates={[]}
+      />,
+    );
+
+    const explanationCard = screen.getAllByText("讲解")[0]?.closest("div.group");
+
+    expect(explanationCard).toBeTruthy();
+
+    fireEvent.click(within(explanationCard!).getByRole("button", { name: "下移" }));
+
+    await waitFor(() => {
+      expect(reorderLessonStepAction).toHaveBeenCalledWith({
+        stepId: "step-2",
+        lessonId: "lesson-1",
+        beforeRank: "c0",
+        afterRank: null,
+      });
+    });
   });
 });

@@ -15,10 +15,11 @@ type TeacherEditorPageProps = {
 };
 
 export default async function TeacherEditorPage({ searchParams }: TeacherEditorPageProps) {
+  const resolvedSearchParams: NonNullable<TeacherEditorPageProps["searchParams"]> = searchParams ?? Promise.resolve({});
   const [scope, overview, params] = await Promise.all([
     assertActiveTeacher(),
     getTeacherAuthoringOverview(),
-    searchParams ?? Promise.resolve({}),
+    resolvedSearchParams,
   ]);
 
   const courseId = params.courseId;
@@ -33,9 +34,7 @@ export default async function TeacherEditorPage({ searchParams }: TeacherEditorP
     : overview;
   const scopedLessonSummary = lessonId
     ? scopedOverview.lessons.find((lesson) => lesson.id === lessonId && lesson.courseId === courseId) ?? null
-    : scopedCourse
-      ? scopedOverview.lessons.find((lesson) => lesson.courseId === scopedCourse.id) ?? null
-      : null;
+    : null;
   const lesson = scopedLessonSummary ? await getLessonEditorDTO(scopedLessonSummary.id) : null;
   const builtInTemplates = lesson
     ? await listBuiltInTeachingStepTemplates({ actorId: scope.userId, schoolId: lesson.course.schoolId })
@@ -45,9 +44,28 @@ export default async function TeacherEditorPage({ searchParams }: TeacherEditorP
     return <CourseAwareEditorGuidance />;
   }
 
+  if (!lessonId) {
+    return (
+      <CourseLessonSelectionGuidance
+        courseId={scopedCourse.id}
+        courseTitle={scopedCourse.title}
+        hasLessons={scopedOverview.lessons.length > 0}
+      />
+    );
+  }
+
+  if (!lesson) {
+    return (
+      <CourseLessonSelectionGuidance
+        courseId={scopedCourse.id}
+        courseTitle={scopedCourse.title}
+        hasLessons={scopedOverview.lessons.length > 0}
+      />
+    );
+  }
+
   return (
     <div className="space-y-5">
-      {!lesson ? <CourseLessonSelectionGuidance courseId={scopedCourse.id} courseTitle={scopedCourse.title} /> : null}
       <LessonEditorSurface overview={scopedOverview} lesson={lesson} builtInTemplates={builtInTemplates} />
       {lesson ? (
         <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
@@ -85,13 +103,25 @@ function CourseAwareEditorGuidance() {
   );
 }
 
-function CourseLessonSelectionGuidance({ courseId, courseTitle }: { courseId: string; courseTitle: string }) {
+function CourseLessonSelectionGuidance({
+  courseId,
+  courseTitle,
+  hasLessons,
+}: {
+  courseId: string;
+  courseTitle: string;
+  hasLessons: boolean;
+}) {
   return (
     <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
       <p className="text-sm text-on-surface-variant">课程内提示</p>
-      <h2 className="mt-2 text-2xl font-semibold text-on-surface">{courseTitle} 还没有可编辑的课时</h2>
+      <h2 className="mt-2 text-2xl font-semibold text-on-surface">
+        {hasLessons ? `请先从 ${courseTitle} 的课时入口选择要编辑的课时` : `${courseTitle} 还没有可编辑的课时`}
+      </h2>
       <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-        当前已锁定课程上下文，但未收到 lessonId，且该课程下还没有可加载的课时。请回到课程内课时入口创建第一个课时后再继续。
+        {hasLessons
+          ? "当前已锁定课程上下文，但未收到有效的 lessonId。为避免默认落到错误课时，请回到课程内课时入口，从明确的课时卡片继续编辑。"
+          : "当前已锁定课程上下文，但未收到 lessonId，且该课程下还没有可加载的课时。请回到课程内课时入口创建第一个课时后再继续。"}
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         <Button asChild>

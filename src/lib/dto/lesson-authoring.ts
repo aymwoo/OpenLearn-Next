@@ -122,6 +122,7 @@ export const TeacherAuthoringOverviewDTOSchema = z.object({
 export const AutosaveResultDTOSchema = z.object({
   ok: z.boolean(),
   lessonId: z.string().optional(),
+  courseId: z.string().optional(),
   stepId: z.string().optional(),
   revision: z.number().int().nonnegative().optional(),
   savedAt: z.string().optional(),
@@ -132,6 +133,7 @@ export const AutosaveResultDTOSchema = z.object({
 export const PublishResultDTOSchema = z.object({
   ok: z.boolean(),
   lessonId: z.string(),
+  courseId: z.string(),
   version: z.number().int().nonnegative().optional(),
   publishedVersionId: z.string().optional(),
   publishedAt: z.string().optional(),
