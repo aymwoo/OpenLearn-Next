@@ -121,6 +121,7 @@ progress:
 | 260507-u75 | 学生列表对齐 Stitch bb82bea4 紧凑 3 列布局：5 名学生、图片头像、筛选增加"所有"选项 | 2026-05-07 | 12f7a3b | [260507-u75-stitch-bb82bea424fd4a7eb9d21cf206fe56fe](./quick/260507-u75-stitch-bb82bea424fd4a7eb9d21cf206fe56fe/) |
 | 260507-v0p | 新增学生卡片视图：圆形头像 SVG 进度环、姓名学号，表格/卡片双视图切换 | 2026-05-07 | 1f5f783 | [260507-v0p-stitch-bb82bea4](./quick/260507-v0p-stitch-bb82bea4/) |
 | 2026-05-08 | fast | 移除教师工作台页面的 max-w-[1280px] 限制 | ✅ |
+| 2026-05-09 | fast | 资源中心页面/resources和设置页面/settings没有左边导航，需要改成和/teacher一致 | ✅ |
 
 ## Current Position
 
