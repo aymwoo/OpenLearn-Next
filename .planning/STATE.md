@@ -4,17 +4,17 @@ milestone: v1.2
 milestone_name: Course Import & Management
 current_phase: 13
 current_phase_name: course-center-foundation
-current_plan: 2
+current_plan: 3
 status: executing
-stopped_at: Phase 13 context gathered
-last_updated: "2026-05-09T12:08:16.593Z"
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-05-09T12:17:00.000Z"
 last_activity: 2026-05-09
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -23,15 +23,15 @@ progress:
 
 **Current Phase:** 13
 **Current Phase Name:** course-center-foundation
-**Current Plan:** 2
+**Current Plan:** 3
 **Total Plans in Phase:** 3
 **Status:** Ready to execute
 **Progress:**
-[███░░░░░░░] 33%
+[███████░░░] 67%
 **Last Activity:** 2026-05-09
 
-**Last session:** 2026-05-09T12:05:31.775Z
-**Stopped At:** Completed 13-01-PLAN.md
+**Last session:** 2026-05-09T12:16:58.882Z
+**Stopped At:** Completed 13-02-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -66,6 +66,9 @@ progress:
 - [Phase 13]: 课程中心读模型拆到独立 course-authoring DAL，避免 lesson-authoring 继续膨胀。
 - [Phase 13]: 课程列表排序固定为 draft->published->archived，再按 updatedAt 倒序，避免 UI 二次排序漂移。
 - [Phase 13]: 教师从课程卡先进入独立详情页，再进入课时管理，不再直接跳全局 editor。
+- [Phase 13]: 课程 create action 只接受 schoolId、title、subject、grade 与可选 draft status，并在 schema 层拒绝未声明字段。
+- [Phase 13]: 课程 update 继续收敛到 teacher-owned DAL 写路径，跨教师或跨学校课程一律返回未授权。
+- [Phase 13]: 课程保存成功反馈保留在详情页表单区，而不是只依赖瞬时 toast。
 
 **Active Blockers:**
 
@@ -91,6 +94,7 @@ progress:
 | Phase 12 P07 | 3 min | 2 tasks | 3 files |
 | Phase 12 P09 | 12 min | 2 tasks | 5 files |
 | Phase 13 P01 | 6 min | 2 tasks | 8 files |
+| Phase 13 P02 | 4 min | 2 tasks | 8 files |
 
 ### Quick Tasks Completed
 
@@ -114,6 +118,6 @@ progress:
 ## Current Position
 
 Phase: 13 (course-center-foundation) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-05-09

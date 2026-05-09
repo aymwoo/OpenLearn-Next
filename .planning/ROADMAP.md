@@ -24,7 +24,7 @@
   4. Teacher can open a course detail or equivalent entry and continue directly into lesson or teaching-plan management.
 **Plans**: 3 plans
 - [x] 13-01-PLAN.md — Build the teacher-scoped course center read model and route surface.
-- [ ] 13-02-PLAN.md — Add manual course create and edit flows through Server Actions and DAL.
+- [x] 13-02-PLAN.md — Add manual course create and edit flows through Server Actions and DAL.
 - [ ] 13-03-PLAN.md — Wire the course detail workflow into lesson and teaching-plan management entry points.
 **UI hint**: yes
 
@@ -62,6 +62,6 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 13. Course center foundation | 1/3 | In Progress|  |
+| 13. Course center foundation | 2/3 | In Progress|  |
 | 14. Course lifecycle and associations | 0/3 | Not started | - |
 | 15. Batch course import | 0/3 | Not started | - |
