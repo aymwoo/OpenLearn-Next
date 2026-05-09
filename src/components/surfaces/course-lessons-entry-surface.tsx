@@ -19,7 +19,7 @@ export function CourseLessonsEntrySurface({ data }: CourseLessonsEntrySurfacePro
     <div className="space-y-6">
       <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-6 shadow-ambient sm:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
+          <div>
             <Button asChild variant="tertiary" className="mb-5 min-h-10 px-0 text-sm">
               <Link href={`/teacher/courses/${course.id}`}>返回课程详情</Link>
             </Button>

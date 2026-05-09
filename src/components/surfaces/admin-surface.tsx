@@ -9,10 +9,10 @@ export function AdminSurface() {
         <Badge variant="default" className="mb-4 bg-surface-container-lowest">
           管理后台外壳
         </Badge>
-        <h1 className="max-w-3xl text-[2.25rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[3rem]">
+        <h1 className="text-[2.25rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[3rem]">
           安全边界与注册表
         </h1>
-        <p className="mt-4 max-w-2xl leading-8 text-on-surface-variant">
+        <p className="mt-4 leading-8 text-on-surface-variant">
           仅显示系统扩展能力的安全约束。暂无真实模型调用。
         </p>
       </section>

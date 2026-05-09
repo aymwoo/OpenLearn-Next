@@ -36,7 +36,7 @@ export function LessonEditorSurface({ overview, lesson, builtInTemplates }: Less
       <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient">
         <div className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-lowest p-5 sm:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
+            <div>
               <div className="flex flex-wrap items-center gap-3">
                 <Badge variant="accent">{activeCourse?.subject ?? '课程'}</Badge>
                 <Badge variant="default" className="bg-surface-container-low">第 {activeLesson?.revision ?? 0} 次修订</Badge>

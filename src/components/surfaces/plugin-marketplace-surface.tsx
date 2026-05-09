@@ -27,7 +27,7 @@ export async function PluginMarketplaceSurface() {
       <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-6">
         <section className="rounded-[var(--radius-shell)] bg-gradient-to-br from-primary to-[#7b9cff] p-6 text-white shadow-ambient sm:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
+            <div>
               <Badge className="bg-white/16 text-white">插件市场</Badge>
               <h1 className="mt-4 text-[2.4rem] font-semibold tracking-[-0.02em]">系统内置教学环节</h1>
               <p className="mt-3 text-sm leading-7 text-white/88 sm:text-base">
@@ -48,7 +48,7 @@ export async function PluginMarketplaceSurface() {
               <div>
                 <p className="text-sm text-on-surface-variant">内置目录</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-0.02em]">可见、可控、但不作为可删除扩展处理</h2>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-on-surface-variant sm:text-base">
+                <p className="mt-3 text-sm leading-7 text-on-surface-variant sm:text-base">
                   所有卡片均来自当前安全 plugin registry 与学校范围启停状态。这里负责可见性与发现，不替代实验室中的运行管理面板。
                 </p>
               </div>

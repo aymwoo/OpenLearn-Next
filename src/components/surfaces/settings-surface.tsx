@@ -101,7 +101,7 @@ async function GeneralSettingsSurface({ schoolId }: { schoolId: string | null })
               <div>
                 <Badge variant="accent" className="bg-surface-container-lowest">通用设置</Badge>
                 <h2 className="mt-4 text-[2.2rem] font-semibold tracking-[-0.02em]">管理系统界面与基础功能偏好</h2>
-                <p className="mt-3 max-w-3xl leading-8 text-on-surface-variant">以大面积 tonal surface 替代硬分割线，统一浅色、深色和自动模式，确保教师与学生界面风格一致。</p>
+                <p className="mt-3 leading-8 text-on-surface-variant">以大面积 tonal surface 替代硬分割线，统一浅色、深色和自动模式，确保教师与学生界面风格一致。</p>
               </div>
               <Button className="text-base">保存更改</Button>
             </div>
@@ -209,7 +209,7 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
             <div>
               <Badge variant="accent" className="bg-surface-container-lowest">实验室布局管理</Badge>
               <h1 className="mt-4 text-[2.3rem] font-semibold tracking-[-0.02em]">204 机房</h1>
-              <p className="mt-3 max-w-3xl leading-8 text-on-surface-variant">面向高密度机房的座位布局、设备状态和批量操作面板。保留大块留白和 tonal layering，避免传统表格分割线。</p>
+              <p className="mt-3 leading-8 text-on-surface-variant">面向高密度机房的座位布局、设备状态和批量操作面板。保留大块留白和 tonal layering，避免传统表格分割线。</p>
             </div>
 
             <div className="flex flex-wrap gap-3">

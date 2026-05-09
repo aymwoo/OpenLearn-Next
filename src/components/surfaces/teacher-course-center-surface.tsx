@@ -25,7 +25,7 @@ export function TeacherCourseCenterSurface({ data }: TeacherCourseCenterSurfaceP
     <div className="space-y-6">
       <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-6 shadow-ambient sm:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-3xl">
+          <div>
             <Badge variant="accent" className="mb-4 bg-surface-container-lowest">
               课程中心
             </Badge>

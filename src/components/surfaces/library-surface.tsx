@@ -23,7 +23,7 @@ export function LibrarySurface({ mode, resources = [] }: LibrarySurfaceProps) {
           <div>
             <Badge variant="accent" className="mb-4 bg-surface-container-lowest">{eyebrow}</Badge>
             <h1 className="text-[2.25rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[3rem]">{title}</h1>
-            <p className="mt-4 max-w-2xl leading-8 text-on-surface-variant">
+            <p className="mt-4 leading-8 text-on-surface-variant">
               {isCourses ? '围绕学段、主题和教学节奏组织课程结构，持续补齐课时外壳与教学进度。' : '集中查看变量小抄、Scratch 素材、课堂任务单与外部链接资源，保持检索与整理体验一致。'}
             </p>
           </div>

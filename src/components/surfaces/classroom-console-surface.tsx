@@ -40,7 +40,7 @@ export function ClassroomConsoleSurface({ consoleData, initialSnapshot }: { cons
         <section className="overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-low shadow-ambient">
           <div className="bg-linear-135 from-primary to-primary-container px-5 py-6 text-on-primary sm:px-6 sm:py-7">
             <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-              <div className="max-w-3xl">
+              <div>
                 <Badge variant="accent" className="bg-white/15 text-white">课堂教学运行管理</Badge>
                 <h1 className="mt-4 text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[3rem]">
                   {initialSnapshot.lessonTitle}
@@ -75,7 +75,7 @@ export function ClassroomConsoleSurface({ consoleData, initialSnapshot }: { cons
       <section className="overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-low shadow-ambient">
         <div className="bg-linear-135 from-primary to-primary-container px-5 py-6 text-on-primary sm:px-6 sm:py-7">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
+            <div>
               <Badge variant="accent" className="bg-white/15 text-white">课堂教学流程运行管理</Badge>
               <h1 className="mt-4 text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[3rem]">
                 进入课堂运行台
@@ -100,7 +100,7 @@ export function ClassroomConsoleSurface({ consoleData, initialSnapshot }: { cons
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h2 className="text-2xl font-semibold">先去准备，再回运行台</h2>
-                <p className="mt-3 max-w-2xl text-on-surface-variant">
+                <p className="mt-3 text-on-surface-variant">
                   当前没有 live classroom。/classroom 不再承担主要开课准备流程，而是保留给已经开始的课堂运行与恢复操作。
                 </p>
               </div>
