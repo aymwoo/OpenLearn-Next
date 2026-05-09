@@ -7,12 +7,12 @@ current_phase_name: Course center foundation
 current_plan: Not started
 status: executing
 stopped_at: Phase 13 context gathered
-last_updated: "2026-05-09T11:39:29.150Z"
+last_updated: "2026-05-09T11:46:46.023Z"
 last_activity: 2026-05-09
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 9
+  total_plans: 3
   completed_plans: 0
   percent: 0
 ---
