@@ -7,7 +7,7 @@
 
 ### Phases
 
-- [x] **Phase 13: Course center foundation** - Build the teacher course center, manual create and edit flows, and the course-to-lesson entry path. (completed 2026-05-09)
+- [ ] **Phase 13: Course center foundation** - Build the teacher course center, manual create and edit flows, and the course-to-lesson entry path.
 - [ ] **Phase 14: Course lifecycle and associations** - Add publish, unpublish, archive, delete, and class/student association workflows with school-scoped guardrails.
 - [ ] **Phase 15: Batch course import** - Add structured batch import, duplicate detection, and import-result feedback on top of the same course rules.
 
@@ -22,10 +22,12 @@
   2. Teacher can create a course manually through a validated form and immediately see it appear in the course center.
   3. Teacher can edit course base information and receive clear read-your-writes feedback after save.
   4. Teacher can open a course detail or equivalent entry and continue directly into lesson or teaching-plan management.
-**Plans**: 3 plans
+**Plans**: 5 plans
 - [x] 13-01-PLAN.md — Build the teacher-scoped course center read model and route surface.
 - [x] 13-02-PLAN.md — Add manual course create and edit flows through Server Actions and DAL.
 - [x] 13-03-PLAN.md — Wire the course detail workflow into lesson and teaching-plan management entry points.
+- [ ] 13-04-PLAN.md — Close the teacher-owned read leak and expose real course-center school scope metadata.
+- [ ] 13-05-PLAN.md — Replace hardcoded create scope with DTO-driven single-school and multi-school create flow wiring.
 **UI hint**: yes
 
 ### Phase 14: Course lifecycle and associations
@@ -62,6 +64,6 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 13. Course center foundation | 3/3 | Complete   | 2026-05-09 |
+| 13. Course center foundation | 3/5 | Gap closure planned | - |
 | 14. Course lifecycle and associations | 0/3 | Not started | - |
 | 15. Batch course import | 0/3 | Not started | - |
