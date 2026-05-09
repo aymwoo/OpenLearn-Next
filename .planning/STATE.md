@@ -5,16 +5,16 @@ milestone_name: Course Import & Management
 current_phase: 13
 current_phase_name: course-center-foundation
 current_plan: 3
-status: executing
+status: verifying
 stopped_at: Completed 13-02-PLAN.md
-last_updated: "2026-05-09T12:17:00.000Z"
+last_updated: "2026-05-09T12:46:18.869Z"
 last_activity: 2026-05-09
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 67
+  completed_plans: 3
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ progress:
 **Current Phase Name:** course-center-foundation
 **Current Plan:** 3
 **Total Plans in Phase:** 3
-**Status:** Ready to execute
+**Status:** Phase complete — ready for verification
 **Progress:**
-[███████░░░] 67%
+[██████████] 100%
 **Last Activity:** 2026-05-09
 
-**Last session:** 2026-05-09T12:16:58.882Z
+**Last session:** 2026-05-09T12:44:56.308Z
 **Stopped At:** Completed 13-02-PLAN.md
 **Resume File:** None
 
@@ -73,6 +73,9 @@ progress:
 **Active Blockers:**
 
 - Full `pnpm lint` is blocked by pre-existing lint errors in `.claude/`, `.opencode/`, and unrelated source files outside Plan 11-01.
+- [Phase 13]: 课程详情主 CTA 固定先进入 /teacher/courses/[courseId]/lessons，再由课程内上下文决定继续编辑或新建课时。
+- [Phase 13]: 无课时状态只暴露‘新建第一个课时’动作，并在创建成功后携带 courseId 与 lessonId 重定向到 editor。
+- [Phase 13]: teacher editor 只接受显式 searchParams.courseId 与可选 lessonId，禁止回退到 overview 中的全局第一课时。
 
 ## Next Steps
 
@@ -95,6 +98,7 @@ progress:
 | Phase 12 P09 | 12 min | 2 tasks | 5 files |
 | Phase 13 P01 | 6 min | 2 tasks | 8 files |
 | Phase 13 P02 | 4 min | 2 tasks | 8 files |
+| Phase 13 P03 | 23 min | 2 tasks | 8 files |
 
 ### Quick Tasks Completed
 
@@ -119,5 +123,5 @@ progress:
 
 Phase: 13 (course-center-foundation) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-09

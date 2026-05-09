@@ -104,7 +104,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **COURSE-07**: Teacher can manage course student enrollment associations within the course management workflow.
 - [ ] **COURSE-08**: Teacher can import multiple courses from a structured batch file and receive row-level validation results before changes are applied.
 - [ ] **COURSE-09**: Teacher can review import outcomes as created, updated, skipped, or failed rows without silently creating duplicates.
-- [ ] **COURSE-10**: Teacher can open a course and continue directly into lesson or teaching-plan management from a dedicated entry point.
+- [x] **COURSE-10**: Teacher can open a course and continue directly into lesson or teaching-plan management from a dedicated entry point.
 
 ## v2 Requirements
 
@@ -230,7 +230,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COURSE-07 | Phase 14 | Pending |
 | COURSE-08 | Phase 15 | Pending |
 | COURSE-09 | Phase 15 | Pending |
-| COURSE-10 | Phase 13 | Pending |
+| COURSE-10 | Phase 13 | Complete |
 
 **Coverage:**
 - v1/v1.1/v1.2 requirements: 69 total
