@@ -209,9 +209,8 @@ describe("course authoring DAL", () => {
       { id: "class-1", name: "七年级一班" },
       { id: "class-2", name: "七年级二班" },
     ]);
-    expect(dto.lessons).toEqual([
-      expect.objectContaining({ id: "lesson-2", stepCount: 1, status: "published" }),
-      expect.objectContaining({ id: "lesson-1", stepCount: 2, status: "draft" }),
-    ]);
+    expect(dto.lessons.map((lesson) => lesson.id)).toEqual(["lesson-2", "lesson-1"]);
+    expect(dto.lessons[0]).toEqual(expect.objectContaining({ id: "lesson-2", stepCount: 1, status: "published" }));
+    expect(dto.lessons[1]).toEqual(expect.objectContaining({ id: "lesson-1", stepCount: 2, status: "draft" }));
   });
 });

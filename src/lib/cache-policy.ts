@@ -1,6 +1,7 @@
 export const cacheTags = {
   publicShell: 'public:shell',
   navigation: 'navigation:global',
+  teacherCourses: (actorId: string) => `teacher-courses:${actorId}`,
   course: (courseId: string) => `course:${courseId}`,
   lesson: (lessonId: string) => `lesson:${lessonId}`,
   steps: (lessonId: string) => `steps:${lessonId}`,
