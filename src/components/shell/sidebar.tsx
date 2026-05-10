@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { 
@@ -17,7 +18,7 @@ import {
   HelpCircle
 } from 'lucide-react'
 
-type SidebarItem = {
+export type SidebarItem = {
   label: string
   href: string
   icon?: string
@@ -27,11 +28,14 @@ type SidebarItem = {
 type SidebarProps = {
   items: readonly SidebarItem[] | readonly { label: string; href: string; emphasis?: string }[]
   activePath?: string
-  title?: string // Add title back for backwards compatibility with route-shell.tsx
+  title?: string
+  region?: 'primary-nav' | 'secondary-nav'
+  className?: string
 }
 
-export function Sidebar({ items, activePath }: SidebarProps) {
+export function Sidebar({ items, activePath, title = '光启书院', region = 'primary-nav', className }: SidebarProps) {
   const pathname = usePathname()
+  const compact = region === 'secondary-nav'
 
   const renderIcon = (iconName?: string) => {
     switch (iconName) {
@@ -47,19 +51,29 @@ export function Sidebar({ items, activePath }: SidebarProps) {
   }
 
   return (
-    <aside className="hidden h-full w-64 shrink-0 flex-col justify-between rounded-[2rem] bg-surface-container-low px-4 py-5 lg:flex">
+    <aside
+      className={cn(
+        'hidden h-full shrink-0 flex-col justify-between rounded-[2rem] bg-surface-container-low px-4 py-5 lg:flex',
+        compact ? 'w-56' : 'w-64',
+        className,
+      )}
+      data-shell-region={region}
+      data-shell-variant={compact ? 'secondary-nav' : 'left-nav'}
+    >
       <div className="flex flex-col gap-7">
         <div className="flex items-center gap-3 px-2 py-1">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-container-lowest text-sm font-semibold text-primary shadow-ambient">
             学
           </div>
           <div className="flex flex-col">
-            <h1 className="text-base font-bold leading-tight tracking-tight text-on-surface">光启<br/>书院</h1>
-            <span className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-on-surface-variant">高级教师版</span>
+            <h1 className="text-base font-bold leading-tight tracking-tight text-on-surface">{title}</h1>
+            <span className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-on-surface-variant">
+              {compact ? 'secondary-nav' : 'primary-nav'}
+            </span>
           </div>
         </div>
 
-        <nav className="flex flex-col gap-1.5" aria-label="教师端侧边导航">
+        <nav className="flex flex-col gap-1.5" aria-label={compact ? '教师端辅栏导航' : '教师端侧边导航'}>
           {items.map((item) => {
             const currentPath = activePath ?? pathname
             const active = currentPath === item.href || (item.href !== '/teacher' && currentPath.startsWith(item.href))
@@ -92,7 +106,7 @@ export function Sidebar({ items, activePath }: SidebarProps) {
             开启新课堂
           </Link>
         </Button>
-        
+
         <Link href="/settings" className="flex min-h-11 items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-lowest hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/40">
           <Settings className="size-5 shrink-0" />
           设置

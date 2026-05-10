@@ -49,6 +49,16 @@ vi.mock("@/lib/dal/themes", () => ({
       name: "星夜课堂主题",
       tokenJson: {},
       validationStatus: "valid",
+      layoutSummary: {
+        shellMode: 'top-nav-secondary-rail',
+        shellLabel: '顶部导航 + 左侧辅栏',
+        mainSplit: '60/40',
+        mainSplitLabel: '主内容 60:40',
+        helperRegionSummary: ['启用左侧辅栏', '启用上下文侧栏', '未启用页面底栏'],
+        fallbackRegions: [],
+        fallbackLabel: null,
+        description: '顶部导航 + 左侧辅栏 / 主内容 60:40 / 启用左侧辅栏 / 启用上下文侧栏 / 未启用页面底栏',
+      },
       createdAt: Date.now(),
       updatedAt: Date.now(),
     },
@@ -58,6 +68,16 @@ vi.mock("@/lib/dal/themes", () => ({
       name: "晨光教务台主题",
       tokenJson: {},
       validationStatus: "valid",
+      layoutSummary: {
+        shellMode: 'left-nav',
+        shellLabel: '左侧导航',
+        mainSplit: '50/50',
+        mainSplitLabel: '主内容 50:50',
+        helperRegionSummary: ['未启用左侧辅栏', '未启用上下文侧栏', '未启用页面底栏'],
+        fallbackRegions: ['context-panel'],
+        fallbackLabel: '局部回退：context-panel',
+        description: '左侧导航 / 主内容 50:50 / 未启用左侧辅栏 / 未启用上下文侧栏 / 未启用页面底栏 / 局部回退：context-panel',
+      },
       createdAt: Date.now(),
       updatedAt: Date.now(),
     },
@@ -89,10 +109,10 @@ describe("settings and plugin entry surfaces", () => {
     expect(source).toContain("const activeThemeId = await getActiveThemeId()");
     expect(source).toContain("activeThemeId === theme.id");
     expect(source).toContain("!activeThemeId ? <Badge className=\"bg-primary text-white\">当前使用中</Badge> : null");
-    expect(source).toContain("function getThemeDescription(themeName: string)");
-    expect(source).toContain("themeName.includes('晨光')");
-    expect(source).toContain("偏深色夜空语义，强化蓝紫主色与沉浸式课堂氛围。");
-    expect(source).toContain("更明亮的教务工作台语义，拉开侧栏宽度与壳层留白，形成更强的运营台布局节奏。");
+    expect(source).toContain("结构摘要");
+    expect(source).not.toContain("function getThemeDescription(themeName: string)");
+    expect(source).toContain("左侧导航 / 主内容 60:40");
+    expect(source).toContain("局部回退");
   });
 
   it("renders plugin management controls in labs settings", () => {

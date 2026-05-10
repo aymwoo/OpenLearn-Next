@@ -1,6 +1,12 @@
 import { z } from "zod";
 
 import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
+import {
+  TEACHER_THEME_ROUTE_KEYS,
+  THEME_LAYOUT_REGION_KEYS,
+  THEME_LAYOUT_REQUIRED_REGIONS,
+  THEME_PAGE_MODULE_KEYS,
+} from "@/lib/theme-layout/route-surface-registry";
 
 export const ResourceVisibilitySchema = z.enum(["private", "course", "school"]);
 export type ResourceVisibility = z.infer<typeof ResourceVisibilitySchema>;
@@ -124,12 +130,126 @@ export const McpAuditDTOSchema = z.object({
 });
 export type McpAuditDTO = z.infer<typeof McpAuditDTOSchema>;
 
+export const ThemeShellModeSchema = z.enum(["left-nav", "top-nav", "top-nav-secondary-rail"]);
+export type ThemeShellMode = z.infer<typeof ThemeShellModeSchema>;
+
+export const ThemeLayoutRegionKeySchema = z.enum(THEME_LAYOUT_REGION_KEYS);
+export type ThemeLayoutRegionKey = z.infer<typeof ThemeLayoutRegionKeySchema>;
+
+export const ThemePageModuleKeySchema = z.enum(THEME_PAGE_MODULE_KEYS);
+export type ThemePageModuleKey = z.infer<typeof ThemePageModuleKeySchema>;
+
+export const ThemeRouteSurfaceKeySchema = z.enum(TEACHER_THEME_ROUTE_KEYS);
+export type ThemeRouteSurfaceKey = z.infer<typeof ThemeRouteSurfaceKeySchema>;
+
+export const ThemeLayoutSplitSchema = z.enum(["30/70", "40/60", "50/50", "60/40"]);
+export type ThemeLayoutSplit = z.infer<typeof ThemeLayoutSplitSchema>;
+
+export const LegacyThemeLayoutTokenKeySchema = z.enum([
+  "shell-gap",
+  "shell-inset",
+  "content-radius",
+  "sidebar-width",
+]);
+export type LegacyThemeLayoutTokenKey = z.infer<typeof LegacyThemeLayoutTokenKeySchema>;
+
+export const LegacyThemeLayoutTokensSchema = z.partialRecord(LegacyThemeLayoutTokenKeySchema, z.string());
+export type LegacyThemeLayoutTokens = z.infer<typeof LegacyThemeLayoutTokensSchema>;
+
+export const ThemeLayoutRegionSchema = z.object({
+  region: ThemeLayoutRegionKeySchema,
+  visible: z.boolean().optional(),
+  modules: z.array(ThemePageModuleKeySchema).max(6).optional(),
+  split: ThemeLayoutSplitSchema.optional(),
+});
+export type ThemeLayoutRegion = z.infer<typeof ThemeLayoutRegionSchema>;
+
+const ThemeLayoutRegionListSchema = z.array(ThemeLayoutRegionSchema).superRefine((regions, ctx) => {
+  const seen = new Set<string>();
+  for (const region of regions) {
+    if (seen.has(region.region)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate region: ${region.region}`,
+      });
+    }
+    seen.add(region.region);
+  }
+});
+
+export const ThemePageSurfaceOverrideSchema = z.object({
+  shell: z.object({
+    mode: ThemeShellModeSchema.optional(),
+  }).optional(),
+  regions: ThemeLayoutRegionListSchema.optional(),
+});
+export type ThemePageSurfaceOverride = z.infer<typeof ThemePageSurfaceOverrideSchema>;
+
+export const ThemeShellLayoutSchema = z.object({
+  mode: ThemeShellModeSchema.default("left-nav"),
+  defaultRegions: ThemeLayoutRegionListSchema,
+}).superRefine((shell, ctx) => {
+  const regionMap = new Map(shell.defaultRegions.map((region) => [region.region, region]));
+  for (const requiredRegion of THEME_LAYOUT_REQUIRED_REGIONS) {
+    const config = regionMap.get(requiredRegion);
+    if (!config || config.visible === false) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Required region must remain visible: ${requiredRegion}`,
+      });
+    }
+  }
+});
+
+export const ThemeLayoutContractSchema = z.object({
+  shell: ThemeShellLayoutSchema,
+  pages: z.partialRecord(ThemeRouteSurfaceKeySchema, ThemePageSurfaceOverrideSchema).optional(),
+  tokens: LegacyThemeLayoutTokensSchema.optional(),
+});
+export type ThemeLayoutContract = z.infer<typeof ThemeLayoutContractSchema>;
+
+export const ThemeLayoutRegionRuntimeSchema = z.object({
+  region: ThemeLayoutRegionKeySchema,
+  visible: z.boolean(),
+  modules: z.array(ThemePageModuleKeySchema),
+  split: ThemeLayoutSplitSchema.nullable(),
+  fallback: z.boolean().default(false),
+});
+export type ThemeLayoutRegionRuntime = z.infer<typeof ThemeLayoutRegionRuntimeSchema>;
+
+export const ThemeLayoutSummarySchema = z.object({
+  shellMode: ThemeShellModeSchema,
+  shellLabel: z.string(),
+  mainSplit: ThemeLayoutSplitSchema,
+  mainSplitLabel: z.string(),
+  helperRegionSummary: z.array(z.string()),
+  fallbackRegions: z.array(ThemeLayoutRegionKeySchema),
+  fallbackLabel: z.string().nullable(),
+  description: z.string(),
+});
+export type ThemeLayoutSummary = z.infer<typeof ThemeLayoutSummarySchema>;
+
+export const ThemePageSurfaceRuntimeSchema = z.object({
+  routeKey: ThemeRouteSurfaceKeySchema,
+  shellMode: ThemeShellModeSchema,
+  regions: z.array(ThemeLayoutRegionRuntimeSchema),
+  summary: ThemeLayoutSummarySchema,
+});
+export type ThemePageSurfaceRuntime = z.infer<typeof ThemePageSurfaceRuntimeSchema>;
+
+export const ThemeLayoutRuntimeSchema = z.object({
+  defaultSurface: ThemePageSurfaceRuntimeSchema,
+  pages: z.partialRecord(ThemeRouteSurfaceKeySchema, ThemePageSurfaceRuntimeSchema),
+  summary: ThemeLayoutSummarySchema,
+});
+export type ThemeLayoutRuntime = z.infer<typeof ThemeLayoutRuntimeSchema>;
+
 export const ThemeTokenRegistrySchema = z.object({
   colors: z.record(z.string(), z.string()).optional(),
   surfaces: z.record(z.string(), z.string()).optional(),
   radius: z.record(z.string(), z.string()).optional(),
   typography: z.record(z.string(), z.string()).optional(),
-  layout: z.record(z.string(), z.string()).optional(),
+  layout: z.union([ThemeLayoutContractSchema, LegacyThemeLayoutTokensSchema]).optional(),
 });
 export type ThemeTokenRegistry = z.infer<typeof ThemeTokenRegistrySchema>;
 
@@ -331,7 +451,17 @@ export const ThemeRegistryDTOSchema = z.object({
   name: z.string(),
   tokenJson: ThemeTokenRegistrySchema,
   validationStatus: z.enum(["valid", "invalid", "pending"]),
+  layoutRuntime: ThemeLayoutRuntimeSchema.optional(),
+  layoutSummary: ThemeLayoutSummarySchema.optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });
 export type ThemeRegistryDTO = z.infer<typeof ThemeRegistryDTOSchema>;
+
+export const ThemeResolvedRuntimeDTOSchema = z.object({
+  theme: ThemeRegistryDTOSchema,
+  cssVariables: z.record(z.string(), z.string()),
+  layoutRuntime: ThemeLayoutRuntimeSchema,
+  layoutSummary: ThemeLayoutSummarySchema,
+});
+export type ThemeResolvedRuntimeDTO = z.infer<typeof ThemeResolvedRuntimeDTOSchema>;

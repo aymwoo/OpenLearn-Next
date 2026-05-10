@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Course Import & Management
-current_phase: 13
-current_phase_name: course-center-foundation
-current_plan: 5
-status: executing
-stopped_at: Phase 16 context gathered
-last_updated: "2026-05-09T22:47:36.194Z"
+current_phase: 16
+current_phase_name: theme-plugins-and-layout-orchestration
+current_plan: 4
+status: complete
+stopped_at: Phase 16 verification passed
+last_updated: "2026-05-09T23:07:11+00:00"
 last_activity: 2026-05-09
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 9
-  completed_plans: 5
-  percent: 56
+  completed_phases: 2
+  total_plans: 15
+  completed_plans: 9
+  percent: 60
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 13
-**Current Phase Name:** course-center-foundation
-**Current Plan:** 5
+**Current Phase:** 16
+**Current Phase Name:** theme-plugins-and-layout-orchestration
+**Current Plan:** 4
 **Total Plans in Phase:** 4
-**Status:** Ready to execute
+**Status:** Complete
 **Progress:**
 [██████████] 100%
 **Last Activity:** 2026-05-09
 
-**Last session:** 2026-05-09T22:34:27.352Z
-**Stopped At:** Phase 16 context gathered
-**Resume File:** .planning/phases/16-theme-plugins-and-layout-orchestration/16-CONTEXT.md
+**Last session:** 2026-05-09T23:07:11+00:00
+**Stopped At:** Phase 16 verification passed
+**Resume File:** .planning/phases/16-theme-plugins-and-layout-orchestration/16-04-SUMMARY.md
 
 ## Accumulated Context
 
@@ -73,6 +73,11 @@ progress:
 - [Phase 13]: TeacherCourseCenterDTO 由服务端输出 defaultSchoolId 与 availableSchools，建课流程不再硬编码 school-1。
 - [Phase 13]: 建课抽屉只消费服务端 DTO 提供的 defaultSchoolId 与 availableSchools，不再保留任何 school-1 客户端默认值。
 - [Phase 13]: 多学校教师在抽屉内显式选择学校，单学校教师显示只读学校摘要，无学校 scope 时直接禁用创建。
+- [Phase 16]: `manifest.theme.layout` 已升级为 typed、allowlisted 的 region-based contract，禁止 `className`、`script`、原始 `style` 注入。
+- [Phase 16]: 主题运行时继续复用 `activeThemeId -> DAL -> ThemeInjector -> TeacherSidebarShell` 单一路径，不新增平行主题系统。
+- [Phase 16]: 教师端壳层固定支持 `left-nav`、`top-nav`、`top-nav-secondary-rail` 三种模式，`/teacher`、`/settings`、`/resources` 统一走同一 theme-aware shell。
+- [Phase 16]: 设置页主题卡片改为读取 runtime-driven `结构摘要`，并在局部回退时显式展示 `局部回退` 说明。
+- [Phase 16]: `verify:phase16` 已作为 phase-specific 验证入口落地，覆盖 runtime wiring、shell mode、设置页摘要和 unsafe contract guard。
 
 **Active Blockers:**
 
@@ -80,9 +85,9 @@ progress:
 
 ## Next Steps
 
-1. Start Phase 13 to build the teacher course center and manual course management flows.
-2. Reuse the existing DAL, DTO, and cache-tag boundaries instead of creating a parallel course-management write path.
-3. Keep v1.2 scope explicit: no real external system import, no bidirectional sync, and no SIS automation in this milestone.
+1. Run the remaining Phase 13 human UAT flows in `.planning/phases/13-course-center-foundation/13-HUMAN-UAT.md`.
+2. Decide whether to return to the milestone mainline with Phase 14 now that theme layout orchestration and repo-wide typecheck are green.
+3. When preparing a commit or PR, keep Phase 16 code and planning artifacts grouped atomically.
 
 ## Performance Metrics
 
@@ -127,7 +132,7 @@ progress:
 
 ## Current Position
 
-Phase: 13 (course-center-foundation) — VERIFYING
-Plan: 5 of 5
-Status: Ready to execute
-Last activity: 2026-05-09 -- Phase 16 planning complete
+Phase: 16 (theme-plugins-and-layout-orchestration) — COMPLETE
+Plan: 4 of 4
+Status: Verification passed
+Last activity: 2026-05-09 -- Phase 16 execution and verify:phase16 completed

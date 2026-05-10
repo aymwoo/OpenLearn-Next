@@ -5,10 +5,16 @@ import { z } from "zod";
 
 import { createCourseForTeacherScoped, updateCourseForTeacherScoped } from "@/lib/dal/course-authoring";
 import { cacheTags } from "@/lib/cache-policy";
-import { CourseCreateInputSchema, CourseUpdateInputSchema } from "@/lib/dto/course-authoring";
+import {
+  CourseCreateInputSchema,
+  CourseUpdateInputSchema,
+  type TeacherCourseDetailDTO,
+} from "@/lib/dto/course-authoring";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; message: string };
+type CourseCreateActionResult = ActionResult<{ id: string }>;
+type CourseUpdateActionResult = ActionResult<TeacherCourseDetailDTO>;
 
 const validationMessage = "输入内容不完整，请检查后再保存。";
 const actionErrorMessage = "课程信息暂时没有保存成功，请稍后重试。";
@@ -46,7 +52,7 @@ function invalidateCourseTags(actorId: string, courseId: string) {
   updateTag(cacheTags.course(courseId));
 }
 
-export async function createCourseAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+export async function createCourseAction(input: FormData | Record<string, unknown>): Promise<CourseCreateActionResult> {
   const normalized = normalizeInput(input);
   const parsed = CourseCreateInputSchema.safeParse(normalized);
   if (!parsed.success) return validationError();
@@ -61,7 +67,7 @@ export async function createCourseAction(input: FormData | Record<string, unknow
   }
 }
 
-export async function updateCourseAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+export async function updateCourseAction(input: FormData | Record<string, unknown>): Promise<CourseUpdateActionResult> {
   const normalized = normalizeInput(input);
   const parsed = CourseUpdateInputSchema.safeParse(normalized);
   if (!parsed.success) return validationError();

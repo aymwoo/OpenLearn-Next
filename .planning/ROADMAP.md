@@ -10,7 +10,7 @@
 - [x] **Phase 13: Course center foundation** - Build the teacher course center, manual create and edit flows, and the course-to-lesson entry path. (completed 2026-05-09)
 - [ ] **Phase 14: Course lifecycle and associations** - Add publish, unpublish, archive, delete, and class/student association workflows with school-scoped guardrails.
 - [ ] **Phase 15: Batch course import** - Add structured batch import, duplicate detection, and import-result feedback on top of the same course rules.
-- [ ] **Phase 16: Theme plugins and layout orchestration** - Expand theme plugins from token-only styling into validated layout composition, navigation placement, and page-surface orchestration.
+- [x] **Phase 16: Theme plugins and layout orchestration** - Expand theme plugins from token-only styling into validated layout composition, navigation placement, and page-surface orchestration. (completed 2026-05-09)
 
 ### Phase Details
 
@@ -71,10 +71,10 @@
   3. Existing school-scoped `manifest.theme` registration, `ThemeInjector`, settings-page theme switching, and teacher shell theme application continue to work as the single runtime path for both visual tokens and layout orchestration.
   4. Teacher shell and selected page surfaces can render theme-defined component arrangements consistently, so themes can express materially different information architecture rather than only color and spacing changes.
 **Plans**: 4 plans
-- [ ] 16-01-PLAN.md — Extend the `manifest.theme` contract with validated layout-composition primitives and guardrails for regions, slots, sizing, and navigation mode.
-- [ ] 16-02-PLAN.md — Compile theme layout definitions through the existing theme registry and `ThemeInjector` path with stable fallback behavior.
-- [ ] 16-03-PLAN.md — Apply theme-driven layout orchestration to the teacher shell and selected page surfaces, including top-vs-left navigation and component placement.
-- [ ] 16-04-PLAN.md — Expand settings, preview copy, and regression coverage so richer theme plugins remain school-scoped, safe, and understandable.
+- [x] 16-01-PLAN.md — Extend the `manifest.theme` contract with validated layout-composition primitives and guardrails for regions, slots, sizing, and navigation mode.
+- [x] 16-02-PLAN.md — Compile theme layout definitions through the existing theme registry and `ThemeInjector` path with stable fallback behavior.
+- [x] 16-03-PLAN.md — Apply theme-driven layout orchestration to the teacher shell and selected page surfaces, including top-vs-left navigation and component placement.
+- [x] 16-04-PLAN.md — Expand settings, preview copy, and regression coverage so richer theme plugins remain school-scoped, safe, and understandable.
 **UI hint**: yes
 
 ### Progress
@@ -84,4 +84,4 @@
 | 13. Course center foundation | 5/5 | Complete   | 2026-05-09 |
 | 14. Course lifecycle and associations | 0/3 | Not started | - |
 | 15. Batch course import | 0/3 | Not started | - |
-| 16. Theme plugins and layout orchestration | 0/4 | Not started | - |
+| 16. Theme plugins and layout orchestration | 4/4 | Complete | 2026-05-09 |

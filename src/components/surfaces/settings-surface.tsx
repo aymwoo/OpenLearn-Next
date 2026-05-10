@@ -34,16 +34,20 @@ const settingsSections = [
 const labRows = ['A', 'B', 'C', 'D', 'E', 'F'] as const
 const labColumns = Array.from({ length: 8 }, (_, index) => index + 1)
 
-function getThemeDescription(themeName: string) {
-  if (themeName.includes('星夜')) {
-    return '偏深色夜空语义，强化蓝紫主色与沉浸式课堂氛围。'
+function getThemeStructureSummary(theme: Awaited<ReturnType<typeof getValidThemesForSchool>>[number]) {
+  const summary = theme.layoutSummary
+
+  if (!summary) {
+    return {
+      description: '左侧导航 / 主内容 60:40 / 未启用左侧辅栏 / 未启用上下文侧栏 / 未启用页面底栏',
+      fallback: null,
+    }
   }
 
-  if (themeName.includes('晨光')) {
-    return '更明亮的教务工作台语义，拉开侧栏宽度与壳层留白，形成更强的运营台布局节奏。'
+  return {
+    description: summary.description,
+    fallback: summary.fallbackLabel,
   }
-
-  return '已通过校验，可作为当前学校的界面主题使用。'
 }
 
 export async function SettingsSurface({ mode }: SettingsSurfaceProps) {
@@ -154,30 +158,38 @@ async function GeneralSettingsSurface({ schoolId }: { schoolId: string | null })
                 </form>
 
                 {themes.map((theme) => (
-                  <form
-                    key={theme.id}
-                    action={resetTheme}
-                    className={
-                      activeThemeId === theme.id
-                        ? 'rounded-[1.5rem] border-2 border-primary bg-surface-container-lowest p-5 shadow-ambient'
-                        : 'rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient'
-                    }
-                  >
-                    <input type="hidden" name="themeId" value={theme.id} />
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-lg font-semibold text-on-surface">{theme.name}</p>
-                        <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                          {getThemeDescription(theme.name)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {activeThemeId === theme.id ? <Badge className="bg-primary text-white">当前使用中</Badge> : null}
-                        <Badge className="bg-surface-container-low text-on-surface-variant">有效主题</Badge>
-                      </div>
-                    </div>
-                    <Button variant="secondary" className="mt-4 min-h-10 px-4 text-sm shadow-none">应用主题</Button>
-                  </form>
+                  (() => {
+                    const structure = getThemeStructureSummary(theme)
+
+                    return (
+                      <form
+                        key={theme.id}
+                        action={resetTheme}
+                        className={
+                          activeThemeId === theme.id
+                            ? 'rounded-[1.5rem] border-2 border-primary bg-surface-container-lowest p-5 shadow-ambient'
+                            : 'rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient'
+                        }
+                      >
+                        <input type="hidden" name="themeId" value={theme.id} />
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-lg font-semibold text-on-surface">{theme.name}</p>
+                            <div className="mt-3 rounded-[1.25rem] bg-surface-container-low px-4 py-4 text-sm leading-6 text-on-surface-variant">
+                              <p className="text-xs uppercase tracking-[0.18em] text-on-surface-variant">结构摘要</p>
+                              <p className="mt-2">{structure.description}</p>
+                              {structure.fallback ? <p className="mt-2 text-[#bc6c25]">局部回退：{structure.fallback}</p> : null}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {activeThemeId === theme.id ? <Badge className="bg-primary text-white">当前使用中</Badge> : null}
+                            <Badge className="bg-surface-container-low text-on-surface-variant">有效主题</Badge>
+                          </div>
+                        </div>
+                        <Button variant="secondary" className="mt-4 min-h-10 px-4 text-sm shadow-none">应用主题</Button>
+                      </form>
+                    )
+                  })()
                 ))}
 
                 {themes.length === 0 ? (

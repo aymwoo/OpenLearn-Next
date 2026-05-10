@@ -5,19 +5,25 @@ import { themeTokenRegistries } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
-import { ThemeTokenRegistry, ThemeRegistryDTO } from "@/lib/dto/resource-ai";
+import { ThemeResolvedRuntimeDTO, ThemeResolvedRuntimeDTOSchema, ThemeTokenRegistry, ThemeRegistryDTO, ThemeRegistryDTOSchema } from "@/lib/dto/resource-ai";
 import { recordThemeAudit, registerThemeTokens } from "@/server/themes/registry";
+import { compileThemeLayoutRuntime, compileThemeTokensToCssVariables } from "@/server/themes/tokens";
 
 function toThemeDTO(record: typeof themeTokenRegistries.$inferSelect): ThemeRegistryDTO {
-  return {
+  const tokenJson = record.tokenJson as ThemeTokenRegistry;
+  const layoutRuntime = compileThemeLayoutRuntime(tokenJson);
+
+  return ThemeRegistryDTOSchema.parse({
     id: record.id,
     schoolId: record.schoolId,
     name: record.name,
-    tokenJson: record.tokenJson as ThemeTokenRegistry,
+    tokenJson,
     validationStatus: record.validationStatus as "valid" | "invalid" | "pending",
+    layoutRuntime,
+    layoutSummary: layoutRuntime.summary,
     createdAt: record.createdAt?.getTime() || Date.now(),
     updatedAt: record.updatedAt?.getTime() || Date.now(),
-  };
+  });
 }
 
 export { registerThemeTokens, recordThemeAudit };
@@ -59,4 +65,23 @@ export async function getActiveThemeForCurrentActor(themeId: string): Promise<Th
   }
 
   return schoolIds.includes(theme.schoolId) ? theme : null;
+}
+
+export async function getActiveThemeRuntimeForCurrentActor(themeId: string): Promise<ThemeResolvedRuntimeDTO | null> {
+  const theme = await getActiveThemeForCurrentActor(themeId);
+  if (!theme) {
+    return null;
+  }
+
+  const layoutRuntime = theme.layoutRuntime ?? compileThemeLayoutRuntime(theme.tokenJson);
+  return ThemeResolvedRuntimeDTOSchema.parse({
+    theme: {
+      ...theme,
+      layoutRuntime,
+      layoutSummary: layoutRuntime.summary,
+    },
+    cssVariables: compileThemeTokensToCssVariables(theme.tokenJson),
+    layoutRuntime,
+    layoutSummary: layoutRuntime.summary,
+  });
 }

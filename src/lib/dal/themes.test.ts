@@ -9,6 +9,7 @@ describe("theme DAL guards", () => {
     expect(source).toContain("export async function getValidThemesForSchool");
     expect(source).toContain('eq(themeTokenRegistries.schoolId, schoolId)');
     expect(source).toContain('eq(themeTokenRegistries.validationStatus, "valid")');
+    expect(source).toContain("layoutSummary");
   });
 
   it("resolves the active theme through current actor school membership", () => {
@@ -17,5 +18,11 @@ describe("theme DAL guards", () => {
     expect(source).toContain("getUserMembershipsDTO");
     expect(source).toContain('theme.validationStatus !== "valid"');
     expect(source).toContain("schoolIds.includes(theme.schoolId)");
+  });
+
+  it("exports a compiled active theme runtime with default fallback behavior", () => {
+    expect(source).toContain("export async function getActiveThemeRuntimeForCurrentActor");
+    expect(source).toContain("compileThemeLayoutRuntime(theme.tokenJson)");
+    expect(source).toContain("layoutSummary: layoutRuntime.summary");
   });
 });
