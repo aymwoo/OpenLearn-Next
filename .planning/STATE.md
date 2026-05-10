@@ -160,11 +160,12 @@ progress:
 | 260510-pn1 | 修复 RootLayout html 节点 hydration mismatch，忽略浏览器扩展注入属性 | 2026-05-10 | f51decf | [260510-pn1-rootlayout-html-hydration-mismatch](./quick/260510-pn1-rootlayout-html-hydration-mismatch/) |
 | 260510-pun | 移除 /teacher/editor 页面最下面左侧的竖条组件 | 2026-05-10 | 6a51652 | [260510-pun-teacher-editor](./quick/260510-pun-teacher-editor/) |
 | 260510-qor | 清理 `.planning/tmp` 临时 manifest，并删除根目录 `README.md` 生成草稿 | 2026-05-10 | 未提交 | [260510-qor-planning-tmp-readme-md](./quick/260510-qor-planning-tmp-readme-md/) |
-| 260510-tlq | 在/teacher/editor页面，在流程主线中的组件区块增加编辑按钮，底部的步骤编辑器及其他步骤编辑的组件改为点击组件编辑按钮的时候以抽屉的形式展开 | 2026-05-10 | 待更新 | [260510-tlq-teacher-editor](./quick/260510-tlq-teacher-editor/) |
+| 260510-tlq | 在/teacher/editor页面，在流程主线中的组件区块增加编辑按钮，底部的步骤编辑器及其他步骤编辑的组件改为点击组件编辑按钮的时候以抽屉的形式展开 | 2026-05-10 | 0efc8a0 | [260510-tlq-teacher-editor](./quick/260510-tlq-teacher-editor/) |
+| 260510-u37 | 继续修改/teacher/editor页面，根据stitch页面中的资源库部分重构课堂流程组件，将编辑教学流程中的环节的抽屉换成modal，效果同教学流程编排-拖拽交互状态(Nimbus)页面一致，并实现实时预览效果 | 2026-05-10 | d3c119b | [260510-u37-teacher-editor-stitch-modal-nimbus](./quick/260510-u37-teacher-editor-stitch-modal-nimbus/) |
 
 ## Current Position
 
 Phase: 17 (teacher-flow-editor-enhancement) — EXECUTING
 Plan: 4 of 4
 Status: Phase complete — ready for verification
-Last activity: 2026-05-10 - Completed quick task 260510-tlq: 在 /teacher/editor 将步骤编辑改为流程卡片按钮触发的右侧抽屉
+Last activity: 2026-05-10 - Completed quick task 260510-u37: 将 /teacher/editor 的步骤编辑升级为带实时预览的 Nimbus modal
