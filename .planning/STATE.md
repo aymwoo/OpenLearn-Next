@@ -140,10 +140,11 @@ progress:
 | 260510-9s2 | 统一 settings-surface、teacher-review-surface、library-surface 的二级卡片圆角语义                                                                                                | 2026-05-10                                                                    | 未提交  | [260510-9s2-surface-secondary-card-radius](./quick/260510-9s2-surface-secondary-card-radius/)                       |
 | 260510-kc9 | 经过主题插件改动之后，我的默认的主题的界面和之前不一样了，深色浅色比较混乱，而且不必要的文字段落宽度限制又回来了，比如首页就变成了图片中的样子，其他页面也存在这个情况，检查原因并系统的修正 | 2026-05-10 | 068fc1b | [260510-kc9-theme-default-regression-fix](./quick/260510-kc9-theme-default-regression-fix/) |
 | 260510-oml | 修复 /teacher/editor Blocking Route：将主题 cookie 读取移入 Suspense 安全边界 | 2026-05-10 | c196830 | [260510-oml-teacher-editor-blocking-route-cookie-sus](./quick/260510-oml-teacher-editor-blocking-route-cookie-sus/) |
+| 260510-pcj | 移除 teacher editor 左侧课程/班级摘要卡，保留其余编排区 | 2026-05-10 | 708e57d | [260510-pcj-teacher-editor](./quick/260510-pcj-teacher-editor/) |
 
 ## Current Position
 
 Phase: 16 (theme-plugins-and-layout-orchestration) — COMPLETE
 Plan: 4 of 4
 Status: Verification passed
-Last activity: 2026-05-10 - Completed quick task 260510-oml: 修复 /teacher/editor Blocking Route：将主题 cookie 读取移入 Suspense 安全边界
+Last activity: 2026-05-10 - Completed quick task 260510-pcj: 移除 teacher editor 左侧课程/班级摘要卡，保留其余编排区
