@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, ClipboardCheck, FileText, GripVertical, PencilLine, Plus, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { BookOpenText, ClipboardCheck, FileText, GripVertical, PencilLine, Plus, Search, Sparkles, X } from "lucide-react";
 
 import {
   addLessonStepAction,
@@ -177,20 +177,6 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
         <Card className="relative overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-lowest p-5">
           <div className="absolute inset-x-0 top-0 h-24 bg-linear-135 from-primary/10 to-primary-container/20" />
           <div className="relative" data-testid="lesson-flow-composer">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm text-on-surface-variant">课堂流程组件</p>
-                <h3 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-on-surface">资源库</h3>
-              </div>
-              <button type="button" aria-label="筛选资源" className="rounded-full bg-surface-container-low p-3 text-on-surface-variant transition hover:text-primary">
-                <SlidersHorizontal className="size-5" />
-              </button>
-            </div>
-
-            <p className="mt-5 text-sm leading-7 text-on-surface-variant">
-              拖拽式资源库节奏用于组织普通步骤和内置教学环节，让教师在同一侧边 rail 内完成挑选、插入与节奏规划。
-            </p>
-
             <div className="mt-5 rounded-[1.75rem] bg-surface-container-low p-4 shadow-ambient">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" aria-hidden />

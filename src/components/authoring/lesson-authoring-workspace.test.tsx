@@ -209,10 +209,12 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
 
     expect(screen.getAllByTestId("lesson-flow-composer")[0]).toBeTruthy();
     expect(screen.getAllByText("内置环节 · 教师讲授").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("资源库")[0]).toBeTruthy();
     expect(screen.getAllByText("流程主线")[0]).toBeTruthy();
     expect(screen.queryByText("当前编排概览")).toBeNull();
     expect(screen.queryByText("有效步骤")).toBeNull();
+    expect(screen.queryByText("课堂流程组件")).toBeNull();
+    expect(screen.queryByText("资源库")).toBeNull();
+    expect(screen.queryByRole("button", { name: "筛选资源" })).toBeNull();
   });
 
   it("opens the step editor modal from the explicit flow-card edit button", () => {
