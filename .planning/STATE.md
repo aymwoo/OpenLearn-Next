@@ -164,10 +164,11 @@ progress:
 | 260510-u37 | 继续修改/teacher/editor页面，根据stitch页面中的资源库部分重构课堂流程组件，将编辑教学流程中的环节的抽屉换成modal，效果同教学流程编排-拖拽交互状态(Nimbus)页面一致，并实现实时预览效果 | 2026-05-10 | 待更新 | [260510-u37-teacher-editor-stitch-modal-nimbus](./quick/260510-u37-teacher-editor-stitch-modal-nimbus/) |
 | 260510-uko | 继续修改 /teacher/editor 页面，移除资源库底部的当前编排概览、有效步骤、内置环节、普通步骤统计块，保持其余 Nimbus 资源库与 modal 实现不变 | 2026-05-10 | bc1a7ec | [260510-uko-teacher-editor-nimbus-modal](./quick/260510-uko-teacher-editor-nimbus-modal/) |
 | 260510-uwv | 继续修改 /teacher/editor 页面，将 data-testid=lesson-flow-composer 的资源库区裁成只保留内层 rounded rail，移除上方标题说明与筛选按钮外壳 | 2026-05-10 | a90e782 | [260510-uwv-teacher-editor-data-testid-lesson-flow-c](./quick/260510-uwv-teacher-editor-data-testid-lesson-flow-c/) |
+| 260510-v1f | 继续修改 /teacher/editor 页面，移除 lesson-flow-composer 外层带 section 壳的样式，只保留其内部资源库内容结构 | 2026-05-10 | 待提交 | [260510-v1f-teacher-editor-lesson-flow-composer-sect](./quick/260510-v1f-teacher-editor-lesson-flow-composer-sect/) |
 
 ## Current Position
 
 Phase: 17 (teacher-flow-editor-enhancement) — EXECUTING
 Plan: 4 of 4
 Status: Phase complete — ready for verification
-Last activity: 2026-05-10 - Completed quick task 260510-uwv: 将 /teacher/editor 的 lesson-flow-composer 裁成单一 rounded rail
+Last activity: 2026-05-10 - Completed quick task 260510-v1f: 移除 /teacher/editor 左侧 lesson-flow-composer 外层 section 壳

@@ -174,8 +174,7 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
     <>
       <div className="mt-6 space-y-5">
       <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-start">
-        <Card className="relative overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-lowest p-5">
-          <div className="absolute inset-x-0 top-0 h-24 bg-linear-135 from-primary/10 to-primary-container/20" />
+        <div>
           <div className="relative" data-testid="lesson-flow-composer">
             <div className="mt-5 rounded-[1.75rem] bg-surface-container-low p-4 shadow-ambient">
               <div className="relative">
@@ -259,7 +258,7 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
 
             </div>
           </div>
-        </Card>
+        </div>
 
         <Card className="relative overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-lowest p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

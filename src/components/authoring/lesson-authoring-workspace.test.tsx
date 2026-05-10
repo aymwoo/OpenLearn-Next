@@ -301,4 +301,11 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
     expect(source).toContain("课程结束");
     expect(source).not.toContain('absolute left-[1rem] bottom-full h-8 w-1 rounded-full bg-surface-variant');
   });
+
+  it("does not wrap lesson-flow-composer in a Card section shell", () => {
+    const source = readFileSync("src/components/authoring/lesson-authoring-workspace.tsx", "utf8");
+
+    expect(source).toContain('data-testid="lesson-flow-composer"');
+    expect(source).not.toContain('<Card className="relative overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-lowest p-5">');
+  });
 });
