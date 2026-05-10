@@ -6,11 +6,11 @@ current_phase: 17
 current_phase_name: teacher-flow-editor-enhancement
 current_plan: 4
 status: verifying
-stopped_at: Completed 17-04-PLAN.md
-last_updated: "2026-05-10T21:46:00+08:00"
-last_activity: 2026-05-10
+stopped_at: Phase 18 context gathered
+last_updated: "2026-05-10T16:33:05.597Z"
+last_activity: 2026-05-11
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 3
   total_plans: 13
   completed_plans: 13
@@ -27,12 +27,12 @@ progress:
 **Total Plans in Phase:** 4
 **Status:** Phase complete — ready for verification
 **Progress:**
-[██████████] 100%
-**Last Activity:** 2026-05-10
+[███████---] 68%
+**Last Activity:** 2026-05-11
 
-**Last session:** 2026-05-10T09:29:59.285Z
-**Stopped At:** Completed 17-04-PLAN.md
-**Resume File:** None
+**Last session:** 2026-05-10T16:33:05.592Z
+**Stopped At:** Phase 18 context gathered
+**Resume File:** .planning/phases/18-teaching-schedule-os/18-CONTEXT.md
 
 ## Accumulated Context
 
@@ -99,12 +99,14 @@ progress:
 - [Phase 17]: editor 内的发布准备面板直接消费结构化 readiness issue 列表，不再用三字段布尔判断替代服务端 gate。
 - [Phase 17]: 发布反馈保留在当前 shell 内，并在收到 PUBLISH_BLOCKED 时回填最新阻断项，而不是只弹通用失败提示。
 - [Phase 17]: Phase 17 通过 verify:phase17 固定校验 preview route、publish gate、Server Actions wiring 和 editor/plugin 安全边界。
+- [Phase 18]: 课表系统固定采用 `Import Layer -> Normalized Schedule Model -> Runtime Daily Agenda Engine` 三层架构，任何 UI、AI 或插件能力都不能绕过该边界直接读写原始导入数据。
 
 ## Next Steps
 
 1. Run the remaining Phase 13 human UAT flows in `.planning/phases/13-course-center-foundation/13-HUMAN-UAT.md`.
-2. Decide whether to return to the milestone mainline with Phase 14 now that theme layout orchestration and repo-wide typecheck are green.
-3. When preparing a commit or PR, keep Phase 16 code and planning artifacts grouped atomically.
+2. Decide whether to resume the milestone mainline with Phase 14 or prioritize the newly added Phase 18 teaching schedule OS extension.
+3. If Phase 18 becomes active, break it into the six planned work items before code execution so import, normalization, runtime agenda generation, and extension boundaries stay isolated.
+4. When preparing a commit or PR, keep phase-specific code and planning artifacts grouped atomically.
 
 ## Performance Metrics
 
