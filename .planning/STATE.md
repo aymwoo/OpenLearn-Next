@@ -7,7 +7,7 @@ current_phase_name: teacher-flow-editor-enhancement
 current_plan: 4
 status: verifying
 stopped_at: Completed 17-04-PLAN.md
-last_updated: "2026-05-10T21:24:12+08:00"
+last_updated: "2026-05-10T21:46:00+08:00"
 last_activity: 2026-05-10
 progress:
   total_phases: 5
@@ -166,10 +166,12 @@ progress:
 | 260510-uwv | 继续修改 /teacher/editor 页面，将 data-testid=lesson-flow-composer 的资源库区裁成只保留内层 rounded rail，移除上方标题说明与筛选按钮外壳 | 2026-05-10 | a90e782 | [260510-uwv-teacher-editor-data-testid-lesson-flow-c](./quick/260510-uwv-teacher-editor-data-testid-lesson-flow-c/) |
 | 260510-v1f | 继续修改 /teacher/editor 页面，移除 lesson-flow-composer 外层带 section 壳的样式，只保留其内部资源库内容结构 | 2026-05-10 | 23f738e | [260510-v1f-teacher-editor-lesson-flow-composer-sect](./quick/260510-v1f-teacher-editor-lesson-flow-composer-sect/) |
 | 260510-v4h | 根据 Stitch 编辑教学环节参考页，整理 /teacher/editor 的步骤编辑 modal，修复当前界面混乱、预览挤压和层级不清的问题 | 2026-05-10 | e2778a5 | [260510-v4h-stitch-teacher-editor-modal](./quick/260510-v4h-stitch-teacher-editor-modal/) |
+| 260510-vfb | 继续收敛 /teacher/editor 的步骤编辑 modal 容器层级，使标题说明回到左栏，并修复 modal 可访问名称与交互回归 | 2026-05-10 | 未提交 | [260510-vfb-modal-stitch-teacher-editor-modal](./quick/260510-vfb-modal-stitch-teacher-editor-modal/) |
+| fast-2026-05-10 | 修改 /teacher/editor 编辑环节 Modal：移除“步骤编辑器”头块，并让右侧实时预览背景铺满高度 | 2026-05-10 | 待更新 | - |
 
 ## Current Position
 
 Phase: 17 (teacher-flow-editor-enhancement) — EXECUTING
 Plan: 4 of 4
 Status: Phase complete — ready for verification
-Last activity: 2026-05-10 - Completed quick task 260510-v4h: 收敛 /teacher/editor 步骤编辑 modal 的预览结构
+Last activity: 2026-05-10 - Completed quick task 260510-vfb: 收敛 /teacher/editor 步骤编辑 modal 容器层级并修复可访问性回归

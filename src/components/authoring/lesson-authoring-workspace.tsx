@@ -329,25 +329,17 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
           <div
             role="dialog"
             aria-modal="true"
+            aria-label="编辑教学环节"
             aria-labelledby="lesson-step-editor-modal-title"
-            className="relative mx-auto flex h-[85vh] max-h-[800px] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] bg-surface-container-lowest shadow-[0_24px_80px_rgba(25,30,40,0.18)]"
+            className="relative mx-auto flex w-full max-w-[min(96vw,88rem)] overflow-hidden rounded-[1.5rem] bg-surface-container-lowest shadow-[0_24px_80px_rgba(25,30,40,0.18)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-4 px-6 pt-6 sm:px-8 sm:pt-8">
-              <div>
-                <p className="text-sm text-on-surface-variant">Nimbus 编辑面板</p>
-                <h2 id="lesson-step-editor-modal-title" className="mt-2 text-2xl font-semibold text-on-surface">编辑教学环节</h2>
-                <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-                  更新环节信息，右侧将实时预览展示效果，保持教师在同一工作流里完成编辑与预览。
-                </p>
-              </div>
-              <Button variant="tertiary" className="min-h-10 px-2" aria-label="关闭编辑环节" onClick={() => setIsStepEditorOpen(false)}>
+            <Button variant="tertiary" className="absolute right-6 top-6 z-10 min-h-10 px-2 sm:right-8 sm:top-8" aria-label="关闭编辑环节" onClick={() => setIsStepEditorOpen(false)}>
                 <X className="size-5" aria-hidden />
-              </Button>
-            </div>
+            </Button>
 
-            <div className="min-h-0 flex-1 overflow-hidden px-4 pb-4 pt-4 sm:px-6 sm:pb-6">
-              <LessonStepEditor key={selectedStep.id} step={selectedStep} className="h-full" />
+            <div className="min-h-0 flex-1 overflow-hidden p-4 sm:p-5">
+              <LessonStepEditor key={selectedStep.id} step={selectedStep} className="h-full" onCancel={() => setIsStepEditorOpen(false)} />
             </div>
           </div>
         </div>
