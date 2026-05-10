@@ -68,9 +68,9 @@ export function TeacherDashboardSurface() {
         </div>
       </section>
 
-      <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.18fr)_minmax(340px,0.82fr)]">
-        <div className="space-y-5">
-          <Card className="rounded-[2rem] bg-surface-container-lowest p-6 sm:p-7">
+      <section className="grid items-stretch gap-5 xl:grid-cols-[minmax(0,1.18fr)_minmax(340px,0.82fr)]">
+        <div className="flex min-h-0 flex-col">
+          <Card className="flex h-full flex-col rounded-[2rem] bg-surface-container-lowest p-6 sm:p-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">Co-primary module</p>
@@ -137,7 +137,9 @@ export function TeacherDashboardSurface() {
               </div>
             </div>
           </Card>
+        </div>
 
+        <div className="flex min-h-0 flex-col gap-5">
           <Card className="rounded-[2rem] bg-surface-container-lowest p-5 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -165,9 +167,8 @@ export function TeacherDashboardSurface() {
               />
             </div>
           </Card>
-        </div>
 
-        <Card className="overflow-hidden rounded-[2rem] bg-surface-container-lowest p-0">
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] bg-surface-container-lowest p-0">
           <div className="relative flex flex-col gap-3 bg-linear-135 from-primary to-primary-container p-6 text-on-primary sm:p-7">
             <Badge className="w-fit bg-white/18 text-white hover:bg-white/24">
               正在直播
@@ -217,8 +218,9 @@ export function TeacherDashboardSurface() {
                 </Button>
               </div>
             </section>
-          </div>
-        </Card>
+            </div>
+          </Card>
+        </div>
       </section>
     </div>
   )

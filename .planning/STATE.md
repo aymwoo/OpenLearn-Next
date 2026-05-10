@@ -170,6 +170,7 @@ progress:
 | fast-2026-05-10 | 修改 /teacher/editor 编辑环节 Modal：移除“步骤编辑器”头块，并让右侧实时预览背景铺满高度 | 2026-05-10 | 待更新 | - |
 | fast-2026-05-10-b | 再次调整 /teacher/editor 编辑环节 Modal：移除内层 padding，让实时预览 section 贴满 modal 上下高度 | 2026-05-10 | 待更新 | - |
 | fast-2026-05-10-c | 将 /teacher/editor 教学环节卡片中的“归档”操作改为“删除”，表示从教学流程中移除 | 2026-05-10 | 待更新 | - |
+| fast-2026-05-10-d | 调整 /teacher dashboard：将今日优先事项移到正在直播上方，并让左右列模块顶部底部对齐 | 2026-05-10 | 待更新 | - |
 
 ## Current Position
 
