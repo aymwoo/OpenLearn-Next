@@ -168,6 +168,7 @@ progress:
 | 260510-v4h | 根据 Stitch 编辑教学环节参考页，整理 /teacher/editor 的步骤编辑 modal，修复当前界面混乱、预览挤压和层级不清的问题 | 2026-05-10 | e2778a5 | [260510-v4h-stitch-teacher-editor-modal](./quick/260510-v4h-stitch-teacher-editor-modal/) |
 | 260510-vfb | 继续收敛 /teacher/editor 的步骤编辑 modal 容器层级，使标题说明回到左栏，并修复 modal 可访问名称与交互回归 | 2026-05-10 | 未提交 | [260510-vfb-modal-stitch-teacher-editor-modal](./quick/260510-vfb-modal-stitch-teacher-editor-modal/) |
 | fast-2026-05-10 | 修改 /teacher/editor 编辑环节 Modal：移除“步骤编辑器”头块，并让右侧实时预览背景铺满高度 | 2026-05-10 | 待更新 | - |
+| fast-2026-05-10-b | 再次调整 /teacher/editor 编辑环节 Modal：移除内层 padding，让实时预览 section 贴满 modal 上下高度 | 2026-05-10 | 待更新 | - |
 
 ## Current Position
 

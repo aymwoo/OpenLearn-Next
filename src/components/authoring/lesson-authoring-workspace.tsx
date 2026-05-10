@@ -338,7 +338,7 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
                 <X className="size-5" aria-hidden />
             </Button>
 
-            <div className="min-h-0 flex-1 overflow-hidden p-4 sm:p-5">
+            <div className="min-h-0 flex-1 overflow-hidden">
               <LessonStepEditor key={selectedStep.id} step={selectedStep} className="h-full" onCancel={() => setIsStepEditorOpen(false)} />
             </div>
           </div>
