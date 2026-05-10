@@ -11,6 +11,7 @@ import {
   createLessonDraft,
   duplicateLesson,
   duplicateLessonStep,
+  getLessonPublishReadinessDTO,
   publishLesson,
   reorderLessonStep,
   updateLessonDraft,
@@ -58,7 +59,9 @@ const publishSchema = z.object({
   expectedRevision: z.coerce.number().int().positive().optional(),
 });
 
-type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; message: string };
+type ActionResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; message: string; issues?: unknown[] };
 
 function normalizeInput(input: FormData | Record<string, unknown>) {
   if (!(input instanceof FormData)) {
@@ -261,6 +264,16 @@ export async function publishLessonAction(input: FormData | Record<string, unkno
 
   try {
     const actor = await assertActiveTeacher();
+    const readiness = await getLessonPublishReadinessDTO({ lessonId: parsed.data.lessonId });
+    if (!readiness.canPublish) {
+      return {
+        ok: false,
+        error: "PUBLISH_BLOCKED",
+        message: "发布前检查未通过。",
+        issues: readiness.blockingIssues,
+      };
+    }
+
     const result = await publishLesson(parsed.data);
     if (result.courseId) {
       invalidateLessonAuthoringTags(actor.userId, result.courseId, parsed.data.lessonId);
