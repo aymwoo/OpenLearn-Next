@@ -165,4 +165,4 @@ progress:
 Phase: 17 (teacher-flow-editor-enhancement) — EXECUTING
 Plan: 4 of 4
 Status: Phase complete — ready for verification
-Last activity: 2026-05-10 - Completed quick task 260510-pcj: 移除 teacher editor 左侧课程/班级摘要卡，保留其余编排区
+Last activity: 2026-05-10 - Completed quick task 260510-pun: 移除 /teacher/editor 页面最下面左侧的竖条组件
