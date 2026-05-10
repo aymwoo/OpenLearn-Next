@@ -1,9 +1,9 @@
 ## ROADMAP
 
 **Milestone:** v1.2 Course Import & Management
-**Phases:** 5
+**Phases:** 6
 **Granularity:** coarse
-**Coverage:** 10/10 v1.2 requirements mapped ✓ + 2 extension phases
+**Coverage:** 10/10 v1.2 requirements mapped ✓ + 3 extension phases
 
 ### Phases
 
@@ -12,6 +12,7 @@
 - [ ] **Phase 15: Batch course import** - Add structured batch import, duplicate detection, and import-result feedback on top of the same course rules.
 - [x] **Phase 16: Theme plugins and layout orchestration** - Expand theme plugins from token-only styling into validated layout composition, navigation placement, and page-surface orchestration. (completed 2026-05-09)
 - [x] **Phase 17: Teacher flow editor enhancement** - Upgrade `/teacher/editor` into a flexible classroom-flow editor with composable teaching steps, structured property editing, preview, and publish-readiness checks. (completed 2026-05-10)
+- [ ] **Phase 18: Teaching schedule OS** - Build a production-grade teaching schedule system around `Import Layer -> Normalized Schedule Model -> Runtime Daily Agenda Engine`, covering import, normalization, daily agenda generation, rescheduling, holidays, reminders, AI assistance, and plugin-safe extensibility.
 
 ### Phase Details
 
@@ -94,6 +95,24 @@
 - [x] 17-04-PLAN.md — Replace static publish hints with structured readiness checks and add a dedicated Phase 17 verification command.
 **UI hint**: yes
 
+### Phase 18: Teaching schedule OS
+**Goal**: Schools and teachers can operate a long-lived, production-grade teaching schedule system that ingests raw timetable data, normalizes it into an extensible schedule domain, and generates reliable daily agendas with runtime overrides, holiday rules, reminders, AI-assisted suggestions, and plugin-safe extension points.
+**Depends on**: Phase 2, Phase 6, Phase 13, Phase 14, Phase 15, Phase 16
+**Requirements**: SCHEDULE-01, SCHEDULE-02, SCHEDULE-03, SCHEDULE-04, SCHEDULE-05, SCHEDULE-06, SCHEDULE-07, SCHEDULE-08, SCHEDULE-09
+**Success Criteria**:
+  1. School-scoped users can import timetable data from structured sources into a reviewed import layer that records source metadata, validation issues, and approval-safe writes before affecting runtime schedules.
+  2. The system persists a normalized schedule model for terms, week patterns, teaching assignments, class groups, bell slots, recurring schedule entries, runtime overrides, and holiday exceptions without coupling UI surfaces directly to raw imports.
+  3. A runtime daily agenda engine can deterministically generate teacher-facing and class-facing daily schedules from normalized data, holidays, and overrides, while preserving explicit cache invalidation, DTO boundaries, and Auth/RBAC scope checks.
+  4. Teachers or authorized operators can manage rescheduling, substitutions, holiday calendars, reminders, and AI-generated schedule suggestions with audit logs, explicit approval, and plugin-safe extension hooks rather than arbitrary code execution.
+**Plans**: 6 plans
+- [ ] 18-01-PLAN.md — Define the import layer contracts, staging records, review flow, and normalized schedule schema boundaries.
+- [ ] 18-02-PLAN.md — Implement school-scoped timetable import, validation, duplicate/conflict detection, and approved write paths into the normalized model.
+- [ ] 18-03-PLAN.md — Build the runtime daily agenda engine that materializes daily teacher and class agendas from recurring schedules, holidays, and overrides.
+- [ ] 18-04-PLAN.md — Add rescheduling, substitution, and holiday/calendar management with audit-safe mutations and read-your-writes feedback.
+- [ ] 18-05-PLAN.md — Add reminder and notification orchestration for upcoming classes, changes, and daily agenda events.
+- [ ] 18-06-PLAN.md — Expose AI schedule assistant workflows and plugin extension hooks through approval-gated, allowlisted schedule actions.
+**UI hint**: yes
+
 ### Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -103,3 +122,4 @@
 | 15. Batch course import | 0/3 | Not started | - |
 | 16. Theme plugins and layout orchestration | 4/4 | Complete | 2026-05-09 |
 | 17. Teacher flow editor enhancement | 4/4 | Complete   | 2026-05-10 |
+| 18. Teaching schedule OS | 0/6 | Not started | - |
