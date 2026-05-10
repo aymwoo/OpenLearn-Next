@@ -165,10 +165,11 @@ progress:
 | 260510-uko | 继续修改 /teacher/editor 页面，移除资源库底部的当前编排概览、有效步骤、内置环节、普通步骤统计块，保持其余 Nimbus 资源库与 modal 实现不变 | 2026-05-10 | bc1a7ec | [260510-uko-teacher-editor-nimbus-modal](./quick/260510-uko-teacher-editor-nimbus-modal/) |
 | 260510-uwv | 继续修改 /teacher/editor 页面，将 data-testid=lesson-flow-composer 的资源库区裁成只保留内层 rounded rail，移除上方标题说明与筛选按钮外壳 | 2026-05-10 | a90e782 | [260510-uwv-teacher-editor-data-testid-lesson-flow-c](./quick/260510-uwv-teacher-editor-data-testid-lesson-flow-c/) |
 | 260510-v1f | 继续修改 /teacher/editor 页面，移除 lesson-flow-composer 外层带 section 壳的样式，只保留其内部资源库内容结构 | 2026-05-10 | 23f738e | [260510-v1f-teacher-editor-lesson-flow-composer-sect](./quick/260510-v1f-teacher-editor-lesson-flow-composer-sect/) |
+| 260510-v4h | 根据 Stitch 编辑教学环节参考页，整理 /teacher/editor 的步骤编辑 modal，修复当前界面混乱、预览挤压和层级不清的问题 | 2026-05-10 | 待提交 | [260510-v4h-stitch-teacher-editor-modal](./quick/260510-v4h-stitch-teacher-editor-modal/) |
 
 ## Current Position
 
 Phase: 17 (teacher-flow-editor-enhancement) — EXECUTING
 Plan: 4 of 4
 Status: Phase complete — ready for verification
-Last activity: 2026-05-10 - Completed quick task 260510-v1f: 移除 /teacher/editor 左侧 lesson-flow-composer 外层 section 壳
+Last activity: 2026-05-10 - Completed quick task 260510-v4h: 收敛 /teacher/editor 步骤编辑 modal 的预览结构

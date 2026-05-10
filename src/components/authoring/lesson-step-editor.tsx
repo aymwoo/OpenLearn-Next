@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock3, Eye, FileText, Sparkles } from "lucide-react";
+import { Clock3, Eye, FileText } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
 import { autosaveLessonStepAction } from "@/actions/lesson-authoring-actions";
@@ -210,7 +210,7 @@ export function LessonStepEditor({ step, className }: LessonStepEditorProps) {
     <div className={`flex h-full min-h-0 flex-col ${className ?? ""}`.trim()}>
       <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
         <Card className="flex min-h-0 flex-col rounded-[1.75rem] bg-surface-container-low p-6 shadow-none">
-          <div className="flex items-center justify-between gap-3 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5">
+          <div className="flex items-start justify-between gap-3 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5">
             <div>
               <p className="text-sm text-on-surface-variant">步骤编辑器</p>
               <h3 className="mt-2 text-2xl font-semibold">{activeStep.title}</h3>
@@ -227,7 +227,7 @@ export function LessonStepEditor({ step, className }: LessonStepEditorProps) {
             </span>
           </div>
 
-          <div className="mt-5 rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-sm text-on-surface-variant">
+          <div className="mt-5 rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-sm leading-7 text-on-surface-variant">
             当前步骤类型为{stepTypeLabel}，保存时会继续走结构化 schema 校验与 `autosaveLessonStepAction`。
           </div>
 
@@ -368,8 +368,8 @@ export function LessonStepEditor({ step, className }: LessonStepEditorProps) {
           </div>
         </Card>
 
-        <Card aria-label={previewLabel} role="region" className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.75rem] bg-surface-container-low p-6 shadow-none">
-          <div className="absolute inset-x-0 top-0 h-32 bg-linear-180 from-primary/10 to-transparent" />
+        <Card aria-label={previewLabel} role="region" className="relative hidden min-h-0 overflow-hidden rounded-[1.75rem] bg-surface-container-low p-8 shadow-none md:flex md:flex-col">
+          <div className="absolute inset-0 bg-gradient-to-b from-surface-container-low to-surface opacity-60" />
           <div className="relative flex items-center justify-between gap-3">
             <h4 className="flex items-center gap-2 text-lg font-semibold text-on-surface">
               <Eye className="size-5 text-primary" aria-hidden />
@@ -380,14 +380,13 @@ export function LessonStepEditor({ step, className }: LessonStepEditorProps) {
             </span>
           </div>
 
-          <div className="relative mt-6 flex min-h-0 flex-1 flex-col justify-between gap-6">
-            <div className="flex flex-1 items-center justify-center">
-              <div className="group relative w-full max-w-sm overflow-hidden rounded-[1.75rem] bg-surface-container-lowest p-6 shadow-[0_16px_64px_-16px_rgba(44,47,48,0.12)]">
+          <div className="relative mt-8 flex min-h-0 flex-1 items-center justify-center">
+            <div className="group relative w-full max-w-sm overflow-hidden rounded-[1.75rem] bg-surface-container-lowest p-6 shadow-[0_16px_64px_-16px_rgba(44,47,48,0.06)]">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <div className="size-3 rounded-full bg-tertiary-fixed" />
                     <span className="text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
-                      {stepTypeLabel}环节
+                      环节预览
                     </span>
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-2.5 py-1 text-xs font-medium text-on-surface-variant">
@@ -406,14 +405,13 @@ export function LessonStepEditor({ step, className }: LessonStepEditorProps) {
                   ) : null}
                 </div>
 
-                <div className="mt-5 rounded-[1.25rem] bg-surface-container-low px-4 py-4 text-sm text-on-surface-variant">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">预览摘要</p>
-                  <p className="mt-2 leading-6 text-on-surface">{previewSupport}</p>
-                </div>
+                <p className="mt-4 text-sm leading-6 text-on-surface">
+                  {previewSupport}
+                </p>
 
-                <div className="mt-5 rounded-[1.25rem] bg-surface-container-low px-4 py-4">
+                <div className="mt-6 rounded-[1.25rem] bg-surface-container-low px-4 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="grid size-10 place-items-center rounded-full bg-secondary-container text-on-secondary-container">
+                    <div className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary-container text-on-secondary-container">
                       <FileText className="size-4" aria-hidden />
                     </div>
                     <div className="min-w-0 flex-1 overflow-hidden">
@@ -421,7 +419,7 @@ export function LessonStepEditor({ step, className }: LessonStepEditorProps) {
                         {primaryMaterial?.title ?? "未关联资源"}
                       </p>
                       <p className="mt-1 text-xs text-on-surface-variant">
-                        {primaryMaterial ? `${previewMaterialRefs.length} 个资源${remainingMaterialCount > 0 ? ` · 另有 ${remainingMaterialCount} 项` : ""}` : "更新左侧资料字段后，这里会即时同步。"}
+                        {primaryMaterial ? `${previewMaterialRefs.length} 个资源${remainingMaterialCount > 0 ? ` · 另有 ${remainingMaterialCount} 项` : ""}` : "预览将同步展示补充说明或资料摘要"}
                       </p>
                     </div>
                   </div>
@@ -429,17 +427,6 @@ export function LessonStepEditor({ step, className }: LessonStepEditorProps) {
 
                 <div className="absolute inset-x-0 bottom-0 h-1 bg-linear-90 from-primary to-primary-container opacity-0 transition-opacity group-hover:opacity-100" />
               </div>
-            </div>
-
-            <div className="rounded-[1.5rem] bg-surface-container-lowest/80 px-4 py-4 text-sm leading-6 text-on-surface-variant">
-              <div className="flex items-center gap-2 text-on-surface">
-                <Sparkles className="size-4 text-primary" aria-hidden />
-                <span className="font-semibold">实时预览说明</span>
-              </div>
-              <p className="mt-2">
-                修改标题、内容和引用材料后，右侧卡片会立即同步，但只有点击“保存步骤”才会触发 autosave。
-              </p>
-            </div>
           </div>
         </Card>
       </div>

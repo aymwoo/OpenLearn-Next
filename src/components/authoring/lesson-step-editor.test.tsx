@@ -62,6 +62,8 @@ describe("lesson step editor persistence", () => {
     expect(within(preview).getByText("更新标题")).toBeTruthy();
     expect(within(preview).getByText("更新正文")).toBeTruthy();
     expect(within(preview).getByText("新的讲义")).toBeTruthy();
+    expect(within(preview).queryByText("预览摘要")).toBeNull();
+    expect(within(preview).queryByText("实时预览说明")).toBeNull();
 
     fireEvent.change(screen.getByLabelText("教师提示"), { target: { value: "更新提示" } });
     fireEvent.click(screen.getByRole("button", { name: "保存步骤" }));
@@ -231,6 +233,7 @@ describe("lesson step editor persistence", () => {
     expect(screen.getAllByText("内置环节 · 教师讲授").length).toBeGreaterThan(0);
     expect(screen.getByText("directInstruction")).toBeTruthy();
     expect(within(screen.getByRole("region", { name: "实时预览" })).getByText("内置环节 · 教师讲授")).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "实时预览" })).getByText("环节预览")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("标题"), { target: { value: "教师讲授更新" } });
     fireEvent.change(screen.getByLabelText("正文"), { target: { value: "更新后的讲授内容" } });
