@@ -7,6 +7,8 @@ import { AuroraShell } from "@/components/shell/aurora-shell";
 import { Sidebar } from "@/components/shell/sidebar";
 import { GlassNav } from "@/components/shell/glass-nav";
 import { StageHero } from "@/components/surfaces/stage-hero";
+import { DEFAULT_THEME_LAYOUT_RUNTIME } from "@/server/themes/tokens";
+import type { ThemeLayoutRuntime } from "@/lib/dto/resource-ai";
 
 const teacherSidebarItems = [
   { label: "工作台", href: "/teacher", icon: "LayoutDashboard" },
@@ -27,6 +29,11 @@ type TeacherSidebarShellProps = {
   headerTitle?: string;
   headerDescription?: string;
   headerActions?: ReactNode;
+};
+
+type TeacherSidebarShellFrameProps = TeacherSidebarShellProps & {
+  layoutRuntime?: ThemeLayoutRuntime;
+  themeSource?: "default" | "active-theme";
 };
 
 function resolveSurfaceLabel(routeKey: TeacherThemeRouteKey) {
@@ -58,15 +65,16 @@ function resolveSurfaceLabel(routeKey: TeacherThemeRouteKey) {
   }
 }
 
-export async function TeacherSidebarShell({
+export function TeacherSidebarShellFrame({
   children,
   routeKey = "/teacher",
   activePath,
   headerTitle,
   headerDescription,
   headerActions,
-}: TeacherSidebarShellProps) {
-  const { layoutRuntime, themeSource } = await getCurrentActorThemeRuntimeState();
+  layoutRuntime = DEFAULT_THEME_LAYOUT_RUNTIME,
+  themeSource = "default",
+}: TeacherSidebarShellFrameProps) {
   const surface = layoutRuntime.pages[routeKey] ?? layoutRuntime.defaultSurface;
   const shellMode = ALLOWLISTED_SHELL_MODES.includes(surface.shellMode) ? surface.shellMode : "left-nav";
   const secondaryNavVisible = surface.regions.some((region) => region.region === "secondary-nav" && region.visible);
@@ -193,4 +201,10 @@ export async function TeacherSidebarShell({
   );
 
   return usesActiveThemeShell ? <AuroraShell>{shell}</AuroraShell> : shell;
+}
+
+export async function TeacherSidebarShell(props: TeacherSidebarShellProps) {
+  const { layoutRuntime, themeSource } = await getCurrentActorThemeRuntimeState();
+
+  return <TeacherSidebarShellFrame {...props} layoutRuntime={layoutRuntime} themeSource={themeSource} />;
 }

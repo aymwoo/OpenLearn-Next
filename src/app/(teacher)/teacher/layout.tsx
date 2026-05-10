@@ -3,7 +3,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { TeacherSidebarShell } from "@/components/shell/teacher-sidebar-shell";
+import { TeacherSidebarShell, TeacherSidebarShellFrame } from "@/components/shell/teacher-sidebar-shell";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { resolveTeacherThemeRouteSurface } from "@/lib/theme-layout/route-surface-registry";
@@ -86,8 +86,8 @@ async function TeacherLayoutContent({
 
 function TeacherShellFallback() {
   return (
-    <TeacherSidebarShell routeKey="/teacher" headerTitle="教师工作台" headerDescription="正在加载主题布局运行时。">
+    <TeacherSidebarShellFrame routeKey="/teacher" headerTitle="教师工作台" headerDescription="正在加载主题布局运行时。">
       <div className="min-h-full" />
-    </TeacherSidebarShell>
+    </TeacherSidebarShellFrame>
   );
 }
