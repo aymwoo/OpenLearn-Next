@@ -271,14 +271,6 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
                 ) : null}
               </div>
 
-              <div className="mt-4 rounded-[1.5rem] bg-surface-container-low px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">当前编排概览</p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-                  <SummaryStat label="有效步骤" value={String(steps.length)} />
-                  <SummaryStat label="内置环节" value={String(builtInStepCount)} />
-                  <SummaryStat label="普通步骤" value={String(steps.length - builtInStepCount)} />
-                </div>
-              </div>
             </div>
           </div>
         </Card>
@@ -472,15 +464,6 @@ function FlowStepCard({
           <button type="button" onClick={onArchive} className="rounded-full bg-[#fff1f2] px-3 py-2 text-xs font-medium text-[#b31b25] transition hover:bg-[#ffe1e4]">归档</button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function SummaryStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[1.25rem] bg-surface-container-low px-4 py-4">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-on-surface-variant">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-on-surface">{value}</p>
     </div>
   );
 }
