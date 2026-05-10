@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, ClipboardCheck, FileText, GripVertical, PencilLine, Plus, Sparkles, X } from "lucide-react";
+import { BookOpenText, ClipboardCheck, FileText, GripVertical, PencilLine, Plus, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import {
   addLessonStepAction,
@@ -72,10 +72,19 @@ const stepComposerActions = [
 ] as const;
 
 const builtInTeachingStepButtonOrder = ["教师讲授", "问卷调查", "学生探究", "课堂测验", "评价"] as const;
+const libraryFilters = [
+  { id: "all", label: "全部" },
+  { id: "generic", label: "普通步骤" },
+  { id: "builtIn", label: "内置环节" },
+] as const;
+
+type LibraryFilter = (typeof libraryFilters)[number]["id"];
 
 export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }: LessonAuthoringWorkspaceProps) {
   const [selectedStepId, setSelectedStepId] = useState(lesson?.steps[0]?.id ?? null);
   const [isStepEditorOpen, setIsStepEditorOpen] = useState(false);
+  const [resourceQuery, setResourceQuery] = useState("");
+  const [activeLibraryFilter, setActiveLibraryFilter] = useState<LibraryFilter>("all");
   const steps = useMemo(() => lesson?.steps.filter((step) => !step.archivedAt) ?? [], [lesson?.steps]);
   const orderedBuiltInTemplates = useMemo(() => {
     const orderMap = new Map<string, number>(builtInTeachingStepButtonOrder.map((pluginName, index) => [pluginName, index]));
@@ -90,8 +99,19 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
     () => steps.find((step) => step.id === selectedStepId) ?? steps[0] ?? null,
     [selectedStepId, steps]
   );
+  const normalizedResourceQuery = resourceQuery.trim().toLowerCase();
   const totalMinutes = steps.reduce((total, step) => total + getStepMinutes(step.type), 0);
   const builtInStepCount = steps.filter((step) => getBuiltInSourceLabel(step)).length;
+  const filteredComposerActions = useMemo(() => {
+    if (!normalizedResourceQuery) return stepComposerActions;
+
+    return stepComposerActions.filter((action) => `${action.label} ${action.description}`.toLowerCase().includes(normalizedResourceQuery));
+  }, [normalizedResourceQuery]);
+  const filteredBuiltInTemplates = useMemo(() => {
+    if (!normalizedResourceQuery) return orderedBuiltInTemplates;
+
+    return orderedBuiltInTemplates.filter((template) => `${template.pluginName} ${template.title} ${template.summary}`.toLowerCase().includes(normalizedResourceQuery));
+  }, [normalizedResourceQuery, orderedBuiltInTemplates]);
 
   useEffect(() => {
     if (steps.length === 0) {
@@ -153,75 +173,105 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
   return (
     <>
       <div className="mt-6 space-y-5">
-      <div className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)] xl:items-start">
+      <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-start">
         <Card className="relative overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-lowest p-5">
           <div className="absolute inset-x-0 top-0 h-24 bg-linear-135 from-primary/10 to-primary-container/20" />
           <div className="relative" data-testid="lesson-flow-composer">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm text-on-surface-variant">课堂流程组件</p>
-                <h3 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-on-surface">统一编排区</h3>
+                <h3 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-on-surface">资源库</h3>
               </div>
-              <button type="button" className="rounded-full bg-surface-container-low p-3 text-on-surface-variant transition hover:text-primary">
-                <Sparkles className="size-5" />
+              <button type="button" aria-label="筛选资源" className="rounded-full bg-surface-container-low p-3 text-on-surface-variant transition hover:text-primary">
+                <SlidersHorizontal className="size-5" />
               </button>
             </div>
 
             <p className="mt-5 text-sm leading-7 text-on-surface-variant">
-              普通步骤和内置教学环节在同一个工作区快速插入，减少来回切换，让教师能持续关注整节课的节奏主线。
+              拖拽式资源库节奏用于组织普通步骤和内置教学环节，让教师在同一侧边 rail 内完成挑选、插入与节奏规划。
             </p>
 
-            <div className="mt-5 space-y-4">
-              <div className="rounded-[1.5rem] bg-surface-container-low p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">普通步骤</p>
-                <div className="mt-3 space-y-2">
-                  {stepComposerActions.map((action) => {
-                    const ActionIcon = action.icon;
-
-                    return (
-                      <button
-                        key={action.label}
-                        type="button"
-                        onClick={() => addStep(action.type)}
-                        className={`flex w-full items-center gap-3 rounded-[1.35rem] px-4 py-3 text-left transition ${action.prominent ? "bg-primary text-white shadow-ambient" : "bg-surface-container-lowest text-on-surface hover:bg-surface"}`}
-                      >
-                        <span className={`grid size-10 shrink-0 place-items-center rounded-[1rem] ${action.prominent ? "bg-white/18 text-white" : "bg-surface-container-low text-primary"}`}>
-                          {action.prominent ? <Plus className="size-4" /> : <ActionIcon className="size-4" />}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className={`block text-sm font-semibold ${action.prominent ? "text-white" : "text-on-surface"}`}>{action.label}</span>
-                          <span className={`mt-1 block text-xs ${action.prominent ? "text-white/80" : "text-on-surface-variant"}`}>{action.description}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+            <div className="mt-5 rounded-[1.75rem] bg-surface-container-low p-4 shadow-ambient">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" aria-hidden />
+                <input
+                  aria-label="搜索资源"
+                  className="w-full rounded-full bg-surface-container-high py-3 pl-10 pr-4 text-sm text-on-surface outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                  placeholder="搜索资源..."
+                  value={resourceQuery}
+                  onChange={(event) => setResourceQuery(event.target.value)}
+                />
               </div>
 
-              <div className="rounded-[1.5rem] bg-surface-container-low p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-on-surface">内置教学环节</p>
-                    <p className="mt-1 text-xs leading-5 text-on-surface-variant">系统内置节奏组件直接写入当前课时，后续仍可在属性编辑器里看到来源，不会变成隐藏逻辑。</p>
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                {libraryFilters.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => setActiveLibraryFilter(filter.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${activeLibraryFilter === filter.id ? "bg-primary/10 text-primary" : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"}`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4 max-h-[38rem] space-y-4 overflow-y-auto pr-1">
+                {activeLibraryFilter !== "builtIn" ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3 px-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">普通步骤</p>
+                      <span className="rounded-full bg-surface-container-lowest px-2.5 py-1 text-xs font-medium text-on-surface-variant">{filteredComposerActions.length} 项</span>
+                    </div>
+                    {filteredComposerActions.map((action) => {
+                      const ActionIcon = action.icon;
+
+                      return (
+                        <ResourceLibraryRow
+                          key={action.label}
+                          title={action.label}
+                          description={action.description}
+                          meta={action.prominent ? "推荐插入" : "普通步骤"}
+                          icon={action.prominent ? <Plus className="size-4" /> : <ActionIcon className="size-4" />}
+                          accent={action.prominent ? "primary" : "neutral"}
+                          onClick={() => addStep(action.type)}
+                        />
+                      );
+                    })}
                   </div>
-                  <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-primary shadow-ambient">{orderedBuiltInTemplates.length} 个可用环节</span>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {orderedBuiltInTemplates.map((template) => (
-                    <Button
-                      key={template.pluginId}
-                      type="button"
-                      variant="secondary"
-                      className="min-h-10 bg-surface-container-lowest px-4 text-sm shadow-none"
-                      onClick={() => addBuiltInStep(template)}
-                    >
-                      {template.pluginName}
-                    </Button>
-                  ))}
-                </div>
+                ) : null}
+
+                {activeLibraryFilter !== "generic" ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3 px-1">
+                      <div>
+                        <p className="text-sm font-semibold text-on-surface">内置教学环节</p>
+                        <p className="mt-1 text-xs leading-5 text-on-surface-variant">系统内置节奏组件直接写入当前课时，后续仍可在属性编辑器里看到来源。</p>
+                      </div>
+                      <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-primary">{filteredBuiltInTemplates.length} 个可用环节</span>
+                    </div>
+                    {filteredBuiltInTemplates.map((template) => (
+                      <ResourceLibraryRow
+                        key={template.pluginId}
+                        title={template.pluginName}
+                        description={template.summary}
+                        meta="内置教学环节"
+                        icon={<Sparkles className="size-4" />}
+                        accent="neutral"
+                        onClick={() => addBuiltInStep(template)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+
+                {filteredComposerActions.length === 0 && filteredBuiltInTemplates.length === 0 ? (
+                  <div className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-6 text-center text-sm text-on-surface-variant">
+                    当前筛选条件下没有匹配的资源，请尝试更换关键词或切换分类。
+                  </div>
+                ) : null}
               </div>
 
-              <div className="rounded-[1.5rem] bg-surface-container-low p-4">
+              <div className="mt-4 rounded-[1.5rem] bg-surface-container-low px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">当前编排概览</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
                   <SummaryStat label="有效步骤" value={String(steps.length)} />
@@ -294,39 +344,72 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
       </div>
 
       {isStepEditorOpen && selectedStep ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-[rgba(26,30,37,0.18)] backdrop-blur-sm" data-testid="lesson-step-editor-drawer">
-          <button
-            type="button"
-            aria-label="关闭步骤编辑抽屉"
-            className="flex-1"
-            onClick={() => setIsStepEditorOpen(false)}
-          />
+        <div
+          className="fixed inset-0 z-50 bg-[rgba(12,15,16,0.32)] p-4 backdrop-blur-sm sm:p-6"
+          data-testid="lesson-step-editor-modal"
+          onClick={() => setIsStepEditorOpen(false)}
+        >
           <div
             role="dialog"
             aria-modal="true"
-            aria-labelledby="lesson-step-editor-drawer-title"
-            className="flex h-full w-full max-w-[36rem] flex-col bg-surface-container-low p-6 shadow-[0_24px_80px_rgba(25,30,40,0.18)] sm:p-7"
+            aria-labelledby="lesson-step-editor-modal-title"
+            className="relative mx-auto flex h-[85vh] max-h-[800px] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] bg-surface-container-lowest shadow-[0_24px_80px_rgba(25,30,40,0.18)]"
+            onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-4 px-6 pt-6 sm:px-8 sm:pt-8">
               <div>
-                <p className="text-sm text-on-surface-variant">步骤编辑抽屉</p>
-                <h2 id="lesson-step-editor-drawer-title" className="mt-2 text-2xl font-semibold text-on-surface">编辑组件</h2>
+                <p className="text-sm text-on-surface-variant">Nimbus 编辑面板</p>
+                <h2 id="lesson-step-editor-modal-title" className="mt-2 text-2xl font-semibold text-on-surface">编辑教学环节</h2>
                 <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-                  当前正在编辑 <span className="font-semibold text-on-surface">{selectedStep.title}</span>，保存仍会走原有 autosave 和 schema 校验链路。
+                  更新环节信息，右侧将实时预览展示效果，保持教师在同一工作流里完成编辑与预览。
                 </p>
               </div>
-              <Button variant="tertiary" className="min-h-10 px-2" aria-label="关闭步骤编辑抽屉" onClick={() => setIsStepEditorOpen(false)}>
+              <Button variant="tertiary" className="min-h-10 px-2" aria-label="关闭编辑环节" onClick={() => setIsStepEditorOpen(false)}>
                 <X className="size-5" aria-hidden />
               </Button>
             </div>
 
-            <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 overflow-hidden px-4 pb-4 pt-4 sm:px-6 sm:pb-6">
               <LessonStepEditor key={selectedStep.id} step={selectedStep} className="h-full" />
             </div>
           </div>
         </div>
       ) : null}
     </>
+  );
+}
+
+function ResourceLibraryRow({
+  title,
+  description,
+  meta,
+  icon,
+  onClick,
+  accent,
+}: {
+  title: string;
+  description: string;
+  meta: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  accent: "primary" | "neutral";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group flex w-full items-start gap-3 rounded-[1.35rem] px-4 py-3 text-left transition ${accent === "primary" ? "bg-primary text-white shadow-ambient hover:opacity-95" : "bg-surface-container-lowest text-on-surface hover:bg-surface"}`}
+    >
+      <span className={`grid size-11 shrink-0 place-items-center rounded-[1rem] ${accent === "primary" ? "bg-white/18 text-white" : "bg-surface-container-low text-primary"}`}>
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className={`block text-sm font-semibold ${accent === "primary" ? "text-white" : "text-on-surface"}`}>{title}</span>
+        <span className={`mt-1 block text-xs leading-5 ${accent === "primary" ? "text-white/80" : "text-on-surface-variant"}`}>{description}</span>
+        <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${accent === "primary" ? "bg-white/16 text-white" : "bg-surface-container-low text-on-surface-variant"}`}>{meta}</span>
+      </span>
+      <GripVertical className={`mt-1 size-4 shrink-0 ${accent === "primary" ? "text-white/70" : "text-on-surface-variant"}`} aria-hidden />
+    </button>
   );
 }
 

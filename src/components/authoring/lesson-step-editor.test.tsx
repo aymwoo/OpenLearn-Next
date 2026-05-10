@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { cleanup } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { afterEach } from "vitest";
@@ -47,13 +47,22 @@ describe("lesson step editor persistence", () => {
     });
 
     render(
-      <div role="dialog" aria-modal="true" aria-label="编辑组件抽屉">
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
         <LessonStepEditor step={step} className="h-full" />
       </div>,
     );
 
+    const preview = screen.getByRole("region", { name: "实时预览" });
+
     fireEvent.change(screen.getByLabelText("标题"), { target: { value: "更新标题" } });
     fireEvent.change(screen.getByLabelText("正文"), { target: { value: "更新正文" } });
+    fireEvent.change(screen.getByLabelText("引用材料"), { target: { value: "新的讲义" } });
+
+    expect(autosaveLessonStepAction).not.toHaveBeenCalled();
+    expect(within(preview).getByText("更新标题")).toBeTruthy();
+    expect(within(preview).getByText("更新正文")).toBeTruthy();
+    expect(within(preview).getByText("新的讲义")).toBeTruthy();
+
     fireEvent.change(screen.getByLabelText("教师提示"), { target: { value: "更新提示" } });
     fireEvent.click(screen.getByRole("button", { name: "保存步骤" }));
 
@@ -66,7 +75,8 @@ describe("lesson step editor persistence", () => {
         title: "更新标题",
         body: "更新正文",
         teacherNotes: "更新提示",
-        materialRefs: [{ title: "https://example.com", kind: "link", url: "https://example.com" }],
+        materialRefs: [{ title: "新的讲义", kind: "link", url: undefined }],
+        builtInSource: undefined,
       },
     });
     await waitFor(() => expect(screen.getByText("已保存")).toBeTruthy());
@@ -93,15 +103,22 @@ describe("lesson step editor persistence", () => {
     });
 
     render(
-      <div role="dialog" aria-modal="true" aria-label="编辑组件抽屉">
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
         <LessonStepEditor step={step} />
       </div>,
     );
+
+    const preview = screen.getByRole("region", { name: "实时预览" });
 
     fireEvent.change(screen.getByLabelText("标题"), { target: { value: "任务更新" } });
     fireEvent.change(screen.getByLabelText("任务说明"), { target: { value: "新的任务说明" } });
     fireEvent.change(screen.getByLabelText("提交要求"), { target: { value: "image" } });
     fireEvent.change(screen.getByLabelText("成功标准"), { target: { value: "提交一张图片" } });
+
+    expect(within(preview).getByText("任务更新")).toBeTruthy();
+    expect(within(preview).getByText("新的任务说明")).toBeTruthy();
+    expect(within(preview).getByText("提交一张图片")).toBeTruthy();
+
     fireEvent.click(screen.getByRole("button", { name: "保存步骤" }));
 
     await waitFor(() => expect(autosaveLessonStepAction).toHaveBeenCalledTimes(1));
@@ -143,16 +160,23 @@ describe("lesson step editor persistence", () => {
     });
 
     render(
-      <div role="dialog" aria-modal="true" aria-label="编辑组件抽屉">
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
         <LessonStepEditor step={step} />
       </div>,
     );
+
+    const preview = screen.getByRole("region", { name: "实时预览" });
 
     fireEvent.change(screen.getByLabelText("标题"), { target: { value: "测验更新" } });
     fireEvent.change(screen.getByLabelText("题目"), { target: { value: "新的题目" } });
     fireEvent.change(screen.getByLabelText("选项"), { target: { value: "选项一\n\n选项二\n选项三" } });
     fireEvent.change(screen.getByLabelText("正确答案序号"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("答案说明"), { target: { value: "新的说明" } });
+
+    expect(within(preview).getByText("测验更新")).toBeTruthy();
+    expect(within(preview).getByText("新的题目")).toBeTruthy();
+    expect(within(preview).getByText("新的说明")).toBeTruthy();
+
     fireEvent.click(screen.getByRole("button", { name: "保存步骤" }));
 
     await waitFor(() => expect(autosaveLessonStepAction).toHaveBeenCalledTimes(1));
@@ -197,15 +221,16 @@ describe("lesson step editor persistence", () => {
     });
 
     render(
-      <div role="dialog" aria-modal="true" aria-label="编辑组件抽屉">
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
         <LessonStepEditor step={step} />
       </div>,
     );
 
-    expect(screen.getByRole("dialog", { name: "编辑组件抽屉" })).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: "编辑教学环节" })).toBeTruthy();
     expect(screen.getByText("步骤来源")).toBeTruthy();
-    expect(screen.getByText("内置环节 · 教师讲授")).toBeTruthy();
+    expect(screen.getAllByText("内置环节 · 教师讲授").length).toBeGreaterThan(0);
     expect(screen.getByText("directInstruction")).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "实时预览" })).getByText("内置环节 · 教师讲授")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("标题"), { target: { value: "教师讲授更新" } });
     fireEvent.change(screen.getByLabelText("正文"), { target: { value: "更新后的讲授内容" } });

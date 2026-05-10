@@ -20,7 +20,7 @@ vi.mock("@/actions/lesson-authoring-actions", () => ({
 
 vi.mock("@/components/authoring/lesson-step-editor", () => ({
   LessonStepEditor: ({ step }: { step: { id: string; title: string } | null }) => (
-    step ? <div data-testid="lesson-step-editor">正在编辑: {step.title}</div> : null
+    step ? <div data-testid="lesson-step-editor"><span>实时预览</span><span>正在编辑: {step.title}</span></div> : null
   ),
 }));
 
@@ -95,10 +95,10 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
       />,
     );
 
-    expect(screen.getByText("内置教学环节")).toBeTruthy();
+    expect(screen.getAllByText("内置教学环节").length).toBeGreaterThan(0);
     expect(screen.getByText("2 个可用环节")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "教师讲授" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "课堂测验" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /教师讲授.*内置教学环节/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /课堂测验.*内置教学环节/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "问卷调查" })).toBeNull();
     expect(screen.queryByRole("button", { name: "学生探究" })).toBeNull();
     expect(screen.queryByRole("button", { name: "评价" })).toBeNull();
@@ -209,11 +209,11 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
 
     expect(screen.getAllByTestId("lesson-flow-composer")[0]).toBeTruthy();
     expect(screen.getAllByText("内置环节 · 教师讲授").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("统一编排区")[0]).toBeTruthy();
+    expect(screen.getAllByText("资源库")[0]).toBeTruthy();
     expect(screen.getAllByText("流程主线")[0]).toBeTruthy();
   });
 
-  it("opens the step editor drawer from the explicit flow-card edit button", () => {
+  it("opens the step editor modal from the explicit flow-card edit button", () => {
     render(
       <LessonAuthoringWorkspace
         overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
@@ -255,12 +255,13 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
 
     fireEvent.click(within(explanationCard).getByRole("button", { name: "编辑组件" }));
 
-    expect(screen.getByRole("dialog", { name: "编辑组件" })).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: "编辑教学环节" })).toBeTruthy();
     expect(screen.getByTestId("lesson-step-editor").textContent).toContain("讲解");
+    expect(screen.getByText("实时预览")).toBeTruthy();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "关闭步骤编辑抽屉" })[0]!);
+    fireEvent.click(screen.getByRole("button", { name: "关闭编辑环节" }));
 
-    expect(screen.queryByRole("dialog", { name: "编辑组件" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "编辑教学环节" })).toBeNull();
     expect(screen.queryByTestId("lesson-step-editor")).toBeNull();
   });
 
@@ -287,7 +288,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
     );
 
     expect(screen.queryByTestId("lesson-step-editor")).toBeNull();
-    expect(screen.queryByTestId("lesson-step-editor-drawer")).toBeNull();
+    expect(screen.queryByTestId("lesson-step-editor-modal")).toBeNull();
   });
 
   it("removes the standalone vertical bar above the course end marker", () => {

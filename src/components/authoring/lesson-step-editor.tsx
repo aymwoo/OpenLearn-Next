@@ -1,5 +1,6 @@
 "use client";
 
+import { Clock3, Eye, FileText, Sparkles } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
 import { autosaveLessonStepAction } from "@/actions/lesson-authoring-actions";
@@ -16,6 +17,14 @@ const savingCopy = "正在保存...";
 const savedCopy = "已保存";
 const validationCopy = "输入内容不完整，请检查后再保存。";
 const conflictCopy = "检测到更新冲突，请刷新后再试。";
+const previewLabel = "实时预览";
+
+const submissionTypeLabels = {
+  text: "文字",
+  image: "图片",
+  file: "文件",
+  link: "链接",
+} as const;
 
 type EditorState = {
   title: string;
@@ -69,6 +78,17 @@ function parseMaterialRefs(text: string, fallback: LessonStepDTO["payload"]) {
     kind: "link",
     url: line.startsWith("http://") || line.startsWith("https://") ? line : undefined,
   }));
+}
+
+function parsePreviewMaterialRefs(text: string) {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => ({
+      title: line,
+      url: line.startsWith("http://") || line.startsWith("https://") ? line : undefined,
+    }));
 }
 
 function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayload {
@@ -142,6 +162,13 @@ export function LessonStepEditor({ step, className }: LessonStepEditorProps) {
 
   const activeStep = step;
   const activeState = stateByStepId[step.id] ?? buildInitialState(step);
+  const previewMaterialRefs = parsePreviewMaterialRefs(activeState.materialRefsText);
+  const previewTitle = activeState.title.trim() || activeStep.title;
+  const previewDescription = getPreviewDescription(activeStep, activeState);
+  const previewSupport = getPreviewSupport(activeStep, activeState);
+  const previewDuration = getPreviewDuration(activeStep.type);
+  const primaryMaterial = previewMaterialRefs[0] ?? null;
+  const remainingMaterialCount = Math.max(previewMaterialRefs.length - 1, 0);
 
   function updateField<Key extends keyof EditorState>(key: Key, value: EditorState[Key]) {
     setStateByStepId((prev) => ({
@@ -180,161 +207,274 @@ export function LessonStepEditor({ step, className }: LessonStepEditorProps) {
   }
 
   return (
-    <Card className={`bg-surface-container-low p-5 shadow-none ${className ?? ""}`.trim()}>
-      <div className="flex items-center justify-between gap-3 rounded-[1.5rem] bg-surface-container-lowest px-4 py-4">
-        <div>
-          <p className="text-sm text-on-surface-variant">步骤编辑器</p>
-          <h3 className="mt-2 text-2xl font-semibold">{activeStep.title}</h3>
-          {builtInSourceLabel ? (
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary">步骤来源</span>
-              <span className="rounded-full bg-surface-container-low px-3 py-1 font-medium text-on-surface-variant">{builtInSourceLabel}</span>
-              <span className="rounded-full bg-surface-container-low px-3 py-1 font-medium text-on-surface-variant">{activeStep.payload.builtInSource?.builtInKey}</span>
+    <div className={`flex h-full min-h-0 flex-col ${className ?? ""}`.trim()}>
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
+        <Card className="flex min-h-0 flex-col rounded-[1.75rem] bg-surface-container-low p-6 shadow-none">
+          <div className="flex items-center justify-between gap-3 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5">
+            <div>
+              <p className="text-sm text-on-surface-variant">步骤编辑器</p>
+              <h3 className="mt-2 text-2xl font-semibold">{activeStep.title}</h3>
+              {builtInSourceLabel ? (
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary">步骤来源</span>
+                  <span className="rounded-full bg-surface-container-low px-3 py-1 font-medium text-on-surface-variant">{builtInSourceLabel}</span>
+                  <span className="rounded-full bg-surface-container-low px-3 py-1 font-medium text-on-surface-variant">{activeStep.payload.builtInSource?.builtInKey}</span>
+                </div>
+              ) : null}
             </div>
-          ) : null}
-        </div>
-        <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-sm text-primary">
-          {stepTypeLabel}
-        </span>
+            <span className="rounded-full bg-surface-container-high px-3 py-1 text-sm font-medium text-primary">
+              {stepTypeLabel}
+            </span>
+          </div>
+
+          <div className="mt-5 rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-sm text-on-surface-variant">
+            当前步骤类型为{stepTypeLabel}，保存时会继续走结构化 schema 校验与 `autosaveLessonStepAction`。
+          </div>
+
+          <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="grid gap-4 pb-2">
+              <label className="grid gap-2" htmlFor="lesson-step-title">
+                <span className="text-sm text-on-surface-variant">标题</span>
+                <input
+                  id="lesson-step-title"
+                  className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                  value={activeState.title}
+                  onChange={(event) => updateField("title", event.target.value)}
+                />
+              </label>
+
+              {activeStep.type === "content" && (
+                <>
+                  <label className="grid gap-2" htmlFor="lesson-step-body">
+                    <span className="text-sm text-on-surface-variant">正文</span>
+                    <textarea
+                      id="lesson-step-body"
+                      className="min-h-32 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                      value={activeState.contentBody}
+                      onChange={(event) => updateField("contentBody", event.target.value)}
+                    />
+                  </label>
+                  <label className="grid gap-2" htmlFor="lesson-step-teacher-notes">
+                    <span className="text-sm text-on-surface-variant">教师提示</span>
+                    <textarea
+                      id="lesson-step-teacher-notes"
+                      className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                      value={activeState.teacherNotes}
+                      onChange={(event) => updateField("teacherNotes", event.target.value)}
+                    />
+                  </label>
+                </>
+              )}
+
+              {activeStep.type === "task" && activeStep.payload.type === "task" && (
+                <>
+                  <label className="grid gap-2" htmlFor="lesson-step-task-prompt">
+                    <span className="text-sm text-on-surface-variant">任务说明</span>
+                    <textarea
+                      id="lesson-step-task-prompt"
+                      className="min-h-32 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                      value={activeState.taskPrompt}
+                      onChange={(event) => updateField("taskPrompt", event.target.value)}
+                    />
+                  </label>
+                  <label className="grid gap-2" htmlFor="lesson-step-submission-type">
+                    <span className="text-sm text-on-surface-variant">提交要求</span>
+                    <select
+                      id="lesson-step-submission-type"
+                      className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                      value={activeState.submissionType}
+                      onChange={(event) => updateField("submissionType", event.target.value as EditorState["submissionType"])}
+                    >
+                      <option value="text">text</option>
+                      <option value="image">image</option>
+                      <option value="file">file</option>
+                      <option value="link">link</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-2" htmlFor="lesson-step-success-criteria">
+                    <span className="text-sm text-on-surface-variant">成功标准</span>
+                    <textarea
+                      id="lesson-step-success-criteria"
+                      className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                      value={activeState.successCriteria}
+                      onChange={(event) => updateField("successCriteria", event.target.value)}
+                    />
+                  </label>
+                </>
+              )}
+
+              {activeStep.type === "quiz" && activeStep.payload.type === "quiz" && (
+                <>
+                  <label className="grid gap-2" htmlFor="lesson-step-quiz-question">
+                    <span className="text-sm text-on-surface-variant">题目</span>
+                    <textarea
+                      id="lesson-step-quiz-question"
+                      className="min-h-28 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                      value={activeState.quizQuestion}
+                      onChange={(event) => updateField("quizQuestion", event.target.value)}
+                    />
+                  </label>
+                  <label className="grid gap-2" htmlFor="lesson-step-quiz-options">
+                    <span className="text-sm text-on-surface-variant">选项</span>
+                    <textarea
+                      id="lesson-step-quiz-options"
+                      className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                      value={activeState.quizOptions}
+                      onChange={(event) => updateField("quizOptions", event.target.value)}
+                    />
+                  </label>
+                  <label className="grid gap-2" htmlFor="lesson-step-correct-option-index">
+                    <span className="text-sm text-on-surface-variant">正确答案序号</span>
+                    <input
+                      id="lesson-step-correct-option-index"
+                      inputMode="numeric"
+                      className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                      value={activeState.correctOptionIndex}
+                      onChange={(event) => updateField("correctOptionIndex", event.target.value)}
+                    />
+                  </label>
+                  <label className="grid gap-2" htmlFor="lesson-step-explanation">
+                    <span className="text-sm text-on-surface-variant">答案说明</span>
+                    <textarea
+                      id="lesson-step-explanation"
+                      className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                      value={activeState.explanation}
+                      onChange={(event) => updateField("explanation", event.target.value)}
+                    />
+                  </label>
+                </>
+              )}
+
+              <label className="grid gap-2" htmlFor="lesson-step-materials">
+                <span className="text-sm text-on-surface-variant">引用材料</span>
+                <textarea
+                  id="lesson-step-materials"
+                  className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
+                  value={activeState.materialRefsText}
+                  onChange={(event) => updateField("materialRefsText", event.target.value)}
+                  placeholder="每行一个材料标题或链接"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div aria-live="polite" className="text-sm text-on-surface-variant">
+              {isPending ? savingCopy : status}
+            </div>
+            <Button type="button" onClick={saveStep} disabled={isPending}>
+              {isPending ? savingCopy : "保存步骤"}
+            </Button>
+          </div>
+        </Card>
+
+        <Card aria-label={previewLabel} role="region" className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.75rem] bg-surface-container-low p-6 shadow-none">
+          <div className="absolute inset-x-0 top-0 h-32 bg-linear-180 from-primary/10 to-transparent" />
+          <div className="relative flex items-center justify-between gap-3">
+            <h4 className="flex items-center gap-2 text-lg font-semibold text-on-surface">
+              <Eye className="size-5 text-primary" aria-hidden />
+              {previewLabel}
+            </h4>
+            <span className="rounded-full bg-surface-container-highest px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-on-surface-variant">
+              学生视图
+            </span>
+          </div>
+
+          <div className="relative mt-6 flex min-h-0 flex-1 flex-col justify-between gap-6">
+            <div className="flex flex-1 items-center justify-center">
+              <div className="group relative w-full max-w-sm overflow-hidden rounded-[1.75rem] bg-surface-container-lowest p-6 shadow-[0_16px_64px_-16px_rgba(44,47,48,0.12)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="size-3 rounded-full bg-tertiary-fixed" />
+                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
+                      {stepTypeLabel}环节
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-2.5 py-1 text-xs font-medium text-on-surface-variant">
+                    <Clock3 className="size-3.5" aria-hidden />
+                    {previewDuration}
+                  </span>
+                </div>
+
+                <h5 className="mt-4 text-xl font-bold leading-tight text-on-surface">{previewTitle}</h5>
+                <p className="mt-3 line-clamp-4 text-sm leading-7 text-on-surface-variant">{previewDescription}</p>
+
+                <div className="mt-5 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary">{stepTypeLabel}</span>
+                  {builtInSourceLabel ? (
+                    <span className="rounded-full bg-surface-container-low px-3 py-1 font-medium text-on-surface-variant">{builtInSourceLabel}</span>
+                  ) : null}
+                </div>
+
+                <div className="mt-5 rounded-[1.25rem] bg-surface-container-low px-4 py-4 text-sm text-on-surface-variant">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">预览摘要</p>
+                  <p className="mt-2 leading-6 text-on-surface">{previewSupport}</p>
+                </div>
+
+                <div className="mt-5 rounded-[1.25rem] bg-surface-container-low px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="grid size-10 place-items-center rounded-full bg-secondary-container text-on-secondary-container">
+                      <FileText className="size-4" aria-hidden />
+                    </div>
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <p className="truncate text-sm font-medium text-on-surface">
+                        {primaryMaterial?.title ?? "未关联资源"}
+                      </p>
+                      <p className="mt-1 text-xs text-on-surface-variant">
+                        {primaryMaterial ? `${previewMaterialRefs.length} 个资源${remainingMaterialCount > 0 ? ` · 另有 ${remainingMaterialCount} 项` : ""}` : "更新左侧资料字段后，这里会即时同步。"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="absolute inset-x-0 bottom-0 h-1 bg-linear-90 from-primary to-primary-container opacity-0 transition-opacity group-hover:opacity-100" />
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] bg-surface-container-lowest/80 px-4 py-4 text-sm leading-6 text-on-surface-variant">
+              <div className="flex items-center gap-2 text-on-surface">
+                <Sparkles className="size-4 text-primary" aria-hidden />
+                <span className="font-semibold">实时预览说明</span>
+              </div>
+              <p className="mt-2">
+                修改标题、内容和引用材料后，右侧卡片会立即同步，但只有点击“保存步骤”才会触发 autosave。
+              </p>
+            </div>
+          </div>
+        </Card>
       </div>
-
-      <div className="mt-5 grid gap-4">
-        <div className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-sm text-on-surface-variant">
-          当前步骤类型为{stepTypeLabel}，保存时会继续走结构化 schema 校验与 `autosaveLessonStepAction`。
-        </div>
-
-        <label className="grid gap-2" htmlFor="lesson-step-title">
-          <span className="text-sm text-on-surface-variant">标题</span>
-          <input
-            id="lesson-step-title"
-            className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-            value={activeState.title}
-            onChange={(event) => updateField("title", event.target.value)}
-          />
-        </label>
-
-        {activeStep.type === "content" && (
-          <>
-            <label className="grid gap-2" htmlFor="lesson-step-body">
-              <span className="text-sm text-on-surface-variant">正文</span>
-              <textarea
-                id="lesson-step-body"
-                className="min-h-32 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-                value={activeState.contentBody}
-                onChange={(event) => updateField("contentBody", event.target.value)}
-              />
-            </label>
-            <label className="grid gap-2" htmlFor="lesson-step-teacher-notes">
-              <span className="text-sm text-on-surface-variant">教师提示</span>
-              <textarea
-                id="lesson-step-teacher-notes"
-                className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-                value={activeState.teacherNotes}
-                onChange={(event) => updateField("teacherNotes", event.target.value)}
-              />
-            </label>
-          </>
-        )}
-
-        {activeStep.type === "task" && activeStep.payload.type === "task" && (
-          <>
-            <label className="grid gap-2" htmlFor="lesson-step-task-prompt">
-              <span className="text-sm text-on-surface-variant">任务说明</span>
-              <textarea
-                id="lesson-step-task-prompt"
-                className="min-h-32 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-                value={activeState.taskPrompt}
-                onChange={(event) => updateField("taskPrompt", event.target.value)}
-              />
-            </label>
-            <label className="grid gap-2" htmlFor="lesson-step-submission-type">
-              <span className="text-sm text-on-surface-variant">提交要求</span>
-              <select
-                id="lesson-step-submission-type"
-                className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-                value={activeState.submissionType}
-                onChange={(event) => updateField("submissionType", event.target.value as EditorState["submissionType"])}
-              >
-                <option value="text">text</option>
-                <option value="image">image</option>
-                <option value="file">file</option>
-                <option value="link">link</option>
-              </select>
-            </label>
-            <label className="grid gap-2" htmlFor="lesson-step-success-criteria">
-              <span className="text-sm text-on-surface-variant">成功标准</span>
-              <textarea
-                id="lesson-step-success-criteria"
-                className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-                value={activeState.successCriteria}
-                onChange={(event) => updateField("successCriteria", event.target.value)}
-              />
-            </label>
-          </>
-        )}
-
-        {activeStep.type === "quiz" && activeStep.payload.type === "quiz" && (
-          <>
-            <label className="grid gap-2" htmlFor="lesson-step-quiz-question">
-              <span className="text-sm text-on-surface-variant">题目</span>
-              <textarea
-                id="lesson-step-quiz-question"
-                className="min-h-28 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-                value={activeState.quizQuestion}
-                onChange={(event) => updateField("quizQuestion", event.target.value)}
-              />
-            </label>
-            <label className="grid gap-2" htmlFor="lesson-step-quiz-options">
-              <span className="text-sm text-on-surface-variant">选项</span>
-              <textarea
-                id="lesson-step-quiz-options"
-                className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-                value={activeState.quizOptions}
-                onChange={(event) => updateField("quizOptions", event.target.value)}
-              />
-            </label>
-            <label className="grid gap-2" htmlFor="lesson-step-correct-option-index">
-              <span className="text-sm text-on-surface-variant">正确答案序号</span>
-              <input
-                id="lesson-step-correct-option-index"
-                inputMode="numeric"
-                className="rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-                value={activeState.correctOptionIndex}
-                onChange={(event) => updateField("correctOptionIndex", event.target.value)}
-              />
-            </label>
-            <label className="grid gap-2" htmlFor="lesson-step-explanation">
-              <span className="text-sm text-on-surface-variant">答案说明</span>
-              <textarea
-                id="lesson-step-explanation"
-                className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-                value={activeState.explanation}
-                onChange={(event) => updateField("explanation", event.target.value)}
-              />
-            </label>
-          </>
-        )}
-
-        <label className="grid gap-2" htmlFor="lesson-step-materials">
-          <span className="text-sm text-on-surface-variant">引用材料</span>
-          <textarea
-            id="lesson-step-materials"
-            className="min-h-24 rounded-3xl bg-surface-container-lowest px-4 py-3 outline-none transition focus-visible:outline-2 focus-visible:outline-primary/20"
-            value={activeState.materialRefsText}
-            onChange={(event) => updateField("materialRefsText", event.target.value)}
-            placeholder="每行一个材料标题或链接"
-          />
-        </label>
-      </div>
-
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div aria-live="polite" className="text-sm text-on-surface-variant">
-          {isPending ? savingCopy : status}
-        </div>
-        <Button type="button" onClick={saveStep} disabled={isPending}>
-          {isPending ? savingCopy : "保存步骤"}
-        </Button>
-      </div>
-    </Card>
+    </div>
   );
+}
+
+function getPreviewDescription(step: LessonStepDTO, state: EditorState) {
+  if (step.type === "content") {
+    return state.contentBody.trim() || "在这里补充教学内容，右侧学生视图会同步展示正文摘要。";
+  }
+
+  if (step.type === "task") {
+    return state.taskPrompt.trim() || "描述学生需要完成的任务、提交要求与课堂互动节奏。";
+  }
+
+  return state.quizQuestion.trim() || "填写测验题目后，右侧会即时展示题目摘要与作答提示。";
+}
+
+function getPreviewSupport(step: LessonStepDTO, state: EditorState) {
+  if (step.type === "content") {
+    return state.teacherNotes.trim() || "可在这里补充教师提示、追问方式和课堂话术。";
+  }
+
+  if (step.type === "task") {
+    return state.successCriteria.trim() || `提交方式：${submissionTypeLabels[state.submissionType]}`;
+  }
+
+  const optionCount = state.quizOptions.split("\n").map((line) => line.trim()).filter(Boolean).length;
+  const correctAnswer = state.correctOptionIndex.trim() ? ` · 正确答案 ${state.correctOptionIndex.trim()}` : "";
+  return state.explanation.trim() || `${optionCount} 个选项${correctAnswer}`;
+}
+
+function getPreviewDuration(type: LessonStepDTO["type"]) {
+  if (type === "content") return "12 分钟";
+  if (type === "task") return "15 分钟";
+  return "8 分钟";
 }
