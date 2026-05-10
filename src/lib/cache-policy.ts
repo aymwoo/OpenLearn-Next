@@ -18,6 +18,13 @@ export const cacheTags = {
   plugin: (id: string) => `plugin:${id}`,
   themeRegistry: 'theme:registry',
   theme: (id: string) => `theme:${id}`,
+  scheduleImportBatch: (batchId: string) => `schedule:import-batch:${batchId}`,
+  scheduleImportSchool: (schoolId: string) => `schedule:import-school:${schoolId}`,
+  teacherScheduleAgenda: (teacherId: string, dateKey: string) => `schedule:teacher-agenda:${teacherId}:${dateKey}`,
+  classScheduleAgenda: (classId: string, dateKey: string) => `schedule:class-agenda:${classId}:${dateKey}`,
+  scheduleCalendar: (schoolId: string) => `schedule:calendar:${schoolId}`,
+  scheduleReminder: (schoolId: string) => `schedule:reminder:${schoolId}`,
+  scheduleAssistantProposal: (proposalId: string) => `schedule:assistant-proposal:${proposalId}`,
 } as const
 
 export const routeCacheBoundaries = [

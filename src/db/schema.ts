@@ -630,3 +630,435 @@ export const themeAuditLogs = sqliteTable("themeAuditLog", {
   actorId: text("actorId").references(() => users.id, { onDelete: "cascade" }),
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
 });
+
+export const scheduleImportBatch = sqliteTable(
+  "scheduleImportBatch",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    sourceType: text("sourceType", { enum: ["csv", "xlsx", "connector"] }).notNull(),
+    sourceLabel: text("sourceLabel").notNull(),
+    connectorKey: text("connectorKey"),
+    uploadedById: text("uploadedById")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: text("status", {
+      enum: ["draft", "in_review", "ready_to_apply", "partially_applied", "applied", "archived"],
+    })
+      .notNull()
+      .default("draft"),
+    rowCount: integer("rowCount").notNull().default(0),
+    approvedRowCount: integer("approvedRowCount").notNull().default(0),
+    rejectedRowCount: integer("rejectedRowCount").notNull().default(0),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("scheduleImportBatch_school_status_idx").on(table.schoolId, table.status),
+    index("scheduleImportBatch_uploadedBy_idx").on(table.uploadedById),
+  ]
+);
+
+export const scheduleImportRow = sqliteTable(
+  "scheduleImportRow",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    batchId: text("batchId")
+      .notNull()
+      .references(() => scheduleImportBatch.id, { onDelete: "cascade" }),
+    sourceRowKey: text("sourceRowKey").notNull(),
+    rawPayloadJson: text("rawPayloadJson", { mode: "json" }).notNull(),
+    normalizedDraftJson: text("normalizedDraftJson", { mode: "json" }),
+    validationIssuesJson: text("validationIssuesJson", { mode: "json" }).notNull(),
+    mappingSummaryJson: text("mappingSummaryJson", { mode: "json" }),
+    conflictSummaryJson: text("conflictSummaryJson", { mode: "json" }),
+    status: text("status", {
+      enum: [
+        "pending_review",
+        "validation_failed",
+        "mapping_review",
+        "conflict_review",
+        "ready_to_apply",
+        "approved",
+        "rejected",
+      ],
+    })
+      .notNull()
+      .default("pending_review"),
+    approvalState: text("approvalState", { enum: ["pending", "approved", "rejected"] })
+      .notNull()
+      .default("pending"),
+    approvalNote: text("approvalNote"),
+    reviewedById: text("reviewedById").references(() => users.id, { onDelete: "cascade" }),
+    reviewedAt: integer("reviewedAt", { mode: "timestamp_ms" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("scheduleImportRow_batch_status_idx").on(table.batchId, table.status),
+    uniqueIndex("scheduleImportRow_batch_rowKey_unique").on(table.batchId, table.sourceRowKey),
+  ]
+);
+
+export const scheduleTerm = sqliteTable(
+  "scheduleTerm",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    startsOn: text("startsOn").notNull(),
+    endsOn: text("endsOn").notNull(),
+    isActive: integer("isActive", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [uniqueIndex("scheduleTerm_school_name_unique").on(table.schoolId, table.name)]
+);
+
+export const scheduleWeekPattern = sqliteTable(
+  "scheduleWeekPattern",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    termId: text("termId")
+      .notNull()
+      .references(() => scheduleTerm.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    cycleLength: integer("cycleLength").notNull().default(1),
+    anchorDate: text("anchorDate").notNull(),
+    patternJson: text("patternJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [uniqueIndex("scheduleWeekPattern_term_name_unique").on(table.termId, table.name)]
+);
+
+export const scheduleBellSlot = sqliteTable(
+  "scheduleBellSlot",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    startsAt: text("startsAt").notNull(),
+    endsAt: text("endsAt").notNull(),
+    sortOrder: integer("sortOrder").notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("scheduleBellSlot_school_label_unique").on(table.schoolId, table.label),
+    uniqueIndex("scheduleBellSlot_school_sortOrder_unique").on(table.schoolId, table.sortOrder),
+  ]
+);
+
+export const scheduleTeachingAssignment = sqliteTable(
+  "scheduleTeachingAssignment",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    classId: text("classId")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    courseId: text("courseId")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    teacherId: text("teacherId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    termId: text("termId")
+      .notNull()
+      .references(() => scheduleTerm.id, { onDelete: "cascade" }),
+    roomLabel: text("roomLabel"),
+    status: text("status", { enum: ["active", "archived"] }).notNull().default("active"),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("scheduleTeachingAssignment_teacher_idx").on(table.teacherId, table.termId),
+    index("scheduleTeachingAssignment_class_idx").on(table.classId, table.termId),
+    uniqueIndex("scheduleTeachingAssignment_scope_unique").on(
+      table.schoolId,
+      table.classId,
+      table.courseId,
+      table.teacherId,
+      table.termId
+    ),
+  ]
+);
+
+export const scheduleRecurringEntry = sqliteTable(
+  "scheduleRecurringEntry",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    assignmentId: text("assignmentId")
+      .notNull()
+      .references(() => scheduleTeachingAssignment.id, { onDelete: "cascade" }),
+    termId: text("termId")
+      .notNull()
+      .references(() => scheduleTerm.id, { onDelete: "cascade" }),
+    weekPatternId: text("weekPatternId")
+      .notNull()
+      .references(() => scheduleWeekPattern.id, { onDelete: "cascade" }),
+    weekday: integer("weekday").notNull(),
+    bellSlotId: text("bellSlotId")
+      .notNull()
+      .references(() => scheduleBellSlot.id, { onDelete: "cascade" }),
+    roomLabel: text("roomLabel"),
+    lessonId: text("lessonId").references(() => lessons.id, { onDelete: "cascade" }),
+    sourceBatchId: text("sourceBatchId").references(() => scheduleImportBatch.id, { onDelete: "cascade" }),
+    sourceRowId: text("sourceRowId").references(() => scheduleImportRow.id, { onDelete: "cascade" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("scheduleRecurringEntry_identity_unique").on(
+      table.assignmentId,
+      table.weekPatternId,
+      table.weekday,
+      table.bellSlotId
+    ),
+    index("scheduleRecurringEntry_term_weekday_idx").on(table.termId, table.weekday, table.bellSlotId),
+  ]
+);
+
+export const scheduleOverride = sqliteTable(
+  "scheduleOverride",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    assignmentId: text("assignmentId")
+      .notNull()
+      .references(() => scheduleTeachingAssignment.id, { onDelete: "cascade" }),
+    recurringEntryId: text("recurringEntryId")
+      .notNull()
+      .references(() => scheduleRecurringEntry.id, { onDelete: "cascade" }),
+    teacherId: text("teacherId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    classId: text("classId")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    effectiveDate: text("effectiveDate").notNull(),
+    actionType: text("actionType", { enum: ["substitute", "cancel", "move"] }).notNull(),
+    reason: text("reason").notNull(),
+    substituteTeacherId: text("substituteTeacherId").references(() => users.id, { onDelete: "cascade" }),
+    replacementBellSlotId: text("replacementBellSlotId").references(() => scheduleBellSlot.id, { onDelete: "cascade" }),
+    replacementRoomLabel: text("replacementRoomLabel"),
+    originalTeacherId: text("originalTeacherId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    originalBellSlotId: text("originalBellSlotId")
+      .notNull()
+      .references(() => scheduleBellSlot.id, { onDelete: "cascade" }),
+    originalRoomLabel: text("originalRoomLabel"),
+    status: text("status", { enum: ["active", "revoked"] }).notNull().default("active"),
+    sourceProposalId: text("sourceProposalId"),
+    createdById: text("createdById")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    updatedById: text("updatedById").references(() => users.id, { onDelete: "cascade" }),
+    revokedAt: integer("revokedAt", { mode: "timestamp_ms" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("scheduleOverride_school_effectiveDate_idx").on(table.schoolId, table.effectiveDate),
+    index("scheduleOverride_teacher_effectiveDate_idx").on(table.teacherId, table.effectiveDate),
+    index("scheduleOverride_class_effectiveDate_idx").on(table.classId, table.effectiveDate),
+  ]
+);
+
+export const scheduleHolidayCalendar = sqliteTable(
+  "scheduleHolidayCalendar",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    termId: text("termId").references(() => scheduleTerm.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdById: text("createdById")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    updatedById: text("updatedById").references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [uniqueIndex("scheduleHolidayCalendar_school_name_unique").on(table.schoolId, table.name)]
+);
+
+export const scheduleHolidayDate = sqliteTable(
+  "scheduleHolidayDate",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    calendarId: text("calendarId")
+      .notNull()
+      .references(() => scheduleHolidayCalendar.id, { onDelete: "cascade" }),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    dayType: text("dayType", { enum: ["holiday", "non_teaching", "make_up", "teaching"] }).notNull(),
+    label: text("label").notNull(),
+    note: text("note"),
+    createdById: text("createdById")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    updatedById: text("updatedById").references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("scheduleHolidayDate_calendar_date_unique").on(table.calendarId, table.date),
+    index("scheduleHolidayDate_school_date_idx").on(table.schoolId, table.date),
+  ]
+);
+
+export const scheduleReminderRule = sqliteTable(
+  "scheduleReminderRule",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    type: text("type", { enum: ["pre_class", "schedule_change"] }).notNull(),
+    channel: text("channel").notNull(),
+    recipientScope: text("recipientScope").notNull(),
+    offsetMinutes: integer("offsetMinutes").notNull().default(0),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    createdById: text("createdById")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    updatedById: text("updatedById").references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [index("scheduleReminderRule_school_type_idx").on(table.schoolId, table.type)]
+);
+
+export const scheduleReminderDispatch = sqliteTable(
+  "scheduleReminderDispatch",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    ruleId: text("ruleId").references(() => scheduleReminderRule.id, { onDelete: "cascade" }),
+    type: text("type", { enum: ["pre_class", "schedule_change"] }).notNull(),
+    channel: text("channel").notNull(),
+    targetType: text("targetType").notNull(),
+    targetId: text("targetId").notNull(),
+    targetLabel: text("targetLabel").notNull(),
+    status: text("status", { enum: ["planned", "sent", "failed", "retry_required"] })
+      .notNull()
+      .default("planned"),
+    scheduledFor: integer("scheduledFor", { mode: "timestamp_ms" }).notNull(),
+    lastAttemptAt: integer("lastAttemptAt", { mode: "timestamp_ms" }),
+    sentAt: integer("sentAt", { mode: "timestamp_ms" }),
+    failureReason: text("failureReason"),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("scheduleReminderDispatch_school_status_idx").on(table.schoolId, table.status),
+    index("scheduleReminderDispatch_school_scheduled_idx").on(table.schoolId, table.scheduledFor),
+  ]
+);
+
+export const scheduleMutationAudit = sqliteTable(
+  "scheduleMutationAudit",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    entityType: text("entityType").notNull(),
+    entityId: text("entityId").notNull(),
+    actionType: text("actionType").notNull(),
+    actorId: text("actorId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reason: text("reason"),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("scheduleMutationAudit_entity_idx").on(table.entityType, table.entityId),
+    index("scheduleMutationAudit_school_created_idx").on(table.schoolId, table.createdAt),
+  ]
+);
+
+export const scheduleAssistantProposal = sqliteTable(
+  "scheduleAssistantProposal",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    proposalType: text("proposalType", {
+      enum: ["import_mapping", "conflict_explanation", "override_suggestion"],
+    }).notNull(),
+    targetType: text("targetType").notNull(),
+    targetId: text("targetId").notNull(),
+    status: text("status", { enum: ["pending", "approved", "rejected", "draft_created"] })
+      .notNull()
+      .default("pending"),
+    title: text("title").notNull(),
+    reason: text("reason").notNull(),
+    impactScopeJson: text("impactScopeJson", { mode: "json" }).notNull(),
+    fieldsRequiringConfirmationJson: text("fieldsRequiringConfirmationJson", { mode: "json" }).notNull(),
+    draftPayloadJson: text("draftPayloadJson", { mode: "json" }),
+    requestedById: text("requestedById")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    approvedById: text("approvedById").references(() => users.id, { onDelete: "cascade" }),
+    rejectedById: text("rejectedById").references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [index("scheduleAssistantProposal_school_status_idx").on(table.schoolId, table.status)]
+);

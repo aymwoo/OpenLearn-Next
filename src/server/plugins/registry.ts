@@ -5,15 +5,21 @@ import {
   BuiltInTeachingStepTemplatePayloadSchema,
   PluginActionInput,
   PluginActionResult,
+  ScheduleConflictAnnotationPayloadSchema,
+  ScheduleOverrideProposalPayloadSchema,
+  ScheduleReminderDraftPayloadSchema,
 } from "@/lib/dto/resource-ai";
 
-export const PLUGIN_HOOK_ANCHORS = ["dashboard.widget", "lesson.sidebar"] as const;
+export const PLUGIN_HOOK_ANCHORS = ["dashboard.widget", "lesson.sidebar", "schedule.assistant"] as const;
 export const PLUGIN_ACTION_ALLOWLIST = [
   "addStepSuggestion",
   "annotateLesson",
   "createNotificationStub",
   "suggestBuiltInTeachingStep",
   "insertBuiltInTeachingStepTemplate",
+  "createScheduleOverrideProposal",
+  "createScheduleReminderDraft",
+  "annotateScheduleConflict",
 ] as const;
 export const PLUGIN_ACTION_PERMISSION_REQUIREMENTS = {
   addStepSuggestion: "lesson:write:suggestion",
@@ -21,6 +27,9 @@ export const PLUGIN_ACTION_PERMISSION_REQUIREMENTS = {
   createNotificationStub: "notification:create:stub",
   suggestBuiltInTeachingStep: "lesson:write:suggestion",
   insertBuiltInTeachingStepTemplate: "lesson:write:suggestion",
+  createScheduleOverrideProposal: "schedule:write:proposal",
+  createScheduleReminderDraft: "schedule:write:proposal",
+  annotateScheduleConflict: "schedule:write:proposal",
 } as const;
 
 const BUILT_IN_TEACHING_STEP_BY_NAME = new Map(
@@ -72,6 +81,21 @@ export function dispatchPluginAction(input: PluginActionInput): PluginActionResu
         payload: BuiltInTeachingStepTemplatePayloadSchema.parse(definition),
       };
     }
+    case "createScheduleOverrideProposal":
+      return {
+        proposalType: "scheduleOverrideProposal",
+        payload: ScheduleOverrideProposalPayloadSchema.parse(input.payload),
+      };
+    case "createScheduleReminderDraft":
+      return {
+        proposalType: "scheduleReminderDraft",
+        payload: ScheduleReminderDraftPayloadSchema.parse(input.payload),
+      };
+    case "annotateScheduleConflict":
+      return {
+        proposalType: "scheduleConflictAnnotation",
+        payload: ScheduleConflictAnnotationPayloadSchema.parse(input.payload),
+      };
     default:
       return { proposalType: "unknown", payload: input.payload, denied: true };
   }

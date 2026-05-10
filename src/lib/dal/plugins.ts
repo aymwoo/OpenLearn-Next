@@ -30,14 +30,14 @@ type PluginBySchoolInput = PluginManagerScopeInput & {
 };
 
 type EnabledPluginsForAnchorInput = PluginManagerScopeInput & {
-  hookAnchor: "dashboard.widget" | "lesson.sidebar";
+  hookAnchor: "dashboard.widget" | "lesson.sidebar" | "schedule.assistant";
 };
 
 type RunPluginHookInput = {
   actorId: string;
   pluginId: string;
   schoolId: string;
-  hookAnchor: "dashboard.widget" | "lesson.sidebar";
+  hookAnchor: "dashboard.widget" | "lesson.sidebar" | "schedule.assistant";
   input: PluginActionInput;
 };
 

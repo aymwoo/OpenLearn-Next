@@ -253,8 +253,41 @@ export const ThemeTokenRegistrySchema = z.object({
 });
 export type ThemeTokenRegistry = z.infer<typeof ThemeTokenRegistrySchema>;
 
-export const PluginHookAnchorSchema = z.enum(["dashboard.widget", "lesson.sidebar"]);
+export const PluginHookAnchorSchema = z.enum(["dashboard.widget", "lesson.sidebar", "schedule.assistant"]);
 export type PluginHookAnchor = z.infer<typeof PluginHookAnchorSchema>;
+
+export const ScheduleProposalTypeSchema = z.enum([
+  "scheduleOverrideProposal",
+  "scheduleReminderDraft",
+  "scheduleConflictAnnotation",
+]);
+export type ScheduleProposalType = z.infer<typeof ScheduleProposalTypeSchema>;
+
+export const ScheduleOverrideProposalPayloadSchema = z.object({
+  recurringEntryId: z.string(),
+  effectiveDate: z.string(),
+  reason: z.string(),
+  action: z.enum(["substitute", "cancel", "move"]),
+  substituteTeacherId: z.string().nullable().optional(),
+  replacementBellSlotId: z.string().nullable().optional(),
+  replacementRoomLabel: z.string().nullable().optional(),
+});
+export type ScheduleOverrideProposalPayload = z.infer<typeof ScheduleOverrideProposalPayloadSchema>;
+
+export const ScheduleReminderDraftPayloadSchema = z.object({
+  type: z.enum(["pre_class", "schedule_change"]),
+  channel: z.string(),
+  recipientScope: z.enum(["teacher", "class_operator"]),
+  offsetMinutes: z.number().int().nonnegative(),
+});
+export type ScheduleReminderDraftPayload = z.infer<typeof ScheduleReminderDraftPayloadSchema>;
+
+export const ScheduleConflictAnnotationPayloadSchema = z.object({
+  targetId: z.string(),
+  title: z.string(),
+  explanation: z.string(),
+});
+export type ScheduleConflictAnnotationPayload = z.infer<typeof ScheduleConflictAnnotationPayloadSchema>;
 
 export const PluginActionSchema = z.enum([
   "addStepSuggestion",
@@ -262,6 +295,9 @@ export const PluginActionSchema = z.enum([
   "createNotificationStub",
   "suggestBuiltInTeachingStep",
   "insertBuiltInTeachingStepTemplate",
+  "createScheduleOverrideProposal",
+  "createScheduleReminderDraft",
+  "annotateScheduleConflict",
 ]);
 export type PluginAction = z.infer<typeof PluginActionSchema>;
 
@@ -271,6 +307,9 @@ export const PluginProposalTypeSchema = z.enum([
   "notificationStub",
   "builtInTeachingStepSuggestion",
   "builtInTeachingStepTemplate",
+  "scheduleOverrideProposal",
+  "scheduleReminderDraft",
+  "scheduleConflictAnnotation",
   "unknown",
 ]);
 export type PluginProposalType = z.infer<typeof PluginProposalTypeSchema>;
@@ -426,6 +465,9 @@ export type PluginActionResult =
   | { proposalType: "notificationStub"; payload: Record<string, unknown> }
   | { proposalType: "builtInTeachingStepSuggestion"; payload: BuiltInTeachingStepSuggestionPayload }
   | { proposalType: "builtInTeachingStepTemplate"; payload: BuiltInTeachingStepTemplatePayload }
+  | { proposalType: "scheduleOverrideProposal"; payload: ScheduleOverrideProposalPayload }
+  | { proposalType: "scheduleReminderDraft"; payload: ScheduleReminderDraftPayload }
+  | { proposalType: "scheduleConflictAnnotation"; payload: ScheduleConflictAnnotationPayload }
   | { proposalType: "unknown"; payload: Record<string, unknown>; denied: true };
 
 export const PluginAuditDTOSchema = z.object({

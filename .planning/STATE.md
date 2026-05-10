@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Course Import & Management
-current_phase: 17
-current_phase_name: teacher-flow-editor-enhancement
-current_plan: 4
-status: executing
-stopped_at: Phase 18 UI-SPEC approved
-last_updated: "2026-05-10T16:51:57.685Z"
-last_activity: 2026-05-10
+current_phase: 18
+current_phase_name: teaching-schedule-os
+current_plan: 6
+status: ready_for_commit
+stopped_at: Phase 18 execution complete; summaries and roadmap synchronized
+last_updated: "2026-05-11T00:00:00.000Z"
+last_activity: 2026-05-11
 progress:
   total_phases: 6
-  completed_phases: 3
-  total_plans: 19
-  completed_plans: 13
-  percent: 68
+  completed_phases: 4
+  total_plans: 25
+  completed_plans: 19
+  percent: 76
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 17
-**Current Phase Name:** teacher-flow-editor-enhancement
-**Current Plan:** 4
+**Current Phase:** 18
+**Current Phase Name:** teaching-schedule-os
+**Current Plan:** 6
 **Total Plans in Phase:** 6
-**Status:** Ready to execute
+**Status:** Phase 18 complete, pending commit separation
 **Progress:**
-[███████---] 68%
-**Last Activity:** 2026-05-10
+[████████--] 76%
+**Last Activity:** 2026-05-11
 
-**Last session:** 2026-05-10T16:40:22.088Z
-**Stopped At:** Phase 18 UI-SPEC approved
-**Resume File:** .planning/phases/18-teaching-schedule-os/18-UI-SPEC.md
+**Last session:** 2026-05-11T00:00:00.000Z
+**Stopped At:** Phase 18 execution complete; summaries and roadmap synchronized
+**Resume File:** .planning/phases/18-teaching-schedule-os/18-06-SUMMARY.md
 
 ## Accumulated Context
 
@@ -100,13 +100,19 @@ progress:
 - [Phase 17]: 发布反馈保留在当前 shell 内，并在收到 PUBLISH_BLOCKED 时回填最新阻断项，而不是只弹通用失败提示。
 - [Phase 17]: Phase 17 通过 verify:phase17 固定校验 preview route、publish gate、Server Actions wiring 和 editor/plugin 安全边界。
 - [Phase 18]: 课表系统固定采用 `Import Layer -> Normalized Schedule Model -> Runtime Daily Agenda Engine` 三层架构，任何 UI、AI 或插件能力都不能绕过该边界直接读写原始导入数据。
+- [Phase 18]: 导入必须先进入 staging review，再按行批准写入 normalized schedule model，不允许上传即入库。
+- [Phase 18]: 教师个人日程是首个课表 runtime 主视图，agenda card 第一层固定显示 `时间 / 班级 / 地点 / 状态`。
+- [Phase 18]: 调课首发固定为 audited single-instance override，只支持 `代课`、`停课`、`换时间/教室`。
+- [Phase 18]: reminder 首发只覆盖 `开课前提醒` 与 `调课变更提醒`，delivery state 必须诚实显示为 planned/sent/failed/retry_required。
+- [Phase 18]: AI assistant 与插件扩展都必须保持 proposal-only；approval 最多创建 draft，不得直接改 runtime schedule。
+- [Phase 18]: Phase 18 通过 `verify:phase18` 固定校验 raw-row leakage、direct DB imports、proposal-only 边界与 unsafe patterns。
 
 ## Next Steps
 
-1. Run the remaining Phase 13 human UAT flows in `.planning/phases/13-course-center-foundation/13-HUMAN-UAT.md`.
-2. Decide whether to resume the milestone mainline with Phase 14 or prioritize the newly added Phase 18 teaching schedule OS extension.
-3. If Phase 18 becomes active, break it into the six planned work items before code execution so import, normalization, runtime agenda generation, and extension boundaries stay isolated.
-4. When preparing a commit or PR, keep phase-specific code and planning artifacts grouped atomically.
+1. Split the current working tree into a `Phase 18 schedule` change set and a separate `/teacher/editor` change set before creating commits.
+2. Re-run `pnpm typecheck`, `pnpm verify:phase18`, and `npx drizzle-kit push` immediately before the Phase 18 commit.
+3. Create the pending Phase 18 git commit after verifying that only schedule files and the new planning summaries are included.
+4. After Phase 18 is committed, return to the remaining `/teacher/editor` uncommitted changes and decide whether to continue or isolate them on a separate branch.
 
 ## Performance Metrics
 
@@ -176,7 +182,7 @@ progress:
 
 ## Current Position
 
-Phase: 17 (teacher-flow-editor-enhancement) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-05-10 -- Phase 18 planning complete
+Phase: 18 (teaching-schedule-os) — COMPLETE
+Plan: 6 of 6
+Status: Ready for commit separation
+Last activity: 2026-05-11 -- Phase 18 summaries synchronized with roadmap and state

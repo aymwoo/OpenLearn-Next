@@ -12,7 +12,7 @@
 - [ ] **Phase 15: Batch course import** - Add structured batch import, duplicate detection, and import-result feedback on top of the same course rules.
 - [x] **Phase 16: Theme plugins and layout orchestration** - Expand theme plugins from token-only styling into validated layout composition, navigation placement, and page-surface orchestration. (completed 2026-05-09)
 - [x] **Phase 17: Teacher flow editor enhancement** - Upgrade `/teacher/editor` into a flexible classroom-flow editor with composable teaching steps, structured property editing, preview, and publish-readiness checks. (completed 2026-05-10)
-- [ ] **Phase 18: Teaching schedule OS** - Build a production-grade teaching schedule system around `Import Layer -> Normalized Schedule Model -> Runtime Daily Agenda Engine`, covering import, normalization, daily agenda generation, rescheduling, holidays, reminders, AI assistance, and plugin-safe extensibility.
+- [x] **Phase 18: Teaching schedule OS** - Build a production-grade teaching schedule system around `Import Layer -> Normalized Schedule Model -> Runtime Daily Agenda Engine`, covering import, normalization, daily agenda generation, rescheduling, holidays, reminders, AI assistance, and plugin-safe extensibility. (completed 2026-05-10)
 
 ### Phase Details
 
@@ -105,12 +105,12 @@
   3. A runtime daily agenda engine can deterministically generate teacher-facing and class-facing daily schedules from normalized data, holidays, and overrides, while preserving explicit cache invalidation, DTO boundaries, and Auth/RBAC scope checks.
   4. Teachers or authorized operators can manage rescheduling, substitutions, holiday calendars, reminders, and AI-generated schedule suggestions with audit logs, explicit approval, and plugin-safe extension hooks rather than arbitrary code execution.
 **Plans**: 6 plans
-- [ ] 18-01-PLAN.md — Define the import layer contracts, staging records, review flow, and normalized schedule schema boundaries.
-- [ ] 18-02-PLAN.md — Implement school-scoped timetable import, validation, duplicate/conflict detection, and approved write paths into the normalized model.
-- [ ] 18-03-PLAN.md — Build the runtime daily agenda engine that materializes daily teacher and class agendas from recurring schedules, holidays, and overrides.
-- [ ] 18-04-PLAN.md — Add rescheduling, substitution, and holiday/calendar management with audit-safe mutations and read-your-writes feedback.
-- [ ] 18-05-PLAN.md — Add reminder and notification orchestration for upcoming classes, changes, and daily agenda events.
-- [ ] 18-06-PLAN.md — Expose AI schedule assistant workflows and plugin extension hooks through approval-gated, allowlisted schedule actions.
+- [x] 18-01-PLAN.md — Define the import layer contracts, staging records, review flow, and normalized schedule schema boundaries.
+- [x] 18-02-PLAN.md — Implement school-scoped timetable import, validation, duplicate/conflict detection, and approved write paths into the normalized model.
+- [x] 18-03-PLAN.md — Build the runtime daily agenda engine that materializes daily teacher and class agendas from recurring schedules, holidays, and overrides.
+- [x] 18-04-PLAN.md — Add rescheduling, substitution, and holiday/calendar management with audit-safe mutations and read-your-writes feedback.
+- [x] 18-05-PLAN.md — Add reminder and notification orchestration for upcoming classes, changes, and daily agenda events.
+- [x] 18-06-PLAN.md — Expose AI schedule assistant workflows and plugin extension hooks through approval-gated, allowlisted schedule actions.
 **UI hint**: yes
 
 ### Progress
@@ -122,4 +122,4 @@
 | 15. Batch course import | 0/3 | Not started | - |
 | 16. Theme plugins and layout orchestration | 4/4 | Complete | 2026-05-09 |
 | 17. Teacher flow editor enhancement | 4/4 | Complete   | 2026-05-10 |
-| 18. Teaching schedule OS | 0/6 | Not started | - |
+| 18. Teaching schedule OS | 6/6 | Complete | 2026-05-10 |

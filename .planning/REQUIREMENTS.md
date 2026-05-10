@@ -106,6 +106,18 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **COURSE-09**: Teacher can review import outcomes as created, updated, skipped, or failed rows without silently creating duplicates.
 - [x] **COURSE-10**: Teacher can open a course and continue directly into lesson or teaching-plan management from a dedicated entry point.
 
+### v1.x Teaching schedule OS extension
+
+- [x] **SCHEDULE-01**: School-scoped operators can import timetable data from structured files or approved connectors through a staging layer that preserves source metadata, row-level validation, and reviewable import outcomes.
+- [x] **SCHEDULE-02**: Developer can use a normalized schedule domain model for terms, week patterns, class groups, teacher-course assignments, bell slots, recurring schedule entries, runtime overrides, and source lineage without exposing raw import rows to UI consumers.
+- [x] **SCHEDULE-03**: Teacher and authorized staff can view deterministic daily agendas generated from the normalized model, holiday rules, and runtime overrides for a given day.
+- [x] **SCHEDULE-04**: Authorized users can reschedule, substitute, cancel, or relocate classes through audited mutations that preserve original schedule lineage and explicit effective dates.
+- [x] **SCHEDULE-05**: School can manage holiday calendars, make-up days, and non-teaching exceptions that participate in daily agenda generation instead of living as UI-only annotations.
+- [x] **SCHEDULE-06**: System can send schedule reminders and change notifications for upcoming classes, agenda updates, and exceptions through the existing notification boundary.
+- [x] **SCHEDULE-07**: Teacher can use an AI schedule assistant to draft import mappings, conflict resolutions, and rescheduling suggestions, but every schedule-affecting write requires explicit user approval and audit logs.
+- [x] **SCHEDULE-08**: Developer can expose plugin-safe schedule hooks and allowlisted actions so themes or plugins can extend schedule surfaces, reminders, and assistant workflows without direct DB access or arbitrary code execution.
+- [x] **SCHEDULE-09**: All schedule reads and writes enforce Auth/RBAC, school scope, DTO shaping, explicit cache invalidation, and the required `Import Layer -> Normalized Schedule Model -> Runtime Daily Agenda Engine` architecture.
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -231,13 +243,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COURSE-08 | Phase 15 | Pending |
 | COURSE-09 | Phase 15 | Pending |
 | COURSE-10 | Phase 13 | Complete |
+| SCHEDULE-01 | Phase 18 | Complete |
+| SCHEDULE-02 | Phase 18 | Complete |
+| SCHEDULE-03 | Phase 18 | Complete |
+| SCHEDULE-04 | Phase 18 | Complete |
+| SCHEDULE-05 | Phase 18 | Complete |
+| SCHEDULE-06 | Phase 18 | Complete |
+| SCHEDULE-07 | Phase 18 | Complete |
+| SCHEDULE-08 | Phase 18 | Complete |
+| SCHEDULE-09 | Phase 18 | Complete |
 
 **Coverage:**
-- v1/v1.1/v1.2 requirements: 69 total
-- Mapped to phases: 69
+- v1/v1.1/v1.2/v1.x schedule extension requirements: 78 total
+- Mapped to phases: 78
 - Unmapped: 0
 - Duplicate mappings: 0
 
 ---
 *Requirements defined: 2026-05-04*  
-*Last updated: 2026-05-09 after milestone v1.2 requirements definition*
+*Last updated: 2026-05-11 after adding Phase 18 teaching schedule OS requirements*
