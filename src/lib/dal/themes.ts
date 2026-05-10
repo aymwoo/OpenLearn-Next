@@ -5,9 +5,29 @@ import { themeTokenRegistries } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
-import { ThemeResolvedRuntimeDTO, ThemeResolvedRuntimeDTOSchema, ThemeTokenRegistry, ThemeRegistryDTO, ThemeRegistryDTOSchema } from "@/lib/dto/resource-ai";
+import {
+  ThemeLayoutRuntime,
+  ThemeRegistryDTO,
+  ThemeRegistryDTOSchema,
+  ThemeResolvedRuntimeDTO,
+  ThemeResolvedRuntimeDTOSchema,
+  ThemeTokenRegistry,
+} from "@/lib/dto/resource-ai";
+import { getActiveThemeId } from "@/lib/theme-cookie";
 import { recordThemeAudit, registerThemeTokens } from "@/server/themes/registry";
-import { compileThemeLayoutRuntime, compileThemeTokensToCssVariables } from "@/server/themes/tokens";
+import {
+  compileThemeLayoutRuntime,
+  compileThemeTokensToCssVariables,
+  DEFAULT_THEME_LAYOUT_RUNTIME,
+} from "@/server/themes/tokens";
+
+export type CurrentActorThemeRuntimeState = {
+  requestedThemeId: string | null;
+  activeThemeId: string | null;
+  themeRuntime: ThemeResolvedRuntimeDTO | null;
+  layoutRuntime: ThemeLayoutRuntime;
+  themeSource: "default" | "active-theme";
+};
 
 function toThemeDTO(record: typeof themeTokenRegistries.$inferSelect): ThemeRegistryDTO {
   const tokenJson = record.tokenJson as ThemeTokenRegistry;
@@ -84,4 +104,17 @@ export async function getActiveThemeRuntimeForCurrentActor(themeId: string): Pro
     layoutRuntime,
     layoutSummary: layoutRuntime.summary,
   });
+}
+
+export async function getCurrentActorThemeRuntimeState(): Promise<CurrentActorThemeRuntimeState> {
+  const requestedThemeId = await getActiveThemeId();
+  const themeRuntime = requestedThemeId ? await getActiveThemeRuntimeForCurrentActor(requestedThemeId) : null;
+
+  return {
+    requestedThemeId,
+    activeThemeId: themeRuntime?.theme.id ?? null,
+    themeRuntime,
+    layoutRuntime: themeRuntime?.layoutRuntime ?? DEFAULT_THEME_LAYOUT_RUNTIME,
+    themeSource: themeRuntime ? "active-theme" : "default",
+  };
 }

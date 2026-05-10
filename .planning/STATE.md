@@ -7,8 +7,8 @@ current_phase_name: theme-plugins-and-layout-orchestration
 current_plan: 4
 status: complete
 stopped_at: Phase 16 verification passed
-last_updated: "2026-05-09T23:07:11+00:00"
-last_activity: 2026-05-09
+last_updated: "2026-05-10T05:02:53.393Z"
+last_activity: 2026-05-10
 progress:
   total_phases: 4
   completed_phases: 2
@@ -78,6 +78,11 @@ progress:
 - [Phase 16]: 教师端壳层固定支持 `left-nav`、`top-nav`、`top-nav-secondary-rail` 三种模式，`/teacher`、`/settings`、`/resources` 统一走同一 theme-aware shell。
 - [Phase 16]: 设置页主题卡片改为读取 runtime-driven `结构摘要`，并在局部回退时显式展示 `局部回退` 说明。
 - [Phase 16]: `verify:phase16` 已作为 phase-specific 验证入口落地，覆盖 runtime wiring、shell mode、设置页摘要和 unsafe contract guard。
+- [Quick 260510-i4e]: 教师端各 surface 首屏统一收敛到同一组 rhythm token，hero 使用一致 shell/padding，普通首屏 section 统一使用相同圆角与 5/6 间距节奏。
+- [Quick 260510-i8f]: 教师工作台首屏内二级卡片统一收敛到 `radius-card` 语义，外层 shell 与内层信息卡片的圆角层级分工更清晰。
+- [Quick 260510-idr]: 教师端其它 surface 的二级 tonal cards 继续统一复用 `radius-card` 语义；shell 级容器仍保留 `radius-shell`，不混入圆形控件与主舞台。
+- [Quick 260510-9s2]: `settings-surface`、`teacher-review-surface`、`library-surface` 的二级卡片统一复用 `teacherSurfaceRhythm.card` / `cardInset`，不再局部手写不同半径。
+- [Quick 260510-kc9]: 默认主题重新和激活主题路径分流；无 `activeThemeId` 时回到浅色基线壳层，并通过共享 `surfaceWidths` contract 清理首页、设置、学生相关页面的局部窄版心回归。
 
 **Active Blockers:**
 
@@ -91,48 +96,53 @@ progress:
 
 ## Performance Metrics
 
-| Scope | Duration | Tasks | Files |
-|-------|----------|-------|-------|
-| Phase 10 P06 | 4 min | 2 tasks | 4 files |
-| Phase 12 P01 | 2 min | 2 tasks | 8 files |
-| Phase 12 P02 | 1 min | 2 tasks | 5 files |
-| Phase 12 P03 | 2 min | 3 tasks | 5 files |
-| Phase 12 P04 | 1 min | 3 tasks | 10 files |
-| Phase 12 P06 | 2 min | 2 tasks | 2 files |
-| Phase 12 P08 | 2 min | 2 tasks | 4 files |
-| Phase 12 P07 | 3 min | 2 tasks | 3 files |
-| Phase 12 P09 | 12 min | 2 tasks | 5 files |
-| Phase 13 P01 | 6 min | 2 tasks | 8 files |
-| Phase 13 P02 | 4 min | 2 tasks | 8 files |
-| Phase 13 P03 | 23 min | 2 tasks | 8 files |
-| Phase 13 P04 | 2 min | 2 tasks | 3 files |
-| Phase 13 P05 | 3 min | 2 tasks | 3 files |
+| Scope        | Duration | Tasks   | Files    |
+| ------------ | -------- | ------- | -------- |
+| Phase 10 P06 | 4 min    | 2 tasks | 4 files  |
+| Phase 12 P01 | 2 min    | 2 tasks | 8 files  |
+| Phase 12 P02 | 1 min    | 2 tasks | 5 files  |
+| Phase 12 P03 | 2 min    | 3 tasks | 5 files  |
+| Phase 12 P04 | 1 min    | 3 tasks | 10 files |
+| Phase 12 P06 | 2 min    | 2 tasks | 2 files  |
+| Phase 12 P08 | 2 min    | 2 tasks | 4 files  |
+| Phase 12 P07 | 3 min    | 2 tasks | 3 files  |
+| Phase 12 P09 | 12 min   | 2 tasks | 5 files  |
+| Phase 13 P01 | 6 min    | 2 tasks | 8 files  |
+| Phase 13 P02 | 4 min    | 2 tasks | 8 files  |
+| Phase 13 P03 | 23 min   | 2 tasks | 8 files  |
+| Phase 13 P04 | 2 min    | 2 tasks | 3 files  |
+| Phase 13 P05 | 3 min    | 2 tasks | 3 files  |
 
 ### Quick Tasks Completed
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260506-04q | 使用stitch中的以下页面重构首页, Stitch Project ID: 5322129002350954765, Screen 1: 首页 - OpenLear-Next ID: 79dd3433e6c44f0792e0ada2ebf71337 | 2026-05-05 | 939b608 | [260506-04q-stitch-stitch-project-id-532212900235095](./quick/260506-04q-stitch-stitch-project-id-532212900235095/) |
-| 260507-hly | 修改首页的样式，参照 Stitch 首页，分为学生和教师两个入口，默认学生登录，点击登录后直接验证并跳转到学生或教师首页 | 2026-05-07 | aeab00f | [260507-hly-stitch](./quick/260507-hly-stitch/) |
-| 260507-kdx | 为添加一个用于开发环境的脚本，用来初始化数据库和基础的测试的数据 | 2026-05-07 | 94e3d56 | [260507-kdx-dev-db-bootstrap](./quick/260507-kdx-dev-db-bootstrap/) |
-| 260507-r7m | 修复教师首页课表说明文案宽度异常 | 2026-05-07 | b35e052 | [260507-r7m-teacher-copy-width](./quick/260507-r7m-teacher-copy-width/) |
-| 260507-qf6 | 根据 Stitch 项目 5322129002350954765 的教学流程编排屏幕，生成课堂教学活动编排页面 | 2026-05-07 | e3e7a3a | [260507-qf6-classroom-lesson-orchestrator-stitch](./quick/260507-qf6-classroom-lesson-orchestrator-stitch/) |
-| 260507-r59 | 严格按照 stitch 中的首页样式布局来重构首页，stitch 中没有的内容不需要有，使用 Stitch 项目 5322129002350954765 的首页屏幕 79dd3433e6c44f0792e0ada2ebf71337 作为唯一视觉与内容来源 | 2026-05-07 | 4cda668 | [260507-r59-stitch-stitch-stitch-5322129002350954765](./quick/260507-r59-stitch-stitch-stitch-5322129002350954765/) |
-| 260507-rto | 首页的布局需要稍微调整一下，左边占三分之二，右边占三分之一，注意图片中有些组件的 max width 过于狭窄，需要修正这个问题。 | 2026-05-07 | 4f66729 | [260507-rto-max-width](./quick/260507-rto-max-width/) |
-| 260507-saw | 新建一个班级管理页面，并添加到左边栏的导航中，班级管理页面完全按照 Stitch 项目 5322129002350954765 的屏幕 154c66ef0dc643a7a3edd7ed520fc999 实现。 | 2026-05-07 | aeef097 | [260507-saw-stitch-5322129002350954765-154c66ef0dc64](./quick/260507-saw-stitch-5322129002350954765-154c66ef0dc64/) |
-| 260507-rto | 首页的布局需要稍微调整一下，左边占三分之二，右边占三分之一，注意图片中有些组件的 max width 过于狭窄，需要修正这个问题。 | 2026-05-07 | 4f66729 | [260507-rto-max-width](./quick/260507-rto-max-width/) |
-| 260507-t1c | 将所有页面改为中文界面，继续替换 class-management、home、login、settings、teacher layout 等处残留英文，并补充中文界面约定与更新 STATE。 | 2026-05-07 | b72498a | [260507-t1c-ui-copy-chinese](./quick/260507-t1c-ui-copy-chinese/) |
-| 260507-tcl | 班级管理页面 filter pills 替换为独立可选芯片（在读/请假/男/女）、批量操作图标对齐 Stitch（Trash2）、student avatar 调整为 Stitch 比例 | 2026-05-07 | f0ede6e | [260507-tcl-stitch](./quick/260507-tcl-stitch/) |
-| 260507-u75 | 学生列表对齐 Stitch bb82bea4 紧凑 3 列布局：5 名学生、图片头像、筛选增加"所有"选项 | 2026-05-07 | 12f7a3b | [260507-u75-stitch-bb82bea424fd4a7eb9d21cf206fe56fe](./quick/260507-u75-stitch-bb82bea424fd4a7eb9d21cf206fe56fe/) |
-| 260507-v0p | 新增学生卡片视图：圆形头像 SVG 进度环、姓名学号，表格/卡片双视图切换 | 2026-05-07 | 1f5f783 | [260507-v0p-stitch-bb82bea4](./quick/260507-v0p-stitch-bb82bea4/) |
-| 2026-05-08 | fast | 移除教师工作台页面的 max-w-[1280px] 限制 | ✅ |
-| 2026-05-09 | fast | 资源中心页面/resources和设置页面/settings没有左边导航，需要改成和/teacher一致 | ✅ |
-| 260510-07a | settings页面设置主题除了默认的主题之外，提示当前学校还没有可用主题。启用带有 manifest.theme 的插件后，这里会显示可选项。 | 2026-05-09 | 304ce1b | [260510-07a-settings-manifest-theme](./quick/260510-07a-settings-manifest-theme/) |
-| 260510-0kh | 再创建一个版式也不一样的主题 | 2026-05-09 | d4fce9d | [260510-0kh-second-distinct-theme](./quick/260510-0kh-second-distinct-theme/) |
+| #          | Description                                                                                                                                                                      | Date                                                                          | Commit  | Directory                                                                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| 260506-04q | 使用stitch中的以下页面重构首页, Stitch Project ID: 5322129002350954765, Screen 1: 首页 - OpenLear-Next ID: 79dd3433e6c44f0792e0ada2ebf71337                                      | 2026-05-05                                                                    | 939b608 | [260506-04q-stitch-stitch-project-id-532212900235095](./quick/260506-04q-stitch-stitch-project-id-532212900235095/) |
+| 260507-hly | 修改首页的样式，参照 Stitch 首页，分为学生和教师两个入口，默认学生登录，点击登录后直接验证并跳转到学生或教师首页                                                                 | 2026-05-07                                                                    | aeab00f | [260507-hly-stitch](./quick/260507-hly-stitch/)                                                                     |
+| 260507-kdx | 为添加一个用于开发环境的脚本，用来初始化数据库和基础的测试的数据                                                                                                                 | 2026-05-07                                                                    | 94e3d56 | [260507-kdx-dev-db-bootstrap](./quick/260507-kdx-dev-db-bootstrap/)                                                 |
+| 260507-r7m | 修复教师首页课表说明文案宽度异常                                                                                                                                                 | 2026-05-07                                                                    | b35e052 | [260507-r7m-teacher-copy-width](./quick/260507-r7m-teacher-copy-width/)                                             |
+| 260507-qf6 | 根据 Stitch 项目 5322129002350954765 的教学流程编排屏幕，生成课堂教学活动编排页面                                                                                                | 2026-05-07                                                                    | e3e7a3a | [260507-qf6-classroom-lesson-orchestrator-stitch](./quick/260507-qf6-classroom-lesson-orchestrator-stitch/)         |
+| 260507-r59 | 严格按照 stitch 中的首页样式布局来重构首页，stitch 中没有的内容不需要有，使用 Stitch 项目 5322129002350954765 的首页屏幕 79dd3433e6c44f0792e0ada2ebf71337 作为唯一视觉与内容来源 | 2026-05-07                                                                    | 4cda668 | [260507-r59-stitch-stitch-stitch-5322129002350954765](./quick/260507-r59-stitch-stitch-stitch-5322129002350954765/) |
+| 260507-rto | 首页的布局需要稍微调整一下，左边占三分之二，右边占三分之一，注意图片中有些组件的 max width 过于狭窄，需要修正这个问题。                                                          | 2026-05-07                                                                    | 4f66729 | [260507-rto-max-width](./quick/260507-rto-max-width/)                                                               |
+| 260507-saw | 新建一个班级管理页面，并添加到左边栏的导航中，班级管理页面完全按照 Stitch 项目 5322129002350954765 的屏幕 154c66ef0dc643a7a3edd7ed520fc999 实现。                                | 2026-05-07                                                                    | aeef097 | [260507-saw-stitch-5322129002350954765-154c66ef0dc64](./quick/260507-saw-stitch-5322129002350954765-154c66ef0dc64/) |
+| 260507-rto | 首页的布局需要稍微调整一下，左边占三分之二，右边占三分之一，注意图片中有些组件的 max width 过于狭窄，需要修正这个问题。                                                          | 2026-05-07                                                                    | 4f66729 | [260507-rto-max-width](./quick/260507-rto-max-width/)                                                               |
+| 260507-t1c | 将所有页面改为中文界面，继续替换 class-management、home、login、settings、teacher layout 等处残留英文，并补充中文界面约定与更新 STATE。                                          | 2026-05-07                                                                    | b72498a | [260507-t1c-ui-copy-chinese](./quick/260507-t1c-ui-copy-chinese/)                                                   |
+| 260507-tcl | 班级管理页面 filter pills 替换为独立可选芯片（在读/请假/男/女）、批量操作图标对齐 Stitch（Trash2）、student avatar 调整为 Stitch 比例                                            | 2026-05-07                                                                    | f0ede6e | [260507-tcl-stitch](./quick/260507-tcl-stitch/)                                                                     |
+| 260507-u75 | 学生列表对齐 Stitch bb82bea4 紧凑 3 列布局：5 名学生、图片头像、筛选增加"所有"选项                                                                                               | 2026-05-07                                                                    | 12f7a3b | [260507-u75-stitch-bb82bea424fd4a7eb9d21cf206fe56fe](./quick/260507-u75-stitch-bb82bea424fd4a7eb9d21cf206fe56fe/)   |
+| 260507-v0p | 新增学生卡片视图：圆形头像 SVG 进度环、姓名学号，表格/卡片双视图切换                                                                                                             | 2026-05-07                                                                    | 1f5f783 | [260507-v0p-stitch-bb82bea4](./quick/260507-v0p-stitch-bb82bea4/)                                                   |
+| 2026-05-08 | fast                                                                                                                                                                             | 移除教师工作台页面的 max-w-[1280px] 限制                                      | ✅      |
+| 2026-05-09 | fast                                                                                                                                                                             | 资源中心页面/resources和设置页面/settings没有左边导航，需要改成和/teacher一致 | ✅      |
+| 260510-07a | settings页面设置主题除了默认的主题之外，提示当前学校还没有可用主题。启用带有 manifest.theme 的插件后，这里会显示可选项。                                                         | 2026-05-09                                                                    | 304ce1b | [260510-07a-settings-manifest-theme](./quick/260510-07a-settings-manifest-theme/)                                   |
+| 260510-0kh | 再创建一个版式也不一样的主题                                                                                                                                                     | 2026-05-09                                                                    | d4fce9d | [260510-0kh-second-distinct-theme](./quick/260510-0kh-second-distinct-theme/)                                       |
+| 260510-i4e | 统一教师端各具体 surface 的首屏卡片间距与圆角节奏                                                                                                                                | 2026-05-10                                                                    | 未提交  | [260510-i4e-surface](./quick/260510-i4e-surface/)                                                                   |
+| 260510-i8f | 统一教师端首屏内二级卡片的圆角层级语义                                                                                                                                           | 2026-05-10                                                                    | 未提交  | [260510-i8f-teacher-dashboard-card-radius-semantics](./quick/260510-i8f-teacher-dashboard-card-radius-semantics/)   |
+| 260510-idr | 将 radius-card 二级卡片圆角语义扩展到其他教师端 surfaces                                                                                                                         | 2026-05-10                                                                    | 未提交  | [260510-idr-radius-card-surfaces](./quick/260510-idr-radius-card-surfaces/)                                         |
+| 260510-9s2 | 统一 settings-surface、teacher-review-surface、library-surface 的二级卡片圆角语义                                                                                                | 2026-05-10                                                                    | 未提交  | [260510-9s2-surface-secondary-card-radius](./quick/260510-9s2-surface-secondary-card-radius/)                       |
+| 260510-kc9 | 经过主题插件改动之后，我的默认的主题的界面和之前不一样了，深色浅色比较混乱，而且不必要的文字段落宽度限制又回来了，比如首页就变成了图片中的样子，其他页面也存在这个情况，检查原因并系统的修正 | 2026-05-10                                                                    | 未提交  | [260510-kc9-theme-default-regression-fix](./quick/260510-kc9-theme-default-regression-fix/)                         |
 
 ## Current Position
 
 Phase: 16 (theme-plugins-and-layout-orchestration) — COMPLETE
 Plan: 4 of 4
 Status: Verification passed
-Last activity: 2026-05-09 -- Phase 16 execution and verify:phase16 completed
+Last activity: 2026-05-10 -- Completed quick task 260510-kc9: 修复默认主题 fallback、明暗混乱与页面宽度回归

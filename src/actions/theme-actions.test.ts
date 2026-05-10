@@ -25,9 +25,10 @@ describe("theme runtime actions", () => {
 
   it("injects active theme styles through an actor-scoped server component", () => {
     expect(injectorSource).toContain("export async function ThemeInjector");
-    expect(injectorSource).toContain("getActiveThemeRuntimeForCurrentActor");
+    expect(injectorSource).toContain("getCurrentActorThemeRuntimeState");
     expect(injectorSource).toContain('id="theme-injector"');
     expect(injectorSource).toContain("theme-layout-runtime");
+    expect(injectorSource).toContain("data-theme-layout-source");
     expect(layoutSource).toContain("ThemeInjector");
     expect(layoutSource).toContain("<ThemeInjector />");
   });

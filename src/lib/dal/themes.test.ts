@@ -22,7 +22,10 @@ describe("theme DAL guards", () => {
 
   it("exports a compiled active theme runtime with default fallback behavior", () => {
     expect(source).toContain("export async function getActiveThemeRuntimeForCurrentActor");
+    expect(source).toContain("export async function getCurrentActorThemeRuntimeState");
+    expect(source).toContain("requestedThemeId");
     expect(source).toContain("compileThemeLayoutRuntime(theme.tokenJson)");
     expect(source).toContain("layoutSummary: layoutRuntime.summary");
+    expect(source).toContain("DEFAULT_THEME_LAYOUT_RUNTIME");
   });
 });

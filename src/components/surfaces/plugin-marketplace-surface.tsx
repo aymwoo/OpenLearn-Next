@@ -4,6 +4,8 @@ import { ChevronRight, Sparkles, Store } from 'lucide-react'
 import { listPluginsAction, setPluginEnabledAction } from '@/actions/plugin-actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { StageHero } from '@/components/surfaces/stage-hero'
+import { surfaceWidths } from '@/components/surfaces/surface-widths'
 import { getCurrentUserSchoolIds } from '@/lib/dal/auth'
 
 export async function PluginMarketplaceSurface() {
@@ -24,23 +26,24 @@ export async function PluginMarketplaceSurface() {
 
   return (
     <main className="min-h-screen bg-surface px-4 py-6 text-on-surface sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-6">
-        <section className="rounded-[var(--radius-shell)] bg-gradient-to-br from-primary to-[#7b9cff] p-6 text-white shadow-ambient sm:p-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <Badge className="bg-white/16 text-white">插件市场</Badge>
-              <h1 className="mt-4 text-[2.4rem] font-semibold tracking-[-0.02em]">系统内置教学环节</h1>
-              <p className="mt-3 text-sm leading-7 text-white/88 sm:text-base">
-                在专用 marketplace 中查看学校当前可用的内置教学环节。它们由系统提供，默认开启，可按课堂运行需要停用或重新启用，但不会以删除动作呈现。
-              </p>
+      <div className={`${surfaceWidths.workspace} flex flex-col gap-6`}>
+        <StageHero
+          badge="插件市场"
+          title="系统内置教学环节"
+          description="在专用 marketplace 中查看学校当前可用的内置教学环节。它们由系统提供，默认开启，可按课堂运行需要停用或重新启用，但不会以删除动作呈现。"
+          meta={
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge className="bg-white/10 text-white">学校可见目录</Badge>
+              <Badge className="bg-white/8 text-white/80">仅启用 / 停用，无删除语义</Badge>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
+          }
+          aside={
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <MetricCard label="系统内置" value={String(plugins.length)} />
               <MetricCard label="当前启用" value={String(plugins.filter((plugin) => plugin.enabled).length)} />
             </div>
-          </div>
-        </section>
+          }
+        />
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient sm:p-6">

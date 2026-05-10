@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { StudentShell } from "@/components/shell/student-shell";
+import { getCurrentActorThemeRuntimeState } from "@/lib/dal/themes";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 
@@ -33,13 +35,15 @@ async function StudentLayoutContent({
     redirect("/unauthorized");
   }
 
-  return (
-    <div className="student-layout">
-      {children}
-    </div>
-  );
+  const { themeSource } = await getCurrentActorThemeRuntimeState();
+
+  return <StudentShell themeSource={themeSource}>{children}</StudentShell>;
 }
 
 function StudentLayoutFallback() {
-  return <div className="student-layout" />;
+  return (
+    <StudentShell themeSource="default">
+      <div className="min-h-[40vh]" />
+    </StudentShell>
+  );
 }
