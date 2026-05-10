@@ -7,7 +7,7 @@ current_phase_name: teacher-flow-editor-enhancement
 current_plan: 4
 status: verifying
 stopped_at: Completed 17-04-PLAN.md
-last_updated: "2026-05-10T09:29:59.290Z"
+last_updated: "2026-05-10T21:24:12+08:00"
 last_activity: 2026-05-10
 progress:
   total_phases: 5
@@ -159,10 +159,11 @@ progress:
 | 260510-pcj | 移除 teacher editor 左侧课程/班级摘要卡，保留其余编排区 | 2026-05-10 | 708e57d | [260510-pcj-teacher-editor](./quick/260510-pcj-teacher-editor/) |
 | 260510-pn1 | 修复 RootLayout html 节点 hydration mismatch，忽略浏览器扩展注入属性 | 2026-05-10 | f51decf | [260510-pn1-rootlayout-html-hydration-mismatch](./quick/260510-pn1-rootlayout-html-hydration-mismatch/) |
 | 260510-pun | 移除 /teacher/editor 页面最下面左侧的竖条组件 | 2026-05-10 | 6a51652 | [260510-pun-teacher-editor](./quick/260510-pun-teacher-editor/) |
+| 260510-tlq | 在 /teacher/editor 将步骤编辑改为流程卡片按钮触发的右侧抽屉 | 2026-05-10 | 0efc8a0 | [260510-tlq-teacher-editor](./quick/260510-tlq-teacher-editor/) |
 
 ## Current Position
 
 Phase: 17 (teacher-flow-editor-enhancement) — EXECUTING
 Plan: 4 of 4
 Status: Phase complete — ready for verification
-Last activity: 2026-05-10 - Completed quick task 260510-pun: 移除 /teacher/editor 页面最下面左侧的竖条组件
+Last activity: 2026-05-10 - Completed quick task 260510-tlq: 在 /teacher/editor 将步骤编辑改为流程卡片按钮触发的右侧抽屉
