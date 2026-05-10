@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -207,5 +209,12 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
     expect(screen.getAllByText("内置环节 · 教师讲授").length).toBeGreaterThan(0);
     expect(screen.getAllByText("统一编排区")[0]).toBeTruthy();
     expect(screen.getAllByText("流程主线")[0]).toBeTruthy();
+  });
+
+  it("removes the standalone vertical bar above the course end marker", () => {
+    const source = readFileSync("src/components/authoring/lesson-authoring-workspace.tsx", "utf8");
+
+    expect(source).toContain("课程结束");
+    expect(source).not.toContain('absolute left-[1rem] bottom-full h-8 w-1 rounded-full bg-surface-variant');
   });
 });

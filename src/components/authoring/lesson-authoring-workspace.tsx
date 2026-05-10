@@ -257,8 +257,7 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
                 ) : null}
               </div>
 
-              <div className="relative flex items-center gap-4 pt-4">
-                <div className="absolute left-[1rem] bottom-full h-8 w-1 rounded-full bg-surface-variant" />
+            <div className="relative flex items-center gap-4 pt-4">
                 <span className="grid size-9 place-items-center rounded-full bg-surface-container-high text-on-surface-variant shadow-ambient">止</span>
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-on-surface-variant">课程结束</p>
               </div>
