@@ -232,9 +232,10 @@ async function getBuiltInPluginRegistryForLesson(scope: TeacherScope, schoolId: 
 
   const plugins = await db.query.pluginRegistrations.findMany({
     where: eq(pluginRegistrations.schoolId, schoolId),
+    columns: { id: true, enabled: true, killSwitchEnabled: true, manifestJson: true },
   });
 
-  return getBuiltInPluginAvailabilityMap(plugins);
+  return getBuiltInPluginAvailabilityMap(plugins as Parameters<typeof getBuiltInPluginAvailabilityMap>[0]);
 }
 
 function parseStepPayloadWithIssues(
@@ -447,6 +448,8 @@ export async function getLessonEditorDTO(lessonId: string) {
       latestVersion: latestVersion?.version ?? null,
       publishedAt: nullableIso(latestVersion?.publishedAt),
       canPublish: readiness.canPublish,
+      blockingIssues: readiness.blockingIssues,
+      warnings: [],
     },
   });
 }

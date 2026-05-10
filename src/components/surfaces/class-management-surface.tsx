@@ -16,6 +16,8 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
+import { cn } from "@/lib/utils";
 
 const classSummary = {
   averageGrade: "88.5",
@@ -76,8 +78,18 @@ export function ClassManagementSurface() {
   });
 
   return (
-    <div className="mx-auto flex w-full flex-col gap-4 pb-10 pt-2">
-      <section className="relative overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-low px-5 py-5 sm:px-6 sm:py-6">
+    <div
+      className={cn(
+        "mx-auto flex w-full flex-col pb-10 pt-2",
+        teacherSurfaceRhythm.stack,
+      )}
+    >
+      <section
+        className={cn(
+          "relative overflow-hidden bg-surface-container-low px-6 py-6 sm:px-8 sm:py-8",
+          teacherSurfaceRhythm.shell,
+        )}
+      >
         <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex-1 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -126,9 +138,7 @@ export function ClassManagementSurface() {
       <section className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-on-surface">
-              学生名册
-            </h2>
+            <h2 className="text-lg font-semibold text-on-surface">学生名册</h2>
             <div className="flex items-center rounded-full bg-surface-container-high p-0.5">
               <button
                 type="button"
@@ -170,7 +180,12 @@ export function ClassManagementSurface() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-[var(--radius-card)] bg-surface-container-lowest p-3 shadow-[0_4px_24px_rgba(0,0,0,0.02)] lg:flex-row lg:items-center lg:justify-between">
+        <div
+          className={cn(
+            teacherSurfaceRhythm.card,
+            "flex flex-col gap-3 bg-surface-container-lowest p-3 shadow-[0_4px_24px_rgba(0,0,0,0.02)] lg:flex-row lg:items-center lg:justify-between",
+          )}
+        >
           <div className="flex flex-1 flex-col gap-2 lg:flex-row lg:items-center">
             <div className="relative w-full lg:max-w-[17rem]">
               <Search
@@ -193,14 +208,18 @@ export function ClassManagementSurface() {
               label="在读"
               active={activeStatus === "在读"}
               onClick={() =>
-                setActiveStatus((prev) => (prev === "在读" ? "所有状态" : "在读"))
+                setActiveStatus((prev) =>
+                  prev === "在读" ? "所有状态" : "在读",
+                )
               }
             />
             <FilterPill
               label="请假"
               active={activeStatus === "请假"}
               onClick={() =>
-                setActiveStatus((prev) => (prev === "请假" ? "所有状态" : "请假"))
+                setActiveStatus((prev) =>
+                  prev === "请假" ? "所有状态" : "请假",
+                )
               }
             />
             <FilterPill
@@ -252,7 +271,10 @@ export function ClassManagementSurface() {
             {filteredStudents.map((student) => (
               <article
                 key={student.idNumber}
-                className="group grid gap-3 rounded-[var(--radius-card)] bg-surface-container-lowest px-3 py-3 shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-colors hover:bg-white md:grid-cols-[40px_minmax(0,2fr)_minmax(0,1fr)] md:items-center md:px-4"
+                className={cn(
+                  teacherSurfaceRhythm.card,
+                  "group grid gap-3 bg-surface-container-lowest px-3 py-3 shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-colors hover:bg-white md:grid-cols-[40px_minmax(0,2fr)_minmax(0,1fr)] md:items-center md:px-4",
+                )}
               >
                 <div className="hidden md:flex">
                   <input
@@ -413,7 +435,12 @@ function StudentCard({
 }) {
   const ringColor = progress >= 75 ? "text-primary" : "text-tertiary";
   return (
-    <article className="flex aspect-square w-[7.5rem] shrink-0 flex-col items-center justify-start gap-1.5 rounded-[1.5rem] bg-surface-container-lowest px-2 pt-4 pb-3 text-center shadow-[0_4px_16px_rgba(0,0,0,0.04)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
+    <article
+      className={cn(
+        teacherSurfaceRhythm.card,
+        "flex aspect-square w-[7.5rem] shrink-0 flex-col items-center justify-start gap-1.5 bg-surface-container-lowest px-2 pt-4 pb-3 text-center shadow-[0_4px_16px_rgba(0,0,0,0.04)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]",
+      )}
+    >
       {/* Avatar + ring container */}
       <div className="relative flex size-16 items-center justify-center">
         <svg

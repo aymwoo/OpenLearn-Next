@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Course Import & Management
-current_phase: 16
-current_phase_name: theme-plugins-and-layout-orchestration
+current_phase: 17
+current_phase_name: teacher-flow-editor-enhancement
 current_plan: 4
-status: complete
-stopped_at: Phase 16 verification passed
-last_updated: "2026-05-10T05:02:53.393Z"
+status: verifying
+stopped_at: Completed 17-04-PLAN.md
+last_updated: "2026-05-10T09:29:59.290Z"
 last_activity: 2026-05-10
 progress:
-  total_phases: 4
-  completed_phases: 2
-  total_plans: 15
-  completed_plans: 9
-  percent: 60
+  total_phases: 5
+  completed_phases: 3
+  total_plans: 13
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 16
-**Current Phase Name:** theme-plugins-and-layout-orchestration
+**Current Phase:** 17
+**Current Phase Name:** teacher-flow-editor-enhancement
 **Current Plan:** 4
 **Total Plans in Phase:** 4
-**Status:** Complete
+**Status:** Phase complete — ready for verification
 **Progress:**
 [██████████] 100%
-**Last Activity:** 2026-05-09
+**Last Activity:** 2026-05-10
 
-**Last session:** 2026-05-09T23:07:11+00:00
-**Stopped At:** Phase 16 verification passed
-**Resume File:** .planning/phases/16-theme-plugins-and-layout-orchestration/16-04-SUMMARY.md
+**Last session:** 2026-05-10T09:29:59.285Z
+**Stopped At:** Completed 17-04-PLAN.md
+**Resume File:** None
 
 ## Accumulated Context
 
@@ -87,6 +87,18 @@ progress:
 **Active Blockers:**
 
 - Full `pnpm lint` is blocked by pre-existing lint errors in `.claude/`, `.opencode/`, and unrelated source files outside Plan 11-01.
+- [Phase 17]: 把 builtInSource 持久化到 lesson step payload，后续 preview/readiness 不再依赖 UI 推断插件来源。
+- [Phase 17]: publish readiness 收口在 teacher-owned DAL，并由 editor DTO 与 publish action 共用。
+- [Phase 17]: 发布阻断通过 PUBLISH_BLOCKED 结构化返回 issues，而不是只依赖前端提示。
+- [Phase 17]: 普通步骤和内置教学环节合并到同一 composer rail，避免编辑器继续分裂成资源卡片和步骤按钮两套心智模型。
+- [Phase 17]: 流程卡片、侧边摘要和属性编辑器统一展示 builtInSource，来源信息不再只停留在服务端 DTO。
+- [Phase 17]: step editor 重建 payload 时显式保留 builtInSource，防止教师编辑后丢失内置环节 provenance。
+- [Phase 17]: teacher preview route 必须同时要求 courseId 和 lessonId，避免像旧 editor 一样落回模糊默认课时。
+- [Phase 17]: 课堂预览继续只读取 teacher-owned draft DTO，不复用 student runtime、SSE 或个人学习进度。
+- [Phase 17]: editor 页面同时保留 inline preview summary 与真实预览入口，避免把预览能力伪装成死按钮。
+- [Phase 17]: editor 内的发布准备面板直接消费结构化 readiness issue 列表，不再用三字段布尔判断替代服务端 gate。
+- [Phase 17]: 发布反馈保留在当前 shell 内，并在收到 PUBLISH_BLOCKED 时回填最新阻断项，而不是只弹通用失败提示。
+- [Phase 17]: Phase 17 通过 verify:phase17 固定校验 preview route、publish gate、Server Actions wiring 和 editor/plugin 安全边界。
 
 ## Next Steps
 
@@ -112,6 +124,10 @@ progress:
 | Phase 13 P03 | 23 min   | 2 tasks | 8 files  |
 | Phase 13 P04 | 2 min    | 2 tasks | 3 files  |
 | Phase 13 P05 | 3 min    | 2 tasks | 3 files  |
+| Phase 17 P01 | 3 min | 2 tasks | 6 files |
+| Phase 17 P02 | 7 min | 2 tasks | 4 files |
+| Phase 17 P03 | 5 min | 2 tasks | 5 files |
+| Phase 17 P04 | 8 min | 2 tasks | 6 files |
 
 ### Quick Tasks Completed
 
@@ -140,11 +156,11 @@ progress:
 | 260510-9s2 | 统一 settings-surface、teacher-review-surface、library-surface 的二级卡片圆角语义                                                                                                | 2026-05-10                                                                    | 未提交  | [260510-9s2-surface-secondary-card-radius](./quick/260510-9s2-surface-secondary-card-radius/)                       |
 | 260510-kc9 | 经过主题插件改动之后，我的默认的主题的界面和之前不一样了，深色浅色比较混乱，而且不必要的文字段落宽度限制又回来了，比如首页就变成了图片中的样子，其他页面也存在这个情况，检查原因并系统的修正 | 2026-05-10 | 068fc1b | [260510-kc9-theme-default-regression-fix](./quick/260510-kc9-theme-default-regression-fix/) |
 | 260510-oml | 修复 /teacher/editor Blocking Route：将主题 cookie 读取移入 Suspense 安全边界 | 2026-05-10 | c196830 | [260510-oml-teacher-editor-blocking-route-cookie-sus](./quick/260510-oml-teacher-editor-blocking-route-cookie-sus/) |
-| 260510-pcj | 移除 teacher editor 左侧课程/班级摘要卡，保留其余编排区 | 2026-05-10 | 708e57d | [260510-pcj-teacher-editor](./quick/260510-pcj-teacher-editor/) |
+| 260510-pcj | 移除 teacher editor 左侧课程/班级摘要卡，保留其余编排区 | 2026-05-10 | 未提交 | [260510-pcj-teacher-editor](./quick/260510-pcj-teacher-editor/) |
 
 ## Current Position
 
-Phase: 16 (theme-plugins-and-layout-orchestration) — COMPLETE
+Phase: 17 (teacher-flow-editor-enhancement) — EXECUTING
 Plan: 4 of 4
-Status: Verification passed
+Status: Phase complete — ready for verification
 Last activity: 2026-05-10 - Completed quick task 260510-pcj: 移除 teacher editor 左侧课程/班级摘要卡，保留其余编排区

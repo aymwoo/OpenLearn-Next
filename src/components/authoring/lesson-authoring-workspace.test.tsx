@@ -157,4 +157,55 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
       });
     });
   });
+
+  it("renders built-in source badges inside the integrated flow composition workspace", () => {
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [
+            {
+              id: "step-1",
+              title: "教师讲授",
+              type: "content",
+              rank: "a0",
+              archivedAt: null,
+              payload: {
+                type: "content",
+                title: "教师讲授",
+                body: "讲解关键概念。",
+                materialRefs: [],
+                builtInSource: {
+                  pluginId: "plugin-1",
+                  builtInKey: "directInstruction",
+                  pluginName: "教师讲授",
+                },
+              },
+            },
+            {
+              id: "step-2",
+              title: "课堂练习",
+              type: "task",
+              rank: "b0",
+              archivedAt: null,
+              payload: {
+                type: "task",
+                prompt: "完成课堂练习。",
+                submissionType: "text",
+                materialRefs: [],
+              },
+            },
+          ],
+        } as any}
+        builtInTemplates={[]}
+      />,
+    );
+
+    expect(screen.getAllByTestId("lesson-flow-composer")[0]).toBeTruthy();
+    expect(screen.getAllByText("内置环节 · 教师讲授").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("统一编排区")[0]).toBeTruthy();
+    expect(screen.getAllByText("流程主线")[0]).toBeTruthy();
+  });
 });

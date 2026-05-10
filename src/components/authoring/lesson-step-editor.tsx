@@ -72,6 +72,7 @@ function parseMaterialRefs(text: string, fallback: LessonStepDTO["payload"]) {
 
 function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayload {
   const materialRefs = parseMaterialRefs(state.materialRefsText, step.payload);
+  const builtInSource = step.payload.builtInSource;
 
   if (step.type === "content" && step.payload.type === "content") {
     return {
@@ -80,6 +81,7 @@ function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayloa
       body: state.contentBody.trim(),
       teacherNotes: state.teacherNotes.trim() || undefined,
       materialRefs,
+      builtInSource,
     };
   }
 
@@ -92,6 +94,7 @@ function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayloa
       allowRetry: step.payload.allowRetry,
       retryPolicy: step.payload.retryPolicy,
       materialRefs,
+      builtInSource,
     };
   }
 
@@ -109,6 +112,7 @@ function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayloa
     allowRetry: step.payload.type === "quiz" ? step.payload.allowRetry : undefined,
     retryPolicy: step.payload.type === "quiz" ? step.payload.retryPolicy : undefined,
     revealCorrectAnswer: step.payload.type === "quiz" ? step.payload.revealCorrectAnswer : undefined,
+    builtInSource,
   };
 }
 
@@ -120,6 +124,10 @@ export function LessonStepEditor({ step }: LessonStepEditorProps) {
   const stepTypeLabel = useMemo(() => {
     if (!step) return "";
     return step.type === "content" ? "内容" : step.type === "task" ? "任务" : "测验";
+  }, [step]);
+  const builtInSourceLabel = useMemo(() => {
+    if (!step?.payload.builtInSource) return null;
+    return `内置环节 · ${step.payload.builtInSource.pluginName}`;
   }, [step]);
 
   if (!step) {
@@ -176,6 +184,13 @@ export function LessonStepEditor({ step }: LessonStepEditorProps) {
         <div>
           <p className="text-sm text-on-surface-variant">步骤编辑器</p>
           <h3 className="mt-2 text-2xl font-semibold">{activeStep.title}</h3>
+          {builtInSourceLabel ? (
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary">步骤来源</span>
+              <span className="rounded-full bg-surface-container-low px-3 py-1 font-medium text-on-surface-variant">{builtInSourceLabel}</span>
+              <span className="rounded-full bg-surface-container-low px-3 py-1 font-medium text-on-surface-variant">{activeStep.payload.builtInSource?.builtInKey}</span>
+            </div>
+          ) : null}
         </div>
         <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-sm text-primary">
           {stepTypeLabel}
@@ -183,6 +198,10 @@ export function LessonStepEditor({ step }: LessonStepEditorProps) {
       </div>
 
       <div className="mt-5 grid gap-4">
+        <div className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-sm text-on-surface-variant">
+          当前步骤类型为{stepTypeLabel}，保存时会继续走结构化 schema 校验与 `autosaveLessonStepAction`。
+        </div>
+
         <label className="grid gap-2" htmlFor="lesson-step-title">
           <span className="text-sm text-on-surface-variant">标题</span>
           <input

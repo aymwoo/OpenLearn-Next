@@ -108,6 +108,7 @@ describe("lesson step editor persistence", () => {
         allowRetry: true,
         retryPolicy: "once",
         materialRefs: [{ title: "素材", kind: "link" }],
+        builtInSource: undefined,
       },
     });
   });
@@ -155,6 +156,59 @@ describe("lesson step editor persistence", () => {
         allowRetry: true,
         retryPolicy: "unlimited",
         revealCorrectAnswer: true,
+        builtInSource: undefined,
+      },
+    });
+  });
+
+  it("shows built-in source metadata and preserves it during save", async () => {
+    const step = makeStep({
+      id: "step-4",
+      lessonId: "lesson-1",
+      type: "content",
+      title: "教师讲授",
+      rank: "a3",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      payload: {
+        type: "content",
+        title: "教师讲授",
+        body: "原始讲授内容",
+        teacherNotes: "关注关键概念",
+        materialRefs: [{ title: "投影片", kind: "link" }],
+        builtInSource: {
+          pluginId: "plugin-1",
+          builtInKey: "directInstruction",
+          pluginName: "教师讲授",
+        },
+      },
+    });
+
+    render(<LessonStepEditor step={step} />);
+
+    expect(screen.getByText("步骤来源")).toBeTruthy();
+    expect(screen.getByText("内置环节 · 教师讲授")).toBeTruthy();
+    expect(screen.getByText("directInstruction")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("标题"), { target: { value: "教师讲授更新" } });
+    fireEvent.change(screen.getByLabelText("正文"), { target: { value: "更新后的讲授内容" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存步骤" }));
+
+    await waitFor(() => expect(autosaveLessonStepAction).toHaveBeenCalledTimes(1));
+    expect(autosaveLessonStepAction).toHaveBeenCalledWith({
+      stepId: "step-4",
+      title: "教师讲授更新",
+      payload: {
+        type: "content",
+        title: "教师讲授更新",
+        body: "更新后的讲授内容",
+        teacherNotes: "关注关键概念",
+        materialRefs: [{ title: "投影片", kind: "link" }],
+        builtInSource: {
+          pluginId: "plugin-1",
+          builtInKey: "directInstruction",
+          pluginName: "教师讲授",
+        },
       },
     });
   });

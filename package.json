@@ -16,6 +16,7 @@
     "verify:phase11": "tsx scripts/verify-phase11-readiness.ts",
     "verify:phase12": "tsx scripts/verify-phase12-launch-and-builtins.ts",
     "verify:phase16": "tsx scripts/verify-phase16-theme-layout.ts",
+    "verify:phase17": "tsx scripts/verify-phase17-editor.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "db:bootstrap:dev": "drizzle-kit push && tsx scripts/bootstrap-dev-db.ts",

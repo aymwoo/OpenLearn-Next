@@ -5,29 +5,43 @@ import { createLessonDraftAction } from "@/actions/lesson-authoring-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import type { TeacherCourseLessonsEntryDTO } from "@/lib/dto/course-authoring";
+import { cn } from "@/lib/utils";
 
 type CourseLessonsEntrySurfaceProps = {
   data: TeacherCourseLessonsEntryDTO;
   errorMessage?: string | null;
 };
 
-export function CourseLessonsEntrySurface({ data, errorMessage }: CourseLessonsEntrySurfaceProps) {
+export function CourseLessonsEntrySurface({
+  data,
+  errorMessage,
+}: CourseLessonsEntrySurfaceProps) {
   const { course, lessons } = data;
   const hasLessons = lessons.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className={teacherSurfaceRhythm.stack}>
       {errorMessage ? (
-        <div className="rounded-[1.5rem] bg-error-container px-4 py-3 text-sm font-medium text-on-error-container">
+        <div
+          className={cn(
+            teacherSurfaceRhythm.card,
+            "bg-error-container px-4 py-3 text-sm font-medium text-on-error-container",
+          )}
+        >
           {errorMessage}
         </div>
       ) : null}
 
-      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-6 shadow-ambient sm:p-8">
+      <section className={teacherSurfaceRhythm.hero}>
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <Button asChild variant="tertiary" className="mb-5 min-h-10 px-0 text-sm">
+            <Button
+              asChild
+              variant="tertiary"
+              className="mb-5 min-h-10 px-0 text-sm"
+            >
               <Link href={`/teacher/courses/${course.id}`}>返回课程详情</Link>
             </Button>
             <div className="flex flex-wrap items-center gap-3">
@@ -57,10 +71,17 @@ export function CourseLessonsEntrySurface({ data, errorMessage }: CourseLessonsE
                 : "当前还没有任何课时，只提供“新建第一个课时”动作，不暴露其他课程内容。"}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <CreateLessonDraftButton courseId={course.id} hasLessons={hasLessons} />
+              <CreateLessonDraftButton
+                courseId={course.id}
+                hasLessons={hasLessons}
+              />
               {hasLessons ? (
                 <Button asChild variant="secondary" className="px-5 text-sm">
-                  <Link href={`/teacher/editor?courseId=${course.id}&lessonId=${lessons[0].id}`}>继续编辑已有课时</Link>
+                  <Link
+                    href={`/teacher/editor?courseId=${course.id}&lessonId=${lessons[0].id}`}
+                  >
+                    继续编辑已有课时
+                  </Link>
                 </Button>
               ) : null}
             </div>
@@ -71,18 +92,31 @@ export function CourseLessonsEntrySurface({ data, errorMessage }: CourseLessonsE
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
         <Card className="bg-surface-container-low p-5">
           <p className="text-sm text-on-surface-variant">课时列表</p>
-          <h2 className="mt-2 text-2xl font-semibold text-on-surface">当前课程的课时入口</h2>
+          <h2 className="mt-2 text-2xl font-semibold text-on-surface">
+            当前课程的课时入口
+          </h2>
 
           {hasLessons ? (
             <div className="mt-5 space-y-3">
               {lessons.map((lesson) => (
-                <div key={lesson.id} className="rounded-3xl bg-surface-container-lowest p-5 shadow-ambient">
+                <div
+                  key={lesson.id}
+                  className={cn(teacherSurfaceRhythm.cardInset, "p-5")}
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-lg font-semibold text-on-surface">{lesson.title}</p>
-                      <p className="mt-2 text-sm leading-7 text-on-surface-variant">{lesson.objective}</p>
+                      <p className="text-lg font-semibold text-on-surface">
+                        {lesson.title}
+                      </p>
+                      <p className="mt-2 text-sm leading-7 text-on-surface-variant">
+                        {lesson.objective}
+                      </p>
                     </div>
-                    <Badge variant={lesson.status === "published" ? "success" : "accent"}>
+                    <Badge
+                      variant={
+                        lesson.status === "published" ? "success" : "accent"
+                      }
+                    >
                       {lesson.status === "published" ? "已发布" : "草稿"}
                     </Badge>
                   </div>
@@ -91,21 +125,31 @@ export function CourseLessonsEntrySurface({ data, errorMessage }: CourseLessonsE
                   </p>
                   <div className="mt-4 flex flex-wrap gap-3">
                     <Button asChild className="px-5 text-sm">
-                      <Link href={`/teacher/editor?courseId=${course.id}&lessonId=${lesson.id}`}>继续编辑</Link>
+                      <Link
+                        href={`/teacher/editor?courseId=${course.id}&lessonId=${lesson.id}`}
+                      >
+                        继续编辑
+                      </Link>
                     </Button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="mt-5 rounded-[1.75rem] bg-surface-container-lowest p-6 shadow-ambient">
+            <div className={cn(teacherSurfaceRhythm.cardInset, "mt-5 p-6")}>
               <p className="text-sm text-on-surface-variant">还没有课时</p>
-              <h3 className="mt-2 text-2xl font-semibold text-on-surface">新建第一个课时</h3>
+              <h3 className="mt-2 text-2xl font-semibold text-on-surface">
+                新建第一个课时
+              </h3>
               <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-                从这门课程开始建立第一个课时草稿，创建完成后会自动带着 courseId 与 lessonId 进入 editor。
+                从这门课程开始建立第一个课时草稿，创建完成后会自动带着 courseId
+                与 lessonId 进入 editor。
               </p>
               <div className="mt-5">
-                <CreateLessonDraftButton courseId={course.id} hasLessons={false} />
+                <CreateLessonDraftButton
+                  courseId={course.id}
+                  hasLessons={false}
+                />
               </div>
             </div>
           )}
@@ -113,10 +157,19 @@ export function CourseLessonsEntrySurface({ data, errorMessage }: CourseLessonsE
 
         <Card className="bg-surface-container-low p-5">
           <p className="text-sm text-on-surface-variant">课程快照</p>
-          <h2 className="mt-2 text-2xl font-semibold text-on-surface">当前课程概览</h2>
+          <h2 className="mt-2 text-2xl font-semibold text-on-surface">
+            当前课程概览
+          </h2>
           <div className="mt-5 grid gap-3">
             <InfoRow label="课时数" value={`${course.lessonCount} 个`} />
-            <InfoRow label="关联班级" value={course.classLabels.length > 0 ? course.classLabels.join("、") : "尚未关联班级"} />
+            <InfoRow
+              label="关联班级"
+              value={
+                course.classLabels.length > 0
+                  ? course.classLabels.join("、")
+                  : "尚未关联班级"
+              }
+            />
             <InfoRow label="学生数" value={`${course.enrollmentCount} 名`} />
           </div>
         </Card>
@@ -125,7 +178,13 @@ export function CourseLessonsEntrySurface({ data, errorMessage }: CourseLessonsE
   );
 }
 
-function CreateLessonDraftButton({ courseId, hasLessons }: { courseId: string; hasLessons: boolean }) {
+function CreateLessonDraftButton({
+  courseId,
+  hasLessons,
+}: {
+  courseId: string;
+  hasLessons: boolean;
+}) {
   return (
     <form action={createLessonDraftFromCourse.bind(null, courseId)}>
       <Button type="submit" className="px-5 text-sm">
@@ -145,11 +204,20 @@ async function createLessonDraftFromCourse(courseId: string) {
   });
 
   if (!result.ok) {
-    redirect(`/teacher/courses/${courseId}/lessons?error=${encodeURIComponent(result.message)}`);
+    redirect(
+      `/teacher/courses/${courseId}/lessons?error=${encodeURIComponent(result.message)}`,
+    );
   }
 
-  if (!result.data || typeof result.data !== "object" || !("id" in result.data) || typeof result.data.id !== "string") {
-    redirect(`/teacher/courses/${courseId}/lessons?error=${encodeURIComponent("课时草稿暂时创建失败，请稍后重试。")}`);
+  if (
+    !result.data ||
+    typeof result.data !== "object" ||
+    !("id" in result.data) ||
+    typeof result.data.id !== "string"
+  ) {
+    redirect(
+      `/teacher/courses/${courseId}/lessons?error=${encodeURIComponent("课时草稿暂时创建失败，请稍后重试。")}`,
+    );
   }
 
   redirect(`/teacher/editor?courseId=${courseId}&lessonId=${result.data.id}`);
@@ -157,7 +225,7 @@ async function createLessonDraftFromCourse(courseId: string) {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl bg-surface-container-lowest p-4 shadow-ambient">
+    <div className={cn(teacherSurfaceRhythm.cardInset, "p-4")}>
       <p className="text-sm text-on-surface-variant">{label}</p>
       <p className="mt-2 text-base font-semibold text-on-surface">{value}</p>
     </div>

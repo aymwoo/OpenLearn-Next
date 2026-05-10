@@ -1,12 +1,21 @@
 import Link from "next/link";
-import { ArrowLeft, BookOpen, Clock3, GraduationCap, Layers3, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  Clock3,
+  GraduationCap,
+  Layers3,
+  Users,
+} from "lucide-react";
 
 import { updateCourseAction } from "@/actions/course-authoring-actions";
 import { CourseDetailForm } from "@/components/courses/course-detail-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import type { TeacherCourseDetailDTO } from "@/lib/dto/course-authoring";
+import { cn } from "@/lib/utils";
 
 type TeacherCourseDetailSurfaceProps = {
   course: TeacherCourseDetailDTO;
@@ -18,16 +27,24 @@ const courseStatusMeta = {
   archived: { label: "已归档", variant: "default" as const },
 };
 
-export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfaceProps) {
-  const statusMeta = courseStatusMeta[course.status as keyof typeof courseStatusMeta] ?? courseStatusMeta.draft;
+export function TeacherCourseDetailSurface({
+  course,
+}: TeacherCourseDetailSurfaceProps) {
+  const statusMeta =
+    courseStatusMeta[course.status as keyof typeof courseStatusMeta] ??
+    courseStatusMeta.draft;
   const lessonsEntryHref = `/teacher/courses/${course.id}/lessons`;
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-6 shadow-ambient sm:p-8">
+    <div className={teacherSurfaceRhythm.stack}>
+      <section className={teacherSurfaceRhythm.hero}>
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <Button asChild variant="tertiary" className="mb-5 min-h-10 px-0 text-sm">
+            <Button
+              asChild
+              variant="tertiary"
+              className="mb-5 min-h-10 px-0 text-sm"
+            >
               <Link href="/teacher/courses">
                 <ArrowLeft className="mr-2 size-4" aria-hidden />
                 返回课程总览
@@ -50,9 +67,13 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
             </p>
           </div>
 
-          <div className="rounded-[1.75rem] bg-surface-container-lowest p-5 shadow-ambient lg:w-[340px]">
+          <div
+            className={cn(teacherSurfaceRhythm.cardInset, "p-5 lg:w-[340px]")}
+          >
             <p className="text-sm text-on-surface-variant">主流程入口</p>
-            <h2 className="mt-2 text-2xl font-semibold text-on-surface">进入课程编排上下文</h2>
+            <h2 className="mt-2 text-2xl font-semibold text-on-surface">
+              进入课程编排上下文
+            </h2>
             <p className="mt-3 text-sm leading-7 text-on-surface-variant">
               先进入该课程的课时列表或空态，再决定继续已有课时还是新建第一个课时。
             </p>
@@ -60,16 +81,34 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
               <Button asChild className="px-5 text-sm">
                 <Link href={lessonsEntryHref}>进入课时管理</Link>
               </Button>
-              <Button variant="secondary" className="px-5 text-sm">当前页直接编辑课程信息</Button>
+              <Button variant="secondary" className="px-5 text-sm">
+                当前页直接编辑课程信息
+              </Button>
             </div>
           </div>
         </div>
 
         <div className="mt-6 grid gap-3 md:grid-cols-4">
-          <DetailMetric icon={<Layers3 className="size-4" />} label="课时数" value={`${course.lessonCount} 个`} />
-          <DetailMetric icon={<Users className="size-4" />} label="学生数" value={`${course.enrollmentCount} 名`} />
-          <DetailMetric icon={<GraduationCap className="size-4" />} label="班级数" value={`${course.classLinks.length} 个`} />
-          <DetailMetric icon={<Clock3 className="size-4" />} label="最近更新" value={formatDateTime(course.updatedAt)} />
+          <DetailMetric
+            icon={<Layers3 className="size-4" />}
+            label="课时数"
+            value={`${course.lessonCount} 个`}
+          />
+          <DetailMetric
+            icon={<Users className="size-4" />}
+            label="学生数"
+            value={`${course.enrollmentCount} 名`}
+          />
+          <DetailMetric
+            icon={<GraduationCap className="size-4" />}
+            label="班级数"
+            value={`${course.classLinks.length} 个`}
+          />
+          <DetailMetric
+            icon={<Clock3 className="size-4" />}
+            label="最近更新"
+            value={formatDateTime(course.updatedAt)}
+          />
         </div>
       </section>
 
@@ -79,7 +118,10 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
           <h2 className="mt-2 text-2xl font-semibold">基础信息与课时摘要</h2>
 
           <div className="mt-5">
-            <CourseDetailForm course={course} updateCourseAction={updateCourseAction} />
+            <CourseDetailForm
+              course={course}
+              updateCourseAction={updateCourseAction}
+            />
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -89,7 +131,7 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
             <InfoCard label="年级" value={course.grade} />
           </div>
 
-          <div className="mt-6 rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
+          <div className={cn(teacherSurfaceRhythm.cardInset, "mt-6 p-5")}>
             <div className="flex items-center gap-3">
               <BookOpen className="size-5 text-primary" aria-hidden />
               <h3 className="text-xl font-semibold">当前课时</h3>
@@ -98,24 +140,44 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
             {course.lessons.length > 0 ? (
               <div className="mt-4 space-y-3">
                 {course.lessons.map((lesson) => (
-                  <div key={lesson.id} className="rounded-3xl bg-surface-container-low p-4">
+                  <div
+                    key={lesson.id}
+                    className={cn(
+                      teacherSurfaceRhythm.card,
+                      "bg-surface-container-low p-4",
+                    )}
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-on-surface">{lesson.title}</p>
-                        <p className="mt-1 text-sm text-on-surface-variant">{lesson.objective}</p>
+                        <p className="font-semibold text-on-surface">
+                          {lesson.title}
+                        </p>
+                        <p className="mt-1 text-sm text-on-surface-variant">
+                          {lesson.objective}
+                        </p>
                       </div>
-                      <Badge variant={lesson.status === "published" ? "success" : "accent"}>
+                      <Badge
+                        variant={
+                          lesson.status === "published" ? "success" : "accent"
+                        }
+                      >
                         {lesson.status === "published" ? "已发布" : "草稿"}
                       </Badge>
                     </div>
                     <p className="mt-3 text-sm text-on-surface-variant">
-                      {lesson.stepCount} 个步骤 · 修订 {lesson.revision} · 最近更新 {formatDateTime(lesson.updatedAt)}
+                      {lesson.stepCount} 个步骤 · 修订 {lesson.revision} ·
+                      最近更新 {formatDateTime(lesson.updatedAt)}
                     </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="mt-4 rounded-3xl bg-surface-container-low p-5 text-sm leading-7 text-on-surface-variant">
+              <div
+                className={cn(
+                  teacherSurfaceRhythm.card,
+                  "mt-4 bg-surface-container-low p-5 text-sm leading-7 text-on-surface-variant",
+                )}
+              >
                 当前课程还没有课时，接下来会从这里直接承接“新建第一个课时”的主入口。
               </div>
             )}
@@ -126,7 +188,7 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
           <p className="text-sm text-on-surface-variant">班级与衔接入口</p>
           <h2 className="mt-2 text-2xl font-semibold">课程关联情况</h2>
 
-          <div className="mt-5 rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
+          <div className={cn(teacherSurfaceRhythm.cardInset, "mt-5 p-5")}>
             <p className="text-sm text-on-surface-variant">关联班级</p>
             {course.classLinks.length > 0 ? (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -140,20 +202,25 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
                 ))}
               </div>
             ) : (
-              <p className="mt-3 text-sm leading-7 text-on-surface-variant">当前尚未关联班级，后续阶段会补齐班级与学生关联管理。</p>
+              <p className="mt-3 text-sm leading-7 text-on-surface-variant">
+                当前尚未关联班级，后续阶段会补齐班级与学生关联管理。
+              </p>
             )}
           </div>
 
-          <div className="mt-4 rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
+          <div className={cn(teacherSurfaceRhythm.cardInset, "mt-4 p-5")}>
             <p className="text-sm text-on-surface-variant">课程内下一步</p>
             <p className="mt-2 text-sm leading-7 text-on-surface-variant">
-              这里继续保留“进入课时管理”主 CTA，确保教师不会从列表页直接跳到全局 editor，而是始终保留课程上下文。
+              这里继续保留“进入课时管理”主 CTA，确保教师不会从列表页直接跳到全局
+              editor，而是始终保留课程上下文。
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Button asChild className="px-5 text-sm">
                 <Link href={lessonsEntryHref}>进入课时管理</Link>
               </Button>
-              <Button variant="secondary" className="px-5 text-sm">已在本页完成课程编辑</Button>
+              <Button variant="secondary" className="px-5 text-sm">
+                已在本页完成课程编辑
+              </Button>
             </div>
           </div>
         </Card>
@@ -162,11 +229,21 @@ export function TeacherCourseDetailSurface({ course }: TeacherCourseDetailSurfac
   );
 }
 
-function DetailMetric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function DetailMetric({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="rounded-3xl bg-surface-container-lowest p-4 shadow-ambient">
+    <div className={cn(teacherSurfaceRhythm.cardInset, "p-4")}>
       <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-        <span className="rounded-full bg-surface-container-low p-2 text-primary">{icon}</span>
+        <span className="rounded-full bg-surface-container-low p-2 text-primary">
+          {icon}
+        </span>
         {label}
       </div>
       <p className="mt-3 text-lg font-semibold text-on-surface">{value}</p>
@@ -176,7 +253,7 @@ function DetailMetric({ icon, label, value }: { icon: React.ReactNode; label: st
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl bg-surface-container-lowest p-4 shadow-ambient">
+    <div className={cn(teacherSurfaceRhythm.cardInset, "p-4")}>
       <p className="text-sm text-on-surface-variant">{label}</p>
       <p className="mt-2 text-base font-semibold text-on-surface">{value}</p>
     </div>

@@ -18,11 +18,13 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { teacherSurfaceRhythm } from '@/components/surfaces/teacher-surface-rhythm'
+import { cn } from '@/lib/utils'
 
 export function TeacherDashboardSurface() {
   return (
-    <div className="mx-auto flex w-full flex-col gap-6 pb-12 pt-3">
-      <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 sm:p-6">
+    <div className={cn('mx-auto flex w-full flex-col pb-12 pt-3', teacherSurfaceRhythm.stack)}>
+      <section className={teacherSurfaceRhythm.hero}>
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,22rem)] xl:items-start">
           <div className="min-w-0 space-y-3 xl:pr-6">
             <Badge variant="accent" className="bg-surface-container-lowest text-primary">
@@ -40,12 +42,12 @@ export function TeacherDashboardSurface() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <div className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4">
+            <div className={cn(teacherSurfaceRhythm.card, 'bg-surface-container-lowest px-4 py-4')}>
               <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">今日节奏</p>
               <p className="mt-2 text-2xl font-semibold text-on-surface">3 节课 / 1 节直播中</p>
               <p className="mt-1 text-sm text-on-surface-variant">下一节英语课 14:00 开始，当前课堂建议 5 分钟后切换练习。</p>
             </div>
-            <div className="rounded-[1.5rem] bg-error-container px-4 py-4 text-on-error-container">
+            <div className={cn(teacherSurfaceRhythm.card, 'bg-error-container px-4 py-4 text-on-error-container')}>
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 size-5 shrink-0" />
                 <div>
@@ -187,7 +189,7 @@ export function TeacherDashboardSurface() {
               <LiveMetric label="持续时间" value="45 分钟" icon={<Clock className="size-4 text-[#bc6c25]" />} />
             </div>
 
-            <section className="rounded-[1.35rem] bg-surface-container-low p-4">
+            <section className={cn(teacherSurfaceRhythm.card, 'bg-surface-container-low p-4')}>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <div className="rounded-full bg-surface-container-lowest p-3 text-primary">
@@ -204,7 +206,7 @@ export function TeacherDashboardSurface() {
               </div>
             </section>
 
-            <section className="rounded-[1.35rem] bg-surface-container-low p-4">
+            <section className={cn(teacherSurfaceRhythm.card, 'bg-surface-container-low p-4')}>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-on-surface-variant">课堂流转建议</p>
@@ -239,7 +241,7 @@ function QuickAction({
         : 'bg-primary/10 text-primary'
 
   return (
-    <button className="flex min-h-28 flex-col items-start justify-between rounded-[1.5rem] bg-surface-container-lowest p-4 text-left transition hover:-translate-y-0.5">
+    <button className={cn(teacherSurfaceRhythm.card, 'flex min-h-28 flex-col items-start justify-between bg-surface-container-lowest p-4 text-left transition hover:-translate-y-0.5')}>
       <div className={`rounded-full p-3 ${toneClass}`}>
         {icon}
       </div>
@@ -263,7 +265,7 @@ function CompactStatCard({
   valueTone?: string
 }) {
   return (
-    <div className="rounded-[1.4rem] bg-surface-container-low p-4">
+    <div className={cn(teacherSurfaceRhythm.card, 'bg-surface-container-low p-4')}>
       <p className="text-sm font-medium text-on-surface-variant">{title}</p>
       <div className={`mt-3 text-[1.85rem] font-semibold tracking-tight text-on-surface ${valueTone ?? ''}`}>
         {value}
@@ -275,7 +277,7 @@ function CompactStatCard({
 
 function PriorityCard({ title, detail, action }: { title: string; detail: string; action: string }) {
   return (
-    <div className="rounded-[1.5rem] bg-surface-container-low p-4">
+    <div className={cn(teacherSurfaceRhythm.card, 'bg-surface-container-low p-4')}>
       <p className="text-sm font-semibold text-on-surface">{title}</p>
       <p className="mt-2 text-sm leading-6 text-on-surface-variant">{detail}</p>
       <Button variant="tertiary" className="mt-4 min-h-10 px-0 text-sm">
@@ -287,7 +289,7 @@ function PriorityCard({ title, detail, action }: { title: string; detail: string
 
 function LiveMetric({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="rounded-[1.2rem] bg-surface-container-low p-4">
+    <div className={cn(teacherSurfaceRhythm.card, 'bg-surface-container-low p-4')}>
       <p className="text-xs uppercase tracking-[0.18em] text-on-surface-variant">{label}</p>
       <p className="mt-3 flex items-center gap-2 text-sm font-medium text-on-surface">
         {icon}
@@ -324,7 +326,7 @@ function TimelineItem({
           )}
         </div>
 
-        <div className={`rounded-[1.25rem] p-5 ${status === 'current' ? 'bg-surface-container-lowest' : 'bg-surface-container-low'}`}>
+        <div className={cn(teacherSurfaceRhythm.card, 'p-5', status === 'current' ? 'bg-surface-container-lowest' : 'bg-surface-container-low')}>
           <h4 className="text-base font-semibold text-on-surface">{title}</h4>
           {subtitle && <p className="text-sm text-on-surface-variant mt-1">{subtitle}</p>}
 

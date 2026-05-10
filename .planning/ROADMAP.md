@@ -1,9 +1,9 @@
 ## ROADMAP
 
 **Milestone:** v1.2 Course Import & Management
-**Phases:** 4
+**Phases:** 5
 **Granularity:** coarse
-**Coverage:** 10/10 v1.2 requirements mapped ✓ + 1 extension phase
+**Coverage:** 10/10 v1.2 requirements mapped ✓ + 2 extension phases
 
 ### Phases
 
@@ -11,6 +11,7 @@
 - [ ] **Phase 14: Course lifecycle and associations** - Add publish, unpublish, archive, delete, and class/student association workflows with school-scoped guardrails.
 - [ ] **Phase 15: Batch course import** - Add structured batch import, duplicate detection, and import-result feedback on top of the same course rules.
 - [x] **Phase 16: Theme plugins and layout orchestration** - Expand theme plugins from token-only styling into validated layout composition, navigation placement, and page-surface orchestration. (completed 2026-05-09)
+- [x] **Phase 17: Teacher flow editor enhancement** - Upgrade `/teacher/editor` into a flexible classroom-flow editor with composable teaching steps, structured property editing, preview, and publish-readiness checks. (completed 2026-05-10)
 
 ### Phase Details
 
@@ -77,6 +78,22 @@
 - [x] 16-04-PLAN.md — Expand settings, preview copy, and regression coverage so richer theme plugins remain school-scoped, safe, and understandable.
 **UI hint**: yes
 
+### Phase 17: Teacher flow editor enhancement
+**Goal**: Teachers can use `/teacher/editor` as a flexible, powerful, composable classroom-flow editor that combines content, task, quiz, and built-in teaching-step plugins with ordering, property editing, preview, and publish-readiness checks.
+**Depends on**: Phase 3, Phase 6, Phase 12, Phase 16
+**Requirements**: LESSON-03, LESSON-04, LESSON-07, LESSON-08, PLUGIN-01, PLUGIN-02, PLUGIN-05
+**Success Criteria**:
+  1. Teacher can add, reorder, and remove `content`, `task`, `quiz`, and enabled built-in teaching-step plugins inside `/teacher/editor` within the same teacher-owned lesson flow.
+  2. Teacher can edit structured properties for each flow item and preview the rendered classroom sequence before publish without bypassing DAL + Server Actions boundaries.
+  3. Editor shows pre-publish checks for missing required fields, invalid payloads, disabled or unavailable built-in plugins, and other blocking issues before a lesson version can be published.
+  4. All editor mutations keep explicit cache invalidation, teacher-owned scope checks, and plugin safety rules, and the route does not introduce direct DB access or arbitrary plugin code execution.
+**Plans**: 4 plans
+- [x] 17-01-PLAN.md — Add built-in provenance, preview/readiness DTOs, and server-side publish gating on the existing lesson authoring path.
+- [x] 17-02-PLAN.md — Upgrade the workspace into an integrated flow-composition editor with source-aware step editing.
+- [x] 17-03-PLAN.md — Add a real teacher preview route and wire the editor shell to executable preview entry points.
+- [x] 17-04-PLAN.md — Replace static publish hints with structured readiness checks and add a dedicated Phase 17 verification command.
+**UI hint**: yes
+
 ### Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -85,3 +102,4 @@
 | 14. Course lifecycle and associations | 0/3 | Not started | - |
 | 15. Batch course import | 0/3 | Not started | - |
 | 16. Theme plugins and layout orchestration | 4/4 | Complete | 2026-05-09 |
+| 17. Teacher flow editor enhancement | 4/4 | Complete   | 2026-05-10 |

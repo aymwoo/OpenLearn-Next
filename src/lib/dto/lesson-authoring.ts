@@ -118,6 +118,23 @@ export const LessonMaterialDTOSchema = z.object({
   note: z.string().nullable(),
 });
 
+export const LessonPublishIssueCodeSchema = z.enum([
+  "LESSON_TITLE_REQUIRED",
+  "LESSON_OBJECTIVE_REQUIRED",
+  "NO_ACTIVE_STEPS",
+  "STEP_PAYLOAD_INVALID",
+  "BUILT_IN_PLUGIN_UNAVAILABLE",
+]);
+
+export const LessonPublishIssueDTOSchema = z.object({
+  code: LessonPublishIssueCodeSchema,
+  message: z.string(),
+  stepId: z.string().nullable().optional(),
+  pluginId: z.string().nullable().optional(),
+  builtInKey: BuiltInTeachingStepKeySchema.nullable().optional(),
+  pluginName: z.string().nullable().optional(),
+});
+
 export const LessonEditorDTOSchema = z.object({
   course: CourseDTOSchema,
   classes: z.array(ClassRosterDTOSchema),
@@ -129,6 +146,8 @@ export const LessonEditorDTOSchema = z.object({
     latestVersion: z.number().int().nonnegative().nullable(),
     publishedAt: z.string().nullable(),
     canPublish: z.boolean(),
+    blockingIssues: z.array(LessonPublishIssueDTOSchema),
+    warnings: z.array(LessonPublishIssueDTOSchema).default([]),
   }),
 });
 
@@ -158,23 +177,6 @@ export const PublishResultDTOSchema = z.object({
   publishedAt: z.string().optional(),
   error: z.string().optional(),
   message: z.string().optional(),
-});
-
-export const LessonPublishIssueCodeSchema = z.enum([
-  "LESSON_TITLE_REQUIRED",
-  "LESSON_OBJECTIVE_REQUIRED",
-  "NO_ACTIVE_STEPS",
-  "STEP_PAYLOAD_INVALID",
-  "BUILT_IN_PLUGIN_UNAVAILABLE",
-]);
-
-export const LessonPublishIssueDTOSchema = z.object({
-  code: LessonPublishIssueCodeSchema,
-  message: z.string(),
-  stepId: z.string().nullable().optional(),
-  pluginId: z.string().nullable().optional(),
-  builtInKey: BuiltInTeachingStepKeySchema.nullable().optional(),
-  pluginName: z.string().nullable().optional(),
 });
 
 export const LessonPublishReadinessDTOSchema = z.object({
