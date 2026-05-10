@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
+import { BuiltInTeachingStepKeySchema, lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
 import {
   TEACHER_THEME_ROUTE_KEYS,
   THEME_LAYOUT_REGION_KEYS,
@@ -275,13 +275,6 @@ export const PluginProposalTypeSchema = z.enum([
 ]);
 export type PluginProposalType = z.infer<typeof PluginProposalTypeSchema>;
 
-export const BuiltInTeachingStepKeySchema = z.enum([
-  "directInstruction",
-  "survey",
-  "inquiry",
-  "inClassQuiz",
-  "evaluation",
-]);
 export type BuiltInTeachingStepKey = z.infer<typeof BuiltInTeachingStepKeySchema>;
 
 export const BuiltInTeachingStepTemplatePayloadSchema = z.object({

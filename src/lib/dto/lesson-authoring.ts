@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+const builtInTeachingStepKeys = [
+  "directInstruction",
+  "survey",
+  "inquiry",
+  "inClassQuiz",
+  "evaluation",
+] as const;
+
+export const BuiltInTeachingStepKeySchema = z.enum(builtInTeachingStepKeys);
+
 export const materialRefSchema = z.object({
   id: z.string().optional(),
   title: z.string(),
@@ -8,12 +18,19 @@ export const materialRefSchema = z.object({
   note: z.string().optional(),
 });
 
+export const builtInSourceSchema = z.object({
+  pluginId: z.string().min(1),
+  builtInKey: BuiltInTeachingStepKeySchema,
+  pluginName: z.string().min(1),
+});
+
 export const contentStepPayloadSchema = z.object({
   type: z.literal("content"),
   title: z.string().min(1),
   body: z.string().min(1),
   teacherNotes: z.string().optional(),
   materialRefs: z.array(materialRefSchema).default([]),
+  builtInSource: builtInSourceSchema.optional(),
 });
 
 export const taskStepPayloadSchema = z.object({
@@ -24,6 +41,7 @@ export const taskStepPayloadSchema = z.object({
   allowRetry: z.boolean().optional(),
   retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
   materialRefs: z.array(materialRefSchema).default([]),
+  builtInSource: builtInSourceSchema.optional(),
 });
 
 export const quizStepPayloadSchema = z.object({
@@ -35,6 +53,7 @@ export const quizStepPayloadSchema = z.object({
   allowRetry: z.boolean().optional(),
   retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
   revealCorrectAnswer: z.boolean().optional(),
+  builtInSource: builtInSourceSchema.optional(),
 });
 
 export const lessonStepPayloadSchema = z.discriminatedUnion("type", [
@@ -141,6 +160,48 @@ export const PublishResultDTOSchema = z.object({
   message: z.string().optional(),
 });
 
+export const LessonPublishIssueCodeSchema = z.enum([
+  "LESSON_TITLE_REQUIRED",
+  "LESSON_OBJECTIVE_REQUIRED",
+  "NO_ACTIVE_STEPS",
+  "STEP_PAYLOAD_INVALID",
+  "BUILT_IN_PLUGIN_UNAVAILABLE",
+]);
+
+export const LessonPublishIssueDTOSchema = z.object({
+  code: LessonPublishIssueCodeSchema,
+  message: z.string(),
+  stepId: z.string().nullable().optional(),
+  pluginId: z.string().nullable().optional(),
+  builtInKey: BuiltInTeachingStepKeySchema.nullable().optional(),
+  pluginName: z.string().nullable().optional(),
+});
+
+export const LessonPublishReadinessDTOSchema = z.object({
+  lessonId: z.string(),
+  courseId: z.string(),
+  canPublish: z.boolean(),
+  blockingIssues: z.array(LessonPublishIssueDTOSchema),
+});
+
+export const TeacherLessonPreviewStepDTOSchema = z.object({
+  id: z.string(),
+  lessonId: z.string(),
+  type: z.enum(["content", "task", "quiz"]),
+  title: z.string(),
+  rank: z.string(),
+  payload: lessonStepPayloadSchema,
+  updatedAt: z.string(),
+  builtInSourceLabel: z.string().nullable(),
+});
+
+export const TeacherLessonPreviewDTOSchema = z.object({
+  course: CourseDTOSchema,
+  lesson: LessonSummaryDTOSchema,
+  steps: z.array(TeacherLessonPreviewStepDTOSchema),
+  materials: z.array(LessonMaterialDTOSchema),
+});
+
 export type CourseDTO = z.infer<typeof CourseDTOSchema>;
 export type ClassRosterDTO = z.infer<typeof ClassRosterDTOSchema>;
 export type LessonSummaryDTO = z.infer<typeof LessonSummaryDTOSchema>;
@@ -150,3 +211,8 @@ export type LessonEditorDTO = z.infer<typeof LessonEditorDTOSchema>;
 export type TeacherAuthoringOverviewDTO = z.infer<typeof TeacherAuthoringOverviewDTOSchema>;
 export type AutosaveResultDTO = z.infer<typeof AutosaveResultDTOSchema>;
 export type PublishResultDTO = z.infer<typeof PublishResultDTOSchema>;
+export type BuiltInSource = z.infer<typeof builtInSourceSchema>;
+export type LessonPublishIssueDTO = z.infer<typeof LessonPublishIssueDTOSchema>;
+export type LessonPublishReadinessDTO = z.infer<typeof LessonPublishReadinessDTOSchema>;
+export type TeacherLessonPreviewStepDTO = z.infer<typeof TeacherLessonPreviewStepDTOSchema>;
+export type TeacherLessonPreviewDTO = z.infer<typeof TeacherLessonPreviewDTOSchema>;

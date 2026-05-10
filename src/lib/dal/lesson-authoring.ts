@@ -12,19 +12,24 @@ import {
   lessonMaterials,
   lessons,
   lessonSteps,
+  pluginRegistrations,
   publishedLessonVersions,
 } from "@/db/schema";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import {
   AutosaveResultDTOSchema,
+  BuiltInTeachingStepKeySchema,
   CourseDTOSchema,
   LessonEditorDTOSchema,
+  LessonPublishReadinessDTOSchema,
   LessonSummaryDTOSchema,
   PublishResultDTOSchema,
+  TeacherLessonPreviewDTOSchema,
   TeacherAuthoringOverviewDTOSchema,
   lessonStepPayloadSchema,
   type AutosaveResultDTO,
+  type LessonPublishIssueDTO,
   type LessonStepPayload,
   type PublishResultDTO,
 } from "@/lib/dto/lesson-authoring";
@@ -205,6 +210,169 @@ async function getCourseClassDtos(courseId: string, scope: TeacherScope) {
   );
 }
 
+function buildIssue(input: LessonPublishIssueDTO): LessonPublishIssueDTO {
+  return input;
+}
+
+function getBuiltInPluginAvailabilityMap(
+  plugins: Array<{
+    id: string;
+    enabled: boolean;
+    killSwitchEnabled: boolean;
+    manifestJson?: { builtIn?: boolean } | null;
+  }>,
+) {
+  return new Map(
+    plugins.map((plugin) => [plugin.id, Boolean(plugin.enabled && !plugin.killSwitchEnabled && plugin.manifestJson?.builtIn)]),
+  );
+}
+
+async function getBuiltInPluginRegistryForLesson(scope: TeacherScope, schoolId: string) {
+  assertSchoolAccess(scope, schoolId);
+
+  const plugins = await db.query.pluginRegistrations.findMany({
+    where: eq(pluginRegistrations.schoolId, schoolId),
+  });
+
+  return getBuiltInPluginAvailabilityMap(plugins);
+}
+
+function parseStepPayloadWithIssues(
+  step: Pick<typeof lessonSteps.$inferSelect, "id" | "payloadJson">,
+):
+  | { ok: true; payload: LessonStepPayload }
+  | { ok: false; issue: LessonPublishIssueDTO } {
+  const parsed = lessonStepPayloadSchema.safeParse(step.payloadJson);
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      issue: buildIssue({
+        code: "STEP_PAYLOAD_INVALID",
+        message: "步骤内容结构无效，请重新编辑后再发布。",
+        stepId: step.id,
+      }),
+    };
+  }
+
+  return { ok: true, payload: parsed.data };
+}
+
+export async function getLessonPublishReadinessDTO(input: { lessonId: string }) {
+  const scope = await assertActiveTeacher();
+  const { lesson, course } = await getScopedLesson(input.lessonId, scope);
+  const stepRows = await db.query.lessonSteps.findMany({
+    where: eq(lessonSteps.lessonId, lesson.id),
+    orderBy: (step, { asc }) => [asc(step.rank)],
+  });
+  const pluginAvailability = await getBuiltInPluginRegistryForLesson(scope, course.schoolId);
+  const blockingIssues: LessonPublishIssueDTO[] = [];
+  let activeValidStepCount = 0;
+
+  if (!lesson.title.trim()) {
+    blockingIssues.push(buildIssue({ code: "LESSON_TITLE_REQUIRED", message: "发布前需要补充课时标题。" }));
+  }
+
+  if (!lesson.objective.trim()) {
+    blockingIssues.push(buildIssue({ code: "LESSON_OBJECTIVE_REQUIRED", message: "发布前需要补充教学目标。" }));
+  }
+
+  for (const step of stepRows) {
+    if (step.archivedAt) {
+      continue;
+    }
+
+    const parsedStep = parseStepPayloadWithIssues(step);
+    if (!parsedStep.ok) {
+      blockingIssues.push(parsedStep.issue);
+      continue;
+    }
+
+    activeValidStepCount += 1;
+    const builtInSource = parsedStep.payload.builtInSource;
+    if (!builtInSource) {
+      continue;
+    }
+
+    BuiltInTeachingStepKeySchema.parse(builtInSource.builtInKey);
+
+    if (!pluginAvailability.get(builtInSource.pluginId)) {
+      blockingIssues.push(
+        buildIssue({
+          code: "BUILT_IN_PLUGIN_UNAVAILABLE",
+          message: `内置教学环节插件“${builtInSource.pluginName}”当前不可用，请替换或重新启用后再发布。`,
+          stepId: step.id,
+          pluginId: builtInSource.pluginId,
+          builtInKey: builtInSource.builtInKey,
+          pluginName: builtInSource.pluginName,
+        }),
+      );
+    }
+  }
+
+  if (activeValidStepCount === 0) {
+    blockingIssues.push(buildIssue({ code: "NO_ACTIVE_STEPS", message: "发布前至少需要一个可用的未归档步骤。" }));
+  }
+
+  return LessonPublishReadinessDTOSchema.parse({
+    lessonId: lesson.id,
+    courseId: course.id,
+    canPublish: blockingIssues.length === 0,
+    blockingIssues,
+  });
+}
+
+export async function getTeacherLessonPreviewDTO(input: { lessonId: string }) {
+  const scope = await assertActiveTeacher();
+  const { lesson, course } = await getScopedLesson(input.lessonId, scope);
+  const courseDto = await getCourseDTO(course);
+  const lessonDto = await getLessonSummaryDTO(lesson);
+  const stepRows = await db.query.lessonSteps.findMany({
+    where: eq(lessonSteps.lessonId, lesson.id),
+    orderBy: (step, { asc }) => [asc(step.rank)],
+  });
+  const materialRows = await db.query.lessonMaterials.findMany({ where: eq(lessonMaterials.lessonId, lesson.id) });
+
+  const steps = stepRows.flatMap((step) => {
+    if (step.archivedAt) {
+      return [];
+    }
+
+    const parsed = lessonStepPayloadSchema.safeParse(step.payloadJson);
+    if (!parsed.success) {
+      return [];
+    }
+
+    return [
+      {
+        id: step.id,
+        lessonId: step.lessonId,
+        type: step.type,
+        title: step.title,
+        rank: step.rank,
+        payload: parsed.data,
+        updatedAt: toIso(step.updatedAt),
+        builtInSourceLabel: parsed.data.builtInSource?.pluginName ?? null,
+      },
+    ];
+  });
+
+  return TeacherLessonPreviewDTOSchema.parse({
+    course: courseDto,
+    lesson: lessonDto,
+    steps,
+    materials: materialRows.map((material) => ({
+      id: material.id,
+      lessonId: material.lessonId,
+      stepId: material.stepId,
+      title: material.title,
+      kind: material.kind,
+      url: material.url,
+      note: material.note,
+    })),
+  });
+}
+
 export async function getTeacherAuthoringOverview() {
   const scope = await assertActiveTeacher();
   const courseRows = await db.query.courses.findMany({ where: inArray(courses.schoolId, scope.schoolIds) });
@@ -249,6 +417,8 @@ export async function getLessonEditorDTO(lessonId: string) {
     orderBy: desc(publishedLessonVersions.version),
   });
 
+  const readiness = await getLessonPublishReadinessDTO({ lessonId });
+
   return LessonEditorDTOSchema.parse({
     course: courseDto,
     classes: classDtos,
@@ -276,7 +446,7 @@ export async function getLessonEditorDTO(lessonId: string) {
       isDraftHidden: lesson.status !== "published",
       latestVersion: latestVersion?.version ?? null,
       publishedAt: nullableIso(latestVersion?.publishedAt),
-      canPublish: Boolean(lesson.title && lesson.objective && stepRows.some((step) => !step.archivedAt)),
+      canPublish: readiness.canPublish,
     },
   });
 }
@@ -500,6 +670,11 @@ export async function publishLesson(input: { lessonId: string; expectedRevision?
 
   if (input.expectedRevision && input.expectedRevision !== lesson.revision) {
     throw new Error("CONFLICT");
+  }
+
+  const readiness = await getLessonPublishReadinessDTO({ lessonId: input.lessonId });
+  if (!readiness.canPublish) {
+    throw new Error("PUBLISH_BLOCKED");
   }
 
   const editor = await getLessonEditorDTO(input.lessonId);
