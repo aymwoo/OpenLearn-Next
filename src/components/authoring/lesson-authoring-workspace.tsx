@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { BookOpenText, ClipboardCheck, FileText, GripVertical, Plus, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpenText, ClipboardCheck, FileText, GripVertical, PencilLine, Plus, Sparkles, X } from "lucide-react";
 
 import {
   addLessonStepAction,
@@ -75,6 +75,7 @@ const builtInTeachingStepButtonOrder = ["教师讲授", "问卷调查", "学生�
 
 export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }: LessonAuthoringWorkspaceProps) {
   const [selectedStepId, setSelectedStepId] = useState(lesson?.steps[0]?.id ?? null);
+  const [isStepEditorOpen, setIsStepEditorOpen] = useState(false);
   const steps = useMemo(() => lesson?.steps.filter((step) => !step.archivedAt) ?? [], [lesson?.steps]);
   const orderedBuiltInTemplates = useMemo(() => {
     const orderMap = new Map<string, number>(builtInTeachingStepButtonOrder.map((pluginName, index) => [pluginName, index]));
@@ -91,6 +92,24 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
   );
   const totalMinutes = steps.reduce((total, step) => total + getStepMinutes(step.type), 0);
   const builtInStepCount = steps.filter((step) => getBuiltInSourceLabel(step)).length;
+
+  useEffect(() => {
+    if (steps.length === 0) {
+      setSelectedStepId(null);
+      setIsStepEditorOpen(false);
+      return;
+    }
+
+    if (!selectedStepId || !steps.some((step) => step.id === selectedStepId)) {
+      setSelectedStepId(steps[0]?.id ?? null);
+    }
+  }, [selectedStepId, steps]);
+
+  useEffect(() => {
+    if (!selectedStep) {
+      setIsStepEditorOpen(false);
+    }
+  }, [selectedStep]);
 
   async function moveStep(step: LessonStepDTO, direction: "up" | "down") {
     const index = steps.findIndex((item) => item.id === step.id);
@@ -126,8 +145,14 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
     });
   }
 
+  function openStepEditor(stepId: string) {
+    setSelectedStepId(stepId);
+    setIsStepEditorOpen(true);
+  }
+
   return (
-    <div className="mt-6 space-y-5">
+    <>
+      <div className="mt-6 space-y-5">
       <div className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)] xl:items-start">
         <Card className="relative overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-lowest p-5">
           <div className="absolute inset-x-0 top-0 h-24 bg-linear-135 from-primary/10 to-primary-container/20" />
@@ -237,11 +262,12 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
                       step={step}
                       index={index}
                       selected={selectedStep?.id === step.id}
-                    onSelect={() => setSelectedStepId(step.id)}
-                    onDuplicate={() => duplicateLessonStepAction({ stepId: step.id })}
-                    onArchive={() => archiveLessonStepAction({ stepId: step.id })}
-                    onMoveUp={() => moveStep(step, "up")}
-                    onMoveDown={() => moveStep(step, "down")}
+                      onSelect={() => setSelectedStepId(step.id)}
+                      onEdit={() => openStepEditor(step.id)}
+                      onDuplicate={() => duplicateLessonStepAction({ stepId: step.id })}
+                      onArchive={() => archiveLessonStepAction({ stepId: step.id })}
+                      onMoveUp={() => moveStep(step, "up")}
+                      onMoveDown={() => moveStep(step, "down")}
                     />
                   </div>
                 )) : null}
@@ -265,63 +291,42 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
           </Card>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <LessonStepEditor key={selectedStep?.id ?? "empty-step"} step={selectedStep} />
-        <Card className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-none">
-          <div className="rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
-            <p className="text-sm text-on-surface-variant">当前选中步骤</p>
-            {selectedStep ? (
-              <>
-                <h4 className="mt-3 text-xl font-semibold text-on-surface">{selectedStep.title}</h4>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-medium text-on-surface-variant">{stepLabels[selectedStep.type]}</span>
-                  {getBuiltInSourceLabel(selectedStep) ? (
-                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{getBuiltInSourceLabel(selectedStep)}</span>
-                  ) : null}
-                </div>
-                <p className="mt-3 text-sm leading-6 text-on-surface-variant">{getStepDescription(selectedStep)}</p>
-              </>
-            ) : (
-              <p className="mt-3 text-sm leading-6 text-on-surface-variant">从流程主线中选择一个步骤，即可在左侧查看结构化字段并继续编辑。</p>
-            )}
-          </div>
-
-          <div className="rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
-            <p className="text-sm text-on-surface-variant">编排摘要</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-              <SummaryStat label="课程数" value={String(overview.courses.length)} />
-              <SummaryStat label="课时数" value={String(overview.lessons.length)} />
-              <SummaryStat label="引用资料" value={String(lesson?.materials.length ?? 0)} />
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-semibold text-on-surface">已编排步骤</p>
-              <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-medium text-on-surface-variant">{steps.length} 项</span>
-            </div>
-            <div className="mt-4 space-y-2">
-              {steps.length > 0 ? steps.map((step, index) => (
-                <button
-                  key={step.id}
-                  type="button"
-                  onClick={() => setSelectedStepId(step.id)}
-                  className={`flex w-full items-center gap-3 rounded-[1.25rem] px-4 py-3 text-left transition ${selectedStep?.id === step.id ? "bg-primary/8 text-primary" : "bg-surface-container-low text-on-surface hover:bg-surface-container-high"}`}
-                >
-                  <span className={`grid size-9 place-items-center rounded-full text-sm font-semibold ${selectedStep?.id === step.id ? "bg-primary text-white" : "bg-surface-container-lowest text-primary"}`}>{index + 1}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">{step.title}</span>
-                    <span className="mt-1 block text-xs text-on-surface-variant">{getBuiltInSourceLabel(step) ?? stepLabels[step.type]} · {step.rank}</span>
-                  </span>
-                </button>
-              )) : (
-                <p className="text-sm text-on-surface-variant">{overview.courses.length > 0 ? "新增内容、任务或测验后开始编排。" : "先创建课程，再开始编排步骤。"}</p>
-              )}
-            </div>
-          </div>
-        </Card>
       </div>
-    </div>
+
+      {isStepEditorOpen && selectedStep ? (
+        <div className="fixed inset-0 z-50 flex justify-end bg-[rgba(26,30,37,0.18)] backdrop-blur-sm" data-testid="lesson-step-editor-drawer">
+          <button
+            type="button"
+            aria-label="关闭步骤编辑抽屉"
+            className="flex-1"
+            onClick={() => setIsStepEditorOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lesson-step-editor-drawer-title"
+            className="flex h-full w-full max-w-[36rem] flex-col bg-surface-container-low p-6 shadow-[0_24px_80px_rgba(25,30,40,0.18)] sm:p-7"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-on-surface-variant">步骤编辑抽屉</p>
+                <h2 id="lesson-step-editor-drawer-title" className="mt-2 text-2xl font-semibold text-on-surface">编辑组件</h2>
+                <p className="mt-3 text-sm leading-7 text-on-surface-variant">
+                  当前正在编辑 <span className="font-semibold text-on-surface">{selectedStep.title}</span>，保存仍会走原有 autosave 和 schema 校验链路。
+                </p>
+              </div>
+              <Button variant="tertiary" className="min-h-10 px-2" aria-label="关闭步骤编辑抽屉" onClick={() => setIsStepEditorOpen(false)}>
+                <X className="size-5" aria-hidden />
+              </Button>
+            </div>
+
+            <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
+              <LessonStepEditor key={selectedStep.id} step={selectedStep} className="h-full" />
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -330,6 +335,7 @@ function FlowStepCard({
   index,
   selected,
   onSelect,
+  onEdit,
   onDuplicate,
   onArchive,
   onMoveUp,
@@ -339,6 +345,7 @@ function FlowStepCard({
   index: number;
   selected: boolean;
   onSelect: () => void;
+  onEdit: () => void;
   onDuplicate: () => void;
   onArchive: () => void;
   onMoveUp: () => void;
@@ -372,6 +379,10 @@ function FlowStepCard({
           </span>
         </button>
         <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" onClick={onEdit} className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-white transition hover:bg-primary/90">
+            <PencilLine className="size-3.5" aria-hidden />
+            编辑组件
+          </button>
           <button type="button" onClick={onDuplicate} className="rounded-full bg-surface-container-low px-3 py-2 text-xs font-medium text-primary transition hover:bg-surface-container-high">复制</button>
           <button type="button" onClick={onMoveUp} className="rounded-full bg-surface-container-low px-3 py-2 text-xs font-medium text-primary transition hover:bg-surface-container-high">上移</button>
           <button type="button" onClick={onMoveDown} className="rounded-full bg-surface-container-low px-3 py-2 text-xs font-medium text-primary transition hover:bg-surface-container-high">下移</button>

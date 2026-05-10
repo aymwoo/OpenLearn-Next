@@ -9,6 +9,7 @@ import { lessonStepPayloadSchema, type LessonStepDTO, type LessonStepPayload } f
 
 type LessonStepEditorProps = {
   step: LessonStepDTO | null;
+  className?: string;
 };
 
 const savingCopy = "正在保存...";
@@ -116,7 +117,7 @@ function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayloa
   };
 }
 
-export function LessonStepEditor({ step }: LessonStepEditorProps) {
+export function LessonStepEditor({ step, className }: LessonStepEditorProps) {
   const [isPending, startTransition] = useTransition();
   const [status, setStatus] = useState<string | null>(null);
   const [stateByStepId, setStateByStepId] = useState<Record<string, EditorState>>({});
@@ -132,7 +133,7 @@ export function LessonStepEditor({ step }: LessonStepEditorProps) {
 
   if (!step) {
     return (
-      <Card className="bg-surface-container-low p-5 shadow-none">
+      <Card className={`bg-surface-container-low p-5 shadow-none ${className ?? ""}`.trim()}>
         <h3 className="text-2xl font-semibold">新增内容 / 新增任务 / 新增测验</h3>
         <p className="mt-3 text-on-surface-variant">选择左侧步骤，或先新增一个学习活动。</p>
       </Card>
@@ -179,7 +180,7 @@ export function LessonStepEditor({ step }: LessonStepEditorProps) {
   }
 
   return (
-    <Card className="bg-surface-container-low p-5 shadow-none">
+    <Card className={`bg-surface-container-low p-5 shadow-none ${className ?? ""}`.trim()}>
       <div className="flex items-center justify-between gap-3 rounded-[1.5rem] bg-surface-container-lowest px-4 py-4">
         <div>
           <p className="text-sm text-on-surface-variant">步骤编辑器</p>

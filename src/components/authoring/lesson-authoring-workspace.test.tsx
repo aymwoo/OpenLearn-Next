@@ -19,7 +19,9 @@ vi.mock("@/actions/lesson-authoring-actions", () => ({
 }));
 
 vi.mock("@/components/authoring/lesson-step-editor", () => ({
-  LessonStepEditor: () => <div data-testid="lesson-step-editor" />,
+  LessonStepEditor: ({ step }: { step: { id: string; title: string } | null }) => (
+    step ? <div data-testid="lesson-step-editor">正在编辑: {step.title}</div> : null
+  ),
 }));
 
 describe("LessonAuthoringWorkspace built-in quick add", () => {
@@ -209,6 +211,83 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
     expect(screen.getAllByText("内置环节 · 教师讲授").length).toBeGreaterThan(0);
     expect(screen.getAllByText("统一编排区")[0]).toBeTruthy();
     expect(screen.getAllByText("流程主线")[0]).toBeTruthy();
+  });
+
+  it("opens the step editor drawer from the explicit flow-card edit button", () => {
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [
+            {
+              id: "step-1",
+              title: "导入",
+              type: "content",
+              rank: "a0",
+              archivedAt: null,
+              payload: { type: "content", title: "导入", body: "从图片观察开始。", materialRefs: [] },
+            },
+            {
+              id: "step-2",
+              title: "讲解",
+              type: "content",
+              rank: "b0",
+              archivedAt: null,
+              payload: { type: "content", title: "讲解", body: "讲解概念。", materialRefs: [] },
+            },
+          ],
+        } as any}
+        builtInTemplates={[]}
+      />,
+    );
+
+    expect(screen.queryByTestId("lesson-step-editor")).toBeNull();
+
+    const explanationCard = screen.getAllByText("讲解")[0]?.closest("div.group");
+
+    expect(explanationCard).toBeTruthy();
+
+    if (!(explanationCard instanceof HTMLElement)) {
+      throw new Error("Expected explanation card container to be an HTMLElement");
+    }
+
+    fireEvent.click(within(explanationCard).getByRole("button", { name: "编辑组件" }));
+
+    expect(screen.getByRole("dialog", { name: "编辑组件" })).toBeTruthy();
+    expect(screen.getByTestId("lesson-step-editor").textContent).toContain("讲解");
+
+    fireEvent.click(screen.getAllByRole("button", { name: "关闭步骤编辑抽屉" })[0]!);
+
+    expect(screen.queryByRole("dialog", { name: "编辑组件" })).toBeNull();
+    expect(screen.queryByTestId("lesson-step-editor")).toBeNull();
+  });
+
+  it("no longer keeps a standalone step editor mounted below the flow by default", () => {
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [
+            {
+              id: "step-1",
+              title: "导入",
+              type: "content",
+              rank: "a0",
+              archivedAt: null,
+              payload: { type: "content", title: "导入", body: "从图片观察开始。", materialRefs: [] },
+            },
+          ],
+        } as any}
+        builtInTemplates={[]}
+      />,
+    );
+
+    expect(screen.queryByTestId("lesson-step-editor")).toBeNull();
+    expect(screen.queryByTestId("lesson-step-editor-drawer")).toBeNull();
   });
 
   it("removes the standalone vertical bar above the course end marker", () => {

@@ -46,7 +46,11 @@ describe("lesson step editor persistence", () => {
       },
     });
 
-    render(<LessonStepEditor step={step} />);
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑组件抽屉">
+        <LessonStepEditor step={step} className="h-full" />
+      </div>,
+    );
 
     fireEvent.change(screen.getByLabelText("标题"), { target: { value: "更新标题" } });
     fireEvent.change(screen.getByLabelText("正文"), { target: { value: "更新正文" } });
@@ -88,7 +92,11 @@ describe("lesson step editor persistence", () => {
       },
     });
 
-    render(<LessonStepEditor step={step} />);
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑组件抽屉">
+        <LessonStepEditor step={step} />
+      </div>,
+    );
 
     fireEvent.change(screen.getByLabelText("标题"), { target: { value: "任务更新" } });
     fireEvent.change(screen.getByLabelText("任务说明"), { target: { value: "新的任务说明" } });
@@ -134,7 +142,11 @@ describe("lesson step editor persistence", () => {
       },
     });
 
-    render(<LessonStepEditor step={step} />);
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑组件抽屉">
+        <LessonStepEditor step={step} />
+      </div>,
+    );
 
     fireEvent.change(screen.getByLabelText("标题"), { target: { value: "测验更新" } });
     fireEvent.change(screen.getByLabelText("题目"), { target: { value: "新的题目" } });
@@ -184,8 +196,13 @@ describe("lesson step editor persistence", () => {
       },
     });
 
-    render(<LessonStepEditor step={step} />);
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑组件抽屉">
+        <LessonStepEditor step={step} />
+      </div>,
+    );
 
+    expect(screen.getByRole("dialog", { name: "编辑组件抽屉" })).toBeTruthy();
     expect(screen.getByText("步骤来源")).toBeTruthy();
     expect(screen.getByText("内置环节 · 教师讲授")).toBeTruthy();
     expect(screen.getByText("directInstruction")).toBeTruthy();
