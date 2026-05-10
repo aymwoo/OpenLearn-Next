@@ -65,22 +65,19 @@ export default async function TeacherEditorPage({ searchParams }: TeacherEditorP
   }
 
   return (
-    <div className="space-y-5">
-      <LessonEditorSurface overview={scopedOverview} lesson={lesson} builtInTemplates={builtInTemplates} />
-      {lesson ? (
-        <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
-          <p className="text-sm text-on-surface-variant">插件建议</p>
-          <div className="mt-4">
-            <PluginRenderer
-              anchor="lesson.sidebar"
-              schoolId={lesson.course.schoolId}
-              actorId={scope.userId}
-              contextPayload={{ lessonId: lesson.lesson.id, courseId: lesson.course.id }}
-            />
-          </div>
-        </section>
-      ) : null}
-    </div>
+    <LessonEditorSurface
+      overview={scopedOverview}
+      lesson={lesson}
+      builtInTemplates={builtInTemplates}
+      pluginSlot={
+        <PluginRenderer
+          anchor="lesson.sidebar"
+          schoolId={lesson.course.schoolId}
+          actorId={scope.userId}
+          contextPayload={{ lessonId: lesson.lesson.id, courseId: lesson.course.id }}
+        />
+      }
+    />
   );
 }
 
