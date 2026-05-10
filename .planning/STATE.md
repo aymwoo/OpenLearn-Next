@@ -138,11 +138,12 @@ progress:
 | 260510-i8f | 统一教师端首屏内二级卡片的圆角层级语义                                                                                                                                           | 2026-05-10                                                                    | 未提交  | [260510-i8f-teacher-dashboard-card-radius-semantics](./quick/260510-i8f-teacher-dashboard-card-radius-semantics/)   |
 | 260510-idr | 将 radius-card 二级卡片圆角语义扩展到其他教师端 surfaces                                                                                                                         | 2026-05-10                                                                    | 未提交  | [260510-idr-radius-card-surfaces](./quick/260510-idr-radius-card-surfaces/)                                         |
 | 260510-9s2 | 统一 settings-surface、teacher-review-surface、library-surface 的二级卡片圆角语义                                                                                                | 2026-05-10                                                                    | 未提交  | [260510-9s2-surface-secondary-card-radius](./quick/260510-9s2-surface-secondary-card-radius/)                       |
-| 260510-kc9 | 经过主题插件改动之后，我的默认的主题的界面和之前不一样了，深色浅色比较混乱，而且不必要的文字段落宽度限制又回来了，比如首页就变成了图片中的样子，其他页面也存在这个情况，检查原因并系统的修正 | 2026-05-10                                                                    | 未提交  | [260510-kc9-theme-default-regression-fix](./quick/260510-kc9-theme-default-regression-fix/)                         |
+| 260510-kc9 | 经过主题插件改动之后，我的默认的主题的界面和之前不一样了，深色浅色比较混乱，而且不必要的文字段落宽度限制又回来了，比如首页就变成了图片中的样子，其他页面也存在这个情况，检查原因并系统的修正 | 2026-05-10 | 068fc1b | [260510-kc9-theme-default-regression-fix](./quick/260510-kc9-theme-default-regression-fix/) |
+| 260510-oml | 修复 /teacher/editor Blocking Route：将主题 cookie 读取移入 Suspense 安全边界 | 2026-05-10 | c196830 | [260510-oml-teacher-editor-blocking-route-cookie-sus](./quick/260510-oml-teacher-editor-blocking-route-cookie-sus/) |
 
 ## Current Position
 
 Phase: 16 (theme-plugins-and-layout-orchestration) — COMPLETE
 Plan: 4 of 4
 Status: Verification passed
-Last activity: 2026-05-10 -- Completed quick task 260510-kc9: 修复默认主题 fallback、明暗混乱与页面宽度回归
+Last activity: 2026-05-10 - Completed quick task 260510-oml: 修复 /teacher/editor Blocking Route：将主题 cookie 读取移入 Suspense 安全边界
