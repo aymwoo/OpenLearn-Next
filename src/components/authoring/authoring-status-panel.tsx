@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { publishLessonAction } from "@/actions/lesson-authoring-actions";
+import { dispatchLessonStepEditorCommand, lessonStepEditorSaveRequestEvent } from "@/components/authoring/editor-command-events";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { LessonEditorDTO, LessonPublishIssueDTO } from "@/lib/dto/lesson-authoring";
@@ -20,12 +22,25 @@ const issueLabels: Record<LessonPublishIssueDTO["code"], string> = {
 };
 
 export function AuthoringStatusPanel({ lesson }: AuthoringStatusPanelProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [publishMessage, setPublishMessage] = useState<string | null>(null);
   const [publishIssues, setPublishIssues] = useState<LessonPublishIssueDTO[]>(lesson?.publishState.blockingIssues ?? []);
   const blockingIssues = publishIssues;
   const warnings = lesson?.publishState.warnings ?? [];
   const canPublish = Boolean(lesson && blockingIssues.length === 0 && lesson.publishState.canPublish);
+
+  function saveDraft() {
+    const saveHandled = dispatchLessonStepEditorCommand(lessonStepEditorSaveRequestEvent);
+
+    if (saveHandled) {
+      setPublishMessage("正在保存当前打开的教学环节。");
+      return;
+    }
+
+    router.refresh();
+    setPublishMessage("当前没有打开的环节，已刷新草稿。");
+  }
 
   function publish() {
     if (!lesson) return;
@@ -79,8 +94,8 @@ export function AuthoringStatusPanel({ lesson }: AuthoringStatusPanelProps) {
         <p className="mt-4 text-sm text-on-surface-variant">学生将读取已发布版本，草稿仅教师可见。</p>
         {publishMessage ? <p className="mt-3 rounded-3xl bg-surface-container-lowest px-4 py-3 text-sm text-on-surface">{publishMessage}</p> : null}
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button type="button" onClick={publish} disabled={!lesson || !canPublish || isPending} className="min-h-10 px-4 text-sm">{isPending ? "正在发布..." : "发布课时"}</Button>
-          <Button type="button" variant="secondary" disabled className="min-h-10 px-4 text-sm">保存草稿</Button>
+          <Button type="button" onClick={publish} disabled={!lesson || isPending} className="min-h-10 px-4 text-sm">{isPending ? "正在发布..." : "发布课时"}</Button>
+          <Button type="button" variant="secondary" onClick={saveDraft} className="min-h-10 px-4 text-sm">保存草稿</Button>
         </div>
       </div>
 

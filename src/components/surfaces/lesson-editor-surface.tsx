@@ -1,26 +1,18 @@
-import Link from "next/link";
 import {
   Layers3,
   MonitorUp,
-  Save,
   Settings2,
   Sparkles,
   TimerReset,
-  Undo2,
-  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { AuthoringStatusPanel } from "@/components/authoring/authoring-status-panel";
+import { LessonEditorHeaderActions } from "@/components/authoring/lesson-editor-header-actions";
 import { LessonAuthoringWorkspace } from "@/components/authoring/lesson-authoring-workspace";
-import { EditorSettingsModal } from "@/components/authoring/editor-settings-modal";
-import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import type {
   LessonEditorDTO,
   TeacherAuthoringOverviewDTO,
 } from "@/lib/dto/lesson-authoring";
 import type { BuiltInTeachingStepTemplatePayload } from "@/lib/dto/resource-ai";
-import { cn } from "@/lib/utils";
 
 type BuiltInTemplateForAuthoring = BuiltInTeachingStepTemplatePayload & {
   id: string;
@@ -112,8 +104,7 @@ export function LessonEditorSurface({
               {/* Separator */}
               <span className="hidden xl:block h-6 w-px bg-surface-variant/50" aria-hidden />
 
-              {/* Settings Modal trigger — positioned in the header pills area */}
-              <EditorSettingsModal
+              <LessonEditorHeaderActions
                 lesson={lesson}
                 activeCourse={activeCourse}
                 activeStepCount={activeStepCount}
@@ -121,27 +112,6 @@ export function LessonEditorSurface({
                 previewHref={previewHref}
                 pluginSlot={pluginSlot}
               />
-
-              <Button variant="secondary" className="h-9 gap-1.5 px-3 text-sm" disabled>
-                <Undo2 className="size-3.5" />
-                撤销
-              </Button>
-              <Button variant="secondary" className="h-9 gap-1.5 px-3 text-sm" disabled>
-                <Save className="size-3.5" />
-                保存草稿
-              </Button>
-              {previewHref ? (
-                <Button asChild variant="secondary" className="h-9 px-3 text-sm">
-                  <Link href={previewHref}>预览课堂</Link>
-                </Button>
-              ) : (
-                <Button variant="secondary" className="h-9 px-3 text-sm" disabled>
-                  预览课堂
-                </Button>
-              )}
-              <Button className="h-9 px-4 text-sm" disabled={!lesson?.publishState.canPublish}>
-                发布课时
-              </Button>
             </div>
           </div>
         </div>

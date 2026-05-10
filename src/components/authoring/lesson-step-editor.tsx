@@ -1,9 +1,13 @@
 "use client";
 
 import { Clock3, Eye, FileText } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { autosaveLessonStepAction } from "@/actions/lesson-authoring-actions";
+import {
+  lessonStepEditorResetRequestEvent,
+  lessonStepEditorSaveRequestEvent,
+} from "@/components/authoring/editor-command-events";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { lessonStepPayloadSchema, type LessonStepDTO, type LessonStepPayload } from "@/lib/dto/lesson-authoring";
@@ -16,6 +20,7 @@ type LessonStepEditorProps = {
 
 const savingCopy = "正在保存...";
 const savedCopy = "已保存";
+const restoredCopy = "已恢复到最近一次保存的内容。";
 const validationCopy = "输入内容不完整，请检查后再保存。";
 const conflictCopy = "检测到更新冲突，请刷新后再试。";
 const previewLabel = "实时预览";
@@ -208,6 +213,34 @@ export function LessonStepEditor({ step, className, onCancel }: LessonStepEditor
       setStatus(result.error === "CONFLICT" ? conflictCopy : result.message || validationCopy);
     });
   }
+
+  function resetStep() {
+    setStateByStepId((prev) => ({
+      ...prev,
+      [activeStep.id]: buildInitialState(activeStep),
+    }));
+    setStatus(restoredCopy);
+  }
+
+  useEffect(() => {
+    function handleSaveRequest(event: Event) {
+      event.preventDefault();
+      saveStep();
+    }
+
+    function handleResetRequest(event: Event) {
+      event.preventDefault();
+      resetStep();
+    }
+
+    window.addEventListener(lessonStepEditorSaveRequestEvent, handleSaveRequest);
+    window.addEventListener(lessonStepEditorResetRequestEvent, handleResetRequest);
+
+    return () => {
+      window.removeEventListener(lessonStepEditorSaveRequestEvent, handleSaveRequest);
+      window.removeEventListener(lessonStepEditorResetRequestEvent, handleResetRequest);
+    };
+  }, [activeStep, activeState]);
 
   return (
     <div className={`flex h-full min-h-0 flex-col ${className ?? ""}`.trim()}>

@@ -8,6 +8,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthoringStatusPanel } from "./authoring-status-panel";
 
 const publishLessonAction = vi.fn();
+const refresh = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+}));
 
 vi.mock("@/actions/lesson-authoring-actions", () => ({
   publishLessonAction: (...args: unknown[]) => publishLessonAction(...args),
@@ -21,6 +26,7 @@ describe("AuthoringStatusPanel", () => {
   beforeEach(() => {
     publishLessonAction.mockReset();
     publishLessonAction.mockResolvedValue({ ok: true, data: { lessonId: "lesson-1" } });
+    refresh.mockReset();
   });
 
   it("renders structured blocking issues and disables publish when readiness is blocked", () => {
@@ -56,7 +62,7 @@ describe("AuthoringStatusPanel", () => {
     const blockingGroup = screen.getByLabelText("阻断项");
     expect(within(blockingGroup).getByText("步骤内容结构无效")).toBeTruthy();
     expect(within(blockingGroup).getByText("内置教学环节当前不可用")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "发布课时" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "发布课时" }).hasAttribute("disabled")).toBe(false);
   });
 
   it("renders warnings separately and enables publish when there are no blocking issues", () => {
@@ -123,5 +129,34 @@ describe("AuthoringStatusPanel", () => {
     await waitFor(() => expect(publishLessonAction).toHaveBeenCalledWith({ lessonId: "lesson-1", expectedRevision: 3 }));
     await waitFor(() => expect(screen.getByText("发布前检查未通过，请先处理以下阻断项。")).toBeTruthy());
     expect(screen.getByText("内置教学环节当前不可用")).toBeTruthy();
+  });
+
+  it("turns the draft save button into a real action instead of a dead button", async () => {
+    const saveListener = vi.fn((event: Event) => event.preventDefault());
+    window.addEventListener("lesson-step-editor:save-request", saveListener);
+
+    render(
+      <AuthoringStatusPanel
+        lesson={{
+          lesson: { id: "lesson-1", revision: 3 },
+          publishState: {
+            canPublish: false,
+            latestVersion: null,
+            publishedAt: null,
+            isDraftHidden: true,
+            blockingIssues: [],
+            warnings: [],
+          },
+        } as any}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "保存草稿" }));
+
+    await waitFor(() => expect(saveListener).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("正在保存当前打开的教学环节。")).toBeTruthy();
+    expect(refresh).not.toHaveBeenCalled();
+
+    window.removeEventListener("lesson-step-editor:save-request", saveListener);
   });
 });

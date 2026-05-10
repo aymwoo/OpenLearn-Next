@@ -2,8 +2,8 @@
 
 import { readFileSync } from "node:fs";
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LessonAuthoringWorkspace } from "./lesson-authoring-workspace";
 
@@ -25,6 +25,10 @@ vi.mock("@/components/authoring/lesson-step-editor", () => ({
 }));
 
 describe("LessonAuthoringWorkspace built-in quick add", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -97,8 +101,10 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
 
     expect(screen.getAllByText("内置教学环节").length).toBeGreaterThan(0);
     expect(screen.getByText("2 个可用环节")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /教师讲授.*内置教学环节/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /课堂测验.*内置教学环节/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "教师讲授" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "课堂测验" })).toBeTruthy();
+    expect(screen.queryByText("面向全班进行重点讲授。")).toBeNull();
+    expect(screen.queryByText("用简短测验即时检查掌握情况。")).toBeNull();
     expect(screen.queryByRole("button", { name: "问卷调查" })).toBeNull();
     expect(screen.queryByRole("button", { name: "学生探究" })).toBeNull();
     expect(screen.queryByRole("button", { name: "评价" })).toBeNull();
@@ -267,6 +273,66 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
 
     expect(screen.queryByRole("dialog", { name: "编辑教学环节" })).toBeNull();
     expect(screen.queryByTestId("lesson-step-editor")).toBeNull();
+  });
+
+  it("saves the active step from the flow header save button", async () => {
+    const saveListener = vi.fn((event: Event) => event.preventDefault());
+    window.addEventListener("lesson-step-editor:save-request", saveListener);
+
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [
+            {
+              id: "step-1",
+              title: "导入",
+              type: "content",
+              rank: "a0",
+              archivedAt: null,
+              payload: { type: "content", title: "导入", body: "从图片观察开始。", materialRefs: [] },
+            },
+          ],
+        } as any}
+        builtInTemplates={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("lesson-flow-save-button"));
+
+    await waitFor(() => expect(saveListener).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("正在保存当前打开的教学环节。")).toBeTruthy();
+
+    window.removeEventListener("lesson-step-editor:save-request", saveListener);
+  });
+
+  it("shows auto-saved feedback when no step editor is open", () => {
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [
+            {
+              id: "step-1",
+              title: "导入",
+              type: "content",
+              rank: "a0",
+              archivedAt: null,
+              payload: { type: "content", title: "导入", body: "从图片观察开始。", materialRefs: [] },
+            },
+          ],
+        } as any}
+        builtInTemplates={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("lesson-flow-save-button"));
+
+    expect(screen.getByText("流程中的新增、排序和删除改动已自动保存。")).toBeTruthy();
   });
 
   it("no longer keeps a standalone step editor mounted below the flow by default", () => {

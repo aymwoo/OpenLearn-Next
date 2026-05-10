@@ -257,4 +257,35 @@ describe("lesson step editor persistence", () => {
       },
     });
   });
+
+  it("restores the current form when the shared reset command is fired", async () => {
+    const step = makeStep({
+      id: "step-5",
+      lessonId: "lesson-1",
+      type: "content",
+      title: "讲解",
+      rank: "a4",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      payload: {
+        type: "content",
+        title: "讲解",
+        body: "讲解概念。",
+        teacherNotes: "提醒学生做标注。",
+        materialRefs: [],
+      },
+    });
+
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
+        <LessonStepEditor step={step} />
+      </div>,
+    );
+
+    fireEvent.change(screen.getByLabelText("正文"), { target: { value: "临时改动" } });
+    fireEvent(window, new CustomEvent("lesson-step-editor:reset-request", { bubbles: true, cancelable: true }));
+
+    await waitFor(() => expect((screen.getByLabelText("正文") as HTMLTextAreaElement).value).toBe("讲解概念。"));
+    expect(screen.getByText("已恢复到最近一次保存的内容。")).toBeTruthy();
+  });
 });
