@@ -169,6 +169,7 @@ progress:
 | 260510-vfb | 继续收敛 /teacher/editor 的步骤编辑 modal 容器层级，使标题说明回到左栏，并修复 modal 可访问名称与交互回归 | 2026-05-10 | 未提交 | [260510-vfb-modal-stitch-teacher-editor-modal](./quick/260510-vfb-modal-stitch-teacher-editor-modal/) |
 | fast-2026-05-10 | 修改 /teacher/editor 编辑环节 Modal：移除“步骤编辑器”头块，并让右侧实时预览背景铺满高度 | 2026-05-10 | 待更新 | - |
 | fast-2026-05-10-b | 再次调整 /teacher/editor 编辑环节 Modal：移除内层 padding，让实时预览 section 贴满 modal 上下高度 | 2026-05-10 | 待更新 | - |
+| fast-2026-05-10-c | 将 /teacher/editor 教学环节卡片中的“归档”操作改为“删除”，表示从教学流程中移除 | 2026-05-10 | 待更新 | - |
 
 ## Current Position
 

@@ -438,7 +438,7 @@ function FlowStepCard({
           <button type="button" onClick={onDuplicate} className="rounded-full bg-surface-container-low px-3 py-2 text-xs font-medium text-primary transition hover:bg-surface-container-high">复制</button>
           <button type="button" onClick={onMoveUp} className="rounded-full bg-surface-container-low px-3 py-2 text-xs font-medium text-primary transition hover:bg-surface-container-high">上移</button>
           <button type="button" onClick={onMoveDown} className="rounded-full bg-surface-container-low px-3 py-2 text-xs font-medium text-primary transition hover:bg-surface-container-high">下移</button>
-          <button type="button" onClick={onArchive} className="rounded-full bg-[#fff1f2] px-3 py-2 text-xs font-medium text-[#b31b25] transition hover:bg-[#ffe1e4]">归档</button>
+          <button type="button" onClick={onArchive} className="rounded-full bg-[#fff1f2] px-3 py-2 text-xs font-medium text-[#b31b25] transition hover:bg-[#ffe1e4]">删除</button>
         </div>
       </div>
     </div>
