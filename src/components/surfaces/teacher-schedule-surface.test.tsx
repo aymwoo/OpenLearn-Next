@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { TeacherScheduleSurface } from "./teacher-schedule-surface";
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("TeacherScheduleSurface", () => {
   it("renders the empty state with the exact Chinese copy", () => {
@@ -91,5 +95,25 @@ describe("TeacherScheduleSurface", () => {
     expect(screen.getByRole("link", { name: "查看教案" }).getAttribute("href")).toBe(
       "/teacher/editor/preview?lessonId=lesson-1&courseId=course-1",
     );
+  });
+
+  it("renders four quick action links to schedule sub pages", () => {
+    render(
+      <TeacherScheduleSurface
+        data={{
+          teacherId: "teacher-1",
+          date: "2026-05-11",
+          dateLabel: "2026-05-11",
+          weekLabel: "周一",
+          nextClassCountdownLabel: "下一节课 08:00 - 08:45",
+          cards: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 3, name: "导入课程表" }).closest("a")?.getAttribute("href")).toBe("/teacher/schedule/import");
+    expect(screen.getByRole("heading", { level: 3, name: "单次变更与节假日" }).closest("a")?.getAttribute("href")).toBe("/teacher/schedule/changes");
+    expect(screen.getByRole("heading", { level: 3, name: "AI 助手" }).closest("a")?.getAttribute("href")).toBe("/teacher/schedule/assistant");
+    expect(screen.getByRole("heading", { level: 3, name: "提醒配置" }).closest("a")?.getAttribute("href")).toBe("/teacher/schedule/reminders");
   });
 });
