@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ScheduleImportReviewSurface } from "./schedule-import-review-surface";
 
@@ -21,7 +21,35 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
+afterEach(() => {
+  cleanup();
+});
+
 describe("ScheduleImportReviewSurface", () => {
+  it("shows a template download link in the hero area", () => {
+    render(
+      <ScheduleImportReviewSurface
+        batch={{
+          id: "batch-hero",
+          schoolId: "school-1",
+          sourceType: "csv",
+          sourceLabel: "高一课表导入",
+          status: "in_review",
+          rowCount: 0,
+          approvedRowCount: 0,
+          rejectedRowCount: 0,
+          createdAt: "2026-05-11T00:00:00.000Z",
+          updatedAt: "2026-05-11T00:00:00.000Z",
+          rows: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "下载导入模板" }).getAttribute("href")).toBe(
+      "/teacher/schedule/import/template",
+    );
+  });
+
   it("keeps the primary CTA disabled while blocker rows remain", () => {
     render(
       <ScheduleImportReviewSurface
@@ -71,5 +99,8 @@ describe("ScheduleImportReviewSurface", () => {
 
     expect(screen.getByRole("button", { name: "审核通过并写入课表" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText(/冲突待处理/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "下载导入模板" }).getAttribute("href")).toBe(
+      "/teacher/schedule/import/template",
+    );
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
@@ -70,8 +71,11 @@ export function ScheduleImportReviewSurface({ batch }: { batch: ScheduleImportBa
             </div>
           </div>
 
-          <div className={cn(teacherSurfaceRhythm.cardInset, "w-full max-w-sm p-5")}> 
+          <div className={cn(teacherSurfaceRhythm.cardInset, "w-full max-w-sm p-5")}>
             <p className="text-sm text-on-surface-variant">主动作</p>
+            <Button asChild variant="secondary" className="mt-4 w-full text-sm shadow-none">
+              <Link href="/teacher/schedule/import/template">下载导入模板</Link>
+            </Button>
             <Button className="mt-4 w-full" disabled={!canApprove || isPending} onClick={handleApprove}>
               审核通过并写入课表
             </Button>
