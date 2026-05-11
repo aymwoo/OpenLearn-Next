@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Course Import & Management
-current_phase: 19
-current_phase_name: teacher-shell-route-metadata-system
+current_phase: 20
+current_phase_name: help-center-and-developer-guides
 current_plan: 3
-status: executing
-stopped_at: Phase 19 execution complete; summaries and roadmap synchronized
-last_updated: "2026-05-11T12:33:15+08:00"
+status: completed
+stopped_at: Phase 20 complete; /help actions guide, overview tests, and verify:phase20 are in place
+last_updated: "2026-05-11T05:48:24.135Z"
 last_activity: 2026-05-11
 progress:
-  total_phases: 7
-  completed_phases: 5
+  total_phases: 8
+  completed_phases: 6
   total_plans: 25
-  completed_plans: 22
-  percent: 88
+  completed_plans: 25
+  percent: 100
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 19
-**Current Phase Name:** teacher-shell-route-metadata-system
+**Current Phase:** 20
+**Current Phase Name:** help-center-and-developer-guides
 **Current Plan:** 3
 **Total Plans in Phase:** 3
-**Status:** Executing Phase 19
+**Status:** Phase 20 Complete
 **Progress:**
-[█████████-] 88%
+[██████████] 100%
 **Last Activity:** 2026-05-11
 
 **Last session:** 2026-05-11T00:00:00.000Z
-**Stopped At:** Phase 19 execution complete; summaries and roadmap synchronized
-**Resume File:** .planning/phases/19-teacher-shell-route-metadata-system/19-03-SUMMARY.md
+**Stopped At:** Phase 20 complete; /help actions guide, overview tests, and verify:phase20 are in place
+**Resume File:** .planning/phases/20-help-center-and-developer-guides/20-03-SUMMARY.md
 
 ## Accumulated Context
 
@@ -116,11 +116,9 @@ progress:
 
 ## Next Steps
 
-1. Decide whether to commit the Phase 19 shell metadata work separately from the existing unrelated untracked planning and `/teacher/editor` leftovers.
-2. Re-run `pnpm typecheck` and `pnpm verify:phase19` immediately before any Phase 19 commit.
-3. If future shell variants are added, extend metadata, runtime, resolver, and tests before changing UI branches.
-4. Return to remaining unrelated worktree changes after Phase 19 is isolated or committed.
-5. If committing the editor theme modal quick task, include `260511-tsm` planning artifacts together with the editor theme code and tests only.
+1. 如果后续新增 plugin action、theme runtime 字段或 schedule hook，先更新 `/help` 内容与 `verify:phase20`，再改实现。
+2. 在提交 Phase 20 相关改动前，重跑 `pnpm verify:phase20` 与 `pnpm typecheck`。
+3. 如需继续推进未完成的 Phase 14 / Phase 15，先确认是否要切回对应 phase 的 GSD 工作流。
 
 ## Performance Metrics
 
@@ -198,7 +196,7 @@ progress:
 
 ## Current Position
 
-Phase: 19 (teacher-shell-route-metadata-system) — COMPLETE
+Phase: 20 (help-center-and-developer-guides) — COMPLETE
 Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-05-11 - Completed quick task 260511-sqe: /teacher/schedule 主页面快捷操作卡片已落地，typecheck 通过
+Status: Phase 20 complete
+Last activity: 2026-05-11 -- Phase 20 wave 3 completed and help-center verification passed

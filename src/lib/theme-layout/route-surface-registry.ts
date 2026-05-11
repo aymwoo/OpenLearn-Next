@@ -27,6 +27,8 @@ export const THEME_PAGE_MODULE_KEYS = [
   "settings-labs",
   "plugin-marketplace",
   "resource-library",
+  "help-overview",
+  "help-guide-detail",
   "status-footer",
 ] as const;
 
@@ -44,6 +46,10 @@ export const TEACHER_THEME_ROUTE_KEYS = [
   "/settings/labs",
   "/settings/plugins",
   "/resources",
+  "/help",
+  "/help/plugins",
+  "/help/themes",
+  "/help/actions-interfaces",
 ] as const;
 
 export type ThemeLayoutRegionKey = (typeof THEME_LAYOUT_REGION_KEYS)[number];
@@ -211,6 +217,50 @@ export const TEACHER_THEME_ROUTE_SURFACES: Record<TeacherThemeRouteKey, TeacherT
       chrome: "default",
     },
   },
+  "/help": {
+    label: "帮助中心",
+    defaultSplit: "60/40",
+    allowedModules: ["help-overview"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
+  "/help/plugins": {
+    label: "插件开发指南",
+    defaultSplit: "60/40",
+    allowedModules: ["help-guide-detail"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
+  "/help/themes": {
+    label: "主题开发指南",
+    defaultSplit: "60/40",
+    allowedModules: ["help-guide-detail"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
+  "/help/actions-interfaces": {
+    label: "Actions 与 Interfaces 指南",
+    defaultSplit: "60/40",
+    allowedModules: ["help-guide-detail"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
 };
 
 export function resolveTeacherThemeRouteSurface(pathname: string | null | undefined): TeacherThemeRouteKey {
@@ -264,6 +314,22 @@ export function resolveTeacherThemeRouteSurface(pathname: string | null | undefi
 
   if (pathname.startsWith("/resources")) {
     return "/resources";
+  }
+
+  if (pathname.startsWith("/help/actions-interfaces")) {
+    return "/help/actions-interfaces";
+  }
+
+  if (pathname.startsWith("/help/themes")) {
+    return "/help/themes";
+  }
+
+  if (pathname.startsWith("/help/plugins")) {
+    return "/help/plugins";
+  }
+
+  if (pathname.startsWith("/help")) {
+    return "/help";
   }
 
   if (pathname.startsWith("/teacher")) {

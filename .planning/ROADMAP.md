@@ -1,9 +1,9 @@
 ## ROADMAP
 
 **Milestone:** v1.2 Course Import & Management
-**Phases:** 7
+**Phases:** 8
 **Granularity:** coarse
-**Coverage:** 10/10 v1.2 requirements mapped ✓ + 4 extension phases
+**Coverage:** 10/10 v1.2 requirements mapped ✓ + 5 extension phases
 
 ### Phases
 
@@ -14,6 +14,7 @@
 - [x] **Phase 17: Teacher flow editor enhancement** - Upgrade `/teacher/editor` into a flexible classroom-flow editor with composable teaching steps, structured property editing, preview, and publish-readiness checks. (completed 2026-05-10)
 - [x] **Phase 18: Teaching schedule OS** - Build a production-grade teaching schedule system around `Import Layer -> Normalized Schedule Model -> Runtime Daily Agenda Engine`, covering import, normalization, daily agenda generation, rescheduling, holidays, reminders, AI assistance, and plugin-safe extensibility. (completed 2026-05-10)
 - [ ] **Phase 19: Teacher shell route metadata system** - Replace teacher-shell route string conditionals with route metadata-driven shell behavior, centralized shell config resolution, and future-safe layout variants without changing current visuals.
+- [x] **Phase 20: Help center and developer guides** - Build `/help` as a structured help center covering plugin development, theme development, and the currently available data interfaces and actions with codebase-accurate guidance. (completed 2026-05-11)
 
 ### Phase Details
 
@@ -129,6 +130,21 @@
 - [x] 19-03-PLAN.md — Add resolver-driven regression coverage and a dedicated `verify:phase19` safety command for future route expansion.
 **UI hint**: yes
 
+### Phase 20: Help center and developer guides
+**Goal**: Teachers and developers can open `/help` and find a codebase-accurate help center that explains plugin development, theme development, and the currently available data interfaces and actions without reverse-engineering the source tree.
+**Depends on**: Phase 6, Phase 16, Phase 18, Phase 19
+**Requirements**: Extension phase — product help center and developer-facing implementation guidance.
+**Success Criteria**:
+  1. Users can open `/help` and see a structured Chinese help page with clear sections for plugin development, theme development, and available data interfaces/actions.
+  2. The plugin and theme guides accurately reflect the current manifest, theme runtime, safety boundaries, and school-scoped activation path already implemented in the codebase.
+  3. The help content documents the currently available data interfaces, allowlisted actions, and usage patterns with concrete examples, limitations, and boundary notes instead of vague summaries.
+  4. The help route follows the established teacher-facing visual language and has regression coverage or verification guardrails so future platform changes don't silently stale the guidance.
+**Plans**: 3 plans
+- [x] 20-01-PLAN.md — Design the `/help` route structure, page surface, and content information architecture for mixed teacher/developer guidance.
+- [x] 20-02-PLAN.md — Write codebase-accurate plugin and theme development guides, including manifest/theme contracts, safety rules, and activation flow.
+- [x] 20-03-PLAN.md — Document currently available data interfaces and actions with examples, link the help route into the product, and add regression or verification coverage for guide drift.
+**UI hint**: yes
+
 ### Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -140,3 +156,4 @@
 | 17. Teacher flow editor enhancement | 4/4 | Complete   | 2026-05-10 |
 | 18. Teaching schedule OS | 6/6 | Complete | 2026-05-10 |
 | 19. Teacher shell route metadata system | 3/3 | Complete | 2026-05-11 |
+| 20. Help center and developer guides | 3/3 | Complete | 2026-05-11 |
