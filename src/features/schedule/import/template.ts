@@ -39,6 +39,10 @@ export const SCHEDULE_IMPORT_COLUMN_MAP: Readonly<Record<string, keyof ScheduleI
   教室标签: "roomLabel",
 } as const;
 
+export function normalizeScheduleImportColumnHeader(key: string) {
+  return key.replace(/^\uFEFF/, "").trim();
+}
+
 export const scheduleImportTemplateSampleRows: readonly ScheduleImportDraftRowInput[] = [
   {
     sourceRowKey: "1",
@@ -54,6 +58,26 @@ export const scheduleImportTemplateSampleRows: readonly ScheduleImportDraftRowIn
   },
 ];
 
+type ComparableScheduleImportRow = Partial<Record<keyof ScheduleImportDraftRowInput, string | number | null | undefined>>;
+
+export function isScheduleImportTemplateSampleRow(row: ComparableScheduleImportRow) {
+  const [sampleRow] = scheduleImportTemplateSampleRows;
+  if (!sampleRow) {
+    return false;
+  }
+
+  return scheduleImportTemplateColumns.every((column) => {
+    const incomingValue = row[column];
+    const sampleValue = sampleRow[column];
+
+    if (incomingValue == null || sampleValue == null) {
+      return incomingValue == null && sampleValue == null;
+    }
+
+    return String(incomingValue).trim() === String(sampleValue).trim();
+  });
+}
+
 function escapeCsvValue(value: string | number | null) {
   const normalized = value == null ? "" : String(value);
   if (!/[",\n]/.test(normalized)) {
@@ -63,11 +87,13 @@ function escapeCsvValue(value: string | number | null) {
   return `"${normalized.replaceAll('"', '""')}"`;
 }
 
-export function buildScheduleImportTemplateCsv() {
+export function buildScheduleImportCsv(rows: readonly ScheduleImportDraftRowInput[]) {
   const header = scheduleImportTemplateChineseHeaders.join(",");
-  const rows = scheduleImportTemplateSampleRows.map((row) =>
-    scheduleImportTemplateColumns.map((column) => escapeCsvValue(row[column] ?? null)).join(","),
-  );
+  const body = rows.map((row) => scheduleImportTemplateColumns.map((column) => escapeCsvValue(row[column] ?? null)).join(","));
 
-  return [header, ...rows].join("\n");
+  return [header, ...body].join("\n");
+}
+
+export function buildScheduleImportTemplateCsv() {
+  return buildScheduleImportCsv(scheduleImportTemplateSampleRows);
 }

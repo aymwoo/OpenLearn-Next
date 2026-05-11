@@ -1,493 +1,882 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Download,
-  Import,
+  FileUp,
+  Filter,
+  Grid3X3,
+  List,
+  Pencil,
   Plus,
-  School,
   Search,
-  Trash2,
+  School,
+  Upload,
+  Users,
+  X,
 } from "lucide-react";
 
+import {
+  importClassRosterAction,
+  importClassesAction,
+  updateClassNameAction,
+} from "@/actions/class-management-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getNativeDialogClassName, useNativeDialogBackdropClose } from "@/components/ui/native-dialog";
+import { useToast } from "@/components/ui/toast";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
+import type {
+  ImportRosterRowInput,
+  StudentGender,
+  TeacherClassDTO,
+  TeacherClassManagementDTO,
+} from "@/lib/dto/class-management";
+import { parseRosterImportCsv } from "@/features/class-management/roster-csv";
 import { cn } from "@/lib/utils";
 
-const classSummary = {
-  averageGrade: "88.5",
-  homeroomTeacher: "李薇",
-  nextSession: "数学（10:00）",
-  room: "科学楼 402",
-  totalStudents: "45",
-} as const;
+type ClassManagementSurfaceProps = {
+  data: TeacherClassManagementDTO;
+};
 
-const students = [
-  {
-    avatar:
-      "https://lh3.googleusercontent.com/aida/ADBb0uj_SR2YDoQ3rEHcGvUgonEaf9K1o2FJpezH2ayUdPvvv-ssOj298IbbYbzGMrJV0kMQwUQb7Cc6F-qO4igjL25ONMJobB6NtwV0E7fm9amRcTSct2jDhAqBq7p6XBPHWHI2psFBaD7MCdvRQcs7R-Gt2U_BLhg85iIV4pXsIpoyV5g6WdW62vWFAKgvY8VAakxvdQ1psnYEyxNeNMg-Zehuz956DU0gKJbrBf7ILcki9W6Yb9Xdg9KW9g",
-    name: "陈宇",
-    idNumber: "202309001",
-    progress: 90,
-  },
-  {
-    avatar:
-      "https://lh3.googleusercontent.com/aida/ADBb0uhnnotePweaFDceiuqlcUrPlU_a2i4x9oRr3iXfUc9loytRVSU19pqfDR_4LCCliesxX_SaV0aVYjgGWK39-ZGCfhYgNpqMLxyd7sFoDjaPFCBxMErqWerxsnfZEZCdE8M9nkOjA28mUNMmhBdb2a-bSTomdPUBTbWpWY8dlIZoNWlz_Mu8vGYDD20lH2q8Eeqrr0HPBXJijMAadAlyreVclBx48MfNG642diuj7svm51ob3zbUEr9xHZA",
-    name: "林梅",
-    idNumber: "202309002",
-    progress: 85,
-  },
-  {
-    avatar: "王",
-    name: "王强",
-    idNumber: "202309003",
-    progress: 60,
-  },
-  {
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAJ_ieUMLYFbwdEVazHJdN-x2yh6bi797hewbhMBNUZcnf7Zi4TZloZJEsDPUxQV2OmA-yLIU60uBYgxZnOBh-hgg_kqdfA45Odq4hxr29NjNeDrrR7P6x_rQxOVo741QvF0BccYGWafj0SbNXmT1GRQ7HGoHegwgom3JWjZA8_AwdsA3C-g8goZbf-2lmqJRN0f4Maj06n-mf3yLCB0T8Oshi408QzdTmm5G5DfDdTXE7GyfC2QUaytPr6dC1M410wxtVzs7sP8rTM",
-    name: "张华",
-    idNumber: "202309004",
-    progress: 75,
-  },
-  {
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDhT2it-PnR7-mFii2g_qkm63Cpx8KE7BO3uQJvx3D8gT_dg_x59ZsGNPYd-EpGOGxEOCRHLU4yQ8lS5SkCYASISco06vuYCk3X-nXjjRH1XRIoE85hefil6DcYl-NSGnbnq_u0yEfkseay9FYdvTb4hX3WC9LNh6lXWFxsgQCOlT2F_ya-cK5bFOzQvUE1_dGjGNpFe-rSDNwvUDG-1PMQ5gMdEbIgzpoI_O9qJledfQoJwDDvDbqTXuauD_WDm3TPflxuwjRH2GA",
-    name: "李静",
-    idNumber: "202309005",
-    progress: 95,
-  },
-];
+type PendingRosterImport = {
+  rows: ImportRosterRowInput[];
+  missingClassNames: string[];
+};
 
-export function ClassManagementSurface() {
-  const [activeStatus, setActiveStatus] = useState<string>("所有状态");
-  const [activeGender, setActiveGender] = useState<string>("所有性别");
-  const [viewMode, setViewMode] = useState<"table" | "card">("table");
+type StudentViewMode = "cards" | "list";
 
-  // Filter by status and gender — 当前数据无 status/gender 字段，
-  // 非"所有"选项返回空结果（UI pill 切换仍正常工作）
-  const filteredStudents = students.filter(() => {
-    if (activeStatus !== "所有状态") return false;
-    if (activeGender !== "所有性别") return false;
-    return true;
-  });
+type StudentStatus = "已分配" | "未分配";
+
+type StudentRecord = TeacherClassDTO["students"][number] & {
+  progressValue: number;
+  status: StudentStatus;
+};
+
+function getStudentProgressValue(studentNumber: string) {
+  const numericSeed = Array.from(studentNumber).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return 58 + (numericSeed % 39);
+}
+
+function getStudentStatus(progressValue: number): StudentStatus {
+  return progressValue >= 72 ? "已分配" : "未分配";
+}
+
+function buildRosterCsv(className: string, students: StudentRecord[]) {
+  const rows = students.map(
+    (student) => `${className},${student.name},${student.studentNumber},${formatStudentGenderForCsv(student.gender)}`,
+  );
+  return ["className,studentName,studentNumber,gender", ...rows].join("\n");
+}
+
+function formatStudentGenderForCsv(gender: StudentGender | null) {
+  if (gender === "female") {
+    return "女";
+  }
+
+  if (gender === "male") {
+    return "男";
+  }
+
+  return "";
+}
+
+function downloadCsv(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function parseClassCsv(content: string) {
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length <= 1) {
+    return [];
+  }
+
+  return lines
+    .slice(1)
+    .map((line) => line.replace(/^"|"$/g, "").trim())
+    .filter(Boolean);
+}
+
+function getStudentDefaultAvatarSrc(gender: StudentGender | null) {
+  return gender === "female" ? "/avatars/student-girl.svg" : "/avatars/student-boy.svg";
+}
+
+export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
+  const router = useRouter();
+  const { success, error } = useToast();
+  const [localClasses, setLocalClasses] = useState<TeacherClassDTO[] | null>(null);
+  const [editingClassId, setEditingClassId] = useState<string | null>(null);
+  const [draftNames, setDraftNames] = useState<Record<string, string>>({});
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [pendingRosterImport, setPendingRosterImport] = useState<PendingRosterImport | null>(null);
+  const [studentViewMode, setStudentViewMode] = useState<StudentViewMode>("cards");
+  const [studentQuery, setStudentQuery] = useState("");
+  const [studentStatusFilter, setStudentStatusFilter] = useState<"all" | StudentStatus>("all");
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const studentDialogRef = useRef<HTMLDialogElement>(null);
+  const classImportInputRef = useRef<HTMLInputElement>(null);
+  const rosterImportInputRef = useRef<HTMLInputElement>(null);
+  const createClassDialogRef = useRef<HTMLDialogElement>(null);
+
+  const classes = localClasses ?? data.classes;
+
+  const selectedClass = useMemo(
+    () => classes.find((item) => item.id === selectedClassId) ?? null,
+    [classes, selectedClassId],
+  );
+
+  const totalStudents = useMemo(
+    () => classes.reduce((sum, item) => sum + item.studentCount, 0),
+    [classes],
+  );
+
+  const selectedClassStudents = useMemo<StudentRecord[]>(() => {
+    if (!selectedClass) {
+      return [];
+    }
+
+    return selectedClass.students.map((student) => {
+      const progressValue = getStudentProgressValue(student.studentNumber);
+      return {
+        ...student,
+        progressValue,
+        status: getStudentStatus(progressValue),
+      };
+    });
+  }, [selectedClass]);
+
+  const filteredStudents = useMemo(() => {
+    const normalizedQuery = studentQuery.trim().toLowerCase();
+
+    return selectedClassStudents.filter((student) => {
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        student.name.toLowerCase().includes(normalizedQuery) ||
+        student.studentNumber.toLowerCase().includes(normalizedQuery);
+      const matchesStatus = studentStatusFilter === "all" || student.status === studentStatusFilter;
+
+      return matchesQuery && matchesStatus;
+    });
+  }, [selectedClassStudents, studentQuery, studentStatusFilter]);
+
+  const isAllFilteredStudentsSelected =
+    filteredStudents.length > 0 && filteredStudents.every((student) => selectedStudentIds.includes(student.userId));
+
+  const averageStudentsPerClass = classes.length > 0 ? (totalStudents / classes.length).toFixed(0) : "0";
+
+  const openStudentModal = useCallback((classId: string) => {
+    setSelectedClassId(classId);
+    setStudentViewMode("cards");
+    setStudentQuery("");
+    setStudentStatusFilter("all");
+    setSelectedStudentIds([]);
+    studentDialogRef.current?.showModal();
+  }, []);
+
+  const closeStudentModal = useCallback(() => {
+    studentDialogRef.current?.close();
+  }, []);
+
+  const closeCreateClassDialog = useCallback(() => {
+    createClassDialogRef.current?.close();
+  }, []);
+  const handleStudentDialogBackdropClose = useNativeDialogBackdropClose(studentDialogRef, closeStudentModal);
+  const handleCreateClassDialogBackdropClose = useNativeDialogBackdropClose(
+    createClassDialogRef,
+    closeCreateClassDialog,
+  );
+
+  const handleEditClassName = useCallback(
+    (classItem: TeacherClassDTO) => {
+      setEditingClassId(classItem.id);
+      setDraftNames((current) => ({ ...current, [classItem.id]: current[classItem.id] ?? classItem.name }));
+      openStudentModal(classItem.id);
+    },
+    [openStudentModal],
+  );
+
+  const handleSaveClassName = useCallback(
+    (classId: string) => {
+      const nextName = draftNames[classId]?.trim();
+      if (!nextName) {
+        error("班级名称不能为空");
+        return;
+      }
+
+      startTransition(async () => {
+        const result = await updateClassNameAction({ classId, name: nextName });
+        if (!result.ok) {
+          error(result.message);
+          return;
+        }
+
+        setLocalClasses(classes.map((item) => (item.id === classId ? { ...item, name: result.data.name } : item)));
+        setEditingClassId(null);
+        router.refresh();
+        success("班级名称已更新", { description: `已保存为“${result.data.name}”。` });
+      });
+    },
+    [classes, draftNames, error, router, success],
+  );
+
+  const handleClassImport = useCallback(
+    async (file: File) => {
+      const classNames = [...new Set(parseClassCsv(await file.text()))];
+      if (classNames.length === 0) {
+        error("未识别到班级数据", { description: "请按模板填写班级名称后重新导入。" });
+        return;
+      }
+
+      startTransition(async () => {
+        const result = await importClassesAction({ schoolId: data.schoolId, classNames });
+        if (!result.ok) {
+          error(result.message);
+          return;
+        }
+
+        const refreshedClassList = [...classes];
+        for (const className of classNames) {
+          if (!refreshedClassList.some((item) => item.name === className)) {
+            refreshedClassList.push({
+              id: `temp-${className}`,
+              schoolId: data.schoolId,
+              name: className,
+              studentCount: 0,
+              students: [],
+            });
+          }
+        }
+
+        setLocalClasses(refreshedClassList.sort((left, right) => left.name.localeCompare(right.name, "zh-CN")));
+        router.refresh();
+        success("班级导入完成", {
+          description: `已新增 ${result.data.createdCount} 个班级，跳过 ${result.data.skippedCount} 个已存在班级。`,
+        });
+      });
+    },
+    [classes, data.schoolId, error, router, success],
+  );
+
+  const handleRosterImport = useCallback(
+    async (file: File) => {
+      const rows = parseRosterImportCsv(await file.text());
+      if (rows.length === 0) {
+        error("未识别到学生名册", { description: "请使用 className,studentName,studentNumber,gender 模板。" });
+        return;
+      }
+
+      startTransition(async () => {
+        const result = await importClassRosterAction({
+          schoolId: data.schoolId,
+          rows,
+          createMissingClasses: false,
+        });
+
+        if (!result.ok && result.error === "MISSING_CLASSES") {
+          setPendingRosterImport({ rows, missingClassNames: result.missingClassNames ?? [] });
+          createClassDialogRef.current?.showModal();
+          return;
+        }
+
+        if (!result.ok) {
+          error(result.message);
+          return;
+        }
+
+        success("学生名册导入完成", {
+          description: `已创建 ${result.data.createdStudentCount} 个学生并关联 ${result.data.linkedStudentCount} 条班级关系。`,
+        });
+        router.refresh();
+      });
+    },
+    [data.schoolId, error, router, success],
+  );
+
+  const handleCreateMissingClassAndImport = useCallback(() => {
+    if (!pendingRosterImport) {
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await importClassRosterAction({
+        schoolId: data.schoolId,
+        rows: pendingRosterImport.rows,
+        createMissingClasses: true,
+      });
+
+      if (!result.ok) {
+        error(result.message);
+        return;
+      }
+
+      closeCreateClassDialog();
+      setPendingRosterImport(null);
+      router.refresh();
+      success("已创建新班级并导入学生", {
+        description: `已新建 ${result.data.createdClassCount} 个班级，并关联 ${result.data.linkedStudentCount} 条学生记录。`,
+      });
+    });
+  }, [closeCreateClassDialog, data.schoolId, error, pendingRosterImport, router, success]);
+
+  const toggleStudentSelection = useCallback((studentId: string) => {
+    setSelectedStudentIds((current) =>
+      current.includes(studentId) ? current.filter((item) => item !== studentId) : [...current, studentId],
+    );
+  }, []);
+
+  const toggleSelectAllFilteredStudents = useCallback(() => {
+    setSelectedStudentIds((current) => {
+      if (filteredStudents.length === 0) {
+        return current;
+      }
+
+      const filteredIds = filteredStudents.map((student) => student.userId);
+      const next = new Set(current);
+
+      if (filteredIds.every((studentId) => next.has(studentId))) {
+        filteredIds.forEach((studentId) => next.delete(studentId));
+      } else {
+        filteredIds.forEach((studentId) => next.add(studentId));
+      }
+
+      return [...next];
+    });
+  }, [filteredStudents]);
+
+  const handleExportStudents = useCallback((students: StudentRecord[]) => {
+    if (!selectedClass || students.length === 0) {
+      error("暂无可导出的学生", { description: "请先调整筛选条件或选择学生。" });
+      return;
+    }
+
+    const safeClassName = selectedClass.name.replace(/[\\/:*?"<>|]/g, "-");
+    downloadCsv(`${safeClassName}-students.csv`, buildRosterCsv(selectedClass.name, students));
+    success("学生名册已导出", { description: `已导出 ${students.length} 名学生。` });
+  }, [error, selectedClass, success]);
+
+  const handleExportSelectedStudents = useCallback(() => {
+    const students = filteredStudents.filter((student) => selectedStudentIds.includes(student.userId));
+    handleExportStudents(students);
+  }, [filteredStudents, handleExportStudents, selectedStudentIds]);
+
+  const handleBatchAction = useCallback(() => {
+    const count = filteredStudents.filter((student) => selectedStudentIds.includes(student.userId)).length;
+    if (count === 0) {
+      error("请先选择学生", { description: "列表模式下可勾选后进行批量操作。" });
+      return;
+    }
+
+    success("批量操作已就绪", { description: `当前已选 ${count} 名学生，可继续接入真实批量动作。` });
+  }, [error, filteredStudents, selectedStudentIds, success]);
 
   return (
-    <div
-      className={cn(
-        "mx-auto flex w-full flex-col pb-10 pt-2",
-        teacherSurfaceRhythm.stack,
-      )}
-    >
-      <section
-        className={cn(
-          "relative overflow-hidden bg-surface-container-low px-6 py-6 sm:px-8 sm:py-8",
-          teacherSurfaceRhythm.shell,
-        )}
-      >
-        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-primary/10 text-primary">当前班级</Badge>
-              <span className="inline-flex items-center gap-1 text-sm font-medium text-tertiary">
-                <CheckCircle2 className="size-4" aria-hidden />
-                出勤表现优秀
-              </span>
-            </div>
-
-            <div className="space-y-1.5">
-              <h1 className="text-[2rem] font-semibold tracking-[-0.03em] text-on-surface sm:text-[2.4rem]">
-                九年级 3 班
-              </h1>
-              <p className="text-sm text-on-surface-variant sm:text-base">
-                班主任：{classSummary.homeroomTeacher} | 教室：{" "}
-                {classSummary.room}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-5 pt-1">
-              <Metric label="班级人数" value={classSummary.totalStudents} />
-              <Metric label="平均成绩" value={classSummary.averageGrade} />
-              <Metric label="下一节课" value={classSummary.nextSession} />
-            </div>
-          </div>
-
-          <div className="flex w-full flex-col gap-2 sm:w-auto">
-            <Button className="min-h-10 gap-2 px-5 text-sm">
-              编辑班级信息
-            </Button>
-            <Button
-              variant="secondary"
-              className="min-h-10 gap-2 bg-primary/10 px-5 text-sm text-primary shadow-none hover:bg-primary/15"
-            >
-              查看课表
-            </Button>
-          </div>
-        </div>
-
-        <div className="pointer-events-none absolute -bottom-6 right-0 text-primary/10">
-          <School className="size-36 sm:size-40" aria-hidden />
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-on-surface">学生名册</h2>
-            <div className="flex items-center rounded-full bg-surface-container-high p-0.5">
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={`min-h-8 rounded-full px-3 text-xs font-medium transition-colors ${
-                  viewMode === "table"
-                    ? "bg-surface-container-lowest text-primary shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-              >
-                表格视图
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("card")}
-                className={`min-h-8 rounded-full px-3 text-xs font-medium transition-colors ${
-                  viewMode === "card"
-                    ? "bg-surface-container-lowest text-primary shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-              >
-                卡片视图
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="secondary"
-              className="min-h-9 gap-1.5 px-3 text-xs shadow-none"
-            >
-              <Import className="size-4" aria-hidden />
-              导入名单
-            </Button>
-            <Button className="min-h-9 gap-1.5 px-4 text-xs">
-              <Plus className="size-4" aria-hidden />
-              添加学生
-            </Button>
-          </div>
-        </div>
-
-        <div
+    <>
+      <div className={cn("mx-auto flex w-full flex-col pb-10 pt-2", teacherSurfaceRhythm.stack)}>
+        <section
           className={cn(
-            teacherSurfaceRhythm.card,
-            "flex flex-col gap-3 bg-surface-container-lowest p-3 shadow-[0_4px_24px_rgba(0,0,0,0.02)] lg:flex-row lg:items-center lg:justify-between",
+            "relative overflow-hidden bg-surface-container-low px-6 py-6 sm:px-8 sm:py-8",
+            teacherSurfaceRhythm.shell,
           )}
         >
-          <div className="flex flex-1 flex-col gap-2 lg:flex-row lg:items-center">
-            <div className="relative w-full lg:max-w-[17rem]">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant"
-                aria-hidden
+          <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex-1 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-primary/10 text-primary">班级管理</Badge>
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-tertiary">
+                  <CheckCircle2 className="size-4" aria-hidden />
+                  当前共维护 {classes.length} 个班级
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <h1 className="text-[2rem] font-semibold tracking-[-0.03em] text-on-surface sm:text-[2.4rem]">
+                  只显示班级列表
+                </h1>
+                <p className="text-sm text-on-surface-variant sm:text-base">
+                  点击“编辑名称”时，再通过 Modal 查看并维护该班级的学生列表。
+                </p>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <a
+                    href="/teacher/classes/template"
+                    download
+                    className="inline-flex min-h-10 items-center gap-2 rounded-full bg-surface-container-high px-4 text-sm font-medium text-on-surface transition hover:bg-surface-container-highest"
+                  >
+                    <Download className="size-4" aria-hidden />
+                    下载班级导入模板
+                  </a>
+                  <a
+                    href="/teacher/classes/roster-template"
+                    download
+                    className="inline-flex min-h-10 items-center gap-2 rounded-full bg-surface-container-high px-4 text-sm font-medium text-on-surface transition hover:bg-surface-container-highest"
+                  >
+                    <Download className="size-4" aria-hidden />
+                    下载学生名册模板
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-5 pt-1">
+                <Metric label="班级数量" value={String(classes.length)} />
+                <Metric label="学生总数" value={String(totalStudents)} />
+                <Metric label="平均每班" value={averageStudentsPerClass} />
+              </div>
+            </div>
+
+            <div className="flex w-full flex-col gap-2 sm:w-auto">
+              <input
+                ref={classImportInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  await handleClassImport(file);
+                  event.currentTarget.value = "";
+                }}
               />
               <input
-                type="text"
-                placeholder="按姓名或学号搜索..."
-                className="min-h-9 w-full rounded-[0.75rem] bg-surface-container-high pl-9 pr-3 text-xs text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/70 focus:bg-surface-container-lowest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/20"
+                ref={rosterImportInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  await handleRosterImport(file);
+                  event.currentTarget.value = "";
+                }}
               />
-            </div>
 
-            <FilterPill
-              label="所有状态"
-              active={activeStatus === "所有状态"}
-              onClick={() => setActiveStatus("所有状态")}
-            />
-            <FilterPill
-              label="在读"
-              active={activeStatus === "在读"}
-              onClick={() =>
-                setActiveStatus((prev) =>
-                  prev === "在读" ? "所有状态" : "在读",
-                )
-              }
-            />
-            <FilterPill
-              label="请假"
-              active={activeStatus === "请假"}
-              onClick={() =>
-                setActiveStatus((prev) =>
-                  prev === "请假" ? "所有状态" : "请假",
-                )
-              }
-            />
-            <FilterPill
-              label="所有性别"
-              active={activeGender === "所有性别"}
-              onClick={() => setActiveGender("所有性别")}
-            />
-            <FilterPill
-              label="男"
-              active={activeGender === "男"}
-              onClick={() =>
-                setActiveGender((prev) => (prev === "男" ? "所有性别" : "男"))
-              }
-            />
-            <FilterPill
-              label="女"
-              active={activeGender === "女"}
-              onClick={() =>
-                setActiveGender((prev) => (prev === "女" ? "所有性别" : "女"))
-              }
-            />
+              <Button className="min-h-10 gap-2 px-5 text-sm" onClick={() => classImportInputRef.current?.click()} disabled={isPending}>
+                <Upload className="size-4" aria-hidden />
+                导入班级
+              </Button>
+              <Button
+                variant="secondary"
+                className="min-h-10 gap-2 bg-primary/10 px-5 text-sm text-primary shadow-none hover:bg-primary/15"
+                onClick={() => rosterImportInputRef.current?.click()}
+                disabled={isPending}
+              >
+                <FileUp className="size-4" aria-hidden />
+                导入学生名册
+              </Button>
+            </div>
           </div>
 
-          <div className="flex items-center justify-end gap-1.5 text-xs text-on-surface-variant">
-            <span>批量操作：</span>
-            <IconButton label="下载">
-              <Download className="size-4" aria-hidden />
-            </IconButton>
-            <IconButton label="删除">
-              <Trash2 className="size-4" aria-hidden />
-            </IconButton>
+          <div className="pointer-events-none absolute -bottom-6 right-0 text-primary/10">
+            <School className="size-36 sm:size-40" aria-hidden />
           </div>
-        </div>
+        </section>
 
-        {/* Table view */}
-        {viewMode === "table" && (
-          <div className="space-y-2">
-            <div className="hidden grid-cols-[40px_minmax(0,2fr)_minmax(0,1fr)] gap-3 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant md:grid">
-              <div>
-                <input
-                  type="checkbox"
-                  className="size-3 rounded border border-outline-variant bg-surface-container-high"
-                />
-              </div>
-              <div>学生</div>
-              <div>学号</div>
+        <section className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-on-surface">班级列表</h2>
+              <p className="mt-1 text-sm text-on-surface-variant">页面默认只展示班级信息，不直接展开学生名册。</p>
             </div>
+            <Badge className="bg-surface-container-high text-on-surface-variant">点击编辑名称打开学生列表 Modal</Badge>
+          </div>
 
-            {filteredStudents.map((student) => (
+          <div className="space-y-3">
+            {classes.map((item) => (
               <article
-                key={student.idNumber}
+                key={item.id}
                 className={cn(
                   teacherSurfaceRhythm.card,
-                  "group grid gap-3 bg-surface-container-lowest px-3 py-3 shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-colors hover:bg-white md:grid-cols-[40px_minmax(0,2fr)_minmax(0,1fr)] md:items-center md:px-4",
+                  "grid gap-4 bg-surface-container-lowest px-4 py-4 shadow-[0_4px_16px_rgba(0,0,0,0.03)] lg:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,0.8fr))_auto] lg:items-center",
                 )}
               >
-                <div className="hidden md:flex">
-                  <input
-                    type="checkbox"
-                    className="size-3 rounded border border-outline-variant bg-surface-container-high"
-                  />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex md:hidden">
-                    <input
-                      type="checkbox"
-                      className="mt-1 size-3 rounded border border-outline-variant bg-surface-container-high"
-                    />
-                  </div>
-                  {student.avatar.startsWith("http") ? (
-                    <img
-                      src={student.avatar}
-                      alt={student.name}
-                      className="size-9 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                      {student.avatar}
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div className="grid size-11 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                      {item.name.replace(/\s+/g, "").slice(-1)}
                     </div>
-                  )}
-                  <div>
-                    <h3 className="text-sm font-semibold text-on-surface">
-                      {student.name}
-                    </h3>
-                    <p className="text-[10px] text-on-surface-variant md:hidden">
-                      学号：{student.idNumber}
-                    </p>
+                    <div>
+                      <h3 className="text-lg font-semibold text-on-surface">{item.name}</h3>
+                      <p className="mt-1 text-sm text-on-surface-variant">通过编辑名称进入该班学生列表与班级维护。</p>
+                    </div>
                   </div>
                 </div>
 
-                <p className="hidden text-xs text-on-surface-variant md:block">
-                  {student.idNumber}
-                </p>
+                <MetaCell label="班级人数" value={`${item.studentCount} 人`} />
+                <MetaCell label="班级状态" value={item.studentCount > 0 ? "已配置学生" : "待导入学生"} />
+
+                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                  <Button
+                    variant="secondary"
+                    className="min-h-10 gap-2 px-4 text-sm shadow-none"
+                    onClick={() => openStudentModal(item.id)}
+                  >
+                    <Users className="size-4" aria-hidden />
+                    查看学生
+                  </Button>
+                  <Button className="min-h-10 gap-2 px-4 text-sm" onClick={() => handleEditClassName(item)}>
+                    <Pencil className="size-4" aria-hidden />
+                    编辑名称
+                  </Button>
+                </div>
               </article>
             ))}
           </div>
-        )}
 
-        {/* Card view */}
-        {viewMode === "card" && (
-          <div className="flex flex-wrap gap-3">
-            {filteredStudents.map((student) => (
-              <StudentCard
-                key={student.idNumber}
-                avatar={student.avatar}
-                name={student.name}
-                idNumber={student.idNumber}
-                progress={student.progress}
-              />
-            ))}
+          <div className="flex items-center justify-end gap-2 pt-2 text-xs text-on-surface-variant">
+            <Download className="size-4" aria-hidden />
+            支持导入班级与学生名册，缺失班级时可直接创建。
           </div>
-        )}
+        </section>
+      </div>
 
-        <div className="flex items-center justify-between gap-4 pt-1 text-xs text-on-surface-variant">
-          <span>显示第 1 - 5 位学生，共 45 位</span>
+      <dialog
+        ref={studentDialogRef}
+        className={getNativeDialogClassName(studentViewMode === "list" ? "2xl" : "xl")}
+        onClick={handleStudentDialogBackdropClose}
+      >
+        <div className="p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Users className="size-5 text-primary" aria-hidden />
+                <h2 className="text-lg font-semibold text-on-surface">学生列表</h2>
+              </div>
+              <p className="mt-2 text-sm text-on-surface-variant">{selectedClass ? `当前班级：${selectedClass.name}` : "未选择班级"}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-full bg-surface-container-low p-1">
+                <button
+                  type="button"
+                  onClick={() => setStudentViewMode("cards")}
+                  className={cn(
+                    "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition",
+                    studentViewMode === "cards"
+                      ? "bg-surface-container-lowest text-primary shadow-[0_6px_18px_rgba(44,47,49,0.06)]"
+                      : "text-on-surface-variant hover:bg-surface-container-high",
+                  )}
+                >
+                  <Grid3X3 className="size-3.5" aria-hidden />
+                  卡片
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStudentViewMode("list")}
+                  className={cn(
+                    "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition",
+                    studentViewMode === "list"
+                      ? "bg-surface-container-lowest text-primary shadow-[0_6px_18px_rgba(44,47,49,0.06)]"
+                      : "text-on-surface-variant hover:bg-surface-container-high",
+                  )}
+                >
+                  <List className="size-3.5" aria-hidden />
+                  列表
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={closeStudentModal}
+                className="grid size-8 place-items-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high"
+                aria-label="关闭学生列表"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+          </div>
 
-          <div className="flex items-center gap-1.5">
-            <PaginationButton label="上一页">
-              <ChevronLeft className="size-4" aria-hidden />
-            </PaginationButton>
-            <PaginationButton label="下一页">
-              <ChevronRight className="size-4" aria-hidden />
-            </PaginationButton>
+          {selectedClass ? (
+            <>
+              <div className={cn(teacherSurfaceRhythm.card, "mt-5 bg-surface-container-low p-4")}>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="flex-1">
+                    <label className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">班级名称</label>
+                    <input
+                      type="text"
+                      value={draftNames[selectedClass.id] ?? selectedClass.name}
+                      onChange={(event) =>
+                        setDraftNames((current) => ({
+                          ...current,
+                          [selectedClass.id]: event.target.value,
+                        }))
+                      }
+                      className="mt-2 min-h-11 w-full rounded-[1rem] bg-surface-container-lowest px-4 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-primary/20"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    {editingClassId === selectedClass.id ? (
+                      <Button className="min-h-10 px-4 text-sm" onClick={() => handleSaveClassName(selectedClass.id)} disabled={isPending}>
+                        保存名称
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                <div className="rounded-[1.75rem] bg-surface-container-low p-3 shadow-[0_4px_16px_rgba(0,0,0,0.03)]">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="relative flex-1">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" aria-hidden />
+                        <input
+                          type="search"
+                          value={studentQuery}
+                          onChange={(event) => setStudentQuery(event.target.value)}
+                          placeholder="按姓名或学号搜索..."
+                          className="min-h-10 w-full rounded-full bg-surface-container-high pl-9 pr-4 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:bg-surface-container-lowest focus:ring-primary/20"
+                        />
+                      </div>
+                      <label className="inline-flex min-h-10 items-center gap-2 rounded-full bg-surface-container-high px-3 text-sm text-on-surface-variant">
+                        <Filter className="size-4 text-primary" aria-hidden />
+                        <select
+                          value={studentStatusFilter}
+                          onChange={(event) => setStudentStatusFilter(event.target.value as "all" | StudentStatus)}
+                          className="bg-transparent text-sm text-on-surface outline-none"
+                        >
+                          <option value="all">所有状态</option>
+                          <option value="已分配">已分配</option>
+                          <option value="未分配">未分配</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                      <Button
+                        variant="secondary"
+                        className="min-h-10 gap-2 px-4 text-sm shadow-none"
+                        onClick={() => handleExportStudents(filteredStudents)}
+                      >
+                        <Download className="size-4" aria-hidden />
+                        导出当前结果
+                      </Button>
+                      {studentViewMode === "list" ? (
+                        <>
+                          <span className="text-xs text-on-surface-variant">批量操作</span>
+                          <Button
+                            variant="secondary"
+                            className="min-h-10 px-4 text-sm shadow-none"
+                            onClick={handleBatchAction}
+                          >
+                            批量操作
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            className="min-h-10 gap-2 px-4 text-sm shadow-none"
+                            onClick={handleExportSelectedStudents}
+                          >
+                            <Download className="size-4" aria-hidden />
+                            导出选中
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {studentViewMode === "cards" ? (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+                    {filteredStudents.map((student) => (
+                      <button
+                        key={student.userId}
+                        type="button"
+                        onClick={() => toggleStudentSelection(student.userId)}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-1 rounded-[1.5rem] bg-surface-container-lowest p-3 text-center shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:bg-surface-bright",
+                          selectedStudentIds.includes(student.userId) && "ring-2 ring-primary/20",
+                        )}
+                      >
+                        <StudentProgressAvatar student={student} />
+                        <div className="mt-1">
+                          <div className="text-xs font-bold leading-tight text-on-surface">{student.name}</div>
+                          <div className="text-[10px] text-on-surface-variant">{student.studentNumber}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex flex-col gap-3 rounded-[1.75rem] bg-surface-container-low p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={toggleSelectAllFilteredStudents}
+                          className="inline-flex min-h-10 items-center gap-2 rounded-full bg-surface-container-highest px-4 text-sm font-medium text-primary transition hover:bg-surface-container-high"
+                        >
+                          {isAllFilteredStudentsSelected ? "取消全选" : "全选当前结果"}
+                        </button>
+                        <Badge className="bg-surface-container-lowest text-on-surface-variant">
+                          已选择 {selectedStudentIds.filter((id) => filteredStudents.some((student) => student.userId === id)).length} 名学生
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-on-surface-variant">列表模式支持按筛选结果批量导出与批量操作。</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {filteredStudents.map((student) => {
+                        const isSelected = selectedStudentIds.includes(student.userId);
+
+                        return (
+                          <article
+                            key={student.userId}
+                            className={cn(
+                              teacherSurfaceRhythm.card,
+                              "grid gap-4 bg-surface-container-low px-4 py-4 lg:grid-cols-[auto_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.8fr)] lg:items-center",
+                              isSelected && "ring-2 ring-primary/20",
+                            )}
+                          >
+                            <label className="flex items-center justify-center lg:justify-start">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleStudentSelection(student.userId)}
+                                className="size-4 rounded border-none bg-surface-container-high text-primary focus:ring-primary/20"
+                              />
+                            </label>
+
+                            <div className="flex items-center gap-3">
+                              <StudentProgressAvatar student={student} compact={false} />
+                              <div>
+                                <h3 className="text-sm font-semibold text-on-surface">{student.name}</h3>
+                                <p className="text-xs text-on-surface-variant">学号：{student.studentNumber}</p>
+                                <p className="text-xs text-on-surface-variant">性别：{formatStudentGenderForCsv(student.gender) || "未填写"}</p>
+                              </div>
+                            </div>
+
+                            <MetaCell label="状态" value={student.status} />
+                            <MetaCell label="进度边框" value={`${student.progressValue}%`} />
+                            <MetaCell label="账号标识" value={student.userId} />
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {filteredStudents.length === 0 ? (
+                <div className="mt-5 rounded-[1.25rem] bg-surface-container-low px-4 py-6 text-center text-sm text-on-surface-variant">
+                  {selectedClass.students.length === 0
+                    ? "当前班级暂无学生，导入学生名册后会显示在这里。"
+                    : "当前筛选条件下没有匹配的学生，请调整搜索或状态筛选。"}
+                </div>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      </dialog>
+
+      <dialog
+        ref={createClassDialogRef}
+        className={getNativeDialogClassName("sm")}
+        onClick={handleCreateClassDialogBackdropClose}
+      >
+        <div className="p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-on-surface">班级不存在</h2>
+              <p className="mt-2 text-sm text-on-surface-variant">
+                在导入学生名册时发现以下班级不存在：
+                {pendingRosterImport?.missingClassNames.length ? ` ${pendingRosterImport.missingClassNames.join("、")}` : " - "}
+                。是否先创建新班级再继续导入？
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={closeCreateClassDialog}
+              className="grid size-8 place-items-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high"
+              aria-label="关闭创建班级确认框"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              className="min-h-10 px-4 text-sm shadow-none"
+              onClick={() => {
+                setPendingRosterImport(null);
+                closeCreateClassDialog();
+                error("已取消导入", { description: "请先创建班级后再重新导入学生名册。" });
+              }}
+            >
+              取消
+            </Button>
+            <Button className="min-h-10 px-4 text-sm" onClick={handleCreateMissingClassAndImport} disabled={isPending}>
+              <Plus className="size-4" aria-hidden />
+              创建新班级并导入
+            </Button>
           </div>
         </div>
-      </section>
-    </div>
+      </dialog>
+    </>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex min-w-[96px] flex-col gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">
-        {label}
-      </span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{label}</span>
       <span className="text-xl font-semibold text-primary">{value}</span>
     </div>
   );
 }
 
-function FilterPill({
-  label,
-  active = false,
-  onClick,
-}: {
-  label: string;
-  active?: boolean;
-  onClick?: () => void;
-}) {
+function MetaCell({ label, value }: { label: string; value: string }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        active
-          ? "min-h-9 rounded-[0.75rem] bg-primary/10 px-3 text-xs font-medium text-primary ring-1 ring-primary/20 transition-colors"
-          : "min-h-9 rounded-[0.75rem] bg-surface-container-high px-3 text-xs font-medium text-on-surface transition-colors hover:bg-surface-container-highest"
-      }
-    >
-      {label}
-    </button>
+    <div>
+      <p className="text-xs uppercase tracking-[0.18em] text-on-surface-variant">{label}</p>
+      <p className="mt-2 text-sm font-medium text-on-surface">{value}</p>
+    </div>
   );
 }
 
-function IconButton({
-  children,
-  label,
+function StudentProgressAvatar({
+  student,
+  compact = true,
 }: {
-  children: React.ReactNode;
-  label: string;
+  student: StudentRecord;
+  compact?: boolean;
 }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary"
-    >
-      {children}
-    </button>
-  );
-}
+  const sizeClass = compact ? "size-12" : "size-11";
+  const innerSizeClass = compact ? "size-9 text-xs" : "size-9 text-sm";
+  const strokeColor = student.progressValue >= 72 ? "text-primary" : "text-tertiary";
+  const avatarSrc = getStudentDefaultAvatarSrc(student.gender);
 
-function PaginationButton({
-  children,
-  label,
-}: {
-  children: React.ReactNode;
-  label: string;
-}) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      className="grid size-8 place-items-center rounded-full bg-surface-container-lowest text-on-surface-variant transition-colors hover:bg-surface-container-high"
-    >
-      {children}
-    </button>
-  );
-}
-
-function StudentCard({
-  avatar,
-  name,
-  idNumber,
-  progress,
-}: {
-  avatar: string;
-  name: string;
-  idNumber: string;
-  progress: number;
-}) {
-  const ringColor = progress >= 75 ? "text-primary" : "text-tertiary";
-  return (
-    <article
-      className={cn(
-        teacherSurfaceRhythm.card,
-        "flex aspect-square w-[7.5rem] shrink-0 flex-col items-center justify-start gap-1.5 bg-surface-container-lowest px-2 pt-4 pb-3 text-center shadow-[0_4px_16px_rgba(0,0,0,0.04)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]",
-      )}
-    >
-      {/* Avatar + ring container */}
-      <div className="relative flex size-16 items-center justify-center">
-        <svg
-          className="absolute inset-0 size-full -rotate-90"
-          viewBox="0 0 36 36"
-          aria-hidden
-        >
-          {/* Track */}
-          <path
-            className="text-surface-container-highest"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-          />
-          {/* Progress arc */}
-          <path
-            className={ringColor}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray={`${progress}, 100`}
-            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-          />
-        </svg>
-        {avatar.startsWith("http") ? (
-          <img
-            src={avatar}
-            alt={name}
-            className="relative z-10 size-11 rounded-full object-cover"
-          />
-        ) : (
-          <div className="relative z-10 grid size-11 place-items-center rounded-full bg-primary/10 text-base font-semibold text-primary">
-            {avatar}
-          </div>
-        )}
+    <div className={cn("relative flex items-center justify-center", sizeClass)}>
+      <svg className="absolute inset-0 size-full -rotate-90" viewBox="0 0 36 36" aria-hidden>
+        <path
+          className="text-surface-container-highest"
+          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+        />
+        <path
+          className={strokeColor}
+          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={`${student.progressValue}, 100`}
+        />
+      </svg>
+      <div className={cn("relative z-10 overflow-hidden rounded-full bg-primary/10", innerSizeClass)}>
+        <img src={avatarSrc} alt="" aria-hidden className="size-full object-cover" />
       </div>
-      {/* Text */}
-      <div className="flex flex-col items-center gap-0.5">
-        <span className="text-base font-bold leading-none text-on-surface">
-          {name}
-        </span>
-        <span className="text-sm font-medium leading-none text-on-surface-variant">
-          {idNumber}
-        </span>
-      </div>
-    </article>
+    </div>
   );
 }

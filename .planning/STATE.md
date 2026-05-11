@@ -87,6 +87,7 @@ progress:
 - [Quick 260511-sqe]: `/teacher/schedule` 主页面现在在 hero 下方提供 4 个快捷操作卡片，直接跳转到导入、单次变更与节假日、AI 助手和提醒配置；视觉上继续复用 `teacherSurfaceRhythm.section/cardInset`，不新增 schedule 专用导航壳层。
 - [Quick 260511-mdi]: `/teacher/schedule/import` 现在提供与 `ScheduleImportDraftRowInputSchema` 对齐的 CSV 导入模板下载；模板列、示例行与 CSV 文本统一由 feature helper 生成，并在导入审核页 hero 直接提供下载入口。
 - [Quick 260511-on3]: `/teacher/schedule` hero 区现增加"导入课表"按钮，点击弹出原生 `<dialog>` Modal；使用 papaparse 客户端解析 CSV + 中文字段映射，`schoolId` 由 `TeacherDailyAgendaDTO` 注入，完成后自动跳转到 `/teacher/schedule/import` 审核页；状态机：`idle → parsing → submitting → done/error`。
+- [Quick 260511-r3g]: `/teacher/schedule` 现在内联承载最新导入审核区与完整周课表；导入成功后回到 `/teacher/schedule#import-review`，旧 `/teacher/schedule/import` 页面直接重定向回主课表页。
 
 **Active Blockers:**
 
@@ -199,10 +200,12 @@ progress:
 | 260511-mv9 | 将 /teacher/schedule/import 页面的导入模板字段名改为中文，并修改导入代码能够正确识别中文字段 | 2026-05-11 | aa94f76 | [260511-mv9-teacher-schedule-import](./quick/260511-mv9-teacher-schedule-import/) |
 | 260511-nuf | 在课程表导入模板中增加上课时间字段（bellSlotStartTime/bellSlotEndTime），并修改导入 server 支持导入上课时间 | 2026-05-11 | 740f867 | [260511-nuf-schedule-import-time](./quick/260511-nuf-schedule-import-time/) |
 | 260511-on3 | 为 /teacher/schedule 页面增加导入课表 Modal，点击弹出文件选择框并上传 CSV，自动跳转到审核页 | 2026-05-11 | 6601fba | [260511-on3-teacher-schedule-modal-sse](./quick/260511-on3-teacher-schedule-modal-sse/) |
+| 260511-r3g | 移除 /teacher/schedule/import 作为主用户流落点，导入成功后回到 /teacher/schedule，并在主页面最后一个 section 显示完整周课表 | 2026-05-11 | pending | [260511-r3g-teacher-schedule-import-teacher-schedule](./quick/260511-r3g-teacher-schedule-import-teacher-schedule/) |
+| 260511-tpe | 修复 /teacher/classes 学生列表 dialog/modal 宽度异常，并收口同类原生 dialog 宽度写法，补充回归测试 | 2026-05-11 | 待提交 | [260511-tpe-teacher-classes-student-dialog-width](./quick/260511-tpe-teacher-classes-student-dialog-width/) |
 
 ## Current Position
 
 Phase: 20 (help-center-and-developer-guides) — COMPLETE
 Plan: 3 of 3
 Status: Phase 20 complete
-Last activity: 2026-05-11 - Completed quick task 260511-mdi: 为 /teacher/schedule/import 添加课程表导入模板下载，根据导入的代码和逻辑生成导入模板
+Last activity: 2026-05-11 - Completed quick task 260511-tpe: 修复 /teacher/classes 学生列表 dialog/modal 宽度异常，并收口同类原生 dialog 宽度写法，补充回归测试

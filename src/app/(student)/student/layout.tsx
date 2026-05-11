@@ -25,7 +25,7 @@ async function StudentLayoutContent({
   const user = await getCurrentUserDTO();
 
   if (!user) {
-    redirect("/login");
+    redirect("/");
   }
 
   const memberships = await getUserMembershipsDTO(user.id);

@@ -7,6 +7,7 @@ import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 
 import { setActiveThemeAction } from "@/actions/theme-actions";
 import { Button } from "@/components/ui/button";
+import { getNativeDialogClassName, useNativeDialogBackdropClose } from "@/components/ui/native-dialog";
 import { AuthoringStatusPanel } from "@/components/authoring/authoring-status-panel";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import type { LessonEditorDTO } from "@/lib/dto/lesson-authoring";
@@ -111,6 +112,7 @@ export function EditorSettingsModal({
   const closeModal = useCallback(() => {
     dialogRef.current?.close();
   }, []);
+  const handleDialogBackdropClose = useNativeDialogBackdropClose(dialogRef, closeModal);
 
   const handlePreviewTheme = useCallback(() => {
     setPreviewThemeId(draftThemeId);
@@ -156,11 +158,8 @@ export function EditorSettingsModal({
       {/* Native <dialog> modal with backdrop */}
       <dialog
         ref={dialogRef}
-        className="m-auto w-full max-w-lg rounded-[var(--radius-shell)] bg-surface-container-lowest p-0 shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm open:animate-in open:fade-in-0 open:zoom-in-95"
-        onClick={(e) => {
-          // Close when clicking the backdrop (the <dialog> element itself)
-          if (e.target === dialogRef.current) closeModal();
-        }}
+        className={getNativeDialogClassName("md", "open:animate-in open:fade-in-0 open:zoom-in-95")}
+        onClick={handleDialogBackdropClose}
       >
         <div className="p-6">
           {/* Header */}

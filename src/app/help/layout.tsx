@@ -13,7 +13,7 @@ export default async function HelpLayout({ children }: { children: ReactNode }) 
   const user = await getCurrentUserDTO();
 
   if (!user) {
-    redirect("/login");
+    redirect("/");
   }
 
   const memberships = await getUserMembershipsDTO(user.id);

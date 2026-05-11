@@ -33,7 +33,7 @@ async function TeacherLayoutContent({
   const user = await getCurrentUserDTO();
 
   if (!user) {
-    redirect("/login");
+    redirect("/");
   }
 
   const memberships = await getUserMembershipsDTO(user.id);

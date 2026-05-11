@@ -57,7 +57,7 @@ export function HomeSurface() {
             </div>
 
             <Link
-              href="/login"
+              href="/"
               className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-white/90"
             >
               进入系统
@@ -86,7 +86,7 @@ export function HomeSurface() {
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <Link
-                href="/login"
+                href="/"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-[#7c3aed] via-[#2563eb] to-[#2dd4bf] px-6 py-3 text-sm font-semibold text-white shadow-[0_24px_70px_rgba(37,99,235,0.32)] transition hover:scale-[1.01]"
               >
                 立即进入体验

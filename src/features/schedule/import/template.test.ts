@@ -5,6 +5,7 @@ import { ScheduleImportDraftRowInputSchema } from "@/features/schedule/shared/dt
 import {
   SCHEDULE_IMPORT_COLUMN_MAP,
   buildScheduleImportTemplateCsv,
+  isScheduleImportTemplateSampleRow,
   scheduleImportTemplateChineseHeaders,
   scheduleImportTemplateColumns,
   scheduleImportTemplateSampleRows,
@@ -77,5 +78,15 @@ describe("schedule import template", () => {
     expect(csv).toContain("08:45");
     expect(csv).toContain("示例高一数学");
     expect(csv.split("\n").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("recognizes untouched template sample rows", () => {
+    expect(isScheduleImportTemplateSampleRow(scheduleImportTemplateSampleRows[0])).toBe(true);
+    expect(
+      isScheduleImportTemplateSampleRow({
+        ...scheduleImportTemplateSampleRows[0],
+        courseTitle: "真实数学",
+      }),
+    ).toBe(false);
   });
 });

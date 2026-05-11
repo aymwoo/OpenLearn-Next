@@ -4,6 +4,7 @@ import { Lexend } from 'next/font/google'
 import './globals.css'
 
 import { ThemeInjector } from '@/components/theme/theme-injector'
+import { ToastProvider } from '@/components/ui/toast'
 
 const lexend = Lexend({ subsets: ['latin'], variable: '--font-lexend' })
 
@@ -16,10 +17,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className={lexend.variable}>
-        <Suspense fallback={null}>
-          <ThemeInjector />
-        </Suspense>
-        {children}
+        <ToastProvider>
+          <Suspense fallback={null}>
+            <ThemeInjector />
+          </Suspense>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   )

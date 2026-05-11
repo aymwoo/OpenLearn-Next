@@ -21,6 +21,7 @@ import {
   ClassDailyAgendaCardDTOSchema,
   TeacherDailyAgendaCardDTOSchema,
   TeacherDailyAgendaDTOSchema,
+  TeacherWeeklyScheduleCellDTOSchema,
 } from "@/features/schedule/shared/dto/runtime";
 
 function dateKey(input?: string) {
@@ -51,6 +52,28 @@ function weekdayOf(date: string) {
 
 function weekdayLabel(date: string) {
   return ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][weekdayOf(date)] ?? "未知";
+}
+
+function addDays(date: string, days: number) {
+  const next = toDate(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next.toISOString().slice(0, 10);
+}
+
+function weekRange(date: string) {
+  const todayWeekday = weekdayOf(date);
+  const mondayOffset = todayWeekday === 0 ? -6 : 1 - todayWeekday;
+  const monday = addDays(date, mondayOffset);
+  const days = Array.from({ length: 5 }, (_, index) => addDays(monday, index));
+  return {
+    monday,
+    friday: days[4],
+    days,
+  };
+}
+
+function weekRangeLabel(start: string, end: string) {
+  return `${start.slice(5)} - ${end.slice(5)}`;
 }
 
 function agendaStatus(slot: { startsAt: string; endsAt: string }, overrideAction?: "substitute" | "cancel" | "move" | null) {
@@ -189,6 +212,72 @@ function buildTeacherCard(args: {
   });
 }
 
+function buildWeeklySchedule(args: {
+  runtime: Awaited<ReturnType<typeof loadAgendaRuntimeRecords>>;
+  requestedDate: string;
+}) {
+  const assignmentMap = new Map(args.runtime.assignments.map((item) => [item.id, item]));
+  const classMap = new Map(args.runtime.classRows.map((item) => [item.id, item.name]));
+  const courseMap = new Map(args.runtime.courseRows.map((item) => [item.id, item.title]));
+  const slotMap = new Map(args.runtime.bellSlots.map((item) => [item.id, item]));
+  const overrideMap = new Map(
+    args.runtime.overrides.map((item) => [`${item.recurringEntryId}:${item.effectiveDate}`, item] as const),
+  );
+  const holidayMap = new Map(args.runtime.holidayDates.map((item) => [item.date, item]));
+  const { days, monday, friday } = weekRange(args.requestedDate);
+
+  const slotRows = [...args.runtime.bellSlots].sort((left, right) => left.sortOrder - right.sortOrder);
+  const entryMap = new Map<string, RuntimeEntry>();
+  for (const entry of args.runtime.recurringEntries) {
+    entryMap.set(`${entry.weekday}:${entry.bellSlotId}`, entry);
+  }
+
+  return {
+    rangeLabel: weekRangeLabel(monday, friday),
+    weekdays: days.map((day, index) => ({
+      key: day,
+      label: `${weekdayLabel(day)} ${day.slice(5)}`,
+      shortLabel: weekdayLabel(day),
+      isToday: day === args.requestedDate,
+    })),
+    rows: slotRows.map((slot) => ({
+      slotId: slot.id,
+      bellSlotLabel: slot.label,
+      timeLabel: `${slot.startsAt} - ${slot.endsAt}`,
+      cells: days.map((day, index) => {
+        const weekday = index + 1;
+        const entry = entryMap.get(`${weekday}:${slot.id}`);
+        if (!entry) {
+          return null;
+        }
+
+        const assignment = assignmentMap.get(entry.assignmentId);
+        if (!assignment) {
+          return null;
+        }
+
+        const override = overrideMap.get(`${entry.id}:${day}`);
+        const holiday = holidayMap.get(day);
+        const holidayLabel = holiday && holiday.dayType !== "teaching" && holiday.dayType !== "make_up" ? holiday.label : null;
+        const resolvedSlot = slotMap.get(override?.replacementBellSlotId ?? entry.bellSlotId) ?? slot;
+
+        return TeacherWeeklyScheduleCellDTOSchema.parse({
+          id: `${entry.id}:${day}`,
+          weekday,
+          weekdayLabel: weekdayLabel(day),
+          timeLabel: `${resolvedSlot.startsAt} - ${resolvedSlot.endsAt}`,
+          bellSlotLabel: resolvedSlot.label,
+          classLabel: classMap.get(assignment.classId) ?? "未命名班级",
+          locationLabel: override?.replacementRoomLabel ?? assignment.roomLabel ?? entry.roomLabel ?? "地点待定",
+          courseTitle: courseMap.get(assignment.courseId) ?? "未命名课程",
+          status: holidayLabel ? "停课" : agendaStatus(resolvedSlot, override?.actionType ?? null),
+          overrideSummary: holidayLabel ?? override?.reason ?? null,
+        });
+      }),
+    })),
+  };
+}
+
 async function getCachedTeacherDailyAgenda(actorId: string, schoolIds: string[], requestedDate: string) {
   "use cache";
 
@@ -232,6 +321,8 @@ async function getCachedTeacherDailyAgenda(actorId: string, schoolIds: string[],
     .filter((card): card is ReturnType<typeof TeacherDailyAgendaCardDTOSchema.parse> => Boolean(card))
     .sort((left, right) => left.timeLabel.localeCompare(right.timeLabel));
 
+  const weeklySchedule = buildWeeklySchedule({ runtime, requestedDate });
+
   return TeacherDailyAgendaDTOSchema.parse({
     teacherId: actorId,
     schoolId: schoolIds[0] ?? "",
@@ -240,6 +331,7 @@ async function getCachedTeacherDailyAgenda(actorId: string, schoolIds: string[],
     weekLabel: weekdayLabel(requestedDate),
     nextClassCountdownLabel: cards[0] ? `下一节课 ${cards[0].timeLabel}` : null,
     cards,
+    weeklySchedule,
   });
 }
 

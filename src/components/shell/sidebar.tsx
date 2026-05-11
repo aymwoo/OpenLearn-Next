@@ -36,6 +36,7 @@ type SidebarProps = {
 export function Sidebar({ items, activePath, title = '光启书院', region = 'primary-nav', className }: SidebarProps) {
   const pathname = usePathname()
   const compact = region === 'secondary-nav'
+  const currentPath = pathname || activePath || ''
 
   const renderIcon = (iconName?: string) => {
     switch (iconName) {
@@ -75,7 +76,6 @@ export function Sidebar({ items, activePath, title = '光启书院', region = 'p
 
         <nav className="flex flex-col gap-1.5" aria-label={compact ? '教师端辅栏导航' : '教师端侧边导航'}>
           {items.map((item) => {
-            const currentPath = activePath ?? pathname
             const active = currentPath === item.href || (item.href !== '/teacher' && currentPath.startsWith(item.href))
 
             return (

@@ -1,25 +1,100 @@
 "use server";
 
 import { updateTag } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { approveScheduleImport, draftScheduleImport, type ScheduleImportActionError } from "@/features/schedule/import/server";
+import { approveScheduleImport, deleteScheduleImportBatch, draftScheduleImport, type ScheduleImportActionError } from "@/features/schedule/import/server";
 import { assertScheduleTeacherScope } from "@/features/schedule/shared/auth";
 import { invalidateScheduleImportTags } from "@/features/schedule/shared/cache";
 import { ApproveScheduleImportInputSchema, ScheduleImportDraftInputSchema } from "@/features/schedule/shared/dto/import";
-import { SCHEDULE_IMPORT_COLUMN_MAP } from "@/features/schedule/import/template";
+import { normalizeScheduleImportColumnHeader, SCHEDULE_IMPORT_COLUMN_MAP } from "@/features/schedule/import/template";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; message: string; issues?: unknown[] };
+const DeleteScheduleImportBatchInputSchema = z.object({ batchId: z.string().min(1) }).strict();
+
+function normalizeImportTimeValue(value: unknown) {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const matched = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (!matched) {
+    return trimmed;
+  }
+
+  const [, hours, minutes] = matched;
+  return `${hours.padStart(2, "0")}:${minutes}`;
+}
+
+function normalizeImportRow(row: Record<string, unknown>) {
+  const mapped: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(row)) {
+    const normalizedKey = normalizeScheduleImportColumnHeader(key);
+    const englishKey = SCHEDULE_IMPORT_COLUMN_MAP[normalizedKey as keyof typeof SCHEDULE_IMPORT_COLUMN_MAP] ?? normalizedKey;
+
+    if (englishKey === "weekday") {
+      if (typeof value === "number") {
+        mapped[englishKey] = value;
+        continue;
+      }
+
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        mapped[englishKey] = trimmed === "" ? value : Number(trimmed);
+        continue;
+      }
+    }
+
+    if (englishKey === "bellSlotStartTime" || englishKey === "bellSlotEndTime") {
+      mapped[englishKey] = normalizeImportTimeValue(value);
+      continue;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      mapped[englishKey] = trimmed === "" ? (englishKey === "roomLabel" ? null : "") : trimmed;
+      continue;
+    }
+
+    mapped[englishKey] = value;
+  }
+
+  return mapped;
+}
+
+function normalizeDraftScheduleImportInput(input: FormData | Record<string, unknown>) {
+  const normalized = input instanceof FormData ? Object.fromEntries(input.entries()) : { ...input };
+
+  if (typeof normalized.rows === "string") {
+    try {
+      normalized.rows = JSON.parse(normalized.rows) as unknown;
+    } catch {
+      return normalized;
+    }
+  }
+
+  if (normalized.rows && Array.isArray(normalized.rows)) {
+    normalized.rows = normalized.rows.map((row) => {
+      if (!row || typeof row !== "object") {
+        return row;
+      }
+
+      return normalizeImportRow(row as Record<string, unknown>);
+    });
+  }
+
+  return normalized;
+}
 
 function transformChineseKeys<T extends Record<string, unknown>>(rows: T[]): T[] {
-  return rows.map((row) => {
-    const mapped: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(row)) {
-      const englishKey = SCHEDULE_IMPORT_COLUMN_MAP[key as keyof typeof SCHEDULE_IMPORT_COLUMN_MAP];
-      mapped[englishKey ?? key] = value;
-    }
-    return mapped as T;
-  });
+  return rows.map((row) => normalizeImportRow(row) as T);
 }
 
 function handleScheduleError(error: unknown) {
@@ -45,7 +120,7 @@ function handleScheduleError(error: unknown) {
 }
 
 export async function draftScheduleImportAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
-  const normalized = input instanceof FormData ? Object.fromEntries(input.entries()) : input;
+  const normalized = normalizeDraftScheduleImportInput(input);
 
   // Transform Chinese keys to English keys before validation
   if (normalized.rows && Array.isArray(normalized.rows)) {
@@ -82,4 +157,18 @@ export async function approveScheduleImportAction(input: FormData | Record<strin
   } catch (error) {
     return handleScheduleError(error);
   }
+}
+
+export async function deleteScheduleImportBatchAction(batchId: string) {
+  const parsed = DeleteScheduleImportBatchInputSchema.parse({ batchId });
+  const actor = await assertScheduleTeacherScope();
+  const deleted = await deleteScheduleImportBatch(parsed.batchId);
+
+  invalidateScheduleImportTags(updateTag, {
+    actorId: actor.userId,
+    schoolId: deleted.schoolId,
+    batchId: deleted.id,
+  });
+
+  redirect("/teacher/schedule");
 }

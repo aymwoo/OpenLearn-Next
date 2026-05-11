@@ -171,6 +171,10 @@ export function ScheduleImportReviewSurface({ batch }: { batch: ScheduleImportBa
   );
 }
 
+export function EmbeddedScheduleImportReviewSurface({ batch }: { batch: ScheduleImportBatchDTO | null }) {
+  return <ScheduleImportReviewSurface batch={batch} />;
+}
+
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className={cn(teacherSurfaceRhythm.cardInset, "p-5")}>

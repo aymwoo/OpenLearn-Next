@@ -28,6 +28,7 @@ import {
   type ScheduleImportValidationIssue,
 } from "@/features/schedule/shared/dto/import";
 import { appendScheduleAudit } from "@/features/schedule/shared/audit";
+import { buildScheduleImportCsv } from "./template";
 
 type ScheduleDbLike = Pick<typeof db, "query" | "insert" | "update">;
 
@@ -477,6 +478,89 @@ export async function getLatestScheduleImportBatchDTO(input?: { schoolId?: strin
   });
   const latest = [...batches].sort((left, right) => Number(right.createdAt ?? 0) - Number(left.createdAt ?? 0))[0];
   return latest ? loadScheduleImportBatchDTO(latest.id) : null;
+}
+
+export async function listScheduleImportBatchDTOs(input?: { schoolId?: string }) {
+  const scope = await assertScheduleTeacherScope();
+  const schoolId = input?.schoolId ?? scope.schoolIds[0] ?? null;
+  if (!schoolId || !scope.schoolIds.includes(schoolId)) {
+    throw new Error("TEACHER_AUTH_REQUIRED");
+  }
+
+  const batches = await db.query.scheduleImportBatch.findMany({
+    where: eq(scheduleImportBatch.schoolId, schoolId),
+  });
+
+  const sortedBatches = [...batches].sort((left, right) => Number(right.createdAt ?? 0) - Number(left.createdAt ?? 0));
+  return Promise.all(sortedBatches.map((batch) => loadScheduleImportBatchDTO(batch.id)));
+}
+
+export async function deleteScheduleImportBatch(batchId: string) {
+  const batch = await db.query.scheduleImportBatch.findFirst({
+    where: eq(scheduleImportBatch.id, batchId),
+  });
+
+  if (!batch) {
+    throw new Error("SCHEDULE_IMPORT_BATCH_NOT_FOUND");
+  }
+
+  const scope = await assertScheduleSchoolScope(batch.schoolId);
+
+  await db.transaction(async (tx) => {
+    await tx.delete(scheduleImportBatch).where(eq(scheduleImportBatch.id, batch.id));
+
+    await appendScheduleAudit(tx, {
+      schoolId: batch.schoolId,
+      entityType: "scheduleImportBatch",
+      entityId: batch.id,
+      actionType: "delete_import",
+      actorId: scope.userId,
+      payloadJson: {
+        sourceLabel: batch.sourceLabel,
+        rowCount: batch.rowCount,
+        status: batch.status,
+      },
+    });
+  });
+
+  return { id: batch.id, schoolId: batch.schoolId };
+}
+
+export async function exportScheduleImportBatchCsv(batchId: string) {
+  const batch = await db.query.scheduleImportBatch.findFirst({
+    where: eq(scheduleImportBatch.id, batchId),
+  });
+
+  if (!batch) {
+    throw new Error("SCHEDULE_IMPORT_BATCH_NOT_FOUND");
+  }
+
+  await assertScheduleSchoolScope(batch.schoolId);
+
+  const rows = await db.query.scheduleImportRow.findMany({
+    where: eq(scheduleImportRow.batchId, batchId),
+  });
+
+  const draftRows = rows
+    .map((row) => row.normalizedDraftJson)
+    .filter((row): row is ScheduleImportDraftRowInput => Boolean(row));
+
+  return {
+    csv: buildScheduleImportCsv(draftRows),
+    fileName: `${sanitizeBatchFileName(batch.sourceLabel)}.csv`,
+  };
+}
+
+function sanitizeBatchFileName(value: string) {
+  const normalized = value
+    .trim()
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return normalized || "teacher-schedule-export";
 }
 
 export async function approveScheduleImport(input: ApproveScheduleImportInput) {

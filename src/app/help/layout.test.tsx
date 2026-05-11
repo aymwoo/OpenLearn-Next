@@ -41,10 +41,10 @@ describe("HelpLayout auth guard", () => {
     getUserMembershipsDTO.mockResolvedValue([{ role: "teacher", status: "active", schoolId: "school-1" }]);
   });
 
-  it("redirects to login when user is missing", async () => {
+  it("redirects to home when user is missing", async () => {
     getCurrentUserDTO.mockResolvedValue(null);
 
-    await expect(HelpLayout({ children: <div>help content</div> })).rejects.toThrow("REDIRECT:/login");
+    await expect(HelpLayout({ children: <div>help content</div> })).rejects.toThrow("REDIRECT:/");
     expect(getUserMembershipsDTO).not.toHaveBeenCalled();
   });
 

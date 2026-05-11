@@ -103,4 +103,10 @@ describe("ScheduleImportReviewSurface", () => {
       "/teacher/schedule/import/template",
     );
   });
+
+  it("shows the empty-state review copy when there is no latest batch yet", () => {
+    render(<ScheduleImportReviewSurface batch={null} />);
+
+    expect(screen.getByText("还没有可审核的导入批次。下一步可以先发起导入，再回到这里逐行确认课表映射结果。")).toBeTruthy();
+  });
 });

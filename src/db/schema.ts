@@ -7,6 +7,8 @@ export const users = sqliteTable("user", {
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name"),
   email: text("email").unique(),
+  studentNumber: text("studentNumber").unique(),
+  gender: text("gender"),
   emailVerified: integer("emailVerified", { mode: "timestamp_ms" }),
   password: text("password"),
   image: text("image"),

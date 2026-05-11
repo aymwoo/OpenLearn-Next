@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+let mockPathname = "/teacher";
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
     <a href={href} {...props}>
@@ -13,7 +15,7 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/teacher",
+  usePathname: () => mockPathname,
 }));
 
 vi.mock("@/lib/dal/themes", () => ({
@@ -21,6 +23,7 @@ vi.mock("@/lib/dal/themes", () => ({
 }));
 
 afterEach(() => {
+  mockPathname = "/teacher";
   cleanup();
 });
 
@@ -152,6 +155,36 @@ describe("TeacherSidebarShell theme layout hooks", () => {
     expect(pageHeader?.className).toContain("rounded-[1.5rem]");
     expect(mainContent?.className).toContain("flex-1 overflow-y-auto");
     expect(within(primaryNav).getByRole("link", { name: "工作台" }).getAttribute("aria-current")).toBe("page");
+  });
+
+  it("highlights class management instead of dashboard on class routes", () => {
+    mockPathname = "/teacher/classes";
+
+    render(
+      <TeacherSidebarShellFrame
+        routeKey="/teacher/classes"
+        activePath="/teacher/classes"
+        shellVariant="left-nav"
+        shellConfig={{
+          mode: "left-nav",
+          radius: "rounded",
+          width: "default",
+          chrome: "default",
+        }}
+        surfaceMetadata={buildSurfaceMetadata({
+          routeKey: "/teacher/classes",
+          label: "班级管理",
+        })}
+        themeSource="default"
+      >
+        <div>主内容</div>
+      </TeacherSidebarShellFrame>,
+    );
+
+    const primaryNav = screen.getByRole("navigation", { name: "教师端侧边导航" });
+
+    expect(within(primaryNav).getByRole("link", { name: "班级管理" }).getAttribute("aria-current")).toBe("page");
+    expect(within(primaryNav).getByRole("link", { name: "工作台" }).getAttribute("aria-current")).toBeNull();
   });
 
   it("renders shell regions from metadata visibility only", () => {
