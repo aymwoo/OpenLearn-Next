@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const dashboardSurfaceSource = readFileSync("src/components/surfaces/teacher-dashboard-surface.tsx", "utf8");
 const teacherPageSource = readFileSync("src/app/(teacher)/teacher/page.tsx", "utf8");
+const stageHeroSource = readFileSync("src/components/surfaces/stage-hero.tsx", "utf8");
 
 describe("Teacher dashboard surface layout guards", () => {
   it("keeps the dashboard surface full width without local narrow wrappers", () => {
@@ -11,6 +12,8 @@ describe("Teacher dashboard surface layout guards", () => {
     expect(dashboardSurfaceSource).not.toContain("mx-auto flex w-full flex-col");
     expect(teacherPageSource).toContain('className="min-h-full w-full p-6 lg:p-8"');
     expect(teacherPageSource).not.toContain("mx-auto");
+    expect(stageHeroSource).toContain("'relative w-full overflow-hidden rounded-[var(--radius-shell)] bg-[#09192f] text-white shadow-[0_28px_80px_rgba(2,6,23,0.24)]'");
+    expect(stageHeroSource).toContain("contentColumnClassName");
   });
 
   it("removes rounded shells from the /teacher hero and plugin section", () => {

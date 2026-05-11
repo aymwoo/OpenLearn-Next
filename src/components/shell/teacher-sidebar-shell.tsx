@@ -130,30 +130,34 @@ export function TeacherSidebarShellFrame({
           </div>
         ) : null}
 
-        <section className="shrink-0 px-5 pb-4 pt-5 sm:px-6" data-region="page-header">
-          {usesActiveThemeShell ? (
-            <StageHero
-              badge={resolveSurfaceLabel(routeKey)}
-              title={shellTitle}
-              description={headerDescription ?? surface.summary.description}
-              titleClassName="text-[2rem] sm:text-[2.4rem]"
-              aside={
-                headerActions ? <div className="flex flex-wrap items-center justify-start gap-3 lg:justify-end">{headerActions}</div> : null
-              }
-            />
-          ) : (
-            <div className={isTeacherHome ? "bg-surface-container-lowest px-5 py-5 shadow-ambient" : "rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"}>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-on-surface-variant">page-header</p>
-                  <h1 className="mt-2 text-2xl font-semibold text-on-surface">{shellTitle}</h1>
-                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">{headerDescription ?? surface.summary.description}</p>
-                </div>
-                {headerActions ? <div className="flex flex-wrap items-center gap-3">{headerActions}</div> : null}
+        {usesActiveThemeShell ? (
+          <StageHero
+            badge={resolveSurfaceLabel(routeKey)}
+            title={shellTitle}
+            description={headerDescription ?? surface.summary.description}
+            data-region="page-header"
+            className="w-full shrink-0 rounded-none"
+            contentColumnClassName="max-w-none"
+            titleClassName="text-[2rem] sm:text-[2.4rem]"
+            aside={
+              headerActions ? <div className="flex flex-wrap items-center justify-start gap-3 lg:justify-end">{headerActions}</div> : null
+            }
+          />
+        ) : (
+          <div
+            className={isTeacherHome ? "w-full shrink-0 bg-surface-container-lowest px-5 py-5 shadow-ambient" : "w-full shrink-0 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"}
+            data-region="page-header"
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-on-surface-variant">page-header</p>
+                <h1 className="mt-2 text-2xl font-semibold text-on-surface">{shellTitle}</h1>
+                <p className="mt-2 text-sm leading-6 text-on-surface-variant">{headerDescription ?? surface.summary.description}</p>
               </div>
+              {headerActions ? <div className="flex flex-wrap items-center gap-3">{headerActions}</div> : null}
             </div>
-          )}
-        </section>
+          </div>
+        )}
 
         <div className="flex min-h-0 flex-1 gap-4 px-5 pb-5 sm:px-6">
           {secondaryNavVisible ? (

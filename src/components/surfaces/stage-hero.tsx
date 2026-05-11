@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -11,8 +11,9 @@ type StageHeroProps = {
   aside?: ReactNode
   actions?: ReactNode
   className?: string
+  contentColumnClassName?: string
   titleClassName?: string
-}
+} & Omit<ComponentPropsWithoutRef<'section'>, 'title'>
 
 export function StageHero({
   badge,
@@ -22,12 +23,15 @@ export function StageHero({
   aside,
   actions,
   className,
+  contentColumnClassName,
   titleClassName,
+  ...props
 }: StageHeroProps) {
   return (
     <section
+      {...props}
       className={cn(
-        'relative overflow-hidden rounded-[var(--radius-shell)] bg-[#09192f] text-white shadow-[0_28px_80px_rgba(2,6,23,0.24)]',
+        'relative w-full overflow-hidden rounded-[var(--radius-shell)] bg-[#09192f] text-white shadow-[0_28px_80px_rgba(2,6,23,0.24)]',
         className,
       )}
     >
@@ -36,7 +40,7 @@ export function StageHero({
 
       <div className="relative px-5 py-5 sm:px-6 sm:py-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 flex-1 max-w-4xl">
+          <div className={cn('min-w-0 flex-1 max-w-4xl', contentColumnClassName)}>
             {badge ? <Badge className="bg-white/10 text-white">{badge}</Badge> : null}
             <h1 className={cn('mt-4 text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.03em] text-white sm:text-[3rem]', titleClassName)}>{title}</h1>
             <p className="mt-3 text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">{description}</p>

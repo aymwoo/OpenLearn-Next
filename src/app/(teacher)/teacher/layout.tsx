@@ -51,7 +51,6 @@ async function TeacherLayoutContent({
       routeKey={routeKey}
       activePath={pathname}
       headerTitle="教师工作台"
-      headerDescription="top-nav、left-nav 与 top-nav-secondary-rail 都通过统一 theme-layout-runtime 进入教师端壳层。"
       headerActions={
         <>
           <Button asChild className="px-5 text-sm">

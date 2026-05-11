@@ -30,8 +30,15 @@ describe("TeacherSidebarShell theme layout hooks", () => {
     expect(shellSource).toContain('const isTeacherHome = routeKey === "/teacher";');
     expect(shellSource).toContain('[&>aside]:rounded-none');
     expect(shellSource).toContain('borderRadius: isTeacherHome ? "0" : "var(--layout-content-radius, 2rem)"');
-    expect(shellSource).toContain('isTeacherHome ? "bg-surface-container-lowest px-5 py-5 shadow-ambient" : "rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"');
+    expect(shellSource).toContain('isTeacherHome ? "w-full shrink-0 bg-surface-container-lowest px-5 py-5 shadow-ambient" : "w-full shrink-0 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"');
     expect(shellSource).toContain('? "flex-1 overflow-y-auto bg-surface-container-lowest"');
+  });
+
+  it("keeps the page-header region on the real header block without an extra wrapper", () => {
+    expect(shellSource).toContain('data-region="page-header"');
+    expect(shellSource).toContain('className="w-full shrink-0 rounded-none"');
+    expect(shellSource).toContain('contentColumnClassName="max-w-none"');
+    expect(shellSource).not.toContain('<section className="shrink-0 px-5 pb-4 pt-5 sm:px-6" data-region="page-header">');
   });
 
   it("keeps fallback shell static while theme runtime stays in the async path", () => {
@@ -44,5 +51,6 @@ describe("TeacherSidebarShell theme layout hooks", () => {
     expect(layoutSource).toContain('fallback={<TeacherShellFallback />}');
     expect(layoutSource).toContain('<TeacherSidebarShellFrame routeKey="/teacher"');
     expect(layoutSource).not.toContain('<TeacherSidebarShell routeKey="/teacher"');
+    expect(layoutSource).not.toContain('top-nav、left-nav 与 top-nav-secondary-rail 都通过统一 theme-layout-runtime 进入教师端壳层。');
   });
 });
