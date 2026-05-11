@@ -7,8 +7,20 @@ import { approveScheduleImport, draftScheduleImport, type ScheduleImportActionEr
 import { assertScheduleTeacherScope } from "@/features/schedule/shared/auth";
 import { invalidateScheduleImportTags } from "@/features/schedule/shared/cache";
 import { ApproveScheduleImportInputSchema, ScheduleImportDraftInputSchema } from "@/features/schedule/shared/dto/import";
+import { SCHEDULE_IMPORT_COLUMN_MAP } from "@/features/schedule/import/template";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; message: string; issues?: unknown[] };
+
+function transformChineseKeys<T extends Record<string, unknown>>(rows: T[]): T[] {
+  return rows.map((row) => {
+    const mapped: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(row)) {
+      const englishKey = SCHEDULE_IMPORT_COLUMN_MAP[key as keyof typeof SCHEDULE_IMPORT_COLUMN_MAP];
+      mapped[englishKey ?? key] = value;
+    }
+    return mapped as T;
+  });
+}
 
 function handleScheduleError(error: unknown) {
   if (error instanceof z.ZodError) {
@@ -34,6 +46,12 @@ function handleScheduleError(error: unknown) {
 
 export async function draftScheduleImportAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
   const normalized = input instanceof FormData ? Object.fromEntries(input.entries()) : input;
+
+  // Transform Chinese keys to English keys before validation
+  if (normalized.rows && Array.isArray(normalized.rows)) {
+    normalized.rows = transformChineseKeys(normalized.rows as Record<string, unknown>[]);
+  }
+
   const parsed = ScheduleImportDraftInputSchema.safeParse(normalized);
   if (!parsed.success) {
     return { ok: false, error: "VALIDATION_ERROR", message: "导入内容不完整，请先检查输入。" };

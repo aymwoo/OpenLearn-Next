@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/features/schedule/import", () => ({
-  buildScheduleImportTemplateCsv: vi.fn(() => "sourceRowKey,termName\n1,2026 春季学期"),
+  buildScheduleImportTemplateCsv: vi.fn(() => "源记录标识,学期名称\n1,2026 春季学期"),
 }));
 
 describe("GET /teacher/schedule/import/template", () => {
@@ -9,13 +9,13 @@ describe("GET /teacher/schedule/import/template", () => {
     vi.clearAllMocks();
   });
 
-  it("returns csv content from the template helper", async () => {
+  it("returns csv content with Chinese headers from the template helper", async () => {
     const { GET } = await import("./route");
 
     const response = await GET();
 
     expect(response.status).toBe(200);
-    await expect(response.text()).resolves.toBe("sourceRowKey,termName\n1,2026 春季学期");
+    await expect(response.text()).resolves.toBe("源记录标识,学期名称\n1,2026 春季学期");
   });
 
   it("sets csv content type and attachment filename headers", async () => {

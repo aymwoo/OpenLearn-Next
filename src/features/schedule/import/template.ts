@@ -11,6 +11,28 @@ export const scheduleImportTemplateColumns = [
   "roomLabel",
 ] as const satisfies readonly (keyof ScheduleImportDraftRowInput)[];
 
+export const scheduleImportTemplateChineseHeaders = [
+  "源记录标识",
+  "学期名称",
+  "星期(0-6)",
+  "节次标签",
+  "班级名称",
+  "课程名称",
+  "教师姓名",
+  "教室标签",
+] as const;
+
+export const SCHEDULE_IMPORT_COLUMN_MAP: Readonly<Record<string, keyof ScheduleImportDraftRowInput>> = {
+  源记录标识: "sourceRowKey",
+  学期名称: "termName",
+  "星期(0-6)": "weekday",
+  节次标签: "bellSlotLabel",
+  班级名称: "className",
+  课程名称: "courseTitle",
+  教师姓名: "teacherName",
+  教室标签: "roomLabel",
+} as const;
+
 export const scheduleImportTemplateSampleRows: readonly ScheduleImportDraftRowInput[] = [
   {
     sourceRowKey: "1",
@@ -34,7 +56,7 @@ function escapeCsvValue(value: string | number | null) {
 }
 
 export function buildScheduleImportTemplateCsv() {
-  const header = scheduleImportTemplateColumns.join(",");
+  const header = scheduleImportTemplateChineseHeaders.join(",");
   const rows = scheduleImportTemplateSampleRows.map((row) =>
     scheduleImportTemplateColumns.map((column) => escapeCsvValue(row[column])).join(","),
   );
