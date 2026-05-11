@@ -66,7 +66,7 @@ function escapeCsvValue(value: string | number | null) {
 export function buildScheduleImportTemplateCsv() {
   const header = scheduleImportTemplateChineseHeaders.join(",");
   const rows = scheduleImportTemplateSampleRows.map((row) =>
-    scheduleImportTemplateColumns.map((column) => escapeCsvValue(row[column])).join(","),
+    scheduleImportTemplateColumns.map((column) => escapeCsvValue(row[column] ?? null)).join(","),
   );
 
   return [header, ...rows].join("\n");

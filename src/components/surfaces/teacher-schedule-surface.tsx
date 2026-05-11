@@ -5,6 +5,7 @@ import { ArrowRight, BellRing, CalendarDays, RefreshCw, Sparkles, Upload } from 
 
 import { Badge } from "@/components/ui/badge";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
+import { ScheduleImportModal } from "@/components/surfaces/schedule-import-modal";
 import type { TeacherDailyAgendaDTO } from "@/features/schedule/shared/dto/runtime";
 import { cn } from "@/lib/utils";
 
@@ -52,11 +53,15 @@ export function TeacherScheduleSurface({ data }: { data: TeacherDailyAgendaDTO }
             </div>
           </div>
 
-          <div className={cn(teacherSurfaceRhythm.cardInset, "p-5")}>
-            <p className="text-sm text-on-surface-variant">日期与节奏</p>
-            <p className="mt-3 text-2xl font-semibold text-on-surface">{data.dateLabel}</p>
-            <p className="mt-2 text-sm text-on-surface-variant">{data.weekLabel}</p>
-            <p className="mt-3 text-sm text-on-surface-variant">{data.nextClassCountdownLabel ?? "今天暂时没有下一节待执行课程。"}</p>
+          <div className="flex flex-col gap-4 xl:items-end">
+            <ScheduleImportModal schoolId={data.schoolId} />
+
+            <div className={cn(teacherSurfaceRhythm.cardInset, "p-5")}>
+              <p className="text-sm text-on-surface-variant">日期与节奏</p>
+              <p className="mt-3 text-2xl font-semibold text-on-surface">{data.dateLabel}</p>
+              <p className="mt-2 text-sm text-on-surface-variant">{data.weekLabel}</p>
+              <p className="mt-3 text-sm text-on-surface-variant">{data.nextClassCountdownLabel ?? "今天暂时没有下一节待执行课程。"}</p>
+            </div>
           </div>
         </div>
       </section>

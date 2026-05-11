@@ -24,6 +24,7 @@ export const TeacherDailyAgendaCardDTOSchema = z.object({
 
 export const TeacherDailyAgendaDTOSchema = z.object({
   teacherId: z.string(),
+  schoolId: z.string(),
   date: z.string(),
   dateLabel: z.string(),
   weekLabel: z.string(),

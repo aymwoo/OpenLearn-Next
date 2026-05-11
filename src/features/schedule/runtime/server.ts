@@ -234,6 +234,7 @@ async function getCachedTeacherDailyAgenda(actorId: string, schoolIds: string[],
 
   return TeacherDailyAgendaDTOSchema.parse({
     teacherId: actorId,
+    schoolId: schoolIds[0] ?? "",
     date: requestedDate,
     dateLabel: requestedDate,
     weekLabel: weekdayLabel(requestedDate),

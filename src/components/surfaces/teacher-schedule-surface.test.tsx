@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
 
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TeacherScheduleSurface } from "./teacher-schedule-surface";
+
+vi.mock("@/components/surfaces/schedule-import-modal", () => ({
+  ScheduleImportModal: () => <button type="button">导入课表</button>,
+}));
 
 afterEach(() => {
   cleanup();
@@ -15,6 +19,7 @@ describe("TeacherScheduleSurface", () => {
       <TeacherScheduleSurface
         data={{
           teacherId: "teacher-1",
+          schoolId: "school-1",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -33,6 +38,7 @@ describe("TeacherScheduleSurface", () => {
       <TeacherScheduleSurface
         data={{
           teacherId: "teacher-1",
+          schoolId: "school-1",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -66,6 +72,7 @@ describe("TeacherScheduleSurface", () => {
       <TeacherScheduleSurface
         data={{
           teacherId: "teacher-1",
+          schoolId: "school-1",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -102,6 +109,7 @@ describe("TeacherScheduleSurface", () => {
       <TeacherScheduleSurface
         data={{
           teacherId: "teacher-1",
+          schoolId: "school-1",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
