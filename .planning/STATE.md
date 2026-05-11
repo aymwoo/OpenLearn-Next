@@ -194,6 +194,7 @@ progress:
 | 260511-ewp | 为 schedule 域建立 `src/features/schedule/` feature root、boundary map、shared DTO/auth/cache contracts 与子域 public barrels，并把页面入口、surface、actions、DAL 逐步收口到 feature root | 2026-05-11 | 50b6f39 | [260511-ewp-teaching-schedule-os-src-features-schedu](./quick/260511-ewp-teaching-schedule-os-src-features-schedu/) |
 | 260511-tsm | 在 /teacher/editor 复用现有设置 modal，增加主题设置、结构预览与 `预览 / 保存 / 生效` 按钮，并继续走现有 theme action 生效链路 | 2026-05-11 | e45bfcd | [260511-tsm-theme-settings-preview-modal](./quick/260511-tsm-theme-settings-preview-modal/) |
 | 260511-sqe | 为 /teacher/schedule 主页面增加 4 个快捷操作卡片，直达导入、单次变更与节假日、AI 助手、提醒配置 | 2026-05-11 | 待提交 | [260511-sqe-teacher-schedule-quick-actions](./quick/260511-sqe-teacher-schedule-quick-actions/) |
+| 260511-tca | 教师首页 `/teacher` 的 CTA 从"查看完整日历"改为"查看课表"，并跳转到 `/teacher/schedule`，同时补充对应回归测试 | 2026-05-11 | 864760c | [260511-tca-teacher-dashboard-schedule-cta](./quick/260511-tca-teacher-dashboard-schedule-cta/) |
 | 260511-mdi | 为 /teacher/schedule/import 添加课程表导入模板下载，根据导入的代码和逻辑生成导入模板 | 2026-05-11 | 8600eb8 | [260511-mdi-teacher-schedule-import](./quick/260511-mdi-teacher-schedule-import/) |
 
 ## Current Position
