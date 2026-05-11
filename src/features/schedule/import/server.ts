@@ -109,7 +109,13 @@ async function ensureWeekPattern(tx: ScheduleDbLike, schoolId: string, termId: s
   return created;
 }
 
-async function ensureBellSlot(tx: ScheduleDbLike, schoolId: string, bellSlotLabel: string) {
+async function ensureBellSlot(
+  tx: ScheduleDbLike,
+  schoolId: string,
+  bellSlotLabel: string,
+  startTime?: string | null,
+  endTime?: string | null,
+) {
   const existing = await tx.query.scheduleBellSlot.findFirst({
     where: and(eq(scheduleBellSlot.schoolId, schoolId), eq(scheduleBellSlot.label, bellSlotLabel)),
   });
@@ -122,14 +128,18 @@ async function ensureBellSlot(tx: ScheduleDbLike, schoolId: string, bellSlotLabe
     where: eq(scheduleBellSlot.schoolId, schoolId),
   });
   const sortOrder = allSlots.length + 1;
-  const startHour = 7 + sortOrder;
+
+  // Use import-provided times if available, otherwise auto-calculate from sortOrder
+  const resolvedStartsAt = startTime ?? `${String(7 + sortOrder).padStart(2, "0")}:00`;
+  const resolvedEndsAt = endTime ?? `${String(7 + sortOrder).padStart(2, "0")}:45`;
+
   const [created] = await tx
     .insert(scheduleBellSlot)
     .values({
       schoolId,
       label: bellSlotLabel,
-      startsAt: `${String(startHour).padStart(2, "0")}:00`,
-      endsAt: `${String(startHour).padStart(2, "0")}:45`,
+      startsAt: resolvedStartsAt,
+      endsAt: resolvedEndsAt,
       sortOrder,
     })
     .returning();
@@ -376,6 +386,8 @@ export async function draftScheduleImport(input: ScheduleImportDraftInput) {
               termName: row.termName,
               weekday: row.weekday,
               bellSlotLabel: row.bellSlotLabel,
+              bellSlotStartTime: row.bellSlotStartTime ?? null,
+              bellSlotEndTime: row.bellSlotEndTime ?? null,
               classId: mappedClass.id,
               courseId: mappedCourse.id,
               teacherId: mappedTeacher.id,
@@ -525,6 +537,8 @@ export async function approveScheduleImport(input: ApproveScheduleImportInput) {
         termName: string;
         weekday: number;
         bellSlotLabel: string;
+        bellSlotStartTime: string | null;
+        bellSlotEndTime: string | null;
         classId: string;
         courseId: string;
         teacherId: string;
@@ -541,7 +555,13 @@ export async function approveScheduleImport(input: ApproveScheduleImportInput) {
 
       const term = await ensureScheduleTerm(tx, batch.schoolId, normalizedDraft.termName);
       const weekPattern = await ensureWeekPattern(tx, batch.schoolId, term.id);
-      const bellSlot = await ensureBellSlot(tx, batch.schoolId, normalizedDraft.bellSlotLabel);
+      const bellSlot = await ensureBellSlot(
+        tx,
+        batch.schoolId,
+        normalizedDraft.bellSlotLabel,
+        normalizedDraft.bellSlotStartTime,
+        normalizedDraft.bellSlotEndTime,
+      );
       const assignment = await ensureTeachingAssignment(tx, {
         schoolId: batch.schoolId,
         classId: normalizedDraft.classId,
