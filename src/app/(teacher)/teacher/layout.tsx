@@ -53,6 +53,7 @@ async function TeacherLayoutContent({
       routeKey={routeKey}
       activePath={pathname}
       headerTitle="教师工作台"
+      hidePageHeader
       headerActions={
         <>
           <Button asChild className="px-5 text-sm">

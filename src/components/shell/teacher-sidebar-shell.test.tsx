@@ -25,10 +25,31 @@ afterEach(() => {
 });
 
 import type {
+  ThemeLayoutRegionRuntime,
   ShellSurfaceMetadata,
   ThemeShellConfig,
 } from "@/lib/dto/resource-ai";
+import type { TeacherThemeRouteKey } from "@/lib/theme-layout/route-surface-registry";
 import { TeacherSidebarShellFrame } from "@/components/shell/teacher-sidebar-shell";
+import { DEFAULT_THEME_LAYOUT_RUNTIME } from "@/server/themes/tokens";
+
+const defaultSurface = DEFAULT_THEME_LAYOUT_RUNTIME.defaultSurface;
+
+function buildRegion(
+  region: ThemeLayoutRegionRuntime["region"],
+  visible: boolean,
+): ThemeLayoutRegionRuntime {
+  const baseRegion = defaultSurface.regions.find((item) => item.region === region);
+
+  if (!baseRegion) {
+    throw new Error(`Missing default region runtime for ${region}`);
+  }
+
+  return {
+    ...baseRegion,
+    visible,
+  };
+}
 
 function buildSurfaceMetadata(
   overrides: Partial<ShellSurfaceMetadata> = {},
@@ -37,9 +58,10 @@ function buildSurfaceMetadata(
     routeKey: "/teacher",
     label: "教师工作台",
     summary: {
+      ...defaultSurface.summary,
       description: "统一的教师端壳层结构摘要。",
     },
-    regions: [],
+    regions: defaultSurface.regions,
     ...overrides,
   };
 }
@@ -54,7 +76,15 @@ function renderShell({
     chrome: "default",
   } satisfies ThemeShellConfig,
   surfaceMetadata = buildSurfaceMetadata(),
-  themeSource = "default" as const,
+  themeSource = "default",
+  hidePageHeader = false,
+}: {
+  routeKey?: TeacherThemeRouteKey;
+  shellVariant?: ThemeShellConfig["mode"];
+  shellConfig?: ThemeShellConfig;
+  surfaceMetadata?: ShellSurfaceMetadata;
+  themeSource?: "default" | "active-theme";
+  hidePageHeader?: boolean;
 } = {}) {
   return render(
     <TeacherSidebarShellFrame
@@ -64,6 +94,7 @@ function renderShell({
       shellConfig={shellConfig}
       surfaceMetadata={surfaceMetadata}
       themeSource={themeSource}
+      hidePageHeader={hidePageHeader}
       headerActions={<button type="button">操作</button>}
     >
       <div>主内容</div>
@@ -77,9 +108,9 @@ describe("TeacherSidebarShell theme layout hooks", () => {
       routeKey: "/settings",
       shellConfig: {
         mode: "left-nav",
-        radius: "square",
-        width: "full-width",
-        chrome: "immersive",
+        radius: "rounded",
+        width: "default",
+        chrome: "default",
       },
       themeSource: "active-theme",
     });
@@ -91,13 +122,13 @@ describe("TeacherSidebarShell theme layout hooks", () => {
     const primarySidebarWrapper = primarySidebar?.parentElement;
 
     expect(routeSurface?.getAttribute("data-theme-layout-source")).toBe("active-theme");
-    expect(routeSurface?.getAttribute("data-theme-shell-chrome")).toBe("immersive");
+    expect(routeSurface?.getAttribute("data-theme-shell-chrome")).toBe("default");
     expect(routeSurface?.className).toContain("px-4 py-4 sm:px-5");
-    expect(pageHeader?.className).toContain("w-full shrink-0 rounded-none");
+    expect(pageHeader?.className).toContain("rounded-none");
     expect(mainContent?.className).toContain("bg-surface-container-lowest");
-    expect(mainContent?.className).not.toContain("rounded-[1.75rem]");
+    expect(mainContent?.className).toContain("rounded-[1.75rem]");
     expect(primarySidebar?.getAttribute("data-shell-variant")).toBe("left-nav");
-    expect(primarySidebarWrapper?.className).toContain("rounded-none");
+    expect(primarySidebarWrapper?.className).toContain("[&>aside]:w-full");
     expect(screen.getByRole("button", { name: "操作" })).toBeTruthy();
   });
 
@@ -125,14 +156,14 @@ describe("TeacherSidebarShell theme layout hooks", () => {
 
   it("renders shell regions from metadata visibility only", () => {
     const { container, rerender } = renderShell({
-      surfaceMetadata: buildSurfaceMetadata({
-        regions: [
-          { region: "secondary-nav", visible: true },
-          { region: "context-panel", visible: false },
-          { region: "page-footer", visible: true },
-        ],
-      }),
-    });
+        surfaceMetadata: buildSurfaceMetadata({
+          regions: [
+            buildRegion("secondary-nav", true),
+            buildRegion("context-panel", false),
+            buildRegion("page-footer", true),
+          ],
+        }),
+      });
 
     expect(screen.getByRole("navigation", { name: "教师端辅栏导航" })).toBeTruthy();
     expect(screen.getByRole("contentinfo", { name: "页面结构摘要" })).toBeTruthy();
@@ -152,9 +183,9 @@ describe("TeacherSidebarShell theme layout hooks", () => {
         }}
         surfaceMetadata={buildSurfaceMetadata({
           regions: [
-            { region: "secondary-nav", visible: false },
-            { region: "context-panel", visible: true },
-            { region: "page-footer", visible: false },
+            buildRegion("secondary-nav", false),
+            buildRegion("context-panel", true),
+            buildRegion("page-footer", false),
           ],
         })}
         themeSource="default"
@@ -169,5 +200,22 @@ describe("TeacherSidebarShell theme layout hooks", () => {
     expect(screen.getByLabelText("当前主题结构")).toBeTruthy();
     expect(screen.getByRole("heading", { level: 2, name: "当前主题结构" })).toBeTruthy();
     expect(container.querySelector('[data-region="context-panel"]')).toBeTruthy();
+  });
+
+  it("omits page-header DOM entirely when hidePageHeader is true", () => {
+    const { container } = renderShell({ hidePageHeader: true });
+
+    expect(container.querySelector('[data-region="page-header"]')).toBeNull();
+    expect(screen.queryByRole("heading", { level: 1, name: "教师工作台" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "操作" })).toBeNull();
+    expect(screen.getByText("主内容")).toBeTruthy();
+  });
+
+  it("keeps page-header visible when hidePageHeader is false", () => {
+    const { container } = renderShell({ hidePageHeader: false });
+
+    expect(container.querySelector('[data-region="page-header"]')).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "教师工作台" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "操作" })).toBeTruthy();
   });
 });

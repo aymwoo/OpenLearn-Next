@@ -1,12 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import type { ThemeLayoutRuntime } from "@/lib/dto/resource-ai";
+import type { ThemeLayoutRegionRuntime, ThemeLayoutRuntime } from "@/lib/dto/resource-ai";
 import { DEFAULT_THEME_LAYOUT_RUNTIME } from "@/server/themes/tokens";
 import {
   getShellSurfaceConfig,
   resolveShellVariant,
   resolveTeacherShellUiState,
 } from "@/lib/theme-layout/shell-surface-resolver";
+
+const defaultSurface = DEFAULT_THEME_LAYOUT_RUNTIME.defaultSurface;
+
+function buildRegion(
+  region: ThemeLayoutRegionRuntime["region"],
+  visible: boolean,
+): ThemeLayoutRegionRuntime {
+  const baseRegion = defaultSurface.regions.find((item) => item.region === region);
+
+  if (!baseRegion) {
+    throw new Error(`${region} runtime should be defined`);
+  }
+
+  return {
+    ...baseRegion,
+    visible,
+  };
+}
 
 function buildRuntime(
   routeKey: keyof ThemeLayoutRuntime["pages"],
@@ -120,9 +138,9 @@ describe("shell surface resolver", () => {
   it("derives region visibility from metadata instead of jsx-local booleans", () => {
     const layoutRuntime = buildRuntime("/teacher", {
       regions: [
-        { region: "secondary-nav", visible: true },
-        { region: "context-panel", visible: true },
-        { region: "page-footer", visible: false },
+        buildRegion("secondary-nav", true),
+        buildRegion("context-panel", true),
+        buildRegion("page-footer", false),
       ],
     });
 

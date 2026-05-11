@@ -31,6 +31,7 @@ type TeacherSidebarShellProps = {
   headerTitle?: string;
   headerDescription?: string;
   headerActions?: ReactNode;
+  hidePageHeader?: boolean;
 };
 
 type TeacherSidebarShellFrameProps = TeacherSidebarShellProps & {
@@ -47,6 +48,7 @@ export function TeacherSidebarShellFrame({
   headerTitle,
   headerDescription,
   headerActions,
+  hidePageHeader = false,
   shellVariant = "left-nav",
   shellConfig = DEFAULT_THEME_LAYOUT_RUNTIME.defaultSurface.shellConfig,
   surfaceMetadata = {
@@ -107,42 +109,44 @@ export function TeacherSidebarShellFrame({
           </div>
         ) : null}
 
-        {shellState.header.variant === "stage-hero" ? (
-          <StageHero
-            badge={surfaceMetadata.label}
-            title={shellTitle}
-            description={shellDescription}
-            data-region="page-header"
-            className={shellState.header.className}
-            contentColumnClassName={shellState.header.contentColumnClassName}
-            titleClassName={shellState.header.titleClassName}
-            aside={
-              headerActions ? (
-                <div className={shellState.header.actionsClassName}>
-                  {headerActions}
+        {!hidePageHeader ? (
+          shellState.header.variant === "stage-hero" ? (
+            <StageHero
+              badge={surfaceMetadata.label}
+              title={shellTitle}
+              description={shellDescription}
+              data-region="page-header"
+              className={shellState.header.className}
+              contentColumnClassName={shellState.header.contentColumnClassName}
+              titleClassName={shellState.header.titleClassName}
+              aside={
+                headerActions ? (
+                  <div className={shellState.header.actionsClassName}>
+                    {headerActions}
+                  </div>
+                ) : null
+              }
+            />
+          ) : (
+            <div
+              className={shellState.header.className}
+              data-region="page-header"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-on-surface-variant">page-header</p>
+                  <h1 className="mt-2 text-2xl font-semibold text-on-surface">{shellTitle}</h1>
+                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">{shellDescription}</p>
                 </div>
-              ) : null
-            }
-          />
-        ) : (
-          <div
-            className={shellState.header.className}
-            data-region="page-header"
-          >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-on-surface-variant">page-header</p>
-                <h1 className="mt-2 text-2xl font-semibold text-on-surface">{shellTitle}</h1>
-                <p className="mt-2 text-sm leading-6 text-on-surface-variant">{shellDescription}</p>
+                {headerActions ? (
+                  <div className={shellState.header.actionsClassName}>
+                    {headerActions}
+                  </div>
+                ) : null}
               </div>
-              {headerActions ? (
-                <div className={shellState.header.actionsClassName}>
-                  {headerActions}
-                </div>
-              ) : null}
             </div>
-          </div>
-        )}
+          )
+        ) : null}
 
         <div className={shellState.layout.contentGridClassName}>
           {shellState.visibility.secondaryNav ? (
