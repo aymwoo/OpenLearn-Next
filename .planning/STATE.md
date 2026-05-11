@@ -6,8 +6,8 @@ current_phase: 20
 current_phase_name: help-center-and-developer-guides
 current_plan: 3
 status: completed
-stopped_at: Quick 260511-mdi complete; /teacher/schedule/import now exposes CSV template download from the review hero
-last_updated: "2026-05-11T08:14:14.000Z"
+stopped_at: Quick 260511-mv9 complete; /teacher/schedule/import template headers now use Chinese column names with correct field mapping
+last_updated: "2026-05-11T08:42:30.000Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 8
@@ -196,6 +196,7 @@ progress:
 | 260511-sqe | 为 /teacher/schedule 主页面增加 4 个快捷操作卡片，直达导入、单次变更与节假日、AI 助手、提醒配置 | 2026-05-11 | 待提交 | [260511-sqe-teacher-schedule-quick-actions](./quick/260511-sqe-teacher-schedule-quick-actions/) |
 | 260511-tca | 教师首页 `/teacher` 的 CTA 从"查看完整日历"改为"查看课表"，并跳转到 `/teacher/schedule`，同时补充对应回归测试 | 2026-05-11 | 864760c | [260511-tca-teacher-dashboard-schedule-cta](./quick/260511-tca-teacher-dashboard-schedule-cta/) |
 | 260511-mdi | 为 /teacher/schedule/import 添加课程表导入模板下载，根据导入的代码和逻辑生成导入模板 | 2026-05-11 | 8600eb8 | [260511-mdi-teacher-schedule-import](./quick/260511-mdi-teacher-schedule-import/) |
+| 260511-mv9 | 将 /teacher/schedule/import 页面的导入模板字段名改为中文，并修改导入代码能够正确识别中文字段 | 2026-05-11 | aa94f76 | [260511-mv9-teacher-schedule-import](./quick/260511-mv9-teacher-schedule-import/) |
 
 ## Current Position
 
