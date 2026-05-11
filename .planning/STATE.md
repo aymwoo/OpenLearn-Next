@@ -6,8 +6,8 @@ current_phase: 20
 current_phase_name: help-center-and-developer-guides
 current_plan: 3
 status: completed
-stopped_at: Phase 20 complete; /help actions guide, overview tests, and verify:phase20 are in place
-last_updated: "2026-05-11T05:48:24.135Z"
+stopped_at: Quick 260511-mdi complete; /teacher/schedule/import now exposes CSV template download from the review hero
+last_updated: "2026-05-11T08:14:14.000Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 8
@@ -31,7 +31,7 @@ progress:
 **Last Activity:** 2026-05-11
 
 **Last session:** 2026-05-11T00:00:00.000Z
-**Stopped At:** Phase 20 complete; /help actions guide, overview tests, and verify:phase20 are in place
+**Stopped At:** Quick 260511-mdi complete; /teacher/schedule/import now exposes CSV template download from the review hero
 **Resume File:** .planning/phases/20-help-center-and-developer-guides/20-03-SUMMARY.md
 
 ## Accumulated Context
@@ -86,6 +86,7 @@ progress:
 - [Quick 260511-ewp]: schedule 域本轮 feature 化已收尾，并继续补上三处边界修复：runtime agenda DTO 现在显式提供 `lessonLink.courseId`，`teacher-schedule-surface` 不再猜测 editor preview route 参数；新增 `src/features/schedule/shared/audit.ts`，将 import / operations / reminders / assistant 的 mutation audit 统一收口到事务内 helper，reminder retry 也改成“先回写 planned，再执行 side effect，最后独立事务记录结果”的解耦路径；另外 `operations` center 读路径已不再隐式创建默认校历，默认校历只在显式 holiday 写入时按需创建，`verify:phase18` 继续保持绿色。
 - [Quick 260511-tsm]: `/teacher/editor` 现在复用现有 `EditorSettingsModal` 提供主题设置入口；server 侧注入“默认主题 + 学校有效主题 + 当前 activeThemeId”，modal 内将 `预览 / 保存 / 生效` 明确区分为局部预览、本地待生效状态和现有 `setActiveThemeAction` 全局生效链路，不新增 preview runtime 或 draft 持久化。
 - [Quick 260511-sqe]: `/teacher/schedule` 主页面现在在 hero 下方提供 4 个快捷操作卡片，直接跳转到导入、单次变更与节假日、AI 助手和提醒配置；视觉上继续复用 `teacherSurfaceRhythm.section/cardInset`，不新增 schedule 专用导航壳层。
+- [Quick 260511-mdi]: `/teacher/schedule/import` 现在提供与 `ScheduleImportDraftRowInputSchema` 对齐的 CSV 导入模板下载；模板列、示例行与 CSV 文本统一由 feature helper 生成，并在导入审核页 hero 直接提供下载入口。
 
 **Active Blockers:**
 
@@ -193,10 +194,11 @@ progress:
 | 260511-ewp | 为 schedule 域建立 `src/features/schedule/` feature root、boundary map、shared DTO/auth/cache contracts 与子域 public barrels，并把页面入口、surface、actions、DAL 逐步收口到 feature root | 2026-05-11 | 50b6f39 | [260511-ewp-teaching-schedule-os-src-features-schedu](./quick/260511-ewp-teaching-schedule-os-src-features-schedu/) |
 | 260511-tsm | 在 /teacher/editor 复用现有设置 modal，增加主题设置、结构预览与 `预览 / 保存 / 生效` 按钮，并继续走现有 theme action 生效链路 | 2026-05-11 | e45bfcd | [260511-tsm-theme-settings-preview-modal](./quick/260511-tsm-theme-settings-preview-modal/) |
 | 260511-sqe | 为 /teacher/schedule 主页面增加 4 个快捷操作卡片，直达导入、单次变更与节假日、AI 助手、提醒配置 | 2026-05-11 | 待提交 | [260511-sqe-teacher-schedule-quick-actions](./quick/260511-sqe-teacher-schedule-quick-actions/) |
+| 260511-mdi | 为 /teacher/schedule/import 添加课程表导入模板下载，根据导入的代码和逻辑生成导入模板 | 2026-05-11 | 8600eb8 | [260511-mdi-teacher-schedule-import](./quick/260511-mdi-teacher-schedule-import/) |
 
 ## Current Position
 
 Phase: 20 (help-center-and-developer-guides) — COMPLETE
 Plan: 3 of 3
 Status: Phase 20 complete
-Last activity: 2026-05-11 -- Phase 20 wave 3 completed and help-center verification passed
+Last activity: 2026-05-11 - Completed quick task 260511-mdi: 为 /teacher/schedule/import 添加课程表导入模板下载，根据导入的代码和逻辑生成导入模板
