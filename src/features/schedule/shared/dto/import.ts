@@ -50,6 +50,16 @@ export const ScheduleImportDraftRowInputSchema = z.object({
   termName: z.string().min(1),
   weekday: z.number().int().min(0).max(6),
   bellSlotLabel: z.string().min(1),
+  bellSlotStartTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "时间格式必须为 HH:mm")
+    .nullable()
+    .optional(),
+  bellSlotEndTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "时间格式必须为 HH:mm")
+    .nullable()
+    .optional(),
   className: z.string().min(1),
   courseTitle: z.string().min(1),
   teacherName: z.string().min(1),

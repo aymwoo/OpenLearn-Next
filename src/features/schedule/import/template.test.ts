@@ -17,6 +17,8 @@ describe("schedule import template", () => {
       "termName",
       "weekday",
       "bellSlotLabel",
+      "bellSlotStartTime",
+      "bellSlotEndTime",
       "className",
       "courseTitle",
       "teacherName",
@@ -30,6 +32,8 @@ describe("schedule import template", () => {
       "学期名称",
       "星期(0-6)",
       "节次标签",
+      "上课开始时间",
+      "上课结束时间",
       "班级名称",
       "课程名称",
       "教师姓名",
@@ -44,6 +48,8 @@ describe("schedule import template", () => {
       学期名称: "termName",
       "星期(0-6)": "weekday",
       节次标签: "bellSlotLabel",
+      上课开始时间: "bellSlotStartTime",
+      上课结束时间: "bellSlotEndTime",
       班级名称: "className",
       课程名称: "courseTitle",
       教师姓名: "teacherName",
@@ -51,20 +57,24 @@ describe("schedule import template", () => {
     });
   });
 
-  it("provides valid sample rows with numeric weekday and optional roomLabel", () => {
+  it("provides valid sample rows with time fields and optional bellSlotStartTime/bellSlotEndTime", () => {
     expect(scheduleImportTemplateSampleRows.length).toBeGreaterThan(0);
 
     const [sampleRow] = scheduleImportTemplateSampleRows;
     expect(sampleRow.weekday).toBeTypeOf("number");
     expect(sampleRow.weekday).toBeGreaterThanOrEqual(0);
     expect(sampleRow.weekday).toBeLessThanOrEqual(6);
+    expect(sampleRow.bellSlotStartTime).toBe("08:00");
+    expect(sampleRow.bellSlotEndTime).toBe("08:45");
     expect(ScheduleImportDraftRowInputSchema.parse(sampleRow)).toEqual(sampleRow);
   });
 
-  it("builds csv text with Chinese header, example rows, and original Chinese content", () => {
+  it("builds csv text with Chinese header including time columns, example rows, and original Chinese content", () => {
     const csv = buildScheduleImportTemplateCsv();
 
-    expect(csv).toContain("源记录标识,学期名称,星期(0-6),节次标签,班级名称,课程名称,教师姓名,教室标签");
+    expect(csv).toContain("源记录标识,学期名称,星期(0-6),节次标签,上课开始时间,上课结束时间,班级名称,课程名称,教师姓名,教室标签");
+    expect(csv).toContain("08:00");
+    expect(csv).toContain("08:45");
     expect(csv).toContain("示例高一数学");
     expect(csv.split("\n").length).toBeGreaterThanOrEqual(2);
   });
