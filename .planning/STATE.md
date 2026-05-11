@@ -187,10 +187,11 @@ progress:
 | 260511-bn1 | 让/teacher页面的data-region="page-header"的组件左右都铺满到父容器的宽度，删除page-header的div和"top-nav、left-nav 与 top-nav-secondary-rail 都通过统一 theme-layout-runtime 进入教师端壳层。"的div | 2026-05-11 | 51e7edf | [260511-bn1-teacher-data-region-page-header-page-hea](./quick/260511-bn1-teacher-data-region-page-header-page-hea/) |
 | fast-2026-05-11-e | 提取 GitNexus 共享指令到 AI_SHARED/GITNEXUS.md，消除 AGENTS.md 与 CLAUDE.md 的重复块 | 2026-05-11 | 待提交 | - |
 | 260511-ef0 | 重构 teacher-sidebar-shell.tsx 的 UI 状态决策逻辑，把 theme state、shell mode、route mode、surface variant 从 JSX 中抽离到集中 resolver，减少 ternary nesting 和条件爆炸，并补充状态组合测试，保持 UI 不变 | 2026-05-11 | 7dc94d8 | [260511-ef0-teacher-sidebar-shell-tsx-ui-usesactivet](./quick/260511-ef0-teacher-sidebar-shell-tsx-ui-usesactivet/) |
+| 260511-emt | 升级 teacher shell 的测试体系，优先把 teacher-sidebar-shell 相关 implementation-detail tests 从 readFileSync + toContain 迁移成基于 React Testing Library 的 semantic UI testing，保持覆盖率并最小风险分阶段迁移 | 2026-05-11 | 5cc6b57 | [260511-emt-teacher-shell-readfilesync-tocontain-imp](./quick/260511-emt-teacher-shell-readfilesync-tocontain-imp/) |
 
 ## Current Position
 
 Phase: 19 (teacher-shell-route-metadata-system) — COMPLETE
 Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-05-11 - Completed quick task 260511-ef0: 重构 teacher-sidebar-shell.tsx 的 UI 状态决策逻辑，把 theme state、shell mode、route mode、surface variant 从 JSX 中抽离到集中 resolver，减少 ternary nesting 和条件爆炸，并补充状态组合测试，保持 UI 不变
+Last activity: 2026-05-11 - Completed quick task 260511-emt: 升级 teacher shell 的测试体系，优先把 teacher-sidebar-shell 相关 implementation-detail tests 从 readFileSync + toContain 迁移成基于 React Testing Library 的 semantic UI testing，保持覆盖率并最小风险分阶段迁移
