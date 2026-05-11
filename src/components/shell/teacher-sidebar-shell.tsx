@@ -77,6 +77,7 @@ export function TeacherSidebarShellFrame({
 }: TeacherSidebarShellFrameProps) {
   const surface = layoutRuntime.pages[routeKey] ?? layoutRuntime.defaultSurface;
   const shellMode = ALLOWLISTED_SHELL_MODES.includes(surface.shellMode) ? surface.shellMode : "left-nav";
+  const isTeacherHome = routeKey === "/teacher";
   const secondaryNavVisible = surface.regions.some((region) => region.region === "secondary-nav" && region.visible);
   const contextPanelVisible = surface.regions.some((region) => region.region === "context-panel" && region.visible);
   const pageFooterVisible = surface.regions.some((region) => region.region === "page-footer" && region.visible);
@@ -93,7 +94,7 @@ export function TeacherSidebarShellFrame({
     >
       {shellMode === "left-nav" ? (
         <div
-          className="shrink-0 [&>aside]:h-full [&>aside]:w-full"
+          className={isTeacherHome ? "shrink-0 [&>aside]:h-full [&>aside]:w-full [&>aside]:rounded-none" : "shrink-0 [&>aside]:h-full [&>aside]:w-full"}
           style={{
             width: "var(--layout-sidebar-width, 16rem)",
             margin: "var(--layout-shell-inset, 0.5rem) 0 var(--layout-shell-inset, 0.5rem) 0",
@@ -114,7 +115,7 @@ export function TeacherSidebarShellFrame({
             shellMode === "left-nav"
               ? "var(--layout-shell-inset, 0.5rem) var(--layout-shell-inset, 0.5rem) var(--layout-shell-inset, 0.5rem) 0"
               : "var(--layout-shell-inset, 0.5rem)",
-          borderRadius: "var(--layout-content-radius, 2rem)",
+          borderRadius: isTeacherHome ? "0" : "var(--layout-content-radius, 2rem)",
         }}
       >
         {shellMode !== "left-nav" ? (
@@ -141,7 +142,7 @@ export function TeacherSidebarShellFrame({
               }
             />
           ) : (
-            <div className="rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient">
+            <div className={isTeacherHome ? "bg-surface-container-lowest px-5 py-5 shadow-ambient" : "rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"}>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-on-surface-variant">page-header</p>
@@ -171,7 +172,9 @@ export function TeacherSidebarShellFrame({
             <div
               className={
                 usesActiveThemeShell
-                  ? "flex-1 overflow-y-auto rounded-[1.75rem] bg-surface-container-lowest"
+                  ? isTeacherHome
+                    ? "flex-1 overflow-y-auto bg-surface-container-lowest"
+                    : "flex-1 overflow-y-auto rounded-[1.75rem] bg-surface-container-lowest"
                   : "flex-1 overflow-y-auto"
               }
               data-region="main-content"

@@ -7,10 +7,10 @@ export default async function TeacherPage() {
   const schoolId = scope.schoolIds[0]
 
   return (
-    <div className="min-h-full p-6 lg:p-8">
+    <div className="min-h-full w-full p-6 lg:p-8">
       <TeacherDashboardSurface />
       {schoolId ? (
-        <section className="mx-auto mt-6 flex w-full flex-col gap-3 rounded-[1.75rem] bg-surface-container-low p-3">
+        <section className="mt-6 flex w-full flex-col gap-3 bg-surface-container-low p-3">
           <PluginRenderer anchor="dashboard.widget" schoolId={schoolId} actorId={scope.userId} />
         </section>
       ) : null}

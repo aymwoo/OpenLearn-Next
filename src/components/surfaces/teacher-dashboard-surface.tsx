@@ -23,8 +23,8 @@ import { cn } from '@/lib/utils'
 
 export function TeacherDashboardSurface() {
   return (
-    <div className={cn('mx-auto flex w-full flex-col pb-12 pt-3', teacherSurfaceRhythm.stack)}>
-      <section className={teacherSurfaceRhythm.hero}>
+    <div className={cn('flex w-full flex-col pb-12 pt-3', teacherSurfaceRhythm.stack)}>
+      <section className={cn(teacherSurfaceRhythm.hero, 'rounded-none')}>
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,22rem)] xl:items-start">
           <div className="min-w-0 space-y-3 xl:pr-6">
             <Badge variant="accent" className="bg-surface-container-lowest text-primary">

@@ -26,6 +26,14 @@ describe("TeacherSidebarShell theme layout hooks", () => {
     expect(shellSource).toContain('themeSource === "active-theme"');
   });
 
+  it("keeps /teacher home shell square while preserving shared shell radius tokens elsewhere", () => {
+    expect(shellSource).toContain('const isTeacherHome = routeKey === "/teacher";');
+    expect(shellSource).toContain('[&>aside]:rounded-none');
+    expect(shellSource).toContain('borderRadius: isTeacherHome ? "0" : "var(--layout-content-radius, 2rem)"');
+    expect(shellSource).toContain('isTeacherHome ? "bg-surface-container-lowest px-5 py-5 shadow-ambient" : "rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"');
+    expect(shellSource).toContain('? "flex-1 overflow-y-auto bg-surface-container-lowest"');
+  });
+
   it("keeps fallback shell static while theme runtime stays in the async path", () => {
     expect(shellSource).toContain('export function TeacherSidebarShellFrame');
     expect(shellSource).toContain('layoutRuntime = DEFAULT_THEME_LAYOUT_RUNTIME');
