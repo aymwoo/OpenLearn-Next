@@ -3,7 +3,10 @@ import type { ReactNode } from "react";
 import { teacherNavigationItems } from "@/lib/navigation";
 import { getCurrentActorThemeRuntimeState } from "@/lib/dal/themes";
 import type { TeacherThemeRouteKey } from "@/lib/theme-layout/route-surface-registry";
-import { getShellSurfaceConfig } from "@/lib/theme-layout/shell-surface-resolver";
+import {
+  getShellSurfaceConfig,
+  resolveTeacherShellUiState,
+} from "@/lib/theme-layout/shell-surface-resolver";
 import { AuroraShell } from "@/components/shell/aurora-shell";
 import { Sidebar } from "@/components/shell/sidebar";
 import { GlassNav } from "@/components/shell/glass-nav";
@@ -54,31 +57,31 @@ export function TeacherSidebarShellFrame({
   },
   themeSource = "default",
 }: TeacherSidebarShellFrameProps) {
-  const shellMode = shellVariant;
-  const isSquareShell = shellConfig.radius === "square";
-  const isFullWidthShell = shellConfig.width === "full-width";
-  const secondaryNavVisible = surfaceMetadata.regions.some((region) => region.region === "secondary-nav" && region.visible);
-  const contextPanelVisible = surfaceMetadata.regions.some((region) => region.region === "context-panel" && region.visible);
-  const pageFooterVisible = surfaceMetadata.regions.some((region) => region.region === "page-footer" && region.visible);
+  const shellState = resolveTeacherShellUiState({
+    themeSource,
+    shellVariant,
+    shellConfig,
+    surfaceMetadata,
+  });
   const shellTitle = headerTitle ?? surfaceMetadata.label;
-  const usesActiveThemeShell = themeSource === "active-theme";
-  const isImmersiveChrome = shellConfig.chrome === "immersive";
+  const shellDescription =
+    headerDescription ?? surfaceMetadata.summary.description;
 
   const shell = (
     <div
-      className={usesActiveThemeShell ? "flex h-screen overflow-hidden px-4 py-4 sm:px-5" : "flex h-screen overflow-hidden bg-surface"}
+      className={shellState.layout.rootClassName}
       data-theme-layout-source={themeSource}
-      data-theme-shell-mode={shellMode}
+      data-theme-shell-mode={shellState.shellMode}
       data-theme-shell-chrome={shellConfig.chrome}
       data-route-surface={routeKey}
       style={{ gap: "var(--layout-shell-gap, 0rem)" }}
     >
-      {shellMode === "left-nav" ? (
+      {shellState.navigation.showPrimaryNav ? (
         <div
-          className={isSquareShell ? "shrink-0 [&>aside]:h-full [&>aside]:w-full [&>aside]:rounded-none" : "shrink-0 [&>aside]:h-full [&>aside]:w-full"}
+          className={shellState.layout.sidebarWrapperClassName}
           style={{
             width: "var(--layout-sidebar-width, 16rem)",
-            margin: "var(--layout-shell-inset, 0.5rem) 0 var(--layout-shell-inset, 0.5rem) 0",
+            margin: shellState.layout.sidebarMargin,
           }}
         >
           <Sidebar items={teacherSidebarItems} activePath={activePath} region="primary-nav" />
@@ -86,62 +89,63 @@ export function TeacherSidebarShellFrame({
       ) : null}
 
       <main
-        className={
-          usesActiveThemeShell
-            ? "flex min-w-0 flex-1 flex-col overflow-hidden bg-surface-container-low/96 shadow-[0_28px_80px_rgba(2,6,23,0.18)] ring-1 ring-white/10 backdrop-blur-xl"
-            : "flex min-w-0 flex-1 flex-col overflow-hidden bg-surface-container-low shadow-ambient"
-        }
+        className={shellState.layout.mainClassName}
         style={{
-          margin:
-            shellMode === "left-nav"
-              ? "var(--layout-shell-inset, 0.5rem) var(--layout-shell-inset, 0.5rem) var(--layout-shell-inset, 0.5rem) 0"
-              : "var(--layout-shell-inset, 0.5rem)",
-          borderRadius: isSquareShell ? "0" : "var(--layout-content-radius, 2rem)",
+          margin: shellState.layout.mainMargin,
+          borderRadius: shellState.layout.mainBorderRadius,
         }}
       >
-        {shellMode !== "left-nav" ? (
-          <div className="px-4 pt-4 sm:px-5">
+        {shellState.navigation.showTopNav ? (
+          <div className={shellState.layout.topNavWrapperClassName}>
             <GlassNav
               items={teacherNavigationItems}
               brandHref="/teacher"
               brandLabel="OpenLearn Next"
               activePath={activePath}
-              inverse={usesActiveThemeShell}
+              inverse={shellState.navigation.inverseTopNav}
             />
           </div>
         ) : null}
 
-        {usesActiveThemeShell ? (
+        {shellState.header.variant === "stage-hero" ? (
           <StageHero
             badge={surfaceMetadata.label}
             title={shellTitle}
-            description={headerDescription ?? surfaceMetadata.summary.description}
+            description={shellDescription}
             data-region="page-header"
-            className={isImmersiveChrome ? "w-full shrink-0 rounded-none" : "w-full shrink-0 rounded-none"}
-            contentColumnClassName="max-w-none"
-            titleClassName="text-[2rem] sm:text-[2.4rem]"
+            className={shellState.header.className}
+            contentColumnClassName={shellState.header.contentColumnClassName}
+            titleClassName={shellState.header.titleClassName}
             aside={
-              headerActions ? <div className="flex flex-wrap items-center justify-start gap-3 lg:justify-end">{headerActions}</div> : null
+              headerActions ? (
+                <div className={shellState.header.actionsClassName}>
+                  {headerActions}
+                </div>
+              ) : null
             }
           />
         ) : (
           <div
-            className={isSquareShell ? "w-full shrink-0 bg-surface-container-lowest px-5 py-5 shadow-ambient" : "w-full shrink-0 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"}
+            className={shellState.header.className}
             data-region="page-header"
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-on-surface-variant">page-header</p>
                 <h1 className="mt-2 text-2xl font-semibold text-on-surface">{shellTitle}</h1>
-                <p className="mt-2 text-sm leading-6 text-on-surface-variant">{headerDescription ?? surfaceMetadata.summary.description}</p>
+                <p className="mt-2 text-sm leading-6 text-on-surface-variant">{shellDescription}</p>
               </div>
-              {headerActions ? <div className="flex flex-wrap items-center gap-3">{headerActions}</div> : null}
+              {headerActions ? (
+                <div className={shellState.header.actionsClassName}>
+                  {headerActions}
+                </div>
+              ) : null}
             </div>
           </div>
         )}
 
-        <div className="flex min-h-0 flex-1 gap-4 px-5 pb-5 sm:px-6">
-          {secondaryNavVisible ? (
+        <div className={shellState.layout.contentGridClassName}>
+          {shellState.visibility.secondaryNav ? (
             <div className="hidden w-56 shrink-0 lg:block" data-region="secondary-nav">
               <Sidebar
                 items={teacherSidebarItems}
@@ -154,29 +158,20 @@ export function TeacherSidebarShellFrame({
           ) : null}
 
           <div className="flex min-w-0 flex-1 flex-col gap-4">
-            <div
-              className={
-                usesActiveThemeShell
-                  ? isFullWidthShell
-                    ? "flex-1 overflow-y-auto bg-surface-container-lowest"
-                    : "flex-1 overflow-y-auto rounded-[1.75rem] bg-surface-container-lowest"
-                  : "flex-1 overflow-y-auto"
-              }
-              data-region="main-content"
-            >
+            <div className={shellState.layout.mainContentClassName} data-region="main-content">
               {children}
             </div>
 
-            {pageFooterVisible ? (
-              <footer className="rounded-[1.5rem] bg-surface-container-lowest px-5 py-4 text-sm text-on-surface-variant" data-region="page-footer">
+            {shellState.visibility.pageFooter ? (
+              <footer className={shellState.layout.footerClassName} data-region="page-footer">
                 结构摘要：{surfaceMetadata.summary.description}
               </footer>
             ) : null}
           </div>
 
-          {contextPanelVisible ? (
+          {shellState.visibility.contextPanel ? (
             <aside className="hidden w-72 shrink-0 xl:block" data-region="context-panel">
-              <div className="rounded-[1.75rem] bg-surface-container-lowest p-5 shadow-ambient">
+              <div className={shellState.layout.contextPanelCardClassName}>
                 <p className="text-sm text-on-surface-variant">context-panel</p>
                 <h2 className="mt-2 text-lg font-semibold text-on-surface">当前主题结构</h2>
                 <p className="mt-3 text-sm leading-6 text-on-surface-variant">{surfaceMetadata.summary.description}</p>
@@ -188,7 +183,7 @@ export function TeacherSidebarShellFrame({
     </div>
   );
 
-  return usesActiveThemeShell ? <AuroraShell>{shell}</AuroraShell> : shell;
+  return shellState.wrapper === "aurora" ? <AuroraShell>{shell}</AuroraShell> : shell;
 }
 
 export async function TeacherSidebarShell(props: TeacherSidebarShellProps) {

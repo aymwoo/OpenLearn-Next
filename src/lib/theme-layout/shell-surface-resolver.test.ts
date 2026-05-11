@@ -2,7 +2,38 @@ import { describe, expect, it } from "vitest";
 
 import type { ThemeLayoutRuntime } from "@/lib/dto/resource-ai";
 import { DEFAULT_THEME_LAYOUT_RUNTIME } from "@/server/themes/tokens";
-import { getShellSurfaceConfig, resolveShellVariant } from "@/lib/theme-layout/shell-surface-resolver";
+import {
+  getShellSurfaceConfig,
+  resolveShellVariant,
+  resolveTeacherShellUiState,
+} from "@/lib/theme-layout/shell-surface-resolver";
+
+function buildRuntime(
+  routeKey: keyof ThemeLayoutRuntime["pages"],
+  override: Partial<ThemeLayoutRuntime["defaultSurface"]>,
+): ThemeLayoutRuntime {
+  const currentSurface = DEFAULT_THEME_LAYOUT_RUNTIME.pages[routeKey];
+  if (!currentSurface) {
+    throw new Error(`${routeKey} runtime should be defined`);
+  }
+
+  return {
+    ...DEFAULT_THEME_LAYOUT_RUNTIME,
+    pages: {
+      ...DEFAULT_THEME_LAYOUT_RUNTIME.pages,
+      [routeKey]: {
+        ...currentSurface,
+        ...override,
+        shellConfig: {
+          ...currentSurface.shellConfig,
+          ...override.shellConfig,
+        },
+        regions: override.regions ?? currentSurface.regions,
+        summary: override.summary ?? currentSurface.summary,
+      },
+    },
+  };
+}
 
 describe("shell surface resolver", () => {
   it("resolves teacher home with square full-width immersive metadata", () => {
@@ -19,49 +50,122 @@ describe("shell surface resolver", () => {
       chrome: "immersive",
     });
     expect(resolved.surfaceMetadata.label).toBe("教师工作台");
+
+    const shellState = resolveTeacherShellUiState({
+      themeSource: "active-theme",
+      shellVariant: resolved.shellVariant,
+      shellConfig: resolved.shellConfig,
+      surfaceMetadata: resolved.surfaceMetadata,
+    });
+
+    expect(shellState.wrapper).toBe("aurora");
+    expect(shellState.flags).toMatchObject({
+      usesActiveThemeShell: true,
+      isSquareShell: true,
+      isFullWidthShell: true,
+      isImmersiveChrome: true,
+    });
+    expect(shellState.layout.rootClassName).toContain("px-4 py-4");
+    expect(shellState.layout.mainBorderRadius).toBe("0");
+    expect(shellState.layout.mainContentClassName).toBe(
+      "flex-1 overflow-y-auto bg-surface-container-lowest",
+    );
+    expect(shellState.header.variant).toBe("stage-hero");
   });
 
   it("keeps settings and resources on the shared rounded shell contract", () => {
-    expect(getShellSurfaceConfig({ routeKey: "/settings", layoutRuntime: DEFAULT_THEME_LAYOUT_RUNTIME }).shellConfig).toEqual({
+    const settingsConfig = getShellSurfaceConfig({
+      routeKey: "/settings",
+      layoutRuntime: DEFAULT_THEME_LAYOUT_RUNTIME,
+    });
+    const resourcesConfig = getShellSurfaceConfig({
+      routeKey: "/resources",
+      layoutRuntime: DEFAULT_THEME_LAYOUT_RUNTIME,
+    });
+
+    expect(settingsConfig.shellConfig).toEqual({
       mode: "left-nav",
       radius: "rounded",
       width: "default",
       chrome: "default",
     });
-    expect(getShellSurfaceConfig({ routeKey: "/resources", layoutRuntime: DEFAULT_THEME_LAYOUT_RUNTIME }).shellConfig).toEqual({
+    expect(resourcesConfig.shellConfig).toEqual({
       mode: "left-nav",
       radius: "rounded",
       width: "default",
       chrome: "default",
+    });
+
+    const shellState = resolveTeacherShellUiState({
+      themeSource: "default",
+      shellVariant: settingsConfig.shellVariant,
+      shellConfig: settingsConfig.shellConfig,
+      surfaceMetadata: settingsConfig.surfaceMetadata,
+    });
+
+    expect(shellState.wrapper).toBe("none");
+    expect(shellState.flags).toMatchObject({
+      usesActiveThemeShell: false,
+      isSquareShell: false,
+      isFullWidthShell: false,
+      isImmersiveChrome: false,
+    });
+    expect(shellState.header.variant).toBe("surface-card");
+    expect(shellState.header.className).toContain("rounded-[1.5rem]");
+    expect(shellState.layout.mainBorderRadius).toBe(
+      "var(--layout-content-radius, 2rem)",
+    );
+  });
+
+  it("derives region visibility from metadata instead of jsx-local booleans", () => {
+    const layoutRuntime = buildRuntime("/teacher", {
+      regions: [
+        { region: "secondary-nav", visible: true },
+        { region: "context-panel", visible: true },
+        { region: "page-footer", visible: false },
+      ],
+    });
+
+    const resolved = getShellSurfaceConfig({ routeKey: "/teacher", layoutRuntime });
+    const shellState = resolveTeacherShellUiState({
+      themeSource: "active-theme",
+      shellVariant: resolved.shellVariant,
+      shellConfig: resolved.shellConfig,
+      surfaceMetadata: resolved.surfaceMetadata,
+    });
+
+    expect(shellState.visibility).toEqual({
+      secondaryNav: true,
+      contextPanel: true,
+      pageFooter: false,
     });
   });
 
   it("returns structured future-safe chrome variants", () => {
-    const teacherSurface = DEFAULT_THEME_LAYOUT_RUNTIME.pages["/teacher"];
-    if (!teacherSurface) {
-      throw new Error("/teacher runtime should be defined");
-    }
-
-    const layoutRuntime: ThemeLayoutRuntime = {
-      ...DEFAULT_THEME_LAYOUT_RUNTIME,
-      pages: {
-        ...DEFAULT_THEME_LAYOUT_RUNTIME.pages,
-        "/teacher": {
-          ...teacherSurface,
-          shellConfig: {
-            mode: "left-nav",
-            radius: "square",
-            width: "full-width",
-            chrome: "presentation",
-          },
-        },
+    const layoutRuntime = buildRuntime("/teacher", {
+      shellConfig: {
+        mode: "left-nav",
+        radius: "rounded",
+        width: "default",
+        chrome: "presentation",
       },
-    };
+    });
 
     const resolved = getShellSurfaceConfig({ routeKey: "/teacher", layoutRuntime });
+    const shellState = resolveTeacherShellUiState({
+      themeSource: "active-theme",
+      shellVariant: resolved.shellVariant,
+      shellConfig: resolved.shellConfig,
+      surfaceMetadata: resolved.surfaceMetadata,
+    });
 
     expect(resolveShellVariant(resolved.shellConfig)).toBe("left-nav");
     expect(resolved.shellConfig.chrome).toBe("presentation");
     expect(["presentation", "focus", "fullscreen", "minimal"]).toContain(resolved.shellConfig.chrome);
+    expect(shellState.flags.isImmersiveChrome).toBe(false);
+    expect(shellState.header.variant).toBe("stage-hero");
+    expect(shellState.layout.mainContentClassName).toBe(
+      "flex-1 overflow-y-auto rounded-[1.75rem] bg-surface-container-lowest",
+    );
   });
 });

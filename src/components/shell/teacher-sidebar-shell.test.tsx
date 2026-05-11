@@ -1,61 +1,120 @@
-import { readFileSync } from "node:fs";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 
-import { describe, expect, it } from "vitest";
+vi.mock("@/lib/dal/themes", () => ({
+  getCurrentActorThemeRuntimeState: vi.fn(),
+}));
 
-const shellSource = readFileSync("src/components/shell/teacher-sidebar-shell.tsx", "utf8");
-const layoutSource = readFileSync("src/app/(teacher)/teacher/layout.tsx", "utf8");
+import type {
+  ShellSurfaceMetadata,
+  ThemeShellConfig,
+} from "@/lib/dto/resource-ai";
+import { TeacherSidebarShellFrame } from "@/components/shell/teacher-sidebar-shell";
+
+function buildSurfaceMetadata(
+  overrides: Partial<ShellSurfaceMetadata> = {},
+): ShellSurfaceMetadata {
+  return {
+    routeKey: "/teacher",
+    label: "教师工作台",
+    summary: {
+      description: "统一的教师端壳层结构摘要。",
+    },
+    regions: [],
+    ...overrides,
+  };
+}
+
+function renderShell({
+  routeKey = "/teacher",
+  shellVariant = "left-nav",
+  shellConfig = {
+    mode: "left-nav",
+    radius: "rounded",
+    width: "default",
+    chrome: "default",
+  } satisfies ThemeShellConfig,
+  surfaceMetadata = buildSurfaceMetadata(),
+  themeSource = "default" as const,
+} = {}) {
+  return renderToStaticMarkup(
+    <TeacherSidebarShellFrame
+      routeKey={routeKey}
+      activePath="/teacher"
+      shellVariant={shellVariant}
+      shellConfig={shellConfig}
+      surfaceMetadata={surfaceMetadata}
+      themeSource={themeSource}
+      headerActions={<button type="button">操作</button>}
+    >
+      <div>主内容</div>
+    </TeacherSidebarShellFrame>,
+  );
+}
 
 describe("TeacherSidebarShell theme layout hooks", () => {
-  it("renders all allowlisted shell modes with fallback-safe regions", () => {
-    expect(shellSource).toContain('left-nav');
-    expect(shellSource).toContain('shellVariant');
-    expect(shellSource).toContain('data-theme-shell-mode');
-    expect(shellSource).toContain('data-theme-layout-source');
-    expect(shellSource).toContain('primary-nav');
-    expect(shellSource).toContain('page-header');
-    expect(shellSource).toContain('main-content');
-    expect(shellSource).toContain('secondary-nav');
+  it("consumes resolver-driven shell config without route-string branching", () => {
+    const markup = renderShell({
+      routeKey: "/settings",
+      shellConfig: {
+        mode: "left-nav",
+        radius: "square",
+        width: "full-width",
+        chrome: "immersive",
+      },
+      themeSource: "active-theme",
+    });
+
+    expect(markup).toContain('data-route-surface="/settings"');
+    expect(markup).toContain('data-theme-layout-source="active-theme"');
+    expect(markup).toContain("px-4 py-4 sm:px-5");
+    expect(markup).toContain('data-region="main-content"');
+    expect(markup).toContain("flex-1 overflow-y-auto bg-surface-container-lowest");
+    expect(markup).toContain('data-region="page-header"');
+    expect(markup).toContain("w-full shrink-0 rounded-none");
+    expect(markup).toContain("[&amp;&gt;aside]:rounded-none");
   });
 
-  it("keeps current layout variables behind the shared theme runtime state", () => {
-    expect(shellSource).toContain('getCurrentActorThemeRuntimeState');
-    expect(shellSource).toContain('var(--layout-shell-gap, 0rem)');
-    expect(shellSource).toContain('var(--layout-sidebar-width, 16rem)');
-    expect(shellSource).toContain('var(--layout-shell-inset, 0.5rem)');
-    expect(shellSource).toContain('var(--layout-content-radius, 2rem)');
-    expect(shellSource).toContain('themeSource === "active-theme"');
+  it("keeps shared rounded shell output unchanged for the default theme path", () => {
+    const markup = renderShell();
+
+    expect(markup).toContain('data-theme-layout-source="default"');
+    expect(markup).toContain("flex h-screen overflow-hidden bg-surface");
+    expect(markup).toContain('data-region="page-header"');
+    expect(markup).toContain("rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient");
+    expect(markup).toContain('data-region="main-content"');
+    expect(markup).toContain('class="flex-1 overflow-y-auto"');
+    expect(markup).toContain("统一的教师端壳层结构摘要。");
+    expect(markup).toContain(">操作<");
   });
 
-  it("keeps /teacher home shell square while preserving shared shell radius tokens elsewhere", () => {
-    expect(shellSource).not.toContain('routeKey === "/teacher"');
-    expect(shellSource).toContain('shellConfig.radius === "square"');
-    expect(shellSource).toContain('shellConfig.width === "full-width"');
-    expect(shellSource).toContain('shellConfig.chrome === "immersive"');
-    expect(shellSource).toContain('[&>aside]:rounded-none');
-    expect(shellSource).toContain('borderRadius: isSquareShell ? "0" : "var(--layout-content-radius, 2rem)"');
-    expect(shellSource).toContain('isSquareShell ? "w-full shrink-0 bg-surface-container-lowest px-5 py-5 shadow-ambient" : "w-full shrink-0 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"');
-    expect(shellSource).toContain('? "flex-1 overflow-y-auto bg-surface-container-lowest"');
-  });
+  it("renders shell regions from metadata visibility only", () => {
+    const withSecondaryAndFooter = renderShell({
+      surfaceMetadata: buildSurfaceMetadata({
+        regions: [
+          { region: "secondary-nav", visible: true },
+          { region: "context-panel", visible: false },
+          { region: "page-footer", visible: true },
+        ],
+      }),
+    });
 
-  it("keeps the page-header region on the real header block without an extra wrapper", () => {
-    expect(shellSource).toContain('data-region="page-header"');
-    expect(shellSource).toContain('className={isImmersiveChrome ? "w-full shrink-0 rounded-none" : "w-full shrink-0 rounded-none"}');
-    expect(shellSource).toContain('contentColumnClassName="max-w-none"');
-    expect(shellSource).not.toContain('<section className="shrink-0 px-5 pb-4 pt-5 sm:px-6" data-region="page-header">');
-  });
+    expect(withSecondaryAndFooter).toContain('data-region="secondary-nav"');
+    expect(withSecondaryAndFooter).toContain('data-region="page-footer"');
+    expect(withSecondaryAndFooter).not.toContain('data-region="context-panel"');
 
-  it("keeps fallback shell static while theme runtime stays in the async path", () => {
-    expect(shellSource).toContain('export function TeacherSidebarShellFrame');
-    expect(shellSource).toContain('shellConfig = DEFAULT_THEME_LAYOUT_RUNTIME.defaultSurface.shellConfig');
-    expect(shellSource).toContain('themeSource = "default"');
-    expect(shellSource).toContain('export async function TeacherSidebarShell');
-    expect(shellSource).toContain('await getCurrentActorThemeRuntimeState()');
-    expect(shellSource).toContain('getShellSurfaceConfig({');
-    expect(shellSource).toContain('surfaceMetadata={surfaceMetadata}');
-    expect(layoutSource).toContain('fallback={<TeacherShellFallback />}');
-    expect(layoutSource).toContain('<TeacherSidebarShellFrame');
-    expect(layoutSource).toContain('routeKey="/teacher"');
-    expect(layoutSource).not.toContain('<TeacherSidebarShell routeKey="/teacher"');
-    expect(layoutSource).not.toContain('top-nav、left-nav 与 top-nav-secondary-rail 都通过统一 theme-layout-runtime 进入教师端壳层。');
+    const withContextPanel = renderShell({
+      surfaceMetadata: buildSurfaceMetadata({
+        regions: [
+          { region: "secondary-nav", visible: false },
+          { region: "context-panel", visible: true },
+          { region: "page-footer", visible: false },
+        ],
+      }),
+    });
+
+    expect(withContextPanel).not.toContain('data-region="secondary-nav"');
+    expect(withContextPanel).not.toContain('data-region="page-footer"');
+    expect(withContextPanel).toContain('data-region="context-panel"');
   });
 });
