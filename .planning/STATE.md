@@ -181,10 +181,11 @@ progress:
 | fast-2026-05-10-d | 调整 /teacher dashboard：将今日优先事项移到正在直播上方，并让左右列模块顶部底部对齐 | 2026-05-10 | 待更新 | - |
 | 260511-bbe | /teacher页面左边的导航和右边的main都取消圆角，main顶部的教师工作台部分的div也取消圆角，宽度100% | 2026-05-11 | 65f266c | [260511-bbe-teacher-main-main-div-100](./quick/260511-bbe-teacher-main-main-div-100/) |
 | 260511-bn1 | 让/teacher页面的data-region="page-header"的组件左右都铺满到父容器的宽度，删除page-header的div和"top-nav、left-nav 与 top-nav-secondary-rail 都通过统一 theme-layout-runtime 进入教师端壳层。"的div | 2026-05-11 | 51e7edf | [260511-bn1-teacher-data-region-page-header-page-hea](./quick/260511-bn1-teacher-data-region-page-header-page-hea/) |
+| fast-2026-05-11-e | 提取 GitNexus 共享指令到 AI_SHARED/GITNEXUS.md，消除 AGENTS.md 与 CLAUDE.md 的重复块 | 2026-05-11 | 待提交 | - |
 
 ## Current Position
 
 Phase: 18 (teaching-schedule-os) — COMPLETE
 Plan: 6 of 6
 Status: Ready for commit separation
-Last activity: 2026-05-11 - Completed quick task 260511-bn1: 让/teacher页面的data-region="page-header"的组件左右都铺满到父容器的宽度，删除page-header的div和"top-nav、left-nav 与 top-nav-secondary-rail 都通过统一 theme-layout-runtime 进入教师端壳层。"的div
+Last activity: 2026-05-11 - Fast task: 提取 GitNexus 共享指令到 AI_SHARED/GITNEXUS.md，消除 AGENTS.md 与 CLAUDE.md 的重复块

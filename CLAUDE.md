@@ -81,3 +81,9 @@ npx drizzle-kit push       # push schema directly (local dev only, never product
 ```
 
 Drizzle config at `drizzle.config.ts`. Schema: `src/db/schema.ts`, migrations: `./drizzle/`.
+
+<!-- gitnexus:start -->
+<!-- Single source of truth: ./AI_SHARED/GITNEXUS.md. Do not copy this block into other agent files. -->
+@import ./AI_SHARED/GITNEXUS.md
+Fallback reference if `@import` is not supported: see `./AI_SHARED/GITNEXUS.md`.
+<!-- gitnexus:end -->
