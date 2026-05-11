@@ -21,4 +21,10 @@ describe("Teacher dashboard surface layout guards", () => {
     expect(teacherPageSource).toContain('className="mt-6 flex w-full flex-col gap-3 bg-surface-container-low p-3"');
     expect(teacherPageSource).not.toContain("rounded-[1.75rem]");
   });
+
+  it("links the teacher schedule card to the schedule page", () => {
+    expect(dashboardSurfaceSource).toContain('href="/teacher/schedule"');
+    expect(dashboardSurfaceSource).toContain("查看课表");
+    expect(dashboardSurfaceSource).not.toContain("查看完整日历");
+  });
 });

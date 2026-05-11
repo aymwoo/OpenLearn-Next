@@ -80,8 +80,8 @@ export function TeacherDashboardSurface() {
                   不再把主信息压缩到狭窄侧栏中。
                 </p>
               </div>
-              <Link href="#" className="text-sm font-medium text-primary transition hover:opacity-80">
-                查看完整日历
+              <Link href="/teacher/schedule" className="text-sm font-medium text-primary transition hover:opacity-80">
+                查看课表
               </Link>
             </div>
 
