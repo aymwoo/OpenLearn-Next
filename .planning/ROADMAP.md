@@ -1,9 +1,9 @@
 ## ROADMAP
 
 **Milestone:** v1.2 Course Import & Management
-**Phases:** 6
+**Phases:** 7
 **Granularity:** coarse
-**Coverage:** 10/10 v1.2 requirements mapped ✓ + 3 extension phases
+**Coverage:** 10/10 v1.2 requirements mapped ✓ + 4 extension phases
 
 ### Phases
 
@@ -13,6 +13,7 @@
 - [x] **Phase 16: Theme plugins and layout orchestration** - Expand theme plugins from token-only styling into validated layout composition, navigation placement, and page-surface orchestration. (completed 2026-05-09)
 - [x] **Phase 17: Teacher flow editor enhancement** - Upgrade `/teacher/editor` into a flexible classroom-flow editor with composable teaching steps, structured property editing, preview, and publish-readiness checks. (completed 2026-05-10)
 - [x] **Phase 18: Teaching schedule OS** - Build a production-grade teaching schedule system around `Import Layer -> Normalized Schedule Model -> Runtime Daily Agenda Engine`, covering import, normalization, daily agenda generation, rescheduling, holidays, reminders, AI assistance, and plugin-safe extensibility. (completed 2026-05-10)
+- [ ] **Phase 19: Teacher shell route metadata system** - Replace teacher-shell route string conditionals with route metadata-driven shell behavior, centralized shell config resolution, and future-safe layout variants without changing current visuals.
 
 ### Phase Details
 
@@ -113,6 +114,21 @@
 - [x] 18-06-PLAN.md — Expose AI schedule assistant workflows and plugin extension hooks through approval-gated, allowlisted schedule actions.
 **UI hint**: yes
 
+### Phase 19: Teacher shell route metadata system
+**Goal**: Teacher-facing shells can resolve radius, width, chrome, and future presentation modes from route metadata and centralized shell config resolvers instead of hardcoded route string checks inside UI components.
+**Depends on**: Phase 16
+**Requirements**: Extension phase — teacher shell architecture hardening and future layout-variant expansion.
+**Success Criteria**:
+  1. `teacher-sidebar-shell.tsx` no longer contains business route checks such as `routeKey === "/teacher"`, and instead consumes centralized shell metadata or shell resolver output.
+  2. Route metadata can express shell behaviors such as `rounded`, `square`, `fullscreen`, `immersive`, `presentation`, and `minimal chrome` without forcing JSX condition explosion or `routeA || routeB || routeC` logic.
+  3. Existing `/teacher` visuals remain unchanged after the migration, including square shell behavior on the current teacher home route.
+  4. Regression coverage exists for shell metadata resolution, theme coupling, and sidebar/shell behavior so future route expansions do not reintroduce hardcoded branching.
+**Plans**: 3 plans
+- [ ] 19-01-PLAN.md — Extend route surface metadata with shell behavior primitives, define the typed resolver contract, and document the Phase 19 shell architecture.
+- [ ] 19-02-PLAN.md — Refactor teacher shell rendering so `TeacherSidebarShell` consumes centralized resolver output instead of route string conditionals.
+- [ ] 19-03-PLAN.md — Add resolver-driven regression coverage and a dedicated `verify:phase19` safety command for future route expansion.
+**UI hint**: yes
+
 ### Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -123,3 +139,4 @@
 | 16. Theme plugins and layout orchestration | 4/4 | Complete | 2026-05-09 |
 | 17. Teacher flow editor enhancement | 4/4 | Complete   | 2026-05-10 |
 | 18. Teaching schedule OS | 6/6 | Complete | 2026-05-10 |
+| 19. Teacher shell route metadata system | 0/3 | Not started | - |
