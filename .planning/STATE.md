@@ -197,6 +197,7 @@ progress:
 | 260511-tca | 教师首页 `/teacher` 的 CTA 从"查看完整日历"改为"查看课表"，并跳转到 `/teacher/schedule`，同时补充对应回归测试 | 2026-05-11 | 864760c | [260511-tca-teacher-dashboard-schedule-cta](./quick/260511-tca-teacher-dashboard-schedule-cta/) |
 | 260511-mdi | 为 /teacher/schedule/import 添加课程表导入模板下载，根据导入的代码和逻辑生成导入模板 | 2026-05-11 | 8600eb8 | [260511-mdi-teacher-schedule-import](./quick/260511-mdi-teacher-schedule-import/) |
 | 260511-mv9 | 将 /teacher/schedule/import 页面的导入模板字段名改为中文，并修改导入代码能够正确识别中文字段 | 2026-05-11 | aa94f76 | [260511-mv9-teacher-schedule-import](./quick/260511-mv9-teacher-schedule-import/) |
+| 260511-nuf | 在课程表导入模板中增加上课时间字段（bellSlotStartTime/bellSlotEndTime），并修改导入 server 支持导入上课时间 | 2026-05-11 | 740f867 | [260511-nuf-schedule-import-time](./quick/260511-nuf-schedule-import-time/) |
 
 ## Current Position
 
