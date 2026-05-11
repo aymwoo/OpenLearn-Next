@@ -163,14 +163,22 @@ export function TeacherSidebarShellFrame({
             </div>
 
             {shellState.visibility.pageFooter ? (
-              <footer className={shellState.layout.footerClassName} data-region="page-footer">
+              <footer
+                className={shellState.layout.footerClassName}
+                data-region="page-footer"
+                aria-label="页面结构摘要"
+              >
                 结构摘要：{surfaceMetadata.summary.description}
               </footer>
             ) : null}
           </div>
 
           {shellState.visibility.contextPanel ? (
-            <aside className="hidden w-72 shrink-0 xl:block" data-region="context-panel">
+            <aside
+              className="hidden w-72 shrink-0 xl:block"
+              data-region="context-panel"
+              aria-label="当前主题结构"
+            >
               <div className={shellState.layout.contextPanelCardClassName}>
                 <p className="text-sm text-on-surface-variant">context-panel</p>
                 <h2 className="mt-2 text-lg font-semibold text-on-surface">当前主题结构</h2>
