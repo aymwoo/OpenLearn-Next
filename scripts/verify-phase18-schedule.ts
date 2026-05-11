@@ -37,9 +37,9 @@ const surfaceSources = [
   read("src/components/surfaces/schedule-reminder-surface.tsx"),
   read("src/components/surfaces/schedule-assistant-surface.tsx"),
 ].map(withoutLineComments);
-const runtimeDalSource = read("src/lib/dal/schedule-runtime.ts");
-const assistantDalSource = read("src/lib/dal/schedule-assistant.ts");
-const assistantActionsSource = read("src/actions/schedule-assistant-actions.ts");
+const runtimeDalSource = read("src/features/schedule/runtime/server.ts");
+const assistantDalSource = read("src/features/schedule/assistant/server.ts");
+const assistantActionsSource = read("src/features/schedule/assistant/actions.ts");
 const pluginRegistrySource = read("src/server/plugins/registry.ts");
 const packageSource = read("package.json");
 const scheduleSources = [

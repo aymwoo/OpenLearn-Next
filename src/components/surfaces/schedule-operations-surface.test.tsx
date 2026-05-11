@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ScheduleOperationsSurface } from "./schedule-operations-surface";
 
-vi.mock("@/actions/schedule-operations-actions", () => ({
+vi.mock("@/features/schedule/operations/actions", () => ({
   createScheduleOverrideAction: vi.fn(),
   saveHolidayCalendarDateAction: vi.fn(),
 }));
@@ -29,7 +29,7 @@ describe("ScheduleOperationsSurface", () => {
       <ScheduleOperationsSurface
         data={{
           schoolId: "school-1",
-          calendarId: "calendar-1",
+          calendarId: null,
           recurringEntries: [
             {
               recurringEntryId: "entry-1",

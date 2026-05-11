@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ScheduleImportReviewSurface } from "./schedule-import-review-surface";
 
-vi.mock("@/actions/schedule-import-actions", () => ({
+vi.mock("@/features/schedule/import/actions", () => ({
   approveScheduleImportAction: vi.fn(),
 }));
 

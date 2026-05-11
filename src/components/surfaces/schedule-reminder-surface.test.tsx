@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ScheduleReminderSurface } from "./schedule-reminder-surface";
 
-vi.mock("@/actions/schedule-reminder-actions", () => ({
+vi.mock("@/features/schedule/reminders/actions", () => ({
   retryScheduleReminderDispatchAction: vi.fn(),
   saveScheduleReminderRuleAction: vi.fn(),
 }));

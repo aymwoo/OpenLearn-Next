@@ -3,12 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { retryScheduleReminderDispatchAction, saveScheduleReminderRuleAction } from "@/actions/schedule-reminder-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
+import { retryScheduleReminderDispatchAction, saveScheduleReminderRuleAction } from "@/features/schedule/reminders/actions";
+import type { ScheduleReminderCenterDTO } from "@/features/schedule/shared/dto/reminders";
 import { cn } from "@/lib/utils";
-import type { ScheduleReminderCenterDTO } from "@/lib/dto/schedule";
 
 const STATUS_LABEL: Record<string, string> = {
   planned: "已计划",

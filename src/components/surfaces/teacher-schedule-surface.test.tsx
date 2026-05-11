@@ -56,4 +56,40 @@ describe("TeacherScheduleSurface", () => {
     expect(screen.getByText("地点")).toBeTruthy();
     expect(screen.getByText("状态")).toBeTruthy();
   });
+
+  it("uses the lesson link contract instead of guessing courseId from assignmentId", () => {
+    render(
+      <TeacherScheduleSurface
+        data={{
+          teacherId: "teacher-1",
+          date: "2026-05-11",
+          dateLabel: "2026-05-11",
+          weekLabel: "周一",
+          nextClassCountdownLabel: "下一节课 08:00 - 08:45",
+          cards: [
+            {
+              id: "card-1",
+              recurringEntryId: "entry-1",
+              assignmentId: "assignment-1",
+              timeLabel: "08:00 - 08:45",
+              classLabel: "高一一班",
+              locationLabel: "302",
+              status: "进行中",
+              courseTitle: "数学",
+              overrideSummary: null,
+              lessonLink: {
+                courseId: "course-1",
+                lessonId: "lesson-1",
+                lessonTitle: "函数导入",
+              },
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "查看教案" }).getAttribute("href")).toBe(
+      "/teacher/editor/preview?lessonId=lesson-1&courseId=course-1",
+    );
+  });
 });

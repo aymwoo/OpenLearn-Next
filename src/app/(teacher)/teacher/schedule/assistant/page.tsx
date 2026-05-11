@@ -1,5 +1,4 @@
-import { ScheduleAssistantSurface } from "@/components/surfaces/schedule-assistant-surface";
-import { getScheduleAssistantCenterDTO } from "@/lib/dal/schedule-assistant";
+import { getScheduleAssistantCenterDTO, ScheduleAssistantSurface } from "@/features/schedule/assistant";
 
 export default async function TeacherScheduleAssistantPage() {
   const data = await getScheduleAssistantCenterDTO();

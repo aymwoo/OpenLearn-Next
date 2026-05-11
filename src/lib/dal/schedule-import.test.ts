@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-const source = readFileSync("src/lib/dal/schedule-import.ts", "utf8");
-const actionsSource = readFileSync("src/actions/schedule-import-actions.ts", "utf8");
+const source = readFileSync("src/features/schedule/import/server.ts", "utf8");
+const actionsSource = readFileSync("src/features/schedule/import/actions.ts", "utf8");
 
 describe("schedule import DAL", () => {
   it("stages rows before approval and keeps row-level review statuses", () => {
@@ -23,9 +23,15 @@ describe("schedule import DAL", () => {
     expect(source).toContain("await tx.insert(scheduleRecurringEntry)");
   });
 
+  it("records import draft and approval mutations through schedule audit helper", () => {
+    expect(source).toContain("appendScheduleAudit");
+    expect(source).toContain('entityType: "scheduleImportBatch"');
+    expect(source).toContain('actionType: "approve_import"');
+  });
+
   it("returns APPPROVE_IMPORT_BLOCKED style structured action failures and invalidates tags", () => {
     expect(actionsSource).toContain('error: "APPROVE_IMPORT_BLOCKED"');
-    expect(actionsSource).toContain("updateTag(cacheTags.scheduleImportBatch");
-    expect(actionsSource).toContain("updateTag(cacheTags.scheduleImportSchool");
+    expect(actionsSource).toContain("invalidateScheduleImportTags(updateTag");
+    expect(actionsSource).toContain("assertScheduleTeacherScope");
   });
 });

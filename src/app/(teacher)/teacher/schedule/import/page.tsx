@@ -1,5 +1,4 @@
-import { ScheduleImportReviewSurface } from "@/components/surfaces/schedule-import-review-surface";
-import { getLatestScheduleImportBatchDTO } from "@/lib/dal/schedule-import";
+import { getLatestScheduleImportBatchDTO, ScheduleImportReviewSurface } from "@/features/schedule/import";
 
 export default async function TeacherScheduleImportPage() {
   const batch = await getLatestScheduleImportBatchDTO();

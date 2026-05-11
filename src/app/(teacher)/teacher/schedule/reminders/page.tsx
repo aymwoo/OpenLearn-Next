@@ -1,5 +1,4 @@
-import { ScheduleReminderSurface } from "@/components/surfaces/schedule-reminder-surface";
-import { getScheduleReminderCenterDTO } from "@/lib/dal/schedule-reminders";
+import { getScheduleReminderCenterDTO, ScheduleReminderSurface } from "@/features/schedule/reminders";
 
 export default async function TeacherScheduleRemindersPage() {
   const data = await getScheduleReminderCenterDTO();

@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-const dalSource = readFileSync("src/lib/dal/schedule-assistant.ts", "utf8");
-const actionsSource = readFileSync("src/actions/schedule-assistant-actions.ts", "utf8");
+const dalSource = readFileSync("src/features/schedule/assistant/server.ts", "utf8");
+const actionsSource = readFileSync("src/features/schedule/assistant/actions.ts", "utf8");
 
 describe("schedule assistant DAL", () => {
   it("stores only proposal-oriented assistant types and statuses", () => {
@@ -17,5 +17,10 @@ describe("schedule assistant DAL", () => {
     expect(dalSource).not.toContain("scheduleOverride");
     expect(dalSource).not.toContain("scheduleRecurringEntry");
     expect(actionsSource).toContain('error: "SCHEDULE_ASSISTANT_APPROVAL_BLOCKED"');
+  });
+
+  it("writes assistant proposal audit entries through the shared helper inside transactions", () => {
+    expect(dalSource).toContain("appendScheduleAudit");
+    expect(dalSource).toContain("await db.transaction");
   });
 });

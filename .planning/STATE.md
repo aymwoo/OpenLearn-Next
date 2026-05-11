@@ -7,7 +7,7 @@ current_phase_name: teacher-shell-route-metadata-system
 current_plan: 3
 status: executing
 stopped_at: Phase 19 execution complete; summaries and roadmap synchronized
-last_updated: "2026-05-11T10:16:00.000Z"
+last_updated: "2026-05-11T11:52:48+08:00"
 last_activity: 2026-05-11
 progress:
   total_phases: 7
@@ -83,6 +83,7 @@ progress:
 - [Quick 260510-idr]: 教师端其它 surface 的二级 tonal cards 继续统一复用 `radius-card` 语义；shell 级容器仍保留 `radius-shell`，不混入圆形控件与主舞台。
 - [Quick 260510-9s2]: `settings-surface`、`teacher-review-surface`、`library-surface` 的二级卡片统一复用 `teacherSurfaceRhythm.card` / `cardInset`，不再局部手写不同半径。
 - [Quick 260510-kc9]: 默认主题重新和激活主题路径分流；无 `activeThemeId` 时回到浅色基线壳层，并通过共享 `surfaceWidths` contract 清理首页、设置、学生相关页面的局部窄版心回归。
+- [Quick 260511-ewp]: schedule 域本轮 feature 化已收尾，并继续补上三处边界修复：runtime agenda DTO 现在显式提供 `lessonLink.courseId`，`teacher-schedule-surface` 不再猜测 editor preview route 参数；新增 `src/features/schedule/shared/audit.ts`，将 import / operations / reminders / assistant 的 mutation audit 统一收口到事务内 helper，reminder retry 也改成“先回写 planned，再执行 side effect，最后独立事务记录结果”的解耦路径；另外 `operations` center 读路径已不再隐式创建默认校历，默认校历只在显式 holiday 写入时按需创建，`verify:phase18` 继续保持绿色。
 
 **Active Blockers:**
 
@@ -188,10 +189,11 @@ progress:
 | fast-2026-05-11-e | 提取 GitNexus 共享指令到 AI_SHARED/GITNEXUS.md，消除 AGENTS.md 与 CLAUDE.md 的重复块 | 2026-05-11 | 待提交 | - |
 | 260511-ef0 | 重构 teacher-sidebar-shell.tsx 的 UI 状态决策逻辑，把 theme state、shell mode、route mode、surface variant 从 JSX 中抽离到集中 resolver，减少 ternary nesting 和条件爆炸，并补充状态组合测试，保持 UI 不变 | 2026-05-11 | 7dc94d8 | [260511-ef0-teacher-sidebar-shell-tsx-ui-usesactivet](./quick/260511-ef0-teacher-sidebar-shell-tsx-ui-usesactivet/) |
 | 260511-emt | 升级 teacher shell 的测试体系，优先把 teacher-sidebar-shell 相关 implementation-detail tests 从 readFileSync + toContain 迁移成基于 React Testing Library 的 semantic UI testing，保持覆盖率并最小风险分阶段迁移 | 2026-05-11 | 5cc6b57 | [260511-emt-teacher-shell-readfilesync-tocontain-imp](./quick/260511-emt-teacher-shell-readfilesync-tocontain-imp/) |
+| 260511-ewp | 为 schedule 域建立 `src/features/schedule/` feature root、boundary map、shared DTO/auth/cache contracts 与子域 public barrels，并把页面入口、surface、actions、DAL 逐步收口到 feature root | 2026-05-11 | 未提交 | [260511-ewp-teaching-schedule-os-src-features-schedu](./quick/260511-ewp-teaching-schedule-os-src-features-schedu/) |
 
 ## Current Position
 
 Phase: 19 (teacher-shell-route-metadata-system) — COMPLETE
 Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-05-11 - Completed quick task 260511-emt: 升级 teacher shell 的测试体系，优先把 teacher-sidebar-shell 相关 implementation-detail tests 从 readFileSync + toContain 迁移成基于 React Testing Library 的 semantic UI testing，保持覆盖率并最小风险分阶段迁移
+Last activity: 2026-05-11 - Extended quick task 260511-ewp: 将 operations center 读路径改回纯查询，默认校历改为写路径按需创建；`pnpm verify:phase18` 与 operations 定向测试继续通过

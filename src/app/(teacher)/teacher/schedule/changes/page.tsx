@@ -1,5 +1,4 @@
-import { ScheduleOperationsSurface } from "@/components/surfaces/schedule-operations-surface";
-import { getScheduleOperationsCenterDTO } from "@/lib/dal/schedule-operations";
+import { getScheduleOperationsCenterDTO, ScheduleOperationsSurface } from "@/features/schedule/operations";
 
 export default async function TeacherScheduleChangesPage() {
   const data = await getScheduleOperationsCenterDTO();

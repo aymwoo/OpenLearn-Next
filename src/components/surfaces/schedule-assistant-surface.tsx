@@ -3,15 +3,15 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-  approveScheduleAssistantProposalAction,
-  rejectScheduleAssistantProposalAction,
-} from "@/actions/schedule-assistant-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
+import {
+  approveScheduleAssistantProposalAction,
+  rejectScheduleAssistantProposalAction,
+} from "@/features/schedule/assistant/actions";
+import type { ScheduleAssistantCenterDTO } from "@/features/schedule/shared/dto/assistant";
 import { cn } from "@/lib/utils";
-import type { ScheduleAssistantCenterDTO } from "@/lib/dto/schedule";
 
 export function ScheduleAssistantSurface({ data }: { data: ScheduleAssistantCenterDTO }) {
   const router = useRouter();

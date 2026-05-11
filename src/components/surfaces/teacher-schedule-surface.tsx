@@ -2,8 +2,8 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
+import type { TeacherDailyAgendaDTO } from "@/features/schedule/shared/dto/runtime";
 import { cn } from "@/lib/utils";
-import type { TeacherDailyAgendaDTO } from "@/lib/dto/schedule";
 
 export function TeacherScheduleSurface({ data }: { data: TeacherDailyAgendaDTO }) {
   const empty = data.cards.length === 0;
@@ -55,7 +55,7 @@ export function TeacherScheduleSurface({ data }: { data: TeacherDailyAgendaDTO }
                   <div className="flex items-center gap-2">
                     {card.overrideSummary ? <Badge>{card.overrideSummary}</Badge> : null}
                     {card.lessonLink ? (
-                      <Link className="text-sm font-medium text-primary" href={`/teacher/editor/preview?lessonId=${card.lessonLink.lessonId}&courseId=${card.assignmentId}`}>
+                      <Link className="text-sm font-medium text-primary" href={`/teacher/editor/preview?lessonId=${card.lessonLink.lessonId}&courseId=${card.lessonLink.courseId}`}>
                         查看教案
                       </Link>
                     ) : null}

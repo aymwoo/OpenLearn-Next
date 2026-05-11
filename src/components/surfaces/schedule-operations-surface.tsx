@@ -3,12 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { createScheduleOverrideAction, saveHolidayCalendarDateAction } from "@/actions/schedule-operations-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
+import { createScheduleOverrideAction, saveHolidayCalendarDateAction } from "@/features/schedule/operations/actions";
+import type { ScheduleOperationsCenterDTO } from "@/features/schedule/shared/dto/operations";
 import { cn } from "@/lib/utils";
-import type { ScheduleOperationsCenterDTO } from "@/lib/dto/schedule";
 
 export function ScheduleOperationsSurface({ data }: { data: ScheduleOperationsCenterDTO }) {
   const router = useRouter();
@@ -40,6 +40,7 @@ export function ScheduleOperationsSurface({ data }: { data: ScheduleOperationsCe
   function submitHoliday(formData: FormData) {
     startTransition(async () => {
       const result = await saveHolidayCalendarDateAction({
+        schoolId: data.schoolId,
         calendarId: data.calendarId,
         date: String(formData.get("holidayDate") ?? ""),
         dayType: String(formData.get("dayType") ?? ""),

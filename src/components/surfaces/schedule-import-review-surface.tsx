@@ -3,12 +3,12 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { approveScheduleImportAction } from "@/actions/schedule-import-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
+import { approveScheduleImportAction } from "@/features/schedule/import/actions";
+import type { ScheduleImportBatchDTO } from "@/features/schedule/shared/dto/import";
 import { cn } from "@/lib/utils";
-import type { ScheduleImportBatchDTO } from "@/lib/dto/schedule";
 
 const statusLabelMap: Record<string, string> = {
   pending_review: "待审核",
