@@ -5,7 +5,9 @@ import { LessonEditorSurface } from "@/components/surfaces/lesson-editor-surface
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { assertActiveTeacher, getLessonEditorDTO, getTeacherAuthoringOverview } from "@/lib/dal/lesson-authoring";
+import { getValidThemesForSchool } from "@/lib/dal/themes";
 import { listBuiltInTeachingStepTemplates } from "@/lib/dal/plugins";
+import { getActiveThemeId } from "@/lib/theme-cookie";
 
 type TeacherEditorPageProps = {
   searchParams?: Promise<{
@@ -39,6 +41,12 @@ export default async function TeacherEditorPage({ searchParams }: TeacherEditorP
   const builtInTemplates = lesson
     ? await listBuiltInTeachingStepTemplates({ actorId: scope.userId, schoolId: lesson.course.schoolId })
     : [];
+  const [themes, activeThemeId] = lesson
+    ? await Promise.all([
+        getValidThemesForSchool(lesson.course.schoolId),
+        getActiveThemeId(),
+      ])
+    : [[], null];
 
   if (!courseId || !scopedCourse) {
     return <CourseAwareEditorGuidance />;
@@ -69,6 +77,8 @@ export default async function TeacherEditorPage({ searchParams }: TeacherEditorP
       overview={scopedOverview}
       lesson={lesson}
       builtInTemplates={builtInTemplates}
+      themes={themes}
+      activeThemeId={activeThemeId}
       pluginSlot={
         <PluginRenderer
           anchor="lesson.sidebar"

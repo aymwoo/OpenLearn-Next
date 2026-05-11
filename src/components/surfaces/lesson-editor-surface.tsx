@@ -12,7 +12,7 @@ import type {
   LessonEditorDTO,
   TeacherAuthoringOverviewDTO,
 } from "@/lib/dto/lesson-authoring";
-import type { BuiltInTeachingStepTemplatePayload } from "@/lib/dto/resource-ai";
+import type { BuiltInTeachingStepTemplatePayload, ThemeRegistryDTO } from "@/lib/dto/resource-ai";
 
 type BuiltInTemplateForAuthoring = BuiltInTeachingStepTemplatePayload & {
   id: string;
@@ -23,6 +23,8 @@ type LessonEditorSurfaceProps = {
   overview: TeacherAuthoringOverviewDTO;
   lesson: LessonEditorDTO | null;
   builtInTemplates: BuiltInTemplateForAuthoring[];
+  themes: ThemeRegistryDTO[];
+  activeThemeId: string | null;
   pluginSlot?: React.ReactNode;
 };
 
@@ -30,6 +32,8 @@ export function LessonEditorSurface({
   overview,
   lesson,
   builtInTemplates,
+  themes,
+  activeThemeId,
   pluginSlot,
 }: LessonEditorSurfaceProps) {
   const activeCourse = lesson?.course ?? overview.courses[0];
@@ -110,6 +114,8 @@ export function LessonEditorSurface({
                 activeStepCount={activeStepCount}
                 builtInStepCount={builtInStepCount}
                 previewHref={previewHref}
+                themes={themes}
+                activeThemeId={activeThemeId}
                 pluginSlot={pluginSlot}
               />
             </div>

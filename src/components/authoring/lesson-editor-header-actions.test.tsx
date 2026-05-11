@@ -46,6 +46,8 @@ describe("LessonEditorHeaderActions", () => {
         activeStepCount={2}
         builtInStepCount={1}
         previewHref="/teacher/editor/preview?courseId=course-1&lessonId=lesson-1"
+        themes={[]}
+        activeThemeId={null}
       />,
     );
 
@@ -70,6 +72,8 @@ describe("LessonEditorHeaderActions", () => {
         activeStepCount={2}
         builtInStepCount={1}
         previewHref="/teacher/editor/preview?courseId=course-1&lessonId=lesson-1"
+        themes={[]}
+        activeThemeId={null}
       />,
     );
 

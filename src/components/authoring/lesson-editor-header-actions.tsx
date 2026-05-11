@@ -14,6 +14,7 @@ import {
 import { EditorSettingsModal } from "@/components/authoring/editor-settings-modal";
 import { Button } from "@/components/ui/button";
 import type { LessonEditorDTO } from "@/lib/dto/lesson-authoring";
+import type { ThemeRegistryDTO } from "@/lib/dto/resource-ai";
 
 type LessonEditorHeaderActionsProps = {
   lesson: LessonEditorDTO | null;
@@ -21,6 +22,8 @@ type LessonEditorHeaderActionsProps = {
   activeStepCount: number;
   builtInStepCount: number;
   previewHref: string | null;
+  themes: ThemeRegistryDTO[];
+  activeThemeId: string | null;
   pluginSlot?: React.ReactNode;
 };
 
@@ -30,6 +33,8 @@ export function LessonEditorHeaderActions({
   activeStepCount,
   builtInStepCount,
   previewHref,
+  themes,
+  activeThemeId,
   pluginSlot,
 }: LessonEditorHeaderActionsProps) {
   const router = useRouter();
@@ -94,6 +99,8 @@ export function LessonEditorHeaderActions({
           activeStepCount={activeStepCount}
           builtInStepCount={builtInStepCount}
           previewHref={previewHref}
+          themes={themes}
+          activeThemeId={activeThemeId}
           pluginSlot={pluginSlot}
         />
 

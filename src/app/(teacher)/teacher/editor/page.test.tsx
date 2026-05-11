@@ -10,6 +10,8 @@ const assertActiveTeacher = vi.fn();
 const getTeacherAuthoringOverview = vi.fn();
 const getLessonEditorDTO = vi.fn();
 const listBuiltInTeachingStepTemplates = vi.fn();
+const getValidThemesForSchool = vi.fn();
+const getActiveThemeId = vi.fn();
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
@@ -21,8 +23,16 @@ vi.mock("@/lib/dal/lesson-authoring", () => ({
   getLessonEditorDTO: (...args: unknown[]) => getLessonEditorDTO(...args),
 }));
 
+vi.mock("@/lib/dal/themes", () => ({
+  getValidThemesForSchool: (...args: unknown[]) => getValidThemesForSchool(...args),
+}));
+
 vi.mock("@/lib/dal/plugins", () => ({
   listBuiltInTeachingStepTemplates: (...args: unknown[]) => listBuiltInTeachingStepTemplates(...args),
+}));
+
+vi.mock("@/lib/theme-cookie", () => ({
+  getActiveThemeId: () => getActiveThemeId(),
 }));
 
 vi.mock("@/components/surfaces/lesson-editor-surface", () => ({
@@ -38,6 +48,8 @@ describe("TeacherEditorPage runtime branches", () => {
     vi.clearAllMocks();
     assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
     listBuiltInTeachingStepTemplates.mockResolvedValue([]);
+    getValidThemesForSchool.mockResolvedValue([]);
+    getActiveThemeId.mockResolvedValue(null);
   });
 
   it("shows course-aware guidance when courseId is missing per D-12", async () => {
