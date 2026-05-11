@@ -1,4 +1,5 @@
 import {
+  ThemeShellConfig,
   ThemeLayoutContract,
   ThemeLayoutRegion,
   ThemeLayoutRegionKey,
@@ -319,8 +320,22 @@ function buildSummary(shellMode: ThemeShellMode, mainSplit: ThemeLayoutSplit, re
   };
 }
 
+function getShellConfig(routeKey: TeacherThemeRouteKey, layoutContract: ThemeLayoutContract | null): ThemeShellConfig {
+  const routeDefaults = TEACHER_THEME_ROUTE_SURFACES[routeKey].shell;
+  const shellDefaults = layoutContract?.shell;
+  const pageShellOverride = layoutContract?.pages?.[routeKey]?.shell;
+
+  return {
+    mode: pageShellOverride?.mode ?? shellDefaults?.mode ?? routeDefaults.mode,
+    radius: pageShellOverride?.radius ?? shellDefaults?.radius ?? routeDefaults.radius,
+    width: pageShellOverride?.width ?? shellDefaults?.width ?? routeDefaults.width,
+    chrome: pageShellOverride?.chrome ?? shellDefaults?.chrome ?? routeDefaults.chrome,
+  };
+}
+
 function compileSurface(routeKey: TeacherThemeRouteKey, layoutContract: ThemeLayoutContract | null): ThemePageSurfaceRuntime {
-  const shellMode = layoutContract?.pages?.[routeKey]?.shell?.mode ?? layoutContract?.shell.mode ?? DEFAULT_THEME_SHELL_MODE;
+  const shellConfig = getShellConfig(routeKey, layoutContract);
+  const shellMode = ALLOWLISTED_THEME_SHELL_MODES.includes(shellConfig.mode) ? shellConfig.mode : DEFAULT_THEME_SHELL_MODE;
   const baseRegions = createBaseRegions(routeKey, shellMode);
   const fallbackRegions: ThemeLayoutRegionKey[] = [];
 
@@ -338,6 +353,10 @@ function compileSurface(routeKey: TeacherThemeRouteKey, layoutContract: ThemeLay
   return {
     routeKey,
     shellMode,
+    shellConfig: {
+      ...shellConfig,
+      mode: shellMode,
+    },
     regions: [
       baseRegions["primary-nav"],
       baseRegions["secondary-nav"],

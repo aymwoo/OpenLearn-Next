@@ -8,7 +8,7 @@ const layoutSource = readFileSync("src/app/(teacher)/teacher/layout.tsx", "utf8"
 describe("TeacherSidebarShell theme layout hooks", () => {
   it("renders all allowlisted shell modes with fallback-safe regions", () => {
     expect(shellSource).toContain('left-nav');
-    expect(shellSource).toContain('ALLOWLISTED_SHELL_MODES');
+    expect(shellSource).toContain('shellVariant');
     expect(shellSource).toContain('data-theme-shell-mode');
     expect(shellSource).toContain('data-theme-layout-source');
     expect(shellSource).toContain('primary-nav');
@@ -27,29 +27,34 @@ describe("TeacherSidebarShell theme layout hooks", () => {
   });
 
   it("keeps /teacher home shell square while preserving shared shell radius tokens elsewhere", () => {
-    expect(shellSource).toContain('const isTeacherHome = routeKey === "/teacher";');
+    expect(shellSource).not.toContain('routeKey === "/teacher"');
+    expect(shellSource).toContain('shellConfig.radius === "square"');
+    expect(shellSource).toContain('shellConfig.width === "full-width"');
+    expect(shellSource).toContain('shellConfig.chrome === "immersive"');
     expect(shellSource).toContain('[&>aside]:rounded-none');
-    expect(shellSource).toContain('borderRadius: isTeacherHome ? "0" : "var(--layout-content-radius, 2rem)"');
-    expect(shellSource).toContain('isTeacherHome ? "w-full shrink-0 bg-surface-container-lowest px-5 py-5 shadow-ambient" : "w-full shrink-0 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"');
+    expect(shellSource).toContain('borderRadius: isSquareShell ? "0" : "var(--layout-content-radius, 2rem)"');
+    expect(shellSource).toContain('isSquareShell ? "w-full shrink-0 bg-surface-container-lowest px-5 py-5 shadow-ambient" : "w-full shrink-0 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"');
     expect(shellSource).toContain('? "flex-1 overflow-y-auto bg-surface-container-lowest"');
   });
 
   it("keeps the page-header region on the real header block without an extra wrapper", () => {
     expect(shellSource).toContain('data-region="page-header"');
-    expect(shellSource).toContain('className="w-full shrink-0 rounded-none"');
+    expect(shellSource).toContain('className={isImmersiveChrome ? "w-full shrink-0 rounded-none" : "w-full shrink-0 rounded-none"}');
     expect(shellSource).toContain('contentColumnClassName="max-w-none"');
     expect(shellSource).not.toContain('<section className="shrink-0 px-5 pb-4 pt-5 sm:px-6" data-region="page-header">');
   });
 
   it("keeps fallback shell static while theme runtime stays in the async path", () => {
     expect(shellSource).toContain('export function TeacherSidebarShellFrame');
-    expect(shellSource).toContain('layoutRuntime = DEFAULT_THEME_LAYOUT_RUNTIME');
+    expect(shellSource).toContain('shellConfig = DEFAULT_THEME_LAYOUT_RUNTIME.defaultSurface.shellConfig');
     expect(shellSource).toContain('themeSource = "default"');
     expect(shellSource).toContain('export async function TeacherSidebarShell');
     expect(shellSource).toContain('await getCurrentActorThemeRuntimeState()');
-    expect(shellSource).toContain('return <TeacherSidebarShellFrame {...props} layoutRuntime={layoutRuntime} themeSource={themeSource} />;');
+    expect(shellSource).toContain('getShellSurfaceConfig({');
+    expect(shellSource).toContain('surfaceMetadata={surfaceMetadata}');
     expect(layoutSource).toContain('fallback={<TeacherShellFallback />}');
-    expect(layoutSource).toContain('<TeacherSidebarShellFrame routeKey="/teacher"');
+    expect(layoutSource).toContain('<TeacherSidebarShellFrame');
+    expect(layoutSource).toContain('routeKey="/teacher"');
     expect(layoutSource).not.toContain('<TeacherSidebarShell routeKey="/teacher"');
     expect(layoutSource).not.toContain('top-nav、left-nav 与 top-nav-secondary-rail 都通过统一 theme-layout-runtime 进入教师端壳层。');
   });

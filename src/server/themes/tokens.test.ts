@@ -20,6 +20,9 @@ describe("theme token compiler", () => {
           layout: {
             shell: {
               mode: shellMode,
+              radius: "rounded",
+              width: "default",
+              chrome: "default",
               defaultRegions: [
                 { region: "primary-nav" },
                 { region: "page-header" },
@@ -38,6 +41,9 @@ describe("theme token compiler", () => {
         layout: {
           shell: {
             mode: "left-nav",
+            radius: "rounded",
+            width: "default",
+            chrome: "default",
             defaultRegions: [
               { region: "primary-nav", visible: false },
               { region: "page-header" },
@@ -53,6 +59,9 @@ describe("theme token compiler", () => {
         layout: {
           shell: {
             mode: "left-nav",
+            radius: "rounded",
+            width: "default",
+            chrome: "default",
             defaultRegions: [
               { region: "primary-nav" },
               { region: "page-header" },
@@ -89,12 +98,15 @@ describe("theme token compiler", () => {
 
   it("falls back at the region boundary when a page override is incompatible", () => {
     const runtime = compileThemeLayoutRuntime({
-      layout: {
-        shell: {
-          mode: "top-nav",
-          defaultRegions: [
-            { region: "primary-nav" },
-            { region: "page-header" },
+        layout: {
+          shell: {
+            mode: "top-nav",
+            radius: "rounded",
+            width: "default",
+            chrome: "default",
+            defaultRegions: [
+              { region: "primary-nav" },
+              { region: "page-header" },
             { region: "main-content", split: "60/40" },
           ],
         },
@@ -118,8 +130,61 @@ describe("theme token compiler", () => {
     }
 
     expect(settingsRuntime.shellMode).toBe("top-nav-secondary-rail");
+    expect(settingsRuntime.shellConfig.radius).toBe("rounded");
+    expect(settingsRuntime.shellConfig.width).toBe("default");
+    expect(settingsRuntime.shellConfig.chrome).toBe("default");
     expect(settingsRuntime.regions.find((region) => region.region === "secondary-nav")?.visible).toBe(true);
     expect(settingsRuntime.regions.find((region) => region.region === "main-content")?.modules).toEqual(["settings-general"]);
     expect(settingsRuntime.summary.fallbackRegions).toContain("main-content");
+  });
+
+  it("preserves shell metadata for teacher home and default shared routes", () => {
+    const runtime = compileThemeLayoutRuntime({});
+
+    expect(runtime.pages["/teacher"]?.shellConfig).toEqual({
+      mode: "left-nav",
+      radius: "square",
+      width: "full-width",
+      chrome: "immersive",
+    });
+    expect(runtime.pages["/settings"]?.shellConfig).toEqual({
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    });
+    expect(runtime.pages["/resources"]?.shellConfig).toEqual({
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    });
+  });
+
+  it("returns future chrome enums structurally without changing today's render contract", () => {
+    const runtime = compileThemeLayoutRuntime({
+      layout: {
+        shell: {
+          mode: "left-nav",
+          radius: "rounded",
+          width: "default",
+          chrome: "default",
+          defaultRegions: [
+            { region: "primary-nav" },
+            { region: "page-header" },
+            { region: "main-content", split: "60/40" },
+          ],
+        },
+        pages: {
+          "/teacher": {
+            shell: { chrome: "presentation", width: "full-width", radius: "square" },
+          },
+        },
+      },
+    });
+
+    expect(runtime.pages["/teacher"]?.shellConfig.chrome).toBe("presentation");
+    expect(runtime.pages["/teacher"]?.shellConfig.width).toBe("full-width");
+    expect(runtime.pages["/teacher"]?.shellConfig.radius).toBe("square");
   });
 });

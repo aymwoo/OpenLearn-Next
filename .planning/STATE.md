@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Course Import & Management
-current_phase: 18
-current_phase_name: teaching-schedule-os
-current_plan: 6
+current_phase: 19
+current_phase_name: teacher-shell-route-metadata-system
+current_plan: 3
 status: executing
-stopped_at: Phase 18 execution complete; summaries and roadmap synchronized
-last_updated: "2026-05-11T01:25:20.603Z"
+stopped_at: Phase 19 execution complete; summaries and roadmap synchronized
+last_updated: "2026-05-11T10:16:00.000Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 7
-  completed_phases: 4
-  total_plans: 22
-  completed_plans: 19
-  percent: 86
+  completed_phases: 5
+  total_plans: 25
+  completed_plans: 22
+  percent: 88
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 18
-**Current Phase Name:** teaching-schedule-os
-**Current Plan:** 6
+**Current Phase:** 19
+**Current Phase Name:** teacher-shell-route-metadata-system
+**Current Plan:** 3
 **Total Plans in Phase:** 3
-**Status:** Ready to execute
+**Status:** Executing Phase 19
 **Progress:**
-[████████--] 76%
+[█████████-] 88%
 **Last Activity:** 2026-05-11
 
 **Last session:** 2026-05-11T00:00:00.000Z
-**Stopped At:** Phase 18 execution complete; summaries and roadmap synchronized
-**Resume File:** .planning/phases/18-teaching-schedule-os/18-06-SUMMARY.md
+**Stopped At:** Phase 19 execution complete; summaries and roadmap synchronized
+**Resume File:** .planning/phases/19-teacher-shell-route-metadata-system/19-03-SUMMARY.md
 
 ## Accumulated Context
 
@@ -106,13 +106,17 @@ progress:
 - [Phase 18]: reminder 首发只覆盖 `开课前提醒` 与 `调课变更提醒`，delivery state 必须诚实显示为 planned/sent/failed/retry_required。
 - [Phase 18]: AI assistant 与插件扩展都必须保持 proposal-only；approval 最多创建 draft，不得直接改 runtime schedule。
 - [Phase 18]: Phase 18 通过 `verify:phase18` 固定校验 raw-row leakage、direct DB imports、proposal-only 边界与 unsafe patterns。
+- [Phase 19]: teacher-facing shell route 必须在 registry 中显式声明 `shell.mode`、`shell.radius`、`shell.width`、`shell.chrome`，不允许回流到 JSX route 条件分支。
+- [Phase 19]: `TeacherSidebarShell` 只消费 `shellVariant`、`shellConfig`、`surfaceMetadata`，compile/resolve/render 分层保持清晰。
+- [Phase 19]: `/teacher` 的 square/full-width/immersive 行为由 metadata 声明，视觉结果保持不变。
+- [Phase 19]: Phase 19 通过 `verify:phase19` 固定校验 route-string branching、shell metadata 漏配和 resolver/shell 回归。
 
 ## Next Steps
 
-1. Split the current working tree into a `Phase 18 schedule` change set and a separate `/teacher/editor` change set before creating commits.
-2. Re-run `pnpm typecheck`, `pnpm verify:phase18`, and `npx drizzle-kit push` immediately before the Phase 18 commit.
-3. Create the pending Phase 18 git commit after verifying that only schedule files and the new planning summaries are included.
-4. After Phase 18 is committed, return to the remaining `/teacher/editor` uncommitted changes and decide whether to continue or isolate them on a separate branch.
+1. Decide whether to commit the Phase 19 shell metadata work separately from the existing unrelated untracked planning and `/teacher/editor` leftovers.
+2. Re-run `pnpm typecheck` and `pnpm verify:phase19` immediately before any Phase 19 commit.
+3. If future shell variants are added, extend metadata, runtime, resolver, and tests before changing UI branches.
+4. Return to remaining unrelated worktree changes after Phase 19 is isolated or committed.
 
 ## Performance Metrics
 
@@ -185,7 +189,7 @@ progress:
 
 ## Current Position
 
-Phase: 18 (teaching-schedule-os) — COMPLETE
-Plan: 6 of 6
+Phase: 19 (teacher-shell-route-metadata-system) — COMPLETE
+Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-05-11 -- Phase 19 planning complete
+Last activity: 2026-05-11 -- Phase 19 execution complete

@@ -3,12 +3,13 @@ import type { ReactNode } from "react";
 import { teacherNavigationItems } from "@/lib/navigation";
 import { getCurrentActorThemeRuntimeState } from "@/lib/dal/themes";
 import type { TeacherThemeRouteKey } from "@/lib/theme-layout/route-surface-registry";
+import { getShellSurfaceConfig } from "@/lib/theme-layout/shell-surface-resolver";
 import { AuroraShell } from "@/components/shell/aurora-shell";
 import { Sidebar } from "@/components/shell/sidebar";
 import { GlassNav } from "@/components/shell/glass-nav";
 import { StageHero } from "@/components/surfaces/stage-hero";
 import { DEFAULT_THEME_LAYOUT_RUNTIME } from "@/server/themes/tokens";
-import type { ThemeLayoutRuntime } from "@/lib/dto/resource-ai";
+import type { ShellSurfaceMetadata, ThemeShellConfig } from "@/lib/dto/resource-ai";
 
 const teacherSidebarItems = [
   { label: "工作台", href: "/teacher", icon: "LayoutDashboard" },
@@ -20,8 +21,6 @@ const teacherSidebarItems = [
   { label: "数据报表", href: "/teacher/reports", icon: "LineChart" },
 ] as const;
 
-const ALLOWLISTED_SHELL_MODES = ["left-nav", "top-nav", "top-nav-secondary-rail"] as const;
-
 type TeacherSidebarShellProps = {
   children: ReactNode;
   routeKey?: TeacherThemeRouteKey;
@@ -32,38 +31,11 @@ type TeacherSidebarShellProps = {
 };
 
 type TeacherSidebarShellFrameProps = TeacherSidebarShellProps & {
-  layoutRuntime?: ThemeLayoutRuntime;
+  shellVariant?: ThemeShellConfig["mode"];
+  shellConfig?: ThemeShellConfig;
+  surfaceMetadata?: ShellSurfaceMetadata;
   themeSource?: "default" | "active-theme";
 };
-
-function resolveSurfaceLabel(routeKey: TeacherThemeRouteKey) {
-  switch (routeKey) {
-    case "/settings":
-      return "系统设置";
-    case "/settings/labs":
-      return "实验室布局管理";
-    case "/settings/plugins":
-      return "插件市场";
-    case "/resources":
-      return "资源中心";
-    case "/teacher/editor":
-      return "课时编辑";
-    case "/teacher/launch":
-      return "课堂准备";
-    case "/teacher/review":
-      return "批改中心";
-    case "/teacher/students":
-      return "学生档案";
-    case "/teacher/classes":
-      return "班级管理";
-    case "/teacher/courses":
-    case "/teacher/courses/[courseId]":
-    case "/teacher/courses/[courseId]/lessons":
-      return "课程管理";
-    default:
-      return "教师工作台";
-  }
-}
 
 export function TeacherSidebarShellFrame({
   children,
@@ -72,29 +44,38 @@ export function TeacherSidebarShellFrame({
   headerTitle,
   headerDescription,
   headerActions,
-  layoutRuntime = DEFAULT_THEME_LAYOUT_RUNTIME,
+  shellVariant = "left-nav",
+  shellConfig = DEFAULT_THEME_LAYOUT_RUNTIME.defaultSurface.shellConfig,
+  surfaceMetadata = {
+    routeKey: "/teacher",
+    label: "教师工作台",
+    regions: DEFAULT_THEME_LAYOUT_RUNTIME.defaultSurface.regions,
+    summary: DEFAULT_THEME_LAYOUT_RUNTIME.defaultSurface.summary,
+  },
   themeSource = "default",
 }: TeacherSidebarShellFrameProps) {
-  const surface = layoutRuntime.pages[routeKey] ?? layoutRuntime.defaultSurface;
-  const shellMode = ALLOWLISTED_SHELL_MODES.includes(surface.shellMode) ? surface.shellMode : "left-nav";
-  const isTeacherHome = routeKey === "/teacher";
-  const secondaryNavVisible = surface.regions.some((region) => region.region === "secondary-nav" && region.visible);
-  const contextPanelVisible = surface.regions.some((region) => region.region === "context-panel" && region.visible);
-  const pageFooterVisible = surface.regions.some((region) => region.region === "page-footer" && region.visible);
-  const shellTitle = headerTitle ?? resolveSurfaceLabel(routeKey);
+  const shellMode = shellVariant;
+  const isSquareShell = shellConfig.radius === "square";
+  const isFullWidthShell = shellConfig.width === "full-width";
+  const secondaryNavVisible = surfaceMetadata.regions.some((region) => region.region === "secondary-nav" && region.visible);
+  const contextPanelVisible = surfaceMetadata.regions.some((region) => region.region === "context-panel" && region.visible);
+  const pageFooterVisible = surfaceMetadata.regions.some((region) => region.region === "page-footer" && region.visible);
+  const shellTitle = headerTitle ?? surfaceMetadata.label;
   const usesActiveThemeShell = themeSource === "active-theme";
+  const isImmersiveChrome = shellConfig.chrome === "immersive";
 
   const shell = (
     <div
       className={usesActiveThemeShell ? "flex h-screen overflow-hidden px-4 py-4 sm:px-5" : "flex h-screen overflow-hidden bg-surface"}
       data-theme-layout-source={themeSource}
       data-theme-shell-mode={shellMode}
+      data-theme-shell-chrome={shellConfig.chrome}
       data-route-surface={routeKey}
       style={{ gap: "var(--layout-shell-gap, 0rem)" }}
     >
       {shellMode === "left-nav" ? (
         <div
-          className={isTeacherHome ? "shrink-0 [&>aside]:h-full [&>aside]:w-full [&>aside]:rounded-none" : "shrink-0 [&>aside]:h-full [&>aside]:w-full"}
+          className={isSquareShell ? "shrink-0 [&>aside]:h-full [&>aside]:w-full [&>aside]:rounded-none" : "shrink-0 [&>aside]:h-full [&>aside]:w-full"}
           style={{
             width: "var(--layout-sidebar-width, 16rem)",
             margin: "var(--layout-shell-inset, 0.5rem) 0 var(--layout-shell-inset, 0.5rem) 0",
@@ -115,7 +96,7 @@ export function TeacherSidebarShellFrame({
             shellMode === "left-nav"
               ? "var(--layout-shell-inset, 0.5rem) var(--layout-shell-inset, 0.5rem) var(--layout-shell-inset, 0.5rem) 0"
               : "var(--layout-shell-inset, 0.5rem)",
-          borderRadius: isTeacherHome ? "0" : "var(--layout-content-radius, 2rem)",
+          borderRadius: isSquareShell ? "0" : "var(--layout-content-radius, 2rem)",
         }}
       >
         {shellMode !== "left-nav" ? (
@@ -132,11 +113,11 @@ export function TeacherSidebarShellFrame({
 
         {usesActiveThemeShell ? (
           <StageHero
-            badge={resolveSurfaceLabel(routeKey)}
+            badge={surfaceMetadata.label}
             title={shellTitle}
-            description={headerDescription ?? surface.summary.description}
+            description={headerDescription ?? surfaceMetadata.summary.description}
             data-region="page-header"
-            className="w-full shrink-0 rounded-none"
+            className={isImmersiveChrome ? "w-full shrink-0 rounded-none" : "w-full shrink-0 rounded-none"}
             contentColumnClassName="max-w-none"
             titleClassName="text-[2rem] sm:text-[2.4rem]"
             aside={
@@ -145,14 +126,14 @@ export function TeacherSidebarShellFrame({
           />
         ) : (
           <div
-            className={isTeacherHome ? "w-full shrink-0 bg-surface-container-lowest px-5 py-5 shadow-ambient" : "w-full shrink-0 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"}
+            className={isSquareShell ? "w-full shrink-0 bg-surface-container-lowest px-5 py-5 shadow-ambient" : "w-full shrink-0 rounded-[1.5rem] bg-surface-container-lowest px-5 py-5 shadow-ambient"}
             data-region="page-header"
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-on-surface-variant">page-header</p>
                 <h1 className="mt-2 text-2xl font-semibold text-on-surface">{shellTitle}</h1>
-                <p className="mt-2 text-sm leading-6 text-on-surface-variant">{headerDescription ?? surface.summary.description}</p>
+                <p className="mt-2 text-sm leading-6 text-on-surface-variant">{headerDescription ?? surfaceMetadata.summary.description}</p>
               </div>
               {headerActions ? <div className="flex flex-wrap items-center gap-3">{headerActions}</div> : null}
             </div>
@@ -176,7 +157,7 @@ export function TeacherSidebarShellFrame({
             <div
               className={
                 usesActiveThemeShell
-                  ? isTeacherHome
+                  ? isFullWidthShell
                     ? "flex-1 overflow-y-auto bg-surface-container-lowest"
                     : "flex-1 overflow-y-auto rounded-[1.75rem] bg-surface-container-lowest"
                   : "flex-1 overflow-y-auto"
@@ -188,7 +169,7 @@ export function TeacherSidebarShellFrame({
 
             {pageFooterVisible ? (
               <footer className="rounded-[1.5rem] bg-surface-container-lowest px-5 py-4 text-sm text-on-surface-variant" data-region="page-footer">
-                结构摘要：{surface.summary.description}
+                结构摘要：{surfaceMetadata.summary.description}
               </footer>
             ) : null}
           </div>
@@ -198,7 +179,7 @@ export function TeacherSidebarShellFrame({
               <div className="rounded-[1.75rem] bg-surface-container-lowest p-5 shadow-ambient">
                 <p className="text-sm text-on-surface-variant">context-panel</p>
                 <h2 className="mt-2 text-lg font-semibold text-on-surface">当前主题结构</h2>
-                <p className="mt-3 text-sm leading-6 text-on-surface-variant">{surface.summary.description}</p>
+                <p className="mt-3 text-sm leading-6 text-on-surface-variant">{surfaceMetadata.summary.description}</p>
               </div>
             </aside>
           ) : null}
@@ -212,6 +193,18 @@ export function TeacherSidebarShellFrame({
 
 export async function TeacherSidebarShell(props: TeacherSidebarShellProps) {
   const { layoutRuntime, themeSource } = await getCurrentActorThemeRuntimeState();
+  const { shellVariant, shellConfig, surfaceMetadata } = getShellSurfaceConfig({
+    routeKey: props.routeKey ?? "/teacher",
+    layoutRuntime,
+  });
 
-  return <TeacherSidebarShellFrame {...props} layoutRuntime={layoutRuntime} themeSource={themeSource} />;
+  return (
+    <TeacherSidebarShellFrame
+      {...props}
+      shellVariant={shellVariant}
+      shellConfig={shellConfig}
+      surfaceMetadata={surfaceMetadata}
+      themeSource={themeSource}
+    />
+  );
 }

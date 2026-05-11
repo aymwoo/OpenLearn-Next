@@ -133,6 +133,22 @@ export type McpAuditDTO = z.infer<typeof McpAuditDTOSchema>;
 export const ThemeShellModeSchema = z.enum(["left-nav", "top-nav", "top-nav-secondary-rail"]);
 export type ThemeShellMode = z.infer<typeof ThemeShellModeSchema>;
 
+export const ThemeShellRadiusSchema = z.enum(["rounded", "square"]);
+export type ThemeShellRadius = z.infer<typeof ThemeShellRadiusSchema>;
+
+export const ThemeShellWidthSchema = z.enum(["default", "full-width"]);
+export type ThemeShellWidth = z.infer<typeof ThemeShellWidthSchema>;
+
+export const ThemeShellChromeSchema = z.enum([
+  "default",
+  "immersive",
+  "minimal",
+  "presentation",
+  "fullscreen",
+  "focus",
+]);
+export type ThemeShellChrome = z.infer<typeof ThemeShellChromeSchema>;
+
 export const ThemeLayoutRegionKeySchema = z.enum(THEME_LAYOUT_REGION_KEYS);
 export type ThemeLayoutRegionKey = z.infer<typeof ThemeLayoutRegionKeySchema>;
 
@@ -180,6 +196,9 @@ const ThemeLayoutRegionListSchema = z.array(ThemeLayoutRegionSchema).superRefine
 export const ThemePageSurfaceOverrideSchema = z.object({
   shell: z.object({
     mode: ThemeShellModeSchema.optional(),
+    radius: ThemeShellRadiusSchema.optional(),
+    width: ThemeShellWidthSchema.optional(),
+    chrome: ThemeShellChromeSchema.optional(),
   }).optional(),
   regions: ThemeLayoutRegionListSchema.optional(),
 });
@@ -187,6 +206,9 @@ export type ThemePageSurfaceOverride = z.infer<typeof ThemePageSurfaceOverrideSc
 
 export const ThemeShellLayoutSchema = z.object({
   mode: ThemeShellModeSchema.default("left-nav"),
+  radius: ThemeShellRadiusSchema.default("rounded"),
+  width: ThemeShellWidthSchema.default("default"),
+  chrome: ThemeShellChromeSchema.default("default"),
   defaultRegions: ThemeLayoutRegionListSchema,
 }).superRefine((shell, ctx) => {
   const regionMap = new Map(shell.defaultRegions.map((region) => [region.region, region]));
@@ -229,13 +251,37 @@ export const ThemeLayoutSummarySchema = z.object({
 });
 export type ThemeLayoutSummary = z.infer<typeof ThemeLayoutSummarySchema>;
 
+export const ThemeShellConfigSchema = z.object({
+  mode: ThemeShellModeSchema,
+  radius: ThemeShellRadiusSchema,
+  width: ThemeShellWidthSchema,
+  chrome: ThemeShellChromeSchema,
+});
+export type ThemeShellConfig = z.infer<typeof ThemeShellConfigSchema>;
+
+export const ShellSurfaceMetadataSchema = z.object({
+  routeKey: ThemeRouteSurfaceKeySchema,
+  label: z.string(),
+  regions: z.array(ThemeLayoutRegionRuntimeSchema),
+  summary: ThemeLayoutSummarySchema,
+});
+export type ShellSurfaceMetadata = z.infer<typeof ShellSurfaceMetadataSchema>;
+
 export const ThemePageSurfaceRuntimeSchema = z.object({
   routeKey: ThemeRouteSurfaceKeySchema,
   shellMode: ThemeShellModeSchema,
+  shellConfig: ThemeShellConfigSchema,
   regions: z.array(ThemeLayoutRegionRuntimeSchema),
   summary: ThemeLayoutSummarySchema,
 });
 export type ThemePageSurfaceRuntime = z.infer<typeof ThemePageSurfaceRuntimeSchema>;
+
+export const ShellSurfaceResolverResultSchema = z.object({
+  shellVariant: ThemeShellModeSchema,
+  shellConfig: ThemeShellConfigSchema,
+  surfaceMetadata: ShellSurfaceMetadataSchema,
+});
+export type ShellSurfaceResolverResult = z.infer<typeof ShellSurfaceResolverResultSchema>;
 
 export const ThemeLayoutRuntimeSchema = z.object({
   defaultSurface: ThemePageSurfaceRuntimeSchema,

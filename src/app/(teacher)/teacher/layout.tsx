@@ -7,8 +7,10 @@ import { TeacherSidebarShell, TeacherSidebarShellFrame } from "@/components/shel
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { resolveTeacherThemeRouteSurface } from "@/lib/theme-layout/route-surface-registry";
+import { getShellSurfaceConfig } from "@/lib/theme-layout/shell-surface-resolver";
 import { Button } from "@/components/ui/button";
 import { Bell, Search, CalendarDays } from "lucide-react";
+import { DEFAULT_THEME_LAYOUT_RUNTIME } from "@/server/themes/tokens";
 
 export default function TeacherLayout({
   children,
@@ -84,8 +86,20 @@ async function TeacherLayoutContent({
 }
 
 function TeacherShellFallback() {
+  const { shellVariant, shellConfig, surfaceMetadata } = getShellSurfaceConfig({
+    routeKey: "/teacher",
+    layoutRuntime: DEFAULT_THEME_LAYOUT_RUNTIME,
+  });
+
   return (
-    <TeacherSidebarShellFrame routeKey="/teacher" headerTitle="教师工作台" headerDescription="正在加载主题布局运行时。">
+    <TeacherSidebarShellFrame
+      routeKey="/teacher"
+      headerTitle="教师工作台"
+      headerDescription="正在加载主题布局运行时。"
+      shellVariant={shellVariant}
+      shellConfig={shellConfig}
+      surfaceMetadata={surfaceMetadata}
+    >
       <div className="min-h-full" />
     </TeacherSidebarShellFrame>
   );

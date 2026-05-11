@@ -124,9 +124,9 @@
   3. Existing `/teacher` visuals remain unchanged after the migration, including square shell behavior on the current teacher home route.
   4. Regression coverage exists for shell metadata resolution, theme coupling, and sidebar/shell behavior so future route expansions do not reintroduce hardcoded branching.
 **Plans**: 3 plans
-- [ ] 19-01-PLAN.md — Extend route surface metadata with shell behavior primitives, define the typed resolver contract, and document the Phase 19 shell architecture.
-- [ ] 19-02-PLAN.md — Refactor teacher shell rendering so `TeacherSidebarShell` consumes centralized resolver output instead of route string conditionals.
-- [ ] 19-03-PLAN.md — Add resolver-driven regression coverage and a dedicated `verify:phase19` safety command for future route expansion.
+- [x] 19-01-PLAN.md — Extend route surface metadata with shell behavior primitives, define the typed resolver contract, and document the Phase 19 shell architecture.
+- [x] 19-02-PLAN.md — Refactor teacher shell rendering so `TeacherSidebarShell` consumes centralized resolver output instead of route string conditionals.
+- [x] 19-03-PLAN.md — Add resolver-driven regression coverage and a dedicated `verify:phase19` safety command for future route expansion.
 **UI hint**: yes
 
 ### Progress
@@ -139,4 +139,4 @@
 | 16. Theme plugins and layout orchestration | 4/4 | Complete | 2026-05-09 |
 | 17. Teacher flow editor enhancement | 4/4 | Complete   | 2026-05-10 |
 | 18. Teaching schedule OS | 6/6 | Complete | 2026-05-10 |
-| 19. Teacher shell route metadata system | 0/3 | Not started | - |
+| 19. Teacher shell route metadata system | 3/3 | Complete | 2026-05-11 |
