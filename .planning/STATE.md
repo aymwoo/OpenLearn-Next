@@ -179,10 +179,11 @@ progress:
 | fast-2026-05-10-b | 再次调整 /teacher/editor 编辑环节 Modal：移除内层 padding，让实时预览 section 贴满 modal 上下高度 | 2026-05-10 | 待更新 | - |
 | fast-2026-05-10-c | 将 /teacher/editor 教学环节卡片中的“归档”操作改为“删除”，表示从教学流程中移除 | 2026-05-10 | 待更新 | - |
 | fast-2026-05-10-d | 调整 /teacher dashboard：将今日优先事项移到正在直播上方，并让左右列模块顶部底部对齐 | 2026-05-10 | 待更新 | - |
+| 260511-bbe | /teacher页面左边的导航和右边的main都取消圆角，main顶部的教师工作台部分的div也取消圆角，宽度100% | 2026-05-11 | 65f266c | [260511-bbe-teacher-main-main-div-100](./quick/260511-bbe-teacher-main-main-div-100/) |
 
 ## Current Position
 
 Phase: 18 (teaching-schedule-os) — COMPLETE
 Plan: 6 of 6
 Status: Ready for commit separation
-Last activity: 2026-05-11 -- Phase 18 summaries synchronized with roadmap and state
+Last activity: 2026-05-11 - Completed quick task 260511-bbe: /teacher页面左边的导航和右边的main都取消圆角，main顶部的教师工作台部分的div也取消圆角，宽度100%
