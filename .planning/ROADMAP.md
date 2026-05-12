@@ -169,7 +169,7 @@
 **Plans**: 3 plans
 - [ ] 21-01-PLAN.md — Define teaching-design payload contracts, backward-safe defaults, and launch-preview mapping on the current lesson snapshot path.
 - [ ] 21-02-PLAN.md — Add durable classroom evidence, presence, and intervention timeline persistence through DAL and Server Actions.
-- [ ] 21-03-PLAN.md — Add regression coverage and `verify:phase21` for fallback parsing, evidence wiring, and cache-boundary safety.
+- [ ] 21-03-PLAN.md — Surface fallback cues in teacher planning views and add `verify:phase21` for evidence wiring and cache-boundary safety.
 **UI hint**: yes
 
 ### Phase 22: Teacher orchestration workspace and launch preparation
