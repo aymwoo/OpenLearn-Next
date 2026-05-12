@@ -40,12 +40,6 @@ const stepLabels = {
   quiz: "测验",
 } as const;
 
-const stepDurations = {
-  content: "12 min",
-  task: "15 min",
-  quiz: "8 min",
-} as const;
-
 const stepComposerActions = [
   {
     type: "content" as const,
@@ -107,7 +101,7 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
     [selectedStepId, steps]
   );
   const normalizedResourceQuery = resourceQuery.trim().toLowerCase();
-  const totalMinutes = steps.reduce((total, step) => total + getStepMinutes(step.type), 0);
+  const totalMinutes = steps.reduce((total, step) => total + getStepMinutes(step), 0);
   const builtInStepCount = steps.filter((step) => getBuiltInSourceLabel(step)).length;
   const filteredComposerActions = useMemo(() => {
     if (!normalizedResourceQuery) return stepComposerActions;
@@ -437,7 +431,7 @@ function FlowStepCard({
                 <span className="block text-base font-semibold text-on-surface">{step.title}</span>
                 <span className="mt-2 block text-sm text-on-surface-variant">{getStepDescription(step)}</span>
               </span>
-              <span className="rounded-[0.8rem] bg-surface-container px-3 py-1 text-xs font-medium text-on-surface-variant">{stepDurations[step.type]}</span>
+              <span className="rounded-[0.8rem] bg-surface-container px-3 py-1 text-xs font-medium text-on-surface-variant">{getStepMinutes(step)} min</span>
             </span>
             <span className="mt-3 flex flex-wrap gap-2">
               <span className="inline-flex rounded-full bg-surface-container-high px-3 py-1 text-xs font-medium text-on-surface-variant">{stepLabels[step.type]}</span>
@@ -500,8 +494,12 @@ function getTeachingDesignCue(reason: TeachingDesignFallbackReason | null) {
   return "系统按旧版环节补齐教学设计";
 }
 
-function getStepMinutes(type: LessonStepDTO["type"]) {
-  if (type === "content") return 12;
-  if (type === "task") return 15;
+function getStepMinutes(step: LessonStepDTO) {
+  if (step.payload.teachingDesign?.estimatedMinutes) {
+    return step.payload.teachingDesign.estimatedMinutes;
+  }
+
+  if (step.type === "content") return 12;
+  if (step.type === "task") return 15;
   return 8;
 }
