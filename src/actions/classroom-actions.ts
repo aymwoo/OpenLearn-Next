@@ -8,7 +8,10 @@ import {
   changeClassroomMode,
   endClassroomSession,
   launchClassroomSession,
+  recordClassroomEvidence,
+  recordClassroomIntervention,
   refreshClassroomSnapshot,
+  updateClassroomParticipantConnection,
 } from "@/lib/dal/classroom";
 import { cacheTags } from "@/lib/cache-policy";
 import {
@@ -16,11 +19,12 @@ import {
   ChangeClassroomStepInputSchema,
   EndClassroomInputSchema,
   LaunchClassroomInputSchema,
+  RecordClassroomEvidenceInputSchema,
+  RecordClassroomInterventionInputSchema,
   RefreshClassroomSnapshotInputSchema,
   TouchClassroomPresenceInputSchema,
 } from "@/lib/dto/classroom";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
-import { updateClassroomParticipantConnection } from "@/lib/dal/classroom";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; message: string; latest?: unknown; attemptedAction?: unknown };
 
@@ -43,6 +47,13 @@ function validationError(message = validationMessage) {
 function handleClassroomActionError(error: unknown, fallbackMessage = "操作失败，请重试。") {
   if (error instanceof z.ZodError) {
     return validationError();
+  }
+
+  if (
+    error instanceof Error &&
+    ["CLASSROOM_EVIDENCE_UNAUTHORIZED", "CLASSROOM_INTERVENTION_UNAUTHORIZED", "TEACHER_AUTH_REQUIRED"].includes(error.message)
+  ) {
+    return { ok: false as const, error: "UNAUTHORIZED", message: "您没有权限执行此操作。" };
   }
 
   if (error instanceof Error) {
@@ -166,6 +177,32 @@ export async function touchClassroomPresenceAction(input: FormData | Record<stri
 
     updateTag(cacheTags.classroom(parsed.data.sessionId));
     return { ok: true, data: { sessionId: parsed.data.sessionId } };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function recordClassroomEvidenceAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = RecordClassroomEvidenceInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await recordClassroomEvidence(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.sessionId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function recordClassroomInterventionAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = RecordClassroomInterventionInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await recordClassroomIntervention(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.sessionId));
+    return { ok: true, data: result };
   } catch (error) {
     return handleClassroomActionError(error);
   }

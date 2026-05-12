@@ -462,6 +462,10 @@ export async function recordClassroomIntervention(input: unknown) {
     }
   }
 
+  if (payload.targetScope === "class" && payload.studentId) {
+    throw new Error("CLASSROOM_INTERVENTION_UNAUTHORIZED");
+  }
+
   return createClassroomTimelineEntry({
     sessionId: session.id,
     studentId: payload.studentId ?? null,
