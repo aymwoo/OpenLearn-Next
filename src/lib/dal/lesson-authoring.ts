@@ -28,6 +28,9 @@ import {
   TeacherLessonPreviewDTOSchema,
   TeacherAuthoringOverviewDTOSchema,
   lessonStepPayloadSchema,
+  type TeachingDesign,
+  type TeachingDesignFallbackReason,
+  type TeachingDesignStatus,
   type AutosaveResultDTO,
   type LessonPublishIssueDTO,
   type LessonStepPayload,
@@ -259,6 +262,78 @@ function parseStepPayloadWithIssues(
   return { ok: true, payload: parsed.data };
 }
 
+type HydratedTeachingDesign = {
+  payload: LessonStepPayload;
+  teachingDesignStatus: TeachingDesignStatus;
+  needsTeachingDesignRefinement: boolean;
+  teachingDesignFallbackReason: TeachingDesignFallbackReason | null;
+};
+
+const LEGACY_TEACHING_DESIGN_DEFAULTS: Record<LessonStepPayload["type"], TeachingDesign> = {
+  content: {
+    activityIntent: "explain",
+    estimatedMinutes: 12,
+    activityMode: "mini-lecture",
+    evidenceExpectation: {
+      evidenceType: "observation",
+      prompt: "关注学生是否能跟随讲解理解核心概念。",
+      required: false,
+      checklist: [],
+      tags: ["legacy-default", "content"],
+      studentVisibility: "teacher-only",
+    },
+  },
+  task: {
+    activityIntent: "practice",
+    estimatedMinutes: 15,
+    activityMode: "independent",
+    evidenceExpectation: {
+      evidenceType: "submission",
+      prompt: "收集学生任务完成情况与关键产出。",
+      required: true,
+      checklist: [],
+      tags: ["legacy-default", "task"],
+      studentVisibility: "teacher-only",
+    },
+  },
+  quiz: {
+    activityIntent: "check",
+    estimatedMinutes: 8,
+    activityMode: "assessment",
+    evidenceExpectation: {
+      evidenceType: "quiz-response",
+      prompt: "记录学生对关键问题的即时作答情况。",
+      required: true,
+      checklist: [],
+      tags: ["legacy-default", "quiz"],
+      studentVisibility: "teacher-only",
+    },
+  },
+};
+
+function hydrateTeachingDesign(payload: LessonStepPayload): HydratedTeachingDesign {
+  const defaultDesign = structuredClone(LEGACY_TEACHING_DESIGN_DEFAULTS[payload.type]);
+
+  if (!payload.teachingDesign) {
+    return {
+      payload: {
+        ...payload,
+        teachingDesign: defaultDesign,
+      },
+      teachingDesignStatus: "inferred",
+      needsTeachingDesignRefinement: true,
+      teachingDesignFallbackReason: `legacy-${payload.type}-default` as TeachingDesignFallbackReason,
+    };
+  }
+
+  return {
+    payload,
+    teachingDesignStatus: "explicit",
+    needsTeachingDesignRefinement: false,
+    teachingDesignFallbackReason: null,
+  };
+}
+
 export async function getLessonPublishReadinessDTO(input: { lessonId: string }) {
   const scope = await assertActiveTeacher();
   const { lesson, course } = await getScopedLesson(input.lessonId, scope);
@@ -344,6 +419,8 @@ export async function getTeacherLessonPreviewDTO(input: { lessonId: string }) {
       return [];
     }
 
+    const hydrated = hydrateTeachingDesign(parsed.data);
+
     return [
       {
         id: step.id,
@@ -351,9 +428,12 @@ export async function getTeacherLessonPreviewDTO(input: { lessonId: string }) {
         type: step.type,
         title: step.title,
         rank: step.rank,
-        payload: parsed.data,
+        payload: hydrated.payload,
+        teachingDesignStatus: hydrated.teachingDesignStatus,
+        needsTeachingDesignRefinement: hydrated.needsTeachingDesignRefinement,
+        teachingDesignFallbackReason: hydrated.teachingDesignFallbackReason,
         updatedAt: toIso(step.updatedAt),
-        builtInSourceLabel: parsed.data.builtInSource?.pluginName ?? null,
+        builtInSourceLabel: hydrated.payload.builtInSource?.pluginName ?? null,
       },
     ];
   });
@@ -424,16 +504,23 @@ export async function getLessonEditorDTO(lessonId: string) {
     course: courseDto,
     classes: classDtos,
     lesson: await getLessonSummaryDTO(lesson),
-    steps: stepRows.map((step) => ({
-      id: step.id,
-      lessonId: step.lessonId,
-      type: step.type,
-      title: step.title,
-      rank: step.rank,
-      payload: lessonStepPayloadSchema.parse(step.payloadJson),
-      archivedAt: nullableIso(step.archivedAt),
-      updatedAt: toIso(step.updatedAt),
-    })),
+    steps: stepRows.map((step) => {
+      const hydrated = hydrateTeachingDesign(lessonStepPayloadSchema.parse(step.payloadJson));
+
+      return {
+        id: step.id,
+        lessonId: step.lessonId,
+        type: step.type,
+        title: step.title,
+        rank: step.rank,
+        payload: hydrated.payload,
+        teachingDesignStatus: hydrated.teachingDesignStatus,
+        needsTeachingDesignRefinement: hydrated.needsTeachingDesignRefinement,
+        teachingDesignFallbackReason: hydrated.teachingDesignFallbackReason,
+        archivedAt: nullableIso(step.archivedAt),
+        updatedAt: toIso(step.updatedAt),
+      };
+    }),
     materials: materialRows.map((material) => ({
       id: material.id,
       lessonId: material.lessonId,

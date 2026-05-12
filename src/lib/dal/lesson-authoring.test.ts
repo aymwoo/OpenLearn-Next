@@ -384,4 +384,201 @@ describe("lesson authoring DAL boundary", () => {
     expect(overview.courses.map((course) => course.id)).toEqual(["course-owned"]);
     expect(overview.lessons.map((lesson) => lesson.id)).toEqual(["lesson-owned"]);
   });
+
+  it("keeps legacy content, task, and quiz payloads readable without teachingDesign", async () => {
+    const dal = (await import("./lesson-authoring")) as Record<string, unknown>;
+
+    const legacySteps = [
+      {
+        id: "step-content",
+        lessonId: "lesson-owned",
+        type: "content",
+        title: "讲授",
+        rank: "a1",
+        payloadJson: {
+          type: "content",
+          title: "讲授",
+          body: "牛顿第一定律",
+          materialRefs: [],
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-09T08:21:00.000Z"),
+      },
+      {
+        id: "step-task",
+        lessonId: "lesson-owned",
+        type: "task",
+        title: "练习",
+        rank: "a2",
+        payloadJson: {
+          type: "task",
+          prompt: "写下你的观察",
+          submissionType: "text",
+          materialRefs: [],
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-09T08:22:00.000Z"),
+      },
+      {
+        id: "step-quiz",
+        lessonId: "lesson-owned",
+        type: "quiz",
+        title: "检测",
+        rank: "a3",
+        payloadJson: {
+          type: "quiz",
+          question: "惯性是什么？",
+          options: ["保持原运动状态", "受力大小"],
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-09T08:23:00.000Z"),
+      },
+    ];
+
+    findManyLessonSteps.mockResolvedValueOnce(legacySteps).mockResolvedValueOnce(legacySteps);
+
+    const preview = await (dal.getTeacherLessonPreviewDTO as (input: { lessonId: string }) => Promise<{
+      steps: Array<{
+        payload: { teachingDesign?: { activityIntent: string; estimatedMinutes: number; activityMode: string } };
+        teachingDesignStatus: string;
+        teachingDesignFallbackReason: string | null;
+      }>;
+    }>)({ lessonId: "lesson-owned" });
+
+    expect(preview.steps.map((step) => step.payload.teachingDesign?.activityIntent)).toEqual([
+      "explain",
+      "practice",
+      "check",
+    ]);
+    expect(preview.steps.map((step) => step.payload.teachingDesign?.estimatedMinutes)).toEqual([12, 15, 8]);
+    expect(preview.steps.map((step) => step.payload.teachingDesign?.activityMode)).toEqual([
+      "mini-lecture",
+      "independent",
+      "assessment",
+    ]);
+    expect(preview.steps.map((step) => step.teachingDesignStatus)).toEqual([
+      "inferred",
+      "inferred",
+      "inferred",
+    ]);
+    expect(preview.steps.map((step) => step.teachingDesignFallbackReason)).toEqual([
+      "legacy-content-default",
+      "legacy-task-default",
+      "legacy-quiz-default",
+    ]);
+  });
+
+  it("returns stable teaching design markers in editor and preview DTOs", async () => {
+    const dal = (await import("./lesson-authoring")) as Record<string, unknown>;
+
+    const explicitTeachingDesign = {
+      activityIntent: "practice",
+      estimatedMinutes: 18,
+      activityMode: "group",
+      evidenceExpectation: {
+        evidenceType: "artifact",
+        prompt: "提交小组实验记录",
+        required: true,
+        checklist: ["包含实验现象"],
+        tags: ["实验"],
+        studentVisibility: "teacher-only",
+      },
+    };
+
+    const explicitSteps = [
+      {
+        id: "step-explicit",
+        lessonId: "lesson-owned",
+        type: "task",
+        title: "分组实验",
+        rank: "a1",
+        payloadJson: {
+          type: "task",
+          prompt: "完成实验并记录现象",
+          submissionType: "text",
+          materialRefs: [],
+          teachingDesign: explicitTeachingDesign,
+          builtInSource: {
+            pluginId: "plugin-1",
+            builtInKey: "directInstruction",
+            pluginName: "教师讲授",
+          },
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-09T08:25:00.000Z"),
+      },
+    ];
+
+    findManyLessonSteps.mockResolvedValueOnce(explicitSteps).mockResolvedValueOnce(explicitSteps);
+
+    const preview = await (dal.getTeacherLessonPreviewDTO as (input: { lessonId: string }) => Promise<{
+      steps: Array<{
+        payload: { teachingDesign: { activityMode: string; evidenceExpectation: { prompt: string } } };
+        teachingDesignStatus: string;
+        needsTeachingDesignRefinement: boolean;
+        teachingDesignFallbackReason: string | null;
+      }>;
+    }>)({ lessonId: "lesson-owned" });
+
+    expect(preview.steps[0]?.payload.teachingDesign.activityMode).toBe("group");
+    expect(preview.steps[0]?.payload.teachingDesign.evidenceExpectation.prompt).toBe("提交小组实验记录");
+    expect(preview.steps[0]?.teachingDesignStatus).toBe("explicit");
+    expect(preview.steps[0]?.needsTeachingDesignRefinement).toBe(false);
+    expect(preview.steps[0]?.teachingDesignFallbackReason).toBeNull();
+
+    findManyLessonSteps
+      .mockResolvedValueOnce(explicitSteps)
+      .mockResolvedValueOnce(explicitSteps)
+      .mockResolvedValueOnce(explicitSteps);
+
+    const editor = await (dal.getLessonEditorDTO as (lessonId: string) => Promise<{
+      steps: Array<{
+        payload: { teachingDesign: { activityIntent: string } };
+        teachingDesignStatus: string;
+      }>;
+    }>)("lesson-owned");
+
+    expect(editor.steps[0]?.payload.teachingDesign.activityIntent).toBe("practice");
+    expect(editor.steps[0]?.teachingDesignStatus).toBe("explicit");
+  });
+
+  it("preserves built-in provenance alongside inferred teaching design defaults", async () => {
+    const dal = (await import("./lesson-authoring")) as Record<string, unknown>;
+
+    const builtInSteps = [
+      {
+        id: "step-built-in",
+        lessonId: "lesson-owned",
+        type: "content",
+        title: "教师讲授",
+        rank: "a1",
+        payloadJson: {
+          type: "content",
+          title: "教师讲授",
+          body: "讲授内容",
+          materialRefs: [],
+          builtInSource: {
+            pluginId: "plugin-1",
+            builtInKey: "directInstruction",
+            pluginName: "教师讲授",
+          },
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-09T08:21:00.000Z"),
+      },
+    ];
+
+    findManyLessonSteps.mockResolvedValueOnce(builtInSteps).mockResolvedValueOnce(builtInSteps);
+
+    const preview = await (dal.getTeacherLessonPreviewDTO as (input: { lessonId: string }) => Promise<{
+      steps: Array<{
+        builtInSourceLabel: string | null;
+        payload: { builtInSource?: { pluginId: string }; teachingDesign?: { activityIntent: string } };
+      }>;
+    }>)({ lessonId: "lesson-owned" });
+
+    expect(preview.steps[0]?.builtInSourceLabel).toBe("教师讲授");
+    expect(preview.steps[0]?.payload.builtInSource?.pluginId).toBe("plugin-1");
+    expect(preview.steps[0]?.payload.teachingDesign?.activityIntent).toBe("explain");
+  });
 });

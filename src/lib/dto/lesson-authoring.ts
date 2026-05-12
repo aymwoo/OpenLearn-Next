@@ -24,12 +24,70 @@ export const builtInSourceSchema = z.object({
   pluginName: z.string().min(1),
 });
 
+export const TeachingActivityIntentSchema = z.enum([
+  "explain",
+  "practice",
+  "check",
+  "discuss",
+  "reflect",
+  "apply",
+]);
+
+export const TeachingActivityModeSchema = z.enum([
+  "mini-lecture",
+  "independent",
+  "assessment",
+  "discussion",
+  "pair",
+  "group",
+  "whole-class",
+]);
+
+export const TeachingEvidenceTypeSchema = z.enum([
+  "observation",
+  "response",
+  "artifact",
+  "submission",
+  "quiz-response",
+]);
+
+export const TeachingEvidenceStudentVisibilitySchema = z.enum([
+  "teacher-only",
+  "student-visible",
+]);
+
+export const TeachingEvidenceExpectationSchema = z.object({
+  evidenceType: TeachingEvidenceTypeSchema,
+  prompt: z.string().min(1),
+  required: z.boolean(),
+  checklist: z.array(z.string().min(1)).default([]),
+  tags: z.array(z.string().min(1)).default([]),
+  studentVisibility: TeachingEvidenceStudentVisibilitySchema.default("teacher-only"),
+});
+
+export const TeachingDesignSchema = z.object({
+  activityIntent: TeachingActivityIntentSchema,
+  estimatedMinutes: z.number().int().positive(),
+  activityMode: TeachingActivityModeSchema,
+  evidenceExpectation: TeachingEvidenceExpectationSchema,
+});
+
+export const TeachingDesignStatusSchema = z.enum(["explicit", "inferred", "needs-refinement"]);
+
+export const TeachingDesignFallbackReasonSchema = z.enum([
+  "legacy-content-default",
+  "legacy-task-default",
+  "legacy-quiz-default",
+  "partial-teaching-design",
+]);
+
 export const contentStepPayloadSchema = z.object({
   type: z.literal("content"),
   title: z.string().min(1),
   body: z.string().min(1),
   teacherNotes: z.string().optional(),
   materialRefs: z.array(materialRefSchema).default([]),
+  teachingDesign: TeachingDesignSchema.optional(),
   builtInSource: builtInSourceSchema.optional(),
 });
 
@@ -41,6 +99,7 @@ export const taskStepPayloadSchema = z.object({
   allowRetry: z.boolean().optional(),
   retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
   materialRefs: z.array(materialRefSchema).default([]),
+  teachingDesign: TeachingDesignSchema.optional(),
   builtInSource: builtInSourceSchema.optional(),
 });
 
@@ -53,6 +112,7 @@ export const quizStepPayloadSchema = z.object({
   allowRetry: z.boolean().optional(),
   retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
   revealCorrectAnswer: z.boolean().optional(),
+  teachingDesign: TeachingDesignSchema.optional(),
   builtInSource: builtInSourceSchema.optional(),
 });
 
@@ -104,6 +164,9 @@ export const LessonStepDTOSchema = z.object({
   title: z.string(),
   rank: z.string(),
   payload: lessonStepPayloadSchema,
+  teachingDesignStatus: TeachingDesignStatusSchema,
+  needsTeachingDesignRefinement: z.boolean(),
+  teachingDesignFallbackReason: TeachingDesignFallbackReasonSchema.nullable(),
   archivedAt: z.string().nullable(),
   updatedAt: z.string(),
 });
@@ -193,6 +256,9 @@ export const TeacherLessonPreviewStepDTOSchema = z.object({
   title: z.string(),
   rank: z.string(),
   payload: lessonStepPayloadSchema,
+  teachingDesignStatus: TeachingDesignStatusSchema,
+  needsTeachingDesignRefinement: z.boolean(),
+  teachingDesignFallbackReason: TeachingDesignFallbackReasonSchema.nullable(),
   updatedAt: z.string(),
   builtInSourceLabel: z.string().nullable(),
 });
@@ -214,6 +280,9 @@ export type TeacherAuthoringOverviewDTO = z.infer<typeof TeacherAuthoringOvervie
 export type AutosaveResultDTO = z.infer<typeof AutosaveResultDTOSchema>;
 export type PublishResultDTO = z.infer<typeof PublishResultDTOSchema>;
 export type BuiltInSource = z.infer<typeof builtInSourceSchema>;
+export type TeachingDesign = z.infer<typeof TeachingDesignSchema>;
+export type TeachingDesignStatus = z.infer<typeof TeachingDesignStatusSchema>;
+export type TeachingDesignFallbackReason = z.infer<typeof TeachingDesignFallbackReasonSchema>;
 export type LessonPublishIssueDTO = z.infer<typeof LessonPublishIssueDTOSchema>;
 export type LessonPublishReadinessDTO = z.infer<typeof LessonPublishReadinessDTOSchema>;
 export type TeacherLessonPreviewStepDTO = z.infer<typeof TeacherLessonPreviewStepDTOSchema>;
