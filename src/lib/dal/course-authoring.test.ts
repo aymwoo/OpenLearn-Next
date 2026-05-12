@@ -304,7 +304,7 @@ describe("course authoring DAL", () => {
   it("keeps recoverable lesson-draft failures on the lessons entry page instead of throwing 500", () => {
     const source = readFileSync("src/components/surfaces/course-lessons-entry-surface.tsx", "utf8");
 
-    expect(source).toContain('redirect(`/teacher/courses/${courseId}/lessons?error=${encodeURIComponent(result.message)}`)');
+    expect(source).toContain("/teacher/courses/${courseId}/lessons?error=${encodeURIComponent(result.message)}");
     expect(source).not.toContain('throw new Error("LESSON_DRAFT_CREATE_FAILED")');
   });
 

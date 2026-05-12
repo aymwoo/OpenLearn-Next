@@ -8,8 +8,14 @@ const { createLessonDraft, assertActiveTeacher, getLessonPublishReadinessDTO, pu
   publishLesson: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("next/cache", () => ({
   updateTag,
+}));
+
+vi.mock("@/lib/dal/resources", () => ({
+  createTeacherResource: vi.fn(),
 }));
 
 vi.mock("@/lib/dal/lesson-authoring", () => ({
