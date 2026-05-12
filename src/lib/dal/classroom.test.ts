@@ -109,4 +109,82 @@ describe("getClassroomConsoleDTO", () => {
     expect(findManyLessons).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
     expect(findManyClasses).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
   });
+
+  it("prefers structured teaching design metadata in launch preview", async () => {
+    findManyPublishedLessonVersions.mockResolvedValueOnce([
+      {
+        id: "pub-1",
+        snapshotJson: {
+          lesson: { title: "古诗导读" },
+          steps: [
+            {
+              id: "step-1",
+              lessonId: "lesson-in-scope",
+              type: "task",
+              title: "分组实验",
+              rank: "a0",
+              payload: {
+                type: "task",
+                prompt: "完成实验记录",
+                submissionType: "text",
+                materialRefs: [{ title: "实验单", kind: "worksheet" }],
+                teachingDesign: {
+                  activityIntent: "practice",
+                  estimatedMinutes: 18,
+                  activityMode: "group",
+                  evidenceExpectation: {
+                    evidenceType: "artifact",
+                    prompt: "提交实验记录单",
+                    required: true,
+                    checklist: ["包含实验结论"],
+                    tags: ["实验"],
+                    studentVisibility: "teacher-only",
+                  },
+                },
+              },
+            },
+          ],
+          materials: [{ stepId: "step-1", title: "实验箱", kind: "kit" }],
+        },
+      },
+    ]);
+
+    const { getClassroomConsoleDTO } = await import("./classroom");
+    const dto = await getClassroomConsoleDTO();
+    const step = dto.publishedLessons[0]?.launchPreview.steps[0];
+
+    expect(step?.family).toBe("练习 / group");
+    expect(step?.estimatedMinutes).toBe(18);
+    expect(step?.summary).toContain("完成实验记录");
+    expect(step?.evidenceSummary).toBe("需提交：提交实验记录单");
+    expect(step?.teachingDesignStatus).toBe("explicit");
+    expect(step?.needsTeachingDesignRefinement).toBe(false);
+    expect(step?.teachingDesignFallbackReason).toBeNull();
+    expect(step?.activityIntent).toBe("practice");
+    expect(step?.activityMode).toBe("group");
+    expect(step?.materialCues).toEqual(["实验箱", "实验单"]);
+  });
+
+  it("falls back safely when published snapshot has no teaching design metadata", async () => {
+    const { getClassroomConsoleDTO } = await import("./classroom");
+
+    const dto = await getClassroomConsoleDTO();
+    const step = dto.publishedLessons[0]?.launchPreview.steps[0];
+
+    expect(step?.family).toBe("教师讲授");
+    expect(step?.estimatedMinutes).toBe(12);
+    expect(step?.teachingDesignStatus).toBe("inferred");
+    expect(step?.needsTeachingDesignRefinement).toBe(true);
+    expect(step?.teachingDesignFallbackReason).toBe("legacy-content-default");
+    expect(step?.evidenceSummary).toContain("默认推断");
+  });
+
+  it("continues to build launch preview only from published snapshots", async () => {
+    const source = (await import("node:fs")).readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain("const publishedVersion = publishedVersionMap.get(lesson.publishedVersionId!)");
+    expect(source).toContain("const snapshot = parseSnapshot(publishedVersion?.snapshotJson)");
+    expect(source).not.toContain("getLessonEditorDTO");
+    expect(source).not.toContain("draft");
+  });
 });

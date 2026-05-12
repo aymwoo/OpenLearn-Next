@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+import {
+  TeachingActivityIntentSchema,
+  TeachingActivityModeSchema,
+  TeachingDesignFallbackReasonSchema,
+  TeachingDesignStatusSchema,
+} from "@/lib/dto/lesson-authoring";
+
 export const ClassroomModeSchema = z.enum(["locked", "unlocked"]);
 export const ClassroomConnectionStateSchema = z.enum(["connected", "reconnecting", "offline"]);
 
@@ -15,7 +22,13 @@ export const ClassroomLaunchPreviewStepDTOSchema = z.object({
   title: z.string(),
   family: z.string(),
   summary: z.string(),
+  activityIntent: TeachingActivityIntentSchema,
+  activityMode: TeachingActivityModeSchema,
   estimatedMinutes: z.number().int().nonnegative(),
+  evidenceSummary: z.string(),
+  teachingDesignStatus: TeachingDesignStatusSchema,
+  needsTeachingDesignRefinement: z.boolean(),
+  teachingDesignFallbackReason: TeachingDesignFallbackReasonSchema.nullable(),
   materialCues: z.array(z.string()).default([]),
 });
 
