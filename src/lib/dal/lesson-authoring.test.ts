@@ -553,6 +553,62 @@ describe("lesson authoring DAL boundary", () => {
     expect(editor.steps[0]?.teachingDesignStatus).toBe("explicit");
   });
 
+  it("fills missing teaching-design fields and marks partial payloads for refinement", async () => {
+    const dal = (await import("./lesson-authoring")) as Record<string, unknown>;
+
+    const partialSteps = [
+      {
+        id: "step-partial",
+        lessonId: "lesson-owned",
+        type: "task",
+        title: "半配置练习",
+        rank: "a1",
+        payloadJson: {
+          type: "task",
+          prompt: "完成实验并记录现象",
+          submissionType: "text",
+          materialRefs: [],
+          teachingDesign: {
+            activityIntent: "apply",
+            evidenceExpectation: {
+              prompt: "补充实验结果截图",
+            },
+          },
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-09T08:26:00.000Z"),
+      },
+    ];
+
+    findManyLessonSteps.mockResolvedValueOnce(partialSteps).mockResolvedValueOnce(partialSteps);
+
+    const preview = await (dal.getTeacherLessonPreviewDTO as (input: { lessonId: string }) => Promise<{
+      steps: Array<{
+        payload: {
+          teachingDesign: {
+            activityIntent: string;
+            estimatedMinutes: number;
+            activityMode: string;
+            evidenceExpectation: { evidenceType: string; prompt: string; required: boolean };
+          };
+        };
+        teachingDesignStatus: string;
+        needsTeachingDesignRefinement: boolean;
+        teachingDesignFallbackReason: string | null;
+      }>;
+    }>)({ lessonId: "lesson-owned" });
+
+    expect(preview.steps[0]?.payload.teachingDesign.activityIntent).toBe("apply");
+    expect(preview.steps[0]?.payload.teachingDesign.estimatedMinutes).toBe(15);
+    expect(preview.steps[0]?.payload.teachingDesign.activityMode).toBe("independent");
+    expect(preview.steps[0]?.payload.teachingDesign.evidenceExpectation.evidenceType).toBe("submission");
+    expect(preview.steps[0]?.payload.teachingDesign.evidenceExpectation.prompt).toBe("补充实验结果截图");
+    expect(preview.steps[0]?.payload.teachingDesign.evidenceExpectation.required).toBe(true);
+    expect(preview.steps[0]?.teachingDesignStatus).toBe("needs-refinement");
+    expect(preview.steps[0]?.needsTeachingDesignRefinement).toBe(true);
+    expect(preview.steps[0]?.teachingDesignFallbackReason).toBe("partial-teaching-design");
+  });
+
   it("preserves built-in provenance alongside inferred teaching design defaults", async () => {
     const dal = (await import("./lesson-authoring")) as Record<string, unknown>;
 

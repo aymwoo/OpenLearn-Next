@@ -46,7 +46,8 @@ const staticChecks: StaticCheck[] = [
     label: "lesson step payload schema keeps teachingDesign contract",
     passed:
       nonCommentIncludes(lessonAuthoringDtoSource, "lessonStepPayloadSchema") &&
-      nonCommentIncludes(lessonAuthoringDtoSource, "teachingDesign: TeachingDesignSchema.optional()"),
+      nonCommentIncludes(lessonAuthoringDtoSource, "TeachingDesignInputSchema") &&
+      nonCommentIncludes(lessonAuthoringDtoSource, "teachingDesign: TeachingDesignInputSchema.optional()"),
   },
   {
     label: "editor surface consumes teachingDesignStatus and refinement markers",
@@ -91,6 +92,10 @@ const staticChecks: StaticCheck[] = [
     passed: nonCommentIncludes(classroomActionSource, "updateTag(cacheTags.classroom(parsed.data.sessionId))"),
   },
   {
+    label: "classroom evidence input enforces student actor binding",
+    passed: nonCommentIncludes(read("src/lib/dto/classroom.ts"), 'value.sourceType.startsWith("student-") && !value.studentId'),
+  },
+  {
     label: "classroom write path contains no unsafe shortcuts",
     passed: !classroomWriteSources.some(
       (source) =>
@@ -122,6 +127,7 @@ runPnpm(
   [
     "test",
     "--run",
+    "src/lib/dal/lesson-authoring.test.ts",
     "src/components/authoring/lesson-authoring-workspace.test.tsx",
     "src/components/classroom/classroom-launch-panel.test.tsx",
     "src/lib/dal/classroom.test.ts",

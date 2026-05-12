@@ -274,6 +274,54 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
     expect(screen.getByRole("button", { name: "编辑组件" })).toBeTruthy();
   });
 
+  it("uses teaching-design estimated minutes in flow cards and totals", () => {
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [
+            {
+              id: "step-1",
+              title: "分组实验",
+              type: "task",
+              rank: "a0",
+              teachingDesignStatus: "explicit",
+              needsTeachingDesignRefinement: false,
+              teachingDesignFallbackReason: null,
+              archivedAt: null,
+              payload: {
+                type: "task",
+                prompt: "完成课堂练习。",
+                submissionType: "text",
+                materialRefs: [],
+                teachingDesign: {
+                  activityIntent: "practice",
+                  estimatedMinutes: 18,
+                  activityMode: "group",
+                  evidenceExpectation: {
+                    evidenceType: "artifact",
+                    prompt: "提交实验记录",
+                    required: true,
+                    checklist: [],
+                    tags: [],
+                    studentVisibility: "teacher-only",
+                  },
+                },
+              },
+              updatedAt: "2026-05-12T10:00:00.000Z",
+            },
+          ],
+        } as any}
+        builtInTemplates={[]}
+      />,
+    );
+
+    expect(screen.getByText("18 min")).toBeTruthy();
+    expect(screen.getByText("总时长约 18 分钟")).toBeTruthy();
+  });
+
   it("keeps the same fallback wording in teacher preview surfaces", () => {
     const source = readFileSync("src/components/surfaces/teacher-lesson-preview-surface.tsx", "utf8");
 

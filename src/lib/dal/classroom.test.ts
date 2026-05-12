@@ -181,6 +181,51 @@ describe("getClassroomConsoleDTO", () => {
     expect(step?.evidenceSummary).toContain("默认推断");
   });
 
+  it("fills partial teaching-design data from published snapshots without dropping the launch preview", async () => {
+    findManyPublishedLessonVersions.mockResolvedValueOnce([
+      {
+        id: "pub-1",
+        snapshotJson: {
+          lesson: { title: "古诗导读" },
+          steps: [
+            {
+              id: "step-1",
+              lessonId: "lesson-in-scope",
+              type: "task",
+              title: "实验记录",
+              rank: "a0",
+              payload: {
+                type: "task",
+                prompt: "完成实验记录",
+                submissionType: "text",
+                materialRefs: [],
+                teachingDesign: {
+                  activityIntent: "apply",
+                  evidenceExpectation: {
+                    prompt: "提交实验单照片",
+                  },
+                },
+              },
+            },
+          ],
+          materials: [],
+        },
+      },
+    ]);
+
+    const { getClassroomConsoleDTO } = await import("./classroom");
+    const dto = await getClassroomConsoleDTO();
+    const step = dto.publishedLessons[0]?.launchPreview.steps[0];
+
+    expect(step?.activityIntent).toBe("apply");
+    expect(step?.activityMode).toBe("independent");
+    expect(step?.estimatedMinutes).toBe(15);
+    expect(step?.evidenceSummary).toContain("提交实验单照片");
+    expect(step?.teachingDesignStatus).toBe("needs-refinement");
+    expect(step?.needsTeachingDesignRefinement).toBe(true);
+    expect(step?.teachingDesignFallbackReason).toBe("partial-teaching-design");
+  });
+
   it("continues to build launch preview only from published snapshots", async () => {
     const source = (await import("node:fs")).readFileSync("src/lib/dal/classroom.ts", "utf8");
 
@@ -225,6 +270,12 @@ describe("classroom evidence foundation contracts", () => {
       studentId: "student-1",
       stepId: "step-1",
     }).success).toBe(true);
+    expect(classroomDto.RecordClassroomEvidenceInputSchema.safeParse({
+      sessionId: "session-1",
+      sourceType: "student-submission",
+      evidenceType: "submission",
+      payload: {},
+    }).success).toBe(false);
   });
 
   it("writes presence changes, evidence capture, and interventions through durable timeline helpers", () => {
@@ -237,5 +288,7 @@ describe("classroom evidence foundation contracts", () => {
     expect(source).toContain("entryType: \"presence_changed\"");
     expect(source).toContain("entryType: \"evidence_captured\"");
     expect(source).toContain("entryType: \"intervention_noted\"");
+    expect(source).toContain('payload.sourceType.startsWith("student-")');
+    expect(source).toContain("CLASSROOM_EVIDENCE_UNAUTHORIZED");
   });
 });
