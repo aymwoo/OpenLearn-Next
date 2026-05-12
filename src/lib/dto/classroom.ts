@@ -9,6 +9,10 @@ import {
 
 export const ClassroomModeSchema = z.enum(["locked", "unlocked"]);
 export const ClassroomConnectionStateSchema = z.enum(["connected", "reconnecting", "offline"]);
+export const ClassroomEvidenceSourceTypeSchema = z.enum(["student-quick-response", "student-submission", "teacher-observation", "system"]);
+export const ClassroomEvidenceTypeSchema = z.enum(["observation", "response", "artifact", "submission", "quiz-response"]);
+export const ClassroomInterventionTargetScopeSchema = z.enum(["student", "class"]);
+export const ClassroomTimelineEntryTypeSchema = z.enum(["presence_changed", "evidence_captured", "intervention_noted"]);
 
 export const ClassroomStepDTOSchema = z.object({
   id: z.string(),
@@ -119,6 +123,63 @@ export const ClassroomEventDTOSchema = z.object({
   createdAt: z.string(),
 });
 
+export const RecordClassroomEvidenceInputSchema = z.object({
+  sessionId: z.string().min(1),
+  studentId: z.string().min(1).optional(),
+  stepId: z.string().min(1).optional(),
+  sourceType: ClassroomEvidenceSourceTypeSchema,
+  evidenceType: ClassroomEvidenceTypeSchema,
+  payload: z.record(z.string(), z.unknown()),
+});
+
+export const RecordClassroomInterventionInputSchema = z.object({
+  sessionId: z.string().min(1),
+  title: z.string().min(1),
+  body: z.string().min(1),
+  targetScope: ClassroomInterventionTargetScopeSchema,
+  studentId: z.string().min(1).optional(),
+  stepId: z.string().min(1).optional(),
+}).superRefine((value, ctx) => {
+  if (value.targetScope === "student" && !value.studentId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["studentId"],
+      message: "student scope requires studentId",
+    });
+  }
+
+  if (value.targetScope === "class" && value.studentId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["studentId"],
+      message: "class scope does not accept studentId",
+    });
+  }
+});
+
+export const ClassroomEvidenceDTOSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  studentId: z.string().nullable(),
+  stepId: z.string().nullable(),
+  sourceType: ClassroomEvidenceSourceTypeSchema,
+  evidenceType: ClassroomEvidenceTypeSchema,
+  payload: z.record(z.string(), z.unknown()),
+  capturedById: z.string(),
+  createdAt: z.string(),
+});
+
+export const ClassroomTimelineEntryDTOSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  studentId: z.string().nullable(),
+  stepId: z.string().nullable(),
+  entryType: ClassroomTimelineEntryTypeSchema,
+  actorId: z.string(),
+  payload: z.record(z.string(), z.unknown()),
+  createdAt: z.string(),
+});
+
 export const LaunchClassroomInputSchema = z.object({
   lessonId: z.string(),
   publishedVersionId: z.string(),
@@ -180,6 +241,10 @@ export type ClassroomConsoleDTO = z.infer<typeof ClassroomConsoleDTOSchema>;
 export type ClassroomParticipantDTO = z.infer<typeof ClassroomParticipantDTOSchema>;
 export type ClassroomSnapshotDTO = z.infer<typeof ClassroomSnapshotDTOSchema>;
 export type ClassroomEventDTO = z.infer<typeof ClassroomEventDTOSchema>;
+export type RecordClassroomEvidenceInput = z.infer<typeof RecordClassroomEvidenceInputSchema>;
+export type RecordClassroomInterventionInput = z.infer<typeof RecordClassroomInterventionInputSchema>;
+export type ClassroomEvidenceDTO = z.infer<typeof ClassroomEvidenceDTOSchema>;
+export type ClassroomTimelineEntryDTO = z.infer<typeof ClassroomTimelineEntryDTOSchema>;
 export type LaunchClassroomInput = z.infer<typeof LaunchClassroomInputSchema>;
 export type ChangeClassroomStepInput = z.infer<typeof ChangeClassroomStepInputSchema>;
 export type ChangeClassroomModeInput = z.infer<typeof ChangeClassroomModeInputSchema>;

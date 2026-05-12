@@ -7,11 +7,14 @@ import {
   classes,
   classMembers,
   classroomEvents,
+  classroomEvidence,
   classroomParticipants,
   classroomSessions,
+  classroomTimeline,
   courses,
   courseClasses,
   lessons,
+  lessonSteps,
   publishedLessonVersions,
   users,
 } from "@/db/schema";
@@ -20,7 +23,11 @@ import { getCurrentUserDTO } from "@/lib/dal/auth";
 import {
   ClassroomConsoleDTOSchema,
   ClassroomActionResultDTOSchema,
+  ClassroomEvidenceDTOSchema,
   ClassroomSnapshotDTOSchema,
+  ClassroomTimelineEntryDTOSchema,
+  RecordClassroomEvidenceInputSchema,
+  RecordClassroomInterventionInputSchema,
   LaunchClassroomInputSchema,
   ChangeClassroomStepInputSchema,
   ChangeClassroomModeInputSchema,
@@ -257,6 +264,58 @@ async function getStudentClassMember(classId: string, studentId: string) {
   });
 }
 
+async function ensureSessionStudentParticipant(sessionId: string, studentId: string) {
+  const participant = await db.query.classroomParticipants.findFirst({
+    where: and(eq(classroomParticipants.sessionId, sessionId), eq(classroomParticipants.studentId, studentId)),
+  });
+
+  if (!participant) {
+    throw new Error("CLASSROOM_PARTICIPANT_REQUIRED");
+  }
+
+  return participant;
+}
+
+async function getTeacherSessionScope(sessionId: string) {
+  const scope = await assertActiveTeacher();
+  const session = await getSessionWithLessonSteps(sessionId);
+
+  if (session.teacherId !== scope.userId) {
+    throw new Error("TEACHER_AUTH_REQUIRED");
+  }
+
+  return { scope, session };
+}
+
+async function createClassroomTimelineEntry(input: {
+  sessionId: string;
+  studentId?: string | null;
+  stepId?: string | null;
+  entryType: "presence_changed" | "evidence_captured" | "intervention_noted";
+  actorId: string;
+  payload: Record<string, unknown>;
+}) {
+  const [entry] = await db.insert(classroomTimeline).values({
+    sessionId: input.sessionId,
+    studentId: input.studentId ?? null,
+    stepId: input.stepId ?? null,
+    entryType: input.entryType,
+    actorId: input.actorId,
+    payloadJson: input.payload,
+  }).returning();
+
+  return ClassroomTimelineEntryDTOSchema.parse({
+    id: entry.id,
+    sessionId: entry.sessionId,
+    studentId: entry.studentId,
+    stepId: entry.stepId,
+    entryType: entry.entryType,
+    actorId: entry.actorId,
+    payload: entry.payloadJson,
+    createdAt: toIso(entry.createdAt),
+  });
+}
+
 export async function ensureClassroomParticipant(input: { sessionId: string; studentId: string }) {
   const session = await getSessionWithLessonSteps(input.sessionId);
   const currentUser = await getCurrentUserDTO();
@@ -294,6 +353,10 @@ export async function updateClassroomParticipantConnection(input: {
 
   await ensureClassroomParticipant({ sessionId: input.sessionId, studentId: input.studentId });
 
+  const existingParticipant = await db.query.classroomParticipants.findFirst({
+    where: and(eq(classroomParticipants.sessionId, session.id), eq(classroomParticipants.studentId, input.studentId)),
+  });
+
   await db.update(classroomParticipants)
     .set({
       connectionState: input.connectionState,
@@ -301,6 +364,117 @@ export async function updateClassroomParticipantConnection(input: {
       ...(input.currentStepId ? { currentStepId: input.currentStepId } : {}),
     })
     .where(and(eq(classroomParticipants.sessionId, session.id), eq(classroomParticipants.studentId, input.studentId)));
+
+  const connectionChanged = existingParticipant?.connectionState !== input.connectionState;
+  const nextStepId = input.currentStepId ?? existingParticipant?.currentStepId ?? null;
+  const stepChanged = nextStepId !== (existingParticipant?.currentStepId ?? null);
+
+  if (connectionChanged || stepChanged) {
+    await createClassroomTimelineEntry({
+      sessionId: session.id,
+      studentId: input.studentId,
+      stepId: nextStepId,
+      entryType: "presence_changed",
+      actorId: input.studentId,
+      payload: {
+        previousConnectionState: existingParticipant?.connectionState ?? null,
+        connectionState: input.connectionState,
+        previousStepId: existingParticipant?.currentStepId ?? null,
+        currentStepId: nextStepId,
+      },
+    });
+  }
+}
+
+export async function recordClassroomEvidence(input: unknown) {
+  const payload = RecordClassroomEvidenceInputSchema.parse(input);
+  const user = await getCurrentUserDTO();
+
+  if (!user?.id) {
+    throw new Error("CLASSROOM_PARTICIPANT_REQUIRED");
+  }
+
+  const session = await getSessionWithLessonSteps(payload.sessionId);
+
+  if (payload.studentId) {
+    if (payload.studentId !== user.id) {
+      throw new Error("CLASSROOM_EVIDENCE_UNAUTHORIZED");
+    }
+
+    await ensureSessionStudentParticipant(session.id, payload.studentId);
+  }
+
+  if (payload.stepId) {
+    const step = await db.query.lessonSteps.findFirst({ where: eq(lessonSteps.id, payload.stepId) });
+    if (!step || step.lessonId !== session.lessonId) {
+      throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
+    }
+  }
+
+  const [evidence] = await db.insert(classroomEvidence).values({
+    sessionId: session.id,
+    studentId: payload.studentId ?? null,
+    stepId: payload.stepId ?? null,
+    sourceType: payload.sourceType,
+    evidenceType: payload.evidenceType,
+    payloadJson: payload.payload,
+    capturedById: user.id,
+  }).returning();
+
+  await createClassroomTimelineEntry({
+    sessionId: session.id,
+    studentId: payload.studentId ?? null,
+    stepId: payload.stepId ?? null,
+    entryType: "evidence_captured",
+    actorId: user.id,
+    payload: {
+      evidenceId: evidence.id,
+      sourceType: payload.sourceType,
+      evidenceType: payload.evidenceType,
+    },
+  });
+
+  return ClassroomEvidenceDTOSchema.parse({
+    id: evidence.id,
+    sessionId: evidence.sessionId,
+    studentId: evidence.studentId,
+    stepId: evidence.stepId,
+    sourceType: evidence.sourceType,
+    evidenceType: evidence.evidenceType,
+    payload: evidence.payloadJson,
+    capturedById: evidence.capturedById,
+    createdAt: toIso(evidence.createdAt),
+  });
+}
+
+export async function recordClassroomIntervention(input: unknown) {
+  const payload = RecordClassroomInterventionInputSchema.parse(input);
+  const { scope, session } = await getTeacherSessionScope(payload.sessionId);
+
+  if (payload.studentId) {
+    await ensureSessionStudentParticipant(session.id, payload.studentId);
+  }
+
+  if (payload.stepId) {
+    const step = await db.query.lessonSteps.findFirst({ where: eq(lessonSteps.id, payload.stepId) });
+    if (!step || step.lessonId !== session.lessonId) {
+      throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
+    }
+  }
+
+  return createClassroomTimelineEntry({
+    sessionId: session.id,
+    studentId: payload.studentId ?? null,
+    stepId: payload.stepId ?? null,
+    entryType: "intervention_noted",
+    actorId: scope.userId,
+    payload: {
+      title: payload.title,
+      body: payload.body,
+      targetScope: payload.targetScope,
+      visibility: "teacher-only",
+    },
+  });
 }
 
 export async function getClassroomConsoleDTO() {

@@ -467,6 +467,63 @@ export const classroomEvents = sqliteTable(
   ]
 );
 
+export const classroomEvidence = sqliteTable(
+  "classroomEvidence",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sessionId: text("sessionId")
+      .notNull()
+      .references(() => classroomSessions.id, { onDelete: "cascade" }),
+    studentId: text("studentId").references(() => users.id, { onDelete: "cascade" }),
+    stepId: text("stepId").references(() => lessonSteps.id, { onDelete: "cascade" }),
+    sourceType: text("sourceType", {
+      enum: ["student-quick-response", "student-submission", "teacher-observation", "system"],
+    }).notNull(),
+    evidenceType: text("evidenceType", {
+      enum: ["observation", "response", "artifact", "submission", "quiz-response"],
+    }).notNull(),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    capturedById: text("capturedById")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("classroomEvidence_session_created_idx").on(table.sessionId, table.createdAt),
+    index("classroomEvidence_session_student_idx").on(table.sessionId, table.studentId),
+    index("classroomEvidence_session_step_idx").on(table.sessionId, table.stepId),
+  ]
+);
+
+export const classroomTimeline = sqliteTable(
+  "classroomTimeline",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sessionId: text("sessionId")
+      .notNull()
+      .references(() => classroomSessions.id, { onDelete: "cascade" }),
+    studentId: text("studentId").references(() => users.id, { onDelete: "cascade" }),
+    stepId: text("stepId").references(() => lessonSteps.id, { onDelete: "cascade" }),
+    entryType: text("entryType", {
+      enum: ["presence_changed", "evidence_captured", "intervention_noted"],
+    }).notNull(),
+    actorId: text("actorId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("classroomTimeline_session_created_idx").on(table.sessionId, table.createdAt),
+    index("classroomTimeline_session_entryType_idx").on(table.sessionId, table.entryType),
+    index("classroomTimeline_session_student_idx").on(table.sessionId, table.studentId),
+  ]
+);
+
 export const resources = sqliteTable("resource", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   schoolId: text("schoolId").notNull().references(() => schools.id, { onDelete: "cascade" }),
