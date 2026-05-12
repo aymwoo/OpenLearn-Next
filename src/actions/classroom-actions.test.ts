@@ -23,4 +23,23 @@ describe("classroom presence actions", () => {
     expect(clientSource).toContain("touchPresence('connected'");
     expect(clientSource).toContain("touchPresence('reconnecting'");
   });
+
+  it("validates evidence and intervention action input before DAL writes", () => {
+    expect(source).toContain("export async function recordClassroomEvidenceAction");
+    expect(source).toContain("export async function recordClassroomInterventionAction");
+    expect(source).toContain("RecordClassroomEvidenceInputSchema.safeParse");
+    expect(source).toContain("RecordClassroomInterventionInputSchema.safeParse");
+    expect(source).toContain("recordClassroomEvidence(");
+    expect(source).toContain("recordClassroomIntervention(");
+  });
+
+  it("invalidates classroom cache after evidence and intervention writes", () => {
+    expect(source).toContain("updateTag(cacheTags.classroom(parsed.data.sessionId))");
+  });
+
+  it("maps evidence and intervention authorization failures to structured action errors", () => {
+    expect(source).toContain("CLASSROOM_EVIDENCE_UNAUTHORIZED");
+    expect(source).toContain("CLASSROOM_INTERVENTION_UNAUTHORIZED");
+    expect(source).toContain("UNAUTHORIZED");
+  });
 });
