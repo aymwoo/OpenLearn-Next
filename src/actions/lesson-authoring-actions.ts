@@ -18,6 +18,7 @@ import {
   updateLessonStep,
 } from "@/lib/dal/lesson-authoring";
 import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
+import { createTeacherResource } from "@/lib/dal/resources";
 import { cacheTags } from "@/lib/cache-policy";
 
 const conflictMessage = "检测到更新冲突，请刷新后重试。";
@@ -57,6 +58,13 @@ const reorderStepSchema = z.object({
 const publishSchema = z.object({
   lessonId: z.string().min(1),
   expectedRevision: z.coerce.number().int().positive().optional(),
+});
+
+const uploadMarkdownAssetSchema = z.object({
+  schoolId: z.string().min(1),
+  courseId: z.string().min(1),
+  title: z.string().min(1),
+  source: z.string().min(1),
 });
 
 type ActionResult<T> =
@@ -196,6 +204,29 @@ export async function autosaveLessonStepAction(input: FormData | Record<string, 
       updateTag(cacheTags.steps(result.lessonId));
     }
     return { ok: true, data: result };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function uploadLessonMarkdownAssetAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = uploadMarkdownAssetSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const data = await createTeacherResource({
+      schoolId: parsed.data.schoolId,
+      courseId: parsed.data.courseId,
+      title: parsed.data.title,
+      visibility: "private",
+      classification: "markdown",
+      content: parsed.data.source,
+      ragEligible: false,
+    });
+
+    updateTag(cacheTags.resources(parsed.data.schoolId));
+    updateTag(cacheTags.resource(data.id));
+    return { ok: true, data };
   } catch (error) {
     return handleActionError(error);
   }

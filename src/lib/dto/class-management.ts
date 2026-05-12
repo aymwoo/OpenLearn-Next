@@ -69,6 +69,19 @@ export const ImportClassRosterInputSchema = z.object({
   createMissingClasses: z.boolean().optional().default(false),
 });
 
+export const ResetStudentPasswordsInputSchema = z.object({
+  studentIds: z.array(z.string().trim().min(1)).min(1),
+  password: z.string().trim().min(1, "请输入新密码。"),
+});
+
+export const DeleteStudentsInputSchema = z.object({
+  studentIds: z.array(z.string().trim().min(1)).min(1),
+});
+
+export const DeleteClassesInputSchema = z.object({
+  classIds: z.array(z.string().trim().min(1)).min(1),
+});
+
 export type ClassStudentDTO = z.infer<typeof ClassStudentDTOSchema>;
 export type TeacherClassDTO = z.infer<typeof TeacherClassDTOSchema>;
 export type TeacherClassManagementDTO = z.infer<typeof TeacherClassManagementDTOSchema>;
@@ -76,4 +89,7 @@ export type UpdateClassNameInput = z.infer<typeof UpdateClassNameInputSchema>;
 export type ImportClassesInput = z.infer<typeof ImportClassesInputSchema>;
 export type ImportRosterRowInput = z.infer<typeof ImportRosterRowInputSchema>;
 export type ImportClassRosterInput = z.infer<typeof ImportClassRosterInputSchema>;
+export type ResetStudentPasswordsInput = z.infer<typeof ResetStudentPasswordsInputSchema>;
+export type DeleteStudentsInput = z.infer<typeof DeleteStudentsInputSchema>;
+export type DeleteClassesInput = z.infer<typeof DeleteClassesInputSchema>;
 export type StudentGender = z.infer<typeof StudentGenderSchema>;

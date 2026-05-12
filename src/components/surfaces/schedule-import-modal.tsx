@@ -34,6 +34,11 @@ interface BlockingFeedback {
   groups: BlockingFeedbackGroup[];
 }
 
+interface ImportSuccessFeedback {
+  summary: string;
+  detail: string | null;
+}
+
 const stageInfoMap: Record<ImportStage, StageInfo> = {
   idle: {
     label: "准备导入",
@@ -72,6 +77,8 @@ const blockingStatuses = new Set<ScheduleImportRowReviewDTO["status"]>([
   "mapping_review",
   "conflict_review",
 ]);
+
+const displayOnlyMappingCodes = new Set(["CLASS_NOT_FOUND", "COURSE_NOT_FOUND", "TEACHER_NOT_FOUND", "CLASS_PENDING_STUDENT_IMPORT"]);
 
 const blockingGroupOrder: BlockingGroupKey[] = ["class_missing", "course_missing", "teacher_missing", "conflict", "other"];
 
@@ -148,6 +155,14 @@ function buildBlockingFeedback(rows: ScheduleImportRowReviewDTO[]): BlockingFeed
   };
 }
 
+function isDisplayOnlyReviewRow(row: ScheduleImportRowReviewDTO) {
+  return row.status === "mapping_review" && row.validationIssues.length > 0 && row.validationIssues.every((issue) => displayOnlyMappingCodes.has(issue.code));
+}
+
+function looksLikeClassTemplateRows(rows: Array<Partial<ScheduleImportDraftRowInput>>) {
+  return rows.length > 0 && rows.every((row) => Boolean(row.className) && !row.sourceRowKey && !row.termName && row.weekday == null && !row.bellSlotLabel && !row.courseTitle && !row.teacherName);
+}
+
 export function ScheduleImportModal({ schoolId }: ScheduleImportModalProps) {
   const router = useRouter();
   const { success } = useToast();
@@ -157,6 +172,7 @@ export function ScheduleImportModal({ schoolId }: ScheduleImportModalProps) {
   const [stage, setStage] = useState<ImportStage>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [blockingFeedback, setBlockingFeedback] = useState<BlockingFeedback | null>(null);
+  const [successFeedback, setSuccessFeedback] = useState<ImportSuccessFeedback | null>(null);
   const [isPending, startTransition] = useTransition();
   const [parsedRows, setParsedRows] = useState<number>(0);
 
@@ -165,6 +181,7 @@ export function ScheduleImportModal({ schoolId }: ScheduleImportModalProps) {
     setStage("idle");
     setErrorMessage(null);
     setBlockingFeedback(null);
+    setSuccessFeedback(null);
     setParsedRows(0);
   }, []);
 
@@ -184,12 +201,13 @@ export function ScheduleImportModal({ schoolId }: ScheduleImportModalProps) {
     setStage("parsing");
     setErrorMessage(null);
     setBlockingFeedback(null);
+    setSuccessFeedback(null);
 
     Papa.parse<Record<string, string>>(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const rows: ScheduleImportDraftRowInput[] = results.data
+        const mappedRows = results.data
           .map((raw) => {
             const mapped: Partial<ScheduleImportDraftRowInput> = {};
             for (const [key, value] of Object.entries(raw)) {
@@ -198,7 +216,15 @@ export function ScheduleImportModal({ schoolId }: ScheduleImportModalProps) {
               mapped[englishKey ?? normalizedKey] = value as never;
             }
             return mapped;
-          })
+          });
+
+        if (looksLikeClassTemplateRows(mappedRows)) {
+          setStage("error");
+          setErrorMessage("当前文件看起来是班级模板，不是课表模板。请下载“导入课表”模板后，使用包含学期、星期、节次、课程和教师列的 CSV 文件重新导入。");
+          return;
+        }
+
+        const rows: ScheduleImportDraftRowInput[] = mappedRows
           .filter((row): row is ScheduleImportDraftRowInput =>
             Boolean(row.sourceRowKey && row.termName && row.className && row.courseTitle && row.teacherName),
           );
@@ -233,17 +259,51 @@ export function ScheduleImportModal({ schoolId }: ScheduleImportModalProps) {
           if (!result.ok) {
             setStage("error");
             setBlockingFeedback(null);
+            setSuccessFeedback(null);
             setErrorMessage(result.message);
             return;
           }
 
           const batch = result.data as Partial<ScheduleImportBatchDTO> & { id?: string };
-          const blockingRows = Array.isArray(batch.rows) ? batch.rows.filter((row) => blockingStatuses.has(row.status)) : [];
+          const rows = Array.isArray(batch.rows) ? batch.rows : [];
+          const displayOnlyRows = rows.filter(isDisplayOnlyReviewRow);
+          const blockingRows = rows.filter((row) => blockingStatuses.has(row.status) && !isDisplayOnlyReviewRow(row));
 
           if (blockingRows.length > 0) {
             setStage("error");
             setErrorMessage(null);
+            setSuccessFeedback(null);
             setBlockingFeedback(buildBlockingFeedback(blockingRows));
+            return;
+          }
+
+          if (displayOnlyRows.length > 0) {
+            const pendingStudentImportClassNames = [...new Set(
+              displayOnlyRows
+                .filter((row) => row.validationIssues.some((issue) => issue.code === "CLASS_PENDING_STUDENT_IMPORT"))
+                .map((row) => row.mappingSummary?.className)
+                .filter((name): name is string => Boolean(name)),
+            )];
+            const successDetail =
+              pendingStudentImportClassNames.length > 0
+                ? `已自动创建 ${pendingStudentImportClassNames.length} 个班级，当前显示为待导学生。`
+                 : "当前导入已进入主课表展示，班级、教师或课程映射可后续继续补齐。";
+
+            setSuccessFeedback({
+              summary: "课表已返回主课表展示。",
+              detail: successDetail,
+            });
+
+            setStage("done");
+
+            setTimeout(() => {
+              closeModal();
+              success("课表已导入成功", {
+                description: successDetail,
+              });
+              router.push("/teacher/schedule");
+              router.refresh();
+            }, 1200);
             return;
           }
 
@@ -256,16 +316,37 @@ export function ScheduleImportModal({ schoolId }: ScheduleImportModalProps) {
           if (!approved.ok) {
             setStage("error");
             setBlockingFeedback(null);
+            setSuccessFeedback(null);
             setErrorMessage(approved.message);
             return;
           }
+
+          const approvedBatch = approved.data as Partial<ScheduleImportBatchDTO>;
+          const pendingStudentImportClassNames = Array.isArray(approvedBatch.rows)
+            ? [...new Set(
+                approvedBatch.rows
+                  .filter((row) => row.validationIssues.some((issue) => issue.code === "CLASS_PENDING_STUDENT_IMPORT"))
+                  .map((row) => row.mappingSummary?.className)
+                  .filter((name): name is string => Boolean(name)),
+              )]
+            : [];
+
+          const successDetail =
+            pendingStudentImportClassNames.length > 0
+              ? `已自动创建 ${pendingStudentImportClassNames.length} 个班级，当前显示为待导学生。`
+              : null;
+
+          setSuccessFeedback({
+            summary: "课表已导入主课表。",
+            detail: successDetail,
+          });
 
           setStage("done");
 
           setTimeout(() => {
             closeModal();
             success("课表已导入成功", {
-              description: "当前学期课表已回到主视图展示。",
+              description: successDetail ?? "当前学期课表已回到主视图展示。",
             });
             router.push("/teacher/schedule");
             router.refresh();
@@ -275,6 +356,7 @@ export function ScheduleImportModal({ schoolId }: ScheduleImportModalProps) {
       error: (err) => {
         setStage("error");
         setBlockingFeedback(null);
+        setSuccessFeedback(null);
         setErrorMessage(`CSV 解析失败：${err.message}`);
       },
     });
@@ -360,6 +442,13 @@ export function ScheduleImportModal({ schoolId }: ScheduleImportModalProps) {
                     </section>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {successFeedback && (
+              <div className="mt-2 w-full rounded-xl bg-primary/10 p-4 text-left text-sm text-primary">
+                <p className="font-medium">{successFeedback.summary}</p>
+                {successFeedback.detail ? <p className="mt-2 text-primary/80">{successFeedback.detail}</p> : null}
               </div>
             )}
           </div>

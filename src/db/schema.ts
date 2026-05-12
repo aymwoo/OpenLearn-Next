@@ -454,7 +454,7 @@ export const classroomEvents = sqliteTable(
       .notNull()
       .references(() => classroomSessions.id, { onDelete: "cascade" }),
     version: integer("version").notNull(),
-    type: text("type", { enum: ["launched", "active_step_changed", "lock_mode_changed", "snapshot_refreshed", "ended"] }).notNull(),
+    type: text("type", { enum: ["launched", "active_step_changed", "lock_mode_changed", "slide_changed", "snapshot_refreshed", "ended"] }).notNull(),
     actorId: text("actorId")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -710,6 +710,7 @@ export const scheduleImportBatch = sqliteTable(
     })
       .notNull()
       .default("draft"),
+    isPrimary: integer("isPrimary", { mode: "boolean" }).notNull().default(false),
     rowCount: integer("rowCount").notNull().default(0),
     approvedRowCount: integer("approvedRowCount").notNull().default(0),
     rejectedRowCount: integer("rejectedRowCount").notNull().default(0),

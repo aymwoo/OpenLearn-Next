@@ -1,5 +1,6 @@
 import { getLatestScheduleImportBatchDTO, listScheduleImportBatchDTOs } from "@/features/schedule/import";
 import { getTeacherDailyAgendaDTO, TeacherScheduleSurface } from "@/features/schedule/runtime";
+import { getCurrentUserDTO } from "@/lib/dal/auth";
 
 type TeacherSchedulePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -7,10 +8,11 @@ type TeacherSchedulePageProps = {
 
 export default async function TeacherSchedulePage({ searchParams }: TeacherSchedulePageProps) {
   await (searchParams ?? Promise.resolve({}));
-  const [data, latestBatch, importBatches] = await Promise.all([
+  const [data, latestBatch, importBatches, currentUser] = await Promise.all([
     getTeacherDailyAgendaDTO(),
     getLatestScheduleImportBatchDTO(),
     listScheduleImportBatchDTOs(),
+    getCurrentUserDTO(),
   ]);
 
   return (
@@ -19,6 +21,7 @@ export default async function TeacherSchedulePage({ searchParams }: TeacherSched
         data={data}
         latestImportBatch={latestBatch}
         importBatches={importBatches}
+        currentTeacherName={currentUser?.name ?? null}
       />
     </div>
   );

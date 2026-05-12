@@ -2,11 +2,27 @@ import { z } from "zod";
 
 const builtInTeachingStepKeys = [
   "directInstruction",
+  "markdownDeck",
   "survey",
   "inquiry",
   "inClassQuiz",
   "evaluation",
 ] as const;
+
+const markdownRenderModeSchema = z.enum(["document", "reveal"]);
+
+export const markdownAssetRefSchema = z.object({
+  resourceId: z.string().min(1),
+  materialId: z.string().min(1),
+  title: z.string().min(1),
+});
+
+export const markdownStepConfigSchema = z.object({
+  asset: markdownAssetRefSchema,
+  source: z.string().min(1),
+  renderMode: markdownRenderModeSchema.default("document"),
+  mermaidEnabled: z.boolean().default(false),
+});
 
 export const BuiltInTeachingStepKeySchema = z.enum(builtInTeachingStepKeys);
 
@@ -72,6 +88,15 @@ export const TeachingDesignSchema = z.object({
   evidenceExpectation: TeachingEvidenceExpectationSchema,
 });
 
+export const TeachingEvidenceExpectationInputSchema = TeachingEvidenceExpectationSchema.partial();
+
+export const TeachingDesignInputSchema = z.object({
+  activityIntent: TeachingActivityIntentSchema.optional(),
+  estimatedMinutes: z.number().int().positive().optional(),
+  activityMode: TeachingActivityModeSchema.optional(),
+  evidenceExpectation: TeachingEvidenceExpectationInputSchema.optional(),
+});
+
 export const TeachingDesignStatusSchema = z.enum(["explicit", "inferred", "needs-refinement"]);
 
 export const TeachingDesignFallbackReasonSchema = z.enum([
@@ -87,7 +112,8 @@ export const contentStepPayloadSchema = z.object({
   body: z.string().min(1),
   teacherNotes: z.string().optional(),
   materialRefs: z.array(materialRefSchema).default([]),
-  teachingDesign: TeachingDesignSchema.optional(),
+  teachingDesign: TeachingDesignInputSchema.optional(),
+  markdown: markdownStepConfigSchema.optional(),
   builtInSource: builtInSourceSchema.optional(),
 });
 
@@ -99,7 +125,7 @@ export const taskStepPayloadSchema = z.object({
   allowRetry: z.boolean().optional(),
   retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
   materialRefs: z.array(materialRefSchema).default([]),
-  teachingDesign: TeachingDesignSchema.optional(),
+  teachingDesign: TeachingDesignInputSchema.optional(),
   builtInSource: builtInSourceSchema.optional(),
 });
 
@@ -112,7 +138,7 @@ export const quizStepPayloadSchema = z.object({
   allowRetry: z.boolean().optional(),
   retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
   revealCorrectAnswer: z.boolean().optional(),
-  teachingDesign: TeachingDesignSchema.optional(),
+  teachingDesign: TeachingDesignInputSchema.optional(),
   builtInSource: builtInSourceSchema.optional(),
 });
 
@@ -281,6 +307,7 @@ export type AutosaveResultDTO = z.infer<typeof AutosaveResultDTOSchema>;
 export type PublishResultDTO = z.infer<typeof PublishResultDTOSchema>;
 export type BuiltInSource = z.infer<typeof builtInSourceSchema>;
 export type TeachingDesign = z.infer<typeof TeachingDesignSchema>;
+export type TeachingDesignInput = z.infer<typeof TeachingDesignInputSchema>;
 export type TeachingDesignStatus = z.infer<typeof TeachingDesignStatusSchema>;
 export type TeachingDesignFallbackReason = z.infer<typeof TeachingDesignFallbackReasonSchema>;
 export type LessonPublishIssueDTO = z.infer<typeof LessonPublishIssueDTOSchema>;

@@ -4,7 +4,8 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
 
-import { changeClassroomModeAction, changeClassroomStepAction, endClassroomSessionAction } from '@/actions/classroom-actions'
+import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction } from '@/actions/classroom-actions'
+import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { ClassroomConflictPanel } from './classroom-conflict-panel'
 import { ClassroomRosterPanel } from './classroom-roster-panel'
 import { Badge } from '@/components/ui/badge'
@@ -53,6 +54,23 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
       formData.append('locked', String(locked))
       formData.append('expectedVersion', String(currentSnapshot.version))
       const result = await changeClassroomModeAction(formData)
+      if (!result.ok && result.error === 'VERSION_CONFLICT') {
+        setConflict(hasLatestSnapshot(result) ? result : null)
+      } else if (result.ok) {
+        router.refresh()
+      }
+    })
+  }
+
+  const handleChangeSlide = (slideIndex: number) => {
+    if (!currentStep || isPending || !!conflict) return
+    startTransition(async () => {
+      const formData = new FormData()
+      formData.append('sessionId', currentSnapshot.sessionId)
+      formData.append('stepId', currentStep.id)
+      formData.append('slideIndex', String(slideIndex))
+      formData.append('expectedVersion', String(currentSnapshot.version))
+      const result = await changeClassroomSlideAction(formData)
       if (!result.ok && result.error === 'VERSION_CONFLICT') {
         setConflict(hasLatestSnapshot(result) ? result : null)
       } else if (result.ok) {
@@ -199,6 +217,29 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
             })}
           </div>
         </Card>
+
+        {currentStep && currentStep.type === 'content' && currentStep.payload && typeof currentStep.payload === 'object' && 'markdown' in currentStep.payload && currentStep.payload.markdown ? (
+          <Card className="bg-surface-container-low p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-on-surface-variant">Markdown 广播</p>
+                <h3 className="mt-2 text-2xl font-semibold text-on-surface">当前放映内容</h3>
+              </div>
+              <Badge className="bg-surface-container-lowest text-on-surface-variant">
+                {currentSnapshot.slideState ? `第 ${currentSnapshot.slideState.slideIndex + 1} 页` : '文档模式'}
+              </Badge>
+            </div>
+            <div className="mt-5">
+              <MarkdownRenderer
+                step={currentStep as any}
+                isTeacher
+                locked={currentSnapshot.locked}
+                slideState={currentSnapshot.slideState}
+                onSlideChange={handleChangeSlide}
+              />
+            </div>
+          </Card>
+        ) : null}
       </div>
 
       <ClassroomRosterPanel participants={currentSnapshot.participants} />

@@ -28,6 +28,7 @@ import {
   ClassroomTimelineEntryDTOSchema,
   RecordClassroomEvidenceInputSchema,
   RecordClassroomInterventionInputSchema,
+  ChangeClassroomSlideInputSchema,
   LaunchClassroomInputSchema,
   ChangeClassroomStepInputSchema,
   ChangeClassroomModeInputSchema,
@@ -62,8 +63,35 @@ type PublishedSnapshot = {
   }>;
 };
 
+type ClassroomSlideState = {
+  stepId: string;
+  slideIndex: number;
+};
+
 function parseSnapshot(value: unknown): PublishedSnapshot {
   return (value ?? {}) as PublishedSnapshot;
+}
+
+async function getLatestSlideState(sessionId: string): Promise<ClassroomSlideState | null> {
+  const events = await db.query.classroomEvents.findMany({
+    where: eq(classroomEvents.sessionId, sessionId),
+    orderBy: (event, { desc }) => [desc(event.version)],
+  });
+
+  const slideEvent = events.find((event) => event.type === "slide_changed");
+  if (!slideEvent) {
+    return null;
+  }
+
+  const payload = slideEvent.payloadJson as Record<string, unknown>;
+  if (typeof payload.stepId !== "string" || typeof payload.slideIndex !== "number") {
+    return null;
+  }
+
+  return {
+    stepId: payload.stepId,
+    slideIndex: payload.slideIndex,
+  };
 }
 
 function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string) {
@@ -637,7 +665,10 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
       id: s.id,
       title: s.title,
       rank: s.rank,
+      type: s.type,
+      payload: s.payload,
     })),
+    slideState: await getLatestSlideState(session.id),
     copy: {
       staleRefreshRequired: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",
       pendingAction: "当前控课面板可能不是最新。已为你保留本次操作，请刷新课堂快照后确认。",
@@ -730,7 +761,7 @@ export async function launchClassroomSession(input: unknown) {
       version: 1,
       type: "launched",
       actorId: scope.userId,
-      payloadJson: { activeStepId: firstStep.id, locked: false },
+      payloadJson: { activeStepId: firstStep.id, locked: false, slideIndex: 0 },
     });
 
     return newSession;
@@ -792,7 +823,7 @@ export async function changeClassroomActiveStep(input: unknown) {
     version: updated.version,
     type: "active_step_changed",
     actorId: scope.userId,
-    payloadJson: { activeStepId: payload.targetStepId },
+    payloadJson: { activeStepId: payload.targetStepId, slideIndex: 0 },
   });
 
   return ClassroomActionResultDTOSchema.parse({
@@ -850,6 +881,63 @@ export async function changeClassroomMode(input: unknown) {
     type: "lock_mode_changed",
     actorId: scope.userId,
     payloadJson: { locked: payload.locked },
+  });
+
+  return ClassroomActionResultDTOSchema.parse({
+    ok: true,
+    sessionId: session.id,
+    snapshot: await getClassroomSnapshotDTO({ sessionId: session.id }),
+  });
+}
+
+export async function changeClassroomSlide(input: unknown) {
+  const payload = ChangeClassroomSlideInputSchema.parse(input);
+  const scope = await assertActiveTeacher();
+
+  const session = await db.query.classroomSessions.findFirst({ where: eq(classroomSessions.id, payload.sessionId) });
+  if (!session) throw new Error("CLASSROOM_ENDED");
+  if (session.teacherId !== scope.userId) throw new Error("TEACHER_AUTH_REQUIRED");
+  if (session.status !== "live") throw new Error("CLASSROOM_ENDED");
+  if (session.activeStepId !== payload.stepId) throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
+
+  if (session.version !== payload.expectedVersion) {
+    return ClassroomActionResultDTOSchema.parse({
+      ok: false,
+      sessionId: session.id,
+      error: "VERSION_CONFLICT",
+      code: "conflict",
+      expectedVersion: payload.expectedVersion,
+      serverVersion: session.version,
+      snapshot: await getClassroomSnapshotDTO({ sessionId: session.id }),
+    });
+  }
+
+  const [updated] = await db.update(classroomSessions)
+    .set({
+      version: session.version + 1,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(classroomSessions.id, session.id), eq(classroomSessions.version, payload.expectedVersion)))
+    .returning();
+
+  if (!updated) {
+    return ClassroomActionResultDTOSchema.parse({
+      ok: false,
+      sessionId: session.id,
+      error: "VERSION_CONFLICT",
+      code: "conflict",
+      expectedVersion: payload.expectedVersion,
+      serverVersion: (await db.query.classroomSessions.findFirst({ where: eq(classroomSessions.id, session.id) }))?.version,
+      snapshot: await getClassroomSnapshotDTO({ sessionId: session.id }),
+    });
+  }
+
+  await db.insert(classroomEvents).values({
+    sessionId: session.id,
+    version: updated.version,
+    type: "slide_changed",
+    actorId: scope.userId,
+    payloadJson: { stepId: payload.stepId, slideIndex: payload.slideIndex },
   });
 
   return ClassroomActionResultDTOSchema.parse({

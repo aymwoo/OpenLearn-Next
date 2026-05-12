@@ -1,5 +1,6 @@
 import "server-only";
 
+import bcrypt from "bcryptjs";
 import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -8,11 +9,17 @@ import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import {
   ImportClassRosterInputSchema,
   ImportClassesInputSchema,
+  DeleteClassesInputSchema,
+  DeleteStudentsInputSchema,
+  ResetStudentPasswordsInputSchema,
   TeacherClassManagementDTOSchema,
   UpdateClassNameInputSchema,
   type ClassStudentDTO,
+  type DeleteClassesInput,
+  type DeleteStudentsInput,
   type ImportClassRosterInput,
   type ImportClassesInput,
+  type ResetStudentPasswordsInput,
   type StudentGender,
   type TeacherClassManagementDTO,
   type UpdateClassNameInput,
@@ -53,6 +60,38 @@ async function getScopedClass(classId: string, scope: TeacherScope) {
   return classRow;
 }
 
+async function getScopedStudentIds(studentIds: string[], scope: TeacherScope) {
+  const normalizedIds = [...new Set(studentIds.map((item) => item.trim()).filter(Boolean))];
+
+  if (normalizedIds.length === 0) {
+    return [];
+  }
+
+  const studentMembershipRows = await db.query.memberships.findMany({
+    where: and(
+      inArray(memberships.userId, normalizedIds),
+      inArray(memberships.schoolId, scope.schoolIds),
+      eq(memberships.role, "student"),
+    ),
+  });
+
+  return [...new Set(studentMembershipRows.map((item) => item.userId))];
+}
+
+async function getScopedClassIds(classIds: string[], scope: TeacherScope) {
+  const normalizedIds = [...new Set(classIds.map((item) => item.trim()).filter(Boolean))];
+
+  if (normalizedIds.length === 0) {
+    return [];
+  }
+
+  const classRows = await db.query.classes.findMany({
+    where: and(inArray(classes.id, normalizedIds), inArray(classes.schoolId, scope.schoolIds)),
+  });
+
+  return classRows.map((item) => item.id);
+}
+
 async function ensureClassRecord(schoolId: string, className: string) {
   const trimmedName = className.trim();
   const existing = await db.query.classes.findFirst({
@@ -73,10 +112,10 @@ async function ensureStudentUser(studentName: string, studentNumber: string, gen
   const existing = await db.query.users.findFirst({ where: eq(users.studentNumber, trimmedNumber) });
 
   if (existing) {
-    if ((existing.name ?? "") !== trimmedName || existing.gender !== gender) {
+    if ((existing.name ?? "") !== trimmedName || existing.gender !== gender || existing.email !== trimmedNumber) {
       const [updated] = await db
         .update(users)
-        .set({ name: trimmedName, gender })
+        .set({ name: trimmedName, gender, email: trimmedNumber })
         .where(eq(users.id, existing.id))
         .returning();
       return { row: updated, created: false };
@@ -89,6 +128,7 @@ async function ensureStudentUser(studentName: string, studentNumber: string, gen
     .insert(users)
     .values({
       name: trimmedName,
+      email: trimmedNumber,
       studentNumber: trimmedNumber,
       gender,
     })
@@ -320,5 +360,64 @@ export async function importClassRosterForTeacher(input: ImportClassRosterInput)
     createdClassCount,
     createdStudentCount,
     linkedStudentCount,
+  };
+}
+
+export async function resetStudentPasswordsForTeacher(input: ResetStudentPasswordsInput) {
+  const parsed = ResetStudentPasswordsInputSchema.parse({
+    ...input,
+    studentIds: input.studentIds.map((item) => item.trim()).filter(Boolean),
+    password: input.password.trim(),
+  });
+  const scope = await assertActiveTeacher();
+  const scopedStudentIds = await getScopedStudentIds(parsed.studentIds, scope);
+
+  if (scopedStudentIds.length === 0) {
+    throw new Error("STUDENT_NOT_FOUND");
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.password, 10);
+  await db.update(users).set({ password: passwordHash }).where(inArray(users.id, scopedStudentIds));
+
+  return {
+    updatedCount: scopedStudentIds.length,
+  };
+}
+
+export async function deleteStudentsForTeacher(input: DeleteStudentsInput) {
+  const parsed = DeleteStudentsInputSchema.parse({
+    ...input,
+    studentIds: input.studentIds.map((item) => item.trim()).filter(Boolean),
+  });
+  const scope = await assertActiveTeacher();
+  const scopedStudentIds = await getScopedStudentIds(parsed.studentIds, scope);
+
+  if (scopedStudentIds.length === 0) {
+    throw new Error("STUDENT_NOT_FOUND");
+  }
+
+  await db.delete(users).where(inArray(users.id, scopedStudentIds));
+
+  return {
+    deletedCount: scopedStudentIds.length,
+  };
+}
+
+export async function deleteClassesForTeacher(input: DeleteClassesInput) {
+  const parsed = DeleteClassesInputSchema.parse({
+    ...input,
+    classIds: input.classIds.map((item) => item.trim()).filter(Boolean),
+  });
+  const scope = await assertActiveTeacher();
+  const scopedClassIds = await getScopedClassIds(parsed.classIds, scope);
+
+  if (scopedClassIds.length === 0) {
+    throw new Error("CLASS_NOT_FOUND");
+  }
+
+  await db.delete(classes).where(inArray(classes.id, scopedClassIds));
+
+  return {
+    deletedCount: scopedClassIds.length,
   };
 }

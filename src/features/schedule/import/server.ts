@@ -28,6 +28,7 @@ import {
   type ScheduleImportValidationIssue,
 } from "@/features/schedule/shared/dto/import";
 import { appendScheduleAudit } from "@/features/schedule/shared/audit";
+import { buildRecurringConflictIndex } from "./conflicts";
 import { buildScheduleImportCsv } from "./template";
 
 type ScheduleDbLike = Pick<typeof db, "query" | "insert" | "update">;
@@ -46,6 +47,79 @@ function getWeekdayLabel(weekday: number) {
 
 function createBlockingError(error: string, message: string, issues: unknown[]) {
   return Object.assign(new Error(error), { code: error, userMessage: message, issues });
+}
+
+const displayOnlyPrimaryIssueCodes = new Set([
+  "CLASS_NOT_FOUND",
+  "COURSE_NOT_FOUND",
+  "TEACHER_NOT_FOUND",
+  "CLASS_PENDING_STUDENT_IMPORT",
+]);
+
+type PrimaryRowLike = {
+  status: ScheduleImportBatchDTO["rows"][number]["status"];
+  validationIssues: ScheduleImportBatchDTO["rows"][number]["validationIssues"];
+};
+
+type PrimaryBatchLike = {
+  status: ScheduleImportBatchDTO["status"];
+  rows: PrimaryRowLike[];
+};
+
+function isDisplayablePrimaryRow(row: PrimaryRowLike) {
+  if (row.status === "approved" || row.status === "ready_to_apply") {
+    return true;
+  }
+
+  return row.status === "mapping_review" && row.validationIssues.length > 0 && row.validationIssues.every((issue) => displayOnlyPrimaryIssueCodes.has(issue.code));
+}
+
+function isEligiblePrimaryBatch(batch: PrimaryBatchLike) {
+  if (batch.status === "applied" || batch.status === "partially_applied" || batch.status === "ready_to_apply") {
+    return true;
+  }
+
+  return batch.status === "in_review" && batch.rows.length > 0 && batch.rows.every((row) => isDisplayablePrimaryRow(row));
+}
+
+async function assignPrimaryScheduleBatch(
+  tx: Pick<typeof db, "query" | "update">,
+  schoolId: string,
+  batchId: string | null,
+) {
+  await tx
+    .update(scheduleImportBatch)
+    .set({ isPrimary: false, updatedAt: new Date() })
+    .where(and(eq(scheduleImportBatch.schoolId, schoolId), eq(scheduleImportBatch.isPrimary, true)));
+
+  if (!batchId) {
+    return;
+  }
+
+  await tx
+    .update(scheduleImportBatch)
+    .set({ isPrimary: true, updatedAt: new Date() })
+    .where(eq(scheduleImportBatch.id, batchId));
+}
+
+async function findLatestEligiblePrimaryBatchId(schoolId: string, excludedBatchId?: string | null) {
+  const batches = await db.query.scheduleImportBatch.findMany({
+    where: eq(scheduleImportBatch.schoolId, schoolId),
+  });
+
+  const candidateIds = batches
+    .filter((batch) => batch.id !== excludedBatchId)
+    .sort((left, right) => Number(right.createdAt ?? 0) - Number(left.createdAt ?? 0))
+    .map((batch) => batch.id);
+
+  for (const candidateId of candidateIds) {
+    const candidate = await loadScheduleImportBatchDTO(candidateId);
+    if (isEligiblePrimaryBatch(candidate)) {
+      return candidate.id;
+    }
+  }
+
+  return null;
 }
 
 async function getTeacherDirectory(schoolId: string) {
@@ -148,6 +222,28 @@ async function ensureBellSlot(
   return created;
 }
 
+async function ensureImportedClasses(schoolId: string, classNames: string[]) {
+  const normalizedNames = [...new Set(classNames.map((name) => name.trim()).filter(Boolean))];
+  if (normalizedNames.length === 0) {
+    return [] as Array<typeof classes.$inferSelect>;
+  }
+
+  const existingClasses = await db.query.classes.findMany({
+    where: eq(classes.schoolId, schoolId),
+  });
+  const existingNameSet = new Set(existingClasses.map((item) => item.name.trim()));
+  const missingNames = normalizedNames.filter((name) => !existingNameSet.has(name));
+
+  if (missingNames.length === 0) {
+    return [] as Array<typeof classes.$inferSelect>;
+  }
+
+  return db
+    .insert(classes)
+    .values(missingNames.map((name) => ({ schoolId, name })))
+    .returning();
+}
+
 async function ensureTeachingAssignment(
   tx: ScheduleDbLike,
   input: {
@@ -191,11 +287,15 @@ async function ensureTeachingAssignment(
 
 function classifyDraftRow(args: {
   row: ScheduleImportDraftRowInput;
-  existingConflict: boolean;
-  duplicateConflict: boolean;
+  existingAssignmentConflict: boolean;
+  existingClassConflict: boolean;
+  existingTeacherConflict: boolean;
+  duplicateClassConflict: boolean;
+  duplicateTeacherConflict: boolean;
   classId: string | null;
   courseId: string | null;
   teacherId: string | null;
+  classNeedsStudentImport: boolean;
 }) {
   const validationIssues: ScheduleImportValidationIssue[] = [];
 
@@ -234,6 +334,17 @@ function classifyDraftRow(args: {
     });
   }
 
+  const nonBlockingIssues: ScheduleImportValidationIssue[] = args.classNeedsStudentImport
+    ? [
+        {
+          code: "CLASS_PENDING_STUDENT_IMPORT",
+          message: `班级“${args.row.className}”已自动创建，请后续导入学生名册。`,
+          field: "className",
+          severity: "warning",
+        },
+      ]
+    : [];
+
   if (validationIssues.length > 0) {
     return {
       status: "validation_failed" as const,
@@ -257,35 +368,53 @@ function classifyDraftRow(args: {
     conflictingTargetLabel: string | null;
   }>;
 
-  if (args.duplicateConflict) {
+  if (args.duplicateClassConflict) {
     conflictSummary.push({
-      code: "DUPLICATE_IN_BATCH",
-      title: "同一批次重复",
-      description: "这条记录与当前导入批次中的另一条记录重复，请合并或拒绝其中一条。",
+      code: "DUPLICATE_CLASS_SLOT_IN_BATCH",
+      title: "同班级节次重复",
+      description: "该班级在当前导入批次的同一节次已经出现过一次，请合并或拒绝其中一条。",
       conflictingTargetLabel: `${args.row.className} / ${args.row.bellSlotLabel}`,
     });
   }
 
-  if (args.existingConflict) {
+  if (args.duplicateTeacherConflict) {
     conflictSummary.push({
-      code: "EXISTING_RECURRING_CONFLICT",
-      title: "与现有课表冲突",
-      description: "该班级在同一节次已经存在已入库课表，请先调课或拒绝本条导入。",
+      code: "DUPLICATE_TEACHER_SLOT_IN_BATCH",
+      title: "同教师节次重复",
+      description: "该教师在当前导入批次的同一节次已经出现过一次，请先确认教师归属是否准确。",
+      conflictingTargetLabel: `${args.row.teacherName} / ${args.row.bellSlotLabel}`,
+    });
+  }
+
+  if (args.existingAssignmentConflict || args.existingClassConflict) {
+    conflictSummary.push({
+      code: "EXISTING_CLASS_SLOT_CONFLICT",
+      title: "班级节次冲突",
+      description: "该班级在同一节次已经存在已入库课表，请先确认班级归属或调课后再导入。",
       conflictingTargetLabel: `${args.row.className} / ${args.row.bellSlotLabel}`,
+    });
+  }
+
+  if (args.existingTeacherConflict) {
+    conflictSummary.push({
+      code: "EXISTING_TEACHER_SLOT_CONFLICT",
+      title: "教师节次冲突",
+      description: "该教师在同一节次已经存在已入库课表，请先确认教师归属或调课后再导入。",
+      conflictingTargetLabel: `${args.row.teacherName} / ${args.row.bellSlotLabel}`,
     });
   }
 
   if (conflictSummary.length > 0) {
     return {
       status: "conflict_review" as const,
-      validationIssues: [],
+      validationIssues: nonBlockingIssues,
       conflictSummary,
     };
   }
 
   return {
     status: "ready_to_apply" as const,
-    validationIssues: [],
+    validationIssues: nonBlockingIssues,
     conflictSummary: [],
   };
 }
@@ -309,6 +438,7 @@ async function loadScheduleImportBatchDTO(batchId: string): Promise<ScheduleImpo
     sourceType: batch.sourceType,
     sourceLabel: batch.sourceLabel,
     status: batch.status,
+    isPrimary: batch.isPrimary,
     rowCount: batch.rowCount,
     approvedRowCount: batch.approvedRowCount,
     rejectedRowCount: batch.rejectedRowCount,
@@ -316,24 +446,41 @@ async function loadScheduleImportBatchDTO(batchId: string): Promise<ScheduleImpo
     updatedAt: toIso(batch.updatedAt) ?? new Date(0).toISOString(),
     rows: rows
       .sort((left, right) => String(left.sourceRowKey).localeCompare(String(right.sourceRowKey)))
-      .map((row) => ({
-        id: row.id,
-        sourceRowKey: row.sourceRowKey,
-        status: row.status,
-        approvalState: row.approvalState,
-        validationIssues: Array.isArray(row.validationIssuesJson) ? row.validationIssuesJson : [],
-        mappingSummary: row.mappingSummaryJson ?? null,
-        conflictSummary: Array.isArray(row.conflictSummaryJson) ? row.conflictSummaryJson : [],
-        approvalNote: row.approvalNote ?? null,
-        reviewedById: row.reviewedById ?? null,
-        reviewedAt: toIso(row.reviewedAt),
-      })),
+      .map((row) => {
+        const rawPayload = row.rawPayloadJson as Partial<ScheduleImportDraftRowInput> | null;
+
+        return {
+          id: row.id,
+          sourceRowKey: row.sourceRowKey,
+          status: row.status,
+          approvalState: row.approvalState,
+          validationIssues: Array.isArray(row.validationIssuesJson) ? row.validationIssuesJson : [],
+          mappingSummary: row.mappingSummaryJson ?? null,
+          previewSchedule:
+            rawPayload && typeof rawPayload.weekday === "number"
+              ? {
+                  weekday: rawPayload.weekday,
+                  bellSlotStartTime: typeof rawPayload.bellSlotStartTime === "string" ? rawPayload.bellSlotStartTime : null,
+                  bellSlotEndTime: typeof rawPayload.bellSlotEndTime === "string" ? rawPayload.bellSlotEndTime : null,
+                }
+              : null,
+          conflictSummary: Array.isArray(row.conflictSummaryJson) ? row.conflictSummaryJson : [],
+          approvalNote: row.approvalNote ?? null,
+          reviewedById: row.reviewedById ?? null,
+          reviewedAt: toIso(row.reviewedAt),
+        };
+      }),
   });
 }
 
 export async function draftScheduleImport(input: ScheduleImportDraftInput) {
   const parsed = ScheduleImportDraftInputSchema.parse(input);
   const scope = await assertScheduleSchoolScope(parsed.schoolId);
+
+  const autoCreatedClasses = await ensureImportedClasses(
+    parsed.schoolId,
+    parsed.rows.map((row) => row.className),
+  );
 
   const [schoolClasses, schoolCourses, teacherByName, bellSlots, assignments, recurringEntries] = await Promise.all([
     db.query.classes.findMany({ where: eq(classes.schoolId, parsed.schoolId) }),
@@ -347,14 +494,12 @@ export async function draftScheduleImport(input: ScheduleImportDraftInput) {
   const classByName = new Map(schoolClasses.map((item) => [item.name.trim(), item]));
   const courseByTitle = new Map(schoolCourses.map((item) => [item.title.trim(), item]));
   const bellSlotByLabel = new Map(bellSlots.map((item) => [item.label.trim(), item]));
-  const assignmentByIdentity = new Map<string, (typeof assignments)[number]>(
-    assignments.map((item) => [`${item.classId}:${item.courseId}:${item.teacherId}`, item] as const),
-  );
-  const recurringConflictKeys = new Set(
-    recurringEntries.map((entry) => `${entry.assignmentId}:${entry.weekday}:${entry.bellSlotId}`),
-  );
+  const assignmentByIdentity = new Map<string, (typeof assignments)[number]>(assignments.map((item) => [`${item.classId}:${item.courseId}:${item.teacherId}`, item] as const));
+  const recurringConflictIndex = buildRecurringConflictIndex(assignments, recurringEntries);
+  const autoCreatedClassNameSet = new Set(autoCreatedClasses.map((item) => item.name.trim()));
 
-  const seenImportKeys = new Set<string>();
+  const seenClassSlotKeys = new Set<string>();
+  const seenTeacherSlotKeys = new Set<string>();
 
   const rowDrafts = parsed.rows.map((row) => {
     const mappedClass = classByName.get(row.className.trim()) ?? null;
@@ -364,17 +509,30 @@ export async function draftScheduleImport(input: ScheduleImportDraftInput) {
     const assignmentKey: string | null = mappedClass && mappedCourse && mappedTeacher ? `${mappedClass.id}:${mappedCourse.id}:${mappedTeacher.id}` : null;
     const assignment = assignmentKey ? assignmentByIdentity.get(assignmentKey) ?? null : null;
     const recurringKey = assignment && mappedBellSlot ? `${assignment.id}:${row.weekday}:${mappedBellSlot.id}` : null;
-    const duplicateKey = `${row.termName}:${row.weekday}:${row.bellSlotLabel}:${row.className}:${row.teacherName}`;
-    const duplicateConflict = seenImportKeys.has(duplicateKey);
-    seenImportKeys.add(duplicateKey);
+    const classSlotKey = mappedClass && mappedBellSlot ? `${mappedClass.id}:${row.weekday}:${mappedBellSlot.id}` : null;
+    const teacherSlotKey = mappedTeacher && mappedBellSlot ? `${mappedTeacher.id}:${row.weekday}:${mappedBellSlot.id}` : null;
+    const duplicateClassConflict = Boolean(classSlotKey && seenClassSlotKeys.has(classSlotKey));
+    const duplicateTeacherConflict = Boolean(teacherSlotKey && seenTeacherSlotKeys.has(teacherSlotKey));
+
+    if (classSlotKey) {
+      seenClassSlotKeys.add(classSlotKey);
+    }
+
+    if (teacherSlotKey) {
+      seenTeacherSlotKeys.add(teacherSlotKey);
+    }
 
     const classified = classifyDraftRow({
       row,
-      existingConflict: Boolean(recurringKey && recurringConflictKeys.has(recurringKey)),
-      duplicateConflict,
+      existingAssignmentConflict: Boolean(recurringKey && recurringConflictIndex.exactAssignmentSlotKeys.has(recurringKey)),
+      existingClassConflict: Boolean(classSlotKey && recurringConflictIndex.classSlotKeys.has(classSlotKey)),
+      existingTeacherConflict: Boolean(teacherSlotKey && recurringConflictIndex.teacherSlotKeys.has(teacherSlotKey)),
+      duplicateClassConflict,
+      duplicateTeacherConflict,
       classId: mappedClass?.id ?? null,
       courseId: mappedCourse?.id ?? null,
       teacherId: mappedTeacher?.id ?? null,
+      classNeedsStudentImport: autoCreatedClassNameSet.has(row.className.trim()),
     });
 
     return {
@@ -411,8 +569,16 @@ export async function draftScheduleImport(input: ScheduleImportDraftInput) {
   });
 
   const batchStatus = rowDrafts.every((row) => row.status === "ready_to_apply") ? "ready_to_apply" : "in_review";
+  const shouldBecomePrimary = isEligiblePrimaryBatch({
+    status: batchStatus,
+    rows: rowDrafts.map((row) => ({ status: row.status, validationIssues: row.validationIssuesJson })),
+  });
 
   const batch = await db.transaction(async (tx) => {
+    if (shouldBecomePrimary) {
+      await assignPrimaryScheduleBatch(tx, parsed.schoolId, null);
+    }
+
     const [createdBatch] = await tx
       .insert(scheduleImportBatch)
       .values({
@@ -422,6 +588,7 @@ export async function draftScheduleImport(input: ScheduleImportDraftInput) {
         connectorKey: parsed.connectorKey ?? null,
         uploadedById: scope.userId,
         status: batchStatus,
+        isPrimary: shouldBecomePrimary,
         rowCount: rowDrafts.length,
         approvedRowCount: 0,
         rejectedRowCount: 0,
@@ -505,9 +672,14 @@ export async function deleteScheduleImportBatch(batchId: string) {
   }
 
   const scope = await assertScheduleSchoolScope(batch.schoolId);
+  const fallbackBatchId = batch.isPrimary ? await findLatestEligiblePrimaryBatchId(batch.schoolId, batch.id) : null;
 
   await db.transaction(async (tx) => {
     await tx.delete(scheduleImportBatch).where(eq(scheduleImportBatch.id, batch.id));
+
+    if (batch.isPrimary) {
+      await assignPrimaryScheduleBatch(tx, batch.schoolId, fallbackBatchId);
+    }
 
     await appendScheduleAudit(tx, {
       schoolId: batch.schoolId,
@@ -664,6 +836,34 @@ export async function approveScheduleImport(input: ApproveScheduleImportInput) {
         ),
       });
 
+      const slotRecurringEntries = await tx.query.scheduleRecurringEntry.findMany({
+        where: and(
+          eq(scheduleRecurringEntry.termId, term.id),
+          eq(scheduleRecurringEntry.weekPatternId, weekPattern.id),
+          eq(scheduleRecurringEntry.weekday, normalizedDraft.weekday),
+          eq(scheduleRecurringEntry.bellSlotId, bellSlot.id),
+        ),
+      });
+
+      const conflictingAssignmentIds = [...new Set(slotRecurringEntries.map((entry) => entry.assignmentId).filter((assignmentId) => assignmentId !== assignment.id))];
+      const conflictingAssignments = conflictingAssignmentIds.length
+        ? await tx.query.scheduleTeachingAssignment.findMany({
+            where: inArray(scheduleTeachingAssignment.id, conflictingAssignmentIds),
+          })
+        : [];
+
+      if (conflictingAssignments.some((item) => item.classId === normalizedDraft.classId)) {
+        throw createBlockingError("APPROVE_IMPORT_BLOCKED", "该班级在同一节次已存在主课表，请先处理冲突后再批准导入。", [
+          { id: row.id, sourceRowKey: row.sourceRowKey, code: "EXISTING_CLASS_SLOT_CONFLICT" },
+        ]);
+      }
+
+      if (conflictingAssignments.some((item) => item.teacherId === normalizedDraft.teacherId)) {
+        throw createBlockingError("APPROVE_IMPORT_BLOCKED", "该教师在同一节次已存在主课表，请先处理冲突后再批准导入。", [
+          { id: row.id, sourceRowKey: row.sourceRowKey, code: "EXISTING_TEACHER_SLOT_CONFLICT" },
+        ]);
+      }
+
       if (!existingRecurring) {
         await tx.insert(scheduleRecurringEntry).values({
           schoolId: batch.schoolId,
@@ -699,9 +899,12 @@ export async function approveScheduleImport(input: ApproveScheduleImportInput) {
         approvedRowCount: approvedCount,
         rejectedRowCount: rejectedCount,
         status: approvedCount === rows.length - rejectedCount ? "applied" : "partially_applied",
+        isPrimary: true,
         updatedAt: new Date(),
       })
       .where(eq(scheduleImportBatch.id, batch.id));
+
+    await assignPrimaryScheduleBatch(tx, batch.schoolId, batch.id);
 
     await appendScheduleAudit(tx, {
       schoolId: batch.schoolId,
@@ -713,6 +916,40 @@ export async function approveScheduleImport(input: ApproveScheduleImportInput) {
         approvalNote: parsed.approvalNote ?? null,
         approvedRowIds: [...approvedSet],
         rejectedRowIds: [...rejectedSet],
+      },
+    });
+  });
+
+  return loadScheduleImportBatchDTO(batch.id);
+}
+
+export async function setPrimaryScheduleImportBatch(batchId: string) {
+  const batch = await db.query.scheduleImportBatch.findFirst({
+    where: eq(scheduleImportBatch.id, batchId),
+  });
+
+  if (!batch) {
+    throw new Error("SCHEDULE_IMPORT_BATCH_NOT_FOUND");
+  }
+
+  const scope = await assertScheduleSchoolScope(batch.schoolId);
+  const batchDto = await loadScheduleImportBatchDTO(batch.id);
+  if (!isEligiblePrimaryBatch(batchDto)) {
+    throw createBlockingError("SET_PRIMARY_IMPORT_BLOCKED", "当前课表还不能设为主课表，请先处理导入阻断项。", [
+      { id: batch.id, status: batch.status },
+    ]);
+  }
+
+  await db.transaction(async (tx) => {
+    await assignPrimaryScheduleBatch(tx, batch.schoolId, batch.id);
+    await appendScheduleAudit(tx, {
+      schoolId: batch.schoolId,
+      entityType: "scheduleImportBatch",
+      entityId: batch.id,
+      actionType: "set_primary_import",
+      actorId: scope.userId,
+      payloadJson: {
+        batchId: batch.id,
       },
     });
   });

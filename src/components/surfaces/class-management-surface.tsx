@@ -1,27 +1,34 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
+  Check,
   CheckCircle2,
   Download,
   FileUp,
   Filter,
   Grid3X3,
+  KeyRound,
   List,
   Pencil,
   Plus,
   Search,
   School,
+  Trash2,
   Upload,
   Users,
   X,
 } from "lucide-react";
 
 import {
+  deleteClassesAction,
+  deleteStudentsAction,
   importClassRosterAction,
   importClassesAction,
+  resetStudentPasswordsAction,
   updateClassNameAction,
 } from "@/actions/class-management-actions";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +57,8 @@ type PendingRosterImport = {
 type StudentViewMode = "cards" | "list";
 
 type StudentStatus = "已分配" | "未分配";
+
+type ClassStatus = "已配" | "待导";
 
 type StudentRecord = TeacherClassDTO["students"][number] & {
   progressValue: number;
@@ -114,6 +123,16 @@ function getStudentDefaultAvatarSrc(gender: StudentGender | null) {
   return gender === "female" ? "/avatars/student-girl.svg" : "/avatars/student-boy.svg";
 }
 
+function getClassStatus(studentCount: number): ClassStatus {
+  return studentCount > 0 ? "已配" : "待导";
+}
+
+function getClassStatusButtonClass(studentCount: number) {
+  return studentCount > 0
+    ? "bg-primary"
+    : "bg-tertiary";
+}
+
 export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
   const router = useRouter();
   const { success, error } = useToast();
@@ -126,11 +145,17 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
   const [studentQuery, setStudentQuery] = useState("");
   const [studentStatusFilter, setStudentStatusFilter] = useState<"all" | StudentStatus>("all");
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [classQuery, setClassQuery] = useState("");
+  const [classStatusFilter, setClassStatusFilter] = useState<"all" | ClassStatus>("all");
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
+  const [confirmingDeleteClassId, setConfirmingDeleteClassId] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [isPending, startTransition] = useTransition();
   const studentDialogRef = useRef<HTMLDialogElement>(null);
   const classImportInputRef = useRef<HTMLInputElement>(null);
   const rosterImportInputRef = useRef<HTMLInputElement>(null);
   const createClassDialogRef = useRef<HTMLDialogElement>(null);
+  const resetPasswordDialogRef = useRef<HTMLDialogElement>(null);
 
   const classes = localClasses ?? data.classes;
 
@@ -143,6 +168,18 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
     () => classes.reduce((sum, item) => sum + item.studentCount, 0),
     [classes],
   );
+
+  const filteredClasses = useMemo(() => {
+    const normalizedQuery = classQuery.trim().toLowerCase();
+
+    return classes.filter((item) => {
+      const status = getClassStatus(item.studentCount);
+      const matchesQuery = normalizedQuery.length === 0 || item.name.toLowerCase().includes(normalizedQuery);
+      const matchesStatus = classStatusFilter === "all" || status === classStatusFilter;
+
+      return matchesQuery && matchesStatus;
+    });
+  }, [classQuery, classStatusFilter, classes]);
 
   const selectedClassStudents = useMemo<StudentRecord[]>(() => {
     if (!selectedClass) {
@@ -176,6 +213,9 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
   const isAllFilteredStudentsSelected =
     filteredStudents.length > 0 && filteredStudents.every((student) => selectedStudentIds.includes(student.userId));
 
+  const isAllFilteredClassesSelected =
+    filteredClasses.length > 0 && filteredClasses.every((item) => selectedClassIds.includes(item.id));
+
   const averageStudentsPerClass = classes.length > 0 ? (totalStudents / classes.length).toFixed(0) : "0";
 
   const openStudentModal = useCallback((classId: string) => {
@@ -184,20 +224,45 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
     setStudentQuery("");
     setStudentStatusFilter("all");
     setSelectedStudentIds([]);
-    studentDialogRef.current?.showModal();
   }, []);
 
   const closeStudentModal = useCallback(() => {
-    studentDialogRef.current?.close();
+    setSelectedClassId(null);
   }, []);
+
+  useEffect(() => {
+    const dialog = studentDialogRef.current;
+    if (!dialog) {
+      return;
+    }
+
+    if (selectedClassId) {
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+      return;
+    }
+
+    if (dialog.open) {
+      dialog.close();
+    }
+  }, [selectedClassId]);
 
   const closeCreateClassDialog = useCallback(() => {
     createClassDialogRef.current?.close();
+  }, []);
+  const closeResetPasswordDialog = useCallback(() => {
+    resetPasswordDialogRef.current?.close();
+    setResetPasswordValue("");
   }, []);
   const handleStudentDialogBackdropClose = useNativeDialogBackdropClose(studentDialogRef, closeStudentModal);
   const handleCreateClassDialogBackdropClose = useNativeDialogBackdropClose(
     createClassDialogRef,
     closeCreateClassDialog,
+  );
+  const handleResetPasswordDialogBackdropClose = useNativeDialogBackdropClose(
+    resetPasswordDialogRef,
+    closeResetPasswordDialog,
   );
 
   const handleEditClassName = useCallback(
@@ -357,6 +422,31 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
     });
   }, [filteredStudents]);
 
+  const toggleClassSelection = useCallback((classId: string) => {
+    setSelectedClassIds((current) =>
+      current.includes(classId) ? current.filter((item) => item !== classId) : [...current, classId],
+    );
+  }, []);
+
+  const toggleSelectAllFilteredClasses = useCallback(() => {
+    setSelectedClassIds((current) => {
+      if (filteredClasses.length === 0) {
+        return current;
+      }
+
+      const filteredIds = filteredClasses.map((item) => item.id);
+      const next = new Set(current);
+
+      if (filteredIds.every((classId) => next.has(classId))) {
+        filteredIds.forEach((classId) => next.delete(classId));
+      } else {
+        filteredIds.forEach((classId) => next.add(classId));
+      }
+
+      return [...next];
+    });
+  }, [filteredClasses]);
+
   const handleExportStudents = useCallback((students: StudentRecord[]) => {
     if (!selectedClass || students.length === 0) {
       error("暂无可导出的学生", { description: "请先调整筛选条件或选择学生。" });
@@ -373,15 +463,138 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
     handleExportStudents(students);
   }, [filteredStudents, handleExportStudents, selectedStudentIds]);
 
-  const handleBatchAction = useCallback(() => {
-    const count = filteredStudents.filter((student) => selectedStudentIds.includes(student.userId)).length;
-    if (count === 0) {
-      error("请先选择学生", { description: "列表模式下可勾选后进行批量操作。" });
+  const handleExportClassRoster = useCallback(
+    (classItem: TeacherClassDTO) => {
+      const safeClassName = classItem.name.replace(/[\\/:*?"<>|]/g, "-");
+      const students = classItem.students.map((student) => {
+        const progressValue = getStudentProgressValue(student.studentNumber);
+        return {
+          ...student,
+          progressValue,
+          status: getStudentStatus(progressValue),
+        };
+      });
+
+      downloadCsv(`${safeClassName}-students.csv`, buildRosterCsv(classItem.name, students));
+      success("班级名册已导出", { description: `已导出 ${students.length} 名学生。` });
+    },
+    [success],
+  );
+
+  const selectedFilteredStudentIds = useMemo(
+    () => filteredStudents.filter((student) => selectedStudentIds.includes(student.userId)).map((student) => student.userId),
+    [filteredStudents, selectedStudentIds],
+  );
+
+  const selectedFilteredClassIds = useMemo(
+    () => filteredClasses.filter((item) => selectedClassIds.includes(item.id)).map((item) => item.id),
+    [filteredClasses, selectedClassIds],
+  );
+
+  const openResetPasswordDialog = useCallback(() => {
+    if (selectedFilteredStudentIds.length === 0) {
+      error("请先选择学生", { description: "列表模式下可勾选后进行批量重置密码。" });
       return;
     }
 
-    success("批量操作已就绪", { description: `当前已选 ${count} 名学生，可继续接入真实批量动作。` });
-  }, [error, filteredStudents, selectedStudentIds, success]);
+    setResetPasswordValue("");
+    resetPasswordDialogRef.current?.showModal();
+  }, [error, selectedFilteredStudentIds.length]);
+
+  const handleConfirmResetPasswords = useCallback(() => {
+    const nextPassword = resetPasswordValue.trim();
+
+    if (!nextPassword) {
+      error("请输入新密码");
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await resetStudentPasswordsAction({
+        studentIds: selectedFilteredStudentIds,
+        password: nextPassword,
+      });
+
+      if (!result.ok) {
+        error(result.message);
+        return;
+      }
+
+      closeResetPasswordDialog();
+      success("密码已重置", { description: `已更新 ${result.data.updatedCount} 名学生的密码。` });
+      router.refresh();
+    });
+  }, [closeResetPasswordDialog, error, resetPasswordValue, router, selectedFilteredStudentIds, success]);
+
+  const handleDeleteSelectedStudents = useCallback(() => {
+    if (selectedFilteredStudentIds.length === 0) {
+      error("请先选择学生", { description: "至少选择 1 名学生后才能删除。" });
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await deleteStudentsAction({ studentIds: selectedFilteredStudentIds });
+
+      if (!result.ok) {
+        error(result.message);
+        return;
+      }
+
+      setSelectedStudentIds((current) => current.filter((id) => !selectedFilteredStudentIds.includes(id)));
+      success("学生已删除", { description: `已删除 ${result.data.deletedCount} 名学生。` });
+      router.refresh();
+    });
+  }, [error, router, selectedFilteredStudentIds, success]);
+
+  const handleDeleteSelectedClasses = useCallback(() => {
+    if (selectedFilteredClassIds.length === 0) {
+      error("请先选择班级", { description: "至少选择 1 个班级后才能删除。" });
+      return;
+    }
+
+    startTransition(async () => {
+      setConfirmingDeleteClassId(null);
+      const result = await deleteClassesAction({ classIds: selectedFilteredClassIds });
+
+      if (!result.ok) {
+        error(result.message);
+        return;
+      }
+
+      setLocalClasses(classes.filter((item) => !selectedFilteredClassIds.includes(item.id)));
+      setSelectedClassIds((current) => current.filter((id) => !selectedFilteredClassIds.includes(id)));
+      if (selectedClassId && selectedFilteredClassIds.includes(selectedClassId)) {
+        closeStudentModal();
+        setSelectedClassId(null);
+      }
+      success("班级已删除", { description: `已删除 ${result.data.deletedCount} 个班级。` });
+      router.refresh();
+    });
+  }, [classes, closeStudentModal, error, router, selectedClassId, selectedFilteredClassIds, success]);
+
+  const handleDeleteClass = useCallback(
+    (classItem: TeacherClassDTO) => {
+      startTransition(async () => {
+        setConfirmingDeleteClassId(null);
+        const result = await deleteClassesAction({ classIds: [classItem.id] });
+
+        if (!result.ok) {
+          error(result.message);
+          return;
+        }
+
+        setLocalClasses(classes.filter((item) => item.id !== classItem.id));
+        setSelectedClassIds((current) => current.filter((id) => id !== classItem.id));
+        if (selectedClassId === classItem.id) {
+          closeStudentModal();
+          setSelectedClassId(null);
+        }
+        success("班级已删除", { description: `已删除“${classItem.name}”。` });
+        router.refresh();
+      });
+    },
+    [classes, closeStudentModal, error, router, selectedClassId, success],
+  );
 
   return (
     <>
@@ -407,7 +620,7 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
                   只显示班级列表
                 </h1>
                 <p className="text-sm text-on-surface-variant sm:text-base">
-                  点击“编辑名称”时，再通过 Modal 查看并维护该班级的学生列表。
+                  学生列表与班级维护统一在弹窗中完成。
                 </p>
                 <div className="flex flex-wrap gap-2 pt-2">
                   <a
@@ -487,56 +700,184 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-on-surface">班级列表</h2>
-              <p className="mt-1 text-sm text-on-surface-variant">页面默认只展示班级信息，不直接展开学生名册。</p>
+              <p className="mt-1 text-sm text-on-surface-variant">仅展示班级概览，学生维护在弹窗中完成。</p>
             </div>
-            <Badge className="bg-surface-container-high text-on-surface-variant">点击编辑名称打开学生列表 Modal</Badge>
+            <Badge className="bg-surface-container-high px-3 py-1 text-on-surface-variant">更紧凑的班级视图</Badge>
           </div>
 
-          <div className="space-y-3">
-            {classes.map((item) => (
-              <article
-                key={item.id}
-                className={cn(
-                  teacherSurfaceRhythm.card,
-                  "grid gap-4 bg-surface-container-lowest px-4 py-4 shadow-[0_4px_16px_rgba(0,0,0,0.03)] lg:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,0.8fr))_auto] lg:items-center",
-                )}
-              >
-                <div>
-                  <div className="flex items-center gap-3">
-                    <div className="grid size-11 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                      {item.name.replace(/\s+/g, "").slice(-1)}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-on-surface">{item.name}</h3>
-                      <p className="mt-1 text-sm text-on-surface-variant">通过编辑名称进入该班学生列表与班级维护。</p>
+          <div className="rounded-[1.75rem] bg-surface-container-low p-3 shadow-[0_4px_16px_rgba(0,0,0,0.03)]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" aria-hidden />
+                  <input
+                    type="search"
+                    value={classQuery}
+                    onChange={(event) => setClassQuery(event.target.value)}
+                    placeholder="按班级名称搜索..."
+                    className="min-h-10 w-full rounded-full bg-surface-container-high pl-9 pr-4 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:bg-surface-container-lowest focus:ring-primary/20"
+                  />
+                </div>
+                <label className="inline-flex min-h-10 items-center gap-2 rounded-full bg-surface-container-high px-3 text-sm text-on-surface-variant">
+                  <Filter className="size-4 text-primary" aria-hidden />
+                  <select
+                    value={classStatusFilter}
+                    onChange={(event) => setClassStatusFilter(event.target.value as "all" | ClassStatus)}
+                    className="bg-transparent text-sm text-on-surface outline-none"
+                  >
+                    <option value="all">所有班级</option>
+                    <option value="已配">已配</option>
+                    <option value="待导">待导</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                <button
+                  type="button"
+                  onClick={toggleSelectAllFilteredClasses}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full bg-surface-container-highest px-4 text-sm font-medium text-primary transition hover:bg-surface-container-high"
+                >
+                  {isAllFilteredClassesSelected ? "取消全选班级" : "全选当前班级"}
+                </button>
+                <Badge className="bg-surface-container-lowest text-on-surface-variant">
+                  已选择 {selectedFilteredClassIds.length} 个班级
+                </Badge>
+                <Button
+                  variant="secondary"
+                  className="min-h-10 gap-2 px-4 text-sm shadow-none"
+                  onClick={handleDeleteSelectedClasses}
+                >
+                  <Trash2 className="size-4" aria-hidden />
+                  批量删除班级
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            {filteredClasses.map((item) => {
+              const classStatus = getClassStatus(item.studentCount);
+              const isSelected = selectedClassIds.includes(item.id);
+              const isConfirmingDelete = confirmingDeleteClassId === item.id;
+
+              return (
+                <article
+                  key={item.id}
+                  className={cn(
+                    teacherSurfaceRhythm.card,
+                    "group/class-row grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 bg-surface-container-lowest px-2.5 py-2 shadow-[0_4px_16px_rgba(0,0,0,0.03)]",
+                    isSelected && "ring-2 ring-primary/20",
+                  )}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                      <label className="flex w-5 items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleClassSelection(item.id)}
+                          aria-label={`选择班级 ${item.name}`}
+                          className="size-4 rounded border-none bg-surface-container-high text-primary opacity-0 transition-opacity focus:ring-primary/20 focus-visible:opacity-100 group-hover/class-row:opacity-100 group-focus-within/class-row:opacity-100"
+                        />
+                      </label>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-sm font-semibold text-on-surface">{item.name}</h3>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <MetaCell label="班级人数" value={`${item.studentCount} 人`} />
-                <MetaCell label="班级状态" value={item.studentCount > 0 ? "已配置学生" : "待导入学生"} />
-
-                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                  <Button
-                    variant="secondary"
-                    className="min-h-10 gap-2 px-4 text-sm shadow-none"
-                    onClick={() => openStudentModal(item.id)}
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap text-on-surface-variant",
+                    )}
                   >
-                    <Users className="size-4" aria-hidden />
-                    查看学生
-                  </Button>
-                  <Button className="min-h-10 gap-2 px-4 text-sm" onClick={() => handleEditClassName(item)}>
-                    <Pencil className="size-4" aria-hidden />
-                    编辑名称
-                  </Button>
-                </div>
-              </article>
-            ))}
+                    <span
+                      className={cn("size-1.5 rounded-full", getClassStatusButtonClass(item.studentCount))}
+                      aria-hidden
+                    />
+                    <span>{item.studentCount}人</span>
+                    <span className="text-on-surface/55">{classStatus}</span>
+                  </span>
+
+                    <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => openStudentModal(item.id)}
+                        className="grid size-7 place-items-center rounded-full bg-surface-container-high text-on-surface-variant transition hover:bg-surface-container-highest hover:text-primary"
+                        aria-label={`查看班级 ${item.name} 的学生`}
+                        title="查看学生"
+                      >
+                        <Users className="size-3.5" aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleEditClassName(item)}
+                        className="grid size-7 place-items-center rounded-full bg-surface-container-high text-on-surface-variant transition hover:bg-surface-container-highest hover:text-primary"
+                        aria-label={`编辑班级 ${item.name}`}
+                        title="编辑名称"
+                      >
+                        <Pencil className="size-3.5" aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleExportClassRoster(item)}
+                        className="grid size-7 place-items-center rounded-full bg-surface-container-high text-on-surface-variant transition hover:bg-surface-container-highest hover:text-primary"
+                        aria-label={`导出班级 ${item.name} 的学生名册`}
+                        title="导出名册"
+                      >
+                        <Download className="size-3.5" aria-hidden />
+                      </button>
+                    {isConfirmingDelete ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteClass(item)}
+                            className="grid size-7 place-items-center rounded-full bg-destructive/12 text-destructive transition hover:bg-destructive/18 disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label={`确认删除班级 ${item.name}`}
+                            title="确认删除"
+                            disabled={isPending}
+                          >
+                            <Check className="size-3.5" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingDeleteClassId(null)}
+                            className="grid size-7 place-items-center rounded-full bg-surface-container-high text-on-surface-variant transition hover:bg-surface-container-highest hover:text-on-surface"
+                            aria-label={`取消删除班级 ${item.name}`}
+                            title="取消删除"
+                            disabled={isPending}
+                          >
+                            <X className="size-3.5" aria-hidden />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingDeleteClassId(item.id)}
+                          className="grid size-7 place-items-center rounded-full bg-surface-container-high text-on-surface-variant transition hover:bg-destructive/12 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
+                          aria-label={`删除班级 ${item.name}`}
+                          title="删除班级"
+                          disabled={isPending}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                        </button>
+                      )}
+                    </div>
+                </article>
+              );
+            })}
           </div>
+
+          {filteredClasses.length === 0 ? (
+            <div className="rounded-[1.25rem] bg-surface-container-low px-4 py-6 text-center text-sm text-on-surface-variant">
+              当前筛选条件下没有匹配的班级，请调整搜索或状态筛选。
+            </div>
+          ) : null}
 
           <div className="flex items-center justify-end gap-2 pt-2 text-xs text-on-surface-variant">
             <Download className="size-4" aria-hidden />
-            支持导入班级与学生名册，缺失班级时可直接创建。
+            支持导入班级与学生名册。
           </div>
         </section>
       </div>
@@ -545,6 +886,7 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
         ref={studentDialogRef}
         className={getNativeDialogClassName(studentViewMode === "list" ? "2xl" : "xl")}
         onClick={handleStudentDialogBackdropClose}
+        onClose={() => setSelectedClassId(null)}
       >
         <div className="p-6">
           <div className="flex items-start justify-between gap-3">
@@ -661,28 +1003,45 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
                         导出当前结果
                       </Button>
                       {studentViewMode === "list" ? (
-                        <>
-                          <span className="text-xs text-on-surface-variant">批量操作</span>
-                          <Button
-                            variant="secondary"
-                            className="min-h-10 px-4 text-sm shadow-none"
-                            onClick={handleBatchAction}
-                          >
-                            批量操作
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            className="min-h-10 gap-2 px-4 text-sm shadow-none"
-                            onClick={handleExportSelectedStudents}
-                          >
-                            <Download className="size-4" aria-hidden />
-                            导出选中
-                          </Button>
-                        </>
+                        <Button
+                          variant="secondary"
+                          className="min-h-10 gap-2 px-4 text-sm shadow-none"
+                          onClick={handleExportSelectedStudents}
+                        >
+                          <Download className="size-4" aria-hidden />
+                          导出选中
+                        </Button>
                       ) : null}
                     </div>
                   </div>
                 </div>
+
+                {studentViewMode === "list" && selectedFilteredStudentIds.length > 0 ? (
+                  <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] bg-surface-container-high px-4 py-3 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
+                    <div className="flex items-center gap-2 text-sm text-on-surface">
+                      <Badge className="bg-surface-container-lowest text-primary">已选择 {selectedFilteredStudentIds.length} 名学生</Badge>
+                      <span className="text-on-surface-variant">批量操作</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        className="min-h-10 gap-2 px-4 text-sm shadow-none"
+                        onClick={openResetPasswordDialog}
+                      >
+                        <KeyRound className="size-4" aria-hidden />
+                        重置密码
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        className="min-h-10 gap-2 px-4 text-sm shadow-none"
+                        onClick={handleDeleteSelectedStudents}
+                      >
+                        <Trash2 className="size-4" aria-hidden />
+                        删除学生
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
 
                 {studentViewMode === "cards" ? (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
@@ -820,6 +1179,56 @@ export function ClassManagementSurface({ data }: ClassManagementSurfaceProps) {
           </div>
         </div>
       </dialog>
+
+      <dialog
+        ref={resetPasswordDialogRef}
+        className={getNativeDialogClassName("sm")}
+        onClick={handleResetPasswordDialogBackdropClose}
+      >
+        <div className="p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-on-surface">批量重置密码</h2>
+              <p className="mt-2 text-sm text-on-surface-variant">
+                将为当前选中的 {selectedFilteredStudentIds.length} 名学生设置同一个新密码。学生登录使用学号 + 密码。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={closeResetPasswordDialog}
+              className="grid size-8 place-items-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high"
+              aria-label="关闭重置密码确认框"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          </div>
+
+          <div className="mt-5">
+            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">新密码</label>
+            <input
+              type="password"
+              value={resetPasswordValue}
+              onChange={(event) => setResetPasswordValue(event.target.value)}
+              className="mt-2 min-h-11 w-full rounded-[1rem] bg-surface-container-low px-4 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:bg-surface-container-lowest focus:ring-primary/20"
+              placeholder="请输入统一新密码"
+            />
+          </div>
+
+          <div className="mt-6 flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              className="min-h-10 px-4 text-sm shadow-none"
+              onClick={closeResetPasswordDialog}
+            >
+              取消
+            </Button>
+            <Button className="min-h-10 gap-2 px-4 text-sm" onClick={handleConfirmResetPasswords} disabled={isPending}>
+              <KeyRound className="size-4" aria-hidden />
+              确认重置
+            </Button>
+          </div>
+        </div>
+      </dialog>
     </>
   );
 }
@@ -833,11 +1242,21 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MetaCell({ label, value }: { label: string; value: string }) {
+function MetaCell({
+  label,
+  value,
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  compact?: boolean;
+}) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-[0.18em] text-on-surface-variant">{label}</p>
-      <p className="mt-2 text-sm font-medium text-on-surface">{value}</p>
+      <p className={cn("uppercase tracking-[0.18em] text-on-surface-variant", compact ? "text-[11px]" : "text-xs")}>
+        {label}
+      </p>
+      <p className={cn("font-medium text-on-surface", compact ? "mt-1 text-xs" : "mt-2 text-sm")}>{value}</p>
     </div>
   );
 }
@@ -875,7 +1294,7 @@ function StudentProgressAvatar({
         />
       </svg>
       <div className={cn("relative z-10 overflow-hidden rounded-full bg-primary/10", innerSizeClass)}>
-        <img src={avatarSrc} alt="" aria-hidden className="size-full object-cover" />
+        <Image src={avatarSrc} alt="" aria-hidden fill sizes="44px" className="object-cover" />
       </div>
     </div>
   );

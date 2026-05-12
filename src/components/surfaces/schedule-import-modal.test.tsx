@@ -111,8 +111,88 @@ describe("ScheduleImportModal", () => {
     expect(screen.queryByText("未识别到有效的导入行，请检查 CSV 格式是否符合模板要求。")).toBeNull();
   });
 
+  it("accepts `星期` as a weekday column alias", async () => {
+    mocks.parse.mockImplementation((_file: File, options: { complete?: (results: { data: Record<string, string>[] }) => void }) => {
+      options.complete?.({
+        data: [
+          {
+            源记录标识: "1",
+            学期名称: "2026 春季学期",
+            星期: "1",
+            节次标签: "第一节",
+            上课开始时间: "8:00",
+            上课结束时间: "8:40",
+            班级名称: "高一1班",
+            课程名称: "信息科技",
+            教师姓名: "张老师",
+            教室标签: "教学楼 302",
+          },
+        ],
+      });
+    });
+
+    const { container } = render(<ScheduleImportModal schoolId="school-1" />);
+    const input = container.querySelector('input[type="file"]');
+
+    fireEvent.change(input as HTMLInputElement, {
+      target: {
+        files: [new File(["csv"], "课表.csv", { type: "text/csv" })],
+      },
+    });
+
+    await waitFor(() => {
+      expect(mocks.draftScheduleImportAction).toHaveBeenCalledTimes(1);
+    });
+
+    const formData = mocks.draftScheduleImportAction.mock.calls[0]?.[0] as FormData;
+    expect(JSON.parse(String(formData.get("rows")))).toEqual([
+      {
+        sourceRowKey: "1",
+        termName: "2026 春季学期",
+        weekday: "1",
+        bellSlotLabel: "第一节",
+        bellSlotStartTime: "8:00",
+        bellSlotEndTime: "8:40",
+        className: "高一1班",
+        courseTitle: "信息科技",
+        teacherName: "张老师",
+        roomLabel: "教学楼 302",
+      },
+    ]);
+  });
+
   it("redirects back to the main schedule page after a successful import", async () => {
     vi.useFakeTimers();
+    mocks.approveScheduleImportAction.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "batch-1",
+        rows: [
+          {
+            id: "row-current",
+            sourceRowKey: "source-current",
+            status: "approved",
+            approvalState: "approved",
+            validationIssues: [
+              { code: "CLASS_PENDING_STUDENT_IMPORT", message: "班级“高一（1）班”已自动创建，请后续导入学生名册。", field: "className", severity: "warning" },
+            ],
+            mappingSummary: {
+              termName: "2026 春季学期",
+              weekdayLabel: "周一",
+              bellSlotLabel: "第一节",
+              className: "高一（1）班",
+              courseTitle: "信息科技",
+              teacherName: "张老师",
+              roomLabel: "教学楼 302",
+            },
+            conflictSummary: [],
+            approvalNote: null,
+            reviewedById: null,
+            reviewedAt: null,
+          },
+        ],
+      },
+    });
     const { container } = render(<ScheduleImportModal schoolId="school-1" />);
     const input = container.querySelector('input[type="file"]');
 
@@ -132,7 +212,60 @@ describe("ScheduleImportModal", () => {
       rejectedRowIds: [],
     });
     expect(mocks.success).toHaveBeenCalledWith("课表已导入成功", {
-      description: "当前学期课表已回到主视图展示。",
+      description: "已自动创建 1 个班级，当前显示为待导学生。",
+    });
+    expect(mocks.push).toHaveBeenCalledWith("/teacher/schedule");
+    expect(mocks.refresh).toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it("returns to the main schedule page when only class teacher or course mapping is missing", async () => {
+    vi.useFakeTimers();
+    mocks.approveScheduleImportAction.mockReset();
+    mocks.draftScheduleImportAction.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "batch-display-only",
+        rows: [
+          {
+            id: "row-1",
+            sourceRowKey: "8",
+            status: "mapping_review",
+            approvalState: "pending",
+            validationIssues: [{ code: "COURSE_NOT_FOUND", message: "未找到对应课程，请先确认课程标题或创建课程。", field: "courseTitle", severity: "error" }],
+            mappingSummary: {
+              termName: "2026 春季学期",
+              weekdayLabel: "周一",
+              bellSlotLabel: "第一节",
+              className: "高一（1）班",
+              courseTitle: "信息科技",
+              teacherName: "张老师",
+              roomLabel: "教学楼 302",
+            },
+            conflictSummary: [],
+            approvalNote: null,
+            reviewedById: null,
+            reviewedAt: null,
+          },
+        ],
+      },
+    });
+
+    const { container } = render(<ScheduleImportModal schoolId="school-1" />);
+    const input = container.querySelector('input[type="file"]');
+
+    fireEvent.change(input as HTMLInputElement, {
+      target: {
+        files: [new File(["csv"], "teacher-schedule-import-template.csv", { type: "text/csv" })],
+      },
+    });
+
+    await Promise.resolve();
+    await vi.runAllTimersAsync();
+
+    expect(mocks.approveScheduleImportAction).not.toHaveBeenCalled();
+    expect(mocks.success).toHaveBeenCalledWith("课表已导入成功", {
+      description: "当前导入已进入主课表展示，班级、教师或课程映射可后续继续补齐。",
     });
     expect(mocks.push).toHaveBeenCalledWith("/teacher/schedule");
     expect(mocks.refresh).toHaveBeenCalled();
@@ -212,7 +345,7 @@ describe("ScheduleImportModal", () => {
             sourceRowKey: "3",
             status: "mapping_review",
             approvalState: "pending",
-            validationIssues: [{ code: "CLASS_NOT_FOUND", message: "未找到对应班级，请先确认班级名称或创建班级映射。", field: "className", severity: "error" }],
+            validationIssues: [{ code: "CLASS_PENDING_STUDENT_IMPORT", message: "班级“高一（1）班”已自动创建，请后续导入学生名册。", field: "className", severity: "warning" }],
             mappingSummary: null,
             conflictSummary: [],
             approvalNote: null,
@@ -284,16 +417,45 @@ describe("ScheduleImportModal", () => {
       expect(screen.getByText("导入已暂存，但还不能自动写入主课表。请先处理以下问题。")).toBeTruthy();
     });
 
-    expect(screen.getByText("班级不存在（1）")).toBeTruthy();
-    expect(screen.getByText("课程不存在（1）")).toBeTruthy();
-    expect(screen.getByText("教师不存在（1）")).toBeTruthy();
+    expect(screen.queryByText((_, element) => element?.textContent === "班级不存在（1）")).toBeNull();
+    expect(screen.queryByText((_, element) => element?.textContent === "课程不存在（1）")).toBeNull();
+    expect(screen.queryByText((_, element) => element?.textContent === "教师不存在（1）")).toBeNull();
     expect(screen.getByText("冲突（1）")).toBeTruthy();
     expect(screen.getByText("其他（1）")).toBeTruthy();
-    expect(screen.getByText("源记录 3：未找到对应班级，请先确认班级名称或创建班级映射。")).toBeTruthy();
-    expect(screen.getByText("源记录 4：未找到对应课程，请先确认课程标题或创建课程。")).toBeTruthy();
-    expect(screen.getByText("源记录 5：未找到对应教师，请先确认教师姓名或教师成员关系。")).toBeTruthy();
+    expect(screen.queryByText("源记录 3：班级“高一（1）班”已自动创建，请后续导入学生名册。")).toBeNull();
+    expect(screen.queryByText("源记录 4：未找到对应课程，请先确认课程标题或创建课程。")).toBeNull();
+    expect(screen.queryByText("源记录 5：未找到对应教师，请先确认教师姓名或教师成员关系。")).toBeNull();
     expect(screen.getByText("源记录 6：该班级在同一节次已经存在已入库课表，请先调课或拒绝本条导入。")).toBeTruthy();
     expect(screen.getByText("源记录 7：星期字段无效，请改为 0-6 范围内的数字。")).toBeTruthy();
     expect(mocks.approveScheduleImportAction).not.toHaveBeenCalled();
+  });
+
+  it("shows a specific error when a class template is uploaded instead of a schedule template", async () => {
+    mocks.parse.mockImplementation((_file: File, options: { complete?: (results: { data: Record<string, string>[] }) => void }) => {
+      options.complete?.({
+        data: [
+          {
+            className: "高一（1）班",
+          },
+        ],
+      });
+    });
+
+    const { container } = render(<ScheduleImportModal schoolId="school-1" />);
+    const input = container.querySelector('input[type="file"]');
+
+    fireEvent.change(input as HTMLInputElement, {
+      target: {
+        files: [new File(["csv"], "teacher-class-import-template.csv", { type: "text/csv" })],
+      },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("当前文件看起来是班级模板，不是课表模板。请下载“导入课表”模板后，使用包含学期、星期、节次、课程和教师列的 CSV 文件重新导入。"),
+      ).toBeTruthy();
+    });
+
+    expect(mocks.draftScheduleImportAction).not.toHaveBeenCalled();
   });
 });

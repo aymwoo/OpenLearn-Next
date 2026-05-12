@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import HelpLayout from "./layout";
+import { HelpLayoutContent } from "./layout";
 
 const headers = vi.fn();
 const redirect = vi.fn((location: string) => {
@@ -44,18 +44,18 @@ describe("HelpLayout auth guard", () => {
   it("redirects to home when user is missing", async () => {
     getCurrentUserDTO.mockResolvedValue(null);
 
-    await expect(HelpLayout({ children: <div>help content</div> })).rejects.toThrow("REDIRECT:/");
+    await expect(HelpLayoutContent({ children: <div>help content</div> })).rejects.toThrow("REDIRECT:/");
     expect(getUserMembershipsDTO).not.toHaveBeenCalled();
   });
 
   it("redirects to unauthorized when active teacher membership is missing", async () => {
     getUserMembershipsDTO.mockResolvedValue([{ role: "student", status: "active", schoolId: "school-1" }]);
 
-    await expect(HelpLayout({ children: <div>help content</div> })).rejects.toThrow("REDIRECT:/unauthorized");
+    await expect(HelpLayoutContent({ children: <div>help content</div> })).rejects.toThrow("REDIRECT:/unauthorized");
   });
 
   it("renders children for active teacher users", async () => {
-    render(await HelpLayout({ children: <div>help content</div> }));
+    render(await HelpLayoutContent({ children: <div>help content</div> }));
 
     expect(screen.getByText("help content")).toBeTruthy();
     expect(getUserMembershipsDTO).toHaveBeenCalledWith("teacher-1");

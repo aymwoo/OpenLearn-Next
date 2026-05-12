@@ -9,9 +9,11 @@ import { LessonStepEditor } from "./lesson-step-editor";
 import type { LessonStepDTO } from "@/lib/dto/lesson-authoring";
 
 const autosaveLessonStepAction = vi.fn();
+const uploadLessonMarkdownAssetAction = vi.fn();
 
 vi.mock("@/actions/lesson-authoring-actions", () => ({
   autosaveLessonStepAction: (...args: unknown[]) => autosaveLessonStepAction(...args),
+  uploadLessonMarkdownAssetAction: (...args: unknown[]) => uploadLessonMarkdownAssetAction(...args),
 }));
 
 function makeStep(step: LessonStepDTO): LessonStepDTO {
@@ -25,7 +27,9 @@ describe("lesson step editor persistence", () => {
 
   beforeEach(() => {
     autosaveLessonStepAction.mockReset();
+    uploadLessonMarkdownAssetAction.mockReset();
     autosaveLessonStepAction.mockResolvedValue({ ok: true, data: { lessonId: "lesson-1", stepId: "step-1" } });
+    uploadLessonMarkdownAssetAction.mockResolvedValue({ ok: true, data: { id: "resource-md-1" } });
   });
 
   it("submits content payload updates while preserving materialRefs", async () => {
@@ -287,5 +291,47 @@ describe("lesson step editor persistence", () => {
 
     await waitFor(() => expect((screen.getByLabelText("正文") as HTMLTextAreaElement).value).toBe("讲解概念。"));
     expect(screen.getByText("已恢复到最近一次保存的内容。")).toBeTruthy();
+  });
+
+  it("saves markdown content config inside content payload", async () => {
+    const step = makeStep({
+      id: "step-md",
+      lessonId: "lesson-1",
+      type: "content",
+      title: "Markdown 课件",
+      rank: "a5",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      payload: {
+        type: "content",
+        title: "Markdown 课件",
+        body: "说明",
+        teacherNotes: "提示",
+        materialRefs: [],
+      },
+    });
+
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
+        <LessonStepEditor step={step} schoolId="school-1" courseId="course-1" />
+      </div>,
+    );
+
+    fireEvent.change(screen.getByLabelText("Markdown 标题"), { target: { value: "分数课件" } });
+    fireEvent.change(screen.getByLabelText("Markdown 渲染模式"), { target: { value: "reveal" } });
+    fireEvent.click(screen.getByRole('checkbox', { name: /启用 Mermaid 渲染/i }));
+    fireEvent.change(screen.getByLabelText("Markdown 源码"), { target: { value: "# 第一页\n\n---\n\n# 第二页" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "保存步骤" }));
+
+    await waitFor(() => expect(autosaveLessonStepAction).toHaveBeenCalledTimes(1));
+    expect(autosaveLessonStepAction).toHaveBeenCalledWith({
+      stepId: "step-md",
+      title: "Markdown 课件",
+      payload: expect.objectContaining({
+        type: "content",
+        markdown: expect.anything(),
+      }),
+    });
   });
 });

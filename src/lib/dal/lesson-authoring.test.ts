@@ -158,6 +158,17 @@ describe("lesson authoring DAL boundary", () => {
     expect(source).toContain("snapshotJson");
   });
 
+  it("keeps markdown asset and material references inside the published snapshot chain", () => {
+    expect(source).toContain("async function syncMarkdownAssetForStep");
+    expect(source).toContain('classification: "markdown"');
+    expect(source).toContain('kind: "markdown"');
+    expect(source).toContain("content: input.payload.markdown.source");
+    expect(source).toContain("url: asset.resourceId");
+    expect(source).toContain("note: input.payload.markdown.renderMode");
+    expect(source).toContain("materials: editor.materials");
+    expect(source).toContain("steps: editor.steps.filter((step) => !step.archivedAt)");
+  });
+
   it("persists updated lesson step payloads and bumps lesson revision", () => {
     expect(source).toContain("export async function updateLessonStep");
     expect(source).toContain("lessonStepPayloadSchema.parse(input.payload)");

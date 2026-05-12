@@ -61,11 +61,60 @@ describe("Phase 04 learning DTO contracts", () => {
         resumeLabel: "从第一个未完成步骤继续",
         steps: [{ stepId: "step-1", state: "in_progress" }],
       },
-      runtime: { forcedStepId: null, inaccessibleMessage: null },
+      runtime: { forcedStepId: null, inaccessibleMessage: null, slideIndex: null },
       latestSubmissions: { tasks: [], quizzes: [] },
       history: { tasks: [], quizzes: [] },
     });
 
     expect(player.latestSubmissions.tasks).toEqual([]);
+  });
+
+  it("preserves markdown content payloads in player shell steps", () => {
+    const player = StudentPlayerDTOSchema.parse({
+      shell: {
+        lessonId: "lesson-1",
+        publishedVersionId: "version-1",
+        title: "Markdown 课件",
+        objective: "阅读与跟随课件",
+        steps: [
+          {
+            id: "step-markdown",
+            lessonId: "lesson-1",
+            type: "content",
+            title: "Markdown 课件",
+            rank: "a0",
+            payload: {
+              type: "content",
+              title: "Markdown 课件",
+              body: "# 课件",
+              materialRefs: [],
+              markdown: {
+                asset: {
+                  resourceId: "resource-markdown-1",
+                  materialId: "material-markdown-1",
+                  title: "Markdown 课件",
+                },
+                source: "# 课件\n---\n## 第二页",
+                renderMode: "reveal",
+                mermaidEnabled: true,
+              },
+            },
+          },
+        ],
+      },
+      progress: {
+        resumeStepId: "step-markdown",
+        resumeLabel: "继续学习",
+        steps: [{ stepId: "step-markdown", state: "in_progress" }],
+      },
+      runtime: { forcedStepId: null, inaccessibleMessage: null, slideIndex: 1 },
+      latestSubmissions: { tasks: [], quizzes: [] },
+      history: { tasks: [], quizzes: [] },
+    });
+
+    expect(player.shell.steps[0]?.payload.type).toBe("content");
+    expect(player.shell.steps[0]?.payload.type === "content" ? player.shell.steps[0].payload.markdown?.asset.resourceId : null).toBe(
+      "resource-markdown-1",
+    );
   });
 });

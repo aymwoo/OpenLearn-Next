@@ -4,6 +4,7 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 
 import {
+  changeClassroomSlide,
   changeClassroomActiveStep,
   changeClassroomMode,
   endClassroomSession,
@@ -16,6 +17,7 @@ import {
 import { cacheTags } from "@/lib/cache-policy";
 import {
   ChangeClassroomModeInputSchema,
+  ChangeClassroomSlideInputSchema,
   ChangeClassroomStepInputSchema,
   EndClassroomInputSchema,
   LaunchClassroomInputSchema,
@@ -125,6 +127,31 @@ export async function changeClassroomModeAction(input: FormData | Record<string,
     return { ok: true, data: result };
   } catch (error) {
     return handleClassroomActionError(error, modeMessage);
+  }
+}
+
+export async function changeClassroomSlideAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = ChangeClassroomSlideInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await changeClassroomSlide(parsed.data);
+    if (!result.ok && result.error === "VERSION_CONFLICT") {
+      return {
+        ok: false,
+        error: "VERSION_CONFLICT",
+        message: conflictMessage,
+        latest: result.snapshot,
+        attemptedAction: { actionType: "change_slide", targetStepId: parsed.data.stepId, slideIndex: parsed.data.slideIndex },
+      };
+    }
+
+    if (result.sessionId) {
+      updateTag(cacheTags.classroom(result.sessionId));
+    }
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
   }
 }
 

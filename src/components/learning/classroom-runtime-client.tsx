@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { QuizStepCard } from '@/components/learning/quiz-step-card'
 import { TaskStepCard } from '@/components/learning/task-step-card'
+import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { touchClassroomPresenceAction } from '@/actions/classroom-actions'
 import { markStepProgressAction } from '@/actions/learning-actions'
 import type {
@@ -39,6 +40,7 @@ function stepHref(player: StudentPlayerDTO, step: LearningStepDTO) {
 function ContentStepCard({ player, step, state }: { player: StudentPlayerDTO; step: LearningStepDTO; state: ProgressState }) {
   const payload = step.payload as { body?: string; content?: string; summary?: string }
   const body = payload.body || payload.content || payload.summary || '这个步骤暂时没有正文内容，请继续下一个步骤。'
+  const isMarkdown = step.payload.type === 'content' && Boolean(step.payload.markdown)
 
   return (
     <div className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-low p-5 sm:p-8">
@@ -46,7 +48,17 @@ function ContentStepCard({ player, step, state }: { player: StudentPlayerDTO; st
         <MonitorPlay className="size-6 text-primary" aria-hidden />
         <h3 className="text-2xl font-semibold">{step.title}</h3>
       </div>
-      <p className="mt-5 leading-8 text-on-surface-variant">{body}</p>
+      {isMarkdown ? (
+        <div className="mt-5">
+          <MarkdownRenderer
+            step={step as any}
+            locked={player.runtime.locked}
+            slideState={player.runtime.slideIndex !== null ? { stepId: step.id, slideIndex: player.runtime.slideIndex } : null}
+          />
+        </div>
+      ) : (
+        <p className="mt-5 leading-8 text-on-surface-variant">{body}</p>
+      )}
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="rounded-3xl bg-surface-container-lowest p-5">
           <BookOpen className="mb-3 size-6 text-primary" aria-hidden />
@@ -205,6 +217,7 @@ export function ClassroomRuntimeClient({
       locked,
       classroomSessionId: snapshot.sessionId,
       classroomVersion: snapshot.version,
+      slideIndex: snapshot.slideState?.stepId === snapshot.activeStepId ? snapshot.slideState.slideIndex : null,
       connectionState: state,
       teacherRecommendedStepId,
       disabledReason: locked ? "老师已开启锁定跟随，你将停留在当前步骤。" : null,

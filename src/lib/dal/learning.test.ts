@@ -51,6 +51,13 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain("课时暂不可学习");
   });
 
+  it("keeps markdown payload and slide runtime data available to the student player", () => {
+    expect(source).toContain("function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string): LearningStepDTO[]");
+    expect(source).toContain("payload: lessonStepPayloadSchema.parse(step.payload)");
+    expect(source).toContain("slideIndex = classroomRuntime.slideIndex");
+    expect(source).toContain("teacherRecommendedStepId = classroomRuntime.activeStepId");
+  });
+
   it("computes first incomplete resume and teacher-forced placeholder", () => {
     expect(source).toContain("first incomplete");
     expect(source).toContain("teacher-forced");
@@ -98,6 +105,7 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain("forcedStepId = classroomRuntime.activeStepId");
     expect(source).toContain("const resumeStepId = forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId");
     expect(source).toContain('teacherRecommendedStepId = classroomRuntime.activeStepId');
+    expect(source).toContain("slideIndex = classroomRuntime.slideIndex");
     expect(source).toContain("disabledStepIds: locked ? steps.map(s => s.id).filter(id => id !== forcedStepId) : []");
   });
 });

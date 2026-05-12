@@ -7,7 +7,7 @@ import { memberships, users } from "@/db/schema";
 import { z } from "zod";
 
 const credentialsSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().min(1, "请输入账号。"),
   password: z.string().min(1, "请输入密码。"),
   roleIntent: z.enum(["teacher", "student"]).default("student"),
 });
@@ -39,13 +39,13 @@ export async function signInAction(
   const parsed = credentialsSchema.safeParse({ email, password, roleIntent });
 
   if (!parsed.success) {
-    return { error: "请输入有效邮箱和密码。" };
+      return { error: "请输入有效账号和密码。" };
   }
 
   const userRecords = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, parsed.data.email))
+    .where(parsed.data.roleIntent === "student" ? eq(users.studentNumber, parsed.data.email) : eq(users.email, parsed.data.email))
     .limit(1);
 
   const user = userRecords[0];
@@ -81,7 +81,7 @@ export async function signInAction(
     });
   } catch (error: unknown) {
     if (isCredentialsSigninError(error)) {
-      return { error: "邮箱或密码不正确。" };
+      return { error: "账号或密码不正确。" };
     }
     throw error;
   }

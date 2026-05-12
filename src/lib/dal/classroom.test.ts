@@ -189,6 +189,15 @@ describe("getClassroomConsoleDTO", () => {
     expect(source).not.toContain("getLessonEditorDTO");
     expect(source).not.toContain("draft");
   });
+
+  it("reads markdown step payloads and material cues from published snapshots", async () => {
+    const source = (await import("node:fs")).readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain("const snapshot = parseSnapshot(publishedVersion?.snapshotJson)");
+    expect(source).toContain("const payload = lessonStepPayloadSchema.parse(step.payload)");
+    expect(source).toContain("const stepMaterials = (snapshot.materials ?? [])");
+    expect(source).toContain("const payloadMaterials = (\"materialRefs\" in payload ? payload.materialRefs : [])");
+  });
 });
 
 describe("classroom evidence foundation contracts", () => {

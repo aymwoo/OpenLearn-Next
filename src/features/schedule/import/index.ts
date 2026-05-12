@@ -1,6 +1,6 @@
-export { approveScheduleImportAction, deleteScheduleImportBatchAction, draftScheduleImportAction } from "./actions";
+export { approveScheduleImportAction, deleteScheduleImportBatchAction, draftScheduleImportAction, setPrimaryScheduleImportBatchAction } from "./actions";
 export { ScheduleImportReviewSurface } from "@/components/surfaces/schedule-import-review-surface";
-export { approveScheduleImport, deleteScheduleImportBatch, draftScheduleImport, exportScheduleImportBatchCsv, getLatestScheduleImportBatchDTO, listScheduleImportBatchDTOs } from "./server";
+export { approveScheduleImport, deleteScheduleImportBatch, draftScheduleImport, exportScheduleImportBatchCsv, getLatestScheduleImportBatchDTO, listScheduleImportBatchDTOs, setPrimaryScheduleImportBatch } from "./server";
 export { buildScheduleImportCsv, buildScheduleImportTemplateCsv, scheduleImportTemplateColumns, scheduleImportTemplateChineseHeaders, scheduleImportTemplateSampleRows, SCHEDULE_IMPORT_COLUMN_MAP } from "./template";
 export {
   ApproveScheduleImportInputSchema,

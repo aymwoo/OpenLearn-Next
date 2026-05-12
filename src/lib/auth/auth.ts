@@ -34,15 +34,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     CredentialsProvider({
       name: "账号密码登录",
       credentials: {
-        email: { label: "邮箱", type: "email", placeholder: "请输入登录邮箱" },
+        email: { label: "账号", type: "text", placeholder: "请输入教师邮箱或学生学号" },
         password: { label: "密码", type: "password" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
         const emailStr = String(credentials.email);
-        const userRecords = await db.select().from(users).where(eq(users.email, emailStr)).limit(1);
-        const user = userRecords[0];
+        const userRecords = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, emailStr))
+          .limit(1);
+        const userByEmail = userRecords[0];
+        const userByStudentNumber =
+          userByEmail ?? (await db.select().from(users).where(eq(users.studentNumber, emailStr)).limit(1))[0];
+        const user = userByStudentNumber;
 
         if (!user || !user.password) return null;
 

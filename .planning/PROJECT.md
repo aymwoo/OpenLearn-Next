@@ -10,16 +10,16 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## Current Milestone: v1.2 Course Import & Management
+## Current Milestone: v1.3 Teaching Orchestration & Classroom Intelligence
 
-**Goal:** 补齐课程导入与课程管理核心能力，让教师可以实际添加课程、管理课程，并从课程进入后续课时/教案管理流程。
+**Goal:** 在现有课程、教案编排、学生播放器、课堂运行和课表基础上，完整落地产品级的上课编排与教学活动实施闭环，覆盖教师教学环节设计、学生学习流程、过程性评价、课堂实施、数据采集、统计分析，以及继续沿用 Stitch 设计语言的高质量产品化页面。
 
 **Target features:**
-- 提供教师可用的课程中心，支持课程列表、查看和基础信息管理
-- 支持手动新建课程，并补齐编辑、发布/下线、归档/删除等生命周期动作
-- 支持课程与班级、学生的关联管理
-- 支持批量导入课程，并返回逐行校验与导入结果反馈
-- 提供从课程进入课时/教案管理的明确入口
+- 将现有 lesson step editor 升级为可承载教学意图、时长、活动方式、课堂证据要求的真实教学环节设计工作台
+- 将现有 launch / classroom / player 串成从课前准备到课堂实施再到课后复盘的完整教师-学生运行闭环
+- 将 progress、task、quiz、presence、observation、feedback 等过程数据汇总为统一的过程性评价工作流
+- 将课堂事件、参与状态、学习证据和干预记录沉淀为可统计、可回放、可审计的数据资产
+- 在 Stitch 项目 `5322129002350954765` 与 `DESIGN.md` 基础上，继续完成教师端规划、运行、评价、分析等关键页面的产品化设计
 
 ## Requirements
 
@@ -40,12 +40,23 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - [x] 建立 JSON 声明式 Theme + Plugin 注册、权限校验和 Hook 执行框架。
 - [x] 完成 Stitch MCP 读取与本地页面映射对齐，覆盖首页、教师端、课堂控制台、教案编辑器、学生端、资源页、课程页、批改页以及新增管理/设置页面。（Validated in Phases 8-9）
 - [x] 完成全局视觉收敛，移除遗留 1px border/outline 交互样式，并统一 tonal layering、Primary Blue CTA、ghost-focus、glass nav 与响应式视觉层级。（Validated in Phase 10: Global Visual Polish）
+- [x] 实现教师端教学流程编排器、预览与发布准备检查，具备真实课堂流程建模的基础能力。（Validated in Phase 17）
+- [x] 实现学生播放器、课堂 SSE 同步、课堂控制台、断点续播与课堂锁定模式，具备课堂运行基础闭环。（Validated in Phases 4-5, 12, 17）
+- [x] 实现基础教师评价页，可按学生查看 progress、latest attempts、history 与短反馈，具备过程性评价基础视图。（Validated in Phase 4）
+- [x] 实现 Teaching Schedule OS、班级/学生管理与相关教师工作台入口，为真实教学实施提供排课和名册上下文。（Validated in Phase 18 + quick follow-ups）
 
 ### Active
 
-- [ ] 教师可以在课程中心查看、创建、编辑、发布、归档和删除课程。
-- [ ] 教师可以批量导入课程，并获得逐行校验、重复冲突与导入结果反馈。
-- [ ] 教师可以为课程关联班级/学生，并从课程直接进入课时/教案管理流程。
+- [ ] 教师可以围绕单节课完成教学环节设计、课前准备、课堂实施、课后复盘的一体化工作流。
+- [ ] 学生可以在课堂中看到清晰的活动目标、当前环节要求、提交状态与课堂节奏反馈，并完成过程性学习证据提交。
+- [ ] 教师可以在课堂运行中看到名册、出勤/在线状态、环节推进、学习进度、提交数量和需要干预的学生。
+- [ ] 教师可以在统一评价工作流中整合 progress、task、quiz、presence、observation、feedback 等多源证据，完成轻量过程性评价。
+- [ ] 系统可以沉淀课堂事件、参与记录、学习证据和教学干预数据，并生成可追溯的统计分析与复盘视图。
+- [ ] 新增教师端规划、运行、评价、分析页面继续严格对齐 Stitch 设计语言，达到产品级信息架构和响应式质量。
+
+### Deferred carry-over backlog
+
+- [ ] `COURSE-04` ~ `COURSE-09` 继续保留为上一 milestone 的尾项 backlog，只覆盖课程生命周期、课程关联与批量导入，不再扩写为更大的课堂实施需求。
 
 ### Out of Scope
 
@@ -59,7 +70,11 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应变成可计算流程。核心业务围绕教师编排课堂、学生按步骤参与、系统记录学习进度和提交、AI Agent 辅助生成与分析展开。
 
-当前代码已经具备 `courses`、`courseClasses`、`courseEnrollments`、`lessons` 等基础 schema 与部分 DAL / Server Action 能力，也已经支持教师创建课程草稿和课时草稿。但 `/teacher/courses` 的可用课程中心、批量导入闭环、课程关联管理以及从课程进入教案管理的教师工作流仍未完成，这也是本 milestone 的直接补齐目标。
+当前代码已经具备 `courses`、`courseClasses`、`courseEnrollments`、`lessons`、`publishedLessonVersions`、`lessonStepProgress`、`taskSubmissions`、`quizAttempts`、`classroomSessions`、`classroomParticipants`、`classroomEvents` 等核心 schema，也已经支持教师端编排、预览、发布，学生端学习与提交，课堂端 SSE 运行，以及基础教师评价与课表/名册能力。
+
+这意味着“可运行的课堂闭环基础”已经存在，但离“真正产品级的上课编排和教学活动实施”仍有明确差距：现有 editor 还偏 lesson flow authoring，而不是完整教学设计工作台；现有 classroom console 还没有把出勤、参与、观察、干预、过程性评价和课后复盘组织成统一产品面；现有 review 也还停留在基础 progress/submission/feedback 视角，尚未形成面向真实教学决策的数据采集与统计分析闭环。
+
+上一 milestone 未完成的 `/teacher/courses` 生命周期、关联和批量导入能力继续保留，但它们属于课程运营尾项，不应继续吞并“课堂实施与教学分析”这类更大产品范围。本 milestone 将单独建立新方向，避免把超大范围错误塞进 Phase 14。
 
 用户角色采用 RBAC 与 ABAC 混合模型，包含超级管理员、学校管理员、教师、学生、家长、开发者和 AI Agent。所有 Server Actions 与 DAL 函数都必须验证 `userId`、`role` 和必要资源权限。
 
@@ -71,7 +86,7 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 
 AI 生态包括多 Agent 协同和 RAG 知识库。教材库支持 PDF 等多模态解析，向量库目标为 Qdrant；MCP 连接 Moodle、GitHub、Notion、企业微信/钉钉，并可接入 Next.js Devtools MCP 辅助开发期调试。
 
-v1.2 的课程导入范围明确限定为手动新建与批量导入，不在本 milestone 接入真实外部系统导入。Moodle、Notion 等外部平台的真实同步或导入能力继续保留在后续 milestone，通过 MCP 或专门的集成边界接入。
+旧 v1.2 的课程导入范围明确限定为手动新建与批量导入，不在当前新 milestone 接入真实外部系统导入。Moodle、Notion 等外部平台的真实同步或导入能力继续保留在后续 milestone，通过 MCP 或专门的集成边界接入。
 
 UI 设计源来自 Stitch 项目 `5322129002350954765`，项目名为“晨曦在线课堂”。后续实现页面时必须优先匹配同名或同职能页面：`首页 - OpenLear-Next (一屏精简版)` 对应首页，`教师工作台 - 简体中文版` 对应教师 dashboard，`课堂教学流程编排 - 优化布局版` 对应教案/步骤编排器，`学生仪表盘 - OpenLear-Next (新亮色版)` 对应学生 dashboard，`学生学习页面 - OpenLear-Next` 和 `全屏沉浸学习模式 - OpenLear-Next` 对应学生播放器，`课堂教学流程运行管理` 和 `课堂教学运行管理 - 优化版` 对应实时课堂控制台，`教学资源中心` 和 `课程中心` 对应资源与课程管理。
 
@@ -100,8 +115,10 @@ UI 设计源来自 Stitch 项目 `5322129002350954765`，项目名为“晨曦�
 | 学生提交采用 Append-only + `isLatest` | 保留所有尝试历史，同时优化最新提交读取 | — Pending |
 | 插件系统采用声明式 JSON + Hook + Core API | 保持扩展能力同时控制安全边界 | — Pending |
 | UI 实现绑定 Stitch 项目 `5322129002350954765` | 让首页、教师中心、学生端和课堂控制台继承既定设计 | — Pending |
-| v1.2 先做手动新建与批量导入课程 | 先补齐教师真实可用的课程运营闭环，避免在同一 milestone 混入外部系统集成复杂度 | — Pending |
-| 课程管理继续沿用 DAL + Server Actions + school-scoped 授权边界 | 课程、班级、学生关联都属于高风险学校数据，必须复用现有权限模型与缓存失效策略 | — Pending |
+| 旧 v1.2 的 Phase 14/15 继续只覆盖课程生命周期、关联与批量导入 | 保持 backlog 边界稳定，避免课程运营尾项继续吞掉课堂实施新范围 | — Pending |
+| 新 milestone 继续沿用现有线性步骤模型，并在其上补足教学设计元数据与运行证据 | 先把真实课堂实施闭环做深，再决定是否进入分支式或图式流程 | — Pending |
+| 过程性评价首发聚焦 evidence aggregation、observation、feedback 和 deterministic analytics | 先避免 gradebook 级复杂度，把教师日常教学决策所需信息做全 | — Pending |
+| 统计分析首发必须基于现有真实课堂与学习数据计算，不依赖 AI 自动总结 | 先建立可信数据面，再叠加 DataAgent 或 insight narration | — Pending |
 
 ## Evolution
 
@@ -121,4 +138,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-09 after milestone v1.2 definition*
+*Last updated: 2026-05-12 after milestone v1.3 definition*

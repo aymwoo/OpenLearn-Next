@@ -4,13 +4,19 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import {
+  deleteClassesForTeacher,
+  deleteStudentsForTeacher,
   importClassRosterForTeacher,
   importClassesForTeacher,
+  resetStudentPasswordsForTeacher,
   updateClassNameForTeacher,
 } from "@/lib/dal/class-management";
 import {
+  DeleteClassesInputSchema,
+  DeleteStudentsInputSchema,
   ImportClassRosterInputSchema,
   ImportClassesInputSchema,
+  ResetStudentPasswordsInputSchema,
   UpdateClassNameInputSchema,
 } from "@/lib/dto/class-management";
 
@@ -29,6 +35,10 @@ function handleClassManagementError(error: unknown, fallbackMessage: string): Ac
 
   if (error instanceof Error && error.message === "CLASS_NOT_FOUND") {
     return { ok: false, error: "NOT_FOUND", message: "班级不存在或已被移除。" };
+  }
+
+  if (error instanceof Error && error.message === "STUDENT_NOT_FOUND") {
+    return { ok: false, error: "NOT_FOUND", message: "学生不存在或已被移除。" };
   }
 
   return { ok: false, error: "ACTION_FAILED", message: fallbackMessage };
@@ -90,5 +100,50 @@ export async function importClassRosterAction(input: unknown): Promise<ActionRes
     return { ok: true, data: result };
   } catch (error) {
     return handleClassManagementError(error, "学生名册导入暂时没有成功，请稍后重试。");
+  }
+}
+
+export async function resetStudentPasswordsAction(input: unknown): Promise<ActionResult<{ updatedCount: number }>> {
+  const parsed = ResetStudentPasswordsInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "VALIDATION_ERROR", message: "请输入有效的新密码和学生范围。" };
+  }
+
+  try {
+    const result = await resetStudentPasswordsForTeacher(parsed.data);
+    refreshClassesPage();
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassManagementError(error, "学生密码重置失败，请稍后重试。");
+  }
+}
+
+export async function deleteStudentsAction(input: unknown): Promise<ActionResult<{ deletedCount: number }>> {
+  const parsed = DeleteStudentsInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "VALIDATION_ERROR", message: "请选择要删除的学生。" };
+  }
+
+  try {
+    const result = await deleteStudentsForTeacher(parsed.data);
+    refreshClassesPage();
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassManagementError(error, "学生删除失败，请稍后重试。");
+  }
+}
+
+export async function deleteClassesAction(input: unknown): Promise<ActionResult<{ deletedCount: number }>> {
+  const parsed = DeleteClassesInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "VALIDATION_ERROR", message: "请选择要删除的班级。" };
+  }
+
+  try {
+    const result = await deleteClassesForTeacher(parsed.data);
+    refreshClassesPage();
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassManagementError(error, "班级删除失败，请稍后重试。");
   }
 }

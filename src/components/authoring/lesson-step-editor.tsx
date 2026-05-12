@@ -3,17 +3,20 @@
 import { Clock3, Eye, FileText } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
-import { autosaveLessonStepAction } from "@/actions/lesson-authoring-actions";
+import { autosaveLessonStepAction, uploadLessonMarkdownAssetAction } from "@/actions/lesson-authoring-actions";
 import {
   lessonStepEditorResetRequestEvent,
   lessonStepEditorSaveRequestEvent,
 } from "@/components/authoring/editor-command-events";
+import { MarkdownRenderer } from "@/components/markdown/markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { lessonStepPayloadSchema, type LessonStepDTO, type LessonStepPayload } from "@/lib/dto/lesson-authoring";
 
 type LessonStepEditorProps = {
   step: LessonStepDTO | null;
+  schoolId?: string;
+  courseId?: string;
   className?: string;
   onCancel?: () => void;
 };
@@ -38,6 +41,12 @@ type EditorState = {
   title: string;
   contentBody: string;
   teacherNotes: string;
+   markdownSource: string;
+   markdownTitle: string;
+   markdownRenderMode: "document" | "reveal";
+   markdownMermaidEnabled: boolean;
+   markdownAssetResourceId: string;
+   markdownAssetMaterialId: string;
   taskPrompt: string;
   submissionType: "text" | "image" | "file" | "link";
   successCriteria: string;
@@ -58,6 +67,12 @@ function buildInitialState(step: LessonStepDTO): EditorState {
     title: step.title,
     contentBody: step.payload.type === "content" ? step.payload.body : "",
     teacherNotes: step.payload.type === "content" ? step.payload.teacherNotes ?? "" : "",
+    markdownSource: step.payload.type === "content" ? step.payload.markdown?.source ?? "" : "",
+    markdownTitle: step.payload.type === "content" ? step.payload.markdown?.asset.title ?? step.title : step.title,
+    markdownRenderMode: step.payload.type === "content" ? step.payload.markdown?.renderMode ?? "document" : "document",
+    markdownMermaidEnabled: step.payload.type === "content" ? step.payload.markdown?.mermaidEnabled ?? false : false,
+    markdownAssetResourceId: step.payload.type === "content" ? step.payload.markdown?.asset.resourceId ?? "" : "",
+    markdownAssetMaterialId: step.payload.type === "content" ? step.payload.markdown?.asset.materialId ?? "" : "",
     taskPrompt: step.payload.type === "task" ? step.payload.prompt : "",
     submissionType: step.payload.type === "task" ? step.payload.submissionType : "text",
     successCriteria: step.payload.type === "task" ? step.payload.successCriteria ?? "" : "",
@@ -102,6 +117,18 @@ function parsePreviewMaterialRefs(text: string) {
 function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayload {
   const materialRefs = parseMaterialRefs(state.materialRefsText, step.payload);
   const builtInSource = step.payload.builtInSource;
+  const markdown = state.markdownSource.trim() && state.markdownAssetResourceId.trim() && state.markdownAssetMaterialId.trim()
+    ? {
+        asset: {
+          resourceId: state.markdownAssetResourceId.trim(),
+          materialId: state.markdownAssetMaterialId.trim(),
+          title: state.markdownTitle.trim() || state.title.trim(),
+        },
+        source: state.markdownSource.trim(),
+        renderMode: state.markdownRenderMode,
+        mermaidEnabled: state.markdownMermaidEnabled,
+      }
+    : undefined;
 
   if (step.type === "content" && step.payload.type === "content") {
     return {
@@ -110,6 +137,7 @@ function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayloa
       body: state.contentBody.trim(),
       teacherNotes: state.teacherNotes.trim() || undefined,
       materialRefs,
+      markdown,
       builtInSource,
     };
   }
@@ -145,7 +173,7 @@ function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayloa
   };
 }
 
-export function LessonStepEditor({ step, className, onCancel }: LessonStepEditorProps) {
+export function LessonStepEditor({ step, schoolId, courseId, className, onCancel }: LessonStepEditorProps) {
   const [isPending, startTransition] = useTransition();
   const [status, setStatus] = useState<string | null>(null);
   const [stateByStepId, setStateByStepId] = useState<Record<string, EditorState>>({});
@@ -189,19 +217,51 @@ export function LessonStepEditor({ step, className, onCancel }: LessonStepEditor
   }
 
   function saveStep() {
-    const nextPayload = buildPayload(activeState, activeStep);
-    const parsedPayload = lessonStepPayloadSchema.safeParse(nextPayload);
-
-    if (!parsedPayload.success || !activeState.title.trim()) {
-      setStatus(validationCopy);
-      return;
-    }
-
     setStatus(savingCopy);
     startTransition(async () => {
+      let nextState = activeState;
+
+      if (
+        activeStep.type === 'content' &&
+        activeState.markdownSource.trim() &&
+        !activeState.markdownAssetResourceId.trim() &&
+        schoolId &&
+        courseId
+      ) {
+        const uploaded = await uploadLessonMarkdownAssetAction({
+          schoolId,
+          courseId,
+          title: activeState.markdownTitle.trim() || activeState.title.trim(),
+          source: activeState.markdownSource.trim(),
+        })
+
+        if (!uploaded.ok || !uploaded.data || typeof uploaded.data !== 'object' || !('id' in uploaded.data)) {
+          setStatus(validationCopy)
+          return
+        }
+
+        nextState = {
+          ...activeState,
+          markdownAssetResourceId: String(uploaded.data.id),
+          markdownAssetMaterialId: crypto.randomUUID(),
+        }
+        setStateByStepId((prev) => ({
+          ...prev,
+          [activeStep.id]: nextState,
+        }))
+      }
+
+      const nextPayload = buildPayload(nextState, activeStep)
+      const parsedPayload = lessonStepPayloadSchema.safeParse(nextPayload)
+
+      if (!parsedPayload.success || !nextState.title.trim()) {
+        setStatus(validationCopy)
+        return
+      }
+
       const result = await autosaveLessonStepAction({
         stepId: activeStep.id,
-        title: activeState.title.trim(),
+        title: nextState.title.trim(),
         payload: parsedPayload.data,
       });
 
@@ -220,6 +280,29 @@ export function LessonStepEditor({ step, className, onCancel }: LessonStepEditor
       [activeStep.id]: buildInitialState(activeStep),
     }));
     setStatus(restoredCopy);
+  }
+
+  async function importMarkdownFile(file: File) {
+    const source = await file.text();
+    updateField("markdownSource", source);
+    updateField("markdownTitle", file.name.replace(/\.md$/i, "") || activeState.title);
+
+    if (!schoolId || !courseId) {
+      return;
+    }
+
+    const result = await uploadLessonMarkdownAssetAction({
+      schoolId,
+      courseId,
+      title: file.name.replace(/\.md$/i, "") || activeState.title,
+      source,
+    });
+
+    if (result.ok && result.data && typeof result.data === "object" && "id" in result.data) {
+      updateField("markdownAssetResourceId", String(result.data.id));
+      updateField("markdownAssetMaterialId", crypto.randomUUID());
+      setStatus("Markdown 已导入，可继续保存步骤。");
+    }
   }
 
   useEffect(() => {
@@ -295,6 +378,60 @@ export function LessonStepEditor({ step, className, onCancel }: LessonStepEditor
                         className={`${fieldClassName} min-h-20`}
                         value={activeState.teacherNotes}
                         onChange={(event) => updateField("teacherNotes", event.target.value)}
+                      />
+                    </label>
+                    <label className="grid gap-2" htmlFor="lesson-step-markdown-title">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">Markdown 标题</span>
+                      <input
+                        id="lesson-step-markdown-title"
+                        className={fieldClassName}
+                        value={activeState.markdownTitle}
+                        onChange={(event) => updateField("markdownTitle", event.target.value)}
+                      />
+                    </label>
+                    <label className="grid gap-2" htmlFor="lesson-step-markdown-mode">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">Markdown 渲染模式</span>
+                      <select
+                        id="lesson-step-markdown-mode"
+                        className={fieldClassName}
+                        value={activeState.markdownRenderMode}
+                        onChange={(event) => updateField("markdownRenderMode", event.target.value as EditorState["markdownRenderMode"])}
+                      >
+                        <option value="document">document</option>
+                        <option value="reveal">reveal</option>
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-3 rounded-none bg-surface-container-high px-4 py-3 text-sm text-on-surface">
+                      <input
+                        type="checkbox"
+                        checked={activeState.markdownMermaidEnabled}
+                        onChange={(event) => updateField("markdownMermaidEnabled", event.target.checked)}
+                      />
+                      启用 Mermaid 渲染
+                    </label>
+                    <label className="grid gap-2" htmlFor="lesson-step-markdown-source">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">Markdown 源码</span>
+                      <textarea
+                        id="lesson-step-markdown-source"
+                        className={`${fieldClassName} min-h-28`}
+                        value={activeState.markdownSource}
+                        onChange={(event) => updateField("markdownSource", event.target.value)}
+                        placeholder="可直接粘贴 markdown 文档，或通过下方上传 .md 文件。"
+                      />
+                    </label>
+                    <label className="grid gap-2" htmlFor="lesson-step-markdown-file">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">上传 Markdown 文件</span>
+                      <input
+                        id="lesson-step-markdown-file"
+                        type="file"
+                        accept=".md,text/markdown"
+                        className={fieldClassName}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0]
+                          if (file) {
+                            void importMarkdownFile(file)
+                          }
+                        }}
                       />
                     </label>
                   </>
@@ -443,9 +580,34 @@ export function LessonStepEditor({ step, className, onCancel }: LessonStepEditor
                 ) : null}
               </div>
 
-              <p className="mt-3 text-sm leading-6 text-on-surface">
-                {previewSupport}
-              </p>
+              <p className="mt-3 text-sm leading-6 text-on-surface">{previewSupport}</p>
+
+              {activeStep.type === "content" && activeState.markdownSource.trim() ? (
+                <div className="mt-4 rounded-[1.25rem] bg-surface-container p-4">
+                  <MarkdownRenderer
+                    step={{
+                      title: previewTitle,
+                      payload: {
+                        type: 'content',
+                        title: previewTitle,
+                        body: activeState.contentBody,
+                        teacherNotes: activeState.teacherNotes || undefined,
+                        materialRefs: previewMaterialRefs.map((item) => ({ title: item.title, kind: 'link', url: item.url })),
+                        markdown: activeState.markdownAssetResourceId && activeState.markdownAssetMaterialId ? {
+                          asset: {
+                            resourceId: activeState.markdownAssetResourceId,
+                            materialId: activeState.markdownAssetMaterialId,
+                            title: activeState.markdownTitle || previewTitle,
+                          },
+                          source: activeState.markdownSource,
+                          renderMode: activeState.markdownRenderMode,
+                          mermaidEnabled: activeState.markdownMermaidEnabled,
+                        } : undefined,
+                      },
+                    }}
+                  />
+                </div>
+              ) : null}
 
               <div className="mt-4 flex items-center gap-3 border-l-4 border-secondary bg-surface-container-low p-3">
                 <div className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary-container text-on-secondary-container">

@@ -399,6 +399,21 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
     },
   },
   {
+    builtInKey: "markdownDeck",
+    pluginName: "Markdown 课件",
+    title: "Markdown 课件",
+    summary: "插入可渲染 Mermaid 与 RevealJS 的 markdown 文档课件。",
+    stepType: "content",
+    initialTitle: "Markdown 课件",
+    initialPayload: {
+      type: "content",
+      title: "Markdown 课件",
+      body: "请上传 markdown 文档，或直接粘贴课件内容。",
+      teacherNotes: "可切换为 Reveal 模式进行课堂放映。",
+      materialRefs: [],
+    },
+  },
+  {
     builtInKey: "survey",
     pluginName: "问卷调查",
     title: "问卷调查",

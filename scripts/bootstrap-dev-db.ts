@@ -86,6 +86,19 @@ const BUILT_IN_PLUGIN_DEFINITIONS = [
     },
   },
   {
+    name: "Markdown 课件",
+    manifest: {
+      id: "builtin-teaching-step-markdown-deck",
+      version: "1.0.0",
+      permissions: ["lesson:write:suggestion"],
+      anchors: ["lesson.sidebar"],
+      actions: ["suggestBuiltInTeachingStep", "insertBuiltInTeachingStepTemplate"],
+      builtIn: true,
+      defaultEnabled: true,
+      nonDeletable: true,
+    },
+  },
+  {
     name: "问卷调查",
     manifest: {
       id: "builtin-teaching-step-survey",

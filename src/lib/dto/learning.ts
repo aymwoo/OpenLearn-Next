@@ -23,6 +23,7 @@ export const RuntimeStepStateDTOSchema = z.object({
   classroomVersion: z.number().int().nullable().default(null),
   connectionState: z.enum(["connected", "reconnecting", "offline", "snapshot_fallback"]).default("offline"),
   teacherRecommendedStepId: z.string().nullable().default(null),
+  slideIndex: z.number().int().nonnegative().nullable().default(null),
   disabledStepIds: z.array(z.string()).default([]),
   disabledReason: z.string().nullable().default(null),
   snapshotStatusCopy: z.string().nullable().default(null),

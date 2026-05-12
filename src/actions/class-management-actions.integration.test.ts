@@ -3,6 +3,7 @@ import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { createClient } from "@libsql/client";
+import bcrypt from "bcryptjs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { parseRosterImportCsv } from "@/features/class-management/roster-csv";
@@ -101,7 +102,7 @@ describe("class roster gender integration", () => {
     }
   });
 
-  it("persists gender from CSV through action and exposes it in class management DTO", async () => {
+  it("persists gender and studentNumber login identity from CSV through action and exposes it in class management DTO", async () => {
     const csv = [
       "className,studentName,studentNumber,gender",
       "高一（1）班,张三,S2026001,男",
@@ -148,16 +149,17 @@ describe("class roster gender integration", () => {
 
     const verificationClient = createClient({ url: databaseUrl });
     const persistedUsers = await verificationClient.execute(
-      "SELECT name, studentNumber, gender FROM user ORDER BY studentNumber ASC",
+      "SELECT name, email, studentNumber, gender FROM user ORDER BY studentNumber ASC",
     );
 
     expect(persistedUsers.rows.map((row) => ({
       name: row.name,
+      email: row.email,
       studentNumber: row.studentNumber,
       gender: row.gender,
     }))).toEqual([
-      { name: "张三", studentNumber: "S2026001", gender: "male" },
-      { name: "李四", studentNumber: "S2026002", gender: "female" },
+      { name: "张三", email: "S2026001", studentNumber: "S2026001", gender: "male" },
+      { name: "李四", email: "S2026002", studentNumber: "S2026002", gender: "female" },
     ]);
 
     const dto = await getTeacherClassManagementDTO();
@@ -183,6 +185,84 @@ describe("class roster gender integration", () => {
         ],
       },
     ]);
+
+    await (verificationClient as { close?: () => Promise<void> | void }).close?.();
+  });
+
+  it("resets selected student passwords and deletes scoped students/classes", async () => {
+    const csv = [
+      "className,studentName,studentNumber,gender",
+      "高一（1）班,张三,S2026001,男",
+      "高一（1）班,李四,S2026002,女",
+      "高一（2）班,王五,S2026003,男",
+    ].join("\n");
+
+    const rows = parseRosterImportCsv(csv);
+    const [{ importClassRosterAction, resetStudentPasswordsAction, deleteStudentsAction, deleteClassesAction }, { getTeacherClassManagementDTO }] =
+      await Promise.all([import("./class-management-actions"), import("@/lib/dal/class-management")]);
+
+    await importClassRosterAction({
+      schoolId: "school-1",
+      rows,
+      createMissingClasses: true,
+    });
+
+    const dto = await getTeacherClassManagementDTO();
+    const firstClass = dto.classes.find((item) => item.name === "高一（1）班");
+    const secondClass = dto.classes.find((item) => item.name === "高一（2）班");
+
+    expect(firstClass).toBeTruthy();
+    expect(secondClass).toBeTruthy();
+
+    const resetResult = await resetStudentPasswordsAction({
+      studentIds: firstClass!.students.map((item) => item.userId),
+      password: "Reset#2026",
+    });
+
+    expect(resetResult).toEqual({
+      ok: true,
+      data: {
+        updatedCount: 2,
+      },
+    });
+
+    const verificationClient = createClient({ url: databaseUrl });
+    const passwordRows = await verificationClient.execute(
+      "SELECT studentNumber, password FROM user WHERE studentNumber IN ('S2026001', 'S2026002') ORDER BY studentNumber ASC",
+    );
+
+    await expect(bcrypt.compare("Reset#2026", String(passwordRows.rows[0]?.password ?? ""))).resolves.toBe(true);
+    await expect(bcrypt.compare("Reset#2026", String(passwordRows.rows[1]?.password ?? ""))).resolves.toBe(true);
+
+    const deleteStudentsResult = await deleteStudentsAction({
+      studentIds: [firstClass!.students[0]!.userId],
+    });
+
+    expect(deleteStudentsResult).toEqual({
+      ok: true,
+      data: {
+        deletedCount: 1,
+      },
+    });
+
+    const remainingStudents = await verificationClient.execute(
+      "SELECT studentNumber FROM user ORDER BY studentNumber ASC",
+    );
+    expect(remainingStudents.rows.map((row) => row.studentNumber)).toEqual(["S2026002", "S2026003"]);
+
+    const deleteClassesResult = await deleteClassesAction({
+      classIds: [secondClass!.id],
+    });
+
+    expect(deleteClassesResult).toEqual({
+      ok: true,
+      data: {
+        deletedCount: 1,
+      },
+    });
+
+    const remainingClasses = await verificationClient.execute("SELECT name FROM class ORDER BY name ASC");
+    expect(remainingClasses.rows.map((row) => row.name)).toEqual(["高一（1）班"]);
 
     await (verificationClient as { close?: () => Promise<void> | void }).close?.();
   });

@@ -8,6 +8,7 @@ const actionsSource = readFileSync("src/features/schedule/import/actions.ts", "u
 describe("schedule import DAL", () => {
   it("stages rows before approval and keeps row-level review statuses", () => {
     expect(source).toContain("scheduleImportBatch");
+    expect(source).toContain("isPrimary");
     expect(source).toContain("scheduleImportRow");
     expect(source).toContain("await tx.insert(scheduleRecurringEntry)");
     expect(source).toContain("validation_failed");
@@ -31,7 +32,15 @@ describe("schedule import DAL", () => {
 
   it("returns APPPROVE_IMPORT_BLOCKED style structured action failures and invalidates tags", () => {
     expect(actionsSource).toContain('error: "APPROVE_IMPORT_BLOCKED"');
+    expect(actionsSource).toContain('error: "SET_PRIMARY_IMPORT_BLOCKED"');
     expect(actionsSource).toContain("invalidateScheduleImportTags(updateTag");
     expect(actionsSource).toContain("assertScheduleTeacherScope");
+  });
+
+  it("supports persisting and switching a primary schedule import batch", () => {
+    expect(source).toContain("setPrimaryScheduleImportBatch");
+    expect(source).toContain("assignPrimaryScheduleBatch");
+    expect(source).toContain('actionType: "set_primary_import"');
+    expect(actionsSource).toContain("setPrimaryScheduleImportBatchAction");
   });
 });

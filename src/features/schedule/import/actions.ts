@@ -4,7 +4,7 @@ import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { approveScheduleImport, deleteScheduleImportBatch, draftScheduleImport, type ScheduleImportActionError } from "@/features/schedule/import/server";
+import { approveScheduleImport, deleteScheduleImportBatch, draftScheduleImport, setPrimaryScheduleImportBatch, type ScheduleImportActionError } from "@/features/schedule/import/server";
 import { assertScheduleTeacherScope } from "@/features/schedule/shared/auth";
 import { invalidateScheduleImportTags } from "@/features/schedule/shared/cache";
 import { ApproveScheduleImportInputSchema, ScheduleImportDraftInputSchema } from "@/features/schedule/shared/dto/import";
@@ -12,6 +12,7 @@ import { normalizeScheduleImportColumnHeader, SCHEDULE_IMPORT_COLUMN_MAP } from 
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; message: string; issues?: unknown[] };
 const DeleteScheduleImportBatchInputSchema = z.object({ batchId: z.string().min(1) }).strict();
+const SetPrimaryScheduleImportBatchInputSchema = z.object({ batchId: z.string().min(1) }).strict();
 
 function normalizeImportTimeValue(value: unknown) {
   if (typeof value !== "string") {
@@ -116,6 +117,15 @@ function handleScheduleError(error: unknown) {
     };
   }
 
+  if (scheduleError?.code === "SET_PRIMARY_IMPORT_BLOCKED") {
+    return {
+      ok: false as const,
+      error: "SET_PRIMARY_IMPORT_BLOCKED",
+      message: scheduleError.userMessage ?? "当前课表暂时不能设为主课表。",
+      issues: scheduleError.issues ?? [],
+    };
+  }
+
   return { ok: false as const, error: "ACTION_FAILED", message: "课表导入暂时没有成功，请稍后重试。" };
 }
 
@@ -168,6 +178,20 @@ export async function deleteScheduleImportBatchAction(batchId: string) {
     actorId: actor.userId,
     schoolId: deleted.schoolId,
     batchId: deleted.id,
+  });
+
+  redirect("/teacher/schedule");
+}
+
+export async function setPrimaryScheduleImportBatchAction(batchId: string) {
+  const parsed = SetPrimaryScheduleImportBatchInputSchema.parse({ batchId });
+  const actor = await assertScheduleTeacherScope();
+  const batch = await setPrimaryScheduleImportBatch(parsed.batchId);
+
+  invalidateScheduleImportTags(updateTag, {
+    actorId: actor.userId,
+    schoolId: batch.schoolId,
+    batchId: batch.id,
   });
 
   redirect("/teacher/schedule");

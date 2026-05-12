@@ -14,9 +14,11 @@ import {
   lessonSteps,
   pluginRegistrations,
   publishedLessonVersions,
+  resources,
 } from "@/db/schema";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
+import { resolveTeachingDesignInput } from "@/lib/teaching-design";
 import {
   AutosaveResultDTOSchema,
   BuiltInTeachingStepKeySchema,
@@ -28,7 +30,6 @@ import {
   TeacherLessonPreviewDTOSchema,
   TeacherAuthoringOverviewDTOSchema,
   lessonStepPayloadSchema,
-  type TeachingDesign,
   type TeachingDesignFallbackReason,
   type TeachingDesignStatus,
   type AutosaveResultDTO,
@@ -70,6 +71,71 @@ type UpdateLessonStepInput = {
   title: string;
   payload: LessonStepPayload;
 };
+
+async function syncMarkdownAssetForStep(input: {
+  lessonId: string;
+  courseId: string;
+  schoolId: string;
+  actorId: string;
+  stepId: string;
+  title: string;
+  payload: LessonStepPayload;
+}) {
+  if (input.payload.type !== "content" || !input.payload.markdown) {
+    return;
+  }
+
+  const asset = input.payload.markdown.asset;
+  const existingResource = await db.query.resources.findFirst({ where: eq(resources.id, asset.resourceId) });
+
+  if (existingResource) {
+    await db
+      .update(resources)
+      .set({
+        title: asset.title,
+        content: input.payload.markdown.source,
+        classification: "markdown",
+        updatedAt: new Date(),
+      })
+      .where(eq(resources.id, asset.resourceId));
+  } else {
+    await db.insert(resources).values({
+      id: asset.resourceId,
+      schoolId: input.schoolId,
+      ownerId: input.actorId,
+      courseId: input.courseId,
+      title: asset.title,
+      visibility: "private",
+      classification: "markdown",
+      content: input.payload.markdown.source,
+    });
+  }
+
+  const existingMaterial = await db.query.lessonMaterials.findFirst({ where: eq(lessonMaterials.id, asset.materialId) });
+
+  if (existingMaterial) {
+    await db
+      .update(lessonMaterials)
+      .set({
+        stepId: input.stepId,
+        title: asset.title,
+        kind: "markdown",
+        url: asset.resourceId,
+        note: input.payload.markdown.renderMode,
+      })
+      .where(eq(lessonMaterials.id, asset.materialId));
+  } else {
+    await db.insert(lessonMaterials).values({
+      id: asset.materialId,
+      lessonId: input.lessonId,
+      stepId: input.stepId,
+      title: asset.title,
+      kind: "markdown",
+      url: asset.resourceId,
+      note: input.payload.markdown.renderMode,
+    });
+  }
+}
 
 type ReorderLessonStepInput = {
   stepId: string;
@@ -269,68 +335,17 @@ type HydratedTeachingDesign = {
   teachingDesignFallbackReason: TeachingDesignFallbackReason | null;
 };
 
-const LEGACY_TEACHING_DESIGN_DEFAULTS: Record<LessonStepPayload["type"], TeachingDesign> = {
-  content: {
-    activityIntent: "explain",
-    estimatedMinutes: 12,
-    activityMode: "mini-lecture",
-    evidenceExpectation: {
-      evidenceType: "observation",
-      prompt: "关注学生是否能跟随讲解理解核心概念。",
-      required: false,
-      checklist: [],
-      tags: ["legacy-default", "content"],
-      studentVisibility: "teacher-only",
-    },
-  },
-  task: {
-    activityIntent: "practice",
-    estimatedMinutes: 15,
-    activityMode: "independent",
-    evidenceExpectation: {
-      evidenceType: "submission",
-      prompt: "收集学生任务完成情况与关键产出。",
-      required: true,
-      checklist: [],
-      tags: ["legacy-default", "task"],
-      studentVisibility: "teacher-only",
-    },
-  },
-  quiz: {
-    activityIntent: "check",
-    estimatedMinutes: 8,
-    activityMode: "assessment",
-    evidenceExpectation: {
-      evidenceType: "quiz-response",
-      prompt: "记录学生对关键问题的即时作答情况。",
-      required: true,
-      checklist: [],
-      tags: ["legacy-default", "quiz"],
-      studentVisibility: "teacher-only",
-    },
-  },
-};
-
 function hydrateTeachingDesign(payload: LessonStepPayload): HydratedTeachingDesign {
-  const defaultDesign = structuredClone(LEGACY_TEACHING_DESIGN_DEFAULTS[payload.type]);
-
-  if (!payload.teachingDesign) {
-    return {
-      payload: {
-        ...payload,
-        teachingDesign: defaultDesign,
-      },
-      teachingDesignStatus: "inferred",
-      needsTeachingDesignRefinement: true,
-      teachingDesignFallbackReason: `legacy-${payload.type}-default` as TeachingDesignFallbackReason,
-    };
-  }
+  const resolution = resolveTeachingDesignInput(payload.type, payload.teachingDesign);
 
   return {
-    payload,
-    teachingDesignStatus: "explicit",
-    needsTeachingDesignRefinement: false,
-    teachingDesignFallbackReason: null,
+    payload: {
+      ...payload,
+      teachingDesign: resolution.teachingDesign,
+    },
+    teachingDesignStatus: resolution.teachingDesignStatus,
+    needsTeachingDesignRefinement: resolution.needsTeachingDesignRefinement,
+    teachingDesignFallbackReason: resolution.teachingDesignFallbackReason,
   };
 }
 
@@ -637,7 +652,7 @@ export async function archiveLesson(lessonId: string): Promise<AutosaveResultDTO
 
 export async function addLessonStep(input: AddLessonStepInput): Promise<AutosaveResultDTO> {
   const scope = await assertActiveTeacher();
-  const { lesson } = await getScopedLesson(input.lessonId, scope);
+  const { lesson, course } = await getScopedLesson(input.lessonId, scope);
   const payload = lessonStepPayloadSchema.parse(input.payload);
   const lastStep = await db.query.lessonSteps.findFirst({
     where: eq(lessonSteps.lessonId, input.lessonId),
@@ -648,6 +663,16 @@ export async function addLessonStep(input: AddLessonStepInput): Promise<Autosave
     .insert(lessonSteps)
     .values({ lessonId: input.lessonId, type: input.type, title: input.title, rank, payloadJson: payload })
     .returning();
+
+  await syncMarkdownAssetForStep({
+    lessonId: input.lessonId,
+    courseId: course.id,
+    schoolId: course.schoolId,
+    actorId: scope.userId,
+    stepId: step.id,
+    title: input.title,
+    payload,
+  });
 
   await db
     .update(lessons)
@@ -672,6 +697,16 @@ export async function updateLessonStep(input: UpdateLessonStepInput): Promise<Au
     .set({ title: input.title, type: payload.type, payloadJson: payload, updatedAt: new Date() })
     .where(eq(lessonSteps.id, input.stepId))
     .returning();
+
+  await syncMarkdownAssetForStep({
+    lessonId: step.lessonId,
+    courseId: course.id,
+    schoolId: course.schoolId,
+    actorId: scope.userId,
+    stepId: updated.id,
+    title: input.title,
+    payload,
+  });
 
   await db
     .update(lessons)

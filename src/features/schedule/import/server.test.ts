@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
+import { buildRecurringConflictIndex } from "@/features/schedule/import/conflicts";
 import { ScheduleImportDraftRowInputSchema } from "@/features/schedule/shared/dto/import";
 
 describe("schedule import server logic", () => {
@@ -106,6 +107,27 @@ describe("schedule import server logic", () => {
         roomLabel: null,
       };
       expect(() => ScheduleImportDraftRowInputSchema.parse(rowWithoutTimes)).not.toThrow();
+    });
+  });
+
+  describe("recurring conflict index", () => {
+    it("marks class and teacher slot conflicts independently instead of only exact assignment matches", () => {
+      const index = buildRecurringConflictIndex(
+        [
+          { id: "assignment-1", classId: "class-1", teacherId: "teacher-1" },
+          { id: "assignment-2", classId: "class-2", teacherId: "teacher-2" },
+        ],
+        [
+          { assignmentId: "assignment-1", weekday: 1, bellSlotId: "slot-1" },
+          { assignmentId: "assignment-2", weekday: 2, bellSlotId: "slot-2" },
+        ],
+      );
+
+      expect(index.exactAssignmentSlotKeys.has("assignment-1:1:slot-1")).toBe(true);
+      expect(index.classSlotKeys.has("class-1:1:slot-1")).toBe(true);
+      expect(index.teacherSlotKeys.has("teacher-1:1:slot-1")).toBe(true);
+      expect(index.classSlotKeys.has("class-2:1:slot-1")).toBe(false);
+      expect(index.teacherSlotKeys.has("teacher-2:1:slot-1")).toBe(false);
     });
   });
 });

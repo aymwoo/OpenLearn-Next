@@ -14,10 +14,17 @@ export const ClassroomEvidenceTypeSchema = z.enum(["observation", "response", "a
 export const ClassroomInterventionTargetScopeSchema = z.enum(["student", "class"]);
 export const ClassroomTimelineEntryTypeSchema = z.enum(["presence_changed", "evidence_captured", "intervention_noted"]);
 
+export const ClassroomSlideStateDTOSchema = z.object({
+  stepId: z.string(),
+  slideIndex: z.number().int().nonnegative(),
+});
+
 export const ClassroomStepDTOSchema = z.object({
   id: z.string(),
   title: z.string(),
   rank: z.string(),
+  type: z.enum(["content", "task", "quiz"]).optional(),
+  payload: z.unknown().optional(),
 });
 
 export const ClassroomLaunchPreviewStepDTOSchema = z.object({
@@ -105,6 +112,7 @@ export const ClassroomSnapshotDTOSchema = z.object({
   updatedAt: z.string(),
   participants: z.array(ClassroomParticipantDTOSchema),
   steps: z.array(ClassroomStepDTOSchema),
+  slideState: ClassroomSlideStateDTOSchema.nullable().default(null),
   copy: z.object({
     staleRefreshRequired: z.string().default("课堂状态已经被更新。请先恢复最新状态，再继续操作。"),
     pendingAction: z.string().default("当前控课面板可能不是最新。已为你保留本次操作，请刷新课堂快照后确认。"),
@@ -117,7 +125,7 @@ export const ClassroomEventDTOSchema = z.object({
   id: z.string(),
   sessionId: z.string(),
   version: z.number().int(),
-  type: z.enum(["launched", "active_step_changed", "lock_mode_changed", "snapshot_refreshed", "ended"]),
+  type: z.enum(["launched", "active_step_changed", "lock_mode_changed", "slide_changed", "snapshot_refreshed", "ended"]),
   actorId: z.string(),
   payload: z.unknown(),
   createdAt: z.string(),
@@ -198,6 +206,13 @@ export const ChangeClassroomModeInputSchema = z.object({
   expectedVersion: z.number().int(),
 });
 
+export const ChangeClassroomSlideInputSchema = z.object({
+  sessionId: z.string(),
+  stepId: z.string(),
+  slideIndex: z.number().int().nonnegative(),
+  expectedVersion: z.number().int(),
+});
+
 export const RefreshClassroomSnapshotInputSchema = z.object({
   sessionId: z.string(),
   expectedVersion: z.number().int().optional(),
@@ -232,6 +247,7 @@ export const ClassroomActionResultDTOSchema = z.object({
 export type ClassroomMode = z.infer<typeof ClassroomModeSchema>;
 export type ClassroomConnectionState = z.infer<typeof ClassroomConnectionStateSchema>;
 export type ClassroomStepDTO = z.infer<typeof ClassroomStepDTOSchema>;
+export type ClassroomSlideStateDTO = z.infer<typeof ClassroomSlideStateDTOSchema>;
 export type ClassroomLaunchPreviewStepDTO = z.infer<typeof ClassroomLaunchPreviewStepDTOSchema>;
 export type ClassroomLaunchPreviewDTO = z.infer<typeof ClassroomLaunchPreviewDTOSchema>;
 export type ClassroomLaunchPreviewEmptyStateDTO = z.infer<typeof ClassroomLaunchPreviewEmptyStateDTOSchema>;
@@ -248,6 +264,7 @@ export type ClassroomTimelineEntryDTO = z.infer<typeof ClassroomTimelineEntryDTO
 export type LaunchClassroomInput = z.infer<typeof LaunchClassroomInputSchema>;
 export type ChangeClassroomStepInput = z.infer<typeof ChangeClassroomStepInputSchema>;
 export type ChangeClassroomModeInput = z.infer<typeof ChangeClassroomModeInputSchema>;
+export type ChangeClassroomSlideInput = z.infer<typeof ChangeClassroomSlideInputSchema>;
 export type RefreshClassroomSnapshotInput = z.infer<typeof RefreshClassroomSnapshotInputSchema>;
 export type TouchClassroomPresenceInput = z.infer<typeof TouchClassroomPresenceInputSchema>;
 export type EndClassroomInput = z.infer<typeof EndClassroomInputSchema>;

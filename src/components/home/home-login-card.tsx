@@ -69,7 +69,7 @@ export function HomeLoginCard() {
 
           <div>
             <label className="mb-2 block text-[0.75rem] font-medium uppercase tracking-[0.18em] text-white/46" htmlFor="home-email">
-              邮箱地址
+              {roleIntent === 'student' ? '学号' : '邮箱地址'}
             </label>
             <div className="rounded-[1.15rem] bg-white/6 px-4 py-3 transition focus-within:bg-white/10 focus-within:ring-2 focus-within:ring-cyan-300/30">
               <div className="flex items-center gap-3">
@@ -77,11 +77,11 @@ export function HomeLoginCard() {
                 <input
                   id="home-email"
                   name="email"
-                  type="email"
-                  autoComplete="email"
+                  type="text"
+                  autoComplete={roleIntent === 'student' ? 'username' : 'email'}
                   required
                   className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/32"
-                  placeholder="teacher@openlearn.dev"
+                  placeholder={roleIntent === 'student' ? '请输入学号' : 'teacher@openlearn.dev'}
                 />
               </div>
             </div>

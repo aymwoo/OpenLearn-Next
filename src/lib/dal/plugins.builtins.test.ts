@@ -216,4 +216,10 @@ describe("built-in plugin template resolution", () => {
       pluginName: "教师讲授",
     });
   });
+
+  it("supports the markdown built-in teaching definition", async () => {
+    const { BUILT_IN_TEACHING_STEP_DEFINITIONS } = await import("@/lib/dto/resource-ai");
+
+    expect(BUILT_IN_TEACHING_STEP_DEFINITIONS.some((definition) => definition.builtInKey === "markdownDeck")).toBe(true);
+  });
 });

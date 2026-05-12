@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -34,9 +33,8 @@ type SidebarProps = {
 }
 
 export function Sidebar({ items, activePath, title = '光启书院', region = 'primary-nav', className }: SidebarProps) {
-  const pathname = usePathname()
   const compact = region === 'secondary-nav'
-  const currentPath = pathname || activePath || ''
+  const currentPath = activePath || ''
 
   const renderIcon = (iconName?: string) => {
     switch (iconName) {

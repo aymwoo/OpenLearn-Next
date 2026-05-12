@@ -51,10 +51,36 @@ describe("Native dialog width guards", () => {
     expect(classManagementSurfaceSource).toContain('const [studentViewMode, setStudentViewMode] = useState<StudentViewMode>("cards")');
     expect(classManagementSurfaceSource).toContain("按姓名或学号搜索...");
     expect(classManagementSurfaceSource).toContain("所有状态");
-    expect(classManagementSurfaceSource).toContain("批量操作");
+    expect(classManagementSurfaceSource).toContain("已选择 {selectedFilteredStudentIds.length} 名学生");
+    expect(classManagementSurfaceSource).toContain("重置密码");
+    expect(classManagementSurfaceSource).toContain("删除学生");
     expect(classManagementSurfaceSource).toContain("导出选中");
     expect(classManagementSurfaceSource).toContain("全选当前结果");
     expect(classManagementSurfaceSource).toContain("StudentProgressAvatar");
+  });
+
+  it("supports class filters and batch deletion", () => {
+    expect(classManagementSurfaceSource).toContain("按班级名称搜索...");
+    expect(classManagementSurfaceSource).toContain("所有班级");
+    expect(classManagementSurfaceSource).toContain("全选当前班级");
+    expect(classManagementSurfaceSource).toContain("批量删除班级");
+    expect(classManagementSurfaceSource).toContain('<option value="已配">已配</option>');
+    expect(classManagementSurfaceSource).toContain('<option value="待导">待导</option>');
+  });
+
+  it("keeps class row actions icon-only and removes the leading initial badge", () => {
+    expect(classManagementSurfaceSource).toContain("aria-label={`查看班级 ${item.name} 的学生`}");
+    expect(classManagementSurfaceSource).toContain("aria-label={`导出班级 ${item.name} 的学生名册`}");
+    expect(classManagementSurfaceSource).toContain("aria-label={`删除班级 ${item.name}`}");
+    expect(classManagementSurfaceSource).toContain("aria-label={`确认删除班级 ${item.name}`}");
+    expect(classManagementSurfaceSource).toContain("aria-label={`取消删除班级 ${item.name}`}");
+    expect(classManagementSurfaceSource).toContain('onClick={() => setConfirmingDeleteClassId(item.id)}');
+    expect(classManagementSurfaceSource).toContain("<span>{item.studentCount}人</span>");
+    expect(classManagementSurfaceSource).toContain('group/class-row grid grid-cols-[minmax(0,1fr)_auto_auto]');
+    expect(classManagementSurfaceSource).toContain('className={cn("size-1.5 rounded-full", getClassStatusButtonClass(item.studentCount))}');
+    expect(classManagementSurfaceSource).not.toContain('opacity-0 pointer-events-none');
+    expect(classManagementSurfaceSource).not.toContain(">\n                      学生\n                    </Button>");
+    expect(classManagementSurfaceSource).not.toContain("grid size-9 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary");
   });
 
   it("uses gender-aware roster imports and default avatars", () => {

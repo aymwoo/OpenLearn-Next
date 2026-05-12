@@ -7,6 +7,7 @@ import { db } from "@/db";
 import {
   classMembers,
   classes,
+  classroomEvents,
   classroomSessions,
   courseClasses,
   courseEnrollments,
@@ -434,11 +435,19 @@ export async function getStudentClassroomRuntime(input: { lessonId: string; scop
   const { sessionId, version, locked, activeStepId } = activeSession[0];
   await ensureClassroomParticipant({ sessionId, studentId: input.scope.userId });
 
+  const eventRows = await db.query.classroomEvents.findMany({
+    where: eq(classroomEvents.sessionId, sessionId),
+    orderBy: (event, { desc }) => [desc(event.version)],
+  });
+  const slideEvent = eventRows.find((event) => event.type === "slide_changed");
+  const slidePayload = slideEvent?.payloadJson as { stepId?: string; slideIndex?: number } | undefined;
+
   return {
     sessionId,
     version,
     locked: Boolean(locked),
     activeStepId,
+    slideIndex: slidePayload?.stepId === activeStepId && typeof slidePayload.slideIndex === "number" ? slidePayload.slideIndex : 0,
   };
 }
 
@@ -461,10 +470,12 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
   let locked = Boolean(input.forcedStepId);
   let classroomSessionId = null;
   let classroomVersion = null;
+  let slideIndex: number | null = null;
 
   if (classroomRuntime) {
     classroomSessionId = classroomRuntime.sessionId;
     classroomVersion = classroomRuntime.version;
+    slideIndex = classroomRuntime.slideIndex;
     if (classroomRuntime.locked) {
       forcedStepId = classroomRuntime.activeStepId;
       locked = true;
@@ -500,6 +511,7 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
       classroomVersion,
       connectionState: classroomSessionId ? "reconnecting" : "offline", // Initial load is reconnecting
       teacherRecommendedStepId,
+      slideIndex,
       disabledStepIds: locked ? steps.map(s => s.id).filter(id => id !== forcedStepId) : [],
       disabledReason: locked ? "老师已开启锁定跟随，你将停留在当前步骤。" : null,
       snapshotStatusCopy: (classroomSessionId && locked && forcedStepId !== progress.firstIncompleteStepId) ? "已恢复课堂状态，你现在看到的是最新步骤。" : null,
