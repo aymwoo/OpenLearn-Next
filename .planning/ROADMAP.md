@@ -1,19 +1,31 @@
 ## ROADMAP
 
-**Milestone:** v1.2 Course Import & Management
-**Phases:** 8
+**Milestone:** v1.3 Teaching Orchestration & Classroom Intelligence
+**Phases:** 6
 **Granularity:** coarse
-**Coverage:** 10/10 v1.2 requirements mapped ✓ + 5 extension phases
+**Coverage:** 12/12 v1.3 requirements mapped ✓ + v1.2 carry-over backlog frozen separately
 
-### Phases
+### Current milestone phases
 
-- [x] **Phase 13: Course center foundation** - Build the teacher course center, manual create and edit flows, and the course-to-lesson entry path. (completed 2026-05-09)
+- [ ] **Phase 21: Teaching design contracts and evidence foundation** - Extend the current linear lesson model with teaching-design metadata, class-launch contracts, and durable classroom evidence primitives.
+- [ ] **Phase 22: Teacher orchestration workspace and launch preparation** - Turn the current editor and launch path into a class-ready teaching orchestration workspace with readiness gating.
+- [ ] **Phase 23: Student in-class activity flow** - Upgrade the student runtime into a clearer classroom activity experience with durable quick-response and evidence capture.
+- [ ] **Phase 24: Live classroom operations and formative evaluation** - Bring runtime monitoring, participation tracking, observation notes, and unified evaluation workflow into the teacher classroom product surface.
+- [ ] **Phase 25: Teaching data capture and session analytics** - Aggregate classroom evidence into deterministic session-level metrics, recap views, and teacher workload summaries.
+- [ ] **Phase 26: Cross-session trends and Stitch productization** - Deliver student/class trend analysis and complete high-quality Stitch-aligned productization across planning, runtime, evaluation, and analytics pages.
+
+### Carry-over backlog from v1.2
+
 - [ ] **Phase 14: Course lifecycle and associations** - Add publish, unpublish, archive, delete, and class/student association workflows with school-scoped guardrails.
 - [ ] **Phase 15: Batch course import** - Add structured batch import, duplicate detection, and import-result feedback on top of the same course rules.
+
+### Completed history
+
+- [x] **Phase 13: Course center foundation** - Build the teacher course center, manual create and edit flows, and the course-to-lesson entry path. (completed 2026-05-09)
 - [x] **Phase 16: Theme plugins and layout orchestration** - Expand theme plugins from token-only styling into validated layout composition, navigation placement, and page-surface orchestration. (completed 2026-05-09)
 - [x] **Phase 17: Teacher flow editor enhancement** - Upgrade `/teacher/editor` into a flexible classroom-flow editor with composable teaching steps, structured property editing, preview, and publish-readiness checks. (completed 2026-05-10)
 - [x] **Phase 18: Teaching schedule OS** - Build a production-grade teaching schedule system around `Import Layer -> Normalized Schedule Model -> Runtime Daily Agenda Engine`, covering import, normalization, daily agenda generation, rescheduling, holidays, reminders, AI assistance, and plugin-safe extensibility. (completed 2026-05-10)
-- [ ] **Phase 19: Teacher shell route metadata system** - Replace teacher-shell route string conditionals with route metadata-driven shell behavior, centralized shell config resolution, and future-safe layout variants without changing current visuals.
+- [x] **Phase 19: Teacher shell route metadata system** - Replace teacher-shell route string conditionals with route metadata-driven shell behavior, centralized shell config resolution, and future-safe layout variants without changing current visuals. (completed 2026-05-11)
 - [x] **Phase 20: Help center and developer guides** - Build `/help` as a structured help center covering plugin development, theme development, and the currently available data interfaces and actions with codebase-accurate guidance. (completed 2026-05-11)
 
 ### Phase Details
@@ -145,6 +157,98 @@
 - [x] 20-03-PLAN.md — Document currently available data interfaces and actions with examples, link the help route into the product, and add regression or verification coverage for guide drift.
 **UI hint**: yes
 
+### Phase 21: Teaching design contracts and evidence foundation
+**Goal**: Keep the existing step-based classroom model, but add the structured teaching-design and evidence contracts needed for real lesson implementation and later analytics.
+**Depends on**: Phase 17, Phase 18
+**Requirements**: ORCH-01, EVAL-03
+**Success Criteria**:
+  1. Existing lesson steps can carry structured teaching metadata such as activity intent, estimated duration, delivery mode, and evidence expectations without breaking the current authoring or player pipeline.
+  2. Classroom sessions durably record the evidence and timeline primitives needed for later recap and analytics, rather than relying only on transient UI state.
+  3. DAL, DTO, schema, cache tags, and Server Actions remain explicit and school-scoped; no UI route bypasses the existing server boundary.
+  4. The new contracts are backward-compatible with already-authored lessons and can safely default when teaching metadata is missing.
+**Plans**: 3 plans
+- [ ] 21-01-PLAN.md — Define teaching-design payload contracts, backward-safe defaults, and launch-preview mapping on the current lesson snapshot path.
+- [ ] 21-02-PLAN.md — Add durable classroom evidence, presence, and intervention timeline persistence through DAL and Server Actions.
+- [ ] 21-03-PLAN.md — Add regression coverage and `verify:phase21` for fallback parsing, evidence wiring, and cache-boundary safety.
+**UI hint**: yes
+
+### Phase 22: Teacher orchestration workspace and launch preparation
+**Goal**: Upgrade the existing editor and launch path into a teacher-ready classroom orchestration workspace with explicit preparation and readiness checks.
+**Depends on**: Phase 21
+**Requirements**: ORCH-02, ORCH-03
+**Success Criteria**:
+  1. Teacher can configure class-facing launch context from a published lesson, including roster scope, runtime emphasis, and materials summary.
+  2. Teacher can see readiness issues before launch, including missing teaching metadata, missing evidence setup, or missing classroom prerequisites.
+  3. The orchestration workspace preserves the current course/lesson entry discipline and does not regress existing editor or launch safety constraints.
+  4. The page follows the existing Stitch-aligned teacher product language instead of introducing a utilitarian admin-only workflow.
+**Plans**: 3 plans
+- [ ] 22-01-PLAN.md — Expand teacher editor read/write models to expose teaching-design metadata and preparation summary.
+- [ ] 22-02-PLAN.md — Upgrade `/teacher/launch` into a structured launch-preparation surface with class-facing run sheet and blocking readiness issues.
+- [ ] 22-03-PLAN.md — Add regression coverage for orchestration wiring, readiness gating, and teacher-owned route boundaries.
+**UI hint**: yes
+
+### Phase 23: Student in-class activity flow
+**Goal**: Make the student player feel like a real in-class activity surface, not only a generic lesson reader, while keeping current progress and SSE semantics.
+**Depends on**: Phase 21, Phase 22
+**Requirements**: ACT-01, ACT-02
+**Success Criteria**:
+  1. Student sees active-step activity guidance, expected output, and evidence expectations in a classroom-friendly layout.
+  2. Student can submit quick in-class evidence or check-in responses that are durably stored alongside existing learning evidence.
+  3. Existing task, quiz, progress, resume, and classroom lock/unlock flows continue to work without hidden regressions.
+  4. The runtime remains compatible with cached shell + Suspense-streamed personal state and does not move DB logic into the client.
+**Plans**: 3 plans
+- [ ] 23-01-PLAN.md — Extend player DTOs and runtime cards to surface activity guidance and evidence expectations cleanly.
+- [ ] 23-02-PLAN.md — Add quick-response or evidence-capture submission paths that reuse existing learning boundaries and auditability.
+- [ ] 23-03-PLAN.md — Add regression coverage for player UX, persistence semantics, and classroom runtime compatibility.
+**UI hint**: yes
+
+### Phase 24: Live classroom operations and formative evaluation
+**Goal**: Turn classroom runtime and teacher review into one coherent operational surface for monitoring, intervention, and process evaluation.
+**Depends on**: Phase 21, Phase 22, Phase 23
+**Requirements**: ACT-03, EVAL-01, EVAL-02
+**Success Criteria**:
+  1. Teacher can monitor live roster presence, progress, submission counts, and students needing intervention from the classroom surface.
+  2. Teacher can record participation marks, observation notes, or lightweight evaluation tags during or after class without a separate gradebook system.
+  3. Teacher can review multi-source student evidence in one workflow instead of switching between isolated runtime and review pages.
+  4. All writes stay teacher-scoped, durable, auditable, and explicit about cache invalidation and failure feedback.
+**Plans**: 4 plans
+- [ ] 24-01-PLAN.md — Add live classroom monitoring cards and intervention-aware roster summaries.
+- [ ] 24-02-PLAN.md — Introduce participation and observation capture flows with durable persistence and teacher-only scope checks.
+- [ ] 24-03-PLAN.md — Unify runtime evidence and review data into a product-grade formative evaluation surface.
+- [ ] 24-04-PLAN.md — Add verification coverage for runtime metrics, observation writes, and evaluation aggregation boundaries.
+**UI hint**: yes
+
+### Phase 25: Teaching data capture and session analytics
+**Goal**: Convert collected classroom evidence into deterministic session recap metrics that teachers can trust immediately after class.
+**Depends on**: Phase 24
+**Requirements**: ANALYTICS-01
+**Success Criteria**:
+  1. Teacher can open a session recap and see completion, participation, submission, and feedback-workload metrics derived from durable data.
+  2. Metrics drill down to the supporting raw evidence, rather than presenting opaque or AI-only summaries.
+  3. Recap data is scoped by school, class, teacher, lesson, and session, with stable DTOs and explicit cache behavior.
+  4. The analytics layer reuses the same evidence contracts from previous phases and does not create a second source of truth.
+**Plans**: 3 plans
+- [ ] 25-01-PLAN.md — Build session recap read models and deterministic metric aggregation helpers.
+- [ ] 25-02-PLAN.md — Add teacher-facing recap surfaces with evidence drill-down and workload summary.
+- [ ] 25-03-PLAN.md — Add verification coverage for aggregation correctness, scoping, and empty-state behavior.
+**UI hint**: yes
+
+### Phase 26: Cross-session trends and Stitch productization
+**Goal**: Finish the milestone with trend analysis and a coherent, high-quality product surface across planning, runtime, evaluation, and analytics.
+**Depends on**: Phase 25
+**Requirements**: ANALYTICS-02, UI-05
+**Success Criteria**:
+  1. Teacher can compare recent sessions or lessons at class and student level through stable trend views and drill-down paths.
+  2. New planning, runtime, evaluation, and analytics pages share one Stitch-aligned interaction language, responsive rhythm, and information hierarchy.
+  3. The final product surfaces feel intentionally designed for teacher daily work, not like disconnected admin tools.
+  4. Regression or verification coverage exists for the major routes so later feature work does not silently degrade the milestone quality bar.
+**Plans**: 4 plans
+- [ ] 26-01-PLAN.md — Build cross-session trend read models for class and student comparisons.
+- [ ] 26-02-PLAN.md — Design and implement the analytics navigation and drill-down product surfaces.
+- [ ] 26-03-PLAN.md — Run Stitch-aligned productization pass across orchestration, runtime, evaluation, and analytics pages.
+- [ ] 26-04-PLAN.md — Add final milestone verification coverage for route quality, responsive behavior, and analytics safety boundaries.
+**UI hint**: yes
+
 ### Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -157,3 +261,9 @@
 | 18. Teaching schedule OS | 6/6 | Complete | 2026-05-10 |
 | 19. Teacher shell route metadata system | 3/3 | Complete | 2026-05-11 |
 | 20. Help center and developer guides | 3/3 | Complete | 2026-05-11 |
+| 21. Teaching design contracts and evidence foundation | 0/3 | Not started | - |
+| 22. Teacher orchestration workspace and launch preparation | 0/3 | Not started | - |
+| 23. Student in-class activity flow | 0/3 | Not started | - |
+| 24. Live classroom operations and formative evaluation | 0/4 | Not started | - |
+| 25. Teaching data capture and session analytics | 0/3 | Not started | - |
+| 26. Cross-session trends and Stitch productization | 0/4 | Not started | - |
