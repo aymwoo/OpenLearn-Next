@@ -223,6 +223,65 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
     expect(screen.queryByRole("button", { name: "筛选资源" })).toBeNull();
   });
 
+  it("shows inferred teaching-design fallback cues without blocking lesson editing", () => {
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [
+            {
+              id: "step-1",
+              title: "旧版导入",
+              type: "content",
+              rank: "a0",
+              teachingDesignStatus: "inferred",
+              needsTeachingDesignRefinement: true,
+              teachingDesignFallbackReason: "legacy-content-default",
+              archivedAt: null,
+              payload: {
+                type: "content",
+                title: "旧版导入",
+                body: "从旧版课时继承的步骤。",
+                materialRefs: [],
+                teachingDesign: {
+                  activityIntent: "explain",
+                  estimatedMinutes: 12,
+                  activityMode: "mini-lecture",
+                  evidenceExpectation: {
+                    evidenceType: "observation",
+                    prompt: "观察学生是否能复述关键概念。",
+                    required: false,
+                    checklist: [],
+                    tags: ["legacy-default"],
+                    studentVisibility: "teacher-only",
+                  },
+                },
+              },
+              updatedAt: "2026-05-12T10:00:00.000Z",
+            },
+          ],
+        } as any}
+        builtInTemplates={[]}
+      />,
+    );
+
+    expect(screen.getByText("默认推断")).toBeTruthy();
+    expect(screen.getByText("待完善")).toBeTruthy();
+    expect(document.body.textContent).toContain("默认推断：系统按旧版环节补齐教学设计，当前仍可继续编辑与发布。");
+    expect(document.body.textContent).toContain("证据期待：观察学生是否能复述关键概念。");
+    expect(screen.getByRole("button", { name: "编辑组件" })).toBeTruthy();
+  });
+
+  it("keeps the same fallback wording in teacher preview surfaces", () => {
+    const source = readFileSync("src/components/surfaces/teacher-lesson-preview-surface.tsx", "utf8");
+
+    expect(source).toContain("默认推断");
+    expect(source).toContain("待完善");
+    expect(source).toContain("系统按旧版环节补齐教学设计");
+  });
+
   it("opens the step editor modal from the explicit flow-card edit button", () => {
     render(
       <LessonAuthoringWorkspace
