@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findManyClassroomSessions = vi.fn();
@@ -186,5 +188,45 @@ describe("getClassroomConsoleDTO", () => {
     expect(source).toContain("const snapshot = parseSnapshot(publishedVersion?.snapshotJson)");
     expect(source).not.toContain("getLessonEditorDTO");
     expect(source).not.toContain("draft");
+  });
+});
+
+describe("classroom evidence foundation contracts", () => {
+  it("defines durable classroom evidence and timeline tables with session-owned cascade boundaries", async () => {
+    const source = readFileSync("src/db/schema.ts", "utf8");
+
+    expect(source).toContain("export const classroomEvidence = sqliteTable(");
+    expect(source).toContain("export const classroomTimeline = sqliteTable(");
+    expect(source).toContain("references(() => classroomSessions.id, { onDelete: \"cascade\" })");
+    expect(source).toContain("references(() => lessonSteps.id, { onDelete: \"cascade\" })");
+    expect(source).toContain("references(() => users.id, { onDelete: \"cascade\" })");
+  });
+
+  it("exposes typed evidence, intervention, and timeline DTO schemas", async () => {
+    const classroomDto = await import("@/lib/dto/classroom");
+
+    expect(classroomDto.RecordClassroomEvidenceInputSchema).toBeDefined();
+    expect(classroomDto.RecordClassroomInterventionInputSchema).toBeDefined();
+    expect(classroomDto.ClassroomTimelineEntryDTOSchema).toBeDefined();
+    expect(classroomDto.RecordClassroomInterventionInputSchema.safeParse({
+      sessionId: "session-1",
+      title: "课堂提醒",
+      body: "提醒学生回到当前讨论任务。",
+      targetScope: "student",
+      studentId: "student-1",
+      stepId: "step-1",
+    }).success).toBe(true);
+  });
+
+  it("writes presence changes, evidence capture, and interventions through durable timeline helpers", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain("export async function recordClassroomEvidence");
+    expect(source).toContain("export async function recordClassroomIntervention");
+    expect(source).toContain("insert(classroomEvidence)");
+    expect(source).toContain("insert(classroomTimeline)");
+    expect(source).toContain("entryType: \"presence_changed\"");
+    expect(source).toContain("entryType: \"evidence_captured\"");
+    expect(source).toContain("entryType: \"intervention_noted\"");
   });
 });
