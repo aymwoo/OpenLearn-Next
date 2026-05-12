@@ -14,6 +14,7 @@ type TeacherLessonPreviewSurfaceProps = {
 export function TeacherLessonPreviewSurface({ preview }: TeacherLessonPreviewSurfaceProps) {
   const activeSteps = preview.steps.length;
   const builtInSteps = preview.steps.filter((step) => step.builtInSourceLabel).length;
+  const inferredSteps = preview.steps.filter((step) => step.teachingDesignStatus !== "explicit").length;
 
   return (
     <div className="space-y-5 p-4 sm:p-5 lg:p-6">
@@ -31,7 +32,7 @@ export function TeacherLessonPreviewSurface({ preview }: TeacherLessonPreviewSur
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
             <PreviewMetric icon={<Layers3 className="size-4" aria-hidden />} label="步骤数量" value={String(activeSteps)} detail="按当前草稿顺序呈现" />
             <PreviewMetric icon={<Eye className="size-4" aria-hidden />} label="内置环节" value={String(builtInSteps)} detail="保留步骤来源 badge" />
-            <PreviewMetric icon={<LibraryBig className="size-4" aria-hidden />} label="引用资料" value={String(preview.materials.length)} detail="展示材料摘要与引用情况" />
+            <PreviewMetric icon={<LibraryBig className="size-4" aria-hidden />} label="默认推断" value={String(inferredSteps)} detail="需要教师后续完善的环节" />
           </div>
         }
       />
@@ -42,6 +43,9 @@ export function TeacherLessonPreviewSurface({ preview }: TeacherLessonPreviewSur
             <p className="text-sm text-on-surface-variant">预览说明</p>
             <p className="mt-3 text-sm leading-7 text-on-surface">
               当前页面只预览教师草稿的课堂流程，不读取学生端 progress、SSE runtime 或课堂锁定状态。
+            </p>
+            <p className="mt-3 rounded-[1rem] bg-surface-container-low px-4 py-3 text-sm leading-6 text-on-surface-variant">
+              若看到<span className="font-semibold text-on-surface">默认推断</span>或<span className="font-semibold text-on-surface">待完善</span>，表示系统按旧版环节补齐教学设计；本期不会阻断教师继续编辑或预览。
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Button asChild variant="secondary" className="min-h-10 px-4 text-sm">
@@ -65,6 +69,14 @@ export function TeacherLessonPreviewSurface({ preview }: TeacherLessonPreviewSur
                       <p className="mt-1 text-xs text-on-surface-variant">{getStepTypeLabel(step.type)} · {step.rank}</p>
                       {step.builtInSourceLabel ? (
                         <span className="mt-2 inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">内置环节 · {step.builtInSourceLabel}</span>
+                      ) : null}
+                      {step.teachingDesignStatus !== "explicit" ? (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span className="inline-flex rounded-full bg-secondary-container px-3 py-1 text-xs font-semibold text-on-secondary-container">默认推断</span>
+                          {step.needsTeachingDesignRefinement ? (
+                            <span className="inline-flex rounded-full bg-[#fff4cc] px-3 py-1 text-xs font-semibold text-[#8a6200]">待完善</span>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   </div>
@@ -91,6 +103,12 @@ export function TeacherLessonPreviewSurface({ preview }: TeacherLessonPreviewSur
                     </div>
                     <h2 className="mt-4 text-[1.8rem] font-semibold leading-tight tracking-[-0.02em] text-on-surface">{step.title}</h2>
                     <p className="mt-3 text-sm leading-7 text-on-surface-variant">{getStepBody(step)}</p>
+                    {step.teachingDesignStatus !== "explicit" ? (
+                      <div className="mt-4 rounded-[1rem] bg-surface-container-low px-4 py-3 text-sm leading-6 text-on-surface-variant">
+                        <span className="font-semibold text-on-surface">默认推断：</span>
+                        系统按旧版环节补齐教学设计，当前建议回到编辑器进一步完善。
+                      </div>
+                    ) : null}
                   </div>
                   <div className="rounded-[1.35rem] bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
                     <div className="flex items-center gap-2 font-medium text-on-surface">

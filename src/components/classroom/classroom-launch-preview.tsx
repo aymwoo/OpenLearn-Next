@@ -41,6 +41,9 @@ export function ClassroomLaunchPreview({ preview, emptyState }: ClassroomLaunchP
           <p className="mt-2 text-sm leading-6 text-on-surface-variant">
             开课后将按下列顺序推进，帮助你在启动前确认讲授、互动与测验节奏。
           </p>
+          <p className="mt-3 rounded-[1rem] bg-surface-container-lowest px-4 py-3 text-sm leading-6 text-on-surface-variant">
+            课堂仍会按已发布快照启动，本期不会因为默认推断而阻断开课。
+          </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[18rem]">
           <PreviewMetric label="预计总时长" value={`${preview.totalEstimatedMinutes} 分钟`} icon={<Clock3 className="size-4 text-primary" aria-hidden />} />
@@ -68,8 +71,19 @@ export function ClassroomLaunchPreview({ preview, emptyState }: ClassroomLaunchP
                     <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-medium text-on-surface-variant">
                       预计 {step.estimatedMinutes} 分钟
                     </span>
+                    {step.teachingDesignStatus !== 'explicit' ? (
+                      <span className="rounded-full bg-secondary-container px-3 py-1 text-xs font-semibold text-on-secondary-container">
+                        默认推断
+                      </span>
+                    ) : null}
+                    {step.needsTeachingDesignRefinement ? (
+                      <span className="rounded-full bg-[#fff4cc] px-3 py-1 text-xs font-semibold text-[#8a6200]">
+                        待完善
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-3 text-sm leading-6 text-on-surface-variant">{step.summary}</p>
+                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">{step.evidenceSummary}</p>
                 </div>
               </div>
             </div>

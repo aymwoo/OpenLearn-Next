@@ -16,7 +16,12 @@ import { LessonStepEditor } from "@/components/authoring/lesson-step-editor";
 import {
   type BuiltInTeachingStepTemplatePayload,
 } from "@/lib/dto/resource-ai";
-import type { LessonEditorDTO, LessonStepDTO, TeacherAuthoringOverviewDTO } from "@/lib/dto/lesson-authoring";
+import type {
+  LessonEditorDTO,
+  LessonStepDTO,
+  TeacherAuthoringOverviewDTO,
+  TeachingDesignFallbackReason,
+} from "@/lib/dto/lesson-authoring";
 
 type BuiltInTemplateForAuthoring = BuiltInTeachingStepTemplatePayload & {
   id: string;
@@ -415,6 +420,8 @@ function FlowStepCard({
   onMoveDown: () => void;
 }) {
   const builtInSourceLabel = getBuiltInSourceLabel(step);
+  const teachingDesignCue = getTeachingDesignCue(step.teachingDesignFallbackReason);
+  const evidencePrompt = step.payload.teachingDesign?.evidenceExpectation.prompt;
 
   return (
     <div className="relative ml-4 pb-6 pl-4 pt-4">
@@ -437,8 +444,21 @@ function FlowStepCard({
               {builtInSourceLabel ? (
                 <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{builtInSourceLabel}</span>
               ) : null}
+              {step.teachingDesignStatus !== "explicit" ? (
+                <span className="inline-flex rounded-full bg-secondary-container px-3 py-1 text-xs font-semibold text-on-secondary-container">默认推断</span>
+              ) : null}
+              {step.needsTeachingDesignRefinement ? (
+                <span className="inline-flex rounded-full bg-[#fff4cc] px-3 py-1 text-xs font-semibold text-[#8a6200]">待完善</span>
+              ) : null}
               <span className="inline-flex rounded-full bg-surface-container-low px-3 py-1 text-xs font-medium text-on-surface-variant">第 {index + 1} 步</span>
             </span>
+            {step.teachingDesignStatus !== "explicit" ? (
+              <span className="mt-3 block rounded-[1rem] bg-surface-container-low px-3 py-3 text-xs leading-6 text-on-surface-variant">
+                <span className="font-semibold text-on-surface">默认推断：</span>
+                {teachingDesignCue}，当前仍可继续编辑与发布。
+                {evidencePrompt ? <span className="mt-1 block">证据期待：{evidencePrompt}</span> : null}
+              </span>
+            ) : null}
           </span>
         </button>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -470,6 +490,14 @@ function getStepDescription(step: LessonStepDTO) {
 
 function getBuiltInSourceLabel(step: LessonStepDTO) {
   return step.payload.builtInSource ? `内置环节 · ${step.payload.builtInSource.pluginName}` : null;
+}
+
+function getTeachingDesignCue(reason: TeachingDesignFallbackReason | null) {
+  if (reason === "partial-teaching-design") {
+    return "系统按当前环节已有字段补齐缺失的教学设计";
+  }
+
+  return "系统按旧版环节补齐教学设计";
 }
 
 function getStepMinutes(type: LessonStepDTO["type"]) {
