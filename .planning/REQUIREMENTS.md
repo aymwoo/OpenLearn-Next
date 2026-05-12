@@ -128,7 +128,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **ACT-03**: Teacher can monitor live roster presence, step adoption, progress, submission counts, and students needing intervention during class.
 - [ ] **EVAL-01**: Teacher can capture lightweight participation marks, observation notes, or evaluation tags during or after class without introducing a full gradebook.
 - [ ] **EVAL-02**: Teacher can review aggregated evidence from progress, tasks, quizzes, quick responses, presence, observations, and feedback for each student.
-- [ ] **EVAL-03**: Classroom sessions durably store presence, intervention, and evidence timeline data for recap, audit, and later analytics.
+- [x] **EVAL-03**: Classroom sessions durably store presence, intervention, and evidence timeline data for recap, audit, and later analytics.
 - [ ] **ANALYTICS-01**: Teacher can view lesson or session summary metrics for completion, participation, submissions, and feedback workload.
 - [ ] **ANALYTICS-02**: Teacher can inspect class-level and student-level trends across recent teaching sessions with drill-down to raw evidence.
 - [ ] **UI-05**: System provides high-quality Stitch-aligned planning, runtime, evaluation, and analytics surfaces with responsive, product-level interaction polish.
@@ -275,7 +275,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACT-03 | Phase 24 | Pending |
 | EVAL-01 | Phase 24 | Pending |
 | EVAL-02 | Phase 24 | Pending |
-| EVAL-03 | Phase 21 | Pending |
+| EVAL-03 | Phase 21 | Complete |
 | ANALYTICS-01 | Phase 25 | Pending |
 | ANALYTICS-02 | Phase 26 | Pending |
 | UI-05 | Phase 26 | Pending |
