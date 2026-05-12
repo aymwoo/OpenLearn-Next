@@ -7,7 +7,7 @@
 
 ### Current milestone phases
 
-- [ ] **Phase 21: Teaching design contracts and evidence foundation** - Extend the current linear lesson model with teaching-design metadata, class-launch contracts, and durable classroom evidence primitives.
+- [x] **Phase 21: Teaching design contracts and evidence foundation** - Extend the current linear lesson model with teaching-design metadata, class-launch contracts, and durable classroom evidence primitives. (completed 2026-05-12)
 - [ ] **Phase 22: Teacher orchestration workspace and launch preparation** - Turn the current editor and launch path into a class-ready teaching orchestration workspace with readiness gating.
 - [ ] **Phase 23: Student in-class activity flow** - Upgrade the student runtime into a clearer classroom activity experience with durable quick-response and evidence capture.
 - [ ] **Phase 24: Live classroom operations and formative evaluation** - Bring runtime monitoring, participation tracking, observation notes, and unified evaluation workflow into the teacher classroom product surface.
@@ -169,7 +169,7 @@
 **Plans**: 3 plans
 - [x] 21-01-PLAN.md — Define teaching-design payload contracts, backward-safe defaults, and launch-preview mapping on the current lesson snapshot path.
 - [x] 21-02-PLAN.md — Add durable classroom evidence, presence, and intervention timeline persistence through DAL and Server Actions.
-- [ ] 21-03-PLAN.md — Surface fallback cues in teacher planning views and add `verify:phase21` for evidence wiring and cache-boundary safety.
+- [x] 21-03-PLAN.md — Surface fallback cues in teacher planning views and add `verify:phase21` for evidence wiring and cache-boundary safety.
 **UI hint**: yes
 
 ### Phase 22: Teacher orchestration workspace and launch preparation
@@ -261,7 +261,7 @@
 | 18. Teaching schedule OS | 6/6 | Complete | 2026-05-10 |
 | 19. Teacher shell route metadata system | 3/3 | Complete | 2026-05-11 |
 | 20. Help center and developer guides | 3/3 | Complete | 2026-05-11 |
-| 21. Teaching design contracts and evidence foundation | 2/3 | In Progress|  |
+| 21. Teaching design contracts and evidence foundation | 3/3 | Complete   | 2026-05-12 |
 | 22. Teacher orchestration workspace and launch preparation | 0/3 | Not started | - |
 | 23. Student in-class activity flow | 0/3 | Not started | - |
 | 24. Live classroom operations and formative evaluation | 0/4 | Not started | - |

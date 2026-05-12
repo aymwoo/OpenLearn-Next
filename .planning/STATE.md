@@ -5,16 +5,16 @@ milestone_name: Teaching Orchestration & Classroom Intelligence
 current_phase: 21
 current_phase_name: teaching-design-contracts-and-evidence-foundation
 current_plan: 3
-status: executing
-stopped_at: Completed 21-02-PLAN.md
-last_updated: "2026-05-12T14:49:26.060Z"
+status: verifying
+stopped_at: Completed 21-03-PLAN.md
+last_updated: "2026-05-12T15:10:53.274Z"
 last_activity: 2026-05-12
 progress:
   total_phases: 14
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 28
-  completed_plans: 27
-  percent: 96
+  completed_plans: 28
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ progress:
 **Current Phase Name:** teaching-design-contracts-and-evidence-foundation
 **Current Plan:** 3
 **Total Plans in Phase:** 3
-**Status:** Ready to execute
+**Status:** Phase complete — ready for verification
 **Progress:**
-[██████████] 96%
+[██████████] 100%
 **Last Activity:** 2026-05-12
-**Last session:** 2026-05-12T14:48:16.189Z
-**Stopped At:** Completed 21-02-PLAN.md
+**Last session:** 2026-05-12T15:10:53.269Z
+**Stopped At:** Completed 21-03-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -124,6 +124,8 @@ progress:
 - [Phase 21]: classroom evidence 与 timeline 继续以 session 为主边界，studentId 和 stepId 只做附属上下文。 — 确保后续 recap 与 analytics 直接围绕单次课堂事实读取，不在 lesson 级混淆多次课堂数据。
 - [Phase 21]: teacher intervention 首发只进 classroomTimeline，并固定为 teacher-only 过程记录，不提前扩成正式评价实体。 — 保持 D-14 与 D-15 范围，先沉淀课堂过程记录，再由后续评价 phase 聚合。
 - [Phase 21]: student evidence write 只能由当前登录学生为自己提交，teacher intervention 只能由 session teacher 写入。 — 避免通过 Server Actions 绕过 participant 或 teacher scope，满足 threat model 的输入边界要求。
+- [Phase 21]: teaching-design fallback 提示继续只停留在教师 editor、教师预览和开课预览，不引入学生端泄漏或 launch blocking。
+- [Phase 21]: verify:phase21 同时检查 teacher-facing cue、evidence wiring、cache invalidation 与 unsafe shortcut，避免只靠单点字符串守卫。
 
 ## Next Steps
 
@@ -155,6 +157,7 @@ progress:
 | Phase 17 P04 | 8 min | 2 tasks | 6 files |
 | Phase 21 P01 | 10 min | 2 tasks | 6 files |
 | Phase 21 P02 | 7 min | 2 tasks | 6 files |
+| Phase 21 P03 | 37 min | 2 tasks | 7 files |
 
 ### Quick Tasks Completed
 
@@ -223,5 +226,5 @@ progress:
 
 Phase: 21 (teaching-design-contracts-and-evidence-foundation) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-12
