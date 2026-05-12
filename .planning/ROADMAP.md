@@ -167,7 +167,7 @@
   3. DAL, DTO, schema, cache tags, and Server Actions remain explicit and school-scoped; no UI route bypasses the existing server boundary.
   4. The new contracts are backward-compatible with already-authored lessons and can safely default when teaching metadata is missing.
 **Plans**: 3 plans
-- [ ] 21-01-PLAN.md — Define teaching-design payload contracts, backward-safe defaults, and launch-preview mapping on the current lesson snapshot path.
+- [x] 21-01-PLAN.md — Define teaching-design payload contracts, backward-safe defaults, and launch-preview mapping on the current lesson snapshot path.
 - [ ] 21-02-PLAN.md — Add durable classroom evidence, presence, and intervention timeline persistence through DAL and Server Actions.
 - [ ] 21-03-PLAN.md — Surface fallback cues in teacher planning views and add `verify:phase21` for evidence wiring and cache-boundary safety.
 **UI hint**: yes
@@ -261,7 +261,7 @@
 | 18. Teaching schedule OS | 6/6 | Complete | 2026-05-10 |
 | 19. Teacher shell route metadata system | 3/3 | Complete | 2026-05-11 |
 | 20. Help center and developer guides | 3/3 | Complete | 2026-05-11 |
-| 21. Teaching design contracts and evidence foundation | 0/3 | Not started | - |
+| 21. Teaching design contracts and evidence foundation | 1/3 | In Progress|  |
 | 22. Teacher orchestration workspace and launch preparation | 0/3 | Not started | - |
 | 23. Student in-class activity flow | 0/3 | Not started | - |
 | 24. Live classroom operations and formative evaluation | 0/4 | Not started | - |

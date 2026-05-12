@@ -1,37 +1,37 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Course Import & Management
-current_phase: 20
-current_phase_name: help-center-and-developer-guides
-current_plan: 3
-status: completed
-stopped_at: Quick 260511-mv9 complete; /teacher/schedule/import template headers now use Chinese column names with correct field mapping
-last_updated: "2026-05-11T08:42:30.000Z"
-last_activity: 2026-05-11
+milestone: v1.3
+milestone_name: Teaching Orchestration & Classroom Intelligence
+current_phase: 21
+current_phase_name: teaching-design-contracts-and-evidence-foundation
+current_plan: 2
+status: executing
+stopped_at: Phase 21 context gathered
+last_updated: "2026-05-12T14:34:00.195Z"
+last_activity: 2026-05-12
 progress:
-  total_phases: 8
+  total_phases: 14
   completed_phases: 6
-  total_plans: 25
-  completed_plans: 25
-  percent: 100
+  total_plans: 28
+  completed_plans: 26
+  percent: 93
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 20
-**Current Phase Name:** help-center-and-developer-guides
-**Current Plan:** 3
+**Current Phase:** 21
+**Current Phase Name:** teaching-design-contracts-and-evidence-foundation
+**Current Plan:** 2
 **Total Plans in Phase:** 3
-**Status:** Phase 20 Complete
+**Status:** Ready to execute
 **Progress:**
-[██████████] 100%
-**Last Activity:** 2026-05-11
-**Last session:** 2026-05-11T00:00:00.000Z
-**Stopped At:** Quick 260511-on3 complete; /teacher/schedule hero now has "导入课表" button opening Modal with CSV file picker → upload → redirect to review page
-**Resume File:** .planning/phases/20-help-center-and-developer-guides/20-03-SUMMARY.md
+[█████████░] 93%
+**Last Activity:** 2026-05-12
+**Last session:** 2026-05-12T14:30:14.364Z
+**Stopped At:** Phase 21 context gathered
+**Resume File:** None
 
 ## Accumulated Context
 
@@ -88,6 +88,9 @@ progress:
 - [Quick 260511-mdi]: `/teacher/schedule/import` 现在提供与 `ScheduleImportDraftRowInputSchema` 对齐的 CSV 导入模板下载；模板列、示例行与 CSV 文本统一由 feature helper 生成，并在导入审核页 hero 直接提供下载入口。
 - [Quick 260511-on3]: `/teacher/schedule` hero 区现增加"导入课表"按钮，点击弹出原生 `<dialog>` Modal；使用 papaparse 客户端解析 CSV + 中文字段映射，`schoolId` 由 `TeacherDailyAgendaDTO` 注入，完成后自动跳转到 `/teacher/schedule/import` 审核页；状态机：`idle → parsing → submitting → done/error`。
 - [Quick 260511-r3g]: `/teacher/schedule` 现在内联承载最新导入审核区与完整周课表；导入成功后回到 `/teacher/schedule#import-review`，旧 `/teacher/schedule/import` 页面直接重定向回主课表页。
+- [Quick 260511-vkw]: `/teacher/classes` 已补齐班级/学生双侧筛选与多选批量操作；学生支持教师指定统一密码的批量重置和真实删除，班级支持批量删除；同时学生认证规则切到 `studentNumber + password`，名册导入会同步补齐登录账号字段。
+- [Quick 260512-0bd]: 教师课表导入对展示阻断做了最小放宽；当时间字段合法且仅缺班级/教师映射时，导入弹窗会回到 `/teacher/schedule`，主课表页会把该最新批次作为当前学期展示来源，并按当前教师作用域渲染导入预览网格，但仍不自动写入 runtime。
+- [Quick 260512-hz3]: `Sidebar` 已移除内部 `usePathname()`，统一只消费上游传入的 `activePath`；同时给 `RouteShell`/`classroom` 补上 pathname 透传，保持现有导航选中态不变，并移除 `/teacher/courses/[courseId]` 构建阶段在 `sidebar.tsx` 上新增的 blocking route。
 
 **Active Blockers:**
 
@@ -115,12 +118,15 @@ progress:
 - [Phase 19]: `TeacherSidebarShell` 只消费 `shellVariant`、`shellConfig`、`surfaceMetadata`，compile/resolve/render 分层保持清晰。
 - [Phase 19]: `/teacher` 的 square/full-width/immersive 行为由 metadata 声明，视觉结果保持不变。
 - [Phase 19]: Phase 19 通过 `verify:phase19` 固定校验 route-string branching、shell metadata 漏配和 resolver/shell 回归。
+- [Phase 21]: teachingDesign 继续内嵌在现有 content/task/quiz payload 上 — 避免新增平行 step 模型，保持现有 lesson flow 与 published snapshot 路径稳定。
+- [Phase 21]: 历史 lesson 缺失 teachingDesign 时由服务端统一默认化 — teacher preview 与 launch preview 都需要稳定 fallback，而不是要求历史课时先迁移。
+- [Phase 21]: launch preview 继续只读 published snapshot — 避免把 draft lesson 或客户端推断重新引入开课合同，保持课堂启动边界不变。
 
 ## Next Steps
 
-1. 如果后续新增 plugin action、theme runtime 字段或 schedule hook，先更新 `/help` 内容与 `verify:phase20`，再改实现。
-2. 在提交 Phase 20 相关改动前，重跑 `pnpm verify:phase20` 与 `pnpm typecheck`。
-3. 如需继续推进未完成的 Phase 14 / Phase 15，先确认是否要切回对应 phase 的 GSD 工作流。
+1. 使用 `/gsd-plan-phase 21` 为“Teaching design contracts and evidence foundation”生成详细计划。
+2. 若需要先补旧课程尾项，只在独立上下文中推进 Phase 14 或 Phase 15，不把其 scope 混入 v1.3。
+3. 进入实现前，优先解决当前 `pnpm build` 在 `/classroom` 上的 Suspense 阻塞，避免影响后续 classroom 相关 phase 验证。
 
 ## Performance Metrics
 
@@ -144,6 +150,7 @@ progress:
 | Phase 17 P02 | 7 min | 2 tasks | 4 files |
 | Phase 17 P03 | 5 min | 2 tasks | 5 files |
 | Phase 17 P04 | 8 min | 2 tasks | 6 files |
+| Phase 21 P01 | 10 min | 2 tasks | 6 files |
 
 ### Quick Tasks Completed
 
@@ -202,10 +209,15 @@ progress:
 | 260511-on3 | 为 /teacher/schedule 页面增加导入课表 Modal，点击弹出文件选择框并上传 CSV，自动跳转到审核页 | 2026-05-11 | 6601fba | [260511-on3-teacher-schedule-modal-sse](./quick/260511-on3-teacher-schedule-modal-sse/) |
 | 260511-r3g | 移除 /teacher/schedule/import 作为主用户流落点，导入成功后回到 /teacher/schedule，并在主页面最后一个 section 显示完整周课表 | 2026-05-11 | pending | [260511-r3g-teacher-schedule-import-teacher-schedule](./quick/260511-r3g-teacher-schedule-import-teacher-schedule/) |
 | 260511-tpe | 修复 /teacher/classes 学生列表 dialog/modal 宽度异常，并收口同类原生 dialog 宽度写法，补充回归测试 | 2026-05-11 | 待提交 | [260511-tpe-teacher-classes-student-dialog-width](./quick/260511-tpe-teacher-classes-student-dialog-width/) |
+| 260511-vkw | 在班级管理页增加学生/班级筛选、多选批量操作、批量重置密码和批量删除，并将学生登录切换为学号 + 密码 | 2026-05-11 | 未提交 | [260511-vkw-class-management-batch-actions](./quick/260511-vkw-class-management-batch-actions/) |
+| 260512-0bd | 放宽教师课表导入映射展示阻断：时间合法时，即使班级或教师未映射，也允许进入主课表展示并渲染导入预览 | 2026-05-12 | 未提交 | [260512-0bd-teacher-schedule-import-mapping-display-relax](./quick/260512-0bd-teacher-schedule-import-mapping-display-relax/) |
+| 260512-0r7 | 修复 pnpm build 中 /resources 路由触发的 Uncached data was accessed outside of <Suspense>，保持现有 toast 用法不变 | 2026-05-11 | 未提交 | [260512-0r7-pnpm-build-resources-uncached-data-was-a](./quick/260512-0r7-pnpm-build-resources-uncached-data-was-a/) |
+| 260512-hz3 | 修复 pnpm build 中 /teacher/courses/[courseId] 指向 sidebar usePathname 的新阻塞点，保持现有 sidebar 用法和路由行为不变 | 2026-05-12 | 未提交 | [260512-hz3-teacher-course-sidebar-usepathname-build](./quick/260512-hz3-teacher-course-sidebar-usepathname-build/) |
+| 260512-954 | 确认当前 `pnpm build` 最新 Suspense 阻塞，优先定位 `/classroom` 或其他新的 `Uncached data was accessed outside of <Suspense>` | 2026-05-12 | 未提交 | [260512-954-classroom-build-suspense-blocking-route](./quick/260512-954-classroom-build-suspense-blocking-route/) |
 
 ## Current Position
 
-Phase: 20 (help-center-and-developer-guides) — COMPLETE
-Plan: 3 of 3
-Status: Phase 20 complete
-Last activity: 2026-05-11 - Completed quick task 260511-tpe: 修复 /teacher/classes 学生列表 dialog/modal 宽度异常，并收口同类原生 dialog 宽度写法，补充回归测试
+Phase: 21 (teaching-design-contracts-and-evidence-foundation) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-05-12
