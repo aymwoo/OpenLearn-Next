@@ -121,6 +121,19 @@ export function ClassroomConsoleSurface({
           </div>
         </section>
 
+        <section className={cn(teacherSurfaceRhythm.sectionCompact, 'bg-surface-container-low')}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-on-surface-variant">教师运行台</p>
+              <h2 className="mt-1 text-2xl font-semibold text-on-surface">课堂控制与干预记录</h2>
+            </div>
+            <Badge className="bg-surface-container-lowest text-on-surface-variant">单一主舞台 + 次级 tonal panels</Badge>
+          </div>
+          <p className="text-sm leading-7 text-on-surface-variant">
+            当前课堂保留渐变主舞台承载关键状态，其余控制、名册与干预记录全部回落到稳定的 tonal cards，避免信息挤进同一控制区。
+          </p>
+        </section>
+
         <ClassroomControlPanel initialSnapshot={initialSnapshot} />
       </div>
     );

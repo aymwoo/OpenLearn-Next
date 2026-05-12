@@ -8,6 +8,7 @@ import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomS
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { ClassroomConflictPanel } from './classroom-conflict-panel'
 import { ClassroomRosterPanel } from './classroom-roster-panel'
+import { ClassroomTimelinePanel } from './classroom-timeline-panel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -92,7 +93,7 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
   }
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-5">
         {conflict ? <ClassroomConflictPanel sessionId={currentSnapshot.sessionId} onRefresh={() => setConflict(null)} /> : null}
 
@@ -242,7 +243,10 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
         ) : null}
       </div>
 
-      <ClassroomRosterPanel participants={currentSnapshot.participants} />
+      <div className="space-y-5">
+        <ClassroomTimelinePanel entries={currentSnapshot.teacherTimeline} />
+        <ClassroomRosterPanel participants={currentSnapshot.participants} />
+      </div>
     </section>
   )
 }
