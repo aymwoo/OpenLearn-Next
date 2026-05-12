@@ -138,6 +138,14 @@ export const RecordClassroomEvidenceInputSchema = z.object({
   sourceType: ClassroomEvidenceSourceTypeSchema,
   evidenceType: ClassroomEvidenceTypeSchema,
   payload: z.record(z.string(), z.unknown()),
+}).superRefine((value, ctx) => {
+  if (value.sourceType.startsWith("student-") && !value.studentId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["studentId"],
+      message: "student evidence requires studentId",
+    });
+  }
 });
 
 export const RecordClassroomInterventionInputSchema = z.object({

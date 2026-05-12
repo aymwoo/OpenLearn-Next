@@ -38,9 +38,8 @@ import {
 import {
   lessonStepPayloadSchema,
   type TeachingDesign,
-  type TeachingDesignFallbackReason,
-  type TeachingDesignStatus,
 } from "@/lib/dto/lesson-authoring";
+import { resolveTeachingDesignInput } from "@/lib/teaching-design";
 
 function toIso(value: Date | number | null | undefined) {
   if (!value) {
@@ -126,48 +125,6 @@ const TEACHING_INTENT_LABELS: Record<TeachingDesign["activityIntent"], string> =
   apply: "应用",
 };
 
-const LEGACY_TEACHING_DESIGN_DEFAULTS: Record<ReturnType<typeof lessonStepPayloadSchema.parse>["type"], TeachingDesign> = {
-  content: {
-    activityIntent: "explain",
-    estimatedMinutes: 12,
-    activityMode: "mini-lecture",
-    evidenceExpectation: {
-      evidenceType: "observation",
-      prompt: "关注学生是否能跟随讲解理解核心概念。",
-      required: false,
-      checklist: [],
-      tags: ["legacy-default", "content"],
-      studentVisibility: "teacher-only",
-    },
-  },
-  task: {
-    activityIntent: "practice",
-    estimatedMinutes: 15,
-    activityMode: "independent",
-    evidenceExpectation: {
-      evidenceType: "submission",
-      prompt: "收集学生任务完成情况与关键产出。",
-      required: true,
-      checklist: [],
-      tags: ["legacy-default", "task"],
-      studentVisibility: "teacher-only",
-    },
-  },
-  quiz: {
-    activityIntent: "check",
-    estimatedMinutes: 8,
-    activityMode: "assessment",
-    evidenceExpectation: {
-      evidenceType: "quiz-response",
-      prompt: "记录学生对关键问题的即时作答情况。",
-      required: true,
-      checklist: [],
-      tags: ["legacy-default", "quiz"],
-      studentVisibility: "teacher-only",
-    },
-  },
-};
-
 const STEP_DEFAULT_MINUTES: Record<"content" | "task" | "quiz", number> = {
   content: 12,
   task: 15,
@@ -196,23 +153,7 @@ function getEstimatedMinutes(payload: ReturnType<typeof lessonStepPayloadSchema.
 }
 
 function resolveTeachingDesign(payload: ReturnType<typeof lessonStepPayloadSchema.parse>) {
-  const defaultDesign = structuredClone(LEGACY_TEACHING_DESIGN_DEFAULTS[payload.type]);
-
-  if (!payload.teachingDesign) {
-    return {
-      teachingDesign: defaultDesign,
-      teachingDesignStatus: "inferred" as TeachingDesignStatus,
-      needsTeachingDesignRefinement: true,
-      teachingDesignFallbackReason: `legacy-${payload.type}-default` as TeachingDesignFallbackReason,
-    };
-  }
-
-  return {
-    teachingDesign: payload.teachingDesign,
-    teachingDesignStatus: "explicit" as TeachingDesignStatus,
-    needsTeachingDesignRefinement: false,
-    teachingDesignFallbackReason: null,
-  };
+  return resolveTeachingDesignInput(payload.type, payload.teachingDesign);
 }
 
 function buildEvidenceSummary(teachingDesign: TeachingDesign, inferred: boolean) {
@@ -424,11 +365,17 @@ export async function recordClassroomEvidence(input: unknown) {
 
   const session = await getSessionWithLessonSteps(payload.sessionId);
 
-  if (payload.studentId) {
+  if (payload.sourceType.startsWith("student-")) {
     if (payload.studentId !== user.id) {
       throw new Error("CLASSROOM_EVIDENCE_UNAUTHORIZED");
     }
 
+    await ensureSessionStudentParticipant(session.id, user.id);
+  } else if (session.teacherId !== user.id) {
+    throw new Error("CLASSROOM_EVIDENCE_UNAUTHORIZED");
+  }
+
+  if (payload.studentId && !payload.sourceType.startsWith("student-")) {
     await ensureSessionStudentParticipant(session.id, payload.studentId);
   }
 
