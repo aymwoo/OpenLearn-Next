@@ -97,6 +97,23 @@ export const ClassroomParticipantDTOSchema = z.object({
   lastSeenAt: z.string(),
 });
 
+export const ClassroomTeacherTimelineEntryDTOSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  studentId: z.string().nullable(),
+  studentName: z.string().nullable(),
+  stepId: z.string().nullable(),
+  stepTitle: z.string().nullable(),
+  entryType: z.literal("intervention_noted"),
+  title: z.string(),
+  body: z.string(),
+  targetScope: ClassroomInterventionTargetScopeSchema,
+  targetLabel: z.string(),
+  visibility: z.literal("teacher-only"),
+  actorId: z.string(),
+  createdAt: z.string(),
+});
+
 export const ClassroomSnapshotDTOSchema = z.object({
   sessionId: z.string(),
   lessonId: z.string(),
@@ -113,6 +130,7 @@ export const ClassroomSnapshotDTOSchema = z.object({
   participants: z.array(ClassroomParticipantDTOSchema),
   steps: z.array(ClassroomStepDTOSchema),
   slideState: ClassroomSlideStateDTOSchema.nullable().default(null),
+  teacherTimeline: z.array(ClassroomTeacherTimelineEntryDTOSchema).default([]),
   copy: z.object({
     staleRefreshRequired: z.string().default("课堂状态已经被更新。请先恢复最新状态，再继续操作。"),
     pendingAction: z.string().default("当前控课面板可能不是最新。已为你保留本次操作，请刷新课堂快照后确认。"),
@@ -269,6 +287,7 @@ export type RecordClassroomEvidenceInput = z.infer<typeof RecordClassroomEvidenc
 export type RecordClassroomInterventionInput = z.infer<typeof RecordClassroomInterventionInputSchema>;
 export type ClassroomEvidenceDTO = z.infer<typeof ClassroomEvidenceDTOSchema>;
 export type ClassroomTimelineEntryDTO = z.infer<typeof ClassroomTimelineEntryDTOSchema>;
+export type ClassroomTeacherTimelineEntryDTO = z.infer<typeof ClassroomTeacherTimelineEntryDTOSchema>;
 export type LaunchClassroomInput = z.infer<typeof LaunchClassroomInputSchema>;
 export type ChangeClassroomStepInput = z.infer<typeof ChangeClassroomStepInputSchema>;
 export type ChangeClassroomModeInput = z.infer<typeof ChangeClassroomModeInputSchema>;

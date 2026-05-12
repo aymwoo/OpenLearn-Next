@@ -218,6 +218,65 @@ function buildLaunchPreview(snapshot: PublishedSnapshot, fallbackLessonId: strin
   };
 }
 
+function parseInterventionPayload(payload: unknown) {
+  const record = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
+
+  return {
+    title: typeof record.title === "string" && record.title.trim().length > 0 ? record.title.trim() : "课堂干预",
+    body: typeof record.body === "string" ? record.body.trim() : "",
+    targetScope: record.targetScope === "student" ? "student" as const : "class" as const,
+    visibility: record.visibility === "teacher-only" ? "teacher-only" as const : "teacher-only" as const,
+  };
+}
+
+function buildTeacherTimeline(input: {
+  timelineRows: Array<{
+    id: string;
+    sessionId: string;
+    studentId: string | null;
+    stepId: string | null;
+    entryType: "presence_changed" | "evidence_captured" | "intervention_noted";
+    actorId: string;
+    payloadJson: unknown;
+    createdAt: Date | number | null | undefined;
+  }>;
+  participants: Array<{ studentId: string; studentName: string }>;
+  steps: Array<{ id: string; title: string }>;
+}) {
+  const studentNameMap = new Map(input.participants.map((participant) => [participant.studentId, participant.studentName]));
+  const stepTitleMap = new Map(input.steps.map((step) => [step.id, step.title]));
+
+  return input.timelineRows
+    .filter((entry) => entry.sessionId === input.timelineRows[0]?.sessionId || input.timelineRows.length === 0)
+    .filter((entry) => entry.entryType === "intervention_noted")
+    .map((entry) => {
+      const payload = parseInterventionPayload(entry.payloadJson);
+      const studentName = entry.studentId ? studentNameMap.get(entry.studentId) ?? null : null;
+      const stepTitle = entry.stepId ? stepTitleMap.get(entry.stepId) ?? null : null;
+      const targetLabel = payload.targetScope === "student"
+        ? studentName ?? "指定学生"
+        : "全班";
+
+      return {
+        id: entry.id,
+        sessionId: entry.sessionId,
+        studentId: entry.studentId,
+        studentName,
+        stepId: entry.stepId,
+        stepTitle,
+        entryType: "intervention_noted" as const,
+        title: payload.title,
+        body: payload.body,
+        targetScope: payload.targetScope,
+        targetLabel,
+        visibility: payload.visibility,
+        actorId: entry.actorId,
+        createdAt: toIso(entry.createdAt),
+      };
+    })
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+}
+
 async function getSessionWithLessonSteps(sessionId: string) {
   const session = await db.query.classroomSessions.findFirst({ where: eq(classroomSessions.id, sessionId) });
   if (!session) {
@@ -580,6 +639,7 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
   const clazz = await db.query.classes.findFirst({ where: eq(classes.id, session.classId) });
   const published = await db.query.publishedLessonVersions.findFirst({ where: eq(publishedLessonVersions.id, session.publishedVersionId) });
   const participants = await db.query.classroomParticipants.findMany({ where: eq(classroomParticipants.sessionId, session.id) });
+  const timelineRows = await db.query.classroomTimeline.findMany({ where: eq(classroomTimeline.sessionId, session.id) });
 
   const snapshot = parseSnapshot(published?.snapshotJson);
   const steps = parseSnapshotSteps(snapshot, session.lessonId);
@@ -587,6 +647,23 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
   const userIds = participants.map(p => p.studentId);
   const studentUsers = userIds.length > 0 ? await db.query.users.findMany({ where: inArray(users.id, userIds) }) : [];
   const userMap = new Map(studentUsers.map(u => [u.id, u.name]));
+  const participantDtos = participants.map(p => ({
+    studentId: p.studentId,
+    studentName: userMap.get(p.studentId) ?? "学生",
+    connectionState: p.connectionState,
+    currentStepId: p.currentStepId,
+    lastSeenAt: toIso(p.lastSeenAt),
+  }));
+  const teacherTimeline = isTeacher
+    ? buildTeacherTimeline({
+        timelineRows,
+        participants: participantDtos.map((participant) => ({
+          studentId: participant.studentId,
+          studentName: participant.studentName,
+        })),
+        steps: steps.map((step) => ({ id: step.id, title: step.title })),
+      })
+    : [];
 
   const dto = {
     sessionId: session.id,
@@ -601,13 +678,7 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
     status: session.status,
     version: session.version,
     updatedAt: toIso(session.updatedAt),
-    participants: participants.map(p => ({
-      studentId: p.studentId,
-      studentName: userMap.get(p.studentId) ?? "学生",
-      connectionState: p.connectionState,
-      currentStepId: p.currentStepId,
-      lastSeenAt: toIso(p.lastSeenAt),
-    })),
+    participants: participantDtos,
     steps: steps.map(s => ({
       id: s.id,
       title: s.title,
@@ -616,6 +687,7 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
       payload: s.payload,
     })),
     slideState: await getLatestSlideState(session.id),
+    teacherTimeline,
     copy: {
       staleRefreshRequired: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",
       pendingAction: "当前控课面板可能不是最新。已为你保留本次操作，请刷新课堂快照后确认。",

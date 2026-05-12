@@ -3,11 +3,23 @@ import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findManyClassroomSessions = vi.fn();
+const findFirstClassroomSessions = vi.fn();
 const findManyLessons = vi.fn();
+const findFirstLessons = vi.fn();
 const findManyCourses = vi.fn();
 const findManyClasses = vi.fn();
+const findFirstClasses = vi.fn();
 const findManyCourseClasses = vi.fn();
 const findManyPublishedLessonVersions = vi.fn();
+const findFirstPublishedLessonVersions = vi.fn();
+const findManyClassroomParticipants = vi.fn();
+const findFirstClassroomParticipants = vi.fn();
+const findManyUsers = vi.fn();
+const findManyClassroomEvents = vi.fn();
+const findManyClassroomTimeline = vi.fn();
+const findFirstClassMembers = vi.fn();
+const insertValues = vi.fn();
+const insertMock = vi.fn();
 const assertActiveTeacher = vi.fn();
 const getCurrentUserDTO = vi.fn();
 
@@ -16,13 +28,19 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/db", () => ({
   db: {
     query: {
-      classroomSessions: { findMany: findManyClassroomSessions },
-      lessons: { findMany: findManyLessons },
+      classroomSessions: { findMany: findManyClassroomSessions, findFirst: findFirstClassroomSessions },
+      lessons: { findMany: findManyLessons, findFirst: findFirstLessons },
       courses: { findMany: findManyCourses },
-      classes: { findMany: findManyClasses },
+      classes: { findMany: findManyClasses, findFirst: findFirstClasses },
       courseClasses: { findMany: findManyCourseClasses },
-      publishedLessonVersions: { findMany: findManyPublishedLessonVersions },
+      publishedLessonVersions: { findMany: findManyPublishedLessonVersions, findFirst: findFirstPublishedLessonVersions },
+      classroomParticipants: { findMany: findManyClassroomParticipants, findFirst: findFirstClassroomParticipants },
+      users: { findMany: findManyUsers },
+      classroomEvents: { findMany: findManyClassroomEvents },
+      classroomTimeline: { findMany: findManyClassroomTimeline },
+      classMembers: { findFirst: findFirstClassMembers },
     },
+    insert: insertMock,
   },
 }));
 
@@ -38,6 +56,14 @@ describe("getClassroomConsoleDTO", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+
+    insertValues.mockReturnValue({
+      onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+      returning: vi.fn(),
+    });
+    insertMock.mockReturnValue({
+      values: insertValues,
+    });
 
     assertActiveTeacher.mockResolvedValue({
       userId: "teacher-1",
@@ -90,6 +116,85 @@ describe("getClassroomConsoleDTO", () => {
         },
       },
     ]);
+    findFirstClassroomSessions.mockResolvedValue({
+      id: "session-1",
+      lessonId: "lesson-in-scope",
+      publishedVersionId: "pub-1",
+      classId: "class-in-scope",
+      teacherId: "teacher-1",
+      activeStepId: "step-1",
+      locked: false,
+      status: "live",
+      version: 3,
+      updatedAt: new Date("2026-05-12T10:05:00Z"),
+    });
+    findFirstLessons.mockResolvedValue({
+      id: "lesson-in-scope",
+      title: "古诗导读",
+    });
+    findFirstClasses.mockResolvedValue({
+      id: "class-in-scope",
+      name: "一班",
+    });
+    findFirstPublishedLessonVersions.mockResolvedValue({
+      id: "pub-1",
+      snapshotJson: {
+        lesson: { title: "古诗导读" },
+        steps: [
+          {
+            id: "step-1",
+            lessonId: "lesson-in-scope",
+            type: "content",
+            title: "开场导入",
+            rank: "a0",
+            payload: {
+              type: "content",
+              title: "开场导入",
+              body: "老师先带学生整体感知文本。",
+              teacherNotes: "提示",
+              materialRefs: [],
+            },
+          },
+          {
+            id: "step-2",
+            lessonId: "lesson-in-scope",
+            type: "task",
+            title: "小组讨论",
+            rank: "b0",
+            payload: {
+              type: "task",
+              prompt: "讨论古诗中的意象",
+              submissionType: "text",
+              materialRefs: [],
+            },
+          },
+        ],
+        materials: [],
+      },
+    });
+    findManyClassroomParticipants.mockResolvedValue([
+      {
+        sessionId: "session-1",
+        studentId: "student-1",
+        connectionState: "connected",
+        currentStepId: "step-1",
+        lastSeenAt: new Date("2026-05-12T10:03:00Z"),
+      },
+    ]);
+    findManyUsers.mockResolvedValue([
+      { id: "student-1", name: "李雷" },
+    ]);
+    findManyClassroomEvents.mockResolvedValue([]);
+    findManyClassroomTimeline.mockResolvedValue([]);
+    findFirstClassMembers.mockResolvedValue({
+      id: "member-1",
+      classId: "class-in-scope",
+      userId: "student-1",
+      role: "student",
+    });
+    getCurrentUserDTO.mockResolvedValue({
+      id: "teacher-1",
+    });
   });
 
   it("only returns launchable lessons and classes inside the active teacher school scope", async () => {
@@ -290,5 +395,127 @@ describe("classroom evidence foundation contracts", () => {
     expect(source).toContain("entryType: \"intervention_noted\"");
     expect(source).toContain('payload.sourceType.startsWith("student-")');
     expect(source).toContain("CLASSROOM_EVIDENCE_UNAUTHORIZED");
+  });
+});
+
+describe("getClassroomSnapshotDTO teacher timeline", () => {
+  it("returns a typed teacher timeline for intervention entries on the current session", async () => {
+    findManyClassroomTimeline.mockResolvedValueOnce([
+      {
+        id: "timeline-1",
+        sessionId: "session-1",
+        studentId: "student-1",
+        stepId: "step-2",
+        entryType: "intervention_noted",
+        actorId: "teacher-1",
+        payloadJson: {
+          title: "提醒聚焦",
+          body: "请先回到当前讨论问题，再整理发言。",
+          targetScope: "student",
+          visibility: "teacher-only",
+        },
+        createdAt: new Date("2026-05-12T10:04:00Z"),
+      },
+    ]);
+
+    const { getClassroomSnapshotDTO } = await import("./classroom");
+    const dto = await getClassroomSnapshotDTO({ sessionId: "session-1" });
+
+    expect(dto.teacherTimeline).toHaveLength(1);
+    expect(dto.teacherTimeline[0]).toMatchObject({
+      id: "timeline-1",
+      title: "提醒聚焦",
+      body: "请先回到当前讨论问题，再整理发言。",
+      targetScope: "student",
+      visibility: "teacher-only",
+      studentId: "student-1",
+      studentName: "李雷",
+      stepId: "step-2",
+      stepTitle: "小组讨论",
+      targetLabel: "李雷",
+    });
+    expect(dto.teacherTimeline[0]?.createdAt).toBe("2026-05-12T10:04:00.000Z");
+  });
+
+  it("only keeps intervention entries from the requested session", async () => {
+    findManyClassroomTimeline.mockResolvedValueOnce([
+      {
+        id: "timeline-1",
+        sessionId: "session-1",
+        studentId: "student-1",
+        stepId: "step-1",
+        entryType: "intervention_noted",
+        actorId: "teacher-1",
+        payloadJson: {
+          title: "课堂提醒",
+          body: "请回到当前文本。",
+          targetScope: "class",
+          visibility: "teacher-only",
+        },
+        createdAt: new Date("2026-05-12T10:04:00Z"),
+      },
+      {
+        id: "timeline-2",
+        sessionId: "session-2",
+        studentId: null,
+        stepId: null,
+        entryType: "intervention_noted",
+        actorId: "teacher-2",
+        payloadJson: {
+          title: "其他课堂",
+          body: "不应混入当前课堂。",
+          targetScope: "class",
+          visibility: "teacher-only",
+        },
+        createdAt: new Date("2026-05-12T10:01:00Z"),
+      },
+      {
+        id: "timeline-3",
+        sessionId: "session-1",
+        studentId: "student-1",
+        stepId: "step-1",
+        entryType: "presence_changed",
+        actorId: "student-1",
+        payloadJson: {
+          connectionState: "connected",
+        },
+        createdAt: new Date("2026-05-12T10:02:00Z"),
+      },
+    ]);
+
+    const { getClassroomSnapshotDTO } = await import("./classroom");
+    const dto = await getClassroomSnapshotDTO({ sessionId: "session-1" });
+
+    expect(dto.teacherTimeline).toHaveLength(1);
+    expect(dto.teacherTimeline[0]?.id).toBe("timeline-1");
+    expect(dto.teacherTimeline[0]?.title).toBe("课堂提醒");
+  });
+
+  it("returns an empty teacher timeline to non-teacher consumers", async () => {
+    getCurrentUserDTO.mockResolvedValueOnce({ id: "student-1" });
+    getCurrentUserDTO.mockResolvedValueOnce({ id: "student-1" });
+    findManyClassroomTimeline.mockResolvedValueOnce([
+      {
+        id: "timeline-1",
+        sessionId: "session-1",
+        studentId: "student-1",
+        stepId: "step-2",
+        entryType: "intervention_noted",
+        actorId: "teacher-1",
+        payloadJson: {
+          title: "提醒聚焦",
+          body: "请先回到当前讨论问题，再整理发言。",
+          targetScope: "student",
+          visibility: "teacher-only",
+        },
+        createdAt: new Date("2026-05-12T10:04:00Z"),
+      },
+    ]);
+
+    const { getClassroomSnapshotDTO } = await import("./classroom");
+    const dto = await getClassroomSnapshotDTO({ sessionId: "session-1" });
+
+    expect(dto.teacherTimeline).toEqual([]);
+    expect(insertMock).toHaveBeenCalledTimes(1);
   });
 });
