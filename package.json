@@ -23,6 +23,7 @@
     "verify:phase21": "tsx scripts/verify-phase21-contracts.ts",
     "verify:phase22": "tsx scripts/verify-phase22-orchestration.ts",
     "verify:phase23": "tsx scripts/verify-phase23-student-activity.ts",
+    "verify:phase24": "tsx scripts/verify-phase24-classroom-evaluation.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "db:bootstrap:dev": "drizzle-kit push && tsx scripts/bootstrap-dev-db.ts",
