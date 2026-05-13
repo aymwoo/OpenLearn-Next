@@ -4,17 +4,17 @@ milestone: v1.3
 milestone_name: Teaching Orchestration & Classroom Intelligence
 current_phase: 24
 current_phase_name: live-classroom-operations-and-formative-evaluation
-current_plan: 3
+current_plan: 4
 status: executing
 stopped_at: Completed 24-02-PLAN.md
-last_updated: "2026-05-13T16:07:20.527Z"
+last_updated: "2026-05-13T16:20:47.833Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 14
   completed_phases: 9
   total_plans: 40
-  completed_plans: 38
-  percent: 95
+  completed_plans: 39
+  percent: 98
 ---
 
 # Project State
@@ -23,13 +23,13 @@ progress:
 
 **Current Phase:** 24
 **Current Phase Name:** live-classroom-operations-and-formative-evaluation
-**Current Plan:** 3
+**Current Plan:** 4
 **Total Plans in Phase:** 4
 **Status:** Ready to execute
 **Progress:**
-[██████████] 95%
+[██████████] 98%
 **Last Activity:** 2026-05-13
-**Last session:** 2026-05-13T16:06:35.804Z
+**Last session:** 2026-05-13T16:19:38.709Z
 **Stopped At:** Completed 24-02-PLAN.md
 **Resume File:** None
 
@@ -143,6 +143,9 @@ progress:
 - [Phase 24]: 课堂控制台继续保留原主路径，只把 roster panel 升级为进度与干预优先的运营面板。
 - [Phase 24]: 过程评价继续复用 classroomEvidence 写链路，以 kind=formative-evaluation 标记 teacher-only 课堂观察记录。 — 保持 teacher-scoped、durable、auditable 边界，不新增平行评价表或 review backend。
 - [Phase 24]: 评价模型固定为 3 档参与度 + 六个标签 + 观察记录，不引入分数或 rubric。 — 锁定 Phase 24 的 formative evaluation 合同，保证后续 detail panel 与聚合读取不再漂移。
+- [Phase 24]: 学生详情面板作为 classroom 控制台右侧 tonal detail panel 渲染，并在同一面板内承载课堂证据与过程评价。
+- [Phase 24]: 通过 studentId + detailTab 维持单学生详情状态，不新增第二条 review 主路径。
+- [Phase 24]: 单学生 detail DTO 在 classroom DAL 内直接拆分 evidence 与 kind=formative-evaluation 历史，不依赖 learning/review DAL。
 
 ## Next Steps
 
@@ -182,6 +185,7 @@ progress:
 | Phase 23 P03 | 6 min | 2 tasks | 7 files |
 | Phase 24 P01 | 5 min | 2 tasks | 6 files |
 | Phase 24 P02 | 9 min | 2 tasks | 5 files |
+| Phase 24 P03 | 6 min | 2 tasks | 10 files |
 
 ### Quick Tasks Completed
 
@@ -254,6 +258,6 @@ progress:
 ## Current Position
 
 Phase: 24 (live-classroom-operations-and-formative-evaluation) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-05-13
