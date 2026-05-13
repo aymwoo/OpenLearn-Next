@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 const taskSource = readFileSync("src/components/learning/task-step-card.tsx", "utf8");
 const quizSource = readFileSync("src/components/learning/quiz-step-card.tsx", "utf8");
+const quickResponseSource = readFileSync("src/components/learning/quick-response-step-card.tsx", "utf8");
 const playerRouteSource = readFileSync("src/app/(student)/student/player/page.tsx", "utf8");
 const runtimeSource = readFileSync("src/components/learning/classroom-runtime-client.tsx", "utf8");
 
@@ -45,5 +46,19 @@ describe("Phase 04 interactive student step cards", () => {
     expect(runtimeSource).toContain("QuizStepCard");
     expect(runtimeSource).toContain("teacherRecommendedStepId");
     expect(runtimeSource).toContain("前往老师推荐步骤");
+  });
+
+  it("renders a lightweight quick-response card with durable latest and history feedback", () => {
+    expect(quickResponseSource).toContain("提交课堂回应");
+    expect(quickResponseSource).toContain("提交后会作为一次新的课堂记录保存");
+    expect(quickResponseSource).toContain("最新回应");
+    expect(quickResponseSource).toContain("第 1 次回应");
+  });
+
+  it("adds quick-response runtime routing without removing task and quiz cards", () => {
+    expect(runtimeSource).toContain("QuickResponseStepCard");
+    expect(runtimeSource).toContain("student-quick-response");
+    expect(runtimeSource).toContain("TaskStepCard");
+    expect(runtimeSource).toContain("QuizStepCard");
   });
 });

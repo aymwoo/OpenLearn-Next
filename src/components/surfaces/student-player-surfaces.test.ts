@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 const dashboardSource = readFileSync("src/components/surfaces/student-dashboard-surface.tsx", "utf8");
 const playerSource = readFileSync("src/components/surfaces/player-surface.tsx", "utf8");
 const routeSource = readFileSync("src/app/(student)/student/player/page.tsx", "utf8");
+const runtimeSource = readFileSync("src/components/learning/classroom-runtime-client.tsx", "utf8");
 
 describe("Phase 04 student DTO surfaces", () => {
   it("renders dashboard states from learning DTOs instead of demo data", () => {
@@ -41,5 +42,12 @@ describe("Phase 04 student DTO surfaces", () => {
     expect(playerSource).toContain("export function PlayerPersonalFallback");
     expect(playerSource).toContain("正在加载你的学习进度");
     expect(playerSource).toContain("正在读取最近一次提交");
+  });
+
+  it("keeps quick-response rendering inside the same classroom runtime shell", () => {
+    expect(runtimeSource).toContain("StepActivityShell");
+    expect(runtimeSource).toContain("QuickResponseStepCard");
+    expect(runtimeSource).toContain("TaskStepCard");
+    expect(runtimeSource).toContain("QuizStepCard");
   });
 });
