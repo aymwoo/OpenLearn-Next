@@ -845,7 +845,19 @@ describe("same-route classroom student detail contracts", () => {
   });
 
   it("returns monitoring summary fields and splits formative evaluation history from classroom evidence", async () => {
-    findManyClassroomEvidence.mockResolvedValueOnce([
+    findFirstClassroomSessions.mockResolvedValueOnce({
+      id: "session-1",
+      lessonId: "lesson-in-scope",
+      publishedVersionId: "pub-1",
+      classId: "class-in-scope",
+      teacherId: "teacher-1",
+      activeStepId: "step-2",
+      locked: false,
+      status: "live",
+      version: 3,
+      updatedAt: new Date("2026-05-12T10:05:00Z"),
+    });
+    const detailEvidenceRows = [
       {
         id: "evidence-1",
         sessionId: "session-1",
@@ -873,7 +885,9 @@ describe("same-route classroom student detail contracts", () => {
         capturedById: "teacher-1",
         createdAt: new Date("2026-05-12T10:04:00Z"),
       },
-    ]);
+    ];
+    findManyClassroomEvidence.mockResolvedValueOnce(detailEvidenceRows);
+    findManyClassroomEvidence.mockResolvedValueOnce(detailEvidenceRows);
 
     const { getClassroomStudentDetailDTO, getClassroomSnapshotDTO } = await import("./classroom");
 
@@ -886,7 +900,7 @@ describe("same-route classroom student detail contracts", () => {
 
     expect(snapshot.monitoringSummary).toMatchObject({
       connectedCount: 1,
-      needsAttentionCount: 0,
+      needsAttentionCount: 1,
       submittedCount: 1,
     });
     expect(detail).toMatchObject({
