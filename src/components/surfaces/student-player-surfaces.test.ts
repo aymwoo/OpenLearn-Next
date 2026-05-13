@@ -46,6 +46,9 @@ describe("Phase 04 student DTO surfaces", () => {
 
   it("keeps quick-response rendering inside the same classroom runtime shell", () => {
     expect(runtimeSource).toContain("StepActivityShell");
+    expect(runtimeSource).toContain("当前活动");
+    expect(runtimeSource).toContain("活动提示");
+    expect(runtimeSource).toContain("提交要求");
     expect(runtimeSource).toContain("QuickResponseStepCard");
     expect(runtimeSource).toContain("TaskStepCard");
     expect(runtimeSource).toContain("QuizStepCard");
