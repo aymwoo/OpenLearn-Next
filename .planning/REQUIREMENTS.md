@@ -126,8 +126,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ACT-01**: Student can see classroom-friendly activity guidance, expected output, and current completion state for the active teaching step.
 - [x] **ACT-02**: Student can submit quick in-class evidence or check-in responses that are durably recorded alongside existing task and quiz evidence.
 - [x] **ACT-03**: Teacher can monitor live roster presence, step adoption, progress, submission counts, and students needing intervention during class.
-- [ ] **EVAL-01**: Teacher can capture lightweight participation marks, observation notes, or evaluation tags during or after class without introducing a full gradebook.
-- [ ] **EVAL-02**: Teacher can review aggregated evidence from progress, tasks, quizzes, quick responses, presence, observations, and feedback for each student.
+- [x] **EVAL-01**: Teacher can capture lightweight participation marks, observation notes, or evaluation tags during or after class without introducing a full gradebook.
+- [x] **EVAL-02**: Teacher can review aggregated evidence from progress, tasks, quizzes, quick responses, presence, observations, and feedback for each student.
 - [x] **EVAL-03**: Classroom sessions durably store presence, intervention, and evidence timeline data for recap, audit, and later analytics.
 - [ ] **ANALYTICS-01**: Teacher can view lesson or session summary metrics for completion, participation, submissions, and feedback workload.
 - [ ] **ANALYTICS-02**: Teacher can inspect class-level and student-level trends across recent teaching sessions with drill-down to raw evidence.
@@ -273,8 +273,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACT-01 | Phase 23 | Complete |
 | ACT-02 | Phase 23 | Complete |
 | ACT-03 | Phase 24 | Complete |
-| EVAL-01 | Phase 24 | Pending |
-| EVAL-02 | Phase 24 | Pending |
+| EVAL-01 | Phase 24 | Complete |
+| EVAL-02 | Phase 24 | Complete |
 | EVAL-03 | Phase 21 | Complete |
 | ANALYTICS-01 | Phase 25 | Pending |
 | ANALYTICS-02 | Phase 26 | Pending |

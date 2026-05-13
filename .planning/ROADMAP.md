@@ -215,7 +215,7 @@
   4. All writes stay teacher-scoped, durable, auditable, and explicit about cache invalidation and failure feedback.
 **Plans**: 4 plans
 - [x] 24-01-PLAN.md — Add live classroom monitoring cards and intervention-aware roster summaries.
-- [ ] 24-02-PLAN.md — Introduce participation and observation capture flows with durable persistence and teacher-only scope checks.
+- [x] 24-02-PLAN.md — Introduce participation and observation capture flows with durable persistence and teacher-only scope checks.
 - [ ] 24-03-PLAN.md — Unify runtime evidence and review data into a product-grade formative evaluation surface.
 - [ ] 24-04-PLAN.md — Add verification coverage for runtime metrics, observation writes, and evaluation aggregation boundaries.
 **UI hint**: yes
@@ -266,6 +266,6 @@
 | 21. Teaching design contracts and evidence foundation | 5/5 | Complete   | 2026-05-13 |
 | 22. Teacher orchestration workspace and launch preparation | 3/3 | Complete | 2026-05-13 |
 | 23. Student in-class activity flow | 3/3 | Complete   | 2026-05-13 |
-| 24. Live classroom operations and formative evaluation | 1/4 | In Progress|  |
+| 24. Live classroom operations and formative evaluation | 2/4 | In Progress|  |
 | 25. Teaching data capture and session analytics | 0/3 | Not started | - |
 | 26. Cross-session trends and Stitch productization | 0/4 | Not started | - |
