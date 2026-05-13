@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ClassroomControlPanel } from "./classroom-control-panel";
@@ -8,11 +8,15 @@ import { ClassroomRosterPanel } from "./classroom-roster-panel";
 import type { ClassroomSnapshotDTO } from "@/lib/dto/classroom";
 
 const refreshMock = vi.fn();
+const pushMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
+    push: pushMock,
     refresh: refreshMock,
   }),
+  usePathname: () => "/classroom",
+  useSearchParams: () => new URLSearchParams("sessionId=session-1"),
 }));
 
 vi.mock("@/actions/classroom-actions", () => ({
@@ -125,5 +129,18 @@ describe("ClassroomRosterPanel", () => {
     expect(screen.queryByText("课堂活跃度")).toBeNull();
     expect(screen.getByText("名册监控")).toBeTruthy();
     expect(screen.getByText(/优先关注 1 名/)).toBeTruthy();
+  });
+
+  it("adds a same-route entry action for opening student detail state", () => {
+    render(
+      <ClassroomRosterPanel
+        participants={participants}
+        monitoringSummary={snapshot.monitoringSummary}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: '查看证据与评价' })[0]!);
+
+    expect(pushMock).toHaveBeenCalledWith('/classroom?sessionId=session-1&studentId=student-1&detailTab=evidence');
   });
 });
