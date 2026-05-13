@@ -312,14 +312,44 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               },
               updatedAt: "2026-05-12T10:00:00.000Z",
             },
+            {
+              id: "step-2",
+              title: "旧版导入",
+              type: "content",
+              rank: "b0",
+              teachingDesignStatus: "inferred",
+              needsTeachingDesignRefinement: true,
+              teachingDesignFallbackReason: "legacy-content-default",
+              archivedAt: null,
+              payload: {
+                type: "content",
+                title: "旧版导入",
+                body: "从旧版课时继承的步骤。",
+                materialRefs: [],
+              },
+              updatedAt: "2026-05-12T10:10:00.000Z",
+            },
           ],
         } as any}
         builtInTemplates={[]}
       />,
     );
 
-    expect(screen.getByText("18 min")).toBeTruthy();
-    expect(screen.getByText("总时长约 18 分钟")).toBeTruthy();
+    const explicitCard = screen.getAllByText("分组实验")[0]?.closest("div.group");
+    const legacyCard = screen.getAllByText("旧版导入")[0]?.closest("div.group");
+
+    expect(explicitCard).toBeTruthy();
+    expect(legacyCard).toBeTruthy();
+
+    if (!(explicitCard instanceof HTMLElement) || !(legacyCard instanceof HTMLElement)) {
+      throw new Error("Expected flow step card container to be an HTMLElement");
+    }
+
+    expect(within(explicitCard).getByText("预计时长")).toBeTruthy();
+    expect(within(explicitCard).getByText("18 分钟")).toBeTruthy();
+    expect(within(legacyCard).getByText("预计时长")).toBeTruthy();
+    expect(within(legacyCard).getByText("12 分钟")).toBeTruthy();
+    expect(screen.getByText("总时长约 30 分钟")).toBeTruthy();
   });
 
   it("keeps the same fallback wording in teacher preview surfaces", () => {
