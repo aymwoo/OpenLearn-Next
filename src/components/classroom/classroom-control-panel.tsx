@@ -8,11 +8,12 @@ import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomS
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { ClassroomConflictPanel } from './classroom-conflict-panel'
 import { ClassroomRosterPanel } from './classroom-roster-panel'
+import { ClassroomStudentDetailPanel } from './classroom-student-detail-panel'
 import { ClassroomTimelinePanel } from './classroom-timeline-panel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import type { ClassroomSnapshotDTO, ClassroomStepDTO } from '@/lib/dto/classroom'
+import type { ClassroomSnapshotDTO, ClassroomStepDTO, ClassroomStudentDetailDTO, ClassroomStudentDetailTab } from '@/lib/dto/classroom'
 
 type ConflictState = { latest?: ClassroomSnapshotDTO } | null
 
@@ -20,7 +21,15 @@ function hasLatestSnapshot(value: unknown): value is { latest: ClassroomSnapshot
   return typeof value === 'object' && value !== null && 'latest' in value
 }
 
-export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: ClassroomSnapshotDTO }) {
+export function ClassroomControlPanel({
+  initialSnapshot,
+  studentDetail = null,
+  activeDetailTab = 'evidence',
+}: {
+  initialSnapshot: ClassroomSnapshotDTO
+  studentDetail?: ClassroomStudentDetailDTO | null
+  activeDetailTab?: ClassroomStudentDetailTab
+}) {
   const [conflict, setConflict] = useState<ConflictState>(null)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -244,8 +253,19 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
       </div>
 
       <div className="space-y-5">
+        {studentDetail ? (
+          <ClassroomStudentDetailPanel
+            sessionId={currentSnapshot.sessionId}
+            detail={studentDetail}
+            activeTab={activeDetailTab}
+          />
+        ) : null}
         <ClassroomTimelinePanel entries={currentSnapshot.teacherTimeline} />
-        <ClassroomRosterPanel participants={currentSnapshot.participants} monitoringSummary={currentSnapshot.monitoringSummary} />
+        <ClassroomRosterPanel
+          sessionId={currentSnapshot.sessionId}
+          participants={currentSnapshot.participants}
+          monitoringSummary={currentSnapshot.monitoringSummary}
+        />
       </div>
     </section>
   )

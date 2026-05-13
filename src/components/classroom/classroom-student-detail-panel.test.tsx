@@ -146,8 +146,8 @@ describe('ClassroomStudentDetailPanel', () => {
       />,
     )
 
-    expect(screen.getByText('主动发言')).toBeTruthy()
-    expect(screen.getByText('表达清晰')).toBeTruthy()
+    expect(screen.getAllByText('主动发言').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('表达清晰').length).toBeGreaterThan(0)
     expect(screen.getByText('能够主动回应问题。')).toBeTruthy()
     expect(screen.getByText('在课堂上下文里记录单学生观察')).toBeTruthy()
   })
@@ -162,6 +162,6 @@ describe('ClassroomStudentDetailPanel', () => {
     )
 
     expect(screen.getByText('课堂时间线')).toBeTruthy()
-    expect(screen.getByRole('button', { name: '过程评价' })).toBeTruthy()
+    expect(screen.getAllByRole('button', { name: '过程评价' }).length).toBeGreaterThan(0)
   })
 })

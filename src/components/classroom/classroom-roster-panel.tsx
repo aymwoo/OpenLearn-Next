@@ -1,16 +1,33 @@
 import { Activity, UsersRound } from 'lucide-react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import type { ClassroomParticipantMonitoringDTO, ClassroomRosterSummaryDTO } from '@/lib/dto/classroom'
 
 export function ClassroomRosterPanel({
   participants,
   monitoringSummary,
+  sessionId,
 }: {
   participants: ClassroomParticipantMonitoringDTO[]
   monitoringSummary: ClassroomRosterSummaryDTO
+  sessionId?: string
 }) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const openStudentDetail = (studentId: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (sessionId) {
+      params.set('sessionId', sessionId)
+    }
+    params.set('studentId', studentId)
+    params.set('detailTab', 'evidence')
+    router.push(`${pathname}?${params.toString()}`)
+  }
 
   return (
     <Card className="bg-surface-container-low p-5 sm:p-6">
@@ -56,6 +73,11 @@ export function ClassroomRosterPanel({
                       ))}
                     </div>
                   ) : null}
+                  <div className="mt-4">
+                    <Button type="button" variant="secondary" className="min-h-[40px] px-4" onClick={() => openStudentDetail(participant.studentId)}>
+                      查看证据与评价
+                    </Button>
+                  </div>
                 </div>
                 <Badge variant={participant.needsAttention ? 'default' : 'success'}>{badgeLabel}</Badge>
               </div>
