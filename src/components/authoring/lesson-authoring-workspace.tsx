@@ -431,7 +431,11 @@ function FlowStepCard({
               <span className="mt-2 block text-sm text-on-surface-variant">{getStepDescription(step)}</span>
             </span>
             <span className="mt-3 flex flex-wrap gap-3">
-              <span className="inline-flex shrink-0 items-center gap-2 rounded-[1rem] bg-surface-container px-3 py-2 text-sm text-on-surface shadow-[inset_0_0_0_1px_rgba(116,132,153,0.08)]">
+              <span
+                role="group"
+                aria-label="预计时长"
+                className="inline-flex shrink-0 items-center gap-2 rounded-[1rem] bg-surface-container px-3 py-2 text-sm text-on-surface shadow-[inset_0_0_0_1px_rgba(116,132,153,0.08)]"
+              >
                 <Clock3 className="size-4 text-primary" aria-hidden />
                 <span className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">预计时长</span>
                 <span className="text-sm font-semibold text-on-surface">{getStepMinutes(step)} 分钟</span>

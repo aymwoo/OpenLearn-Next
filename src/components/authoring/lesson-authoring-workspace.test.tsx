@@ -352,6 +352,61 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
     expect(screen.getByText("总时长约 30 分钟")).toBeTruthy();
   });
 
+  it("keeps labeled duration metadata discoverable on a crowded flow card", () => {
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [
+            {
+              id: "step-1",
+              title: "超长标题教学环节：围绕真实情境完成跨学科协作探究并输出课堂观察记录",
+              type: "content",
+              rank: "a0",
+              teachingDesignStatus: "inferred",
+              needsTeachingDesignRefinement: true,
+              teachingDesignFallbackReason: "partial-teaching-design",
+              archivedAt: null,
+              payload: {
+                type: "content",
+                title: "超长标题教学环节：围绕真实情境完成跨学科协作探究并输出课堂观察记录",
+                body: "先阅读案例，再整理证据，最后汇报观察结论。",
+                materialRefs: [],
+                builtInSource: {
+                  pluginId: "plugin-1",
+                  builtInKey: "directInstruction",
+                  pluginName: "教师讲授",
+                },
+              },
+              updatedAt: "2026-05-12T10:20:00.000Z",
+            },
+          ],
+        } as any}
+        builtInTemplates={[]}
+      />,
+    );
+
+    const crowdedCard = screen
+      .getAllByText("超长标题教学环节：围绕真实情境完成跨学科协作探究并输出课堂观察记录")[0]
+      ?.closest("div.group");
+
+    expect(crowdedCard).toBeTruthy();
+
+    if (!(crowdedCard instanceof HTMLElement)) {
+      throw new Error("Expected crowded flow step card container to be an HTMLElement");
+    }
+
+    const durationMeta = within(crowdedCard).getByRole("group", { name: "预计时长" });
+
+    expect(durationMeta.textContent).toContain("预计时长");
+    expect(durationMeta.textContent).toContain("12 分钟");
+    expect(within(crowdedCard).getByText("内置环节 · 教师讲授")).toBeTruthy();
+    expect(within(crowdedCard).getByText("默认推断")).toBeTruthy();
+    expect(within(crowdedCard).getByText("待完善")).toBeTruthy();
+  });
+
   it("keeps the same fallback wording in teacher preview surfaces", () => {
     const source = readFileSync("src/components/surfaces/teacher-lesson-preview-surface.tsx", "utf8");
 
