@@ -4,17 +4,17 @@ milestone: v1.3
 milestone_name: Teaching Orchestration & Classroom Intelligence
 current_phase: 23
 current_phase_name: student-in-class-activity-flow
-current_plan: 2
+current_plan: 3
 status: executing
-stopped_at: Phase 23 context gathered
-last_updated: "2026-05-13T13:40:24.598Z"
+stopped_at: Completed 23-02-PLAN.md
+last_updated: "2026-05-13T14:14:47.970Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 14
   completed_phases: 8
   total_plans: 36
-  completed_plans: 34
-  percent: 94
+  completed_plans: 35
+  percent: 97
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 
 **Current Phase:** 23
 **Current Phase Name:** student-in-class-activity-flow
-**Current Plan:** 2
+**Current Plan:** 3
 **Total Plans in Phase:** 3
 **Status:** Ready to execute
 **Progress:**
-[█████████░] 94%
+[██████████] 97%
 **Last Activity:** 2026-05-13
-**Last session:** 2026-05-13T11:37:33.934Z
-**Stopped At:** Phase 23 context gathered
+**Last session:** 2026-05-13T14:14:47.965Z
+**Stopped At:** Completed 23-02-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -133,6 +133,9 @@ progress:
 - [Phase 23]: 学生端 activity 文案全部由服务端从 teachingDesign、progress 与 latest attempt 派生，客户端不再猜测。
 - [Phase 23]: 当前步骤统一先过一个课堂活动壳，再落到 content/task/quiz 各自动作区，避免多套顶层叙事竞争。
 - [Phase 23]: 老师推荐步骤 CTA 保持次级动作，不与当前步骤主提交动作并列抢焦点。
+- [Phase 23]: quick-response 继续走 classroomEvidence append-only 写链路，不与 task/quiz attempts 真相源混用。
+- [Phase 23]: player personal DTO 单独暴露 latestQuickResponse 与 quickResponseHistory，保持 session + step + student 作用域。
+- [Phase 23]: quick-response UI 仅在 content 步骤声明 student-quick-response evidence path 时启用，task/quiz 卡保持原路径不变。
 
 ## Next Steps
 
@@ -168,6 +171,7 @@ progress:
 | Phase 21 P04 | 3 min | 2 tasks | 7 files |
 | Phase 21 P05 | 3 min | 2 tasks | 2 files |
 | Phase 23 P01 | 9 min | 2 tasks | 8 files |
+| Phase 23 P02 | 10 min | 2 tasks | 11 files |
 
 ### Quick Tasks Completed
 
@@ -240,6 +244,6 @@ progress:
 ## Current Position
 
 Phase: 23 (student-in-class-activity-flow) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-05-13

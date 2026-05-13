@@ -124,7 +124,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **ORCH-02**: Teacher can prepare a class-facing launch plan from a published lesson, including roster scope, key materials, and runtime emphasis before class starts.
 - [ ] **ORCH-03**: Teacher can see launch readiness and missing prerequisites for classroom implementation before starting a live session.
 - [x] **ACT-01**: Student can see classroom-friendly activity guidance, expected output, and current completion state for the active teaching step.
-- [ ] **ACT-02**: Student can submit quick in-class evidence or check-in responses that are durably recorded alongside existing task and quiz evidence.
+- [x] **ACT-02**: Student can submit quick in-class evidence or check-in responses that are durably recorded alongside existing task and quiz evidence.
 - [ ] **ACT-03**: Teacher can monitor live roster presence, step adoption, progress, submission counts, and students needing intervention during class.
 - [ ] **EVAL-01**: Teacher can capture lightweight participation marks, observation notes, or evaluation tags during or after class without introducing a full gradebook.
 - [ ] **EVAL-02**: Teacher can review aggregated evidence from progress, tasks, quizzes, quick responses, presence, observations, and feedback for each student.
@@ -271,7 +271,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ORCH-02 | Phase 22 | Pending |
 | ORCH-03 | Phase 22 | Pending |
 | ACT-01 | Phase 23 | Complete |
-| ACT-02 | Phase 23 | Pending |
+| ACT-02 | Phase 23 | Complete |
 | ACT-03 | Phase 24 | Pending |
 | EVAL-01 | Phase 24 | Pending |
 | EVAL-02 | Phase 24 | Pending |

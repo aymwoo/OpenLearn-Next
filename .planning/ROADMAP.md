@@ -200,7 +200,7 @@
   4. The runtime remains compatible with cached shell + Suspense-streamed personal state and does not move DB logic into the client.
 **Plans**: 3 plans
 - [x] 23-01-PLAN.md — Extend player DTOs and runtime cards to surface activity guidance and evidence expectations cleanly.
-- [ ] 23-02-PLAN.md — Add quick-response or evidence-capture submission paths that reuse existing learning boundaries and auditability.
+- [x] 23-02-PLAN.md — Add quick-response or evidence-capture submission paths that reuse existing learning boundaries and auditability.
 - [ ] 23-03-PLAN.md — Add regression coverage for player UX, persistence semantics, and classroom runtime compatibility.
 **UI hint**: yes
 
@@ -265,7 +265,7 @@
 | 20. Help center and developer guides | 3/3 | Complete | 2026-05-11 |
 | 21. Teaching design contracts and evidence foundation | 5/5 | Complete   | 2026-05-13 |
 | 22. Teacher orchestration workspace and launch preparation | 3/3 | Complete | 2026-05-13 |
-| 23. Student in-class activity flow | 1/3 | In Progress|  |
+| 23. Student in-class activity flow | 2/3 | In Progress|  |
 | 24. Live classroom operations and formative evaluation | 0/4 | Not started | - |
 | 25. Teaching data capture and session analytics | 0/3 | Not started | - |
 | 26. Cross-session trends and Stitch productization | 0/4 | Not started | - |
