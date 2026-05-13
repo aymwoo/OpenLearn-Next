@@ -793,3 +793,45 @@ describe("formative evaluation contracts", () => {
     expect(source).toContain(".sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))");
   });
 });
+
+describe("same-route classroom student detail contracts", () => {
+  it("extends the classroom page search params with same-route student detail state", async () => {
+    const source = readFileSync("src/app/(classroom)/classroom/page.tsx", "utf8");
+
+    expect(source).toContain("studentId?: string");
+    expect(source).toContain("detailTab?: 'evidence' | 'evaluation'");
+    expect(source).toContain("getClassroomStudentDetailDTO");
+    expect(source).not.toContain("/teacher/review");
+  });
+
+  it("defines the fixed same-route student detail tab and dto schemas", async () => {
+    const classroomDto = await import("@/lib/dto/classroom");
+
+    expect(classroomDto.ClassroomStudentDetailTabSchema.options).toEqual([
+      "evidence",
+      "evaluation",
+    ]);
+    expect(
+      classroomDto.ClassroomStudentDetailDTOSchema.safeParse({
+        studentId: "student-1",
+        studentName: "李雷",
+        evidenceEntries: [],
+        evaluationEntries: [],
+        latestParticipationLevel: "normal",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("adds a teacher-scoped classroom detail read model without routing through review dal", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain("export async function getClassroomStudentDetailDTO");
+    expect(source).toContain("if (!input.studentId)");
+    expect(source).toContain("return null");
+    expect(source).toContain('payload.kind === "formative-evaluation"');
+    expect(source).toContain("evaluationEntries");
+    expect(source).toContain("evidenceEntries");
+    expect(source).not.toContain("getTeacherLessonReviewDTO");
+    expect(source).not.toContain("@/lib/dal/learning");
+  });
+});
