@@ -1,13 +1,17 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ClassroomStudentEvaluationForm } from './classroom-student-evaluation-form'
 
 vi.mock('@/actions/classroom-actions', () => ({
   recordStudentFormativeEvaluationAction: vi.fn(),
 }))
+
+afterEach(() => {
+  cleanup()
+})
 
 describe('ClassroomStudentEvaluationForm', () => {
   it('renders the exact three participation tiers in Chinese', () => {
@@ -33,7 +37,7 @@ describe('ClassroomStudentEvaluationForm', () => {
     render(<ClassroomStudentEvaluationForm sessionId="session-1" studentId="student-1" />)
 
     expect(screen.getByLabelText('observationNote')).toBeTruthy()
-    expect(screen.getByText(/这是教师可见的过程性评价记录，不是分数录入/)).toBeTruthy()
+    expect(screen.getByText(/这是教师可见的过程性评价记录/)).toBeTruthy()
     expect(screen.queryByText(/分数/)).toBeNull()
   })
 })

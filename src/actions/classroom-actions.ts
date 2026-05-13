@@ -11,6 +11,7 @@ import {
   launchClassroomSession,
   recordClassroomEvidence,
   recordClassroomIntervention,
+  recordStudentFormativeEvaluation,
   recordStudentQuickResponse,
   refreshClassroomSnapshot,
   updateClassroomParticipantConnection,
@@ -24,6 +25,7 @@ import {
   LaunchClassroomInputSchema,
   RecordClassroomEvidenceInputSchema,
   RecordClassroomInterventionInputSchema,
+  RecordStudentFormativeEvaluationInputSchema,
   RefreshClassroomSnapshotInputSchema,
   StudentQuickResponseInputSchema,
   TouchClassroomPresenceInputSchema,
@@ -234,6 +236,19 @@ export async function recordClassroomInterventionAction(input: FormData | Record
     return { ok: true, data: result };
   } catch (error) {
     return handleClassroomActionError(error);
+  }
+}
+
+export async function recordStudentFormativeEvaluationAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = RecordStudentFormativeEvaluationInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await recordStudentFormativeEvaluation(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.sessionId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error, "过程评价暂时没有保存成功，请稍后重试。");
   }
 }
 
