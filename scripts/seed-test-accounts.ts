@@ -13,6 +13,11 @@ export const TEST_ACCOUNTS = [
   { name: "测试学生", email: "student@example.com", password: "password" },
 ] as const;
 
+const TEST_ACCOUNT_ROLES: Record<(typeof TEST_ACCOUNTS)[number]["email"], Array<"teacher" | "student" | "admin">> = {
+  "teacher@example.com": ["teacher", "admin"],
+  "student@example.com": ["student"],
+};
+
 type SeededTestAccounts = {
   school: { id: string; name: string };
   teacher: { id: string; email: string; name: string };
@@ -29,12 +34,8 @@ export async function seedTestAccounts(): Promise<SeededTestAccounts> {
     const user = await upsertTestUser(account, passwordHash);
     seededUsers.set(account.email, { id: user.id, email: account.email, name: account.name });
 
-    if (account.email === "teacher@example.com") {
-      await ensureActiveMembership(user.id, testSchool.id, "teacher");
-    }
-
-    if (account.email === "student@example.com") {
-      await ensureActiveMembership(user.id, testSchool.id, "student");
+    for (const role of TEST_ACCOUNT_ROLES[account.email]) {
+      await ensureActiveMembership(user.id, testSchool.id, role);
     }
   }
 
@@ -98,11 +99,11 @@ async function upsertTestUser(
   return insertedUsers[0];
 }
 
-async function ensureActiveMembership(userId: string, schoolId: string, role: "teacher" | "student") {
+async function ensureActiveMembership(userId: string, schoolId: string, role: "teacher" | "student" | "admin") {
   const existingMemberships = await db
     .select({ id: memberships.id })
     .from(memberships)
-    .where(and(eq(memberships.userId, userId), eq(memberships.schoolId, schoolId)))
+    .where(and(eq(memberships.userId, userId), eq(memberships.schoolId, schoolId), eq(memberships.role, role)))
     .limit(1);
 
   const existingMembership = existingMemberships[0];
@@ -126,7 +127,7 @@ async function ensureActiveMembership(userId: string, schoolId: string, role: "t
 async function main() {
   await seedTestAccounts();
   console.log(
-    "测试账号 seed 完成：teacher@example.com 具备 active teacher membership；student@example.com 具备 active student membership"
+    "测试账号 seed 完成：teacher@example.com 具备 active teacher/admin memberships；student@example.com 具备 active student membership"
   );
 }
 

@@ -7,6 +7,7 @@ describe("schedule runtime dto contract", () => {
     const parsed = TeacherDailyAgendaDTOSchema.parse({
       teacherId: "teacher-1",
       schoolId: "school-1",
+      viewMode: "teacher",
       date: "2026-05-11",
       dateLabel: "2026-05-11",
       weekLabel: "周一",
@@ -27,22 +28,25 @@ describe("schedule runtime dto contract", () => {
             bellSlotLabel: "第一节",
             timeLabel: "08:00 - 08:45",
             cells: [
-              {
-                id: "cell-1",
-                weekday: 1,
-                weekdayLabel: "周一",
-                timeLabel: "08:00 - 08:45",
-                bellSlotLabel: "第一节",
-                classLabel: "高一一班",
-                locationLabel: "302",
-                courseTitle: "数学",
-                status: "进行中",
-                overrideSummary: null,
-              },
-              null,
-              null,
-              null,
-              null,
+              [
+                {
+                  id: "cell-1",
+                  weekday: 1,
+                  weekdayLabel: "周一",
+                  timeLabel: "08:00 - 08:45",
+                  bellSlotLabel: "第一节",
+                  classLabel: "高一一班",
+                  teacherLabel: null,
+                  locationLabel: "302",
+                  courseTitle: "数学",
+                  status: "进行中",
+                  overrideSummary: null,
+                },
+              ],
+              [],
+              [],
+              [],
+              [],
             ],
           },
         ],
@@ -51,7 +55,7 @@ describe("schedule runtime dto contract", () => {
 
     expect(parsed.weeklySchedule.weekdays[0]?.isToday).toBe(true);
     expect(parsed.weeklySchedule.rows[0]?.cells).toHaveLength(5);
-    expect(parsed.weeklySchedule.rows[0]?.cells[1]).toBeNull();
-    expect(parsed.weeklySchedule.rows[0]?.cells[0]?.courseTitle).toBe("数学");
+    expect(parsed.weeklySchedule.rows[0]?.cells[1]).toEqual([]);
+    expect(parsed.weeklySchedule.rows[0]?.cells[0]?.[0]?.courseTitle).toBe("数学");
   });
 });

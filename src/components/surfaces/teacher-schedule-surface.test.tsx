@@ -171,22 +171,25 @@ const baseWeeklySchedule: TeacherWeeklyScheduleDTO = {
       bellSlotLabel: "第一节",
       timeLabel: "08:00 - 08:45",
       cells: [
-        {
-          id: "cell-1",
-          weekday: 1,
-          weekdayLabel: "周一",
-          timeLabel: "08:00 - 08:45",
-          bellSlotLabel: "第一节",
-          classLabel: "高一一班",
-          locationLabel: "302",
-          courseTitle: "数学",
-          status: "进行中",
-          overrideSummary: null,
-        },
-        null,
-        null,
-        null,
-        null,
+        [
+          {
+            id: "cell-1",
+            weekday: 1,
+            weekdayLabel: "周一",
+            timeLabel: "08:00 - 08:45",
+            bellSlotLabel: "第一节",
+            classLabel: "高一一班",
+            teacherLabel: null,
+            locationLabel: "302",
+            courseTitle: "数学",
+            status: "进行中",
+            overrideSummary: null,
+          },
+        ],
+        [],
+        [],
+        [],
+        [],
       ],
     },
   ],
@@ -199,7 +202,7 @@ const emptyWeeklySchedule: TeacherWeeklyScheduleDTO = {
       slotId: "slot-1",
       bellSlotLabel: "第一节",
       timeLabel: "08:00 - 08:45",
-      cells: [null, null, null, null, null],
+      cells: [[], [], [], [], []],
     },
   ],
 };
@@ -211,6 +214,7 @@ describe("TeacherScheduleSurface", () => {
           data={{
             teacherId: "teacher-1",
             schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -231,6 +235,7 @@ describe("TeacherScheduleSurface", () => {
           data={{
             teacherId: "teacher-1",
             schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -266,6 +271,7 @@ describe("TeacherScheduleSurface", () => {
           data={{
             teacherId: "teacher-1",
             schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -305,6 +311,7 @@ describe("TeacherScheduleSurface", () => {
         data={{
           teacherId: "teacher-1",
           schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -331,6 +338,7 @@ describe("TeacherScheduleSurface", () => {
         data={{
           teacherId: "teacher-1",
           schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -353,6 +361,7 @@ describe("TeacherScheduleSurface", () => {
         data={{
           teacherId: "teacher-1",
           schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -376,6 +385,7 @@ describe("TeacherScheduleSurface", () => {
         data={{
           teacherId: "teacher-1",
           schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -399,6 +409,7 @@ describe("TeacherScheduleSurface", () => {
         data={{
           teacherId: "teacher-1",
           schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -423,6 +434,7 @@ describe("TeacherScheduleSurface", () => {
         data={{
           teacherId: "teacher-1",
           schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -447,6 +459,7 @@ describe("TeacherScheduleSurface", () => {
         data={{
           teacherId: "teacher-1",
           schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -461,7 +474,7 @@ describe("TeacherScheduleSurface", () => {
     );
 
     expect(screen.queryByText("当前学期尚未导入课表")).toBeNull();
-    expect(screen.getByText("当前主课表已导入")).toBeTruthy();
+    expect(screen.getByText("当前主课表正在显示最新导入预览，班级、教师或课程映射可后续补齐；正式入库仍需通过审批链路。")).toBeTruthy();
     expect(screen.getByText("当前没有匹配到你的授课安排")).toBeTruthy();
   });
 
@@ -471,6 +484,7 @@ describe("TeacherScheduleSurface", () => {
         data={{
           teacherId: "teacher-1",
           schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -511,6 +525,7 @@ describe("TeacherScheduleSurface", () => {
         data={{
           teacherId: "teacher-1",
           schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -553,6 +568,7 @@ describe("TeacherScheduleSurface", () => {
         data={{
           teacherId: "teacher-1",
           schoolId: "school-1",
+          viewMode: "teacher",
           date: "2026-05-11",
           dateLabel: "2026-05-11",
           weekLabel: "周一",
@@ -568,6 +584,73 @@ describe("TeacherScheduleSurface", () => {
     expect(screen.getByRole("heading", { level: 2, name: "2026 春季学期课程表" })).toBeTruthy();
     expect(screen.queryByRole("heading", { level: 2, name: "2026 夏季学期课程表" })).toBeNull();
     expect(screen.getAllByText("数学").length).toBeGreaterThan(0);
+  });
+
+  it("renders compact stacked cards with teacher labels in admin school view", () => {
+    const adminWeeklySchedule: TeacherWeeklyScheduleDTO = {
+      ...baseWeeklySchedule,
+      rows: [
+        {
+          ...baseWeeklySchedule.rows[0],
+          cells: [
+            [
+              {
+                id: "cell-admin-1",
+                weekday: 1,
+                weekdayLabel: "周一",
+                timeLabel: "08:00 - 08:45",
+                bellSlotLabel: "第一节",
+                classLabel: "高一一班",
+                teacherLabel: "张老师",
+                locationLabel: "302",
+                courseTitle: "数学",
+                status: "进行中",
+                overrideSummary: null,
+              },
+              {
+                id: "cell-admin-2",
+                weekday: 1,
+                weekdayLabel: "周一",
+                timeLabel: "08:00 - 08:45",
+                bellSlotLabel: "第一节",
+                classLabel: "高二二班",
+                teacherLabel: "李老师",
+                locationLabel: "501",
+                courseTitle: "物理",
+                status: "正常",
+                overrideSummary: null,
+              },
+            ],
+            [],
+            [],
+            [],
+            [],
+          ],
+        },
+      ],
+    };
+
+    render(
+      <TeacherScheduleSurface
+        data={{
+          teacherId: "teacher-1",
+          schoolId: "school-1",
+          viewMode: "admin_school",
+          date: "2026-05-11",
+          dateLabel: "2026-05-11",
+          weekLabel: "周一",
+          nextClassCountdownLabel: "下一时段 08:00 - 08:45 · 2 节课",
+          cards: [],
+          weeklySchedule: adminWeeklySchedule,
+        }}
+        latestImportBatch={currentBatch}
+      />,
+    );
+
+    expect(screen.getByText((_, element) => element?.textContent === "全校教师")).toBeTruthy();
+    expect(screen.getByText("张老师")).toBeTruthy();
+    expect(screen.getByText("李老师")).toBeTruthy();
+    expect(screen.getByText("物理")).toBeTruthy();
   });
 
 });

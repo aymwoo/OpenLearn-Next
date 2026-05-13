@@ -16,6 +16,7 @@ export const TeacherWeeklyScheduleCellDTOSchema = z.object({
   timeLabel: z.string(),
   bellSlotLabel: z.string(),
   classLabel: z.string(),
+  teacherLabel: z.string().nullable().default(null),
   locationLabel: z.string(),
   courseTitle: z.string(),
   status: scheduleAgendaStatusSchema,
@@ -26,7 +27,7 @@ export const TeacherWeeklyScheduleRowDTOSchema = z.object({
   slotId: z.string(),
   bellSlotLabel: z.string(),
   timeLabel: z.string(),
-  cells: z.array(TeacherWeeklyScheduleCellDTOSchema.nullable()).length(5),
+  cells: z.array(z.array(TeacherWeeklyScheduleCellDTOSchema).default([])).length(5),
 });
 
 export const TeacherWeeklyScheduleDTOSchema = z.object({
@@ -58,6 +59,7 @@ export const TeacherDailyAgendaCardDTOSchema = z.object({
 export const TeacherDailyAgendaDTOSchema = z.object({
   teacherId: z.string(),
   schoolId: z.string(),
+  viewMode: z.enum(["teacher", "admin_school"]).default("teacher"),
   date: z.string(),
   dateLabel: z.string(),
   weekLabel: z.string(),

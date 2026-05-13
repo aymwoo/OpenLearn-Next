@@ -23,6 +23,7 @@ import {
   TeacherDailyAgendaDTOSchema,
   TeacherWeeklyScheduleCellDTOSchema,
 } from "@/features/schedule/shared/dto/runtime";
+import { getUserMembershipsDTO } from "@/lib/dal/membership";
 
 function dateKey(input?: string) {
   if (!input) {
@@ -103,7 +104,13 @@ function agendaStatus(slot: { startsAt: string; endsAt: string }, overrideAction
 
 type RuntimeEntry = typeof scheduleRecurringEntry.$inferSelect;
 
-async function loadAgendaRuntimeRecords(input: { date: string; teacherId?: string; classId?: string; schoolIds: string[] }) {
+async function loadAgendaRuntimeRecords(input: {
+  date: string;
+  teacherId?: string;
+  classId?: string;
+  schoolIds: string[];
+  includeAllTeachers?: boolean;
+}) {
   const terms = input.schoolIds.length
     ? await db.query.scheduleTerm.findMany({
         where: inArray(scheduleTerm.schoolId, input.schoolIds),
@@ -115,8 +122,9 @@ async function loadAgendaRuntimeRecords(input: { date: string; teacherId?: strin
 
   const assignments = activeTermIds.length
     ? await db.query.scheduleTeachingAssignment.findMany({
-        where:
-          input.teacherId
+        where: input.includeAllTeachers
+          ? inArray(scheduleTeachingAssignment.termId, activeTermIds)
+          : input.teacherId
             ? and(inArray(scheduleTeachingAssignment.termId, activeTermIds), eq(scheduleTeachingAssignment.teacherId, input.teacherId))
             : and(inArray(scheduleTeachingAssignment.termId, activeTermIds), eq(scheduleTeachingAssignment.classId, input.classId!)),
       })
@@ -124,8 +132,9 @@ async function loadAgendaRuntimeRecords(input: { date: string; teacherId?: strin
 
   const baseAssignmentIds = assignments.map((assignment) => assignment.id);
   const overrides = await db.query.scheduleOverride.findMany({
-    where:
-      input.teacherId
+    where: input.includeAllTeachers
+      ? and(inArray(scheduleOverride.schoolId, input.schoolIds), eq(scheduleOverride.effectiveDate, input.date))
+      : input.teacherId
         ? and(
             inArray(scheduleOverride.schoolId, input.schoolIds),
             eq(scheduleOverride.effectiveDate, input.date),
@@ -215,10 +224,12 @@ function buildTeacherCard(args: {
 function buildWeeklySchedule(args: {
   runtime: Awaited<ReturnType<typeof loadAgendaRuntimeRecords>>;
   requestedDate: string;
+  includeTeacherLabel?: boolean;
 }) {
   const assignmentMap = new Map(args.runtime.assignments.map((item) => [item.id, item]));
   const classMap = new Map(args.runtime.classRows.map((item) => [item.id, item.name]));
   const courseMap = new Map(args.runtime.courseRows.map((item) => [item.id, item.title]));
+  const teacherMap = new Map(args.runtime.teacherRows.map((item) => [item.id, item.name ?? "教师待定"]));
   const slotMap = new Map(args.runtime.bellSlots.map((item) => [item.id, item]));
   const overrideMap = new Map(
     args.runtime.overrides.map((item) => [`${item.recurringEntryId}:${item.effectiveDate}`, item] as const),
@@ -227,9 +238,15 @@ function buildWeeklySchedule(args: {
   const { days, monday, friday } = weekRange(args.requestedDate);
 
   const slotRows = [...args.runtime.bellSlots].sort((left, right) => left.sortOrder - right.sortOrder);
-  const entryMap = new Map<string, RuntimeEntry>();
+  const entryMap = new Map<string, RuntimeEntry[]>();
   for (const entry of args.runtime.recurringEntries) {
-    entryMap.set(`${entry.weekday}:${entry.bellSlotId}`, entry);
+    const key = `${entry.weekday}:${entry.bellSlotId}`;
+    const entries = entryMap.get(key);
+    if (entries) {
+      entries.push(entry);
+    } else {
+      entryMap.set(key, [entry]);
+    }
   }
 
   return {
@@ -246,45 +263,58 @@ function buildWeeklySchedule(args: {
       timeLabel: `${slot.startsAt} - ${slot.endsAt}`,
       cells: days.map((day, index) => {
         const weekday = index + 1;
-        const entry = entryMap.get(`${weekday}:${slot.id}`);
-        if (!entry) {
-          return null;
-        }
+        const entries = entryMap.get(`${weekday}:${slot.id}`) ?? [];
 
-        const assignment = assignmentMap.get(entry.assignmentId);
-        if (!assignment) {
-          return null;
-        }
+        return entries
+          .map((entry) => {
+            const assignment = assignmentMap.get(entry.assignmentId);
+            if (!assignment) {
+              return null;
+            }
 
-        const override = overrideMap.get(`${entry.id}:${day}`);
-        const holiday = holidayMap.get(day);
-        const holidayLabel = holiday && holiday.dayType !== "teaching" && holiday.dayType !== "make_up" ? holiday.label : null;
-        const resolvedSlot = slotMap.get(override?.replacementBellSlotId ?? entry.bellSlotId) ?? slot;
+            const override = overrideMap.get(`${entry.id}:${day}`);
+            const holiday = holidayMap.get(day);
+            const holidayLabel = holiday && holiday.dayType !== "teaching" && holiday.dayType !== "make_up" ? holiday.label : null;
+            const resolvedSlot = slotMap.get(override?.replacementBellSlotId ?? entry.bellSlotId) ?? slot;
 
-        return TeacherWeeklyScheduleCellDTOSchema.parse({
-          id: `${entry.id}:${day}`,
-          weekday,
-          weekdayLabel: weekdayLabel(day),
-          timeLabel: `${resolvedSlot.startsAt} - ${resolvedSlot.endsAt}`,
-          bellSlotLabel: resolvedSlot.label,
-          classLabel: classMap.get(assignment.classId) ?? "未命名班级",
-          locationLabel: override?.replacementRoomLabel ?? assignment.roomLabel ?? entry.roomLabel ?? "地点待定",
-          courseTitle: courseMap.get(assignment.courseId) ?? "未命名课程",
-          status: holidayLabel ? "停课" : agendaStatus(resolvedSlot, override?.actionType ?? null),
-          overrideSummary: holidayLabel ?? override?.reason ?? null,
-        });
+            return TeacherWeeklyScheduleCellDTOSchema.parse({
+              id: `${entry.id}:${day}`,
+              weekday,
+              weekdayLabel: weekdayLabel(day),
+              timeLabel: `${resolvedSlot.startsAt} - ${resolvedSlot.endsAt}`,
+              bellSlotLabel: resolvedSlot.label,
+              classLabel: classMap.get(assignment.classId) ?? "未命名班级",
+              teacherLabel: args.includeTeacherLabel ? teacherMap.get(override?.substituteTeacherId ?? assignment.teacherId) ?? "教师待定" : null,
+              locationLabel: override?.replacementRoomLabel ?? assignment.roomLabel ?? entry.roomLabel ?? "地点待定",
+              courseTitle: courseMap.get(assignment.courseId) ?? "未命名课程",
+              status: holidayLabel ? "停课" : agendaStatus(resolvedSlot, override?.actionType ?? null),
+              overrideSummary: holidayLabel ?? override?.reason ?? null,
+            });
+          })
+          .filter((cell): cell is ReturnType<typeof TeacherWeeklyScheduleCellDTOSchema.parse> => Boolean(cell))
+          .sort((left, right) => `${left.courseTitle}${left.classLabel}`.localeCompare(`${right.courseTitle}${right.classLabel}`, "zh-CN"));
       }),
     })),
   };
 }
 
-async function getCachedTeacherDailyAgenda(actorId: string, schoolIds: string[], requestedDate: string) {
+async function getCachedTeacherDailyAgenda(
+  actorId: string,
+  schoolIds: string[],
+  requestedDate: string,
+  options?: { includeAllTeachers?: boolean },
+) {
   "use cache";
 
   cacheLife("minutes");
   cacheTag(scheduleCacheTags.teacherAgenda(actorId, requestedDate));
 
-  const runtime = await loadAgendaRuntimeRecords({ date: requestedDate, teacherId: actorId, schoolIds });
+  const runtime = await loadAgendaRuntimeRecords({
+    date: requestedDate,
+    teacherId: options?.includeAllTeachers ? undefined : actorId,
+    schoolIds,
+    includeAllTeachers: options?.includeAllTeachers,
+  });
   const assignmentMap = new Map(runtime.assignments.map((item) => [item.id, item]));
   const classMap = new Map(runtime.classRows.map((item) => [item.id, item.name]));
   const courseMap = new Map(runtime.courseRows.map((item) => [item.id, item.title]));
@@ -321,15 +351,22 @@ async function getCachedTeacherDailyAgenda(actorId: string, schoolIds: string[],
     .filter((card): card is ReturnType<typeof TeacherDailyAgendaCardDTOSchema.parse> => Boolean(card))
     .sort((left, right) => left.timeLabel.localeCompare(right.timeLabel));
 
-  const weeklySchedule = buildWeeklySchedule({ runtime, requestedDate });
+  const weeklySchedule = buildWeeklySchedule({
+    runtime,
+    requestedDate,
+    includeTeacherLabel: options?.includeAllTeachers,
+  });
+  const viewMode = options?.includeAllTeachers ? "admin_school" : "teacher";
 
   return TeacherDailyAgendaDTOSchema.parse({
     teacherId: actorId,
     schoolId: schoolIds[0] ?? "",
+    viewMode,
     date: requestedDate,
     dateLabel: requestedDate,
     weekLabel: weekdayLabel(requestedDate),
-    nextClassCountdownLabel: cards[0] ? `下一节课 ${cards[0].timeLabel}` : null,
+    nextClassCountdownLabel:
+      cards[0] ? (viewMode === "admin_school" ? `下一时段 ${cards[0].timeLabel} · ${cards.length} 节课` : `下一节课 ${cards[0].timeLabel}`) : null,
     cards,
     weeklySchedule,
   });
@@ -343,7 +380,17 @@ export async function getTeacherDailyAgendaDTO(input?: { date?: string; teacherI
     throw new Error("TEACHER_AUTH_REQUIRED");
   }
 
-  return getCachedTeacherDailyAgenda(actorId, scope.schoolIds, requestedDate);
+  const memberships = await getUserMembershipsDTO(scope.userId);
+  const adminSchoolIds = new Set(
+    memberships
+      .filter((membership) => membership.role === "admin" && membership.status === "active")
+      .map((membership) => membership.schoolId),
+  );
+  const includeAllTeachers = scope.schoolIds.some((schoolId) => adminSchoolIds.has(schoolId));
+
+  return getCachedTeacherDailyAgenda(actorId, scope.schoolIds, requestedDate, {
+    includeAllTeachers,
+  });
 }
 
 async function getCachedClassAgenda(classId: string, schoolIds: string[], requestedDate: string) {

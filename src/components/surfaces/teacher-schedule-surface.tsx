@@ -22,13 +22,15 @@ export function TeacherScheduleSurface({
   importBatches?: ScheduleImportBatchDTO[];
   currentTeacherName?: string | null;
 }) {
+  const filterTeacherName = data.viewMode === "admin_school" ? null : currentTeacherName;
+  const isAdminSchoolView = data.viewMode === "admin_school";
   const allBatches = dedupeImportBatches([latestImportBatch, ...importBatches]);
   const currentBatch =
     allBatches.find((batch) => batch.isPrimary && isBatchEligibleForPrimary(batch)) ??
-    allBatches.find((batch) => isDisplayableMainScheduleBatch(batch, currentTeacherName));
-  const previewWeeklySchedule = buildDisplayOnlyPreviewSchedule(currentBatch, data.weeklySchedule, currentTeacherName);
+    allBatches.find((batch) => isDisplayableMainScheduleBatch(batch, filterTeacherName));
+  const previewWeeklySchedule = buildDisplayOnlyPreviewSchedule(currentBatch, data.weeklySchedule, filterTeacherName);
   const currentWeeklySchedule = previewWeeklySchedule ?? data.weeklySchedule;
-  const hasCurrentSchedule = currentWeeklySchedule.rows.some((row) => row.cells.some((cell) => cell !== null));
+  const hasCurrentSchedule = currentWeeklySchedule.rows.some((row) => row.cells.some((cells) => cells.length > 0));
   const historyBatches = allBatches.filter((batch) => batch.id !== currentBatch?.id && batch.status !== "draft");
   const currentTermLabel = currentBatch ? getBatchTermLabel(currentBatch) : "当前学期";
 
@@ -80,27 +82,30 @@ export function TeacherScheduleSurface({
             <div className="space-y-2">
               <p className="text-sm uppercase tracking-[0.18em] text-on-surface-variant">主课表</p>
               <h2 className="text-[1.5rem] font-semibold text-on-surface">{currentTermLabel}课程表</h2>
-              <p className="text-sm leading-7 text-on-surface-variant">以当前学期为主视图，保留时间轴与工作日列的统一排版。</p>
+              <p className="text-sm leading-7 text-on-surface-variant">
+                {isAdminSchoolView ? "管理员视角已聚合全校教师课表，按时间轴统一排布并展示授课教师。" : "以当前学期为主视图，保留时间轴与工作日列的统一排版。"}
+              </p>
             </div>
-            <div className={cn(teacherSurfaceRhythm.card, "bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant")}>
-              覆盖范围：{currentWeeklySchedule.rangeLabel}
+            <div className={cn(teacherSurfaceRhythm.card, "flex items-center gap-2 bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant")}>
+              <span>覆盖范围：{currentWeeklySchedule.rangeLabel}</span>
+              {isAdminSchoolView ? <Badge>全校教师</Badge> : null}
             </div>
           </div>
 
           {hasCurrentSchedule ? (
-            <div className={cn(teacherSurfaceRhythm.cardInset, "overflow-hidden p-4 md:p-5")}>
-              <div className="grid min-w-[54rem] grid-cols-[8rem_repeat(5,minmax(0,1fr))] gap-3">
-                <div className={cn(teacherSurfaceRhythm.card, "bg-surface-container-low px-4 py-4 text-sm font-medium text-on-surface-variant")}>
+            <div className={cn(teacherSurfaceRhythm.cardInset, "overflow-hidden p-3 md:p-4")}>
+              <div className="grid min-w-[62rem] grid-cols-[7rem_repeat(5,minmax(0,1fr))] gap-2.5">
+                <div className={cn(teacherSurfaceRhythm.card, "bg-surface-container-low px-3 py-3 text-sm font-medium text-on-surface-variant")}>
                   时间 / 星期
                 </div>
                 {currentWeeklySchedule.weekdays.map((weekday) => (
                   <div
-                    key={weekday.key}
-                    className={cn(
-                      teacherSurfaceRhythm.card,
-                      "px-4 py-4 text-sm",
-                      weekday.isToday ? "bg-primary/10 text-primary" : "bg-surface-container-low text-on-surface",
-                    )}
+                      key={weekday.key}
+                      className={cn(
+                        teacherSurfaceRhythm.card,
+                        "px-3 py-3 text-sm",
+                        weekday.isToday ? "bg-primary/10 text-primary" : "bg-surface-container-low text-on-surface",
+                      )}
                   >
                     <p className="font-semibold">{weekday.shortLabel}</p>
                     <p className="mt-1 text-xs opacity-80">{weekday.label.replace(`${weekday.shortLabel} `, "")}</p>
@@ -121,12 +126,14 @@ export function TeacherScheduleSurface({
                     <p className="text-sm font-medium">当前主课表已导入</p>
                   </div>
                   <div>
-                    <h3 className="text-[1.35rem] font-semibold text-on-surface">当前没有匹配到你的授课安排</h3>
-                    <p className="mt-2 max-w-3xl text-sm leading-7 text-on-surface-variant">
-                      已保留当前主课表与历史批次记录，但本学期暂时没有匹配到你名下的课程，可继续导入其他课表或在历史列表切换主课表查看。
-                    </p>
+                      <h3 className="text-[1.35rem] font-semibold text-on-surface">当前没有匹配到你的授课安排</h3>
+                      <p className="mt-2 max-w-3xl text-sm leading-7 text-on-surface-variant">
+                        {isAdminSchoolView
+                          ? "当前主课表已导入，但这周暂时没有可展示的全校授课单元，可继续导入或切换历史学期查看。"
+                          : "已保留当前主课表与历史批次记录，但本学期暂时没有匹配到你名下的课程，可继续导入其他课表或在历史列表切换主课表查看。"}
+                      </p>
+                    </div>
                   </div>
-                </div>
                 <div className="flex flex-wrap gap-3">
                   <ScheduleImportModal schoolId={data.schoolId} />
                   <Link
@@ -270,53 +277,60 @@ function RowWithCells({
 }) {
   return (
     <>
-      <div className={cn(teacherSurfaceRhythm.card, "bg-surface-container-low px-4 py-4")}>
+      <div className={cn(teacherSurfaceRhythm.card, "bg-surface-container-low px-3 py-3.5")}>
         <p className="text-sm font-semibold text-on-surface">{row.bellSlotLabel}</p>
         <p className="mt-1 text-xs text-on-surface-variant">{row.timeLabel}</p>
       </div>
-      {row.cells.map((cell, index) => (
-        <WeeklyCell key={`${row.slotId}-${index}`} cell={cell} />
+      {row.cells.map((cells, index) => (
+        <WeeklyCell key={`${row.slotId}-${index}`} cells={cells} />
       ))}
     </>
   );
 }
 
-function WeeklyCell({ cell }: { cell: TeacherWeeklyScheduleCellDTO | null }) {
-  if (!cell) {
-    return <div className={cn(teacherSurfaceRhythm.card, "min-h-32 bg-surface-container-low/60 px-4 py-4 text-sm text-on-surface-variant")}>本节暂无安排</div>;
+function WeeklyCell({ cells }: { cells: TeacherWeeklyScheduleCellDTO[] }) {
+  if (cells.length === 0) {
+    return <div className={cn(teacherSurfaceRhythm.card, "min-h-28 bg-surface-container-low/60 px-3 py-3 text-sm text-on-surface-variant")}>本节暂无安排</div>;
   }
 
-  const unresolvedActions = getCellUnresolvedActions(cell.overrideSummary);
-
   return (
-    <div className={cn(teacherSurfaceRhythm.card, "min-h-32 bg-surface-container-lowest px-4 py-4 shadow-[0_10px_28px_rgba(44,47,49,0.04)]")}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-on-surface">{cell.courseTitle}</p>
-          <p className="mt-1 text-xs text-on-surface-variant">{cell.classLabel}</p>
-        </div>
-        <span className="rounded-full bg-surface-container-high px-2.5 py-1 text-[11px] font-medium text-on-surface-variant">
-          {cell.status}
-        </span>
-      </div>
-      <div className="mt-4 space-y-1 text-xs text-on-surface-variant">
-        <p>{cell.locationLabel}</p>
-        <p>{cell.timeLabel}</p>
-        {cell.overrideSummary ? <p className="text-primary">{cell.overrideSummary}</p> : null}
-      </div>
-      {unresolvedActions.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2 text-xs">
-          {unresolvedActions.map((action) => (
-            <Link
-              key={`${cell.id}-${action.label}`}
-              href={action.href}
-              className="rounded-full bg-surface-container-high px-3 py-1.5 font-medium text-primary transition hover:bg-surface-container-highest"
-            >
-              {action.label}
-            </Link>
-          ))}
-        </div>
-      ) : null}
+    <div className={cn(teacherSurfaceRhythm.card, "min-h-28 space-y-2.5 bg-surface-container-lowest px-2.5 py-2.5 shadow-[0_10px_28px_rgba(44,47,49,0.04)]")}>
+      {cells.map((cell) => {
+        const unresolvedActions = getCellUnresolvedActions(cell.overrideSummary);
+
+        return (
+          <div key={cell.id} className="rounded-[1.1rem] bg-surface-container-low px-3 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-on-surface">{cell.courseTitle}</p>
+                <p className="mt-1 truncate text-xs text-on-surface-variant">{cell.classLabel}</p>
+                {cell.teacherLabel ? <p className="mt-1 truncate text-[11px] font-medium text-primary">{cell.teacherLabel}</p> : null}
+              </div>
+              <span className="shrink-0 rounded-full bg-surface-container-high px-2 py-1 text-[11px] font-medium text-on-surface-variant">
+                {cell.status}
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-on-surface-variant">
+              <p>{cell.locationLabel}</p>
+              <p>{cell.timeLabel}</p>
+              {cell.overrideSummary ? <p className="text-primary">{cell.overrideSummary}</p> : null}
+            </div>
+            {unresolvedActions.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                {unresolvedActions.map((action) => (
+                  <Link
+                    key={`${cell.id}-${action.label}`}
+                    href={action.href}
+                    className="rounded-full bg-surface-container-high px-2.5 py-1.5 font-medium text-primary transition hover:bg-surface-container-highest"
+                  >
+                    {action.label}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -446,7 +460,7 @@ function buildDisplayOnlyPreviewSchedule(
     return leftKey === rightKey ? left.fallbackOrder - right.fallbackOrder : leftKey.localeCompare(rightKey);
   });
 
-  const previewCells = new Map<string, TeacherWeeklyScheduleCellDTO>();
+  const previewCells = new Map<string, TeacherWeeklyScheduleCellDTO[]>();
   for (const row of previewRows) {
     const summary = row.mappingSummary;
     if (!summary) {
@@ -459,18 +473,27 @@ function buildDisplayOnlyPreviewSchedule(
       continue;
     }
 
-    previewCells.set(`${slot.slotId}:${weekday}`, {
+    const previewCell = {
       id: row.id,
       weekday,
       weekdayLabel: fallbackSchedule.weekdays[weekday - 1]?.shortLabel ?? summary.weekdayLabel,
       timeLabel: slot.timeLabel,
       bellSlotLabel: summary.bellSlotLabel,
       classLabel: summary.className,
+      teacherLabel: summary.teacherName,
       locationLabel: summary.roomLabel ?? "地点待定",
       courseTitle: summary.courseTitle,
       status: "已变更",
       overrideSummary: getPreviewRowNote(row),
-    });
+    } satisfies TeacherWeeklyScheduleCellDTO;
+
+    const key = `${slot.slotId}:${weekday}`;
+    const existingCells = previewCells.get(key);
+    if (existingCells) {
+      existingCells.push(previewCell);
+    } else {
+      previewCells.set(key, [previewCell]);
+    }
   }
 
   return {
@@ -479,7 +502,7 @@ function buildDisplayOnlyPreviewSchedule(
       slotId: slot.slotId,
       bellSlotLabel: slot.bellSlotLabel,
       timeLabel: slot.timeLabel,
-      cells: [1, 2, 3, 4, 5].map((weekday) => previewCells.get(`${slot.slotId}:${weekday}`) ?? null),
+      cells: [1, 2, 3, 4, 5].map((weekday) => previewCells.get(`${slot.slotId}:${weekday}`) ?? []),
     })),
   } satisfies TeacherWeeklyScheduleDTO;
 }
