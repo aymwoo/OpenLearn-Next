@@ -50,6 +50,8 @@ describe("Phase 04 interactive student step cards", () => {
 
   it("renders a lightweight quick-response card with durable latest and history feedback", () => {
     expect(quickResponseSource).toContain("提交课堂回应");
+    expect(quickResponseSource).toContain("每次提交都会追加到回应历史");
+    expect(quickResponseSource).toContain("不会覆盖之前的记录");
     expect(quickResponseSource).toContain("提交后会作为一次新的课堂记录保存");
     expect(quickResponseSource).toContain("最新回应");
     expect(quickResponseSource).toContain("第 1 次回应");

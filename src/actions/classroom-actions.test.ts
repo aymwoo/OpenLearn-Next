@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const source = readFileSync("src/actions/classroom-actions.ts", "utf8");
 const clientSource = readFileSync("src/components/learning/classroom-runtime-client.tsx", "utf8");
+const classroomDalSource = readFileSync("src/lib/dal/classroom.ts", "utf8");
 
 describe("classroom presence actions", () => {
   it("validates touchClassroomPresenceAction input before DAL writes", () => {
@@ -50,5 +51,9 @@ describe("classroom presence actions", () => {
     expect(source).toContain("updateTag(cacheTags.classroom(parsed.data.sessionId))");
     expect(source).toContain("updateTag(cacheTags.progress(parsed.data.lessonId, result.studentId))");
     expect(source).toContain("updateTag(cacheTags.submission(parsed.data.lessonId, result.studentId))");
+    expect(classroomDalSource).toContain("export async function recordStudentQuickResponse");
+    expect(classroomDalSource).toContain("recordClassroomEvidence({");
+    expect(classroomDalSource).not.toContain("submitTaskAttempt(");
+    expect(classroomDalSource).not.toContain("submitQuizAttempt(");
   });
 });

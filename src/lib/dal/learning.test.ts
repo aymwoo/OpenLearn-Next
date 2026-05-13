@@ -87,6 +87,7 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain("latestQuickResponse");
     expect(source).toContain("quickResponseHistory");
     expect(source).toContain("classroomSessionId");
+    expect(source).toContain("每次提交都会追加到回应历史，不会覆盖之前的记录。");
   });
 
   it("derives Chinese student activity guidance server-side without leaking teacher-only wording", () => {
