@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+const dtoSource = readFileSync("src/lib/dto/learning.ts", "utf8");
 const source = readFileSync("src/lib/dal/learning.ts", "utf8");
 
 function functionBody(name: string) {
@@ -34,6 +35,17 @@ function functionBody(name: string) {
 }
 
 describe("learning DAL student read boundary", () => {
+  it("adds a typed student activity guidance contract to player-facing step data", () => {
+    expect(dtoSource).toContain("StudentStepActivityDTOSchema");
+    expect(dtoSource).toContain("activityGuidance");
+    expect(dtoSource).toContain("expectedOutput");
+    expect(dtoSource).toContain("evidenceExpectationSummary");
+    expect(dtoSource).toContain("completionStateCopy");
+    expect(dtoSource).toContain("activityModeLabel");
+    expect(dtoSource).toContain("estimatedMinutesLabel");
+    expect(dtoSource).toContain("stepActivities");
+  });
+
   it("is server-only and requires an active student", () => {
     expect(source.trimStart().startsWith('import "server-only";')).toBe(true);
     expect(source).toContain("assertActiveStudent");
@@ -54,8 +66,25 @@ describe("learning DAL student read boundary", () => {
   it("keeps markdown payload and slide runtime data available to the student player", () => {
     expect(source).toContain("function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string): LearningStepDTO[]");
     expect(source).toContain("payload: lessonStepPayloadSchema.parse(step.payload)");
+    expect(source).toContain("payload.teachingDesign");
     expect(source).toContain("slideIndex = classroomRuntime.slideIndex");
     expect(source).toContain("teacherRecommendedStepId = classroomRuntime.activeStepId");
+  });
+
+  it("derives Chinese student activity guidance server-side without leaking teacher-only wording", () => {
+    expect(source).toContain("activityGuidance");
+    expect(source).toContain("expectedOutput");
+    expect(source).toContain("evidenceExpectationSummary");
+    expect(source).toContain("completionStateCopy");
+    expect(source).toContain("activityModeLabel");
+    expect(source).toContain("estimatedMinutesLabel");
+    expect(source).toContain("先阅读并抓住重点");
+    expect(source).toContain("完成本次课堂作答");
+    expect(source).toContain("独立完成");
+    expect(source).toContain("两人讨论");
+    expect(source).toContain("全班跟随");
+    expect(source).toContain("无需单独提交");
+    expect(source).not.toContain('"teacher-only"');
   });
 
   it("computes first incomplete resume and teacher-forced placeholder", () => {
