@@ -4,17 +4,17 @@ milestone: v1.3
 milestone_name: Teaching Orchestration & Classroom Intelligence
 current_phase: 21
 current_phase_name: teaching-design-contracts-and-evidence-foundation
-current_plan: 2
-status: executing
-stopped_at: Completed 21-04-PLAN.md
-last_updated: "2026-05-12T23:59:25.649Z"
-last_activity: 2026-05-12
+current_plan: 5
+status: completed
+stopped_at: Completed 21-05-PLAN.md
+last_updated: "2026-05-13T00:05:49.240Z"
+last_activity: 2026-05-13
 progress:
   total_phases: 14
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 30
-  completed_plans: 29
-  percent: 97
+  completed_plans: 30
+  percent: 100
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 
 **Current Phase:** 21
 **Current Phase Name:** teaching-design-contracts-and-evidence-foundation
-**Current Plan:** 2
+**Current Plan:** 5
 **Total Plans in Phase:** 5
-**Status:** Ready to execute
+**Status:** Completed
 **Progress:**
-[██████████] 97%
-**Last Activity:** 2026-05-12
-**Last session:** 2026-05-12T23:59:17.372Z
-**Stopped At:** Completed 21-04-PLAN.md
+[██████████] 100%
+**Last Activity:** 2026-05-13
+**Last session:** 2026-05-13T00:05:49.235Z
+**Stopped At:** Completed 21-05-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -128,6 +128,8 @@ progress:
 - [Phase 21]: verify:phase21 同时检查 teacher-facing cue、evidence wiring、cache invalidation 与 unsafe shortcut，避免只靠单点字符串守卫。
 - [Phase 21]: Classroom snapshot 新增 teacherTimeline typed read model，但对非教师 consumer 固定返回空数组，避免 teacher-only intervention 正文泄漏。
 - [Phase 21]: 干预记录从拥挤控制区拆到独立 tonal timeline panel，并和 roster 组成右侧次级栏，不新增第二个 hero。
+- [Phase 21]: 步骤卡时长必须作为独立中文标签元信息展示，而不是继续依赖右上角弱 badge。
+- [Phase 21]: 回归测试固定用 card-scoped labeled assertions，避免被顶部总时长文案误判为通过。
 
 ## Next Steps
 
@@ -161,6 +163,7 @@ progress:
 | Phase 21 P02 | 7 min | 2 tasks | 6 files |
 | Phase 21 P03 | 37 min | 2 tasks | 7 files |
 | Phase 21 P04 | 3 min | 2 tasks | 7 files |
+| Phase 21 P05 | 3 min | 2 tasks | 2 files |
 
 ### Quick Tasks Completed
 
@@ -227,7 +230,7 @@ progress:
 
 ## Current Position
 
-Phase: 21 (teaching-design-contracts-and-evidence-foundation) — EXECUTING
-Plan: 2 of 5
-Status: Ready to execute
-Last activity: 2026-05-12
+Phase: 21 (teaching-design-contracts-and-evidence-foundation) — COMPLETED
+Plan: 5 of 5
+Status: Completed
+Last activity: 2026-05-13
