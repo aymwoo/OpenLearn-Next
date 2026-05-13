@@ -42,4 +42,13 @@ describe("classroom presence actions", () => {
     expect(source).toContain("CLASSROOM_INTERVENTION_UNAUTHORIZED");
     expect(source).toContain("UNAUTHORIZED");
   });
+
+  it("adds a dedicated student quick-response action that keeps the classroom evidence write path", () => {
+    expect(source).toContain("export async function submitStudentQuickResponseAction");
+    expect(source).toContain("StudentQuickResponseInputSchema.safeParse");
+    expect(source).toContain("recordStudentQuickResponse");
+    expect(source).toContain("updateTag(cacheTags.classroom(parsed.data.sessionId))");
+    expect(source).toContain("updateTag(cacheTags.progress(parsed.data.lessonId, result.studentId))");
+    expect(source).toContain("updateTag(cacheTags.submission(parsed.data.lessonId, result.studentId))");
+  });
 });

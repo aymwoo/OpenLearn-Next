@@ -46,6 +46,14 @@ describe("learning DAL student read boundary", () => {
     expect(dtoSource).toContain("stepActivities");
   });
 
+  it("adds a separate quick-response latest and history DTO contract", () => {
+    expect(dtoSource).toContain("StudentQuickResponseAttemptDTOSchema");
+    expect(dtoSource).toContain("latestQuickResponse");
+    expect(dtoSource).toContain("quickResponseHistory");
+    expect(dtoSource).toContain("已记录为新的课堂回应");
+    expect(dtoSource).not.toContain("TaskAttemptDTOSchema = z.object({\n  id: z.string(),\n  publishedVersionId");
+  });
+
   it("is server-only and requires an active student", () => {
     expect(source.trimStart().startsWith('import "server-only";')).toBe(true);
     expect(source).toContain("assertActiveStudent");
@@ -69,6 +77,15 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain("payload.teachingDesign");
     expect(source).toContain("slideIndex = classroomRuntime.slideIndex");
     expect(source).toContain("teacherRecommendedStepId = classroomRuntime.activeStepId");
+  });
+
+  it("reads quick-response history from classroom evidence scoped by session step and student", () => {
+    expect(source).toContain("classroomEvidence");
+    expect(source).toContain('sourceType, "student-quick-response"');
+    expect(source).toContain('evidenceType, "response"');
+    expect(source).toContain("latestQuickResponse");
+    expect(source).toContain("quickResponseHistory");
+    expect(source).toContain("classroomSessionId");
   });
 
   it("derives Chinese student activity guidance server-side without leaking teacher-only wording", () => {
