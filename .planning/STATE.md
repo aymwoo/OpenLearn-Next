@@ -231,10 +231,11 @@ progress:
 | 260513-o1x | 重构 /teacher/schedule 主课表视图为紧凑班级优先布局，详细信息改为 hover/focus 浮层，并在选中课程后提供图标快捷操作面板 | 2026-05-13 | 84dcdaa | [260513-o1x-teacher-schedule-hover](./quick/260513-o1x-teacher-schedule-hover/) |
 | 260513-pd8 | 调整 /teacher/schedule 课程 hover 明细浮层配色，强化与默认课程卡的层次区分并保持现代视觉风格 | 2026-05-13 | 8ee4f4c | [260513-pd8-hover](./quick/260513-pd8-hover/) |
 | 260513-pjo | 将 /teacher/schedule 课程 hover 明细浮层进一步收敛为 glassmorphism 风格，增强半透明、blur 与高光层次 | 2026-05-13 | 3007a54 | [260513-pjo-hover-glassmorphism](./quick/260513-pjo-hover-glassmorphism/) |
+| 260513-pmb | 将 /teacher/schedule 课程 hover 明细浮层从 glassmorphism 收回到 premium education tonal 风格，强化 surface 层次与柔和质感 | 2026-05-13 | e53ab39 | [260513-pmb-hover-premium-education-tonal-glassmorph](./quick/260513-pmb-hover-premium-education-tonal-glassmorph/) |
 
 ## Current Position
 
 Phase: 22 (teacher-orchestration-workspace-and-launch-preparation) - COMPLETED
 Plan: 3 of 3
 Status: Completed
-Last activity: 2026-05-13 -- Completed quick task 260513-pjo: /teacher/schedule hover 明细浮层 glassmorphism 收敛
+Last activity: 2026-05-13 -- Completed quick task 260513-pmb: /teacher/schedule hover 明细浮层 premium education tonal 收敛
