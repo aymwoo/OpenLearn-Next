@@ -667,7 +667,7 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
     }
   }
 
-  // first incomplete is the default resume target; trusted teacher-forced runtime wins when supplied.
+  // first incomplete is the default resume target; selectedStepId wins only when runtime is not locked.
   const resumeStepId = forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId;
   const taskRows = await db.query.taskSubmissions.findMany({
     where: and(eq(taskSubmissions.publishedVersionId, published.id), eq(taskSubmissions.studentId, scope.userId)),
@@ -695,7 +695,7 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
     quizRows,
     quickResponseRows,
   });
-  const currentQuickResponseStepId = resumeStepId ?? steps[0]?.id ?? "";
+  const currentQuickResponseStepId = forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId ?? steps[0]?.id ?? "";
   const quickResponseHistory = quickResponseRows
     .filter((row) => row.stepId === currentQuickResponseStepId)
     .reverse()

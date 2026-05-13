@@ -29,6 +29,7 @@ describe("Phase 04 student DTO surfaces", () => {
     expect(routeSource).toContain("Suspense");
     expect(routeSource).toContain("getStudentPlayerShellDTO");
     expect(routeSource).toContain("getStudentPlayerPersonalDTO");
+    expect(routeSource).toContain("selectedStepId={params?.stepId ?? null}");
     expect(routeSource).toContain("PlayerPersonalRegion");
     expect(routeSource).toContain("<Suspense");
     expect(routeSource).not.toContain("getStudentPlayerDTO({");
@@ -53,5 +54,13 @@ describe("Phase 04 student DTO surfaces", () => {
     expect(runtimeSource).toContain("QuickResponseStepCard");
     expect(runtimeSource).toContain("TaskStepCard");
     expect(runtimeSource).toContain("QuizStepCard");
+  });
+
+  it("keeps classroom EventSource auto reconnect active after transient errors", () => {
+    expect(runtimeSource).toContain("source.onerror = () => {");
+    expect(runtimeSource).toContain("connectionState: 'reconnecting'");
+    expect(runtimeSource).toContain("正在重新连接课堂，会先显示最近一次课堂状态。");
+    expect(runtimeSource).toMatch(/return \(\) => \{\s*source\?\.close\(\)/);
+    expect(runtimeSource).not.toMatch(/source\.onerror = \(\) => \{\s*source\?\.close\(\)/);
   });
 });

@@ -86,7 +86,7 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain('evidenceType, "response"');
     expect(source).toContain("latestQuickResponse");
     expect(source).toContain("quickResponseHistory");
-    expect(source).toContain("currentQuickResponseStepId");
+    expect(source).toContain("currentQuickResponseStepId = forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId");
     expect(source).toContain("row.stepId === currentQuickResponseStepId");
     expect(source).toContain("classroomSessionId");
     expect(source).toContain("const quickResponseHistory = quickResponseRows");
@@ -112,10 +112,12 @@ describe("learning DAL student read boundary", () => {
     expect(source).not.toContain('"teacher-only"');
   });
 
-  it("computes first incomplete resume and teacher-forced placeholder", () => {
+  it("computes first incomplete resume state across dashboard and player", () => {
     expect(source).toContain("first incomplete");
-    expect(source).toContain("teacher-forced");
-    expect(source).toContain("forcedStepId");
+    expect(source).toContain("resumeStepId: progress.firstIncompleteStepId");
+    expect(source).toContain('resumeLabel: progress.firstIncompleteStepId ? "继续学习" : "开始学习"');
+    expect(source).toContain("const resumeStepId = forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId");
+    expect(source).toContain('resumeLabel: forcedStepId ? "老师指定" : "继续学习"');
     expect(source).toContain("getStudentDashboardDTO");
     expect(source).toContain("getStudentPlayerDTO");
   });
@@ -158,6 +160,7 @@ describe("learning DAL student read boundary", () => {
   it("enforces locked runtime server-side before selectedStepId", () => {
     expect(source).toContain("forcedStepId = classroomRuntime.activeStepId");
     expect(source).toContain("const resumeStepId = forcedStepId ?? selectedStepId ?? progress.firstIncompleteStepId");
+    expect(source).toContain("selectedStepId = steps.some((step) => step.id === input.selectedStepId) ? input.selectedStepId : null");
     expect(source).toContain('teacherRecommendedStepId = classroomRuntime.activeStepId');
     expect(source).toContain("slideIndex = classroomRuntime.slideIndex");
     expect(source).toContain("disabledStepIds: locked ? steps.map(s => s.id).filter(id => id !== forcedStepId) : []");

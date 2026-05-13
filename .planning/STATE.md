@@ -2,36 +2,36 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Teaching Orchestration & Classroom Intelligence
-current_phase: 23
-current_phase_name: student-in-class-activity-flow
-current_plan: 3
-status: verifying
-stopped_at: Completed 23-02-PLAN.md
-last_updated: "2026-05-13T14:31:33.068Z"
+current_phase: 24
+current_phase_name: live-classroom-operations-and-formative-evaluation
+current_plan: 1
+status: executing
+stopped_at: Phase 24 context gathered; ready for planning
+last_updated: "2026-05-13T15:36:38.199Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 14
   completed_phases: 9
-  total_plans: 36
+  total_plans: 40
   completed_plans: 36
-  percent: 100
+  percent: 90
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 23
-**Current Phase Name:** student-in-class-activity-flow
-**Current Plan:** 3
-**Total Plans in Phase:** 3
-**Status:** Phase complete — ready for verification
+**Current Phase:** 24
+**Current Phase Name:** live-classroom-operations-and-formative-evaluation
+**Current Plan:** 1
+**Total Plans in Phase:** 4
+**Status:** Executing Phase 24
 **Progress:**
 [██████████] 100%
 **Last Activity:** 2026-05-13
 **Last session:** 2026-05-13T14:29:29.640Z
-**Stopped At:** Completed 23-02-PLAN.md
-**Resume File:** None
+**Stopped At:** Phase 24 context gathered; ready for planning
+**Resume File:** .planning/phases/24-live-classroom-operations-and-formative-evaluation/24-CONTEXT.md
 
 ## Accumulated Context
 
@@ -141,9 +141,9 @@ progress:
 
 ## Next Steps
 
-1. 使用 `/gsd-discuss-phase 23` 收敛“Student in-class activity flow”的范围、验证重点与依赖边界。
-2. 在讨论完成后使用 `/gsd-plan-phase 23` 生成详细计划，但不要在当前同步任务中启动 Phase 23 实施。
-3. 若需要先补旧课程尾项，只在独立上下文中推进 Phase 14 或 Phase 15，不把其 scope 混入 v1.3。
+1. 使用 `/gsd-plan-phase 24` 拆分 live monitoring、observation writes、evaluation aggregation 与 verification coverage。
+2. 规划时严格沿用已锁定的“3 档参与度 + 标签 + 观察记录”模型，以及 `/classroom -> 名册 -> 单学生详情面板` 主路径。
+3. Phase 14 与 Phase 15 继续保持 carry-over backlog，不混入当前 v1.3 主线推进。
 
 ## Performance Metrics
 
@@ -246,7 +246,7 @@ progress:
 
 ## Current Position
 
-Phase: 23 (student-in-class-activity-flow) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-05-13
+Phase: 24 (live-classroom-operations-and-formative-evaluation) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 24
+Last activity: 2026-05-13 -- Phase 24 execution started

@@ -44,6 +44,7 @@ const staticChecks: StaticCheck[] = [
       nonCommentIncludes(playerRouteSource, "Suspense") &&
       nonCommentIncludes(playerRouteSource, "getStudentPlayerShellDTO") &&
       nonCommentIncludes(playerRouteSource, "getStudentPlayerPersonalDTO") &&
+      nonCommentIncludes(playerRouteSource, "selectedStepId={params?.stepId ?? null}") &&
       nonCommentIncludes(playerRouteSource, "PlayerPersonalRegion"),
   },
   {
@@ -54,6 +55,7 @@ const staticChecks: StaticCheck[] = [
       nonCommentIncludes(runtimeSource, "QuizStepCard") &&
       nonCommentIncludes(runtimeSource, "QuickResponseStepCard") &&
       nonCommentIncludes(runtimeSource, "activity.activityGuidance") &&
+      nonCommentIncludes(runtimeSource, "const currentStepId = player.runtime.forcedStepId ?? player.progress.resumeStepId") &&
       nonCommentIncludes(runtimeSource, "student-quick-response"),
   },
   {

@@ -323,7 +323,6 @@ export function ClassroomRuntimeClient({
       })
 
       source.onerror = () => {
-        source?.close()
         void touchPresence('reconnecting', currentRuntimeStepId)
         setRuntime((prev) => ({ ...prev, connectionState: 'reconnecting' }))
         setSnapshotStatusCopy('正在重新连接课堂，会先显示最近一次课堂状态。')
@@ -346,8 +345,8 @@ export function ClassroomRuntimeClient({
   }, [currentRuntimeStepId, runtime.connectionState, sessionId, touchPresence])
 
   const player = { shell, ...personal, runtime } satisfies StudentPlayerDTO
-  const currentStep = player.shell.steps.find((step) => step.id === player.runtime.forcedStepId)
-    ?? player.shell.steps.find((step) => step.id === player.progress.resumeStepId)
+  const currentStepId = player.runtime.forcedStepId ?? player.progress.resumeStepId
+  const currentStep = player.shell.steps.find((step) => step.id === currentStepId)
     ?? player.shell.steps[0]
   const completedSteps = player.progress.steps.filter((step) => step.state === 'completed' || step.state === 'skipped').length
 
