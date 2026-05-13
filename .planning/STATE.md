@@ -228,10 +228,11 @@ progress:
 | 260512-hz3 | 修复 pnpm build 中 /teacher/courses/[courseId] 指向 sidebar usePathname 的新阻塞点，保持现有 sidebar 用法和路由行为不变 | 2026-05-12 | 未提交 | [260512-hz3-teacher-course-sidebar-usepathname-build](./quick/260512-hz3-teacher-course-sidebar-usepathname-build/) |
 | 260512-954 | 确认当前 `pnpm build` 最新 Suspense 阻塞，优先定位 `/classroom` 或其他新的 `Uncached data was accessed outside of <Suspense>` | 2026-05-12 | 未提交 | [260512-954-classroom-build-suspense-blocking-route](./quick/260512-954-classroom-build-suspense-blocking-route/) |
 | 260513-sav | /teacher/schedule 测试教师账号增加管理员视角，聚合同校教师课表，并把主课表改成更紧凑现代的多卡片展示 | 2026-05-13 | 1fe3a17 | [260513-sav-schedule-admin-view](./quick/260513-sav-schedule-admin-view/) |
+| 260513-o1x | 重构 /teacher/schedule 主课表视图为紧凑班级优先布局，详细信息改为 hover/focus 浮层，并在选中课程后提供图标快捷操作面板 | 2026-05-13 | 84dcdaa | [260513-o1x-teacher-schedule-hover](./quick/260513-o1x-teacher-schedule-hover/) |
 
 ## Current Position
 
 Phase: 22 (teacher-orchestration-workspace-and-launch-preparation) - COMPLETED
 Plan: 3 of 3
 Status: Completed
-Last activity: 2026-05-13 -- Completed quick task 260513-sav: /teacher/schedule 管理员视角与紧凑课表展示
+Last activity: 2026-05-13 -- Completed quick task 260513-o1x: /teacher/schedule 紧凑主课表 hover 明细与快捷操作面板
