@@ -181,10 +181,9 @@ function ScheduleEntryCard({
         <div
           id={detailId}
           role="tooltip"
-          className="absolute left-2 right-2 top-[calc(100%-0.25rem)] z-10 overflow-hidden rounded-[1.15rem] bg-[linear-gradient(135deg,rgba(255,255,255,0.78),rgba(237,245,255,0.72),rgba(245,240,255,0.68))] px-3 py-3 text-[11px] text-slate-700 shadow-[0_24px_56px_rgba(59,130,246,0.18)] ring-1 ring-white/55 backdrop-blur-xl dark:bg-[linear-gradient(135deg,rgba(18,28,44,0.78),rgba(23,34,56,0.74),rgba(31,25,52,0.72))] dark:text-slate-100 dark:ring-white/10"
+          className="absolute left-2 right-2 top-[calc(100%-0.25rem)] z-10 overflow-hidden rounded-[1.15rem] bg-[linear-gradient(160deg,#f6f9fc_0%,#eef4f8_48%,#eaf1f7_100%)] px-3 py-3 text-[11px] text-slate-700 shadow-[0_18px_40px_rgba(44,47,49,0.10)] dark:bg-[linear-gradient(160deg,#212b3a_0%,#1d2634_52%,#19212d_100%)] dark:text-slate-100"
         >
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-linear-to-r from-white/50 via-sky-200/26 to-fuchsia-200/22 dark:from-white/10 dark:via-sky-300/10 dark:to-fuchsia-300/10" />
-          <div className="pointer-events-none absolute -right-10 -top-10 size-24 rounded-full bg-white/40 blur-2xl dark:bg-sky-300/10" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-r from-primary/8 via-sky-200/10 to-primary/6 dark:from-sky-300/6 dark:via-sky-200/4 dark:to-fuchsia-300/4" />
           <div className="relative z-10 space-y-2">
             <DetailLine icon={<CalendarClock className="size-3.5" aria-hidden />} label={cell.timeLabel} />
             <DetailLine icon={<MapPin className="size-3.5" aria-hidden />} label={cell.locationLabel} />
@@ -197,7 +196,7 @@ function ScheduleEntryCard({
                   <Link
                     key={`${cell.id}-${action.label}`}
                     href={action.href}
-                    className="rounded-full bg-white/72 px-2.5 py-1 font-medium text-primary shadow-[0_12px_24px_rgba(59,130,246,0.12)] ring-1 ring-white/55 transition hover:bg-white/88 dark:bg-white/10 dark:text-sky-200 dark:ring-white/10 dark:hover:bg-white/14"
+                    className="rounded-full bg-surface-container-lowest px-2.5 py-1 font-medium text-primary shadow-[0_8px_18px_rgba(44,47,49,0.06)] transition hover:bg-white dark:bg-white/8 dark:text-sky-200 dark:hover:bg-white/12"
                   >
                     {action.label}
                   </Link>
