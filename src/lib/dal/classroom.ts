@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -91,6 +91,51 @@ async function getLatestSlideState(sessionId: string): Promise<ClassroomSlideSta
   return {
     stepId: payload.stepId,
     slideIndex: payload.slideIndex,
+  };
+}
+
+function buildParticipantProgressLabel(input: {
+  activeStepIndex: number;
+  participantStepIndex: number;
+}) {
+  if (input.participantStepIndex === input.activeStepIndex) {
+    return "跟随当前环节" as const;
+  }
+
+  if (input.participantStepIndex < input.activeStepIndex) {
+    return "落后于当前环节" as const;
+  }
+
+  return "已进入后续环节" as const;
+}
+
+function buildParticipantAttention(input: {
+  connectionState: "connected" | "reconnecting" | "offline";
+  progressLabel: "跟随当前环节" | "落后于当前环节" | "已进入后续环节";
+  submissionCount: number;
+  activeStepType?: "content" | "task" | "quiz";
+}) {
+  const attentionReasons: string[] = [];
+
+  if (input.connectionState === "offline") {
+    attentionReasons.push("当前离线");
+  }
+
+  if (input.connectionState === "reconnecting") {
+    attentionReasons.push("正在重新连接");
+  }
+
+  if (input.progressLabel === "落后于当前环节") {
+    attentionReasons.push("落后于当前环节");
+  }
+
+  if ((input.activeStepType === "task" || input.activeStepType === "quiz") && input.submissionCount === 0) {
+    attentionReasons.push("当前环节未提交");
+  }
+
+  return {
+    needsAttention: attentionReasons.length > 0,
+    attentionReasons,
   };
 }
 
@@ -818,20 +863,71 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
   const published = await db.query.publishedLessonVersions.findFirst({ where: eq(publishedLessonVersions.id, session.publishedVersionId) });
   const participants = await db.query.classroomParticipants.findMany({ where: eq(classroomParticipants.sessionId, session.id) });
   const timelineRows = await db.query.classroomTimeline.findMany({ where: eq(classroomTimeline.sessionId, session.id) });
+  const evidenceRows = await db.query.classroomEvidence.findMany({
+    where: and(
+      eq(classroomEvidence.sessionId, session.id),
+      or(
+        eq(classroomEvidence.sourceType, "student-quick-response"),
+        eq(classroomEvidence.sourceType, "student-submission")
+      )
+    ),
+  });
 
   const snapshot = parseSnapshot(published?.snapshotJson);
   const steps = parseSnapshotSteps(snapshot, session.lessonId);
+  const stepOrder = new Map(steps.map((step, index) => [step.id, index]));
+  const activeStepIndex = stepOrder.get(session.activeStepId) ?? 0;
+  const activeStep = steps.find((step) => step.id === session.activeStepId);
 
   const userIds = participants.map(p => p.studentId);
   const studentUsers = userIds.length > 0 ? await db.query.users.findMany({ where: inArray(users.id, userIds) }) : [];
   const userMap = new Map(studentUsers.map(u => [u.id, u.name]));
-  const participantDtos = participants.map(p => ({
-    studentId: p.studentId,
-    studentName: userMap.get(p.studentId) ?? "学生",
-    connectionState: p.connectionState,
-    currentStepId: p.currentStepId,
-    lastSeenAt: toIso(p.lastSeenAt),
-  }));
+  const submissionCountByStudentId = new Map<string, number>();
+
+  for (const evidence of evidenceRows) {
+    if (!evidence.studentId || evidence.stepId !== session.activeStepId) {
+      continue;
+    }
+
+    submissionCountByStudentId.set(
+      evidence.studentId,
+      (submissionCountByStudentId.get(evidence.studentId) ?? 0) + 1,
+    );
+  }
+
+  const participantDtos = participants.map((p) => {
+    const participantStepIndex = stepOrder.get(p.currentStepId) ?? activeStepIndex;
+    const progressLabel = buildParticipantProgressLabel({
+      activeStepIndex,
+      participantStepIndex,
+    });
+    const submissionCount = submissionCountByStudentId.get(p.studentId) ?? 0;
+    const attentionState = buildParticipantAttention({
+      connectionState: p.connectionState,
+      progressLabel,
+      submissionCount,
+      activeStepType: activeStep?.type,
+    });
+
+    return {
+      studentId: p.studentId,
+      studentName: userMap.get(p.studentId) ?? "学生",
+      connectionState: p.connectionState,
+      currentStepId: p.currentStepId,
+      lastSeenAt: toIso(p.lastSeenAt),
+      progressLabel,
+      submissionCount,
+      needsAttention: attentionState.needsAttention,
+      attentionReasons: attentionState.attentionReasons,
+    };
+  });
+  const monitoringSummary = {
+    connectedCount: participantDtos.filter((participant) => participant.connectionState === "connected").length,
+    reconnectingCount: participantDtos.filter((participant) => participant.connectionState === "reconnecting").length,
+    offlineCount: participantDtos.filter((participant) => participant.connectionState === "offline").length,
+    needsAttentionCount: participantDtos.filter((participant) => participant.needsAttention).length,
+    submittedCount: participantDtos.filter((participant) => participant.submissionCount > 0).length,
+  };
   const teacherTimeline = isTeacher
     ? buildTeacherTimeline({
         timelineRows,
@@ -857,6 +953,7 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
     version: session.version,
     updatedAt: toIso(session.updatedAt),
     participants: participantDtos,
+    monitoringSummary,
     steps: steps.map(s => ({
       id: s.id,
       title: s.title,

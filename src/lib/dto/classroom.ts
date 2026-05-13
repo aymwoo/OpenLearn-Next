@@ -128,6 +128,21 @@ export const ClassroomParticipantDTOSchema = z.object({
   lastSeenAt: z.string(),
 });
 
+export const ClassroomRosterSummaryDTOSchema = z.object({
+  connectedCount: z.number().int().nonnegative(),
+  reconnectingCount: z.number().int().nonnegative(),
+  offlineCount: z.number().int().nonnegative(),
+  needsAttentionCount: z.number().int().nonnegative(),
+  submittedCount: z.number().int().nonnegative(),
+});
+
+export const ClassroomParticipantMonitoringDTOSchema = ClassroomParticipantDTOSchema.extend({
+  progressLabel: z.enum(["跟随当前环节", "落后于当前环节", "已进入后续环节"]),
+  submissionCount: z.number().int().nonnegative(),
+  needsAttention: z.boolean(),
+  attentionReasons: z.array(z.string()),
+});
+
 export const ClassroomTeacherTimelineEntryDTOSchema = z.object({
   id: z.string(),
   sessionId: z.string(),
@@ -158,7 +173,8 @@ export const ClassroomSnapshotDTOSchema = z.object({
   status: z.enum(["live", "ended"]),
   version: z.number().int(),
   updatedAt: z.string(),
-  participants: z.array(ClassroomParticipantDTOSchema),
+  participants: z.array(ClassroomParticipantMonitoringDTOSchema),
+  monitoringSummary: ClassroomRosterSummaryDTOSchema,
   steps: z.array(ClassroomStepDTOSchema),
   slideState: ClassroomSlideStateDTOSchema.nullable().default(null),
   teacherTimeline: z.array(ClassroomTeacherTimelineEntryDTOSchema).default([]),
@@ -324,8 +340,10 @@ export type ClassroomLaunchRosterSummaryDTO = z.infer<typeof ClassroomLaunchRost
 export type ClassroomLaunchClassOptionDTO = z.infer<typeof ClassroomLaunchClassOptionDTOSchema>;
 export type ClassroomLaunchLessonOptionDTO = z.infer<typeof ClassroomLaunchLessonOptionDTOSchema>;
 export type ClassroomLiveSessionSummaryDTO = z.infer<typeof ClassroomLiveSessionSummaryDTOSchema>;
+export type ClassroomRosterSummaryDTO = z.infer<typeof ClassroomRosterSummaryDTOSchema>;
 export type ClassroomConsoleDTO = z.infer<typeof ClassroomConsoleDTOSchema>;
 export type ClassroomParticipantDTO = z.infer<typeof ClassroomParticipantDTOSchema>;
+export type ClassroomParticipantMonitoringDTO = z.infer<typeof ClassroomParticipantMonitoringDTOSchema>;
 export type ClassroomSnapshotDTO = z.infer<typeof ClassroomSnapshotDTOSchema>;
 export type ClassroomEventDTO = z.infer<typeof ClassroomEventDTOSchema>;
 export type RecordClassroomEvidenceInput = z.infer<typeof RecordClassroomEvidenceInputSchema>;

@@ -17,6 +17,7 @@ const findFirstClassroomParticipants = vi.fn();
 const findManyUsers = vi.fn();
 const findManyClassroomEvents = vi.fn();
 const findManyClassroomTimeline = vi.fn();
+const findManyClassroomEvidence = vi.fn();
 const findFirstClassMembers = vi.fn();
 const findManyClassMembers = vi.fn();
 const insertValues = vi.fn();
@@ -39,6 +40,7 @@ vi.mock("@/db", () => ({
       users: { findMany: findManyUsers },
       classroomEvents: { findMany: findManyClassroomEvents },
       classroomTimeline: { findMany: findManyClassroomTimeline },
+      classroomEvidence: { findMany: findManyClassroomEvidence },
       classMembers: { findFirst: findFirstClassMembers, findMany: findManyClassMembers },
     },
     insert: insertMock,
@@ -195,6 +197,7 @@ describe("getClassroomConsoleDTO", () => {
     ]);
     findManyClassroomEvents.mockResolvedValue([]);
     findManyClassroomTimeline.mockResolvedValue([]);
+    findManyClassroomEvidence.mockResolvedValue([]);
     findFirstClassMembers.mockResolvedValue({
       id: "member-1",
       classId: "class-in-scope",
@@ -572,5 +575,158 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
 
     expect(dto.teacherTimeline).toEqual([]);
     expect(insertMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("builds runtime monitoring summary and participant attention signals from session facts", async () => {
+    findFirstClassroomSessions.mockResolvedValueOnce({
+      id: "session-1",
+      lessonId: "lesson-in-scope",
+      publishedVersionId: "pub-1",
+      classId: "class-in-scope",
+      teacherId: "teacher-1",
+      activeStepId: "step-2",
+      locked: false,
+      status: "live",
+      version: 3,
+      updatedAt: new Date("2026-05-12T10:05:00Z"),
+    });
+    findManyClassroomParticipants.mockResolvedValueOnce([
+      {
+        sessionId: "session-1",
+        studentId: "student-1",
+        connectionState: "connected",
+        currentStepId: "step-2",
+        lastSeenAt: new Date("2026-05-12T10:03:00Z"),
+      },
+      {
+        sessionId: "session-1",
+        studentId: "student-2",
+        connectionState: "offline",
+        currentStepId: "step-1",
+        lastSeenAt: new Date("2026-05-12T10:01:00Z"),
+      },
+      {
+        sessionId: "session-1",
+        studentId: "student-3",
+        connectionState: "connected",
+        currentStepId: "step-1",
+        lastSeenAt: new Date("2026-05-12T10:02:30Z"),
+      },
+    ]);
+    findManyUsers.mockResolvedValueOnce([
+      { id: "student-1", name: "李雷" },
+      { id: "student-2", name: "韩梅梅" },
+      { id: "student-3", name: "小明" },
+    ]);
+    findManyClassroomEvidence.mockResolvedValueOnce([
+      {
+        id: "evidence-1",
+        sessionId: "session-1",
+        studentId: "student-1",
+        stepId: "step-2",
+        sourceType: "student-submission",
+        evidenceType: "submission",
+        payloadJson: {},
+        capturedById: "student-1",
+        createdAt: new Date("2026-05-12T10:03:30Z"),
+      },
+      {
+        id: "evidence-2",
+        sessionId: "session-1",
+        studentId: "student-1",
+        stepId: "step-2",
+        sourceType: "student-quick-response",
+        evidenceType: "response",
+        payloadJson: {},
+        capturedById: "student-1",
+        createdAt: new Date("2026-05-12T10:04:00Z"),
+      },
+      {
+        id: "evidence-3",
+        sessionId: "session-1",
+        studentId: "student-3",
+        stepId: "step-1",
+        sourceType: "student-submission",
+        evidenceType: "submission",
+        payloadJson: {},
+        capturedById: "student-3",
+        createdAt: new Date("2026-05-12T10:02:00Z"),
+      },
+    ]);
+
+    const { getClassroomSnapshotDTO } = await import("./classroom");
+    const dto = await getClassroomSnapshotDTO({ sessionId: "session-1" });
+
+    expect(dto.monitoringSummary).toEqual({
+      connectedCount: 2,
+      reconnectingCount: 0,
+      offlineCount: 1,
+      needsAttentionCount: 2,
+      submittedCount: 1,
+    });
+    expect(dto.participants).toEqual([
+      expect.objectContaining({
+        studentId: "student-1",
+        progressLabel: "跟随当前环节",
+        submissionCount: 2,
+        needsAttention: false,
+        attentionReasons: [],
+      }),
+      expect.objectContaining({
+        studentId: "student-2",
+        progressLabel: "落后于当前环节",
+        submissionCount: 0,
+        needsAttention: true,
+        attentionReasons: expect.arrayContaining(["当前离线", "落后于当前环节", "当前环节未提交"]),
+      }),
+      expect.objectContaining({
+        studentId: "student-3",
+        progressLabel: "落后于当前环节",
+        submissionCount: 0,
+        needsAttention: true,
+        attentionReasons: expect.arrayContaining(["落后于当前环节", "当前环节未提交"]),
+      }),
+    ]);
+  });
+
+  it("marks participants ahead of the teacher step without creating new evaluation tables", async () => {
+    findManyClassroomParticipants.mockResolvedValueOnce([
+      {
+        sessionId: "session-1",
+        studentId: "student-1",
+        connectionState: "reconnecting",
+        currentStepId: "step-2",
+        lastSeenAt: new Date("2026-05-12T10:03:00Z"),
+      },
+    ]);
+    findManyUsers.mockResolvedValueOnce([{ id: "student-1", name: "李雷" }]);
+    findFirstClassroomSessions.mockResolvedValueOnce({
+      id: "session-1",
+      lessonId: "lesson-in-scope",
+      publishedVersionId: "pub-1",
+      classId: "class-in-scope",
+      teacherId: "teacher-1",
+      activeStepId: "step-1",
+      locked: false,
+      status: "live",
+      version: 3,
+      updatedAt: new Date("2026-05-12T10:05:00Z"),
+    });
+    findManyClassroomEvidence.mockResolvedValueOnce([]);
+
+    const { getClassroomSnapshotDTO } = await import("./classroom");
+    const dto = await getClassroomSnapshotDTO({ sessionId: "session-1" });
+
+    expect(dto.participants[0]).toMatchObject({
+      progressLabel: "已进入后续环节",
+      submissionCount: 0,
+      needsAttention: true,
+      attentionReasons: expect.arrayContaining(["正在重新连接"]),
+    });
+
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+    expect(source).toContain('eq(classroomEvidence.sourceType, "student-quick-response")');
+    expect(source).toContain('eq(classroomEvidence.sourceType, "student-submission")');
+    expect(source).not.toContain("classroomGradebook");
   });
 });
