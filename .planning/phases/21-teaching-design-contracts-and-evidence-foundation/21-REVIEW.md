@@ -1,8 +1,8 @@
 ---
 phase: 21-teaching-design-contracts-and-evidence-foundation
-reviewed: 2026-05-12T16:10:00Z
+reviewed: 2026-05-13T01:30:00Z
 depth: deep
-files_reviewed: 16
+files_reviewed: 20
 files_reviewed_list:
   - src/lib/dto/lesson-authoring.ts
   - src/lib/dal/lesson-authoring.ts
@@ -18,114 +18,78 @@ files_reviewed_list:
   - src/components/surfaces/teacher-lesson-preview-surface.tsx
   - src/components/classroom/classroom-launch-preview.tsx
   - src/components/classroom/classroom-launch-panel.test.tsx
+  - src/components/classroom/classroom-timeline-panel.tsx
+  - src/components/classroom/classroom-timeline-panel.test.tsx
+  - src/components/classroom/classroom-control-panel.tsx
+  - src/components/surfaces/classroom-console-surface.tsx
   - scripts/verify-phase21-contracts.ts
   - package.json
 findings:
-  critical: 2
-  warning: 1
+  critical: 0
+  warning: 2
   info: 0
-  total: 3
+  total: 2
 status: issues_found
 ---
 
 # Phase 21: Code review report
 
-**Reviewed:** 2026-05-12T16:10:00Z  
+**Reviewed:** 2026-05-13T01:30:00Z  
 **Depth:** deep  
-**Files Reviewed:** 16  
+**Files Reviewed:** 20  
 **Status:** issues_found
 
 ## Summary
 
-本次 review 覆盖了 Phase 21 计划列出的全部源码文件。实现方向基本对齐，
-但仍有 2 个必须先修复的 correctness/security 问题，以及 1 个会误导教师的
-teacher-facing 合同偏差。
-
-## Critical issues
-
-### CR-01: classroom evidence 写入口允许未绑定 actor scope 的未授权写入
-
-**Classification:** BLOCKER  
-**File:** `src/lib/dto/classroom.ts:134-141`, `src/lib/dal/classroom.ts:417-433`  
-**Issue:** `RecordClassroomEvidenceInputSchema` 把 `studentId` 设为 optional，
-而 `recordClassroomEvidence()` 只有在 `payload.studentId` 存在时才校验
-“当前登录学生只能为自己写入”。当调用方省略 `studentId` 时，代码只要求
-“用户已登录 + session 存在”，不会校验该用户是否是本课堂 teacher，也不会
-校验是否是该 session 的 participant。结果是任意已登录用户只要拿到
-`sessionId`，就能向 `classroomEvidence` 和 `classroomTimeline` 写入伪造记录，
-直接污染 Phase 21 刚建立的 durable evidence truth。
-
-**Fix:** 按 `sourceType` 强制绑定 actor scope：
-
-```ts
-if (payload.sourceType.startsWith("student-")) {
-  if (payload.studentId !== user.id) {
-    throw new Error("CLASSROOM_EVIDENCE_UNAUTHORIZED");
-  }
-  await ensureSessionStudentParticipant(session.id, user.id);
-} else if (session.teacherId !== user.id) {
-  throw new Error("CLASSROOM_EVIDENCE_UNAUTHORIZED");
-}
-```
-
-并且把 `studentId` 设为“学生来源必填，教师来源禁止冒充学生”的 schema 约束。
-
-### CR-02: partial teaching-design 数据没有 fallback，而是会被直接判 invalid
-
-**Classification:** BLOCKER  
-**File:** `src/lib/dto/lesson-authoring.ts:84-89`, `src/lib/dal/lesson-authoring.ts:380-400`, `src/lib/dal/classroom.ts:198-215`  
-**Issue:** `TeachingDesignSchema` 当前要求四个字段全部存在，DAL helper 也只处理
-“完全缺失”与“完全显式”两种情况。这样一来，只要历史 step 或 published
-snapshot 里出现了部分 `teachingDesign` 字段，`lessonStepPayloadSchema.parse()`
-就会直接失败，根本不会落到 `partial-teaching-design` fallback。Phase 21 计划里
-明确要求支持 partial fallback，但当前实现既没有 partial schema，也没有字段级
-merge，导出的 `partial-teaching-design` enum 实际上是死分支。
-
-**Fix:** 输入层接受 partial `teachingDesign`，再用共享 resolver 做字段级默认化，
-并在任一字段由默认值补齐时返回 `partial-teaching-design`。
-
-```ts
-const TeachingDesignInputSchema = TeachingDesignSchema.partial().optional();
-
-function mergeTeachingDesign(input: Partial<TeachingDesign> | undefined, fallback: TeachingDesign) {
-  return {
-    ...fallback,
-    ...input,
-    evidenceExpectation: {
-      ...fallback.evidenceExpectation,
-      ...input?.evidenceExpectation,
-    },
-  };
-}
-```
-
-然后让 authoring 与 classroom launch 共用同一个 resolver。
+本次复核覆盖了 Phase 21 当前落地的全部源码文件，并重新检查了上一轮
+review 里的两个 blocker。`classroom evidence` 的 actor scope 绑定，以及
+`partial teachingDesign` fallback 现在都已经修复；本轮剩余 2 个 warning，
+主要集中在教师时间线的时间展示与 session 过滤健壮性。
 
 ## Warnings
 
-### WR-01: editor 仍使用硬编码时长，和新的 teaching-design contract 不一致
+### WR-01: 干预记录时间线把所有时间强制按 UTC 渲染，教师看到的记录时间会偏移
 
 **Classification:** WARNING  
-**File:** `src/components/authoring/lesson-authoring-workspace.tsx:43-47`, `src/components/authoring/lesson-authoring-workspace.tsx:110`, `src/components/authoring/lesson-authoring-workspace.tsx:440`, `src/components/authoring/lesson-authoring-workspace.tsx:503-507`  
-**Issue:** Phase 21 已把 `estimatedMinutes` 纳入 step 级 contract，但 editor 里的
-总时长和步骤 badge 仍然使用 `content=12 / task=15 / quiz=8` 的硬编码默认值。
-这会让教师在 editor 中看到的时长与 preview / launch preview 中的结构化时长不一致。
-例如显式配置为 18 分钟的 task，在 editor 里仍显示 15 分钟。
+**File:** `src/components/classroom/classroom-timeline-panel.tsx:9-19`  
+**Issue:** `formatTimelineTime()` 使用 `Intl.DateTimeFormat(..., { timeZone: "UTC" })`
+把所有干预记录固定按 UTC 显示。后端存的是 UTC ISO 时间没问题，但前端展示时
+应该按教师当前时区显示，否则中国教师会看到比真实记录时间早 8 小时，其他时区
+同样会整体偏移。这会直接误导教师对干预发生时点的判断。
 
-**Fix:** 统一从 `step.payload.teachingDesign?.estimatedMinutes` 取值，缺失时才回落到
-legacy default。
+**Fix:** 去掉 `timeZone: "UTC"`，让浏览器按本地时区格式化；如果产品要求统一校时，
+也应显式使用学校时区，而不是硬编码 UTC。
 
 ```ts
-function getStepMinutes(step: LessonStepDTO) {
-  return step.payload.teachingDesign?.estimatedMinutes
-    ?? (step.type === "content" ? 12 : step.type === "task" ? 15 : 8);
-}
+return new Intl.DateTimeFormat("zh-CN", {
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+}).format(date);
 ```
 
-并同时替换总时长聚合与每个步骤右侧时长 chip。
+### WR-02: teacher timeline 的 session 过滤依赖第一条记录，顺序一变就可能错筛
+
+**Classification:** WARNING  
+**File:** `src/lib/dal/classroom.ts:249-251`  
+**Issue:** `buildTeacherTimeline()` 先做了一层过滤：
+
+```ts
+.filter((entry) => entry.sessionId === input.timelineRows[0]?.sessionId || input.timelineRows.length === 0)
+```
+
+这不是按“当前请求的 sessionId”过滤，而是按“第一条 timeline row 的 sessionId”过滤。
+当前调用方恰好已经在查询层按 `session.id` 过滤，所以线上大多数时候不会暴露；但这让
+helper 自身变成了顺序敏感逻辑，一旦未来调用方复用它并传入混合 session 数据，或查询
+条件被放宽，当前课堂的干预记录可能被整批过滤掉，或者混入错误 session 的记录。
+
+**Fix:** 给 `buildTeacherTimeline()` 显式传入目标 `sessionId` 并按它过滤，或者直接删掉
+这层基于首条记录的过滤，完全依赖调用方的查询边界。
 
 ---
 
-_Reviewed: 2026-05-12T16:10:00Z_  
+_Reviewed: 2026-05-13T01:30:00Z_  
 _Reviewer: the agent (gsd-code-reviewer)_  
 _Depth: deep_
