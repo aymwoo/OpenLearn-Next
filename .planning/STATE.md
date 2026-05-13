@@ -230,10 +230,11 @@ progress:
 | 260513-sav | /teacher/schedule 测试教师账号增加管理员视角，聚合同校教师课表，并把主课表改成更紧凑现代的多卡片展示 | 2026-05-13 | 1fe3a17 | [260513-sav-schedule-admin-view](./quick/260513-sav-schedule-admin-view/) |
 | 260513-o1x | 重构 /teacher/schedule 主课表视图为紧凑班级优先布局，详细信息改为 hover/focus 浮层，并在选中课程后提供图标快捷操作面板 | 2026-05-13 | 84dcdaa | [260513-o1x-teacher-schedule-hover](./quick/260513-o1x-teacher-schedule-hover/) |
 | 260513-pd8 | 调整 /teacher/schedule 课程 hover 明细浮层配色，强化与默认课程卡的层次区分并保持现代视觉风格 | 2026-05-13 | 8ee4f4c | [260513-pd8-hover](./quick/260513-pd8-hover/) |
+| 260513-pjo | 将 /teacher/schedule 课程 hover 明细浮层进一步收敛为 glassmorphism 风格，增强半透明、blur 与高光层次 | 2026-05-13 | 3007a54 | [260513-pjo-hover-glassmorphism](./quick/260513-pjo-hover-glassmorphism/) |
 
 ## Current Position
 
 Phase: 22 (teacher-orchestration-workspace-and-launch-preparation) - COMPLETED
 Plan: 3 of 3
 Status: Completed
-Last activity: 2026-05-13 -- Completed quick task 260513-pd8: /teacher/schedule hover 明细浮层配色刷新
+Last activity: 2026-05-13 -- Completed quick task 260513-pjo: /teacher/schedule hover 明细浮层 glassmorphism 收敛
