@@ -4,17 +4,17 @@ milestone: v1.3
 milestone_name: Teaching Orchestration & Classroom Intelligence
 current_phase: 24
 current_phase_name: live-classroom-operations-and-formative-evaluation
-current_plan: 1
+current_plan: 2
 status: executing
 stopped_at: Phase 24 context gathered; ready for planning
-last_updated: "2026-05-13T15:36:38.199Z"
+last_updated: "2026-05-13T15:51:33.866Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 14
   completed_phases: 9
   total_plans: 40
-  completed_plans: 36
-  percent: 90
+  completed_plans: 37
+  percent: 93
 ---
 
 # Project State
@@ -23,15 +23,15 @@ progress:
 
 **Current Phase:** 24
 **Current Phase Name:** live-classroom-operations-and-formative-evaluation
-**Current Plan:** 1
+**Current Plan:** 2
 **Total Plans in Phase:** 4
-**Status:** Executing Phase 24
+**Status:** Ready to execute
 **Progress:**
-[██████████] 100%
+[█████████░] 93%
 **Last Activity:** 2026-05-13
-**Last session:** 2026-05-13T14:29:29.640Z
+**Last session:** 2026-05-13T15:50:13.778Z
 **Stopped At:** Phase 24 context gathered; ready for planning
-**Resume File:** .planning/phases/24-live-classroom-operations-and-formative-evaluation/24-CONTEXT.md
+**Resume File:** None
 
 ## Accumulated Context
 
@@ -138,6 +138,9 @@ progress:
 - [Phase 23]: quick-response UI 仅在 content 步骤声明 student-quick-response evidence path 时启用，task/quiz 卡保持原路径不变。
 - [Phase 23]: Phase 23 verifier continues the repo pattern: static source guards plus focused pnpm test --run suite, not prose checklist.
 - [Phase 23]: quick-response durability is locked to recordClassroomEvidence path instead of task or quiz submission helpers.
+- [Phase 24]: 当前环节的提交监控只统计 student-quick-response 与 student-submission evidence，并在 task/quiz 环节将未提交学生标记为需要关注。
+- [Phase 24]: 课堂名册监控继续通过 ClassroomSnapshotDTO 提供单一 session-scoped read model，不把统计拆到 client 侧拼接。
+- [Phase 24]: 课堂控制台继续保留原主路径，只把 roster panel 升级为进度与干预优先的运营面板。
 
 ## Next Steps
 
@@ -175,6 +178,7 @@ progress:
 | Phase 23 P01 | 9 min | 2 tasks | 8 files |
 | Phase 23 P02 | 10 min | 2 tasks | 11 files |
 | Phase 23 P03 | 6 min | 2 tasks | 7 files |
+| Phase 24 P01 | 5 min | 2 tasks | 6 files |
 
 ### Quick Tasks Completed
 
@@ -247,6 +251,6 @@ progress:
 ## Current Position
 
 Phase: 24 (live-classroom-operations-and-formative-evaluation) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 24
-Last activity: 2026-05-13 -- Phase 24 execution started
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-05-13
