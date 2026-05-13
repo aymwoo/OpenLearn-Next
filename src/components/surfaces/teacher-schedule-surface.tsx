@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { CalendarDays, Download, FileSpreadsheet, PencilLine, Trash2 } from "lucide-react";
 
+import { TeacherScheduleWeekGrid } from "@/components/surfaces/teacher-schedule-week-grid";
 import { Badge } from "@/components/ui/badge";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import { ScheduleImportModal } from "@/components/surfaces/schedule-import-modal";
@@ -93,29 +94,8 @@ export function TeacherScheduleSurface({
           </div>
 
           {hasCurrentSchedule ? (
-            <div className={cn(teacherSurfaceRhythm.cardInset, "overflow-hidden p-3 md:p-4")}>
-              <div className="grid min-w-[62rem] grid-cols-[7rem_repeat(5,minmax(0,1fr))] gap-2.5">
-                <div className={cn(teacherSurfaceRhythm.card, "bg-surface-container-low px-3 py-3 text-sm font-medium text-on-surface-variant")}>
-                  时间 / 星期
-                </div>
-                {currentWeeklySchedule.weekdays.map((weekday) => (
-                  <div
-                      key={weekday.key}
-                      className={cn(
-                        teacherSurfaceRhythm.card,
-                        "px-3 py-3 text-sm",
-                        weekday.isToday ? "bg-primary/10 text-primary" : "bg-surface-container-low text-on-surface",
-                      )}
-                  >
-                    <p className="font-semibold">{weekday.shortLabel}</p>
-                    <p className="mt-1 text-xs opacity-80">{weekday.label.replace(`${weekday.shortLabel} `, "")}</p>
-                  </div>
-                ))}
-
-                {currentWeeklySchedule.rows.map((row) => (
-                  <RowWithCells key={row.slotId} row={row} />
-                ))}
-              </div>
+            <div className={cn(teacherSurfaceRhythm.cardInset, "p-3 md:p-4")}>
+              <TeacherScheduleWeekGrid schedule={currentWeeklySchedule} viewMode={data.viewMode} />
             </div>
           ) : currentBatch ? (
             <div className={cn(teacherSurfaceRhythm.cardInset, "p-6 sm:p-7")}>
@@ -269,76 +249,6 @@ function MetricCard({ label, value, helper }: { label: string; value: string; he
     </div>
   );
 }
-
-function RowWithCells({
-  row,
-}: {
-  row: TeacherDailyAgendaDTO["weeklySchedule"]["rows"][number];
-}) {
-  return (
-    <>
-      <div className={cn(teacherSurfaceRhythm.card, "bg-surface-container-low px-3 py-3.5")}>
-        <p className="text-sm font-semibold text-on-surface">{row.bellSlotLabel}</p>
-        <p className="mt-1 text-xs text-on-surface-variant">{row.timeLabel}</p>
-      </div>
-      {row.cells.map((cells, index) => (
-        <WeeklyCell key={`${row.slotId}-${index}`} cells={cells} />
-      ))}
-    </>
-  );
-}
-
-function WeeklyCell({ cells }: { cells: TeacherWeeklyScheduleCellDTO[] }) {
-  if (cells.length === 0) {
-    return <div className={cn(teacherSurfaceRhythm.card, "min-h-28 bg-surface-container-low/60 px-3 py-3 text-sm text-on-surface-variant")}>本节暂无安排</div>;
-  }
-
-  return (
-    <div className={cn(teacherSurfaceRhythm.card, "min-h-28 space-y-2.5 bg-surface-container-lowest px-2.5 py-2.5 shadow-[0_10px_28px_rgba(44,47,49,0.04)]")}>
-      {cells.map((cell) => {
-        const unresolvedActions = getCellUnresolvedActions(cell.overrideSummary);
-
-        return (
-          <div key={cell.id} className="rounded-[1.1rem] bg-surface-container-low px-3 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-on-surface">{cell.courseTitle}</p>
-                <p className="mt-1 truncate text-xs text-on-surface-variant">{cell.classLabel}</p>
-                {cell.teacherLabel ? <p className="mt-1 truncate text-[11px] font-medium text-primary">{cell.teacherLabel}</p> : null}
-              </div>
-              <span className="shrink-0 rounded-full bg-surface-container-high px-2 py-1 text-[11px] font-medium text-on-surface-variant">
-                {cell.status}
-              </span>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-on-surface-variant">
-              <p>{cell.locationLabel}</p>
-              <p>{cell.timeLabel}</p>
-              {cell.overrideSummary ? <p className="text-primary">{cell.overrideSummary}</p> : null}
-            </div>
-            {unresolvedActions.length > 0 ? (
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                {unresolvedActions.map((action) => (
-                  <Link
-                    key={`${cell.id}-${action.label}`}
-                    href={action.href}
-                    className="rounded-full bg-surface-container-high px-2.5 py-1.5 font-medium text-primary transition hover:bg-surface-container-highest"
-                  >
-                    {action.label}
-                  </Link>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-type SchedulePreviewAction = {
-  label: string;
-  href: string;
-};
 
 function getBatchTermLabel(batch: ScheduleImportBatchDTO) {
   return batch.rows.find((row) => row.mappingSummary?.termName)?.mappingSummary?.termName ?? batch.sourceLabel;
@@ -560,28 +470,6 @@ function getPreviewRowNote(row: ScheduleImportBatchDTO["rows"][number]) {
   }
 
   return "最新导入预览";
-}
-
-function getCellUnresolvedActions(overrideSummary: string | null): SchedulePreviewAction[] {
-  if (!overrideSummary) {
-    return [];
-  }
-
-  const actions: SchedulePreviewAction[] = [];
-
-  if (overrideSummary.includes("班级")) {
-    actions.push({ label: "查看班级", href: "/teacher/classes" });
-  }
-
-  if (overrideSummary.includes("课程")) {
-    actions.push({ label: "新建课程", href: "/teacher/courses" });
-  }
-
-  if (overrideSummary.includes("教师")) {
-    actions.push({ label: "核对教师关系", href: "/teacher/schedule#import-review" });
-  }
-
-  return actions;
 }
 
 function batchStatusLabel(status: ScheduleImportBatchDTO["status"]) {

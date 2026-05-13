@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ScheduleImportBatchDTO } from "@/features/schedule/shared/dto/import";
 import type { TeacherWeeklyScheduleDTO } from "@/features/schedule/shared/dto/runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -19,6 +19,10 @@ vi.mock("@/features/schedule/import/actions", () => ({
 afterEach(() => {
   cleanup();
 });
+
+function getTooltipTextContent() {
+  return screen.getByRole("tooltip").textContent ?? "";
+}
 
 const historyBatch: ScheduleImportBatchDTO = {
   id: "batch-history",
@@ -229,7 +233,7 @@ describe("TeacherScheduleSurface", () => {
     expect(screen.getByText("先导入当前学期课表，再开始日常维护")).toBeTruthy();
   });
 
-  it("keeps time class location status as the first visible information layer", () => {
+  it("renders a compact class-first weekly card and defers details until interaction", () => {
     render(
         <TeacherScheduleSurface
           data={{
@@ -263,6 +267,9 @@ describe("TeacherScheduleSurface", () => {
     expect(screen.getByRole("heading", { level: 2, name: "2026 春季学期课程表" })).toBeTruthy();
     expect(screen.getByText("时间 / 星期")).toBeTruthy();
     expect(screen.getByText("第一节")).toBeTruthy();
+    expect(screen.getByText("高一一班")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "高一一班 数学 快捷操作" })).toBeTruthy();
+    expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
   it("uses the lesson link contract instead of guessing courseId from assignmentId", () => {
@@ -376,7 +383,7 @@ describe("TeacherScheduleSurface", () => {
     expect(screen.getByRole("heading", { level: 2, name: "2026 春季学期课程表" })).toBeTruthy();
     expect(screen.getByText("时间 / 星期")).toBeTruthy();
     expect(screen.getByText("第一节")).toBeTruthy();
-    expect(screen.getAllByText("数学").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "高一一班 数学 快捷操作" })).toBeTruthy();
   });
 
   it("does not treat an unapproved latest import batch as the current main schedule", () => {
@@ -449,8 +456,9 @@ describe("TeacherScheduleSurface", () => {
     );
 
     expect(screen.queryByText("当前学期尚未导入课表")).toBeNull();
-    expect(screen.getAllByText("数学").length).toBeGreaterThan(0);
-    expect(screen.getByText("教师映射待补")).toBeTruthy();
+    fireEvent.focus(screen.getByRole("button", { name: "高一一班 数学 快捷操作" }));
+    expect(screen.getByRole("tooltip")).toBeTruthy();
+    expect(getTooltipTextContent()).toContain("教师映射待补");
   });
 
   it("does not fall back to the not-imported empty state when a primary batch exists but has no matching lessons", () => {
@@ -499,7 +507,8 @@ describe("TeacherScheduleSurface", () => {
 
     expect(screen.getByText("0/1 已生效")).toBeTruthy();
     expect(screen.getByText("当前主课表正在显示最新导入预览，班级、教师或课程映射可后续补齐；正式入库仍需通过审批链路。")).toBeTruthy();
-    expect(screen.getByText("课程映射待补")).toBeTruthy();
+    fireEvent.focus(screen.getByRole("button", { name: "高一一班 数学 快捷操作" }));
+    expect(getTooltipTextContent()).toContain("课程映射待补");
     expect(screen.getByRole("link", { name: "新建课程" }).getAttribute("href")).toBe("/teacher/courses");
   });
 
@@ -538,7 +547,8 @@ describe("TeacherScheduleSurface", () => {
       />,
     );
 
-    expect(screen.getByText("班级/课程/教师待补")).toBeTruthy();
+    fireEvent.focus(screen.getByRole("button", { name: "高一一班 数学 快捷操作" }));
+    expect(getTooltipTextContent()).toContain("班级/课程/教师待补");
     expect(screen.getByRole("link", { name: "查看班级" }).getAttribute("href")).toBe("/teacher/classes");
     expect(screen.getByRole("link", { name: "新建课程" }).getAttribute("href")).toBe("/teacher/courses");
     expect(screen.getByRole("link", { name: "核对教师关系" }).getAttribute("href")).toBe("/teacher/schedule#import-review");
@@ -583,10 +593,10 @@ describe("TeacherScheduleSurface", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "2026 春季学期课程表" })).toBeTruthy();
     expect(screen.queryByRole("heading", { level: 2, name: "2026 夏季学期课程表" })).toBeNull();
-    expect(screen.getAllByText("数学").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "高一一班 数学 快捷操作" })).toBeTruthy();
   });
 
-  it("renders compact stacked cards with teacher labels in admin school view", () => {
+  it("shows admin teacher details on focus and quick action toolbar after selection", () => {
     const adminWeeklySchedule: TeacherWeeklyScheduleDTO = {
       ...baseWeeklySchedule,
       rows: [
@@ -648,9 +658,40 @@ describe("TeacherScheduleSurface", () => {
     );
 
     expect(screen.getByText((_, element) => element?.textContent === "全校教师")).toBeTruthy();
-    expect(screen.getByText("张老师")).toBeTruthy();
-    expect(screen.getByText("李老师")).toBeTruthy();
-    expect(screen.getByText("物理")).toBeTruthy();
+    fireEvent.focus(screen.getByRole("button", { name: "高一一班 数学 快捷操作" }));
+    expect(getTooltipTextContent()).toContain("张老师");
+    fireEvent.click(screen.getByRole("button", { name: "高一一班 数学 快捷操作" }));
+    expect(screen.getByRole("toolbar", { name: "高一一班 快捷操作" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "调课管理" }).getAttribute("href")).toBe("/teacher/schedule/changes");
+    expect(screen.getByRole("link", { name: "提醒配置" }).getAttribute("href")).toBe("/teacher/schedule/reminders");
+    expect(screen.getByRole("link", { name: "查看班级" }).getAttribute("href")).toBe("/teacher/classes");
+  });
+
+  it("reveals weekly detail tooltip on hover", () => {
+    render(
+      <TeacherScheduleSurface
+        data={{
+          teacherId: "teacher-1",
+          schoolId: "school-1",
+          viewMode: "teacher",
+          date: "2026-05-11",
+          dateLabel: "2026-05-11",
+          weekLabel: "周一",
+          nextClassCountdownLabel: null,
+          cards: [],
+          weeklySchedule: baseWeeklySchedule,
+        }}
+        latestImportBatch={currentBatch}
+      />,
+    );
+
+    const pillButton = screen.getByRole("button", { name: "高一一班 数学 快捷操作" });
+    fireEvent.mouseEnter(pillButton.closest("article")!);
+
+    expect(screen.getByRole("tooltip")).toBeTruthy();
+    expect(getTooltipTextContent()).toContain("08:00 - 08:45");
+    expect(getTooltipTextContent()).toContain("302");
+    expect(getTooltipTextContent()).toContain("进行中");
   });
 
 });
