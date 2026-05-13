@@ -2,36 +2,36 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Teaching Orchestration & Classroom Intelligence
-current_phase: 22
-current_phase_name: teacher-orchestration-workspace-and-launch-preparation
-current_plan: 3
-status: completed
-stopped_at: Phase 23 UI-SPEC approved
-last_updated: "2026-05-13T10:47:30.040Z"
-last_activity: 2026-05-13 -- Phase 22 completed
+current_phase: 23
+current_phase_name: student-in-class-activity-flow
+current_plan: 2
+status: executing
+stopped_at: Phase 23 context gathered
+last_updated: "2026-05-13T13:40:24.598Z"
+last_activity: 2026-05-13
 progress:
   total_phases: 14
   completed_phases: 8
-  total_plans: 33
-  completed_plans: 33
-  percent: 100
+  total_plans: 36
+  completed_plans: 34
+  percent: 94
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 22
-**Current Phase Name:** teacher-orchestration-workspace-and-launch-preparation
-**Current Plan:** 3
+**Current Phase:** 23
+**Current Phase Name:** student-in-class-activity-flow
+**Current Plan:** 2
 **Total Plans in Phase:** 3
-**Status:** Completed
+**Status:** Ready to execute
 **Progress:**
-[██████████] 100%
-**Last Activity:** 2026-05-13 -- Phase 22 completed
-**Last session:** 2026-05-13T10:47:30.035Z
-**Stopped At:** Phase 23 UI-SPEC approved
-**Resume File:** .planning/phases/23-student-in-class-activity-flow/23-UI-SPEC.md
+[█████████░] 94%
+**Last Activity:** 2026-05-13
+**Last session:** 2026-05-13T11:37:33.934Z
+**Stopped At:** Phase 23 context gathered
+**Resume File:** None
 
 ## Accumulated Context
 
@@ -130,6 +130,9 @@ progress:
 - [Phase 21]: 干预记录从拥挤控制区拆到独立 tonal timeline panel，并和 roster 组成右侧次级栏，不新增第二个 hero。
 - [Phase 21]: 步骤卡时长必须作为独立中文标签元信息展示，而不是继续依赖右上角弱 badge。
 - [Phase 21]: 回归测试固定用 card-scoped labeled assertions，避免被顶部总时长文案误判为通过。
+- [Phase 23]: 学生端 activity 文案全部由服务端从 teachingDesign、progress 与 latest attempt 派生，客户端不再猜测。
+- [Phase 23]: 当前步骤统一先过一个课堂活动壳，再落到 content/task/quiz 各自动作区，避免多套顶层叙事竞争。
+- [Phase 23]: 老师推荐步骤 CTA 保持次级动作，不与当前步骤主提交动作并列抢焦点。
 
 ## Next Steps
 
@@ -164,6 +167,7 @@ progress:
 | Phase 21 P03 | 37 min | 2 tasks | 7 files |
 | Phase 21 P04 | 3 min | 2 tasks | 7 files |
 | Phase 21 P05 | 3 min | 2 tasks | 2 files |
+| Phase 23 P01 | 9 min | 2 tasks | 8 files |
 
 ### Quick Tasks Completed
 
@@ -235,7 +239,7 @@ progress:
 
 ## Current Position
 
-Phase: 22 (teacher-orchestration-workspace-and-launch-preparation) - COMPLETED
-Plan: 3 of 3
-Status: Completed
-Last activity: 2026-05-13 -- Completed quick task 260513-pmb: /teacher/schedule hover 明细浮层 premium education tonal 收敛
+Phase: 23 (student-in-class-activity-flow) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-05-13
