@@ -27,9 +27,9 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
 
   const currentSnapshot = conflict?.latest || initialSnapshot
   const currentStep = currentSnapshot.steps.find((step: ClassroomStepDTO) => step.id === currentSnapshot.activeStepId)
-  const connectedCount = currentSnapshot.participants.filter((participant) => participant.connectionState === 'connected').length
+  const connectedCount = currentSnapshot.monitoringSummary.connectedCount
   const totalParticipants = currentSnapshot.participants.length
-  const completionRate = totalParticipants > 0 ? Math.round((connectedCount / totalParticipants) * 100) : 0
+  const attentionCount = currentSnapshot.monitoringSummary.needsAttentionCount
 
   const handleChangeStep = (stepId: string) => {
     if (conflict || isPending) return
@@ -117,7 +117,7 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
                 <div className="grid gap-3 sm:grid-cols-3 lg:w-[22rem] lg:grid-cols-1">
                   <MetricOrb icon={<Users className="size-4" aria-hidden />} label="在线学生" value={`${connectedCount}/${totalParticipants}`} detail="课堂名册实时同步" />
                   <MetricOrb icon={<Radio className="size-4" aria-hidden />} label="当前模式" value={currentSnapshot.locked ? '锁定跟随' : '自由浏览'} detail={currentSnapshot.locked ? '学生锁定在当前步骤' : '学生可回看已开放步骤'} />
-                  <MetricOrb icon={<Clock3 className="size-4" aria-hidden />} label="课堂活跃度" value={`${completionRate}%`} detail={`更新于 ${new Date(currentSnapshot.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`} />
+                  <MetricOrb icon={<Clock3 className="size-4" aria-hidden />} label="名册监控" value={`优先关注 ${attentionCount} 名`} detail={`已提交 ${currentSnapshot.monitoringSummary.submittedCount} 人 · 更新于 ${new Date(currentSnapshot.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`} />
                 </div>
               </div>
 
@@ -245,7 +245,7 @@ export function ClassroomControlPanel({ initialSnapshot }: { initialSnapshot: Cl
 
       <div className="space-y-5">
         <ClassroomTimelinePanel entries={currentSnapshot.teacherTimeline} />
-        <ClassroomRosterPanel participants={currentSnapshot.participants} />
+        <ClassroomRosterPanel participants={currentSnapshot.participants} monitoringSummary={currentSnapshot.monitoringSummary} />
       </div>
     </section>
   )

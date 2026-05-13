@@ -2,12 +2,15 @@ import { Activity, UsersRound } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-import type { ClassroomParticipantDTO } from '@/lib/dto/classroom'
+import type { ClassroomParticipantMonitoringDTO, ClassroomRosterSummaryDTO } from '@/lib/dto/classroom'
 
-export function ClassroomRosterPanel({ participants }: { participants: ClassroomParticipantDTO[] }) {
-  const connectedCount = participants.filter((participant) => participant.connectionState === 'connected').length
-  const reconnectingCount = participants.filter((participant) => participant.connectionState === 'reconnecting').length
-  const offlineCount = participants.length - connectedCount - reconnectingCount
+export function ClassroomRosterPanel({
+  participants,
+  monitoringSummary,
+}: {
+  participants: ClassroomParticipantMonitoringDTO[]
+  monitoringSummary: ClassroomRosterSummaryDTO
+}) {
 
   return (
     <Card className="bg-surface-container-low p-5 sm:p-6">
@@ -16,29 +19,45 @@ export function ClassroomRosterPanel({ participants }: { participants: Classroom
           <UsersRound className="size-6 text-primary" aria-hidden />
           <div>
             <h2 className="text-2xl font-semibold">学生状态</h2>
-            <p className="mt-1 text-sm text-on-surface-variant">课堂名册与在线状态同步</p>
+            <p className="mt-1 text-sm text-on-surface-variant">课堂名册、进度与课堂回应概览</p>
           </div>
         </div>
         <Badge variant="accent">课堂名册</Badge>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <RosterMetric label="已连接" value={`${connectedCount}`} detail={`共 ${participants.length} 人`} />
-        <RosterMetric label="重连中" value={`${reconnectingCount}`} detail="等待学生端恢复" />
-        <RosterMetric label="离线" value={`${offlineCount}`} detail="优先关注这些学生" />
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <RosterMetric label="已连接" value={`${monitoringSummary.connectedCount}`} detail={`共 ${participants.length} 人`} />
+        <RosterMetric label="重连中" value={`${monitoringSummary.reconnectingCount}`} detail="等待学生端恢复" />
+        <RosterMetric label="需要关注" value={`${monitoringSummary.needsAttentionCount}`} detail="优先干预对象" />
+        <RosterMetric label="已提交" value={`${monitoringSummary.submittedCount}`} detail="当前环节已有回应" />
       </div>
 
       <div className="mt-5 grid gap-3">
         {participants.map((participant) => {
-          const badgeLabel = participant.connectionState === 'connected' ? '已跟随' : participant.connectionState === 'reconnecting' ? '重连中' : '未连接'
+          const badgeLabel = participant.needsAttention ? '需要关注' : '状态稳定'
+          const connectionLabel = participant.connectionState === 'connected' ? '已跟随' : participant.connectionState === 'reconnecting' ? '重连中' : '未连接'
           return (
             <article key={participant.studentId} className="rounded-[1.35rem] bg-surface-container-lowest p-4 shadow-ambient">
-              <div className="flex items-center justify-between gap-3">
-                <div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold text-on-surface">{participant.studentName}</p>
                   <p className="mt-1 text-sm text-on-surface-variant">最近可见：{new Date(participant.lastSeenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-sm text-on-surface-variant">
+                    <span className="rounded-full bg-surface-container-low px-3 py-1">{connectionLabel}</span>
+                    <span className="rounded-full bg-surface-container-low px-3 py-1">{participant.progressLabel}</span>
+                    <span className="rounded-full bg-surface-container-low px-3 py-1">{participant.submissionCount} 次回应</span>
+                  </div>
+                  {participant.attentionReasons.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {participant.attentionReasons.map((reason) => (
+                        <span key={`${participant.studentId}-${reason}`} className="rounded-full bg-[#eef4ff] px-3 py-1 text-xs font-medium text-primary">
+                          {reason}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-                <Badge variant={participant.connectionState === 'connected' ? 'success' : 'default'}>{badgeLabel}</Badge>
+                <Badge variant={participant.needsAttention ? 'default' : 'success'}>{badgeLabel}</Badge>
               </div>
             </article>
           )
@@ -48,7 +67,7 @@ export function ClassroomRosterPanel({ participants }: { participants: Classroom
       <div className="mt-5 rounded-[1.4rem] bg-surface-container-lowest p-5 shadow-ambient">
         <Activity className="mb-3 size-6 text-primary" aria-hidden />
         <p className="font-semibold">课堂节奏提示</p>
-        <p className="mt-2 text-sm leading-6 text-on-surface-variant">如果未连接学生持续较多，建议在进入练习或测验前先做一次点名确认。</p>
+        <p className="mt-2 text-sm leading-6 text-on-surface-variant">如果需要关注学生持续较多，建议先点名确认，再决定是否推进到练习或测验环节。</p>
       </div>
     </Card>
   )
