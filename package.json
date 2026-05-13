@@ -21,6 +21,7 @@
     "verify:phase19": "tsx scripts/verify-phase19-shell-route-metadata.ts",
     "verify:phase20": "tsx scripts/verify-phase20-help-center.ts",
     "verify:phase21": "tsx scripts/verify-phase21-contracts.ts",
+    "verify:phase22": "tsx scripts/verify-phase22-orchestration.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "db:bootstrap:dev": "drizzle-kit push && tsx scripts/bootstrap-dev-db.ts",

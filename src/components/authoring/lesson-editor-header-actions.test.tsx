@@ -117,5 +117,8 @@ describe("LessonEditorHeaderActions", () => {
       "/teacher/launch?courseId=course-1&lessonId=lesson-1",
     );
     expect(screen.getByRole("button", { name: "发布课时" })).toBeTruthy();
+    expect(screen.getByText("开课前可进入 `/teacher/launch` 检查整班启动摘要与课堂节奏。")).toBeTruthy();
+    expect(publishLessonAction).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

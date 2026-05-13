@@ -184,9 +184,13 @@ describe("ClassroomLaunchPanel", () => {
       expect(document.body.textContent).toContain("默认推断");
       expect(document.body.textContent).toContain("课堂仍会按已发布快照启动，本期不会因为默认推断而阻断开课。");
     });
+    expect(document.body.textContent).toContain("整班摘要");
+    expect(document.body.textContent).not.toContain("排除学生");
+    expect(document.body.textContent).not.toContain("子集启动");
 
     await waitFor(() => expect(within(launchForm).getAllByRole("combobox")).toHaveLength(2));
     fireEvent.change(within(launchForm).getAllByRole("combobox")[1]!, { target: { value: "class-1" } });
+    expect(document.body.textContent).toContain("本次会按整班名单同步进入课堂；如需调整名册，请先回到班级相关页面处理。");
     fireEvent.click(launchButton);
 
     await waitFor(() => {
@@ -257,6 +261,10 @@ describe("ClassroomLaunchPanel", () => {
     expect(screen.getAllByText('阻断项').length).toBeGreaterThan(0)
     expect(screen.getAllByText('需关注').length).toBeGreaterThan(0)
     expect(screen.getAllByText('建议完善').length).toBeGreaterThan(0)
+    expect(screen.getByText('当前没有阻断项，可以继续选择整班并开启课堂。')).toBeTruthy()
+    expect(screen.getByText('1 个环节仍在使用默认推断，不会阻断开课，但建议教师先过一遍课堂节奏。')).toBeTruthy()
+    expect(screen.getByText('1 个环节还没有明确材料提示，建议开课前补齐讲义、链接或设备准备。')).toBeTruthy()
+    expect(screen.getByText('当前只支持整班启动；选择班级后会在这里展示名册规模与启动范围说明。')).toBeTruthy()
 
     await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2))
     fireEvent.change(screen.getAllByRole('combobox')[1]!, { target: { value: 'class-1' } })
