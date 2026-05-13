@@ -25,7 +25,11 @@ import {
   ClassroomActionResultDTOSchema,
   ClassroomEvidenceDTOSchema,
   ClassroomSnapshotDTOSchema,
+  ClassroomFormativeEvaluationPayloadSchema,
+  ListStudentFormativeEvaluationEntriesInputSchema,
+  RecordStudentFormativeEvaluationInputSchema,
   StudentQuickResponseInputSchema,
+  StudentFormativeEvaluationEntryDTOSchema,
   ClassroomTimelineEntryDTOSchema,
   RecordClassroomEvidenceInputSchema,
   RecordClassroomInterventionInputSchema,
@@ -668,6 +672,83 @@ export async function recordStudentQuickResponse(input: unknown) {
     successMessage: "已记录为新的课堂回应",
     createdAt: evidence.createdAt,
   };
+}
+
+export async function recordStudentFormativeEvaluation(input: unknown) {
+  const payload = RecordStudentFormativeEvaluationInputSchema.parse(input);
+
+  await getTeacherSessionScope(payload.sessionId);
+
+  const evidence = await recordClassroomEvidence({
+    sessionId: payload.sessionId,
+    studentId: payload.studentId,
+    sourceType: "teacher-observation",
+    evidenceType: "observation",
+    payload: {
+      kind: "formative-evaluation",
+      participationLevel: payload.participationLevel,
+      tags: payload.tags,
+      observationNote: payload.observationNote,
+    },
+  });
+
+  const formativePayload = ClassroomFormativeEvaluationPayloadSchema.parse(evidence.payload);
+
+  return StudentFormativeEvaluationEntryDTOSchema.parse({
+    id: evidence.id,
+    sessionId: evidence.sessionId,
+    studentId: evidence.studentId ?? payload.studentId,
+    participationLevel: formativePayload.participationLevel,
+    tags: formativePayload.tags,
+    observationNote: formativePayload.observationNote,
+    capturedById: evidence.capturedById,
+    createdAt: evidence.createdAt,
+  });
+}
+
+export async function listStudentFormativeEvaluationEntries(rawInput: unknown) {
+  const input = ListStudentFormativeEvaluationEntriesInputSchema.parse(rawInput);
+
+  await getTeacherSessionScope(input.sessionId);
+  await ensureSessionStudentParticipant(input.sessionId, input.studentId);
+
+  const evidenceRows = await db.query.classroomEvidence.findMany({
+    where: and(
+      eq(classroomEvidence.sessionId, input.sessionId),
+      eq(classroomEvidence.studentId, input.studentId),
+      eq(classroomEvidence.sourceType, "teacher-observation"),
+      eq(classroomEvidence.evidenceType, "observation"),
+    ),
+  });
+
+  return evidenceRows
+    .map((evidence) => {
+      const rawPayload = evidence.payloadJson;
+      if (!rawPayload || typeof rawPayload !== "object") {
+        return null;
+      }
+
+      const payload = rawPayload as Record<string, unknown>;
+      const isFormativeEvaluation = payload.kind === "formative-evaluation";
+      if (!isFormativeEvaluation) {
+        return null;
+      }
+
+      const formativePayload = ClassroomFormativeEvaluationPayloadSchema.parse(payload);
+
+      return StudentFormativeEvaluationEntryDTOSchema.parse({
+        id: evidence.id,
+        sessionId: evidence.sessionId,
+        studentId: evidence.studentId ?? input.studentId,
+        participationLevel: formativePayload.participationLevel,
+        tags: formativePayload.tags,
+        observationNote: formativePayload.observationNote,
+        capturedById: evidence.capturedById,
+        createdAt: toIso(evidence.createdAt),
+      });
+    })
+    .filter((entry): entry is ReturnType<typeof StudentFormativeEvaluationEntryDTOSchema.parse> => Boolean(entry))
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 export async function recordClassroomIntervention(input: unknown) {

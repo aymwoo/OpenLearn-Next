@@ -13,6 +13,39 @@ export const ClassroomEvidenceSourceTypeSchema = z.enum(["student-quick-response
 export const ClassroomEvidenceTypeSchema = z.enum(["observation", "response", "artifact", "submission", "quiz-response"]);
 export const ClassroomInterventionTargetScopeSchema = z.enum(["student", "class"]);
 export const ClassroomTimelineEntryTypeSchema = z.enum(["presence_changed", "evidence_captured", "intervention_noted"]);
+export const ClassroomParticipationLevelSchema = z.enum(["active", "normal", "attention"]);
+export const ClassroomEvaluationTagSchema = z.enum(["主动发言", "专注跟进", "协作支持", "表达清晰", "需要提醒", "需要跟进"]);
+
+export const ClassroomFormativeEvaluationPayloadSchema = z.object({
+  kind: z.literal("formative-evaluation"),
+  participationLevel: ClassroomParticipationLevelSchema,
+  tags: z.array(ClassroomEvaluationTagSchema),
+  observationNote: z.string(),
+});
+
+export const RecordStudentFormativeEvaluationInputSchema = z.object({
+  sessionId: z.string().min(1),
+  studentId: z.string().min(1),
+  participationLevel: ClassroomParticipationLevelSchema,
+  tags: z.array(ClassroomEvaluationTagSchema),
+  observationNote: z.string().trim().min(1).max(1000),
+});
+
+export const ListStudentFormativeEvaluationEntriesInputSchema = z.object({
+  sessionId: z.string().min(1),
+  studentId: z.string().min(1),
+});
+
+export const StudentFormativeEvaluationEntryDTOSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  studentId: z.string(),
+  participationLevel: ClassroomParticipationLevelSchema,
+  tags: z.array(ClassroomEvaluationTagSchema),
+  observationNote: z.string(),
+  capturedById: z.string(),
+  createdAt: z.string(),
+});
 
 export const ClassroomSlideStateDTOSchema = z.object({
   stepId: z.string(),
@@ -328,6 +361,8 @@ export const ClassroomActionResultDTOSchema = z.object({
 
 export type ClassroomMode = z.infer<typeof ClassroomModeSchema>;
 export type ClassroomConnectionState = z.infer<typeof ClassroomConnectionStateSchema>;
+export type ClassroomParticipationLevel = z.infer<typeof ClassroomParticipationLevelSchema>;
+export type ClassroomEvaluationTag = z.infer<typeof ClassroomEvaluationTagSchema>;
 export type ClassroomStepDTO = z.infer<typeof ClassroomStepDTOSchema>;
 export type ClassroomSlideStateDTO = z.infer<typeof ClassroomSlideStateDTOSchema>;
 export type ClassroomLaunchPreviewStepDTO = z.infer<typeof ClassroomLaunchPreviewStepDTOSchema>;
@@ -349,6 +384,10 @@ export type ClassroomEventDTO = z.infer<typeof ClassroomEventDTOSchema>;
 export type RecordClassroomEvidenceInput = z.infer<typeof RecordClassroomEvidenceInputSchema>;
 export type StudentQuickResponseInput = z.infer<typeof StudentQuickResponseInputSchema>;
 export type RecordClassroomInterventionInput = z.infer<typeof RecordClassroomInterventionInputSchema>;
+export type ClassroomFormativeEvaluationPayload = z.infer<typeof ClassroomFormativeEvaluationPayloadSchema>;
+export type RecordStudentFormativeEvaluationInput = z.infer<typeof RecordStudentFormativeEvaluationInputSchema>;
+export type ListStudentFormativeEvaluationEntriesInput = z.infer<typeof ListStudentFormativeEvaluationEntriesInputSchema>;
+export type StudentFormativeEvaluationEntryDTO = z.infer<typeof StudentFormativeEvaluationEntryDTOSchema>;
 export type ClassroomEvidenceDTO = z.infer<typeof ClassroomEvidenceDTOSchema>;
 export type ClassroomTimelineEntryDTO = z.infer<typeof ClassroomTimelineEntryDTOSchema>;
 export type ClassroomTeacherTimelineEntryDTO = z.infer<typeof ClassroomTeacherTimelineEntryDTOSchema>;
