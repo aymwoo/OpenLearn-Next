@@ -1,10 +1,11 @@
 ---
 phase: 23
 slug: student-in-class-activity-flow
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-05-13
+reviewed_at: 2026-05-13T00:00:00Z
 ---
 
 # Phase 23 — UI Design Contract
@@ -89,10 +90,10 @@ Exceptions: 交互目标最小点击高度固定 44px；主 CTA、答案选项�
 |------|-------|-------|
 | Dominant (60%) | #f5f7f9 | 页面 floor、主背景、浅层沉浸壳层 |
 | Secondary (30%) | #eef1f3 | 步骤卡 inset、辅助信息卡、表单承载面 |
-| Accent (10%) | #0050d4 / #7b9cff | 主 CTA、当前步骤强调、已选答案、老师推荐跳转 |
+| Accent (10%) | #0050d4 / #7b9cff | `#0050d4` 用于主 CTA、focus ring、当前激活提交态；`#7b9cff` 仅用于 gradient glow、selected highlight、弱强调底色 |
 | Destructive | #b31b25 | 仅用于提交失败、不可恢复错误、危险提示 |
 
-Accent reserved for: 当前步骤主标题强调线索、`提交课堂回应`/`提交任务`/`提交答案` 主按钮、当前选中答案、老师推荐步骤跳转按钮、已完成确认文案、focus ring。不得把 accent 用于所有链接、所有 badge、所有装饰图标。
+Accent reserved for: `#0050d4` 仅用于当前步骤主标题强调线索、`提交课堂回应`/`提交任务`/`提交答案` 主按钮、老师推荐步骤跳转按钮、已完成确认文案、focus ring；`#7b9cff` 仅用于主按钮或 stage hero 的装饰性 gradient glow、已选答案的弱高亮底色、当前激活块的低强度 selected highlight。不得把任一 accent 用于所有链接、所有 badge、所有装饰图标。
 
 ---
 
