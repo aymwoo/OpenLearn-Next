@@ -86,8 +86,10 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain('evidenceType, "response"');
     expect(source).toContain("latestQuickResponse");
     expect(source).toContain("quickResponseHistory");
+    expect(source).toContain("currentQuickResponseStepId");
+    expect(source).toContain("row.stepId === currentQuickResponseStepId");
     expect(source).toContain("classroomSessionId");
-    expect(source).toContain("const quickResponseHistory = [...quickResponseRows]");
+    expect(source).toContain("const quickResponseHistory = quickResponseRows");
     expect(source).toContain(".reverse()");
     expect(source).toContain("toStudentQuickResponseAttemptDTO(row, index + 1)");
   });
@@ -105,6 +107,8 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain("两人讨论");
     expect(source).toContain("全班跟随");
     expect(source).toContain("无需单独提交");
+    expect(source).toContain("写下课堂回应并提交");
+    expect(source).toContain("最近一次课堂回应已记录");
     expect(source).not.toContain('"teacher-only"');
   });
 

@@ -367,6 +367,30 @@ async function getSessionWithLessonSteps(sessionId: string) {
   return session;
 }
 
+async function getPublishedSessionSteps(session: {
+  publishedVersionId: string;
+  lessonId: string;
+}) {
+  const published = await db.query.publishedLessonVersions.findFirst({
+    where: eq(publishedLessonVersions.id, session.publishedVersionId),
+  });
+  const snapshot = parseSnapshot(published?.snapshotJson);
+
+  return parseSnapshotSteps(snapshot, session.lessonId);
+}
+
+async function assertSessionStepInPublishedSnapshot(
+  session: { publishedVersionId: string; lessonId: string },
+  stepId: string,
+) {
+  const steps = await getPublishedSessionSteps(session);
+  const step = steps.find((item) => item.id === stepId);
+
+  if (!step) {
+    throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
+  }
+}
+
 async function getStudentClassMember(classId: string, studentId: string) {
   return db.query.classMembers.findFirst({
     where: and(eq(classMembers.classId, classId), eq(classMembers.userId, studentId), eq(classMembers.role, "student")),
@@ -520,10 +544,7 @@ export async function recordClassroomEvidence(input: unknown) {
   }
 
   if (payload.stepId) {
-    const step = await db.query.lessonSteps.findFirst({ where: eq(lessonSteps.id, payload.stepId) });
-    if (!step || step.lessonId !== session.lessonId) {
-      throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
-    }
+    await assertSessionStepInPublishedSnapshot(session, payload.stepId);
   }
 
   const [evidence] = await db.insert(classroomEvidence).values({
@@ -613,10 +634,7 @@ export async function recordClassroomIntervention(input: unknown) {
   }
 
   if (payload.stepId) {
-    const step = await db.query.lessonSteps.findFirst({ where: eq(lessonSteps.id, payload.stepId) });
-    if (!step || step.lessonId !== session.lessonId) {
-      throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
-    }
+    await assertSessionStepInPublishedSnapshot(session, payload.stepId);
   }
 
   if (payload.targetScope === "class" && payload.studentId) {

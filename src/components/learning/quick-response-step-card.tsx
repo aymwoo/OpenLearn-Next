@@ -6,12 +6,17 @@ import { useRouter } from "next/navigation";
 import { submitStudentQuickResponseAction } from "@/actions/classroom-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { LearningStepDTO, StudentQuickResponseAttemptDTO } from "@/lib/dto/learning";
+import type {
+  LearningStepDTO,
+  StudentQuickResponseAttemptDTO,
+  StudentStepActivityDTO,
+} from "@/lib/dto/learning";
 
 type QuickResponseStepCardProps = {
   lessonId: string;
   sessionId: string;
   step: LearningStepDTO;
+  activity: StudentStepActivityDTO;
   latestResponse?: StudentQuickResponseAttemptDTO | null;
   history: StudentQuickResponseAttemptDTO[];
 };
@@ -29,23 +34,15 @@ export function QuickResponseStepCard({
   lessonId,
   sessionId,
   step,
+  activity,
   latestResponse,
   history,
 }: QuickResponseStepCardProps) {
   const router = useRouter();
-  const payload = step.payload as {
-    prompt?: string;
-    teachingDesign?: {
-      evidenceExpectation?: {
-        prompt?: string;
-      };
-    };
-  };
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const orderedHistory = useMemo(() => [...history].sort((a, b) => a.attemptNo - b.attemptNo), [history]);
-  const prompt = payload.teachingDesign?.evidenceExpectation?.prompt ?? payload.prompt ?? "请写下你此刻的课堂回应。";
 
   function submit() {
     startTransition(async () => {
@@ -72,7 +69,8 @@ export function QuickResponseStepCard({
         <Badge variant="accent" className="mb-3 bg-surface-container-lowest">
           课堂快回应
         </Badge>
-        <p className="leading-8 text-on-surface-variant">{prompt}</p>
+        <p className="leading-8 text-on-surface-variant">{activity.activityGuidance}</p>
+        <p className="mt-2 text-sm leading-6 text-on-surface-variant">{activity.evidenceExpectationSummary}</p>
       </div>
 
       <div className="space-y-3">

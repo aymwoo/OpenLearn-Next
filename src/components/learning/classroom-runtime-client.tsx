@@ -98,6 +98,7 @@ function CurrentStepRenderer({ player, step }: { player: StudentPlayerDTO; step:
           lessonId={player.shell.lessonId}
           sessionId={player.runtime.classroomSessionId}
           step={step}
+          activity={activity}
           latestResponse={player.latestQuickResponse?.stepId === step.id ? player.latestQuickResponse : null}
           history={player.quickResponseHistory.filter((attempt) => attempt.stepId === step.id)}
         />

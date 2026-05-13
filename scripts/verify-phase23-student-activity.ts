@@ -59,9 +59,12 @@ const staticChecks: StaticCheck[] = [
   {
     label: "quick-response card keeps classroom CTA and append-only history copy",
     passed:
+      nonCommentIncludes(quickResponseSource, "activity.activityGuidance") &&
+      nonCommentIncludes(quickResponseSource, "activity.evidenceExpectationSummary") &&
       nonCommentIncludes(quickResponseSource, "提交课堂回应") &&
       nonCommentIncludes(quickResponseSource, "每次提交都会追加到回应历史，不会覆盖之前的记录。") &&
-      nonCommentIncludes(quickResponseSource, "回应历史"),
+      nonCommentIncludes(quickResponseSource, "回应历史") &&
+      !nonCommentIncludes(quickResponseSource, "teachingDesign?.evidenceExpectation?.prompt"),
   },
   {
     label: "classroom action keeps quick-response action and evidence invalidation",
@@ -75,6 +78,8 @@ const staticChecks: StaticCheck[] = [
     passed:
       nonCommentIncludes(classroomDalSource, "export async function recordStudentQuickResponse") &&
       nonCommentIncludes(classroomDalSource, "recordClassroomEvidence({") &&
+      nonCommentIncludes(classroomDalSource, "assertSessionStepInPublishedSnapshot") &&
+      nonCommentIncludes(classroomDalSource, "parseSnapshotSteps(snapshot, session.lessonId)") &&
       nonCommentIncludes(classroomDalSource, 'sourceType: payload.sourceType') &&
       nonCommentIncludes(classroomDalSource, 'evidenceType: payload.evidenceType'),
   },

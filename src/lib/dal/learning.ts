@@ -218,10 +218,18 @@ function getEvidenceCapturePath(step: LearningStepDTO) {
 function getCompletionStateCopy(input: {
   step: LearningStepDTO;
   state: ProgressState;
+  evidenceCapturePath: "none" | "task-submission" | "quiz-attempt" | "student-quick-response";
   hasTaskAttempt: boolean;
   hasQuizAttempt: boolean;
+  hasQuickResponse: boolean;
 }) {
   if (input.step.type === "content") {
+    if (input.evidenceCapturePath === "student-quick-response") {
+      return input.hasQuickResponse
+        ? "最近一次课堂回应已记录；如有新的想法，可继续补充回应。"
+        : "写下课堂回应并提交，系统会把它记为一次新的课堂记录。";
+    }
+
     return input.state === "completed"
       ? "你已完成当前阅读，可按课堂节奏继续下一步。"
       : "阅读完成后点击“已完成阅读”，系统会记录你的进度。";
@@ -243,14 +251,19 @@ function buildStudentStepActivities(input: {
   progress: ReturnType<typeof summarizeProgress>;
   taskRows: Array<typeof taskSubmissions.$inferSelect>;
   quizRows: Array<typeof quizAttempts.$inferSelect>;
+  quickResponseRows: Array<typeof classroomEvidence.$inferSelect>;
 }): StudentStepActivityDTO[] {
   const progressByStep = new Map(input.progress.steps.map((step) => [step.stepId, step.state]));
   const latestTaskByStep = new Set(input.taskRows.filter((row) => row.isLatest).map((row) => row.stepId));
   const latestQuizByStep = new Set(input.quizRows.filter((row) => row.isLatest).map((row) => row.stepId));
+  const latestQuickResponseByStep = new Set(
+    input.quickResponseRows.map((row) => row.stepId).filter((stepId): stepId is string => Boolean(stepId))
+  );
 
   return input.steps.map((step) => {
     const payload = step.payload;
     const resolution = resolveTeachingDesignInput(step.type, payload.teachingDesign);
+    const evidenceCapturePath = getEvidenceCapturePath(step);
 
     return {
       stepId: step.id,
@@ -260,12 +273,14 @@ function buildStudentStepActivities(input: {
       completionStateCopy: getCompletionStateCopy({
         step,
         state: progressByStep.get(step.id) ?? "not_started",
+        evidenceCapturePath,
         hasTaskAttempt: latestTaskByStep.has(step.id),
         hasQuizAttempt: latestQuizByStep.has(step.id),
+        hasQuickResponse: latestQuickResponseByStep.has(step.id),
       }),
       activityModeLabel: ACTIVITY_MODE_LABELS[resolution.teachingDesign.activityMode],
       estimatedMinutesLabel: `预计 ${resolution.teachingDesign.estimatedMinutes} 分钟`,
-      evidenceCapturePath: getEvidenceCapturePath(step),
+      evidenceCapturePath,
     };
   });
 }
@@ -662,25 +677,27 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
     where: and(eq(quizAttempts.publishedVersionId, published.id), eq(quizAttempts.studentId, scope.userId)),
     orderBy: desc(quizAttempts.attemptNo),
   });
-  const stepActivities = buildStudentStepActivities({
-    steps,
-    progress,
-    taskRows,
-    quizRows,
-  });
   const quickResponseRows = classroomSessionId
     ? await db.query.classroomEvidence.findMany({
         where: and(
           eq(classroomEvidence.sessionId, classroomSessionId),
           eq(classroomEvidence.studentId, scope.userId),
-          eq(classroomEvidence.stepId, resumeStepId ?? steps[0]?.id ?? ""),
           eq(classroomEvidence.sourceType, "student-quick-response"),
           eq(classroomEvidence.evidenceType, "response")
         ),
         orderBy: desc(classroomEvidence.createdAt),
       })
     : [];
-  const quickResponseHistory = [...quickResponseRows]
+  const stepActivities = buildStudentStepActivities({
+    steps,
+    progress,
+    taskRows,
+    quizRows,
+    quickResponseRows,
+  });
+  const currentQuickResponseStepId = resumeStepId ?? steps[0]?.id ?? "";
+  const quickResponseHistory = quickResponseRows
+    .filter((row) => row.stepId === currentQuickResponseStepId)
     .reverse()
     .map((row, index) => toStudentQuickResponseAttemptDTO(row, index + 1));
   const latestQuickResponse = quickResponseHistory.at(-1) ?? null;

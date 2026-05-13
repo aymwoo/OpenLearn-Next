@@ -49,6 +49,9 @@ describe("Phase 04 interactive student step cards", () => {
   });
 
   it("renders a lightweight quick-response card with durable latest and history feedback", () => {
+    expect(quickResponseSource).toContain("activity.activityGuidance");
+    expect(quickResponseSource).toContain("activity.evidenceExpectationSummary");
+    expect(quickResponseSource).not.toContain("teachingDesign?.evidenceExpectation?.prompt");
     expect(quickResponseSource).toContain("提交课堂回应");
     expect(quickResponseSource).toContain("每次提交都会追加到回应历史");
     expect(quickResponseSource).toContain("不会覆盖之前的记录");
@@ -59,6 +62,7 @@ describe("Phase 04 interactive student step cards", () => {
 
   it("adds quick-response runtime routing without removing task and quiz cards", () => {
     expect(runtimeSource).toContain("QuickResponseStepCard");
+    expect(runtimeSource).toContain("activity={activity}");
     expect(runtimeSource).toContain("student-quick-response");
     expect(runtimeSource).toContain("TaskStepCard");
     expect(runtimeSource).toContain("QuizStepCard");

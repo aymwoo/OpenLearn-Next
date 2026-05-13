@@ -49,6 +49,7 @@ describe("Phase 04 student DTO surfaces", () => {
     expect(runtimeSource).toContain("当前活动");
     expect(runtimeSource).toContain("活动提示");
     expect(runtimeSource).toContain("提交要求");
+    expect(runtimeSource).toContain("activity={activity}");
     expect(runtimeSource).toContain("QuickResponseStepCard");
     expect(runtimeSource).toContain("TaskStepCard");
     expect(runtimeSource).toContain("QuizStepCard");

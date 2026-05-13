@@ -439,6 +439,9 @@ describe("classroom evidence foundation contracts", () => {
 
     expect(source).toContain("export async function recordClassroomEvidence");
     expect(source).toContain("export async function recordClassroomIntervention");
+    expect(source).toContain("assertSessionStepInPublishedSnapshot");
+    expect(source).toContain("getPublishedSessionSteps");
+    expect(source).toContain("parseSnapshotSteps(snapshot, session.lessonId)");
     expect(source).toContain("insert(classroomEvidence)");
     expect(source).toContain("insert(classroomTimeline)");
     expect(source).toContain("entryType: \"presence_changed\"");
@@ -446,6 +449,7 @@ describe("classroom evidence foundation contracts", () => {
     expect(source).toContain("entryType: \"intervention_noted\"");
     expect(source).toContain('payload.sourceType.startsWith("student-")');
     expect(source).toContain("CLASSROOM_EVIDENCE_UNAUTHORIZED");
+    expect(source).not.toContain("db.query.lessonSteps.findFirst({ where: eq(lessonSteps.id, payload.stepId) })");
   });
 });
 
