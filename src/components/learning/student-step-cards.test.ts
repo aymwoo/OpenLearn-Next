@@ -8,6 +8,15 @@ const playerRouteSource = readFileSync("src/app/(student)/student/player/page.ts
 const runtimeSource = readFileSync("src/components/learning/classroom-runtime-client.tsx", "utf8");
 
 describe("Phase 04 interactive student step cards", () => {
+  it("renders the current step through one classroom activity shell", () => {
+    expect(runtimeSource).toContain("当前活动");
+    expect(runtimeSource).toContain("活动提示");
+    expect(runtimeSource).toContain("你将完成");
+    expect(runtimeSource).toContain("提交要求");
+    expect(runtimeSource).toContain("当前状态");
+    expect(runtimeSource).toContain("StepActivityShell");
+  });
+
   it("keeps task submissions client-side and draft preserving", () => {
     expect(taskSource.startsWith('"use client";')).toBe(true);
     expect(taskSource).toContain("submitTaskAttemptAction");
@@ -15,6 +24,8 @@ describe("Phase 04 interactive student step cards", () => {
     expect(taskSource).toContain("正在提交");
     expect(taskSource).toContain("第 1 次尝试");
     expect(taskSource).toContain("已提交，本次尝试已记录");
+    expect(taskSource).toContain("最新一次");
+    expect(taskSource).toContain("历史记录");
   });
 
   it("keeps quiz answers client-side with retry and reveal controlled by DTO fields", () => {
@@ -24,11 +35,15 @@ describe("Phase 04 interactive student step cards", () => {
     expect(quizSource).toContain("再试一次");
     expect(quizSource).toContain("showCorrectAnswer");
     expect(quizSource).toContain("canRetryQuiz");
+    expect(quizSource).toContain("最新一次");
+    expect(quizSource).toContain("历史记录");
   });
 
   it("wires task and quiz cards into the player surface", () => {
     expect(playerRouteSource).toContain("ClassroomRuntimeClient");
     expect(runtimeSource).toContain("TaskStepCard");
     expect(runtimeSource).toContain("QuizStepCard");
+    expect(runtimeSource).toContain("teacherRecommendedStepId");
+    expect(runtimeSource).toContain("前往老师推荐步骤");
   });
 });
