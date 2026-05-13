@@ -56,4 +56,16 @@ describe("classroom presence actions", () => {
     expect(classroomDalSource).not.toContain("submitTaskAttempt(");
     expect(classroomDalSource).not.toContain("submitQuizAttempt(");
   });
+
+  it("adds a teacher-only formative evaluation action with schema validation and classroom cache invalidation", () => {
+    expect(source).toContain("export async function recordStudentFormativeEvaluationAction");
+    expect(source).toContain("RecordStudentFormativeEvaluationInputSchema.safeParse");
+    expect(source).toContain("recordStudentFormativeEvaluation(parsed.data)");
+    expect(source).toContain("updateTag(cacheTags.classroom(parsed.data.sessionId))");
+  });
+
+  it("maps formative evaluation authorization failures to the classroom action error shape", () => {
+    expect(source).toContain("TEACHER_AUTH_REQUIRED");
+    expect(source).toContain("UNAUTHORIZED");
+  });
 });

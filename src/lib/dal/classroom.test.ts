@@ -730,3 +730,66 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
     expect(source).not.toContain("classroomGradebook");
   });
 });
+
+describe("formative evaluation contracts", () => {
+  it("locks participation levels and evaluation tags to the fixed phase 24 model", async () => {
+    const classroomDto = await import("@/lib/dto/classroom");
+
+    expect(classroomDto.ClassroomParticipationLevelSchema.options).toEqual([
+      "active",
+      "normal",
+      "attention",
+    ]);
+    expect(classroomDto.ClassroomEvaluationTagSchema.options).toEqual([
+      "主动发言",
+      "专注跟进",
+      "协作支持",
+      "表达清晰",
+      "需要提醒",
+      "需要跟进",
+    ]);
+    expect(
+      classroomDto.RecordStudentFormativeEvaluationInputSchema.safeParse({
+        sessionId: "session-1",
+        studentId: "student-1",
+        participationLevel: "active",
+        tags: ["主动发言", "表达清晰"],
+        observationNote: "能主动回应老师追问。",
+      }).success,
+    ).toBe(true);
+    expect(
+      classroomDto.RecordStudentFormativeEvaluationInputSchema.safeParse({
+        sessionId: "session-1",
+        studentId: "student-1",
+        participationLevel: "excellent",
+        tags: ["主动发言"],
+        observationNote: "超出范围的档位",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("writes teacher-scoped formative evaluation through classroom evidence with an explicit payload marker", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain("export async function recordStudentFormativeEvaluation");
+    expect(source).toContain("getTeacherSessionScope(payload.sessionId)");
+    expect(source).toContain("sourceType: \"teacher-observation\"");
+    expect(source).toContain("evidenceType: \"observation\"");
+    expect(source).toContain('kind: "formative-evaluation"');
+    expect(source).toContain("participationLevel: payload.participationLevel");
+    expect(source).toContain("tags: payload.tags");
+    expect(source).toContain("observationNote: payload.observationNote");
+  });
+
+  it("lists session-scoped student formative evaluation entries newest first", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain("export async function listStudentFormativeEvaluationEntries");
+    expect(source).toContain("eq(classroomEvidence.sessionId, input.sessionId)");
+    expect(source).toContain("eq(classroomEvidence.studentId, input.studentId)");
+    expect(source).toContain('payload.kind === "formative-evaluation"');
+    expect(source).toContain("capturedById: evidence.capturedById");
+    expect(source).toContain("createdAt: toIso(evidence.createdAt)");
+    expect(source).toContain(".sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))");
+  });
+});
