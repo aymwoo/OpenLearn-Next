@@ -181,28 +181,29 @@ function ScheduleEntryCard({
         <div
           id={detailId}
           role="tooltip"
-          className="absolute left-2 right-2 top-[calc(100%-0.25rem)] z-10 rounded-[1.15rem] bg-surface-container-high px-3 py-3 text-[11px] text-on-surface shadow-[0_18px_38px_rgba(44,47,49,0.12)]"
+          className="absolute left-2 right-2 top-[calc(100%-0.25rem)] z-10 overflow-hidden rounded-[1.15rem] bg-linear-135 from-[#eef6ff] via-[#e8f2ff] to-[#f1edff] px-3 py-3 text-[11px] text-slate-700 shadow-[0_20px_44px_rgba(59,130,246,0.18)] backdrop-blur-sm dark:from-[#172033] dark:via-[#1a2740] dark:to-[#211a3c] dark:text-slate-100"
         >
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-linear-to-r from-primary/12 via-sky-400/12 to-fuchsia-400/10" />
           <div className="space-y-2">
             <DetailLine icon={<CalendarClock className="size-3.5" aria-hidden />} label={cell.timeLabel} />
             <DetailLine icon={<MapPin className="size-3.5" aria-hidden />} label={cell.locationLabel} />
             <DetailLine icon={<Sparkles className="size-3.5" aria-hidden />} label={cell.status} />
             {cell.teacherLabel ? <DetailLine icon={<UserRound className="size-3.5" aria-hidden />} label={cell.teacherLabel} /> : null}
-            {cell.overrideSummary ? <p className="leading-5 text-primary">{cell.overrideSummary}</p> : null}
+            {cell.overrideSummary ? <p className="leading-5 text-primary dark:text-sky-200">{cell.overrideSummary}</p> : null}
             {unresolvedActions.length > 0 ? (
               <div className="flex flex-wrap gap-2 pt-1">
                 {unresolvedActions.map((action) => (
                   <Link
                     key={`${cell.id}-${action.label}`}
                     href={action.href}
-                    className="rounded-full bg-surface-container-lowest px-2.5 py-1 font-medium text-primary shadow-[0_6px_16px_rgba(44,47,49,0.04)] transition hover:bg-primary/12"
+                    className="rounded-full bg-white/70 px-2.5 py-1 font-medium text-primary shadow-[0_10px_22px_rgba(59,130,246,0.12)] transition hover:bg-white/90 dark:bg-white/10 dark:text-sky-200 dark:hover:bg-white/14"
                   >
                     {action.label}
                   </Link>
                 ))}
               </div>
             ) : null}
-            {viewMode === "admin_school" ? <p className="text-on-surface-variant/80">管理员视角明细已折叠到 hover / focus。</p> : null}
+            {viewMode === "admin_school" ? <p className="text-slate-500 dark:text-slate-300/80">管理员视角明细已折叠到 hover / focus。</p> : null}
           </div>
         </div>
       ) : null}
@@ -238,8 +239,8 @@ function ScheduleEntryCard({
 
 function DetailLine({ icon, label }: { icon: ReactNode; label: string }) {
   return (
-    <p className="flex items-center gap-2 leading-5 text-on-surface-variant">
-      <span className="text-primary">{icon}</span>
+    <p className="relative z-10 flex items-center gap-2 leading-5 text-slate-600 dark:text-slate-200/88">
+      <span className="text-primary dark:text-sky-300">{icon}</span>
       <span>{label}</span>
     </p>
   );
