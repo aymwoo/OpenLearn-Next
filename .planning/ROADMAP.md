@@ -10,7 +10,7 @@
 - [x] **Phase 21: Teaching design contracts and evidence foundation** - Extend the current linear lesson model with teaching-design metadata, class-launch contracts, and durable classroom evidence primitives. (completed 2026-05-13)
 - [x] **Phase 22: Teacher orchestration workspace and launch preparation** - Turn the current editor and launch path into a class-ready teaching orchestration workspace with readiness gating. (completed 2026-05-13)
 - [x] **Phase 23: Student in-class activity flow** - Upgrade the student runtime into a clearer classroom activity experience with durable quick-response and evidence capture. (completed 2026-05-13)
-- [ ] **Phase 24: Live classroom operations and formative evaluation** - Bring runtime monitoring, participation tracking, observation notes, and unified evaluation workflow into the teacher classroom product surface.
+- [x] **Phase 24: Live classroom operations and formative evaluation** - Bring runtime monitoring, participation tracking, observation notes, and unified evaluation workflow into the teacher classroom product surface. (completed 2026-05-13)
 - [ ] **Phase 25: Teaching data capture and session analytics** - Aggregate classroom evidence into deterministic session-level metrics, recap views, and teacher workload summaries.
 - [ ] **Phase 26: Cross-session trends and Stitch productization** - Deliver student/class trend analysis and complete high-quality Stitch-aligned productization across planning, runtime, evaluation, and analytics pages.
 
@@ -217,7 +217,7 @@
 - [x] 24-01-PLAN.md — Add live classroom monitoring cards and intervention-aware roster summaries.
 - [x] 24-02-PLAN.md — Introduce participation and observation capture flows with durable persistence and teacher-only scope checks.
 - [x] 24-03-PLAN.md — Unify runtime evidence and review data into a product-grade formative evaluation surface.
-- [ ] 24-04-PLAN.md — Add verification coverage for runtime metrics, observation writes, and evaluation aggregation boundaries.
+- [x] 24-04-PLAN.md — Add verification coverage for runtime metrics, observation writes, and evaluation aggregation boundaries.
 **UI hint**: yes
 
 ### Phase 25: Teaching data capture and session analytics
@@ -266,6 +266,6 @@
 | 21. Teaching design contracts and evidence foundation | 5/5 | Complete   | 2026-05-13 |
 | 22. Teacher orchestration workspace and launch preparation | 3/3 | Complete | 2026-05-13 |
 | 23. Student in-class activity flow | 3/3 | Complete   | 2026-05-13 |
-| 24. Live classroom operations and formative evaluation | 3/4 | In Progress|  |
+| 24. Live classroom operations and formative evaluation | 4/4 | Complete   | 2026-05-13 |
 | 25. Teaching data capture and session analytics | 0/3 | Not started | - |
 | 26. Cross-session trends and Stitch productization | 0/4 | Not started | - |

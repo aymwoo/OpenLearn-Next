@@ -5,16 +5,16 @@ milestone_name: Teaching Orchestration & Classroom Intelligence
 current_phase: 24
 current_phase_name: live-classroom-operations-and-formative-evaluation
 current_plan: 4
-status: executing
-stopped_at: Completed 24-02-PLAN.md
-last_updated: "2026-05-13T16:20:47.833Z"
+status: verifying
+stopped_at: Completed 24-04-PLAN.md
+last_updated: "2026-05-13T16:43:12.699Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 14
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 40
-  completed_plans: 39
-  percent: 98
+  completed_plans: 40
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ progress:
 **Current Phase Name:** live-classroom-operations-and-formative-evaluation
 **Current Plan:** 4
 **Total Plans in Phase:** 4
-**Status:** Ready to execute
+**Status:** Phase complete — ready for verification
 **Progress:**
-[██████████] 98%
+[██████████] 100%
 **Last Activity:** 2026-05-13
-**Last session:** 2026-05-13T16:19:38.709Z
-**Stopped At:** Completed 24-02-PLAN.md
+**Last session:** 2026-05-13T16:43:12.635Z
+**Stopped At:** Completed 24-04-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -146,6 +146,8 @@ progress:
 - [Phase 24]: 学生详情面板作为 classroom 控制台右侧 tonal detail panel 渲染，并在同一面板内承载课堂证据与过程评价。
 - [Phase 24]: 通过 studentId + detailTab 维持单学生详情状态，不新增第二条 review 主路径。
 - [Phase 24]: 单学生 detail DTO 在 classroom DAL 内直接拆分 evidence 与 kind=formative-evaluation 历史，不依赖 learning/review DAL。
+- [Phase 24]: Use a dedicated phase verifier with static guards plus focused regression tests. — Lock the classroom evaluation flow across DAL, server action, and same-route detail panel boundaries.
+- [Phase 24]: Keep regression coverage anchored to monitoring summary, teacher-only evaluation action, and the same-route student detail panel. — Avoid verifier drift into UI-only assertions and preserve the classroom evaluation contract across boundaries.
 
 ## Next Steps
 
@@ -186,6 +188,7 @@ progress:
 | Phase 24 P01 | 5 min | 2 tasks | 6 files |
 | Phase 24 P02 | 9 min | 2 tasks | 5 files |
 | Phase 24 P03 | 6 min | 2 tasks | 10 files |
+| Phase 24 P04 | 12 min | 3 tasks | 10 files |
 
 ### Quick Tasks Completed
 
@@ -259,5 +262,5 @@ progress:
 
 Phase: 24 (live-classroom-operations-and-formative-evaluation) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-13
