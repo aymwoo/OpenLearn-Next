@@ -682,6 +682,7 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
     : [];
   const quickResponseHistory = [...quickResponseRows]
     .reverse()
+    // 每次提交都会追加到回应历史，不会覆盖之前的记录。
     .map((row, index) => toStudentQuickResponseAttemptDTO(row, index + 1));
   const latestQuickResponse = quickResponseHistory.at(-1) ?? null;
 

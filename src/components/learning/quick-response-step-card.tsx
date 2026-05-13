@@ -87,6 +87,7 @@ export function QuickResponseStepCard({
         />
         <p className="text-sm leading-6 text-on-surface-variant">格式提示：用 1-2 句话写下你的理解、结论或当前观察。</p>
         <p className="text-sm leading-6 text-on-surface-variant">提交后会作为一次新的课堂记录保存</p>
+        <p className="text-sm leading-6 text-on-surface-variant">每次提交都会追加到回应历史，不会覆盖之前的记录。</p>
         {status ? <p className="text-sm leading-6 text-primary">{status}</p> : null}
         <Button type="button" onClick={submit} disabled={isPending || draft.trim().length === 0}>
           {isPending ? "正在提交..." : "提交课堂回应"}
