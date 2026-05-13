@@ -41,11 +41,13 @@ import {
   TeacherStudentReviewDTOSchema,
   type LearningStepDTO,
   type ProgressState,
+  type StudentStepActivityDTO,
   type StudentLessonCardDTO,
   type StudentPlayerPersonalDTO,
   type StudentPlayerShellDTO,
   type TeacherReviewFilter,
 } from "@/lib/dto/learning";
+import { resolveTeachingDesignInput } from "@/lib/teaching-design";
 
 const INACCESSIBLE_LESSON_MESSAGE = "课时暂不可学习";
 
@@ -116,6 +118,128 @@ function getAttemptPolicy(step?: LearningStepDTO) {
     allowRetry: payload?.allowRetry === true || payload?.retryPolicy === "once" || payload?.retryPolicy === "unlimited",
     revealCorrectAnswer: payload?.revealCorrectAnswer === true,
   };
+}
+
+const ACTIVITY_GUIDANCE_COPY = {
+  explain: "先阅读并抓住重点",
+  practice: "独立完成本次课堂练习",
+  check: "完成本次课堂作答",
+  discuss: "先参与讨论并整理观点",
+  reflect: "先回顾再写下你的想法",
+  apply: "结合所学完成应用任务",
+} as const;
+
+const ACTIVITY_MODE_LABELS = {
+  "mini-lecture": "全班跟随",
+  independent: "独立完成",
+  assessment: "独立作答",
+  discussion: "小组讨论",
+  pair: "两人讨论",
+  group: "小组协作",
+  "whole-class": "全班跟随",
+} as const;
+
+function sanitizeStudentPrompt(prompt: string) {
+  return prompt.replace(/teacher-only/gi, "").replace(/\s+/g, " ").trim();
+}
+
+function getExpectedOutputCopy(step: LearningStepDTO) {
+  if (step.type === "content") {
+    return "读完本步骤内容，并抓住老师强调的重点。";
+  }
+
+  if (step.type === "task") {
+    const payload = step.payload as { submissionType?: "text" | "image" | "file" | "link" };
+    const outputBySubmissionType = {
+      text: "提交一段文字回答或结论。",
+      image: "提交一张图片，说明你的任务结果。",
+      file: "提交一个文件，作为本步骤的任务结果。",
+      link: "提交一个链接，作为本步骤的任务结果。",
+    } as const;
+
+    return outputBySubmissionType[payload.submissionType ?? "text"];
+  }
+
+  return "完成题目作答并提交你的答案。";
+}
+
+function getEvidenceExpectationSummary(step: LearningStepDTO) {
+  const payload = step.payload;
+  const resolution = resolveTeachingDesignInput(step.type, payload.teachingDesign);
+  const expectation = resolution.teachingDesign.evidenceExpectation;
+  const safePrompt = sanitizeStudentPrompt(expectation.prompt);
+
+  if (!expectation.required) {
+    return "本步骤以课堂参与或老师观察为主，无需单独提交。";
+  }
+
+  if (expectation.studentVisibility === "student-visible" && safePrompt.length > 0) {
+    return `本步骤需要提交结果：${safePrompt}`;
+  }
+
+  if (step.type === "task") {
+    return "本步骤需要提交任务结果，提交后会记为一次新的课堂记录。";
+  }
+
+  if (step.type === "quiz") {
+    return "本步骤需要提交作答结果，提交后会记为一次新的课堂记录。";
+  }
+
+  return "本步骤需要提交课堂回应，提交后会记为一次新的课堂记录。";
+}
+
+function getCompletionStateCopy(input: {
+  step: LearningStepDTO;
+  state: ProgressState;
+  hasTaskAttempt: boolean;
+  hasQuizAttempt: boolean;
+}) {
+  if (input.step.type === "content") {
+    return input.state === "completed"
+      ? "你已完成当前阅读，可按课堂节奏继续下一步。"
+      : "阅读完成后点击“已完成阅读”，系统会记录你的进度。";
+  }
+
+  if (input.step.type === "task") {
+    return input.hasTaskAttempt
+      ? "最近一次任务结果已记录；如老师允许，可继续补充新的尝试。"
+      : "完成任务后提交结果，系统会保留你这一次课堂记录。";
+  }
+
+  return input.hasQuizAttempt
+    ? "最近一次作答结果已记录；如老师允许，可继续提交新的答案。"
+    : "选好答案后立即提交，系统会记录本次课堂作答。";
+}
+
+function buildStudentStepActivities(input: {
+  steps: LearningStepDTO[];
+  progress: ReturnType<typeof summarizeProgress>;
+  taskRows: Array<typeof taskSubmissions.$inferSelect>;
+  quizRows: Array<typeof quizAttempts.$inferSelect>;
+}): StudentStepActivityDTO[] {
+  const progressByStep = new Map(input.progress.steps.map((step) => [step.stepId, step.state]));
+  const latestTaskByStep = new Set(input.taskRows.filter((row) => row.isLatest).map((row) => row.stepId));
+  const latestQuizByStep = new Set(input.quizRows.filter((row) => row.isLatest).map((row) => row.stepId));
+
+  return input.steps.map((step) => {
+    const payload = step.payload;
+    const resolution = resolveTeachingDesignInput(step.type, payload.teachingDesign);
+
+    return {
+      stepId: step.id,
+      activityGuidance: ACTIVITY_GUIDANCE_COPY[resolution.teachingDesign.activityIntent],
+      expectedOutput: getExpectedOutputCopy(step),
+      evidenceExpectationSummary: getEvidenceExpectationSummary(step),
+      completionStateCopy: getCompletionStateCopy({
+        step,
+        state: progressByStep.get(step.id) ?? "not_started",
+        hasTaskAttempt: latestTaskByStep.has(step.id),
+        hasQuizAttempt: latestQuizByStep.has(step.id),
+      }),
+      activityModeLabel: ACTIVITY_MODE_LABELS[resolution.teachingDesign.activityMode],
+      estimatedMinutesLabel: `预计 ${resolution.teachingDesign.estimatedMinutes} 分钟`,
+    };
+  });
 }
 
 function getStepById(steps: LearningStepDTO[], stepId: string, expectedType: LearningStepDTO["type"]) {
@@ -495,6 +619,12 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
     where: and(eq(quizAttempts.publishedVersionId, published.id), eq(quizAttempts.studentId, scope.userId)),
     orderBy: desc(quizAttempts.attemptNo),
   });
+  const stepActivities = buildStudentStepActivities({
+    steps,
+    progress,
+    taskRows,
+    quizRows,
+  });
 
   return StudentPlayerPersonalDTOSchema.parse({
     progress: {
@@ -502,6 +632,7 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
       resumeLabel: forcedStepId ? "老师指定" : "继续学习",
       steps: progress.steps,
     },
+    stepActivities,
     runtime: {
       forcedStepId: forcedStepId,
       forcedLabel: "老师指定",

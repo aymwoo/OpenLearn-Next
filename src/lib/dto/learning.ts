@@ -82,6 +82,16 @@ export const LearningProgressDTOSchema = z.object({
   updatedAt: z.string().optional(),
 });
 
+export const StudentStepActivityDTOSchema = z.object({
+  stepId: z.string(),
+  activityGuidance: z.string(),
+  expectedOutput: z.string(),
+  evidenceExpectationSummary: z.string(),
+  completionStateCopy: z.string(),
+  activityModeLabel: z.string(),
+  estimatedMinutesLabel: z.string(),
+});
+
 export const StudentLessonCardDTOSchema = z.object({
   lessonId: z.string(),
   publishedVersionId: z.string(),
@@ -119,6 +129,7 @@ export const StudentPlayerDTOSchema = z.object({
     resumeLabel: z.string(),
     steps: z.array(LearningProgressDTOSchema),
   }),
+  stepActivities: z.array(StudentStepActivityDTOSchema),
   runtime: RuntimeStepStateDTOSchema,
   canRetryTask: z.boolean().default(false),
   canRetryQuiz: z.boolean().default(false),
@@ -208,6 +219,7 @@ export type RuntimeStepStateDTO = z.infer<typeof RuntimeStepStateDTOSchema>;
 export type TaskAttemptDTO = z.infer<typeof TaskAttemptDTOSchema>;
 export type QuizAttemptDTO = z.infer<typeof QuizAttemptDTOSchema>;
 export type AttemptFeedbackDTO = z.infer<typeof AttemptFeedbackDTOSchema>;
+export type StudentStepActivityDTO = z.infer<typeof StudentStepActivityDTOSchema>;
 export type StudentPlayerShellDTO = z.infer<typeof StudentPlayerShellDTOSchema>;
 export type StudentPlayerPersonalDTO = z.infer<typeof StudentPlayerPersonalDTOSchema>;
 export type StudentPlayerDTO = z.infer<typeof StudentPlayerDTOSchema>;
