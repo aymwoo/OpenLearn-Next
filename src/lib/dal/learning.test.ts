@@ -51,7 +51,8 @@ describe("learning DAL student read boundary", () => {
     expect(dtoSource).toContain("latestQuickResponse");
     expect(dtoSource).toContain("quickResponseHistory");
     expect(dtoSource).toContain("已记录为新的课堂回应");
-    expect(dtoSource).not.toContain("TaskAttemptDTOSchema = z.object({\n  id: z.string(),\n  publishedVersionId");
+    expect(dtoSource).toContain("latestSubmissions: z.object({");
+    expect(dtoSource).toContain("history: z.object({");
   });
 
   it("is server-only and requires an active student", () => {

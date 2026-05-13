@@ -75,6 +75,17 @@ export const QuizAttemptDTOSchema = z.object({
   createdAt: z.string(),
 });
 
+export const StudentQuickResponseAttemptDTOSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  stepId: z.string(),
+  studentId: z.string(),
+  attemptNo: z.number().int().positive(),
+  body: z.string(),
+  successMessage: z.string().default("已记录为新的课堂回应"),
+  createdAt: z.string(),
+});
+
 export const LearningProgressDTOSchema = z.object({
   stepId: z.string(),
   state: ProgressStateSchema,
@@ -138,10 +149,12 @@ export const StudentPlayerDTOSchema = z.object({
     tasks: z.array(TaskAttemptDTOSchema),
     quizzes: z.array(QuizAttemptDTOSchema),
   }),
+  latestQuickResponse: StudentQuickResponseAttemptDTOSchema.nullable().default(null),
   history: z.object({
     tasks: z.array(TaskAttemptDTOSchema),
     quizzes: z.array(QuizAttemptDTOSchema),
   }),
+  quickResponseHistory: z.array(StudentQuickResponseAttemptDTOSchema).default([]),
   inaccessibleMessage: z.string().default("课时暂不可学习"),
 });
 
@@ -218,6 +231,7 @@ export type StudentDashboardDTO = z.infer<typeof StudentDashboardDTOSchema>;
 export type RuntimeStepStateDTO = z.infer<typeof RuntimeStepStateDTOSchema>;
 export type TaskAttemptDTO = z.infer<typeof TaskAttemptDTOSchema>;
 export type QuizAttemptDTO = z.infer<typeof QuizAttemptDTOSchema>;
+export type StudentQuickResponseAttemptDTO = z.infer<typeof StudentQuickResponseAttemptDTOSchema>;
 export type AttemptFeedbackDTO = z.infer<typeof AttemptFeedbackDTOSchema>;
 export type StudentStepActivityDTO = z.infer<typeof StudentStepActivityDTOSchema>;
 export type StudentPlayerShellDTO = z.infer<typeof StudentPlayerShellDTOSchema>;

@@ -11,6 +11,7 @@ import {
   launchClassroomSession,
   recordClassroomEvidence,
   recordClassroomIntervention,
+  recordStudentQuickResponse,
   refreshClassroomSnapshot,
   updateClassroomParticipantConnection,
 } from "@/lib/dal/classroom";
@@ -24,6 +25,7 @@ import {
   RecordClassroomEvidenceInputSchema,
   RecordClassroomInterventionInputSchema,
   RefreshClassroomSnapshotInputSchema,
+  StudentQuickResponseInputSchema,
   TouchClassroomPresenceInputSchema,
 } from "@/lib/dto/classroom";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
@@ -229,6 +231,21 @@ export async function recordClassroomInterventionAction(input: FormData | Record
   try {
     const result = await recordClassroomIntervention(parsed.data);
     updateTag(cacheTags.classroom(parsed.data.sessionId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function submitStudentQuickResponseAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = StudentQuickResponseInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await recordStudentQuickResponse(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.sessionId));
+    updateTag(cacheTags.progress(parsed.data.lessonId, result.studentId));
+    updateTag(cacheTags.submission(parsed.data.lessonId, result.studentId));
     return { ok: true, data: result };
   } catch (error) {
     return handleClassroomActionError(error);

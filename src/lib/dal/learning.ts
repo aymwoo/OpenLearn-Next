@@ -7,6 +7,7 @@ import { db } from "@/db";
 import {
   classMembers,
   classes,
+  classroomEvidence,
   classroomEvents,
   classroomSessions,
   courseClasses,
@@ -34,6 +35,7 @@ import {
   StudentPlayerDTOSchema,
   StudentPlayerPersonalDTOSchema,
   StudentPlayerShellDTOSchema,
+  StudentQuickResponseAttemptDTOSchema,
   SubmitQuizInputSchema,
   SubmitTaskInputSchema,
   TeacherLessonReviewDTOSchema,
@@ -45,6 +47,7 @@ import {
   type StudentLessonCardDTO,
   type StudentPlayerPersonalDTO,
   type StudentPlayerShellDTO,
+  type StudentQuickResponseAttemptDTO,
   type TeacherReviewFilter,
 } from "@/lib/dto/learning";
 import { resolveTeachingDesignInput } from "@/lib/teaching-design";
@@ -312,6 +315,21 @@ function toFeedbackDTO(row: typeof attemptFeedback.$inferSelect, lessonId?: stri
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   };
+}
+
+function toStudentQuickResponseAttemptDTO(row: typeof classroomEvidence.$inferSelect, attemptNo: number): StudentQuickResponseAttemptDTO {
+  const payload = (row.payloadJson ?? {}) as { body?: string };
+
+  return StudentQuickResponseAttemptDTOSchema.parse({
+    id: row.id,
+    sessionId: row.sessionId,
+    stepId: row.stepId,
+    studentId: row.studentId,
+    attemptNo,
+    body: payload.body ?? "",
+    successMessage: "已记录为新的课堂回应",
+    createdAt: toIso(row.createdAt),
+  });
 }
 
 function summarizeProgress(steps: LearningStepDTO[], records: Array<typeof lessonStepProgress.$inferSelect>) {
@@ -625,6 +643,22 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
     taskRows,
     quizRows,
   });
+  const quickResponseRows = classroomSessionId
+    ? await db.query.classroomEvidence.findMany({
+        where: and(
+          eq(classroomEvidence.sessionId, classroomSessionId),
+          eq(classroomEvidence.studentId, scope.userId),
+          eq(classroomEvidence.stepId, resumeStepId ?? steps[0]?.id ?? ""),
+          eq(classroomEvidence.sourceType, "student-quick-response"),
+          eq(classroomEvidence.evidenceType, "response")
+        ),
+        orderBy: desc(classroomEvidence.createdAt),
+      })
+    : [];
+  const quickResponseHistory = [...quickResponseRows]
+    .reverse()
+    .map((row, index) => toStudentQuickResponseAttemptDTO(row, index + 1));
+  const latestQuickResponse = quickResponseHistory.at(-1) ?? null;
 
   return StudentPlayerPersonalDTOSchema.parse({
     progress: {
@@ -655,10 +689,12 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
       tasks: taskRows.filter((row) => row.isLatest).map((row) => toTaskAttemptDTO(row, null, getAttemptPolicy(stepById.get(row.stepId)))),
       quizzes: quizRows.filter((row) => row.isLatest).map((row) => toQuizAttemptDTO(row, null, getAttemptPolicy(stepById.get(row.stepId)))),
     },
+    latestQuickResponse,
     history: {
       tasks: taskRows.map((row) => toTaskAttemptDTO(row, null, getAttemptPolicy(stepById.get(row.stepId)))),
       quizzes: quizRows.map((row) => toQuizAttemptDTO(row, null, getAttemptPolicy(stepById.get(row.stepId)))),
     },
+    quickResponseHistory,
     inaccessibleMessage: INACCESSIBLE_LESSON_MESSAGE,
   });
 }

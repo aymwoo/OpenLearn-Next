@@ -25,6 +25,7 @@ import {
   ClassroomActionResultDTOSchema,
   ClassroomEvidenceDTOSchema,
   ClassroomSnapshotDTOSchema,
+  StudentQuickResponseInputSchema,
   ClassroomTimelineEntryDTOSchema,
   RecordClassroomEvidenceInputSchema,
   RecordClassroomInterventionInputSchema,
@@ -559,6 +560,48 @@ export async function recordClassroomEvidence(input: unknown) {
     capturedById: evidence.capturedById,
     createdAt: toIso(evidence.createdAt),
   });
+}
+
+export async function recordStudentQuickResponse(input: unknown) {
+  const payload = StudentQuickResponseInputSchema.parse(input);
+  const user = await getCurrentUserDTO();
+
+  if (!user?.id) {
+    throw new Error("CLASSROOM_PARTICIPANT_REQUIRED");
+  }
+
+  const evidence = await recordClassroomEvidence({
+    sessionId: payload.sessionId,
+    studentId: user.id,
+    stepId: payload.stepId,
+    sourceType: payload.sourceType,
+    evidenceType: payload.evidenceType,
+    payload: {
+      body: payload.body,
+      lessonId: payload.lessonId,
+    },
+  });
+
+  const previousEvidence = await db.query.classroomEvidence.findMany({
+    where: and(
+      eq(classroomEvidence.sessionId, payload.sessionId),
+      eq(classroomEvidence.stepId, payload.stepId),
+      eq(classroomEvidence.studentId, user.id),
+      eq(classroomEvidence.sourceType, payload.sourceType),
+      eq(classroomEvidence.evidenceType, payload.evidenceType)
+    ),
+  });
+
+  return {
+    id: evidence.id,
+    sessionId: payload.sessionId,
+    stepId: payload.stepId,
+    studentId: user.id,
+    attemptNo: previousEvidence.length,
+    body: payload.body,
+    successMessage: "已记录为新的课堂回应",
+    createdAt: evidence.createdAt,
+  };
 }
 
 export async function recordClassroomIntervention(input: unknown) {

@@ -197,6 +197,15 @@ export const RecordClassroomEvidenceInputSchema = z.object({
   }
 });
 
+export const StudentQuickResponseInputSchema = z.object({
+  sessionId: z.string().min(1),
+  lessonId: z.string().min(1),
+  stepId: z.string().min(1),
+  body: z.string().trim().min(1).max(500),
+  sourceType: z.literal("student-quick-response").default("student-quick-response"),
+  evidenceType: z.literal("response").default("response"),
+});
+
 export const RecordClassroomInterventionInputSchema = z.object({
   sessionId: z.string().min(1),
   title: z.string().min(1),
@@ -320,6 +329,7 @@ export type ClassroomParticipantDTO = z.infer<typeof ClassroomParticipantDTOSche
 export type ClassroomSnapshotDTO = z.infer<typeof ClassroomSnapshotDTOSchema>;
 export type ClassroomEventDTO = z.infer<typeof ClassroomEventDTOSchema>;
 export type RecordClassroomEvidenceInput = z.infer<typeof RecordClassroomEvidenceInputSchema>;
+export type StudentQuickResponseInput = z.infer<typeof StudentQuickResponseInputSchema>;
 export type RecordClassroomInterventionInput = z.infer<typeof RecordClassroomInterventionInputSchema>;
 export type ClassroomEvidenceDTO = z.infer<typeof ClassroomEvidenceDTOSchema>;
 export type ClassroomTimelineEntryDTO = z.infer<typeof ClassroomTimelineEntryDTOSchema>;
