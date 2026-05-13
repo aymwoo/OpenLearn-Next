@@ -15,6 +15,7 @@ const findFirstPublishedLessonVersions = vi.fn();
 const findManyClassroomParticipants = vi.fn();
 const findFirstClassroomParticipants = vi.fn();
 const findManyUsers = vi.fn();
+const findFirstUsers = vi.fn();
 const findManyClassroomEvents = vi.fn();
 const findManyClassroomTimeline = vi.fn();
 const findManyClassroomEvidence = vi.fn();
@@ -37,7 +38,7 @@ vi.mock("@/db", () => ({
       courseClasses: { findMany: findManyCourseClasses },
       publishedLessonVersions: { findMany: findManyPublishedLessonVersions, findFirst: findFirstPublishedLessonVersions },
       classroomParticipants: { findMany: findManyClassroomParticipants, findFirst: findFirstClassroomParticipants },
-      users: { findMany: findManyUsers },
+      users: { findMany: findManyUsers, findFirst: findFirstUsers },
       classroomEvents: { findMany: findManyClassroomEvents },
       classroomTimeline: { findMany: findManyClassroomTimeline },
       classroomEvidence: { findMany: findManyClassroomEvidence },
@@ -195,9 +196,17 @@ describe("getClassroomConsoleDTO", () => {
     findManyUsers.mockResolvedValue([
       { id: "student-1", name: "李雷" },
     ]);
+    findFirstUsers.mockResolvedValue({ id: "student-1", name: "李雷" });
     findManyClassroomEvents.mockResolvedValue([]);
     findManyClassroomTimeline.mockResolvedValue([]);
     findManyClassroomEvidence.mockResolvedValue([]);
+    findFirstClassroomParticipants.mockResolvedValue({
+      sessionId: "session-1",
+      studentId: "student-1",
+      connectionState: "connected",
+      currentStepId: "step-1",
+      lastSeenAt: new Date("2026-05-12T10:03:00Z"),
+    });
     findFirstClassMembers.mockResolvedValue({
       id: "member-1",
       classId: "class-in-scope",
@@ -833,5 +842,60 @@ describe("same-route classroom student detail contracts", () => {
     expect(source).toContain("evidenceEntries");
     expect(source).not.toContain("getTeacherLessonReviewDTO");
     expect(source).not.toContain("@/lib/dal/learning");
+  });
+
+  it("returns monitoring summary fields and splits formative evaluation history from classroom evidence", async () => {
+    findManyClassroomEvidence.mockResolvedValueOnce([
+      {
+        id: "evidence-1",
+        sessionId: "session-1",
+        studentId: "student-1",
+        stepId: "step-2",
+        sourceType: "student-submission",
+        evidenceType: "submission",
+        payloadJson: { note: "提交了讨论记录" },
+        capturedById: "student-1",
+        createdAt: new Date("2026-05-12T10:03:00Z"),
+      },
+      {
+        id: "evaluation-1",
+        sessionId: "session-1",
+        studentId: "student-1",
+        stepId: null,
+        sourceType: "teacher-observation",
+        evidenceType: "observation",
+        payloadJson: {
+          kind: "formative-evaluation",
+          participationLevel: "attention",
+          tags: ["需要跟进"],
+          observationNote: "需要老师跟进。",
+        },
+        capturedById: "teacher-1",
+        createdAt: new Date("2026-05-12T10:04:00Z"),
+      },
+    ]);
+
+    const { getClassroomStudentDetailDTO, getClassroomSnapshotDTO } = await import("./classroom");
+
+    const snapshot = await getClassroomSnapshotDTO({ sessionId: "session-1" });
+    const detail = await getClassroomStudentDetailDTO({
+      sessionId: "session-1",
+      studentId: "student-1",
+      detailTab: "evaluation",
+    });
+
+    expect(snapshot.monitoringSummary).toMatchObject({
+      connectedCount: 1,
+      needsAttentionCount: 0,
+      submittedCount: 1,
+    });
+    expect(detail).toMatchObject({
+      studentId: "student-1",
+      latestParticipationLevel: "attention",
+    });
+    expect(detail?.evaluationEntries).toHaveLength(1);
+    expect(detail?.evidenceEntries).toHaveLength(1);
+    expect(detail?.evaluationEntries[0]?.observationNote).toBe("需要老师跟进。");
+    expect(detail?.evidenceEntries[0]?.payload).toMatchObject({ note: "提交了讨论记录" });
   });
 });

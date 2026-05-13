@@ -134,6 +134,7 @@ describe('ClassroomStudentDetailPanel', () => {
     expect(screen.getByRole('button', { name: '课堂证据' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '过程评价' })).toBeTruthy()
     expect(screen.getByText('最近一次参与度')).toBeTruthy()
+    expect(screen.getByText('积极参与')).toBeTruthy()
     expect(screen.getByText('提交了讨论记录')).toBeTruthy()
   })
 

@@ -113,6 +113,7 @@ describe("ClassroomRosterPanel", () => {
 
     expect(screen.getByText("课堂名册、进度与课堂回应概览")).toBeTruthy();
     expect(screen.getByText("已提交")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "查看证据与评价" })).toHaveLength(2);
     expect(screen.getAllByText("需要关注").length).toBeGreaterThan(0);
     expect(screen.getByText("状态稳定")).toBeTruthy();
     expect(screen.getByText("跟随当前环节")).toBeTruthy();

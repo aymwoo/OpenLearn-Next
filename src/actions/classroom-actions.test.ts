@@ -64,6 +64,30 @@ describe("classroom presence actions", () => {
     expect(source).toContain("updateTag(cacheTags.classroom(parsed.data.sessionId))");
   });
 
+  it("uses the fixed formative evaluation input schema for valid and invalid teacher payloads", async () => {
+    const { RecordStudentFormativeEvaluationInputSchema } = await import("@/lib/dto/classroom");
+
+    expect(
+      RecordStudentFormativeEvaluationInputSchema.safeParse({
+        sessionId: "session-1",
+        studentId: "student-1",
+        participationLevel: "active",
+        tags: ["主动发言", "表达清晰"],
+        observationNote: "能够主动回应问题。",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      RecordStudentFormativeEvaluationInputSchema.safeParse({
+        sessionId: "session-1",
+        studentId: "student-1",
+        participationLevel: "excellent",
+        tags: ["主动发言"],
+        observationNote: "超出范围的档位。",
+      }).success,
+    ).toBe(false);
+  });
+
   it("maps formative evaluation authorization failures to the classroom action error shape", () => {
     expect(source).toContain("TEACHER_AUTH_REQUIRED");
     expect(source).toContain("UNAUTHORIZED");
