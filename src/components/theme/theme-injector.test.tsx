@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const themeInjectorSource = readFileSync("src/components/theme/theme-injector.tsx", "utf8");
 const teacherShellSource = readFileSync("src/components/shell/teacher-sidebar-shell.tsx", "utf8");
+const shellResolverSource = readFileSync("src/lib/theme-layout/shell-surface-resolver.ts", "utf8");
 const studentShellSource = readFileSync("src/components/shell/student-shell.tsx", "utf8");
 const stageHeroSource = readFileSync("src/components/surfaces/stage-hero.tsx", "utf8");
 
@@ -15,7 +16,8 @@ describe("theme default regression guards", () => {
   });
 
   it("keeps aurora shells behind active themes only", () => {
-    expect(teacherShellSource).toContain('themeSource === "active-theme"');
+    expect(teacherShellSource).toContain("resolveTeacherShellUiState");
+    expect(shellResolverSource).toContain('themeSource === "active-theme"');
     expect(studentShellSource).toContain("themeSource: 'default' | 'active-theme'");
     expect(studentShellSource).toContain("if (themeSource === 'default')");
     expect(studentShellSource).toContain('data-theme-layout-source={themeSource}');

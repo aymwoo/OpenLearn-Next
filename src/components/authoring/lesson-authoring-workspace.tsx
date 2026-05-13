@@ -415,7 +415,7 @@ function FlowStepCard({
 }) {
   const builtInSourceLabel = getBuiltInSourceLabel(step);
   const teachingDesignCue = getTeachingDesignCue(step.teachingDesignFallbackReason);
-  const evidencePrompt = step.payload.teachingDesign?.evidenceExpectation.prompt;
+  const evidencePrompt = step.payload.teachingDesign?.evidenceExpectation?.prompt;
 
   return (
     <div className="relative ml-4 pb-6 pl-4 pt-4">

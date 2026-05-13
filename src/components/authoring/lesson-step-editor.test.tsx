@@ -16,8 +16,24 @@ vi.mock("@/actions/lesson-authoring-actions", () => ({
   uploadLessonMarkdownAssetAction: (...args: unknown[]) => uploadLessonMarkdownAssetAction(...args),
 }));
 
-function makeStep(step: LessonStepDTO): LessonStepDTO {
-  return step;
+type LessonStepFixture = Omit<
+  LessonStepDTO,
+  "teachingDesignStatus" | "needsTeachingDesignRefinement" | "teachingDesignFallbackReason"
+> &
+  Partial<
+    Pick<
+      LessonStepDTO,
+      "teachingDesignStatus" | "needsTeachingDesignRefinement" | "teachingDesignFallbackReason"
+    >
+  >;
+
+function makeStep(step: LessonStepFixture): LessonStepDTO {
+  return {
+    teachingDesignStatus: "explicit",
+    needsTeachingDesignRefinement: false,
+    teachingDesignFallbackReason: null,
+    ...step,
+  };
 }
 
 describe("lesson step editor persistence", () => {

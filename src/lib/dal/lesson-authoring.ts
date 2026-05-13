@@ -405,7 +405,7 @@ function buildLessonPreparationSummary(input: {
 
     activeStepCount += 1;
     const hydrated = hydrateTeachingDesign(parsedStep.payload);
-    totalEstimatedMinutes += hydrated.payload.teachingDesign.estimatedMinutes;
+    totalEstimatedMinutes += hydrated.payload.teachingDesign?.estimatedMinutes ?? 0;
 
     if (hasMaterialCue(parsedStep.payload)) {
       materialCueCount += 1;

@@ -47,7 +47,9 @@ describe("schedule import template", () => {
     expect(SCHEDULE_IMPORT_COLUMN_MAP).toEqual({
       源记录标识: "sourceRowKey",
       学期名称: "termName",
+      星期: "weekday",
       "星期(0-6)": "weekday",
+      weekday: "weekday",
       节次标签: "bellSlotLabel",
       上课开始时间: "bellSlotStartTime",
       上课结束时间: "bellSlotEndTime",

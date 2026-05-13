@@ -129,7 +129,7 @@ export const StudentPlayerDTOSchema = z.object({
     resumeLabel: z.string(),
     steps: z.array(LearningProgressDTOSchema),
   }),
-  stepActivities: z.array(StudentStepActivityDTOSchema),
+  stepActivities: z.array(StudentStepActivityDTOSchema).default([]),
   runtime: RuntimeStepStateDTOSchema,
   canRetryTask: z.boolean().default(false),
   canRetryQuiz: z.boolean().default(false),
