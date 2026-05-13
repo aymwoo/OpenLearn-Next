@@ -56,18 +56,49 @@ export const ClassroomLaunchPreviewEmptyStateDTOSchema = z.object({
   description: z.string(),
 });
 
+export const ClassroomLaunchReadinessIssueCodeSchema = z.enum([
+  "NO_LAUNCHABLE_CLASSES",
+  "TEACHING_DESIGN_NEEDS_REFINEMENT",
+  "TEACHING_DESIGN_INFERRED",
+  "MATERIAL_CUES_MISSING",
+  "EVIDENCE_CUES_REVIEW",
+]);
+
+export const ClassroomLaunchReadinessIssueDTOSchema = z.object({
+  code: ClassroomLaunchReadinessIssueCodeSchema,
+  message: z.string(),
+  stepId: z.string().nullable().optional(),
+});
+
+export const ClassroomLaunchReadinessDTOSchema = z.object({
+  blockingIssues: z.array(ClassroomLaunchReadinessIssueDTOSchema),
+  attentionIssues: z.array(ClassroomLaunchReadinessIssueDTOSchema),
+  advisoryIssues: z.array(ClassroomLaunchReadinessIssueDTOSchema),
+});
+
+export const ClassroomLaunchRosterSummaryDTOSchema = z.object({
+  classId: z.string(),
+  className: z.string(),
+  studentCount: z.number().int().nonnegative(),
+  launchScopeLabel: z.string(),
+  note: z.string(),
+});
+
+export const ClassroomLaunchClassOptionDTOSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  studentCount: z.number().int().nonnegative(),
+  rosterSummary: ClassroomLaunchRosterSummaryDTOSchema,
+});
+
 export const ClassroomLaunchLessonOptionDTOSchema = z.object({
   id: z.string(),
   title: z.string(),
   publishedVersionId: z.string(),
   courseId: z.string(),
-  classes: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-    })
-  ),
+  classes: z.array(ClassroomLaunchClassOptionDTOSchema),
   launchPreview: ClassroomLaunchPreviewDTOSchema,
+  launchReadiness: ClassroomLaunchReadinessDTOSchema,
 });
 
 export const ClassroomLiveSessionSummaryDTOSchema = z.object({
@@ -277,6 +308,11 @@ export type ClassroomSlideStateDTO = z.infer<typeof ClassroomSlideStateDTOSchema
 export type ClassroomLaunchPreviewStepDTO = z.infer<typeof ClassroomLaunchPreviewStepDTOSchema>;
 export type ClassroomLaunchPreviewDTO = z.infer<typeof ClassroomLaunchPreviewDTOSchema>;
 export type ClassroomLaunchPreviewEmptyStateDTO = z.infer<typeof ClassroomLaunchPreviewEmptyStateDTOSchema>;
+export type ClassroomLaunchReadinessIssueCode = z.infer<typeof ClassroomLaunchReadinessIssueCodeSchema>;
+export type ClassroomLaunchReadinessIssueDTO = z.infer<typeof ClassroomLaunchReadinessIssueDTOSchema>;
+export type ClassroomLaunchReadinessDTO = z.infer<typeof ClassroomLaunchReadinessDTOSchema>;
+export type ClassroomLaunchRosterSummaryDTO = z.infer<typeof ClassroomLaunchRosterSummaryDTOSchema>;
+export type ClassroomLaunchClassOptionDTO = z.infer<typeof ClassroomLaunchClassOptionDTOSchema>;
 export type ClassroomLaunchLessonOptionDTO = z.infer<typeof ClassroomLaunchLessonOptionDTOSchema>;
 export type ClassroomLiveSessionSummaryDTO = z.infer<typeof ClassroomLiveSessionSummaryDTOSchema>;
 export type ClassroomConsoleDTO = z.infer<typeof ClassroomConsoleDTOSchema>;

@@ -39,6 +39,9 @@ describe("LessonEditorHeaderActions", () => {
       <LessonEditorHeaderActions
         lesson={{
           lesson: { id: "lesson-1", revision: 3 },
+          preparationSummary: {
+            launchHref: "/teacher/launch?courseId=course-1&lessonId=lesson-1",
+          },
           publishState: { canPublish: true },
           materials: [],
         } as any}
@@ -65,6 +68,9 @@ describe("LessonEditorHeaderActions", () => {
       <LessonEditorHeaderActions
         lesson={{
           lesson: { id: "lesson-1", revision: 3 },
+          preparationSummary: {
+            launchHref: "/teacher/launch?courseId=course-1&lessonId=lesson-1",
+          },
           publishState: { canPublish: true },
           materials: [],
         } as any}
@@ -82,5 +88,34 @@ describe("LessonEditorHeaderActions", () => {
     await waitFor(() => expect(publishLessonAction).toHaveBeenCalledWith({ lessonId: "lesson-1", expectedRevision: 3 }));
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
     expect(screen.getByText("发布成功，学生端将读取最新已发布版本。")).toBeTruthy();
+  });
+
+  it("keeps preview and publish actions while surfacing a /teacher/launch handoff", () => {
+    render(
+      <LessonEditorHeaderActions
+        lesson={{
+          lesson: { id: "lesson-1", revision: 3 },
+          preparationSummary: {
+            launchHref: "/teacher/launch?courseId=course-1&lessonId=lesson-1",
+          },
+          publishState: { canPublish: true },
+          materials: [],
+        } as any}
+        activeCourse={{ classLabels: [] }}
+        activeStepCount={2}
+        builtInStepCount={1}
+        previewHref="/teacher/editor/preview?courseId=course-1&lessonId=lesson-1"
+        themes={[]}
+        activeThemeId={null}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "预览课堂" }).getAttribute("href")).toBe(
+      "/teacher/editor/preview?courseId=course-1&lessonId=lesson-1",
+    );
+    expect(screen.getByRole("link", { name: "开课准备" }).getAttribute("href")).toBe(
+      "/teacher/launch?courseId=course-1&lessonId=lesson-1",
+    );
+    expect(screen.getByRole("button", { name: "发布课时" })).toBeTruthy();
   });
 });

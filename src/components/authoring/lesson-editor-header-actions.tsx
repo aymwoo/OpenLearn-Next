@@ -40,6 +40,7 @@ export function LessonEditorHeaderActions({
   const router = useRouter();
   const [isPublishing, startPublishTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
+  const launchHref = lesson?.preparationSummary.launchHref ?? null;
 
   function handleUndo() {
     const resetHandled = dispatchLessonStepEditorCommand(lessonStepEditorResetRequestEvent);
@@ -121,11 +122,17 @@ export function LessonEditorHeaderActions({
             预览课堂
           </Button>
         )}
+        {launchHref ? (
+          <Button asChild variant="secondary" className="h-9 px-3 text-sm">
+            <Link href={launchHref}>开课准备</Link>
+          </Button>
+        ) : null}
         <Button className="h-9 px-4 text-sm" type="button" disabled={!lesson || isPublishing} onClick={handlePublish}>
           {isPublishing ? "正在发布..." : "发布课时"}
         </Button>
       </div>
       {feedback ? <p className="text-xs text-on-surface-variant">{feedback}</p> : null}
+      {!feedback && launchHref ? <p className="text-xs text-on-surface-variant">开课前可进入 `/teacher/launch` 检查整班启动摘要与课堂节奏。</p> : null}
     </div>
   );
 }

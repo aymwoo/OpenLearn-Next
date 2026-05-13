@@ -33,6 +33,8 @@ import {
   type TeachingDesignFallbackReason,
   type TeachingDesignStatus,
   type AutosaveResultDTO,
+  type LessonPreparationIssueDTO,
+  type LessonPreparationSummaryDTO,
   type LessonPublishIssueDTO,
   type LessonStepPayload,
   type PublishResultDTO,
@@ -283,6 +285,10 @@ function buildIssue(input: LessonPublishIssueDTO): LessonPublishIssueDTO {
   return input;
 }
 
+function buildPreparationIssue(input: LessonPreparationIssueDTO): LessonPreparationIssueDTO {
+  return input;
+}
+
 function getBuiltInPluginAvailabilityMap(
   plugins: Array<{
     id: string;
@@ -346,6 +352,115 @@ function hydrateTeachingDesign(payload: LessonStepPayload): HydratedTeachingDesi
     teachingDesignStatus: resolution.teachingDesignStatus,
     needsTeachingDesignRefinement: resolution.needsTeachingDesignRefinement,
     teachingDesignFallbackReason: resolution.teachingDesignFallbackReason,
+  };
+}
+
+function toPreparationBlockingIssue(issue: LessonPublishIssueDTO): LessonPreparationIssueDTO {
+  return buildPreparationIssue({
+    code: issue.code,
+    message: issue.message,
+    stepId: issue.stepId,
+    pluginId: issue.pluginId,
+    builtInKey: issue.builtInKey,
+    pluginName: issue.pluginName,
+  });
+}
+
+function hasMaterialCue(payload: LessonStepPayload) {
+  if ("materialRefs" in payload && payload.materialRefs.length > 0) {
+    return true;
+  }
+
+  return payload.type === "content" && Boolean(payload.markdown?.asset.title.trim());
+}
+
+function hasAuthoredEvidencePrompt(payload: LessonStepPayload) {
+  const prompt = payload.teachingDesign?.evidenceExpectation?.prompt;
+  return typeof prompt === "string" && prompt.trim().length > 0;
+}
+
+function buildLessonPreparationSummary(input: {
+  lessonId: string;
+  courseId: string;
+  stepRows: Array<typeof lessonSteps.$inferSelect>;
+  readiness: { blockingIssues: LessonPublishIssueDTO[] };
+}): LessonPreparationSummaryDTO {
+  const blockingIssues = input.readiness.blockingIssues.map(toPreparationBlockingIssue);
+  const attentionIssues: LessonPreparationIssueDTO[] = [];
+  const advisoryIssues: LessonPreparationIssueDTO[] = [];
+  let activeStepCount = 0;
+  let totalEstimatedMinutes = 0;
+  let materialCueCount = 0;
+  let evidenceReadyStepCount = 0;
+
+  for (const step of input.stepRows) {
+    if (step.archivedAt) {
+      continue;
+    }
+
+    const parsedStep = parseStepPayloadWithIssues(step);
+    if (!parsedStep.ok) {
+      continue;
+    }
+
+    activeStepCount += 1;
+    const hydrated = hydrateTeachingDesign(parsedStep.payload);
+    totalEstimatedMinutes += hydrated.payload.teachingDesign.estimatedMinutes;
+
+    if (hasMaterialCue(parsedStep.payload)) {
+      materialCueCount += 1;
+    } else {
+      advisoryIssues.push(
+        buildPreparationIssue({
+          code: "MATERIAL_CUES_MISSING",
+          message: `步骤“${step.title}”还没有补充材料提示，开课前建议确认学生可见资料。`,
+          stepId: step.id,
+        }),
+      );
+    }
+
+    if (hasAuthoredEvidencePrompt(parsedStep.payload)) {
+      evidenceReadyStepCount += 1;
+    } else {
+      advisoryIssues.push(
+        buildPreparationIssue({
+          code: "EVIDENCE_EXPECTATION_MISSING",
+          message: `步骤“${step.title}”还没有明确采证提示，建议补充课堂观察或提交要求。`,
+          stepId: step.id,
+        }),
+      );
+    }
+
+    if (hydrated.needsTeachingDesignRefinement) {
+      attentionIssues.push(
+        buildPreparationIssue({
+          code: "TEACHING_DESIGN_NEEDS_REFINEMENT",
+          message: `步骤“${step.title}”的教学设计仍需完善，当前只会作为开课前提醒。`,
+          stepId: step.id,
+        }),
+      );
+    }
+
+    if (hydrated.teachingDesignStatus === "inferred") {
+      advisoryIssues.push(
+        buildPreparationIssue({
+          code: "TEACHING_DESIGN_INFERRED",
+          message: `步骤“${step.title}”仍在使用默认推断的教学设计，建议在开课前再确认节奏与证据要求。`,
+          stepId: step.id,
+        }),
+      );
+    }
+  }
+
+  return {
+    activeStepCount,
+    totalEstimatedMinutes,
+    materialCueCount,
+    evidenceReadyStepCount,
+    launchHref: `/teacher/launch?courseId=${input.courseId}&lessonId=${input.lessonId}`,
+    blockingIssues,
+    attentionIssues,
+    advisoryIssues,
   };
 }
 
@@ -514,6 +629,12 @@ export async function getLessonEditorDTO(lessonId: string) {
   });
 
   const readiness = await getLessonPublishReadinessDTO({ lessonId });
+  const preparationSummary = buildLessonPreparationSummary({
+    lessonId: lesson.id,
+    courseId: course.id,
+    stepRows,
+    readiness,
+  });
 
   return LessonEditorDTOSchema.parse({
     course: courseDto,
@@ -545,6 +666,7 @@ export async function getLessonEditorDTO(lessonId: string) {
       url: material.url,
       note: material.note,
     })),
+    preparationSummary,
     publishState: {
       isDraftHidden: lesson.status !== "published",
       latestVersion: latestVersion?.version ?? null,

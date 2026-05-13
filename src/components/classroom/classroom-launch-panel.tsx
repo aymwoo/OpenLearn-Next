@@ -13,7 +13,7 @@ import type {
   ClassroomLaunchLessonOptionDTO,
   ClassroomLaunchPreviewEmptyStateDTO,
 } from '@/lib/dto/classroom'
-import { BookOpen, Users } from 'lucide-react'
+import { AlertTriangle, BookOpen, CheckCircle2, TriangleAlert, Users } from 'lucide-react'
 
 type ClassroomLaunchPanelProps = {
   publishedLessons: ClassroomLaunchLessonOptionDTO[]
@@ -43,6 +43,8 @@ export function ClassroomLaunchPanel({
   const router = useRouter()
 
   const selectedLesson = publishedLessons.find(l => l.id === selectedLessonId)
+  const selectedClass = selectedLesson?.classes.find((item) => item.id === selectedClassId) ?? null
+  const launchableClasses = selectedLesson?.classes.filter((item) => item.studentCount > 0) ?? []
 
   const resolveLaunchTarget = (sessionId: string | undefined, fallbackHref: string | undefined) => {
     if (sessionId) {
@@ -109,54 +111,102 @@ export function ClassroomLaunchPanel({
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[18rem]">
             <MetricTile icon={<BookOpen className="size-4 text-primary" />} label="已发布课时" value={String(publishedLessons.length)} />
-            <MetricTile icon={<Users className="size-4 text-primary" />} label="可用班级" value={selectedLesson ? String(selectedLesson.classes.length) : '--'} />
+            <MetricTile icon={<Users className="size-4 text-primary" />} label="整班名册" value={selectedLesson ? String(launchableClasses.length) : '--'} />
           </div>
         </div>
       </div>
 
       {error ? <div className="mt-5 rounded-[1.25rem] bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-red-600">{error}</div> : null}
 
-      <div className="mt-5 space-y-4 rounded-[1.5rem] bg-surface-container-low p-5">
-        <div className="grid gap-2">
-          <label className="text-sm text-on-surface-variant">选择课时</label>
-          <select 
-            className={ghostSelectFieldClassName}
-            value={selectedLessonId}
-            onChange={e => {
-              setSelectedLessonId(e.target.value)
-              setSelectedClassId('')
-            }}
-            disabled={isPending}
-          >
-            <option value="">-- 选择已发布课时 --</option>
-            {publishedLessons.map(l => (
-              <option key={l.id} value={l.id}>{l.title}</option>
-            ))}
-          </select>
-        </div>
-        {selectedLesson && (
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-4 rounded-[1.5rem] bg-surface-container-low p-5">
           <div className="grid gap-2">
-            <label className="text-sm text-on-surface-variant">选择班级</label>
+            <label className="text-sm text-on-surface-variant">选择课时</label>
             <select 
               className={ghostSelectFieldClassName}
-              value={selectedClassId}
-              onChange={e => setSelectedClassId(e.target.value)}
+              value={selectedLessonId}
+              onChange={e => {
+                setSelectedLessonId(e.target.value)
+                setSelectedClassId('')
+              }}
               disabled={isPending}
             >
-              <option value="">-- 选择名单 --</option>
-              {selectedLesson.classes.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+              <option value="">-- 选择已发布课时 --</option>
+              {publishedLessons.map(l => (
+                <option key={l.id} value={l.id}>{l.title}</option>
               ))}
             </select>
           </div>
-        )}
-        <Button 
-          onClick={handleLaunch} 
-          disabled={!selectedLessonId || !selectedClassId || isPending}
-          className="min-h-[52px] w-full text-base"
-        >
-          {isPending ? '正在创建课堂，请稍候。' : ctaLabel}
-        </Button>
+          {selectedLesson && (
+            <div className="grid gap-2">
+              <label className="text-sm text-on-surface-variant">选择班级</label>
+              <select 
+                className={ghostSelectFieldClassName}
+                value={selectedClassId}
+                onChange={e => setSelectedClassId(e.target.value)}
+                disabled={isPending}
+              >
+                <option value="">-- 选择整班名单 --</option>
+                {launchableClasses.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="rounded-[1.25rem] bg-surface-container-lowest p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-on-surface-variant">整班摘要</p>
+                <h3 className="mt-1 text-base font-semibold text-on-surface">
+                  {selectedClass?.rosterSummary.className ?? '先选择班级'}
+                </h3>
+              </div>
+              <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-medium text-on-surface-variant">
+                {selectedClass ? `${selectedClass.studentCount} 人` : '整班启动'}
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-on-surface-variant">
+              {selectedClass?.rosterSummary.note ?? '当前只支持整班启动；选择班级后会在这里展示名册规模与启动范围说明。'}
+            </p>
+          </div>
+
+          <Button 
+            onClick={handleLaunch} 
+            disabled={!selectedLessonId || !selectedClassId || isPending}
+            className="min-h-[52px] w-full text-base"
+          >
+            {isPending ? '正在创建课堂，请稍候。' : ctaLabel}
+          </Button>
+        </div>
+
+        <div className="space-y-3 rounded-[1.5rem] bg-surface-container-low p-5">
+          <div>
+            <p className="text-sm text-on-surface-variant">readiness</p>
+            <h3 className="mt-1 text-lg font-semibold text-on-surface">开课前准备分层</h3>
+          </div>
+          <ReadinessGroup
+            title="阻断项"
+            issues={selectedLesson?.launchReadiness.blockingIssues ?? []}
+            emptyLabel="当前没有阻断项，可以继续选择整班并开启课堂。"
+            icon={<AlertTriangle className="size-4" aria-hidden />}
+            tone="blocking"
+          />
+          <ReadinessGroup
+            title="需关注"
+            issues={selectedLesson?.launchReadiness.attentionIssues ?? []}
+            emptyLabel="当前没有需关注的问题。"
+            icon={<TriangleAlert className="size-4" aria-hidden />}
+            tone="attention"
+          />
+          <ReadinessGroup
+            title="建议完善"
+            issues={selectedLesson?.launchReadiness.advisoryIssues ?? []}
+            emptyLabel="当前没有建议完善项。"
+            icon={<CheckCircle2 className="size-4" aria-hidden />}
+            tone="advisory"
+          />
+        </div>
       </div>
 
       <div className="mt-5">
@@ -178,5 +228,48 @@ function MetricTile({ icon, label, value }: { icon: React.ReactNode; label: stri
       </div>
       <p className="mt-2 text-[1.6rem] font-semibold text-on-surface">{value}</p>
     </div>
+  )
+}
+
+function ReadinessGroup({
+  title,
+  issues,
+  emptyLabel,
+  icon,
+  tone,
+}: {
+  title: string
+  issues: Array<{ message: string }>
+  emptyLabel: string
+  icon: React.ReactNode
+  tone: 'blocking' | 'attention' | 'advisory'
+}) {
+  const toneClassName = tone === 'blocking'
+    ? 'bg-[#fff1f2] text-[#b31b25]'
+    : tone === 'attention'
+      ? 'bg-[#fff4cc] text-[#8a6200]'
+      : 'bg-surface-container-high text-on-surface'
+
+  return (
+    <section className="rounded-[1.25rem] bg-surface-container-lowest p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-on-surface">
+          <span className={`rounded-full p-2 ${toneClassName}`}>{icon}</span>
+          {title}
+        </div>
+        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${toneClassName}`}>{issues.length} 项</span>
+      </div>
+      {issues.length > 0 ? (
+        <ul className="mt-3 space-y-2" aria-label={title}>
+          {issues.map((issue, index) => (
+            <li key={`${title}-${index}`} className="rounded-[1rem] bg-surface-container-low px-3 py-3 text-sm leading-6 text-on-surface-variant">
+              {issue.message}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 rounded-[1rem] bg-surface-container-low px-3 py-3 text-sm leading-6 text-on-surface-variant">{emptyLabel}</p>
+      )}
+    </section>
   )
 }

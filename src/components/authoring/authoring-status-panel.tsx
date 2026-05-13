@@ -7,7 +7,11 @@ import { publishLessonAction } from "@/actions/lesson-authoring-actions";
 import { dispatchLessonStepEditorCommand, lessonStepEditorSaveRequestEvent } from "@/components/authoring/editor-command-events";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { LessonEditorDTO, LessonPublishIssueDTO } from "@/lib/dto/lesson-authoring";
+import type {
+  LessonEditorDTO,
+  LessonPreparationIssueDTO,
+  LessonPublishIssueDTO,
+} from "@/lib/dto/lesson-authoring";
 
 type AuthoringStatusPanelProps = {
   lesson: LessonEditorDTO | null;
@@ -21,6 +25,18 @@ const issueLabels: Record<LessonPublishIssueDTO["code"], string> = {
   BUILT_IN_PLUGIN_UNAVAILABLE: "内置教学环节当前不可用",
 };
 
+const preparationIssueLabels: Record<LessonPreparationIssueDTO["code"], string> = {
+  LESSON_TITLE_REQUIRED: "缺少课时标题",
+  LESSON_OBJECTIVE_REQUIRED: "缺少教学目标",
+  NO_ACTIVE_STEPS: "没有有效步骤",
+  STEP_PAYLOAD_INVALID: "步骤内容结构无效",
+  BUILT_IN_PLUGIN_UNAVAILABLE: "内置教学环节当前不可用",
+  TEACHING_DESIGN_NEEDS_REFINEMENT: "教学设计仍需完善",
+  TEACHING_DESIGN_INFERRED: "仍在使用默认推断",
+  MATERIAL_CUES_MISSING: "缺少材料提示",
+  EVIDENCE_EXPECTATION_MISSING: "缺少采证提示",
+};
+
 export function AuthoringStatusPanel({ lesson }: AuthoringStatusPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -29,6 +45,7 @@ export function AuthoringStatusPanel({ lesson }: AuthoringStatusPanelProps) {
   const blockingIssues = publishIssues;
   const warnings = lesson?.publishState.warnings ?? [];
   const canPublish = Boolean(lesson && blockingIssues.length === 0 && lesson.publishState.canPublish);
+  const preparationSummary = lesson?.preparationSummary;
 
   function saveDraft() {
     const saveHandled = dispatchLessonStepEditorCommand(lessonStepEditorSaveRequestEvent);
@@ -100,6 +117,33 @@ export function AuthoringStatusPanel({ lesson }: AuthoringStatusPanelProps) {
       </div>
 
       <div className="rounded-3xl bg-surface-container-low p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="font-semibold">开课前摘要</p>
+            <p className="mt-2 text-sm text-on-surface-variant">这些提示来自 lesson editor DTO 的服务端聚合结果，只用于帮助教师准备开课，不会直接创建课堂。</p>
+          </div>
+          {preparationSummary ? <Badge variant="accent">前往 launch 前可先检查</Badge> : null}
+        </div>
+
+        {preparationSummary ? (
+          <>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <SummaryMetric label="有效步骤" value={`${preparationSummary.activeStepCount}`} />
+              <SummaryMetric label="预计时长" value={`${preparationSummary.totalEstimatedMinutes} 分钟`} />
+              <SummaryMetric label="材料提示" value={`${preparationSummary.materialCueCount} 个步骤`} />
+              <SummaryMetric label="采证就绪" value={`${preparationSummary.evidenceReadyStepCount} 个步骤`} />
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <PreparationIssueGroup title="阻断项" description={preparationSummary.blockingIssues.length > 0 ? "这些问题会直接影响后续发布与开课准备。" : "当前没有新的开课阻断项。"} issues={preparationSummary.blockingIssues} emptyLabel="当前没有阻断项" tone="blocking" />
+              <PreparationIssueGroup title="需关注" description={preparationSummary.attentionIssues.length > 0 ? "这些问题不会阻止你继续，但会影响课堂节奏与执行质量。" : "当前没有需关注的问题。"} issues={preparationSummary.attentionIssues} emptyLabel="当前没有需关注的问题" tone="warning" />
+              <PreparationIssueGroup title="建议完善" description={preparationSummary.advisoryIssues.length > 0 ? "这些建议用于补齐材料和采证上下文。" : "当前没有建议完善项。"} issues={preparationSummary.advisoryIssues} emptyLabel="当前没有建议完善项" tone="advisory" />
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      <div className="rounded-3xl bg-surface-container-low p-5">
         <p className="font-semibold">冲突处理</p>
         <p className="mt-2 text-sm text-on-surface-variant">检测到更新冲突时，请刷新课时并重新应用修改。发布阻断和冲突提示都会保留在当前页内。</p>
         <p className="mt-3 rounded-3xl bg-surface-container-lowest px-4 py-3 text-sm">检测到更新冲突</p>
@@ -134,6 +178,46 @@ function IssueGroup({ title, description, issues, emptyLabel, tone }: { title: s
       ) : (
         <p className="mt-4 rounded-[1.25rem] bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">{emptyLabel}</p>
       )}
+    </div>
+  );
+}
+
+function PreparationIssueGroup({ title, description, issues, emptyLabel, tone }: { title: string; description: string; issues: LessonPreparationIssueDTO[]; emptyLabel: string; tone: "blocking" | "warning" | "advisory" }) {
+  const toneClassName = tone === "blocking"
+    ? "bg-[#fff1f2] text-[#b31b25]"
+    : tone === "warning"
+      ? "bg-primary/10 text-primary"
+      : "bg-surface-container-high text-on-surface";
+
+  return (
+    <div className="rounded-[1.5rem] bg-surface-container-lowest p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold text-on-surface">{title}</p>
+        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${toneClassName}`}>{issues.length} 项</span>
+      </div>
+      <p className="mt-2 text-sm text-on-surface-variant">{description}</p>
+
+      {issues.length > 0 ? (
+        <ul className="mt-4 space-y-2" aria-label={title}>
+          {issues.map((issue, index) => (
+            <li key={`${issue.code}-${issue.stepId ?? issue.pluginId ?? index}`} className="rounded-[1.25rem] bg-surface-container-low px-4 py-3 text-sm">
+              <p className="font-semibold text-on-surface">{preparationIssueLabels[issue.code]}</p>
+              <p className="mt-1 text-on-surface-variant">{issue.message}</p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 rounded-[1.25rem] bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">{emptyLabel}</p>
+      )}
+    </div>
+  );
+}
+
+function SummaryMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-3">
+      <p className="text-xs text-on-surface-variant">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-on-surface">{value}</p>
     </div>
   );
 }

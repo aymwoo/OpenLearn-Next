@@ -224,12 +224,45 @@ export const LessonPublishIssueDTOSchema = z.object({
   pluginName: z.string().nullable().optional(),
 });
 
+export const LessonPreparationIssueCodeSchema = z.enum([
+  "LESSON_TITLE_REQUIRED",
+  "LESSON_OBJECTIVE_REQUIRED",
+  "NO_ACTIVE_STEPS",
+  "STEP_PAYLOAD_INVALID",
+  "BUILT_IN_PLUGIN_UNAVAILABLE",
+  "TEACHING_DESIGN_NEEDS_REFINEMENT",
+  "TEACHING_DESIGN_INFERRED",
+  "MATERIAL_CUES_MISSING",
+  "EVIDENCE_EXPECTATION_MISSING",
+]);
+
+export const LessonPreparationIssueDTOSchema = z.object({
+  code: LessonPreparationIssueCodeSchema,
+  message: z.string(),
+  stepId: z.string().nullable().optional(),
+  pluginId: z.string().nullable().optional(),
+  builtInKey: BuiltInTeachingStepKeySchema.nullable().optional(),
+  pluginName: z.string().nullable().optional(),
+});
+
+export const LessonPreparationSummaryDTOSchema = z.object({
+  activeStepCount: z.number().int().nonnegative(),
+  totalEstimatedMinutes: z.number().int().nonnegative(),
+  materialCueCount: z.number().int().nonnegative(),
+  evidenceReadyStepCount: z.number().int().nonnegative(),
+  launchHref: z.string().min(1),
+  blockingIssues: z.array(LessonPreparationIssueDTOSchema),
+  attentionIssues: z.array(LessonPreparationIssueDTOSchema),
+  advisoryIssues: z.array(LessonPreparationIssueDTOSchema),
+});
+
 export const LessonEditorDTOSchema = z.object({
   course: CourseDTOSchema,
   classes: z.array(ClassRosterDTOSchema),
   lesson: LessonSummaryDTOSchema,
   steps: z.array(LessonStepDTOSchema),
   materials: z.array(LessonMaterialDTOSchema),
+  preparationSummary: LessonPreparationSummaryDTOSchema,
   publishState: z.object({
     isDraftHidden: z.boolean(),
     latestVersion: z.number().int().nonnegative().nullable(),
@@ -311,6 +344,8 @@ export type TeachingDesignInput = z.infer<typeof TeachingDesignInputSchema>;
 export type TeachingDesignStatus = z.infer<typeof TeachingDesignStatusSchema>;
 export type TeachingDesignFallbackReason = z.infer<typeof TeachingDesignFallbackReasonSchema>;
 export type LessonPublishIssueDTO = z.infer<typeof LessonPublishIssueDTOSchema>;
+export type LessonPreparationIssueDTO = z.infer<typeof LessonPreparationIssueDTOSchema>;
+export type LessonPreparationSummaryDTO = z.infer<typeof LessonPreparationSummaryDTOSchema>;
 export type LessonPublishReadinessDTO = z.infer<typeof LessonPublishReadinessDTOSchema>;
 export type TeacherLessonPreviewStepDTO = z.infer<typeof TeacherLessonPreviewStepDTOSchema>;
 export type TeacherLessonPreviewDTO = z.infer<typeof TeacherLessonPreviewDTOSchema>;

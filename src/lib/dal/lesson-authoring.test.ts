@@ -150,6 +150,7 @@ describe("lesson authoring DAL boundary", () => {
   it("validates payloads and DTOs", () => {
     expect(source).toContain("lessonStepPayloadSchema.parse");
     expect(source).toContain("LessonEditorDTOSchema.parse");
+    expect(source).toContain("preparationSummary");
   });
 
   it("uses rank reorder and stable published snapshots", () => {
@@ -547,10 +548,31 @@ describe("lesson authoring DAL boundary", () => {
         payload: { teachingDesign: { activityIntent: string } };
         teachingDesignStatus: string;
       }>;
+      preparationSummary: {
+        activeStepCount: number;
+        totalEstimatedMinutes: number;
+        materialCueCount: number;
+        evidenceReadyStepCount: number;
+        launchHref: string;
+        blockingIssues: Array<{ code: string }>;
+        attentionIssues: Array<{ code: string; stepId?: string | null }>;
+        advisoryIssues: Array<{ code: string; stepId?: string | null }>;
+      };
     }>)("lesson-owned");
 
     expect(editor.steps[0]?.payload.teachingDesign.activityIntent).toBe("practice");
     expect(editor.steps[0]?.teachingDesignStatus).toBe("explicit");
+    expect(editor.preparationSummary.activeStepCount).toBe(1);
+    expect(editor.preparationSummary.totalEstimatedMinutes).toBe(18);
+    expect(editor.preparationSummary.materialCueCount).toBe(0);
+    expect(editor.preparationSummary.evidenceReadyStepCount).toBe(1);
+    expect(editor.preparationSummary.launchHref).toBe("/teacher/launch?courseId=course-owned&lessonId=lesson-owned");
+    expect(editor.preparationSummary.blockingIssues).toEqual([]);
+    expect(editor.preparationSummary.advisoryIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "MATERIAL_CUES_MISSING", stepId: "step-explicit" }),
+      ])
+    );
   });
 
   it("fills missing teaching-design fields and marks partial payloads for refinement", async () => {
@@ -647,5 +669,155 @@ describe("lesson authoring DAL boundary", () => {
     expect(preview.steps[0]?.builtInSourceLabel).toBe("教师讲授");
     expect(preview.steps[0]?.payload.builtInSource?.pluginId).toBe("plugin-1");
     expect(preview.steps[0]?.payload.teachingDesign?.activityIntent).toBe("explain");
+  });
+
+  it("grades preparation gaps into blocking, attention, and advisory buckets inside the editor DTO", async () => {
+    const dal = (await import("./lesson-authoring")) as Record<string, unknown>;
+
+    findManyLessonSteps
+      .mockResolvedValueOnce([
+        {
+          id: "step-refine",
+          lessonId: "lesson-owned",
+          type: "task",
+          title: "分组实验",
+          rank: "a1",
+          payloadJson: {
+            type: "task",
+            prompt: "完成实验并记录现象",
+            submissionType: "text",
+            materialRefs: [],
+            teachingDesign: {
+              activityIntent: "apply",
+              evidenceExpectation: {
+                prompt: "上传实验截图",
+              },
+            },
+          },
+          archivedAt: null,
+          updatedAt: new Date("2026-05-09T08:26:00.000Z"),
+        },
+        {
+          id: "step-inferred",
+          lessonId: "lesson-owned",
+          type: "content",
+          title: "教师讲授",
+          rank: "a2",
+          payloadJson: {
+            type: "content",
+            title: "教师讲授",
+            body: "讲授内容",
+            materialRefs: [],
+          },
+          archivedAt: null,
+          updatedAt: new Date("2026-05-09T08:27:00.000Z"),
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "step-refine",
+          lessonId: "lesson-owned",
+          type: "task",
+          title: "分组实验",
+          rank: "a1",
+          payloadJson: {
+            type: "task",
+            prompt: "完成实验并记录现象",
+            submissionType: "text",
+            materialRefs: [],
+            teachingDesign: {
+              activityIntent: "apply",
+              evidenceExpectation: {
+                prompt: "上传实验截图",
+              },
+            },
+          },
+          archivedAt: null,
+          updatedAt: new Date("2026-05-09T08:26:00.000Z"),
+        },
+        {
+          id: "step-inferred",
+          lessonId: "lesson-owned",
+          type: "content",
+          title: "教师讲授",
+          rank: "a2",
+          payloadJson: {
+            type: "content",
+            title: "教师讲授",
+            body: "讲授内容",
+            materialRefs: [],
+          },
+          archivedAt: null,
+          updatedAt: new Date("2026-05-09T08:27:00.000Z"),
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "step-refine",
+          lessonId: "lesson-owned",
+          type: "task",
+          title: "分组实验",
+          rank: "a1",
+          payloadJson: {
+            type: "task",
+            prompt: "完成实验并记录现象",
+            submissionType: "text",
+            materialRefs: [],
+            teachingDesign: {
+              activityIntent: "apply",
+              evidenceExpectation: {
+                prompt: "上传实验截图",
+              },
+            },
+          },
+          archivedAt: null,
+          updatedAt: new Date("2026-05-09T08:26:00.000Z"),
+        },
+        {
+          id: "step-inferred",
+          lessonId: "lesson-owned",
+          type: "content",
+          title: "教师讲授",
+          rank: "a2",
+          payloadJson: {
+            type: "content",
+            title: "教师讲授",
+            body: "讲授内容",
+            materialRefs: [],
+          },
+          archivedAt: null,
+          updatedAt: new Date("2026-05-09T08:27:00.000Z"),
+        },
+      ]);
+
+    const editor = await (dal.getLessonEditorDTO as (lessonId: string) => Promise<{
+      preparationSummary: {
+        evidenceReadyStepCount: number;
+        blockingIssues: Array<{ code: string }>;
+        attentionIssues: Array<{ code: string; stepId?: string | null }>;
+        advisoryIssues: Array<{ code: string; stepId?: string | null }>;
+      };
+    }>)("lesson-owned");
+
+    expect(editor.preparationSummary.evidenceReadyStepCount).toBe(1);
+    expect(editor.preparationSummary.blockingIssues).toEqual([]);
+    expect(editor.preparationSummary.attentionIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "TEACHING_DESIGN_NEEDS_REFINEMENT", stepId: "step-refine" }),
+      ])
+    );
+    expect(editor.preparationSummary.advisoryIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "TEACHING_DESIGN_INFERRED", stepId: "step-inferred" }),
+        expect.objectContaining({ code: "MATERIAL_CUES_MISSING", stepId: "step-refine" }),
+        expect.objectContaining({ code: "MATERIAL_CUES_MISSING", stepId: "step-inferred" }),
+        expect.objectContaining({ code: "EVIDENCE_EXPECTATION_MISSING", stepId: "step-inferred" }),
+      ])
+    );
+    expect(editor.preparationSummary.advisoryIssues).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "TEACHING_DESIGN_INFERRED", stepId: "step-refine" }),
+      ])
+    );
   });
 });

@@ -15,6 +15,7 @@ describe("LessonEditorSurface quick layout trim", () => {
     expect(source).toContain("课堂教学活动编排");
     expect(source).toContain("建议使用桌面端编辑");
     expect(source).toContain("const previewHref = lesson ?");
+    expect(source).toContain("开课前摘要");
     expect(source).toContain("themes={themes}");
   });
 });

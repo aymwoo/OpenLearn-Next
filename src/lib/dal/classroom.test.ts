@@ -18,6 +18,7 @@ const findManyUsers = vi.fn();
 const findManyClassroomEvents = vi.fn();
 const findManyClassroomTimeline = vi.fn();
 const findFirstClassMembers = vi.fn();
+const findManyClassMembers = vi.fn();
 const insertValues = vi.fn();
 const insertMock = vi.fn();
 const assertActiveTeacher = vi.fn();
@@ -38,7 +39,7 @@ vi.mock("@/db", () => ({
       users: { findMany: findManyUsers },
       classroomEvents: { findMany: findManyClassroomEvents },
       classroomTimeline: { findMany: findManyClassroomTimeline },
-      classMembers: { findFirst: findFirstClassMembers },
+      classMembers: { findFirst: findFirstClassMembers, findMany: findManyClassMembers },
     },
     insert: insertMock,
   },
@@ -114,6 +115,14 @@ describe("getClassroomConsoleDTO", () => {
           ],
           materials: [],
         },
+      },
+    ]);
+    findManyClassMembers.mockResolvedValue([
+      {
+        id: "member-1",
+        classId: "class-in-scope",
+        userId: "student-1",
+        role: "student",
       },
     ]);
     findFirstClassroomSessions.mockResolvedValue({
@@ -209,12 +218,54 @@ describe("getClassroomConsoleDTO", () => {
     expect(dto.publishedLessons).toHaveLength(1);
     expect(dto.publishedLessons[0]?.id).toBe("lesson-in-scope");
     expect(dto.publishedLessons[0]?.classes).toEqual([
-      { id: "class-in-scope", name: "一班" },
+      {
+        id: "class-in-scope",
+        name: "一班",
+        studentCount: 1,
+        rosterSummary: {
+          classId: "class-in-scope",
+          className: "一班",
+          studentCount: 1,
+          launchScopeLabel: "整班启动",
+          note: "本次会按整班名单同步进入课堂；如需调整名册，请先回到班级相关页面处理。",
+        },
+      },
     ]);
     expect(dto.publishedLessons[0]?.classes.some((clazz) => clazz.id === "class-out-of-scope")).toBe(false);
     expect(findManyCourses).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
     expect(findManyLessons).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
     expect(findManyClasses).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
+  });
+
+  it("adds narrow launch blockers only for missing launchable rosters while keeping inferred cues non-blocking", async () => {
+    findManyClassMembers.mockResolvedValueOnce([]);
+
+    const { getClassroomConsoleDTO } = await import("./classroom");
+    const dto = await getClassroomConsoleDTO();
+
+    expect(dto.publishedLessons[0]?.launchReadiness.blockingIssues).toEqual([
+      expect.objectContaining({ code: "NO_LAUNCHABLE_CLASSES" }),
+    ]);
+    expect(dto.publishedLessons[0]?.launchReadiness.attentionIssues).toEqual([
+      expect.objectContaining({ code: "TEACHING_DESIGN_INFERRED" }),
+    ]);
+    expect(dto.publishedLessons[0]?.launchReadiness.advisoryIssues).toEqual([
+      expect.objectContaining({ code: "MATERIAL_CUES_MISSING" }),
+      expect.objectContaining({ code: "EVIDENCE_CUES_REVIEW" }),
+    ]);
+    expect(dto.publishedLessons[0]?.launchReadiness.attentionIssues).not.toEqual([
+      expect.objectContaining({ code: "TEACHING_DESIGN_NEEDS_REFINEMENT", stepId: "step-1" }),
+      expect.objectContaining({ code: "TEACHING_DESIGN_INFERRED", stepId: "step-1" }),
+    ]);
+  });
+
+  it("keeps launch readiness blockers narrow when published snapshots only need preparation cues", async () => {
+    const { getClassroomConsoleDTO } = await import("./classroom");
+    const dto = await getClassroomConsoleDTO();
+
+    expect(dto.publishedLessons[0]?.launchReadiness.blockingIssues).toEqual([]);
+    expect(dto.publishedLessons[0]?.launchReadiness.attentionIssues.map((issue) => issue.code)).toContain("TEACHING_DESIGN_INFERRED");
+    expect(dto.publishedLessons[0]?.launchReadiness.advisoryIssues.map((issue) => issue.code)).toContain("MATERIAL_CUES_MISSING");
   });
 
   it("prefers structured teaching design metadata in launch preview", async () => {

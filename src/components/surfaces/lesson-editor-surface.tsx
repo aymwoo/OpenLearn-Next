@@ -42,6 +42,15 @@ export function LessonEditorSurface({
   const activeStepCount = steps.filter((step) => !step.archivedAt).length;
   const builtInStepCount = steps.filter((step) => step.payload.builtInSource).length;
   const previewHref = lesson ? `/teacher/editor/preview?courseId=${lesson.course.id}&lessonId=${lesson.lesson.id}` : null;
+  const preparationStatus = lesson
+    ? lesson.preparationSummary.blockingIssues.length > 0
+      ? "阻断项待处理"
+      : lesson.preparationSummary.attentionIssues.length > 0
+        ? "需关注"
+        : lesson.preparationSummary.advisoryIssues.length > 0
+          ? "建议完善"
+          : "可进入开课准备"
+    : null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -102,6 +111,11 @@ export function LessonEditorSurface({
               {lesson?.publishState.latestVersion ? (
                 <span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
                   已发布 v{lesson.publishState.latestVersion}
+                </span>
+              ) : null}
+              {preparationStatus ? (
+                <span className="rounded-full bg-surface-container-high px-3 py-1.5 text-xs font-semibold text-on-surface">
+                  开课前摘要：{preparationStatus}
                 </span>
               ) : null}
 

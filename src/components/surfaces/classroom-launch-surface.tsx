@@ -31,7 +31,7 @@ export function ClassroomLaunchSurface({
 }: ClassroomLaunchSurfaceProps) {
   const classCount = new Set(
     consoleData.publishedLessons.flatMap((lesson) =>
-      lesson.classes.map((item) => item.id),
+      lesson.classes.filter((item) => item.studentCount > 0).map((item) => item.id),
     ),
   ).size;
 
@@ -58,7 +58,7 @@ export function ClassroomLaunchSurface({
                 开启新课堂
               </h1>
               <p className="mt-3 text-sm leading-7 text-on-primary/85 sm:text-base sm:leading-8">
-                先确认已发布课时与班级名单，再进入运行台。若当前已有 live
+                先确认已发布课时、整班名册与课堂节奏，再进入运行台。若当前已有 live
                 classroom，可从右侧次级恢复区继续上课，但不会压过新开课堂主动作。
               </p>
             </div>
@@ -93,7 +93,7 @@ export function ClassroomLaunchSurface({
           launchPreviewEmptyState={consoleData.launchPreviewEmptyState}
           successHref="/classroom"
           title="新课堂准备"
-          description="从已发布课时中选择本次课堂内容，并指定要同步进入课堂的班级。创建成功后会直接切换到运行台。"
+          description="从已发布课时中选择本次课堂内容，并指定要同步进入课堂的整班名单。主舞台会同步展示 class-facing run sheet，帮助你在启动前确认节奏、材料与采证提醒。"
           ctaLabel="开启新课堂"
         />
 

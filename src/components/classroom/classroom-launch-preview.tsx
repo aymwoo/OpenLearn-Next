@@ -17,7 +17,7 @@ export function ClassroomLaunchPreview({ preview, emptyState }: ClassroomLaunchP
   if (!preview) {
     return (
       <Card className="bg-surface-container-low p-5 sm:p-6">
-        <Badge variant="default" className="mb-4 bg-surface-container-lowest">课堂节奏预览</Badge>
+        <Badge variant="default" className="mb-4 bg-surface-container-lowest">课堂 run sheet</Badge>
         <div className="rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
           <div className="flex items-center gap-3 text-primary">
             <span className="rounded-full bg-surface-container-low p-2">
@@ -36,10 +36,10 @@ export function ClassroomLaunchPreview({ preview, emptyState }: ClassroomLaunchP
     <Card className="bg-surface-container-low p-5 sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <Badge variant="default" className="mb-4 bg-surface-container-lowest">课堂节奏预览</Badge>
+          <Badge variant="default" className="mb-4 bg-surface-container-lowest">课堂 run sheet</Badge>
           <h3 className="text-xl font-semibold text-on-surface">{preview.lessonTitle}</h3>
           <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-            开课后将按下列顺序推进，帮助你在启动前确认讲授、互动与测验节奏。
+            开课后将按下列顺序推进，帮助你在启动前快速确认课堂节奏、材料提示与采证提醒。
           </p>
           <p className="mt-3 rounded-[1rem] bg-surface-container-lowest px-4 py-3 text-sm leading-6 text-on-surface-variant">
             课堂仍会按已发布快照启动，本期不会因为默认推断而阻断开课。
@@ -83,7 +83,16 @@ export function ClassroomLaunchPreview({ preview, emptyState }: ClassroomLaunchP
                     ) : null}
                   </div>
                   <p className="mt-3 text-sm leading-6 text-on-surface-variant">{step.summary}</p>
-                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">{step.evidenceSummary}</p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[1rem] bg-surface-container-low px-3 py-3 text-sm text-on-surface-variant">
+                      <p className="font-medium text-on-surface">活动节奏</p>
+                      <p className="mt-1 leading-6">{step.family}，预计 {step.estimatedMinutes} 分钟。</p>
+                    </div>
+                    <div className="rounded-[1rem] bg-surface-container-low px-3 py-3 text-sm text-on-surface-variant">
+                      <p className="font-medium text-on-surface">采证提醒</p>
+                      <p className="mt-1 leading-6">{step.evidenceSummary}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -218,6 +218,86 @@ function buildLaunchPreview(snapshot: PublishedSnapshot, fallbackLessonId: strin
   };
 }
 
+function buildLaunchRosterSummary(input: {
+  classId: string;
+  className: string;
+  studentCount: number;
+}) {
+  return {
+    classId: input.classId,
+    className: input.className,
+    studentCount: input.studentCount,
+    launchScopeLabel: "整班启动",
+    note: "本次会按整班名单同步进入课堂；如需调整名册，请先回到班级相关页面处理。",
+  };
+}
+
+function buildLaunchReadiness(input: {
+  preview: ReturnType<typeof buildLaunchPreview>;
+  launchableClassCount: number;
+}) {
+  const blockingIssues = input.launchableClassCount === 0
+    ? [{
+        code: "NO_LAUNCHABLE_CLASSES" as const,
+        message: "当前课时还没有可直接开课的整班名单，请先确认已绑定班级且名单中有学生。",
+      }]
+    : [];
+
+  const inferredSteps = input.preview.steps.filter((step) => step.teachingDesignStatus === "inferred");
+  const refinementSteps = input.preview.steps.filter((step) => step.teachingDesignStatus === "needs-refinement");
+  const missingMaterialSteps = input.preview.steps.filter((step) => step.materialCues.length === 0);
+  const evidenceReviewSteps = input.preview.steps.filter((step) => step.teachingDesignStatus !== "explicit");
+
+  const attentionIssues = [] as Array<{
+    code: "TEACHING_DESIGN_NEEDS_REFINEMENT" | "TEACHING_DESIGN_INFERRED";
+    message: string;
+    stepId?: string | null;
+  }>;
+  const advisoryIssues = [] as Array<{
+    code: "MATERIAL_CUES_MISSING" | "EVIDENCE_CUES_REVIEW";
+    message: string;
+    stepId?: string | null;
+  }>;
+
+  if (refinementSteps.length > 0) {
+    attentionIssues.push({
+      code: "TEACHING_DESIGN_NEEDS_REFINEMENT",
+      message: `${refinementSteps.length} 个环节的教学设计仍需完善，建议开课前再确认活动方式与时间分配。`,
+      stepId: refinementSteps[0]?.id ?? null,
+    });
+  }
+
+  if (inferredSteps.length > 0) {
+    attentionIssues.push({
+      code: "TEACHING_DESIGN_INFERRED",
+      message: `${inferredSteps.length} 个环节仍在使用默认推断，不会阻断开课，但建议教师先过一遍课堂节奏。`,
+      stepId: inferredSteps[0]?.id ?? null,
+    });
+  }
+
+  if (missingMaterialSteps.length > 0) {
+    advisoryIssues.push({
+      code: "MATERIAL_CUES_MISSING",
+      message: `${missingMaterialSteps.length} 个环节还没有明确材料提示，建议开课前补齐讲义、链接或设备准备。`,
+      stepId: missingMaterialSteps[0]?.id ?? null,
+    });
+  }
+
+  if (evidenceReviewSteps.length > 0) {
+    advisoryIssues.push({
+      code: "EVIDENCE_CUES_REVIEW",
+      message: `${evidenceReviewSteps.length} 个环节的采证提醒仍需教师确认，建议开课前明确要观察或收集什么。`,
+      stepId: evidenceReviewSteps[0]?.id ?? null,
+    });
+  }
+
+  return {
+    blockingIssues,
+    attentionIssues,
+    advisoryIssues,
+  };
+}
+
 function parseInterventionPayload(payload: unknown) {
   const record = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
 
@@ -572,12 +652,23 @@ export async function getClassroomConsoleDTO() {
       })
     : [];
 
-  const classesRows = await db.query.classes.findMany({
-    where: inArray(classes.schoolId, scope.schoolIds),
-  });
-  const courseClassesRows = scopedCourseIds.length
-    ? await db.query.courseClasses.findMany({
-        where: inArray(courseClasses.courseId, scopedCourseIds),
+  const [classesRows, courseClassesRows] = await Promise.all([
+    db.query.classes.findMany({
+      where: inArray(classes.schoolId, scope.schoolIds),
+    }),
+    scopedCourseIds.length
+      ? db.query.courseClasses.findMany({
+          where: inArray(courseClasses.courseId, scopedCourseIds),
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const classMemberRows = classesRows.length > 0
+    ? await db.query.classMembers.findMany({
+        where: and(
+          inArray(classMembers.classId, classesRows.map((clazz) => clazz.id)),
+          eq(classMembers.role, "student")
+        ),
       })
     : [];
   
@@ -591,6 +682,11 @@ export async function getClassroomConsoleDTO() {
       })
     : [];
   const publishedVersionMap = new Map(publishedVersionRows.map((version) => [version.id, version]));
+  const studentCountByClassId = new Map<string, number>();
+
+  for (const member of classMemberRows) {
+    studentCountByClassId.set(member.classId, (studentCountByClassId.get(member.classId) ?? 0) + 1);
+  }
 
   const publishedLessons = publishedLessonsRows
     .filter((lesson) => Boolean(lesson.publishedVersionId))
@@ -599,22 +695,43 @@ export async function getClassroomConsoleDTO() {
       const linkedClasses = classesRows.filter((clazz) => courseClassIds.includes(clazz.id));
       const publishedVersion = publishedVersionMap.get(lesson.publishedVersionId!);
       const snapshot = parseSnapshot(publishedVersion?.snapshotJson);
+      const launchPreview = buildLaunchPreview(snapshot, lesson.id, lesson.title);
+      const classOptions = linkedClasses
+        .map((clazz) => {
+          const studentCount = studentCountByClassId.get(clazz.id) ?? 0;
+
+          return {
+            id: clazz.id,
+            name: clazz.name,
+            studentCount,
+            rosterSummary: buildLaunchRosterSummary({
+              classId: clazz.id,
+              className: clazz.name,
+              studentCount,
+            }),
+          };
+        });
+
+      const launchableClasses = classOptions.filter((clazz) => clazz.studentCount > 0);
 
       return {
         id: lesson.id,
         title: lesson.title,
         publishedVersionId: lesson.publishedVersionId!,
         courseId: lesson.courseId,
-        classes: linkedClasses.map((clazz) => ({ id: clazz.id, name: clazz.name })),
-        launchPreview: buildLaunchPreview(snapshot, lesson.id, lesson.title),
+        classes: classOptions,
+        launchPreview,
+        launchReadiness: buildLaunchReadiness({
+          preview: launchPreview,
+          launchableClassCount: launchableClasses.length,
+        }),
       };
-    })
-    .filter((lesson) => lesson.classes.length > 0);
+    });
 
   return ClassroomConsoleDTOSchema.parse({
     liveSessions,
     publishedLessons,
-    emptyStateCopy: "还没有可开课的已发布课时",
+    emptyStateCopy: "还没有可开课的已发布课时或可用班级",
     launchPreviewEmptyState: {
       title: "先选择一个已发布课时",
       description: "选定课时后，这里会展示上课步骤顺序、每一步摘要、预计时长与所需材料提示，方便你在开课前快速确认课堂节奏。",
