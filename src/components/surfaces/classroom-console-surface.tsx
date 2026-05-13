@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
-import type { ClassroomSnapshotDTO } from "@/lib/dto/classroom";
+import type { ClassroomSnapshotDTO, ClassroomStudentDetailDTO, ClassroomStudentDetailTab } from "@/lib/dto/classroom";
 import { cn } from "@/lib/utils";
 
 type ClassroomConsoleDTO = {
@@ -42,9 +42,13 @@ type ClassroomConsoleDTO = {
 export function ClassroomConsoleSurface({
   consoleData,
   initialSnapshot,
+  studentDetail,
+  activeDetailTab,
 }: {
   consoleData: ClassroomConsoleDTO;
   initialSnapshot: ClassroomSnapshotDTO | null;
+  studentDetail?: ClassroomStudentDetailDTO | null;
+  activeDetailTab?: ClassroomStudentDetailTab;
 }) {
   const classCount = new Set(
     consoleData.publishedLessons.flatMap((lesson) =>
@@ -134,7 +138,7 @@ export function ClassroomConsoleSurface({
           </p>
         </section>
 
-        <ClassroomControlPanel initialSnapshot={initialSnapshot} />
+        <ClassroomControlPanel initialSnapshot={initialSnapshot} studentDetail={studentDetail ?? null} activeDetailTab={activeDetailTab ?? 'evidence'} />
       </div>
     );
   }

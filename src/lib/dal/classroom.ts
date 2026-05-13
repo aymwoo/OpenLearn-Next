@@ -24,8 +24,10 @@ import {
   ClassroomConsoleDTOSchema,
   ClassroomActionResultDTOSchema,
   ClassroomEvidenceDTOSchema,
+  ClassroomStudentDetailDTOSchema,
   ClassroomSnapshotDTOSchema,
   ClassroomFormativeEvaluationPayloadSchema,
+  GetClassroomStudentDetailInputSchema,
   ListStudentFormativeEvaluationEntriesInputSchema,
   RecordStudentFormativeEvaluationInputSchema,
   StudentQuickResponseInputSchema,
@@ -749,6 +751,86 @@ export async function listStudentFormativeEvaluationEntries(rawInput: unknown) {
     })
     .filter((entry): entry is ReturnType<typeof StudentFormativeEvaluationEntryDTOSchema.parse> => Boolean(entry))
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+}
+
+export async function getClassroomStudentDetailDTO(rawInput: unknown) {
+  const input = GetClassroomStudentDetailInputSchema.parse(rawInput);
+
+  if (!input.studentId) {
+    return null;
+  }
+
+  await getTeacherSessionScope(input.sessionId);
+  const participant = await ensureSessionStudentParticipant(input.sessionId, input.studentId);
+  const student = await db.query.users.findFirst({ where: eq(users.id, input.studentId) });
+
+  const evidenceRows = await db.query.classroomEvidence.findMany({
+    where: and(
+      eq(classroomEvidence.sessionId, input.sessionId),
+      eq(classroomEvidence.studentId, input.studentId),
+    ),
+  });
+
+  const evaluationEntries = evidenceRows
+    .map((evidence) => {
+      const rawPayload = evidence.payloadJson;
+      if (!rawPayload || typeof rawPayload !== "object") {
+        return null;
+      }
+
+      const payload = rawPayload as Record<string, unknown>;
+      if (payload.kind !== "formative-evaluation") {
+        return null;
+      }
+
+      const formativePayload = ClassroomFormativeEvaluationPayloadSchema.parse(payload);
+
+      return StudentFormativeEvaluationEntryDTOSchema.parse({
+        id: evidence.id,
+        sessionId: evidence.sessionId,
+        studentId: evidence.studentId ?? input.studentId,
+        participationLevel: formativePayload.participationLevel,
+        tags: formativePayload.tags,
+        observationNote: formativePayload.observationNote,
+        capturedById: evidence.capturedById,
+        createdAt: toIso(evidence.createdAt),
+      });
+    })
+    .filter((entry): entry is ReturnType<typeof StudentFormativeEvaluationEntryDTOSchema.parse> => Boolean(entry))
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+
+  const evidenceEntries = evidenceRows
+    .filter((evidence) => {
+      const rawPayload = evidence.payloadJson;
+      if (!rawPayload || typeof rawPayload !== "object") {
+        return true;
+      }
+
+      const payload = rawPayload as Record<string, unknown>;
+      return payload.kind !== "formative-evaluation";
+    })
+    .map((evidence) =>
+      ClassroomEvidenceDTOSchema.parse({
+        id: evidence.id,
+        sessionId: evidence.sessionId,
+        studentId: evidence.studentId,
+        stepId: evidence.stepId,
+        sourceType: evidence.sourceType,
+        evidenceType: evidence.evidenceType,
+        payload: evidence.payloadJson,
+        capturedById: evidence.capturedById,
+        createdAt: toIso(evidence.createdAt),
+      }),
+    )
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+
+  return ClassroomStudentDetailDTOSchema.parse({
+    studentId: participant.studentId,
+    studentName: student?.name ?? "学生",
+    evidenceEntries,
+    evaluationEntries,
+    latestParticipationLevel: evaluationEntries[0]?.participationLevel ?? null,
+  });
 }
 
 export async function recordClassroomIntervention(input: unknown) {
