@@ -133,9 +133,9 @@ progress:
 
 ## Next Steps
 
-1. 使用 `/gsd-plan-phase 21` 为“Teaching design contracts and evidence foundation”生成详细计划。
-2. 若需要先补旧课程尾项，只在独立上下文中推进 Phase 14 或 Phase 15，不把其 scope 混入 v1.3。
-3. 进入实现前，优先解决当前 `pnpm build` 在 `/classroom` 上的 Suspense 阻塞，避免影响后续 classroom 相关 phase 验证。
+1. 使用 `/gsd-discuss-phase 23` 收敛“Student in-class activity flow”的范围、验证重点与依赖边界。
+2. 在讨论完成后使用 `/gsd-plan-phase 23` 生成详细计划，但不要在当前同步任务中启动 Phase 23 实施。
+3. 若需要先补旧课程尾项，只在独立上下文中推进 Phase 14 或 Phase 15，不把其 scope 混入 v1.3。
 
 ## Performance Metrics
 

@@ -8,7 +8,7 @@
 ### Current milestone phases
 
 - [x] **Phase 21: Teaching design contracts and evidence foundation** - Extend the current linear lesson model with teaching-design metadata, class-launch contracts, and durable classroom evidence primitives. (completed 2026-05-13)
-- [ ] **Phase 22: Teacher orchestration workspace and launch preparation** - Turn the current editor and launch path into a class-ready teaching orchestration workspace with readiness gating.
+- [x] **Phase 22: Teacher orchestration workspace and launch preparation** - Turn the current editor and launch path into a class-ready teaching orchestration workspace with readiness gating. (completed 2026-05-13)
 - [ ] **Phase 23: Student in-class activity flow** - Upgrade the student runtime into a clearer classroom activity experience with durable quick-response and evidence capture.
 - [ ] **Phase 24: Live classroom operations and formative evaluation** - Bring runtime monitoring, participation tracking, observation notes, and unified evaluation workflow into the teacher classroom product surface.
 - [ ] **Phase 25: Teaching data capture and session analytics** - Aggregate classroom evidence into deterministic session-level metrics, recap views, and teacher workload summaries.
@@ -184,9 +184,9 @@
   3. The orchestration workspace preserves the current course/lesson entry discipline and does not regress existing editor or launch safety constraints.
   4. The page follows the existing Stitch-aligned teacher product language instead of introducing a utilitarian admin-only workflow.
 **Plans**: 3 plans
-- [ ] 22-01-PLAN.md — Expand teacher editor read/write models to expose teaching-design metadata and preparation summary.
-- [ ] 22-02-PLAN.md — Upgrade `/teacher/launch` into a structured launch-preparation surface with class-facing run sheet and blocking readiness issues.
-- [ ] 22-03-PLAN.md — Add regression coverage for orchestration wiring, readiness gating, and teacher-owned route boundaries.
+- [x] 22-01-PLAN.md — Expand teacher editor read/write models to expose teaching-design metadata and preparation summary.
+- [x] 22-02-PLAN.md — Upgrade `/teacher/launch` into a structured launch-preparation surface with class-facing run sheet and blocking readiness issues.
+- [x] 22-03-PLAN.md — Add regression coverage for orchestration wiring, readiness gating, and teacher-owned route boundaries.
 **UI hint**: yes
 
 ### Phase 23: Student in-class activity flow
@@ -264,7 +264,7 @@
 | 19. Teacher shell route metadata system | 3/3 | Complete | 2026-05-11 |
 | 20. Help center and developer guides | 3/3 | Complete | 2026-05-11 |
 | 21. Teaching design contracts and evidence foundation | 5/5 | Complete   | 2026-05-13 |
-| 22. Teacher orchestration workspace and launch preparation | 0/3 | Not started | - |
+| 22. Teacher orchestration workspace and launch preparation | 3/3 | Complete | 2026-05-13 |
 | 23. Student in-class activity flow | 0/3 | Not started | - |
 | 24. Live classroom operations and formative evaluation | 0/4 | Not started | - |
 | 25. Teaching data capture and session analytics | 0/3 | Not started | - |
