@@ -8,6 +8,7 @@ import { ClassroomSnapshotDTOSchema } from '@/lib/dto/classroom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { QuickResponseStepCard } from '@/components/learning/quick-response-step-card'
 import { QuizStepCard } from '@/components/learning/quiz-step-card'
 import { TaskStepCard } from '@/components/learning/task-step-card'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
@@ -91,6 +92,18 @@ function CurrentStepRenderer({ player, step }: { player: StudentPlayerDTO; step:
   }
 
   if (step.type === 'content') {
+    if (activity.evidenceCapturePath === 'student-quick-response' && player.runtime.classroomSessionId) {
+      return (
+        <QuickResponseStepCard
+          lessonId={player.shell.lessonId}
+          sessionId={player.runtime.classroomSessionId}
+          step={step}
+          latestResponse={player.latestQuickResponse?.stepId === step.id ? player.latestQuickResponse : null}
+          history={player.quickResponseHistory.filter((attempt) => attempt.stepId === step.id)}
+        />
+      )
+    }
+
     return <ContentStepCard player={player} step={step} state={state} />
   }
 

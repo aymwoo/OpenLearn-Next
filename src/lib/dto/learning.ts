@@ -101,6 +101,7 @@ export const StudentStepActivityDTOSchema = z.object({
   completionStateCopy: z.string(),
   activityModeLabel: z.string(),
   estimatedMinutesLabel: z.string(),
+  evidenceCapturePath: z.enum(["none", "task-submission", "quiz-attempt", "student-quick-response"]).default("none"),
 });
 
 export const StudentLessonCardDTOSchema = z.object({

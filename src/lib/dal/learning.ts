@@ -191,6 +191,30 @@ function getEvidenceExpectationSummary(step: LearningStepDTO) {
   return "本步骤需要提交课堂回应，提交后会记为一次新的课堂记录。";
 }
 
+function getEvidenceCapturePath(step: LearningStepDTO) {
+  const payload = step.payload;
+  const resolution = resolveTeachingDesignInput(step.type, payload.teachingDesign);
+  const expectation = resolution.teachingDesign.evidenceExpectation;
+
+  if (!expectation.required) {
+    return "none" as const;
+  }
+
+  if (step.type === "task") {
+    return "task-submission" as const;
+  }
+
+  if (step.type === "quiz") {
+    return "quiz-attempt" as const;
+  }
+
+  if (expectation.evidenceType === "response") {
+    return "student-quick-response" as const;
+  }
+
+  return "none" as const;
+}
+
 function getCompletionStateCopy(input: {
   step: LearningStepDTO;
   state: ProgressState;
@@ -241,6 +265,7 @@ function buildStudentStepActivities(input: {
       }),
       activityModeLabel: ACTIVITY_MODE_LABELS[resolution.teachingDesign.activityMode],
       estimatedMinutesLabel: `预计 ${resolution.teachingDesign.estimatedMinutes} 分钟`,
+      evidenceCapturePath: getEvidenceCapturePath(step),
     };
   });
 }
