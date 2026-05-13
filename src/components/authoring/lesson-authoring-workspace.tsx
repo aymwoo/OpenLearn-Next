@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, ClipboardCheck, FileText, GripVertical, PencilLine, Save, Search, Sparkles, X } from "lucide-react";
+import { BookOpenText, ClipboardCheck, Clock3, FileText, GripVertical, PencilLine, Save, Search, Sparkles, X } from "lucide-react";
 
 import {
   addLessonStepAction,
@@ -425,13 +425,17 @@ function FlowStepCard({
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${selected ? "bg-primary" : "bg-surface-variant group-hover:bg-primary/60"}`} />
         <button type="button" onClick={onSelect} className="flex w-full items-start gap-4 text-left">
           <span className={`grid size-10 shrink-0 place-items-center rounded-full text-sm font-semibold ${selected ? "bg-primary text-white" : "bg-surface-container-high text-on-surface-variant"}`}>{index + 1}</span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-start justify-between gap-3">
-              <span>
-                <span className="block text-base font-semibold text-on-surface">{step.title}</span>
-                <span className="mt-2 block text-sm text-on-surface-variant">{getStepDescription(step)}</span>
+          <span className="min-w-0 flex flex-1 flex-col">
+            <span>
+              <span className="block text-base font-semibold text-on-surface">{step.title}</span>
+              <span className="mt-2 block text-sm text-on-surface-variant">{getStepDescription(step)}</span>
+            </span>
+            <span className="mt-3 flex flex-wrap gap-3">
+              <span className="inline-flex shrink-0 items-center gap-2 rounded-[1rem] bg-surface-container px-3 py-2 text-sm text-on-surface shadow-[inset_0_0_0_1px_rgba(116,132,153,0.08)]">
+                <Clock3 className="size-4 text-primary" aria-hidden />
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">预计时长</span>
+                <span className="text-sm font-semibold text-on-surface">{getStepMinutes(step)} 分钟</span>
               </span>
-              <span className="rounded-[0.8rem] bg-surface-container px-3 py-1 text-xs font-medium text-on-surface-variant">{getStepMinutes(step)} min</span>
             </span>
             <span className="mt-3 flex flex-wrap gap-2">
               <span className="inline-flex rounded-full bg-surface-container-high px-3 py-1 text-xs font-medium text-on-surface-variant">{stepLabels[step.type]}</span>
