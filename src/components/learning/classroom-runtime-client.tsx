@@ -37,17 +37,17 @@ function stepHref(player: StudentPlayerDTO, step: LearningStepDTO) {
   return `/student/player?lessonId=${encodeURIComponent(player.shell.lessonId)}&stepId=${encodeURIComponent(step.id)}`
 }
 
+function getStepActivity(player: StudentPlayerDTO, stepId: string) {
+  return player.stepActivities.find((activity) => activity.stepId === stepId) ?? null
+}
+
 function ContentStepCard({ player, step, state }: { player: StudentPlayerDTO; step: LearningStepDTO; state: ProgressState }) {
   const payload = step.payload as { body?: string; content?: string; summary?: string }
   const body = payload.body || payload.content || payload.summary || '这个步骤暂时没有正文内容，请继续下一个步骤。'
   const isMarkdown = step.payload.type === 'content' && Boolean(step.payload.markdown)
 
   return (
-    <div className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-low p-5 sm:p-8">
-      <div className="flex items-center gap-3">
-        <MonitorPlay className="size-6 text-primary" aria-hidden />
-        <h3 className="text-2xl font-semibold">{step.title}</h3>
-      </div>
+    <div className="space-y-6">
       {isMarkdown ? (
         <div className="mt-5">
           <MarkdownRenderer
@@ -62,12 +62,12 @@ function ContentStepCard({ player, step, state }: { player: StudentPlayerDTO; st
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="rounded-3xl bg-surface-container-lowest p-5">
           <BookOpen className="mb-3 size-6 text-primary" aria-hidden />
-          <p className="font-semibold">学习提示</p>
-          <p className="mt-2 text-sm leading-6 text-on-surface-variant">完成阅读后先确认状态，再手动进入下一个步骤。</p>
+          <p className="font-semibold">阅读内容</p>
+          <p className="mt-2 text-sm leading-6 text-on-surface-variant">完成阅读后先确认状态，再按课堂节奏继续下一步。</p>
         </div>
         <div className="rounded-3xl bg-surface-container-lowest p-5">
           <CheckCircle2 className="mb-3 size-6 text-tertiary" aria-hidden />
-          <p className="font-semibold">完成状态</p>
+          <p className="font-semibold">完成动作</p>
           <p className="mt-2 text-sm leading-6 text-on-surface-variant">{state === 'completed' ? '已完成阅读' : '阅读后点击按钮记录进度。'}</p>
         </div>
       </div>
@@ -84,6 +84,11 @@ function ContentStepCard({ player, step, state }: { player: StudentPlayerDTO; st
 
 function CurrentStepRenderer({ player, step }: { player: StudentPlayerDTO; step: LearningStepDTO }) {
   const state = getStepState(player, step.id)
+  const activity = getStepActivity(player, step.id)
+
+  if (!activity) {
+    return null
+  }
 
   if (step.type === 'content') {
     return <ContentStepCard player={player} step={step} state={state} />
@@ -97,6 +102,7 @@ function CurrentStepRenderer({ player, step }: { player: StudentPlayerDTO; step:
         step={step}
         latestAttempt={player.latestSubmissions.tasks.find((attempt) => attempt.stepId === step.id) ?? null}
         attempts={player.history.tasks.filter((attempt) => attempt.stepId === step.id)}
+        promptTone="muted"
       />
     )
   }
@@ -112,6 +118,7 @@ function CurrentStepRenderer({ player, step }: { player: StudentPlayerDTO; step:
         attempts={player.history.quizzes.filter((attempt) => attempt.stepId === step.id)}
         canRetryQuiz={latestAttempt?.canRetryQuiz ?? player.canRetryQuiz}
         showCorrectAnswer={latestAttempt?.showCorrectAnswer ?? player.showCorrectAnswer}
+        guidanceTone="muted"
       />
     )
   }
@@ -126,6 +133,51 @@ function CurrentStepRenderer({ player, step }: { player: StudentPlayerDTO; step:
         当前步骤会在本计划接入提交卡片。正在加载你的学习进度... 正在读取最近一次提交...
       </p>
     </div>
+  )
+}
+
+function StepActivityShell({ player, step }: { player: StudentPlayerDTO; step: LearningStepDTO }) {
+  const activity = getStepActivity(player, step.id)
+  const state = getStepState(player, step.id)
+
+  if (!activity) {
+    return <CurrentStepRenderer player={player} step={step} />
+  }
+
+  return (
+    <section className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-low p-5 sm:p-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-primary">当前活动</p>
+          <h3 className="mt-3 text-2xl font-semibold">{step.title}</h3>
+          <p className="mt-2 text-sm text-on-surface-variant">{activity.activityModeLabel} · {activity.estimatedMinutesLabel}</p>
+        </div>
+        <Badge variant="accent">{player.runtime.forcedStepId === step.id ? '老师指定' : stateCopy[state]}</Badge>
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        <div className="rounded-3xl bg-surface-container-lowest p-5">
+          <p className="text-sm font-semibold text-on-surface-variant">活动提示</p>
+          <p className="mt-2 leading-7 text-on-surface">{activity.activityGuidance}</p>
+        </div>
+        <div className="rounded-3xl bg-surface-container-lowest p-5">
+          <p className="text-sm font-semibold text-on-surface-variant">你将完成</p>
+          <p className="mt-2 leading-7 text-on-surface">{activity.expectedOutput}</p>
+        </div>
+        <div className="rounded-3xl bg-surface-container-lowest p-5">
+          <p className="text-sm font-semibold text-on-surface-variant">提交要求</p>
+          <p className="mt-2 leading-7 text-on-surface">{activity.evidenceExpectationSummary}</p>
+        </div>
+        <div className="rounded-3xl bg-surface-container-lowest p-5">
+          <p className="text-sm font-semibold text-on-surface-variant">当前状态</p>
+          <p className="mt-2 leading-7 text-on-surface">{activity.completionStateCopy}</p>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <CurrentStepRenderer player={player} step={step} />
+      </div>
+    </section>
   )
 }
 
@@ -398,7 +450,7 @@ export function ClassroomRuntimeClient({
               <Badge variant="accent">{player.runtime.forcedStepId === currentStep.id ? '老师指定' : stateCopy[getStepState(player, currentStep.id)]}</Badge>
             </div>
             <div className="mt-6">
-              <CurrentStepRenderer player={player} step={currentStep} />
+              <StepActivityShell player={player} step={currentStep} />
             </div>
           </Card>
 

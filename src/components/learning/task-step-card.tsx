@@ -14,6 +14,7 @@ type TaskStepCardProps = {
   step: LearningStepDTO;
   latestAttempt?: TaskAttemptDTO | null;
   attempts: TaskAttemptDTO[];
+  promptTone?: "default" | "muted";
 };
 
 function getAttemptText(attempt: TaskAttemptDTO) {
@@ -27,7 +28,7 @@ function formatAttemptTime(value: string) {
   return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
-export function TaskStepCard({ lessonId, publishedVersionId, step, latestAttempt, attempts }: TaskStepCardProps) {
+export function TaskStepCard({ lessonId, publishedVersionId, step, latestAttempt, attempts, promptTone = "default" }: TaskStepCardProps) {
   const router = useRouter();
   const payload = step.payload as { prompt?: string; successCriteria?: string; submissionType?: string };
   const [draft, setDraft] = useState("");
@@ -55,18 +56,17 @@ export function TaskStepCard({ lessonId, publishedVersionId, step, latestAttempt
   }
 
   return (
-    <section className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-low p-5 sm:p-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <Badge variant="accent" className="mb-3 bg-surface-container-lowest">任务步骤</Badge>
-          <h3 className="text-2xl font-semibold">{step.title}</h3>
-          <p className="mt-4 leading-8 text-on-surface-variant">{payload.prompt ?? "请根据课堂要求完成任务。"}</p>
-          {payload.successCriteria ? <p className="mt-3 text-sm leading-6 text-on-surface-variant">要求：{payload.successCriteria}</p> : null}
-        </div>
+    <section className="space-y-6">
+      <div>
+        <Badge variant="accent" className="mb-3 bg-surface-container-lowest">任务步骤</Badge>
+        <p className={`leading-8 ${promptTone === "muted" ? "text-sm text-on-surface-variant" : "text-on-surface-variant"}`}>
+          {payload.prompt ?? "请根据课堂要求完成任务。"}
+        </p>
+        {payload.successCriteria ? <p className="mt-3 text-sm leading-6 text-on-surface-variant">要求：{payload.successCriteria}</p> : null}
       </div>
 
       <div className="mt-6 rounded-3xl bg-surface-container-lowest p-5 shadow-ambient">
-        <p className="font-semibold">最近一次尝试</p>
+        <p className="font-semibold">最新一次</p>
         {latestAttempt ? (
           <div className="mt-3 space-y-2 text-sm leading-6 text-on-surface-variant">
             <p><span className="text-primary">最新</span> · 第 {latestAttempt.attemptNo} 次尝试 · {formatAttemptTime(latestAttempt.createdAt)}</p>
@@ -94,6 +94,7 @@ export function TaskStepCard({ lessonId, publishedVersionId, step, latestAttempt
       </div>
 
       <div className="mt-6 grid gap-3">
+        <p className="text-sm font-semibold text-on-surface-variant">历史记录</p>
         {orderedAttempts.map((attempt) => (
           <article key={attempt.id} className="rounded-3xl bg-surface-container-lowest p-4">
             <p className="font-semibold">第 {attempt.attemptNo} 次尝试{attempt.isLatest ? " · 最新" : ""}</p>

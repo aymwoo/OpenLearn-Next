@@ -16,6 +16,7 @@ type QuizStepCardProps = {
   attempts: QuizAttemptDTO[];
   canRetryQuiz: boolean;
   showCorrectAnswer: boolean;
+  guidanceTone?: "default" | "muted";
 };
 
 type QuizOutcome = {
@@ -35,7 +36,7 @@ function getOutcome(attempt?: QuizAttemptDTO | null): QuizOutcome {
   return (attempt?.outcome ?? {}) as QuizOutcome;
 }
 
-export function QuizStepCard({ lessonId, publishedVersionId, step, latestAttempt, attempts, canRetryQuiz, showCorrectAnswer }: QuizStepCardProps) {
+export function QuizStepCard({ lessonId, publishedVersionId, step, latestAttempt, attempts, canRetryQuiz, showCorrectAnswer, guidanceTone = "default" }: QuizStepCardProps) {
   const router = useRouter();
   const payload = step.payload as { question?: string; options?: string[]; explanation?: string };
   const [selectedIndex, setSelectedIndex] = useState<number | null>(getSelectedIndex(latestAttempt) ?? null);
@@ -67,9 +68,11 @@ export function QuizStepCard({ lessonId, publishedVersionId, step, latestAttempt
   }
 
   return (
-    <section className="rounded-[calc(var(--radius-shell)-0.75rem)] bg-surface-container-low p-5 sm:p-8">
+    <section className="space-y-6">
       <Badge variant="accent" className="mb-3 bg-surface-container-lowest">测验步骤</Badge>
-      <h3 className="text-2xl font-semibold">{payload.question ?? step.title}</h3>
+      <p className={`leading-8 ${guidanceTone === "muted" ? "text-sm text-on-surface-variant" : "text-on-surface-variant"}`}>
+        {payload.question ?? step.title}
+      </p>
 
       <div className="mt-6 grid gap-3">
         {options.map((option, index) => {
@@ -95,6 +98,7 @@ export function QuizStepCard({ lessonId, publishedVersionId, step, latestAttempt
       {status ? <p className="mt-4 text-sm leading-6 text-primary">{status}</p> : null}
       {latestAttempt ? (
         <div className="mt-6 rounded-3xl bg-surface-container-lowest p-5 shadow-ambient">
+          <p className="mb-2 text-sm font-semibold text-on-surface-variant">最新一次</p>
           <p className="font-semibold">{outcome.isCorrect === true ? "答对了" : outcome.isCorrect === false ? "还可以再想想" : "已记录你的答案"}</p>
           <p className="mt-2 text-sm leading-6 text-on-surface-variant">第 {latestAttempt.attemptNo} 次尝试 · 已提交，系统已记录本次作答结果</p>
           {showCorrectAnswer && latestAttempt.showCorrectAnswer ? (
@@ -105,6 +109,7 @@ export function QuizStepCard({ lessonId, publishedVersionId, step, latestAttempt
       ) : null}
 
       <div className="mt-6 grid gap-3">
+        <p className="text-sm font-semibold text-on-surface-variant">历史记录</p>
         {orderedAttempts.map((attempt) => (
           <article key={attempt.id} className="rounded-3xl bg-surface-container-lowest p-4">
             <p className="font-semibold">第 {attempt.attemptNo} 次尝试{attempt.isLatest ? " · 最新" : ""}</p>
