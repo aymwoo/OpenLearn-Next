@@ -1,9 +1,10 @@
 import "server-only";
 
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
+  attemptFeedback,
   classes,
   classMembers,
   classroomEvents,
@@ -13,20 +14,29 @@ import {
   classroomTimeline,
   courses,
   courseClasses,
+  courseEnrollments,
   lessons,
   lessonSteps,
+  lessonStepProgress,
   publishedLessonVersions,
+  quizAttempts,
+  taskSubmissions,
   users,
 } from "@/db/schema";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import {
   ClassroomConsoleDTOSchema,
+  ClassroomConsoleSessionEntryDTOSchema,
   ClassroomActionResultDTOSchema,
   ClassroomEvidenceDTOSchema,
+  ClassroomSessionRecapDTOSchema,
+  ClassroomSessionParticipationLabelSchema,
+  ClassroomSessionRecapDetailTabSchema,
   ClassroomStudentDetailDTOSchema,
   ClassroomSnapshotDTOSchema,
   ClassroomFormativeEvaluationPayloadSchema,
+  GetClassroomSessionRecapInputSchema,
   GetClassroomStudentDetailInputSchema,
   ListStudentFormativeEvaluationEntriesInputSchema,
   RecordStudentFormativeEvaluationInputSchema,
@@ -143,6 +153,127 @@ function buildParticipantAttention(input: {
     needsAttention: attentionReasons.length > 0,
     attentionReasons,
   };
+}
+
+function toParticipationLabel(level: "active" | "normal" | "attention" | null | undefined) {
+  if (level === "active") {
+    return ClassroomSessionParticipationLabelSchema.parse("积极参与");
+  }
+
+  if (level === "normal") {
+    return ClassroomSessionParticipationLabelSchema.parse("正常参与");
+  }
+
+  if (level === "attention") {
+    return ClassroomSessionParticipationLabelSchema.parse("需要关注");
+  }
+
+  return ClassroomSessionParticipationLabelSchema.parse("未评价");
+}
+
+function buildParticipationBuckets(levels: Array<"active" | "normal" | "attention" | null>) {
+  return levels.reduce(
+    (buckets, level) => {
+      if (level === "active") {
+        buckets.active += 1;
+      } else if (level === "normal") {
+        buckets.normal += 1;
+      } else if (level === "attention") {
+        buckets.attention += 1;
+      } else {
+        buckets.unevaluated += 1;
+      }
+
+      return buckets;
+    },
+    {
+      active: 0,
+      normal: 0,
+      attention: 0,
+      unevaluated: 0,
+    },
+  );
+}
+
+function buildCompletionLabel(completedCount: number, totalStudents: number) {
+  return `已完成 ${completedCount}/${totalStudents}`;
+}
+
+function buildStudentCompletionLabel(input: {
+  completedStepCount: number;
+  totalStepCount: number;
+}) {
+  if (input.totalStepCount === 0) {
+    return "暂无完成数据";
+  }
+
+  if (input.completedStepCount >= input.totalStepCount) {
+    return `已完成全部 ${input.totalStepCount} 个环节`;
+  }
+
+  return `完成 ${input.completedStepCount}/${input.totalStepCount} 个环节`;
+}
+
+function buildRepresentativeFollowUpCopy(input: {
+  needsAttention: boolean;
+  hasUnevaluatedSignal: boolean;
+  missingSubmissionCount: number;
+}) {
+  const detail: string[] = [];
+
+  if (input.needsAttention) {
+    detail.push("课堂表现被标记为需要关注");
+  }
+
+  if (input.hasUnevaluatedSignal) {
+    detail.push("已有课堂证据但还未留下过程评价");
+  }
+
+  if (input.missingSubmissionCount > 0) {
+    detail.push(`仍有 ${input.missingSubmissionCount} 个关键提交未完成`);
+  }
+
+  return detail;
+}
+
+function buildClassroomSignalWorkload(studentSignals: Array<{ studentId: string; needsFollowUp: boolean }>) {
+  return studentSignals.filter((item) => item.needsFollowUp).length;
+}
+
+function buildFeedbackWorkloadFromAttempts(input: {
+  taskRows: Array<typeof taskSubmissions.$inferSelect>;
+  quizRows: Array<typeof quizAttempts.$inferSelect>;
+  feedbackRows: Array<typeof attemptFeedback.$inferSelect>;
+}) {
+  const feedbackTargetIds = new Set(input.feedbackRows.map((feedback) => feedback.targetId));
+  const latestAttempts = [...input.taskRows, ...input.quizRows].filter((row) => row.isLatest);
+
+  return {
+    pendingFeedbackCount: latestAttempts.filter((attempt) => !feedbackTargetIds.has(attempt.id)).length,
+    pendingAttemptIds: new Set(latestAttempts.filter((attempt) => !feedbackTargetIds.has(attempt.id)).map((attempt) => attempt.id)),
+  };
+}
+
+function extractEvidenceDetail(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return "已记录课堂证据";
+  }
+
+  const record = payload as Record<string, unknown>;
+
+  if (typeof record.note === "string" && record.note.trim().length > 0) {
+    return record.note.trim();
+  }
+
+  if (typeof record.body === "string" && record.body.trim().length > 0) {
+    return record.body.trim();
+  }
+
+  if (typeof record.observationNote === "string" && record.observationNote.trim().length > 0) {
+    return record.observationNote.trim();
+  }
+
+  return "已记录课堂证据";
 }
 
 function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string) {
@@ -877,34 +1008,54 @@ export async function recordClassroomIntervention(input: unknown) {
 export async function getClassroomConsoleDTO() {
   const scope = await assertActiveTeacher();
 
-  const liveSessionRows = await db.query.classroomSessions.findMany({
-    where: and(
-      eq(classroomSessions.teacherId, scope.userId),
-      eq(classroomSessions.status, "live")
-    )
+  const sessionRows = await db.query.classroomSessions.findMany({
+    where: eq(classroomSessions.teacherId, scope.userId),
+    orderBy: [desc(classroomSessions.updatedAt)],
   });
 
-  const [liveSessionLessons, liveSessionClasses] = await Promise.all([
-    liveSessionRows.length > 0
+  const liveSessionRows = sessionRows.filter((session) => session.status === "live");
+
+  const sessionRowsForLookup = sessionRows.length > 0 ? sessionRows : liveSessionRows;
+
+  const [sessionLessons, sessionClasses] = await Promise.all([
+    sessionRowsForLookup.length > 0
       ? db.query.lessons.findMany({
           where: inArray(
             lessons.id,
-            [...new Set(liveSessionRows.map((session) => session.lessonId))]
+            [...new Set(sessionRowsForLookup.map((session) => session.lessonId))]
           ),
         })
       : Promise.resolve([]),
-    liveSessionRows.length > 0
+    sessionRowsForLookup.length > 0
       ? db.query.classes.findMany({
           where: inArray(
             classes.id,
-            [...new Set(liveSessionRows.map((session) => session.classId))]
+            [...new Set(sessionRowsForLookup.map((session) => session.classId))]
           ),
         })
       : Promise.resolve([]),
   ]);
 
-  const liveLessonMap = new Map(liveSessionLessons.map((lesson) => [lesson.id, lesson.title]));
-  const liveClassMap = new Map(liveSessionClasses.map((clazz) => [clazz.id, clazz.name]));
+  const liveLessonMap = new Map(sessionLessons.map((lesson) => [lesson.id, lesson.title]));
+  const liveClassMap = new Map(sessionClasses.map((clazz) => [clazz.id, clazz.name]));
+
+  const sessionEntries = [...sessionRows]
+    .sort((a, b) => Number(b.updatedAt ?? 0) - Number(a.updatedAt ?? 0))
+    .map((session) =>
+      ClassroomConsoleSessionEntryDTOSchema.parse({
+        id: session.id,
+        lessonId: session.lessonId,
+        lessonTitle: liveLessonMap.get(session.lessonId) ?? "课堂",
+        classId: session.classId,
+        className: liveClassMap.get(session.classId) ?? "班级",
+        updatedAt: toIso(session.updatedAt),
+        startedAt: toIso(session.createdAt),
+        endedAt: session.endedAt ? toIso(session.endedAt) : null,
+        locked: Boolean(session.locked),
+        version: session.version,
+        status: session.status,
+      }),
+    );
 
   const liveSessions = [...liveSessionRows]
     .sort((a, b) => Number(b.updatedAt ?? 0) - Number(a.updatedAt ?? 0))
@@ -1009,6 +1160,7 @@ export async function getClassroomConsoleDTO() {
 
   return ClassroomConsoleDTOSchema.parse({
     liveSessions,
+    sessionEntries,
     publishedLessons,
     emptyStateCopy: "还没有可开课的已发布课时或可用班级",
     launchPreviewEmptyState: {
@@ -1145,6 +1297,322 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
   };
 
   return ClassroomSnapshotDTOSchema.parse(dto);
+}
+
+export async function getClassroomSessionRecapDTO(rawInput: unknown) {
+  const input = GetClassroomSessionRecapInputSchema.parse(rawInput);
+  const { session } = await getTeacherSessionScope(input.sessionId);
+
+  if (session.status !== "ended") {
+    throw new Error("CLASSROOM_RECAP_NOT_AVAILABLE");
+  }
+
+  const [lesson, clazz, published, participants, evidenceRows, timelineRows] = await Promise.all([
+    db.query.lessons.findFirst({ where: eq(lessons.id, session.lessonId) }),
+    db.query.classes.findFirst({ where: eq(classes.id, session.classId) }),
+    db.query.publishedLessonVersions.findFirst({ where: eq(publishedLessonVersions.id, session.publishedVersionId) }),
+    db.query.classroomParticipants.findMany({ where: eq(classroomParticipants.sessionId, session.id) }),
+    db.query.classroomEvidence.findMany({ where: eq(classroomEvidence.sessionId, session.id) }),
+    db.query.classroomTimeline.findMany({ where: eq(classroomTimeline.sessionId, session.id) }),
+  ]);
+
+  const participantIds = participants.map((row) => row.studentId);
+  const [studentUsers, progressRows, latestTaskRows, latestQuizRows, feedbackRows, enrollmentRows] = participantIds.length > 0
+    ? await Promise.all([
+        db.query.users.findMany({ where: inArray(users.id, participantIds) }),
+        db.query.lessonStepProgress.findMany({
+          where: and(eq(lessonStepProgress.publishedVersionId, session.publishedVersionId), inArray(lessonStepProgress.studentId, participantIds)),
+        }),
+        db.query.taskSubmissions.findMany({
+          where: and(eq(taskSubmissions.publishedVersionId, session.publishedVersionId), inArray(taskSubmissions.studentId, participantIds), eq(taskSubmissions.isLatest, true)),
+        }),
+        db.query.quizAttempts.findMany({
+          where: and(eq(quizAttempts.publishedVersionId, session.publishedVersionId), inArray(quizAttempts.studentId, participantIds), eq(quizAttempts.isLatest, true)),
+        }),
+        db.query.attemptFeedback.findMany({ where: inArray(attemptFeedback.studentId, participantIds) }),
+        lesson
+          ? db.query.courseEnrollments.findMany({
+              where: and(eq(courseEnrollments.courseId, lesson.courseId), inArray(courseEnrollments.studentId, participantIds)),
+            })
+          : Promise.resolve([]),
+      ])
+    : [[], [], [], [], [], []];
+
+  const snapshot = parseSnapshot(published?.snapshotJson);
+  const steps = parseSnapshotSteps(snapshot, session.lessonId);
+  const stepMap = new Map(steps.map((step) => [step.id, step]));
+  const userMap = new Map(studentUsers.map((user) => [user.id, user.name ?? "学生"]));
+  const progressByStudent = new Map<string, Array<typeof lessonStepProgress.$inferSelect>>();
+  const latestTaskByStudent = new Map<string, Array<typeof taskSubmissions.$inferSelect>>();
+  const latestQuizByStudent = new Map<string, Array<typeof quizAttempts.$inferSelect>>();
+  const evidenceByStudent = new Map<string, Array<typeof classroomEvidence.$inferSelect>>();
+  const timelineByStudent = new Map<string, Array<typeof classroomTimeline.$inferSelect>>();
+  const evaluationByStudent = new Map<string, Array<ReturnType<typeof StudentFormativeEvaluationEntryDTOSchema.parse>>>();
+
+  for (const row of progressRows) {
+    const list = progressByStudent.get(row.studentId) ?? [];
+    list.push(row);
+    progressByStudent.set(row.studentId, list);
+  }
+
+  for (const row of latestTaskRows) {
+    const list = latestTaskByStudent.get(row.studentId) ?? [];
+    list.push(row);
+    latestTaskByStudent.set(row.studentId, list);
+  }
+
+  for (const row of latestQuizRows) {
+    const list = latestQuizByStudent.get(row.studentId) ?? [];
+    list.push(row);
+    latestQuizByStudent.set(row.studentId, list);
+  }
+
+  for (const row of evidenceRows) {
+    if (row.studentId) {
+      const list = evidenceByStudent.get(row.studentId) ?? [];
+      list.push(row);
+      evidenceByStudent.set(row.studentId, list);
+    }
+  }
+
+  for (const row of timelineRows) {
+    if (row.studentId) {
+      const list = timelineByStudent.get(row.studentId) ?? [];
+      list.push(row);
+      timelineByStudent.set(row.studentId, list);
+    }
+  }
+
+  for (const row of evidenceRows) {
+    if (!row.studentId) {
+      continue;
+    }
+
+    const rawPayload = row.payloadJson;
+    if (!rawPayload || typeof rawPayload !== "object") {
+      continue;
+    }
+
+    const payload = rawPayload as Record<string, unknown>;
+    if (payload.kind !== "formative-evaluation") {
+      continue;
+    }
+
+    const formativePayload = ClassroomFormativeEvaluationPayloadSchema.parse(payload);
+    const list = evaluationByStudent.get(row.studentId) ?? [];
+    list.push(
+      StudentFormativeEvaluationEntryDTOSchema.parse({
+        id: row.id,
+        sessionId: row.sessionId,
+        studentId: row.studentId,
+        participationLevel: formativePayload.participationLevel,
+        tags: formativePayload.tags,
+        observationNote: formativePayload.observationNote,
+        capturedById: row.capturedById,
+        createdAt: toIso(row.createdAt),
+      }),
+    );
+    evaluationByStudent.set(row.studentId, list);
+  }
+
+  for (const entries of evaluationByStudent.values()) {
+    entries.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }
+
+  const feedbackWorkload = buildFeedbackWorkloadFromAttempts({
+    taskRows: latestTaskRows,
+    quizRows: latestQuizRows,
+    feedbackRows,
+  });
+  const enrolledStudentIds = new Set(enrollmentRows.map((row) => row.studentId));
+
+  const studentSummaries = participants.map((participant) => {
+    const progress = progressByStudent.get(participant.studentId) ?? [];
+    const completedStepCount = progress.filter((row) => row.state === "completed" || row.state === "skipped").length;
+    const evidence = (evidenceByStudent.get(participant.studentId) ?? []).filter((row) => {
+      const payload = row.payloadJson as Record<string, unknown> | null;
+      return payload?.kind !== "formative-evaluation";
+    });
+    const evaluations = evaluationByStudent.get(participant.studentId) ?? [];
+    const latestParticipationLevel = evaluations[0]?.participationLevel ?? null;
+    const taskAttempts = latestTaskByStudent.get(participant.studentId) ?? [];
+    const quizAttemptsForStudent = latestQuizByStudent.get(participant.studentId) ?? [];
+    const pendingFeedbackCount = [...taskAttempts, ...quizAttemptsForStudent].filter((attempt) => feedbackWorkload.pendingAttemptIds.has(attempt.id)).length;
+    const missingSubmissionCount = steps.filter((step) => {
+      if (step.type === "content") {
+        return false;
+      }
+
+      if (step.type === "task") {
+        return !taskAttempts.some((attempt) => attempt.stepId === step.id);
+      }
+
+      return !quizAttemptsForStudent.some((attempt) => attempt.stepId === step.id);
+    }).length;
+    const hasUnevaluatedSignal = evidence.length > 0 && evaluations.length === 0;
+    const needsFollowUp = latestParticipationLevel === "attention" || hasUnevaluatedSignal || missingSubmissionCount > 0;
+
+    return {
+      studentId: participant.studentId,
+      studentName: userMap.get(participant.studentId) ?? "学生",
+      completionLabel: buildStudentCompletionLabel({ completedStepCount, totalStepCount: steps.length }),
+      participationLabel: toParticipationLabel(latestParticipationLevel),
+      evidenceCount: evidence.length,
+      needsFollowUp,
+      pendingFeedbackCount,
+      completionItems: [
+        {
+          id: `completion-${participant.studentId}`,
+          title: "课堂完成情况",
+          detail: enrolledStudentIds.has(participant.studentId)
+            ? `本次课堂完成 ${completedStepCount}/${steps.length} 个环节。`
+            : `该学生当前不在本课正式选课名单中，本次课堂完成 ${completedStepCount}/${steps.length} 个环节。`,
+        },
+      ],
+      submissionItems: [
+        ...taskAttempts.map((attempt) => ({
+          id: attempt.id,
+          title: stepMap.get(attempt.stepId)?.title ?? "任务提交",
+          detail: feedbackWorkload.pendingAttemptIds.has(attempt.id) ? "已提交，等待教师反馈" : "已提交，教师已完成反馈",
+          createdAt: toIso(attempt.createdAt),
+        })),
+        ...quizAttemptsForStudent.map((attempt) => ({
+          id: attempt.id,
+          title: stepMap.get(attempt.stepId)?.title ?? "测验作答",
+          detail: feedbackWorkload.pendingAttemptIds.has(attempt.id) ? "已作答，等待教师反馈" : "已作答，教师已完成反馈",
+          createdAt: toIso(attempt.createdAt),
+        })),
+        ...evidence.map((row) => ({
+          id: row.id,
+          title: stepMap.get(row.stepId ?? "")?.title ?? "课堂证据",
+          detail: extractEvidenceDetail(row.payloadJson),
+          createdAt: toIso(row.createdAt),
+        })),
+      ],
+      evaluationItems: evaluations.map((entry) => ({
+        id: entry.id,
+        title: `${toParticipationLabel(entry.participationLevel)} · ${entry.tags.join(" / ") || "过程评价"}`,
+        detail: entry.observationNote,
+        createdAt: entry.createdAt,
+      })),
+      timelineItems: (timelineByStudent.get(participant.studentId) ?? []).map((row) => ({
+        id: row.id,
+        title: row.entryType === "intervention_noted" ? "课堂干预" : row.entryType === "presence_changed" ? "课堂在线状态" : "课堂采证",
+        detail: extractEvidenceDetail(row.payloadJson),
+        createdAt: toIso(row.createdAt),
+      })),
+      _completedStepCount: completedStepCount,
+      _latestParticipationLevel: latestParticipationLevel,
+      _missingSubmissionCount: missingSubmissionCount,
+      _hasUnevaluatedSignal: hasUnevaluatedSignal,
+      _followUpReasons: buildRepresentativeFollowUpCopy({
+        needsAttention: latestParticipationLevel === "attention",
+        hasUnevaluatedSignal,
+        missingSubmissionCount,
+      }),
+    };
+  });
+
+  const selectedStudentId = input.studentId && studentSummaries.some((student) => student.studentId === input.studentId)
+    ? input.studentId
+    : studentSummaries.find((student) => student.needsFollowUp)?.studentId ?? studentSummaries[0]?.studentId ?? null;
+  const selectedStudent = selectedStudentId
+    ? studentSummaries.find((student) => student.studentId === selectedStudentId) ?? null
+    : null;
+  const participationBuckets = buildParticipationBuckets(studentSummaries.map((student) => student._latestParticipationLevel ?? null));
+  const completedStudentCount = studentSummaries.filter((student) => student._completedStepCount >= steps.length && steps.length > 0).length;
+  const evidenceRowsWithoutEvaluation = studentSummaries.filter((student) => student._hasUnevaluatedSignal);
+  const stepSummaries = steps.map((step) => {
+    const completionCount = studentSummaries.filter((student) => {
+      const progress = progressByStudent.get(student.studentId) ?? [];
+      const row = progress.find((item) => item.stepId === step.id);
+      return row?.state === "completed" || row?.state === "skipped";
+    }).length;
+    const submissionCount = step.type === "task"
+      ? latestTaskRows.filter((row) => row.stepId === step.id).length
+      : step.type === "quiz"
+        ? latestQuizRows.filter((row) => row.stepId === step.id).length
+        : evidenceRows.filter((row) => row.stepId === step.id && row.sourceType === "student-quick-response").length;
+    const attentionCount = studentSummaries.filter((student) => {
+      if (student._latestParticipationLevel === "attention") {
+        return true;
+      }
+
+      if (step.type === "task") {
+        return !latestTaskByStudent.get(student.studentId)?.some((row) => row.stepId === step.id);
+      }
+
+      if (step.type === "quiz") {
+        return !latestQuizByStudent.get(student.studentId)?.some((row) => row.stepId === step.id);
+      }
+
+      return false;
+    }).length;
+
+    return {
+      stepId: step.id,
+      stepTitle: step.title,
+      completionCount,
+      submissionCount,
+      attentionCount,
+      totalStudents: participants.length,
+    };
+  });
+
+  const detailTab = ClassroomSessionRecapDetailTabSchema.parse(input.detailTab ?? "students");
+
+  return ClassroomSessionRecapDTOSchema.parse({
+    session: {
+      id: session.id,
+      status: "ended",
+      lessonId: session.lessonId,
+      lessonTitle: snapshot.lesson?.title ?? lesson?.title ?? "课堂",
+      className: clazz?.name ?? "班级",
+      startedAt: toIso(session.createdAt),
+      endedAt: toIso(session.endedAt),
+    },
+    summary: {
+      completionLabel: buildCompletionLabel(completedStudentCount, participants.length),
+      completionCount: completedStudentCount,
+      totalStudents: participants.length,
+      submissionCount: latestTaskRows.length + latestQuizRows.length,
+      evidenceCount: evidenceRows.length,
+      participationBuckets,
+    },
+    workload: {
+      followUpSignalsCount: buildClassroomSignalWorkload(studentSummaries),
+      pendingFeedbackCount: feedbackWorkload.pendingFeedbackCount,
+    },
+    detailTab,
+    studentSummaries: studentSummaries.map((student) => ({
+      studentId: student.studentId,
+      studentName: student.studentName,
+      completionLabel: student.completionLabel,
+      participationLabel: student.participationLabel,
+      evidenceCount: student.evidenceCount,
+      needsFollowUp: student.needsFollowUp,
+      pendingFeedbackCount: student.pendingFeedbackCount,
+    })),
+    selectedStudent: selectedStudent
+      ? {
+          studentId: selectedStudent.studentId,
+          studentName: selectedStudent.studentName,
+          completionLabel: selectedStudent.completionLabel,
+          participationLabel: selectedStudent.participationLabel,
+          evidenceCount: selectedStudent.evidenceCount,
+          needsFollowUp: selectedStudent.needsFollowUp,
+          pendingFeedbackCount: selectedStudent.pendingFeedbackCount,
+          completionItems: selectedStudent.completionItems,
+          submissionItems: selectedStudent.submissionItems,
+          evaluationItems: selectedStudent.evaluationItems,
+          timelineItems: selectedStudent.timelineItems,
+        }
+      : null,
+    stepSummaries,
+    selectedStepId: input.stepId && stepSummaries.some((step) => step.stepId === input.stepId)
+      ? input.stepId
+      : stepSummaries[0]?.stepId ?? null,
+  });
 }
 
 export async function launchClassroomSession(input: unknown) {

@@ -10,11 +10,13 @@ import {
 } from "lucide-react";
 
 import { ClassroomControlPanel } from "@/components/classroom/classroom-control-panel";
+import { ClassroomSessionHistoryPanel } from "@/components/classroom/classroom-session-history-panel";
+import { ClassroomSessionRecapSurface } from "@/components/classroom/classroom-session-recap-surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
-import type { ClassroomSnapshotDTO, ClassroomStudentDetailDTO, ClassroomStudentDetailTab } from "@/lib/dto/classroom";
+import type { ClassroomConsoleSessionEntryDTO, ClassroomSessionRecapDTO, ClassroomSnapshotDTO, ClassroomStudentDetailDTO, ClassroomStudentDetailTab } from "@/lib/dto/classroom";
 import { cn } from "@/lib/utils";
 
 type ClassroomConsoleDTO = {
@@ -36,17 +38,20 @@ type ClassroomConsoleDTO = {
     version: number;
     status: "live";
   }>;
+  sessionEntries: ClassroomConsoleSessionEntryDTO[];
   emptyStateCopy: string;
 };
 
 export function ClassroomConsoleSurface({
   consoleData,
   initialSnapshot,
+  recap,
   studentDetail,
   activeDetailTab,
 }: {
   consoleData: ClassroomConsoleDTO;
   initialSnapshot: ClassroomSnapshotDTO | null;
+  recap?: ClassroomSessionRecapDTO | null;
   studentDetail?: ClassroomStudentDetailDTO | null;
   activeDetailTab?: ClassroomStudentDetailTab;
 }) {
@@ -55,6 +60,19 @@ export function ClassroomConsoleSurface({
       lesson.classes.map((item) => item.id),
     ),
   ).size;
+
+  if (recap) {
+    return (
+      <div className={cn(teacherSurfaceRhythm.stack, "p-4 sm:p-5 lg:p-6")}>
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <ClassroomSessionRecapSurface recap={recap} />
+          <div className="space-y-5">
+            <ClassroomSessionHistoryPanel sessions={consoleData.sessionEntries} selectedSessionId={recap.session.id} />
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   if (initialSnapshot) {
     return (
@@ -138,7 +156,7 @@ export function ClassroomConsoleSurface({
           </p>
         </section>
 
-        <ClassroomControlPanel initialSnapshot={initialSnapshot} studentDetail={studentDetail ?? null} activeDetailTab={activeDetailTab ?? 'evidence'} />
+        <ClassroomControlPanel initialSnapshot={initialSnapshot} studentDetail={studentDetail ?? null} activeDetailTab={activeDetailTab ?? 'evidence'} sessionEntries={consoleData.sessionEntries} />
       </div>
     );
   }
@@ -270,6 +288,8 @@ export function ClassroomConsoleSurface({
             />
           </div>
         </Card>
+
+        <ClassroomSessionHistoryPanel sessions={consoleData.sessionEntries} selectedSessionId={null} />
       </section>
     </div>
   );

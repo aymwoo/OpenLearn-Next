@@ -16,6 +16,8 @@ export const ClassroomTimelineEntryTypeSchema = z.enum(["presence_changed", "evi
 export const ClassroomParticipationLevelSchema = z.enum(["active", "normal", "attention"]);
 export const ClassroomEvaluationTagSchema = z.enum(["主动发言", "专注跟进", "协作支持", "表达清晰", "需要提醒", "需要跟进"]);
 export const ClassroomStudentDetailTabSchema = z.enum(["evidence", "evaluation"]);
+export const ClassroomSessionRecapDetailTabSchema = z.enum(["students", "steps"]);
+export const ClassroomSessionParticipationLabelSchema = z.enum(["积极参与", "正常参与", "需要关注", "未评价"]);
 
 export const ClassroomFormativeEvaluationPayloadSchema = z.object({
   kind: z.literal("formative-evaluation"),
@@ -152,11 +154,111 @@ export const ClassroomLiveSessionSummaryDTOSchema = z.object({
   status: z.literal("live"),
 });
 
+export const ClassroomConsoleSessionEntryDTOSchema = z.object({
+  id: z.string(),
+  lessonId: z.string(),
+  lessonTitle: z.string(),
+  classId: z.string(),
+  className: z.string(),
+  updatedAt: z.string(),
+  startedAt: z.string(),
+  endedAt: z.string().nullable(),
+  locked: z.boolean(),
+  version: z.number().int(),
+  status: z.enum(["live", "ended"]),
+});
+
 export const ClassroomConsoleDTOSchema = z.object({
   liveSessions: z.array(ClassroomLiveSessionSummaryDTOSchema),
+  sessionEntries: z.array(ClassroomConsoleSessionEntryDTOSchema),
   publishedLessons: z.array(ClassroomLaunchLessonOptionDTOSchema),
   emptyStateCopy: z.string(),
   launchPreviewEmptyState: ClassroomLaunchPreviewEmptyStateDTOSchema,
+});
+
+export const ClassroomSessionRecapEntryDTOSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  detail: z.string(),
+  createdAt: z.string().optional(),
+});
+
+export const ClassroomSessionRecapSummaryDTOSchema = z.object({
+  completionLabel: z.string(),
+  completionCount: z.number().int().nonnegative(),
+  totalStudents: z.number().int().nonnegative(),
+  submissionCount: z.number().int().nonnegative(),
+  evidenceCount: z.number().int().nonnegative(),
+  participationBuckets: z.object({
+    active: z.number().int().nonnegative(),
+    normal: z.number().int().nonnegative(),
+    attention: z.number().int().nonnegative(),
+    unevaluated: z.number().int().nonnegative(),
+  }),
+});
+
+export const ClassroomSessionWorkloadDTOSchema = z.object({
+  followUpSignalsCount: z.number().int().nonnegative(),
+  pendingFeedbackCount: z.number().int().nonnegative(),
+});
+
+export const ClassroomSessionRecapStudentSummaryDTOSchema = z.object({
+  studentId: z.string(),
+  studentName: z.string(),
+  completionLabel: z.string(),
+  participationLabel: ClassroomSessionParticipationLabelSchema,
+  evidenceCount: z.number().int().nonnegative(),
+  needsFollowUp: z.boolean(),
+  pendingFeedbackCount: z.number().int().nonnegative(),
+});
+
+export const ClassroomSessionRecapStudentDetailDTOSchema = z.object({
+  studentId: z.string(),
+  studentName: z.string(),
+  completionLabel: z.string(),
+  participationLabel: ClassroomSessionParticipationLabelSchema,
+  evidenceCount: z.number().int().nonnegative(),
+  needsFollowUp: z.boolean(),
+  pendingFeedbackCount: z.number().int().nonnegative(),
+  completionItems: z.array(ClassroomSessionRecapEntryDTOSchema),
+  submissionItems: z.array(ClassroomSessionRecapEntryDTOSchema),
+  evaluationItems: z.array(ClassroomSessionRecapEntryDTOSchema),
+  timelineItems: z.array(ClassroomSessionRecapEntryDTOSchema),
+});
+
+export const ClassroomSessionRecapStepSummaryDTOSchema = z.object({
+  stepId: z.string(),
+  stepTitle: z.string(),
+  completionCount: z.number().int().nonnegative(),
+  submissionCount: z.number().int().nonnegative(),
+  attentionCount: z.number().int().nonnegative(),
+  totalStudents: z.number().int().nonnegative(),
+});
+
+export const GetClassroomSessionRecapInputSchema = z.object({
+  sessionId: z.string().min(1),
+  studentId: z.string().min(1).optional(),
+  stepId: z.string().min(1).optional(),
+  detailTab: ClassroomSessionRecapDetailTabSchema.optional(),
+});
+
+export const ClassroomSessionRecapDTOSchema = z.object({
+  session: z.object({
+    id: z.string(),
+    status: z.literal("ended"),
+    lessonId: z.string(),
+    lessonTitle: z.string(),
+    className: z.string(),
+    startedAt: z.string(),
+    endedAt: z.string(),
+  }),
+  summary: ClassroomSessionRecapSummaryDTOSchema,
+  workload: ClassroomSessionWorkloadDTOSchema,
+  detailTab: ClassroomSessionRecapDetailTabSchema,
+  studentSummaries: z.array(ClassroomSessionRecapStudentSummaryDTOSchema),
+  selectedStudent: ClassroomSessionRecapStudentDetailDTOSchema.nullable(),
+  stepSummaries: z.array(ClassroomSessionRecapStepSummaryDTOSchema),
+  selectedStepId: z.string().nullable(),
 });
 
 export const ClassroomParticipantDTOSchema = z.object({
@@ -390,8 +492,19 @@ export type ClassroomLaunchRosterSummaryDTO = z.infer<typeof ClassroomLaunchRost
 export type ClassroomLaunchClassOptionDTO = z.infer<typeof ClassroomLaunchClassOptionDTOSchema>;
 export type ClassroomLaunchLessonOptionDTO = z.infer<typeof ClassroomLaunchLessonOptionDTOSchema>;
 export type ClassroomLiveSessionSummaryDTO = z.infer<typeof ClassroomLiveSessionSummaryDTOSchema>;
+export type ClassroomConsoleSessionEntryDTO = z.infer<typeof ClassroomConsoleSessionEntryDTOSchema>;
 export type ClassroomRosterSummaryDTO = z.infer<typeof ClassroomRosterSummaryDTOSchema>;
 export type ClassroomConsoleDTO = z.infer<typeof ClassroomConsoleDTOSchema>;
+export type ClassroomSessionRecapDetailTab = z.infer<typeof ClassroomSessionRecapDetailTabSchema>;
+export type ClassroomSessionParticipationLabel = z.infer<typeof ClassroomSessionParticipationLabelSchema>;
+export type ClassroomSessionRecapEntryDTO = z.infer<typeof ClassroomSessionRecapEntryDTOSchema>;
+export type ClassroomSessionRecapSummaryDTO = z.infer<typeof ClassroomSessionRecapSummaryDTOSchema>;
+export type ClassroomSessionWorkloadDTO = z.infer<typeof ClassroomSessionWorkloadDTOSchema>;
+export type ClassroomSessionRecapStudentSummaryDTO = z.infer<typeof ClassroomSessionRecapStudentSummaryDTOSchema>;
+export type ClassroomSessionRecapStudentDetailDTO = z.infer<typeof ClassroomSessionRecapStudentDetailDTOSchema>;
+export type ClassroomSessionRecapStepSummaryDTO = z.infer<typeof ClassroomSessionRecapStepSummaryDTOSchema>;
+export type GetClassroomSessionRecapInput = z.infer<typeof GetClassroomSessionRecapInputSchema>;
+export type ClassroomSessionRecapDTO = z.infer<typeof ClassroomSessionRecapDTOSchema>;
 export type ClassroomParticipantDTO = z.infer<typeof ClassroomParticipantDTOSchema>;
 export type ClassroomParticipantMonitoringDTO = z.infer<typeof ClassroomParticipantMonitoringDTOSchema>;
 export type ClassroomSnapshotDTO = z.infer<typeof ClassroomSnapshotDTOSchema>;

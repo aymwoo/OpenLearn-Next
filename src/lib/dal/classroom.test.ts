@@ -21,6 +21,11 @@ const findManyClassroomTimeline = vi.fn();
 const findManyClassroomEvidence = vi.fn();
 const findFirstClassMembers = vi.fn();
 const findManyClassMembers = vi.fn();
+const findManyLessonStepProgress = vi.fn();
+const findManyTaskSubmissions = vi.fn();
+const findManyQuizAttempts = vi.fn();
+const findManyAttemptFeedback = vi.fn();
+const findManyCourseEnrollments = vi.fn();
 const insertValues = vi.fn();
 const insertMock = vi.fn();
 const assertActiveTeacher = vi.fn();
@@ -43,6 +48,11 @@ vi.mock("@/db", () => ({
       classroomTimeline: { findMany: findManyClassroomTimeline },
       classroomEvidence: { findMany: findManyClassroomEvidence },
       classMembers: { findFirst: findFirstClassMembers, findMany: findManyClassMembers },
+      lessonStepProgress: { findMany: findManyLessonStepProgress },
+      taskSubmissions: { findMany: findManyTaskSubmissions },
+      quizAttempts: { findMany: findManyQuizAttempts },
+      attemptFeedback: { findMany: findManyAttemptFeedback },
+      courseEnrollments: { findMany: findManyCourseEnrollments },
     },
     insert: insertMock,
   },
@@ -200,6 +210,11 @@ describe("getClassroomConsoleDTO", () => {
     findManyClassroomEvents.mockResolvedValue([]);
     findManyClassroomTimeline.mockResolvedValue([]);
     findManyClassroomEvidence.mockResolvedValue([]);
+    findManyLessonStepProgress.mockResolvedValue([]);
+    findManyTaskSubmissions.mockResolvedValue([]);
+    findManyQuizAttempts.mockResolvedValue([]);
+    findManyAttemptFeedback.mockResolvedValue([]);
+    findManyCourseEnrollments.mockResolvedValue([]);
     findFirstClassroomParticipants.mockResolvedValue({
       sessionId: "session-1",
       studentId: "student-1",
@@ -925,5 +940,220 @@ describe("same-route classroom student detail contracts", () => {
     });
 
     expect(detail).toBeNull();
+  });
+});
+
+describe("phase 25 session recap contracts", () => {
+  it("extends classroom dto/contracts with recap and session history shapes", async () => {
+    const classroomDto = await import("@/lib/dto/classroom");
+
+    expect(classroomDto.ClassroomSessionRecapDTOSchema).toBeDefined();
+    expect(classroomDto.ClassroomSessionWorkloadDTOSchema).toBeDefined();
+    expect(classroomDto.ClassroomConsoleSessionEntryDTOSchema).toBeDefined();
+    expect(classroomDto.ClassroomSessionRecapStudentSummaryDTOSchema).toBeDefined();
+    expect(classroomDto.ClassroomSessionRecapStepSummaryDTOSchema).toBeDefined();
+  });
+
+  it("adds session entries to the classroom console read model for same-domain history reopen", async () => {
+    findManyClassroomSessions.mockResolvedValueOnce([
+      {
+        id: "session-live",
+        lessonId: "lesson-in-scope",
+        publishedVersionId: "pub-1",
+        classId: "class-in-scope",
+        teacherId: "teacher-1",
+        activeStepId: "step-1",
+        locked: false,
+        status: "live",
+        version: 2,
+        updatedAt: new Date("2026-05-14T08:10:00Z"),
+        createdAt: new Date("2026-05-14T08:00:00Z"),
+        endedAt: null,
+      },
+      {
+        id: "session-ended",
+        lessonId: "lesson-in-scope",
+        publishedVersionId: "pub-1",
+        classId: "class-in-scope",
+        teacherId: "teacher-1",
+        activeStepId: "step-2",
+        locked: true,
+        status: "ended",
+        version: 4,
+        updatedAt: new Date("2026-05-14T09:40:00Z"),
+        createdAt: new Date("2026-05-14T09:00:00Z"),
+        endedAt: new Date("2026-05-14T09:40:00Z"),
+      },
+    ]);
+
+    const { getClassroomConsoleDTO } = await import("./classroom");
+    const dto = await getClassroomConsoleDTO();
+
+    expect(dto.sessionEntries).toHaveLength(2);
+    expect(dto.sessionEntries[0]).toMatchObject({ id: "session-ended", status: "ended" });
+    expect(dto.sessionEntries[1]).toMatchObject({ id: "session-live", status: "live" });
+  });
+
+  it("builds a recap read model with explicit 未评价 and split workload semantics", async () => {
+    findFirstClassroomSessions.mockResolvedValueOnce({
+      id: "session-ended",
+      lessonId: "lesson-in-scope",
+      publishedVersionId: "pub-1",
+      classId: "class-in-scope",
+      teacherId: "teacher-1",
+      activeStepId: "step-2",
+      locked: true,
+      status: "ended",
+      version: 4,
+      updatedAt: new Date("2026-05-14T09:40:00Z"),
+      createdAt: new Date("2026-05-14T09:00:00Z"),
+      endedAt: new Date("2026-05-14T09:40:00Z"),
+    });
+    findManyClassroomParticipants.mockResolvedValueOnce([
+      {
+        sessionId: "session-ended",
+        studentId: "student-1",
+        connectionState: "connected",
+        currentStepId: "step-2",
+        lastSeenAt: new Date("2026-05-14T09:35:00Z"),
+      },
+      {
+        sessionId: "session-ended",
+        studentId: "student-2",
+        connectionState: "offline",
+        currentStepId: "step-1",
+        lastSeenAt: new Date("2026-05-14T09:20:00Z"),
+      },
+    ]);
+    findManyUsers.mockResolvedValueOnce([
+      { id: "student-1", name: "李雷" },
+      { id: "student-2", name: "韩梅梅" },
+    ]);
+    findManyClassroomEvidence.mockResolvedValueOnce([
+      {
+        id: "evidence-1",
+        sessionId: "session-ended",
+        studentId: "student-1",
+        stepId: "step-2",
+        sourceType: "teacher-observation",
+        evidenceType: "observation",
+        payloadJson: {
+          kind: "formative-evaluation",
+          participationLevel: "active",
+          tags: ["主动发言"],
+          observationNote: "积极参与课堂讨论。",
+        },
+        capturedById: "teacher-1",
+        createdAt: new Date("2026-05-14T09:30:00Z"),
+      },
+      {
+        id: "evidence-2",
+        sessionId: "session-ended",
+        studentId: "student-2",
+        stepId: "step-2",
+        sourceType: "student-quick-response",
+        evidenceType: "response",
+        payloadJson: { body: "我觉得这首诗写的是春天。" },
+        capturedById: "student-2",
+        createdAt: new Date("2026-05-14T09:28:00Z"),
+      },
+    ]);
+    findManyClassroomTimeline.mockResolvedValueOnce([
+      {
+        id: "timeline-1",
+        sessionId: "session-ended",
+        studentId: "student-2",
+        stepId: "step-2",
+        entryType: "intervention_noted",
+        actorId: "teacher-1",
+        payloadJson: { title: "课堂提醒", body: "请继续补充观点。", targetScope: "student", visibility: "teacher-only" },
+        createdAt: new Date("2026-05-14T09:29:00Z"),
+      },
+    ]);
+    findManyLessonStepProgress.mockResolvedValueOnce([
+      {
+        id: 'progress-1',
+        publishedVersionId: 'pub-1',
+        lessonId: 'lesson-in-scope',
+        stepId: 'step-1',
+        studentId: 'student-1',
+        state: 'completed',
+        completedAt: new Date('2026-05-14T09:10:00Z'),
+        updatedAt: new Date('2026-05-14T09:10:00Z'),
+      },
+      {
+        id: 'progress-2',
+        publishedVersionId: 'pub-1',
+        lessonId: 'lesson-in-scope',
+        stepId: 'step-2',
+        studentId: 'student-1',
+        state: 'completed',
+        completedAt: new Date('2026-05-14T09:20:00Z'),
+        updatedAt: new Date('2026-05-14T09:20:00Z'),
+      },
+      {
+        id: 'progress-3',
+        publishedVersionId: 'pub-1',
+        lessonId: 'lesson-in-scope',
+        stepId: 'step-1',
+        studentId: 'student-2',
+        state: 'completed',
+        completedAt: new Date('2026-05-14T09:12:00Z'),
+        updatedAt: new Date('2026-05-14T09:12:00Z'),
+      },
+    ]);
+    findManyTaskSubmissions.mockResolvedValueOnce([]);
+    findManyQuizAttempts.mockResolvedValueOnce([
+      {
+        id: 'quiz-1',
+        publishedVersionId: 'pub-1',
+        lessonId: 'lesson-in-scope',
+        stepId: 'step-2',
+        studentId: 'student-2',
+        attemptNo: 1,
+        answerJson: { optionId: 'a' },
+        outcomeJson: { correct: false },
+        isLatest: true,
+        createdAt: new Date('2026-05-14T09:27:00Z'),
+      },
+    ]);
+    findManyAttemptFeedback.mockResolvedValueOnce([]);
+    findManyCourseEnrollments.mockResolvedValueOnce([
+      {
+        id: 'enrollment-1',
+        courseId: 'course-in-scope',
+        studentId: 'student-1',
+        status: 'active',
+        createdAt: new Date('2026-05-01T00:00:00Z'),
+      },
+      {
+        id: 'enrollment-2',
+        courseId: 'course-in-scope',
+        studentId: 'student-2',
+        status: 'active',
+        createdAt: new Date('2026-05-01T00:00:00Z'),
+      },
+    ]);
+
+    const { getClassroomSessionRecapDTO } = await import('./classroom');
+    const recap = await getClassroomSessionRecapDTO({ sessionId: 'session-ended', studentId: 'student-2' });
+
+    expect(recap.summary.participationBuckets).toEqual({
+      active: 1,
+      normal: 0,
+      attention: 0,
+      unevaluated: 1,
+    });
+    expect(recap.workload).toEqual({
+      followUpSignalsCount: 2,
+      pendingFeedbackCount: 1,
+    });
+    expect(recap.studentSummaries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ studentId: 'student-2', participationLabel: '未评价', needsFollowUp: true, pendingFeedbackCount: 1 }),
+      ]),
+    );
+    expect(recap.selectedStudent?.studentId).toBe('student-2');
+    expect(recap.selectedStudent?.pendingFeedbackCount).toBe(1);
   });
 });

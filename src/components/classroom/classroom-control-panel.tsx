@@ -8,12 +8,13 @@ import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomS
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { ClassroomConflictPanel } from './classroom-conflict-panel'
 import { ClassroomRosterPanel } from './classroom-roster-panel'
+import { ClassroomSessionHistoryPanel } from './classroom-session-history-panel'
 import { ClassroomStudentDetailPanel } from './classroom-student-detail-panel'
 import { ClassroomTimelinePanel } from './classroom-timeline-panel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import type { ClassroomSnapshotDTO, ClassroomStepDTO, ClassroomStudentDetailDTO, ClassroomStudentDetailTab } from '@/lib/dto/classroom'
+import type { ClassroomConsoleSessionEntryDTO, ClassroomSnapshotDTO, ClassroomStepDTO, ClassroomStudentDetailDTO, ClassroomStudentDetailTab } from '@/lib/dto/classroom'
 
 type ConflictState = { latest?: ClassroomSnapshotDTO } | null
 
@@ -25,10 +26,12 @@ export function ClassroomControlPanel({
   initialSnapshot,
   studentDetail = null,
   activeDetailTab = 'evidence',
+  sessionEntries = [],
 }: {
   initialSnapshot: ClassroomSnapshotDTO
   studentDetail?: ClassroomStudentDetailDTO | null
   activeDetailTab?: ClassroomStudentDetailTab
+  sessionEntries?: ClassroomConsoleSessionEntryDTO[]
 }) {
   const [conflict, setConflict] = useState<ConflictState>(null)
   const [isPending, startTransition] = useTransition()
@@ -260,6 +263,7 @@ export function ClassroomControlPanel({
             activeTab={activeDetailTab}
           />
         ) : null}
+        <ClassroomSessionHistoryPanel sessions={sessionEntries} selectedSessionId={currentSnapshot.sessionId} />
         <ClassroomTimelinePanel entries={currentSnapshot.teacherTimeline} />
         <ClassroomRosterPanel
           sessionId={currentSnapshot.sessionId}

@@ -194,4 +194,10 @@ describe("learning DAL progress, append-only attempts, and teacher review", () =
     expect(source).toContain("assertActiveTeacher");
     expect(source).toContain("body.length > 200");
   });
+
+  it("keeps phase 25 recap workload semantics anchored to latest attempts plus attemptFeedback", () => {
+    expect(source).toContain("const latestAttempts = [...latestTasks.map((row) => row.id), ...latestQuizzes.map((row) => row.id)]");
+    expect(source).toContain("!feedbackRows.some((feedback) => feedback.targetId === id)");
+    expect(source).not.toContain("classroomAnalyticsSnapshot");
+  });
 });

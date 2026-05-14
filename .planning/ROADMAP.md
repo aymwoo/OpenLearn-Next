@@ -11,7 +11,7 @@
 - [x] **Phase 22: Teacher orchestration workspace and launch preparation** - Turn the current editor and launch path into a class-ready teaching orchestration workspace with readiness gating. (completed 2026-05-13)
 - [x] **Phase 23: Student in-class activity flow** - Upgrade the student runtime into a clearer classroom activity experience with durable quick-response and evidence capture. (completed 2026-05-13)
 - [x] **Phase 24: Live classroom operations and formative evaluation** - Bring runtime monitoring, participation tracking, observation notes, and unified evaluation workflow into the teacher classroom product surface. (completed 2026-05-13)
-- [ ] **Phase 25: Teaching data capture and session analytics** - Aggregate classroom evidence into deterministic session-level metrics, recap views, and teacher workload summaries.
+- [x] **Phase 25: Teaching data capture and session analytics** - Aggregate classroom evidence into deterministic session-level metrics, recap views, and teacher workload summaries. (completed 2026-05-14)
 - [ ] **Phase 26: Cross-session trends and Stitch productization** - Deliver student/class trend analysis and complete high-quality Stitch-aligned productization across planning, runtime, evaluation, and analytics pages.
 
 ### Carry-over backlog from v1.2
@@ -230,9 +230,9 @@
   3. Recap data is scoped by school, class, teacher, lesson, and session, with stable DTOs and explicit cache behavior.
   4. The analytics layer reuses the same evidence contracts from previous phases and does not create a second source of truth.
 **Plans**: 3 plans
-- [ ] 25-01-PLAN.md — Build session recap read models and deterministic metric aggregation helpers.
-- [ ] 25-02-PLAN.md — Add teacher-facing recap surfaces with evidence drill-down and workload summary.
-- [ ] 25-03-PLAN.md — Add verification coverage for aggregation correctness, scoping, and empty-state behavior.
+- [x] 25-01-PLAN.md — Build session recap read models and deterministic metric aggregation helpers.
+- [x] 25-02-PLAN.md — Add teacher-facing recap surfaces with evidence drill-down and workload summary.
+- [x] 25-03-PLAN.md — Add verification coverage for aggregation correctness, scoping, and empty-state behavior.
 **UI hint**: yes
 
 ### Phase 26: Cross-session trends and Stitch productization

@@ -31,7 +31,7 @@ export function ClassroomStudentDetailPanel({
 
   const latestParticipationLabel = detail.latestParticipationLevel
     ? participationLabels[detail.latestParticipationLevel]
-    : '暂未记录'
+    : '未评价'
 
   const latestEvaluation = detail.evaluationEntries[0] ?? null
 

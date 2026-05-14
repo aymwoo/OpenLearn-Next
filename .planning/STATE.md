@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Teaching Orchestration & Classroom Intelligence
-current_phase: 24
-current_phase_name: live-classroom-operations-and-formative-evaluation
-current_plan: 4
-status: verifying
-stopped_at: Completed 24-04-PLAN.md
-last_updated: "2026-05-13T16:43:12.699Z"
-last_activity: 2026-05-13
+current_phase: 25
+current_phase_name: teaching-data-capture-and-session-analytics
+current_plan: 3
+status: phase_complete
+stopped_at: Completed 25-03-PLAN.md
+last_updated: "2026-05-14T16:12:00.000Z"
+last_activity: 2026-05-14
 progress:
   total_phases: 14
-  completed_phases: 10
-  total_plans: 40
-  completed_plans: 40
+  completed_phases: 11
+  total_plans: 43
+  completed_plans: 43
   percent: 100
 ---
 
@@ -21,16 +21,16 @@ progress:
 
 ## Position
 
-**Current Phase:** 24
-**Current Phase Name:** live-classroom-operations-and-formative-evaluation
-**Current Plan:** 4
-**Total Plans in Phase:** 4
-**Status:** Phase complete — ready for verification
+**Current Phase:** 25
+**Current Phase Name:** teaching-data-capture-and-session-analytics
+**Current Plan:** 3
+**Total Plans in Phase:** 3
+**Status:** Phase complete
 **Progress:**
 [██████████] 100%
-**Last Activity:** 2026-05-13
-**Last session:** 2026-05-13T16:43:12.635Z
-**Stopped At:** Completed 24-04-PLAN.md
+**Last Activity:** 2026-05-14
+**Last session:** 2026-05-14T16:12:00.000Z
+**Stopped At:** Completed 25-03-PLAN.md
 **Resume File:** None
 
 ## Accumulated Context
@@ -148,11 +148,16 @@ progress:
 - [Phase 24]: 单学生 detail DTO 在 classroom DAL 内直接拆分 evidence 与 kind=formative-evaluation 历史，不依赖 learning/review DAL。
 - [Phase 24]: Use a dedicated phase verifier with static guards plus focused regression tests. — Lock the classroom evaluation flow across DAL, server action, and same-route detail panel boundaries.
 - [Phase 24]: Keep regression coverage anchored to monitoring summary, teacher-only evaluation action, and the same-route student detail panel. — Avoid verifier drift into UI-only assertions and preserve the classroom evaluation contract across boundaries.
+- [Phase 25]: session recap 继续留在 `/classroom` 主域，ended session 与 history reopen 都由 `sessionId` 驱动，不新增 analytics 主路由。
+- [Phase 25]: recap 读模型继续复用 classroom session/evidence/timeline truth，`待反馈提交` 只读桥接 latest attempts + `attemptFeedback`，不新增 snapshot persistence。
+- [Phase 25]: participation 概览与学生摘要固定显式保留 `未评价`，不得默认并入 `正常参与`。
+- [Phase 25]: ended classroom 主舞台固定切成 recap hero + workload split + student-first drill-down；`环节诊断` 只作为次级诊断区。
+- [Phase 25]: `verify:phase25` 以静态 guard + focused tests 同时守住 route posture、split workload、`未评价` 语义和 second-source-of-truth anti-pattern。
 
 ## Next Steps
 
-1. 使用 `/gsd-plan-phase 24` 拆分 live monitoring、observation writes、evaluation aggregation 与 verification coverage。
-2. 规划时严格沿用已锁定的“3 档参与度 + 标签 + 观察记录”模型，以及 `/classroom -> 名册 -> 单学生详情面板` 主路径。
+1. 使用 `/gsd-plan-phase 26` 拆分 cross-session trends、analytics navigation 与 Stitch productization 收尾。
+2. 规划时复用已锁定的 Phase 25 recap contract：`/classroom` 内 history reopen、student-first recap、split workload、显式 `未评价`。
 3. Phase 14 与 Phase 15 继续保持 carry-over backlog，不混入当前 v1.3 主线推进。
 
 ## Performance Metrics
