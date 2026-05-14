@@ -244,11 +244,13 @@
   2. New planning, runtime, evaluation, and analytics pages share one Stitch-aligned interaction language, responsive rhythm, and information hierarchy.
   3. The final product surfaces feel intentionally designed for teacher daily work, not like disconnected admin tools.
   4. Regression or verification coverage exists for the major routes so later feature work does not silently degrade the milestone quality bar.
-**Plans**: 4 plans
+**Plans**: 6 plans
 - [ ] 26-01-PLAN.md — Build cross-session trend read models for class and student comparisons.
-- [ ] 26-02-PLAN.md — Design and implement the analytics navigation and drill-down product surfaces.
-- [ ] 26-03-PLAN.md — Run Stitch-aligned productization pass across orchestration, runtime, evaluation, and analytics pages.
-- [ ] 26-04-PLAN.md — Add final milestone verification coverage for route quality, responsive behavior, and analytics safety boundaries.
+- [ ] 26-02-PLAN.md — Register the trends route inside the shared teacher shell and deliver the first class-first trends page.
+- [ ] 26-03-PLAN.md — Add recap-to-trends dual entry and productize editor/launch as the start of the teacher chain.
+- [ ] 26-04-PLAN.md — Productize trends, dashboard, help, and settings into the same Stitch-aligned teacher system.
+- [ ] 26-05-PLAN.md — Productize classroom and review while preserving their route ownership.
+- [ ] 26-06-PLAN.md — Add `verify:phase26` static guards and final regression wiring for route quality, responsive behavior, and analytics safety boundaries.
 **UI hint**: yes
 
 ### Progress
@@ -268,4 +270,4 @@
 | 23. Student in-class activity flow | 3/3 | Complete   | 2026-05-13 |
 | 24. Live classroom operations and formative evaluation | 4/4 | Complete   | 2026-05-13 |
 | 25. Teaching data capture and session analytics | 0/3 | Not started | - |
-| 26. Cross-session trends and Stitch productization | 0/4 | Not started | - |
+| 26. Cross-session trends and Stitch productization | 0/6 | Not started | - |
