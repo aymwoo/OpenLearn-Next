@@ -50,8 +50,13 @@ export const TEACHER_THEME_ROUTE_KEYS = [
   "/settings/plugins",
   "/resources",
   "/help",
+  "/help/auth",
+  "/help/actions",
+  "/help/classroom",
+  "/help/dal",
   "/help/faq",
   "/help/plugins",
+  "/help/schedule",
   "/help/themes",
   "/help/actions-interfaces",
 ] as const;
@@ -243,6 +248,50 @@ export const TEACHER_THEME_ROUTE_SURFACES: Record<TeacherThemeRouteKey, TeacherT
       chrome: "default",
     },
   },
+  "/help/auth": {
+    label: "认证系统指南",
+    defaultSplit: "60/40",
+    allowedModules: ["help-guide-detail"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
+  "/help/actions": {
+    label: "Server Actions 指南",
+    defaultSplit: "60/40",
+    allowedModules: ["help-guide-detail"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
+  "/help/classroom": {
+    label: "课堂系统指南",
+    defaultSplit: "60/40",
+    allowedModules: ["help-guide-detail"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
+  "/help/dal": {
+    label: "DAL 层指南",
+    defaultSplit: "60/40",
+    allowedModules: ["help-guide-detail"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
   "/help/faq": {
     label: "常见问题",
     defaultSplit: "60/40",
@@ -256,6 +305,17 @@ export const TEACHER_THEME_ROUTE_SURFACES: Record<TeacherThemeRouteKey, TeacherT
   },
   "/help/plugins": {
     label: "插件开发指南",
+    defaultSplit: "60/40",
+    allowedModules: ["help-guide-detail"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
+  "/help/schedule": {
+    label: "课表与趋势指南",
     defaultSplit: "60/40",
     allowedModules: ["help-guide-detail"],
     shell: {
@@ -346,20 +406,40 @@ export function resolveTeacherThemeRouteSurface(pathname: string | null | undefi
     return "/resources";
   }
 
+  if (pathname.startsWith("/help/auth")) {
+    return "/help/auth";
+  }
+
+  if (pathname.startsWith("/help/actions")) {
+    return "/help/actions";
+  }
+
+  if (pathname.startsWith("/help/classroom")) {
+    return "/help/classroom";
+  }
+
+  if (pathname.startsWith("/help/dal")) {
+    return "/help/dal";
+  }
+
   if (pathname.startsWith("/help/faq")) {
     return "/help/faq";
   }
 
-  if (pathname.startsWith("/help/actions-interfaces")) {
-    return "/help/actions-interfaces";
+  if (pathname.startsWith("/help/plugins")) {
+    return "/help/plugins";
+  }
+
+  if (pathname.startsWith("/help/schedule")) {
+    return "/help/schedule";
   }
 
   if (pathname.startsWith("/help/themes")) {
     return "/help/themes";
   }
 
-  if (pathname.startsWith("/help/plugins")) {
-    return "/help/plugins";
+  if (pathname.startsWith("/help/actions-interfaces")) {
+    return "/help/actions-interfaces";
   }
 
   if (pathname.startsWith("/help")) {
