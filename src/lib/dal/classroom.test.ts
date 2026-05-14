@@ -912,4 +912,18 @@ describe("same-route classroom student detail contracts", () => {
     expect(detail?.evaluationEntries[0]?.observationNote).toBe("需要老师跟进。");
     expect(detail?.evidenceEntries[0]?.payload).toMatchObject({ note: "提交了讨论记录" });
   });
+
+  it("returns null for stale same-route student detail params when the student is no longer in the session", async () => {
+    const { getClassroomStudentDetailDTO } = await import("./classroom");
+
+    findFirstClassroomParticipants.mockResolvedValueOnce(null);
+
+    const detail = await getClassroomStudentDetailDTO({
+      sessionId: "session-1",
+      studentId: "student-missing",
+      detailTab: "evidence",
+    });
+
+    expect(detail).toBeNull();
+  });
 });

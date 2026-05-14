@@ -761,7 +761,17 @@ export async function getClassroomStudentDetailDTO(rawInput: unknown) {
   }
 
   await getTeacherSessionScope(input.sessionId);
-  const participant = await ensureSessionStudentParticipant(input.sessionId, input.studentId);
+  const participant = await db.query.classroomParticipants.findFirst({
+    where: and(
+      eq(classroomParticipants.sessionId, input.sessionId),
+      eq(classroomParticipants.studentId, input.studentId),
+    ),
+  });
+
+  if (!participant) {
+    return null;
+  }
+
   const student = await db.query.users.findFirst({ where: eq(users.id, input.studentId) });
 
   const evidenceRows = await db.query.classroomEvidence.findMany({

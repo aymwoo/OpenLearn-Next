@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { recordStudentFormativeEvaluationAction } from "@/actions/classroom-actions";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export function ClassroomStudentEvaluationForm({
   sessionId,
   studentId,
 }: ClassroomStudentEvaluationFormProps) {
+  const router = useRouter();
   const [participationLevel, setParticipationLevel] = useState<(typeof participationOptions)[number]["value"]>("normal");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [observationNote, setObservationNote] = useState("");
@@ -58,6 +60,7 @@ export function ClassroomStudentEvaluationForm({
       setObservationNote("");
       setSelectedTags([]);
       setParticipationLevel("normal");
+      router.refresh();
     });
   }
 
