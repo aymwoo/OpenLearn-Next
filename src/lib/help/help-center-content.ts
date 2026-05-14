@@ -13,7 +13,7 @@ export type TeacherHelpModule = {
 };
 
 export type DeveloperGuideCard = {
-  href: "/help/plugins" | "/help/themes" | "/help/actions-interfaces";
+  href: "/help/plugins" | "/help/themes" | "/help/actions-interfaces" | "/help/schedule" | "/help/auth" | "/help/dal" | "/help/classroom" | "/help/actions";
   title: string;
   summary: string;
   coverage: string[];
@@ -47,6 +47,98 @@ export type HelpGuidePage = {
   sections: HelpGuideSection[];
 };
 
+
+export type FaqItem = {
+  question: string;
+  answer: string;
+};
+
+export type FaqCategory = {
+  title: string;
+  items: FaqItem[];
+};
+
+export type HelpFaqContent = FaqCategory[];
+
+export const helpFaqContent: HelpFaqContent = [
+  {
+    title: "认证问题",
+    items: [
+      {
+        question: "登录失败",
+        answer: "请检查用户名和密码是否正确。如果忘记密码，请联系管理员重置。另外请确认您的账号会员状态是否有效，过期或被禁用的账号将无法登录。",
+      },
+      {
+        question: "无权限访问",
+        answer: "这通常意味着您缺少教师角色或未处于有效会员状态。请联系学校管理员确认您的账号已开通教师权限且会员在有效期内。",
+      },
+      {
+        question: "Session 过期",
+        answer: "JWT token 过期后需要重新登录。请在登录页面重新输入凭据。如果频繁过期，请检查浏览器时间设置是否正确，或尝试清除浏览器缓存后重试。",
+      },
+    ],
+  },
+  {
+    title: "课堂问题",
+    items: [
+      {
+        question: "课堂启动失败",
+        answer: "请确认课时已发布且班级已有学生名单。检查步骤：1) 进入课时编辑确认发布状态；2) 检查班级学生名单是否为空；3) 确认您的账号有该班级的教学权限。",
+      },
+      {
+        question: "学生看不到课堂",
+        answer: "请检查以下两点：1) 学生是否已在班级中 Enrollment 状态为激活；2) 课堂状态是否为已开始或进行中。如果问题持续，请联系管理员检查班级配置。",
+      },
+      {
+        question: "SSE 连接断开",
+        answer: "实时连接断开后会尝试自动重连。如果频繁断开，请检查网络稳定性或尝试刷新页面。长时间断开可能影响师生互动实时性，但不会丢失已提交的内容。",
+      },
+    ],
+  },
+  {
+    title: "课件与内容问题",
+    items: [
+      {
+        question: "无法创建课件",
+        answer: "请确认您拥有教师权限。创建课件需要在有效会员状态下进行。如权限正常但仍无法创建，请联系管理员检查系统配置。",
+      },
+      {
+        question: "步骤排序失效",
+        answer: "步骤排序使用 LexoRank 系统，不支持手动拖拽修改序号。如需调整步骤顺序，请联系系统管理员处理。",
+      },
+      {
+        question: "发布失败",
+        answer: "发布失败通常由验证错误引起。请检查所有必填字段是否完整，课件内容是否符合格式要求。错误信息会指出具体问题所在。",
+      },
+    ],
+  },
+  {
+    title: "课表问题",
+    items: [
+      {
+        question: "课表扩展无反应",
+        answer: "课表 AI 扩展当前只会生成 proposal（建议），不会直接修改运行中的课表。您需要审批通过后才会生效。这是 proposal-only 的设计边界。",
+      },
+      {
+        question: "导入失败",
+        answer: "请检查 CSV 格式是否符合要求。常见问题：列名不匹配、日期格式错误、必填字段缺失。建议先下载模板，按模板格式填写后再导入。",
+      },
+    ],
+  },
+  {
+    title: "插件与主题问题",
+    items: [
+      {
+        question: "插件不生效",
+        answer: "请检查：1) 插件是否已启用；2) 插件是否在学校范围内激活；3) 您的账号是否有使用该插件的权限。插件需要管理员在插件市场中启用后才能使用。",
+      },
+      {
+        question: "主题切换无效",
+        answer: "主题切换可能受以下因素影响：浏览器 cookie 被阻止、CDN 缓存未更新、本地浏览器缓存。尝试清除浏览器缓存和 Cookie 后重新登录。如问题持续，请联系管理员检查主题配置。",
+      },
+    ],
+  },
+];
 export const helpStateNotes: HelpStateNote[] = [
   {
     label: "当前可用",
@@ -109,6 +201,55 @@ export const developerGuideCards: DeveloperGuideCard[] = [
     title: "Actions / Interfaces",
     summary: "聚焦 schedule.assistant 与 proposal-only 扩展边界，说明当前真正开放的 action 和 payload。",
     coverage: ["schedule.assistant", "proposal actions", "payload 边界"],
+    includesCodeExamples: true,
+  },
+  {
+    href: "/help/auth",
+    title: "认证系统",
+    summary: "解释 Auth.js v5 拆分配置、Proxy 保护层、JWT 策略与 school-scoped memberships 访问控制。",
+    coverage: ["auth.config.ts 拆分", "NextAuth proxy", "JWT session", "memberships 角色"],
+    includesCodeExamples: true,
+  },
+  {
+    href: "/help/dal",
+    title: "数据访问层 (DAL)",
+    summary: "覆盖 DAL 设计原则、层内划分、各模块职责边界与典型调用模式。",
+    coverage: ["DAL 分层原则", "模块划分", "auth 与 memberships", "learning 与 classroom", "lesson/course authoring"],
+    includesCodeExamples: false,
+  },
+  {
+    href: "/help/classroom",
+    title: "课堂系统",
+    summary: "覆盖 Classroom/Session 的实时架构、SSE 推送、两极模式、在线状态追踪与过程性评价记录链路。",
+    coverage: ["Session 生命周期", "locked/unlocked 模式", "SSE 实时推送", "Presence 追踪", "证据与干预", "形成性评价"],
+    includesCodeExamples: false,
+  },
+  {
+    href: "/help/schedule",
+    title: "课表系统",
+    summary: "覆盖课表运行时、跨 session 趋势、调课操作、导入审批与 proposal-only 扩展边界，是 Phase 26 cross-session trends 的核心事实来源。",
+    coverage: ["教师课表 runtime", "跨 session 趋势 (7/14/30 day)", "调课 override", "校历管理", "proposal-only 边界", "schedule.assistant hook"],
+    includesCodeExamples: false,
+  },
+  {
+    href: "/help/actions",
+    title: "Server Actions 层",
+    summary: "覆盖所有 Server Actions 的输入验证、错误映射、缓存失效模式与认证检查通用做法。",
+    coverage: [
+      "Zod 输入验证",
+      "错误映射 (TEACHER_AUTH_REQUIRED -> UNAUTHORIZED)",
+      "updateTag 缓存失效",
+      "assertActiveTeacher 认证模式",
+      "lesson-authoring-actions (11 actions)",
+      "classroom-actions (11 actions)",
+      "learning-actions (4 actions)",
+      "class-management-actions (6 actions)",
+      "course-authoring-actions (2 actions)",
+      "plugin-actions (7 actions)",
+      "theme-actions (2 actions)",
+      "auth-actions (2 actions)",
+      "schedule re-exports (12 actions)",
+    ],
     includesCodeExamples: true,
   },
 ];
@@ -438,6 +579,604 @@ const proposalResult = {
         stateLabel: "后续扩展",
         paragraphs: [
           "未来可能补充更多 schedule-aware hooks、审批联动或 richer payload contracts，但它们当前仍然属于后续扩展，而不是已交付接口。",
+        ],
+      },
+    ],
+  },
+  "/help/auth": {
+    href: "/help/auth",
+    title: "认证系统指南",
+    summary: "Auth.js v5 拆分配置模式、Proxy 保护层、JWT 策略与 school-scoped memberships 角色访问控制的完整链路。",
+    audience: "面向要理解认证架构、保护路由、或接入当前角色的开发者。",
+    factSources: [
+      "src/lib/auth/auth.config.ts",
+      "src/lib/auth/auth.ts",
+      "src/proxy.ts",
+      "src/db/schema.ts",
+      "src/lib/dal/auth.ts",
+      "src/lib/dal/membership.ts",
+    ],
+    coverage: [
+      "auth.config.ts: edge-safe, 无 DB 依赖",
+      "NextAuth(authConfig).auth proxy 保护层",
+      "JWT session strategy + credentials provider",
+      "school-scoped memberships 与角色（teacher/student/admin）",
+      "getCurrentUserDTO / getUserMembershipsDTO DAL",
+    ],
+    caution: [
+      "auth.config.ts 不得引入 Drizzle ORM 或 db 导入，否则 Proxy 层会报错。",
+      "Proxy 保护路由：/teacher、/student、/classroom、/admin。",
+      "credentials provider 不支持 OAuth providers（accounts 表仅用于 OAuth）。",
+    ],
+    relatedLinks: [
+      { href: "/teacher", label: "教师端", summary: "受 Proxy 保护的教师路由示例。" },
+      { href: "/student", label: "学生端", summary: "受 Proxy 保护的学生路由示例。" },
+      { href: "/classroom", label: "课堂", summary: "受 Proxy 保护的课堂路由示例。" },
+    ],
+    sections: [
+      {
+        title: "这页适合什么时候读",
+        paragraphs: [
+          "当你需要理解认证流程的层次、为什么 auth.config.ts 不能 import Drizzle、或者想确认 Proxy 保护层是如何拦截未登录请求的，直接看这页。",
+          "这页面向开发者，不面向终端用户；重点是架构决策、文件职责边界和 DAL session helpers，而不是登录页 UI。",
+        ],
+      },
+      {
+        title: "当前可用",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "当前认证系统基于 Auth.js v5，使用拆分配置模式：`auth.config.ts` 只包含 providers、pages 和 `authorized` callback（无 DB 依赖，edge-safe）；`auth.ts` 是完整实例，包含 DrizzleAdapter、CredentialsProvider 和 JWT strategy。",
+          "Proxy 层（`src/proxy.ts`）使用 `NextAuth(authConfig).auth` 保护 `/teacher`、`/student`、`/classroom`、`/admin`。它在 Edge Runtime 执行，只依赖 authConfig，不引入任何 DAL 或 DB。",
+          "Session 策略为 JWT。`jwt` callback 将用户 ID 和 roles 写入 token；`session` callback 将其传递到 `session.user.id` 和 `session.user.roles`。",
+          "角色通过 school-scoped memberships 确定：教师和学生都属于某个学校（schoolId），通过 `memberships.role` 字段（teacher/student/admin）区分。",
+        ],
+        bullets: [
+          "`auth.config.ts` 是唯一可以在 Edge Runtime 执行的 Auth.js 配置层。",
+          "Proxy matcher 排除了 `/api`、`/_next`、favicon.ico，其他所有路由都经过认证检查。",
+          "未登录用户访问受保护路由会重定向到 signIn page（`/`）。",
+          "JWT token 包含 id 和 roles，session 只传递 user.id 和 user.roles。",
+          "credentials provider 使用 bcryptjs 比对密码，不支持 Social Login。",
+        ],
+      },
+      {
+        title: "配置拆分原则",
+        paragraphs: [
+          "`auth.config.ts` 与 `auth.ts` 的拆分是刻意为之的设计决策，不是随意分割。",
+          "`auth.config.ts` 必须保持 DB-free，原因：它在 Edge Runtime 的 `src/proxy.ts` 中执行，而 Edge Function 不能使用 Node.js 专用数据库驱动。",
+          "`auth.ts` 包含 DrizzleAdapter（需要同步 db 连接）、CredentialsProvider 实现（需要 bcryptjs）和完整的 JWT callbacks。它只在 Server Actions 和 Route Handlers 中使用。",
+          "如果在 `auth.config.ts` 中引入 Drizzle ORM，Proxy 层会在构建或运行时失败，因为 Edge Runtime 无法解析 `better-sqlite3` 或 Drizzle 的 Node.js 专用导入。",
+        ],
+      },
+      {
+        title: "Proxy 保护层运行机制",
+        paragraphs: [
+          "`src/proxy.ts` 导出一个默认的 NextAuth 中间件函数：`export default NextAuth(authConfig).auth`。",
+          "它的 `config.matcher` 排除 `/api`、`/_next` 和 `favicon.ico`，对其他所有请求执行 `authorized` callback。",
+          "`authorized` callback 调用 `isAuthorizedRouteAccess()`，检查：1. 路由是否受保护；2. 用户是否已登录；3. 用户是否有所需角色。",
+          "Proxy 层只做路由拦截和基础角色校验；具体的 school scope 和权限细化由后续 DAL 层处理。",
+        ],
+        codeExample: {
+          title: "proxy.ts 核心结构",
+          language: "ts",
+          code: `import NextAuth from "next-auth";
+import { authConfig } from "./lib/auth/auth.config";
+
+export default NextAuth(authConfig).auth;
+
+export const config = {
+  matcher: ['/((?!api|_next|favicon.ico).*)'],
+};`,
+        },
+      },
+      {
+        title: "Credentials 登录流程",
+        paragraphs: [
+          "用户提交 email（教师邮箱或学生学号）、password 和 roleIntent（teacher/student）。",
+          "`authorizeCredentials()` 先通过 roleIntent 确定查询字段：teacher 用 email，student 用 studentNumber。",
+          "然后查询 users 表、用 bcrypt.compare 验证密码，再用 memberships 表确认用户在该角色下有 active membership。",
+          "如果验证失败返回 null，NextAuth 会拒绝登录。成功则返回包含 id、name、email 和 roles 的 user 对象。",
+        ],
+        codeExample: {
+          title: "authorizeCredentials 流程",
+          language: "ts",
+          code: `export async function authorizeCredentials(credentials) {
+  const roleIntent = normalizeRoleIntent(credentials.roleIntent);
+  const loginId = roleIntent === "student"
+    ? credentials.studentNumber
+    : credentials.email;
+
+  const user = await db.select().from(users)
+    .where(roleIntent === "student"
+      ? eq(users.studentNumber, loginId)
+      : eq(users.email, loginId))
+    .limit(1);
+
+  const isValid = await bcrypt.compare(credentials.password, user.password);
+
+  if (!isValid) return null;
+
+  const activeMemberships = await db.select({ id: memberships.id })
+    .from(memberships)
+    .where(and(
+      eq(memberships.userId, user.id),
+      eq(memberships.role, roleIntent),
+      eq(memberships.status, "active")
+    ));
+
+  if (activeMemberships.length === 0) return null;
+
+  return { id: user.id, name: user.name, email: user.email, roles: [roleIntent] };
+}`,
+        },
+      },
+      {
+        title: "DAL session helpers",
+        paragraphs: [
+          "`getCurrentUserDTO()` 从 `auth()` 获取当前 session，提取 user.id，然后查询 users 表返回 UserDTO。它是 Server Actions 中获取当前登录用户的推荐入口。",
+          "`getUserMembershipsDTO()` 查询当前用户的所有 memberships，返回包含 schoolId、role、status 的 MembershipDTO 数组。",
+          "`getCurrentUserSchoolIds()` 组合以上两个 helper，返回当前用户在 active memberships 中所属的所有 schoolId 列表。",
+          "这些 helpers 都标记为 `server-only`，不能在前端代码中使用。",
+        ],
+        codeExample: {
+          title: "getCurrentUserDTO 实现",
+          language: "ts",
+          code: `export async function getCurrentUserDTO(): Promise<UserDTO | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const userRecord = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+  });
+
+  if (!userRecord) return null;
+
+  return UserDTOSchema.parse(userRecord);
+}`,
+        },
+      },
+      {
+        title: "使用边界",
+        stateLabel: "使用边界",
+        paragraphs: [
+          "当前认证系统不支持 OAuth providers（Google、GitHub 等）。accounts 表结构存在，但 credentials provider 是唯一的登录方式。",
+          "Proxy 层只能识别 teacher/student/admin 三种角色，不能识别更细粒度的 permission（如 schedule:write:proposal）。",
+          "Session 是 JWT，不是数据库 session。JWT 内容只有 id 和 roles，不包含 memberships 详情。",
+          "用户切换学校（multi-school）场景需要自行实现，当前 DAL 没有处理。",
+        ],
+        bullets: [
+          "不支持 Social Login 和 OAuth 自动注册。",
+          "不能在前端直接读取 session，必须通过 Server Actions。",
+          "没有 session 过期刷新机制，JWT TTL 由 NextAuth 内部控制。",
+        ],
+      },
+      {
+        title: "后续扩展",
+        stateLabel: "后续扩展",
+        paragraphs: [
+          "未来可以考虑支持 OAuth providers、session 持久化策略、multi-school 切换 UI 或更细粒度的 permission system。",
+          "但这些都还不属于当前代码库中已落地的能力，帮助中心不会将它们写成可直接使用的接口。",
+        ],
+      },
+    ],
+  },
+  "/help/schedule": {
+    href: "/help/schedule",
+    title: "课表系统指南",
+    summary: "覆盖课表 runtime、跨 session 趋势、调课 override、校历管理与 proposal-only 扩展边界，是 Phase 26 cross-session trends 的核心事实来源。",
+    audience: "面向要理解教师课表运行时、跨 session 趋势数据、schedule 扩展 proposal-only 边界与 DAL 层职责划分的开发者。",
+    introLabel: "Phase 26 核心事实来源",
+    factSources: [
+      "src/features/schedule/assistant/actions.ts",
+      "src/features/schedule/import/actions.ts",
+      "src/features/schedule/operations/actions.ts",
+      "src/features/schedule/reminders/actions.ts",
+      "src/lib/dal/schedule-assistant.ts",
+      "src/lib/dal/schedule-operations.ts",
+      "src/features/schedule/runtime/server.ts",
+      ".planning/phases/26-cross-session-trends-and-stitch-productization/26-CONTEXT.md",
+    ],
+    coverage: [
+      "TeacherDailyAgendaDTO / ClassDailyAgendaCardDTO runtime 读模型",
+      "跨 session 趋势：7/14/30 day patterns、class-level aggregations",
+      "Student-level breakdown：participation buckets (active/normal/attention/unevaluated)",
+      "调课 override (create/update/revokeScheduleOverrideAction)",
+      "校历管理 (saveHolidayCalendarDateAction / removeHolidayCalendarDateAction)",
+      "Import/draft/approve 审批链路",
+      "schedule.assistant proposal 与 proposal-only 边界",
+      "schedule assistant DAL (createScheduleAssistantProposal / approve/reject)",
+      "schedule operations DAL (createScheduleOverride / revokeOverride / holiday dates)",
+    ],
+    caution: [
+      "schedule 扩展只能产出 proposal/draft/annotation，不能直接写 runtime schedule。",
+      "跨 session 趋势的 participation buckets 只是一种信息聚合表达，不等于学生评价结论。",
+      "调课 override 的 effectiveDate 是单日有效，不是整个学段修改。",
+      "导入审批链路中的 approve 仍然受 school scope 与状态机约束，不是任意放行。",
+    ],
+    relatedLinks: [
+      { href: "/teacher/schedule", label: "教师课表", summary: "查看产品里课表 runtime 的真实使用面。" },
+      { href: "/teacher/trends", label: "跨 session 趋势", summary: "Phase 26 新增的班级与学生级别趋势分析入口。" },
+      { href: "/help/actions-interfaces", label: "Actions / Interfaces", summary: "如果你从插件角度接入 schedule.assistant hook，可回看 proposal-only 边界说明。" },
+      { href: "/help/plugins", label: "插件开发", summary: "如果你在写 manifest 和 schedule.assistant 相关的插件，可回看 registry allowlist。" },
+    ],
+    sections: [
+      {
+        title: "这页适合什么时候读",
+        paragraphs: [
+          "当你需要理解课表系统的完整层次——从 runtime 读模型到 DAL 层职责划分，或者要接入 Phase 26 新增的跨 session 趋势数据，这页是当前代码库的事实来源汇总。",
+          "它覆盖了 assistant、operations、import、reminders 四个 action 分支，以及 schedule-assistant 和 schedule-operations 两个 DAL 层。不是 API 手册，而是帮助你在代码里找路的参考索引。",
+        ],
+      },
+      {
+        title: "课表运行时读模型",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "教师课表 runtime 的核心 DTO 是 `TeacherDailyAgendaDTO` 和 `ClassDailyAgendaCardDTO`，由 `src/features/schedule/runtime/server.ts` 中的 `getTeacherDailyAgendaDTO()` 和 `getClassDailyAgendaDTO()` 产出。",
+          "这两个函数都使用 `loadAgendaRuntimeRecords()` 加载同一条数据链：`scheduleTerm` -> `scheduleTeachingAssignment` -> `scheduleRecurringEntry` -> `scheduleOverride` -> `scheduleHolidayDate`，再按 bellSlot 聚合出最终 agenda cards 和 weekly schedule grid。",
+          "读模型同时支持 teacher view 和 admin_school view；前者只看当前教师自己的课，后者可以看整个学校的课表。权限校验走 `assertScheduleTeacherScope()`，学校范围由 memberships 决定。",
+        ],
+        bullets: [
+          "`TeacherDailyAgendaDTO.viewMode` 区分 `teacher` 与 `admin_school`，决定是否包含所有教师的数据。",
+          "`ClassDailyAgendaCardDTO` 是班级课表的读模型，比教师版少 `lessonLink` 字段。",
+          "Override 覆盖规则：同一个 `recurringEntryId` 在同一 date 只能有一个 active override，覆盖后的 bellSlot/room/teacher 都以 override 为准。",
+          "Holiday 日期的 `dayType` 决定是否渲染为停课：只有 `teaching` 和 `make_up` 是正常上课日，`holiday` 和 `non_teaching` 会把当天全部标为停课。",
+        ],
+      },
+      {
+        title: "跨 session 趋势（Phase 26）",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "Phase 26 新增的 cross-session trends 在 `src/features/schedule/runtime/server.ts` 的 `getTeacherDailyAgendaDTO()` 基础上，通过 `TeacherDailyAgendaDTO` 的 session-first 记录来支撑趋势聚合。",
+          "当前趋势以 session 为单位，聚合周期支持 7 day、14 day、30 day 三种 patterns。Class-level aggregation 给出班级维度的参与度/完成率趋势，student-level breakdown 再拆解到单个学生的 participation buckets。",
+          "Participation buckets 当前分为四档：`active`（持续参与）、`normal`（正常参与）、`attention`（需要关注）、`unevaluated`（未进入评价）。这四种状态是信息标签，不是评价结论——它们描述的是参与行为趋势，不是学生能力判断。",
+        ],
+        bullets: [
+          "跨 session 趋势的数据来源是 `classroomSession` 表的 session records，不是另起一套 analytics snapshot。",
+          "7/14/30 day patterns 是时间窗口配置，不是固定报表；实际显示哪些窗口由 UI 层决定。",
+          "Class-level 与 student-level 的聚合使用相同的 session evidence base，保持与 single-session recap 一致的 truth source。",
+          "Phase 26 产品上 `/teacher/trends` 是 cross-session trends 的入口，同时接受从 `/classroom` recap 的 deep-link 进入（`/teacher/trends?classId=&sessionId=&view=sessions`）。",
+        ],
+      },
+      {
+        title: "schedule.assistant 与 proposal-only 边界",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "`src/features/schedule/assistant/actions.ts` 输出三个 Server Action：`createScheduleAssistantProposalAction`、`approveScheduleAssistantProposalAction`、`rejectScheduleAssistantProposalAction`。",
+          "proposal 有三种类型：`import_mapping`（导入映射建议）、`conflict_explanation`（冲突说明）、`override_suggestion`（调课建议）。proposal 创建后状态为 `pending`，审批后变为 `draft_created`，拒绝后变为 `rejected`。",
+          "Proposal-only 边界是硬约束：schedule 扩展只能产出 proposal/draft/annotation，不能直接写入 runtime schedule。`src/features/schedule/assistant/server.ts` 中的 `createScheduleAssistantProposal()` 只做 DB insert 和审计日志，不触发任何 runtime schedule mutation。",
+          "审批通过后的 `draft_created` 状态意味着系统已准备好一份 draft，但真正写入 runtime 仍需通过 `schedule/operations` 层的受控 action，而不是插件直接写。",
+        ],
+        bullets: [
+          "proposal 的 `draftPayloadJson` 字段存储原始 proposal 内容，审批通过后由后续链路消费。",
+          "当前 proposal 只支持 `pending -> draft_created` / `rejected` 两种终态，没有 `approved` 直接生效的路径。",
+          "`schedule.assistant` hook 是 `schedule.assistant` anchor 的消费者，不是 runtime schedule 的直接修改者。",
+          "帮助中心不提供 proposal -> runtime write 的自动链路说明，因为这当前不是已开放的 contract。",
+        ],
+      },
+      {
+        title: "schedule operations DAL",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "`src/lib/dal/schedule-operations.ts`（实际导出来自 `src/features/schedule/operations/server.ts`）提供调课 override 和校历管理的核心 DAL 函数。",
+          "调课 override 有三种 action：`substitute`（代课）、`cancel`（停课）、`move`（换时段/换教室）。每种 action 都有对应的 payload 约束——`substitute` 必须有 `substituteTeacherId`，`move` 必须有 `replacementBellSlotId` 或 `replacementRoomLabel`。",
+          "Override 的 effectiveDate 是单日有效，不影响其他日期。`revokeScheduleOverride()` 可以撤销一个 active override，撤销时必须提供 reason 并记入审计。",
+          "校历管理通过 `saveHolidayCalendarDate()` 和 `removeHolidayCalendarDate()` 操作 `scheduleHolidayDate` 表。Holiday 日期关联到 `scheduleHolidayCalendar`，后者关联到 school。一个 school 默认有一个默认校历，由 `ensureDefaultHolidayCalendar()` 在首次写入时自动创建。",
+        ],
+        bullets: [
+          "createScheduleOverride 要求 `substituteTeacherId`（代课）或 `replacementBellSlotId`/`replacementRoomLabel`（换时段/换教室）二选一，`cancel` 不需要额外字段。",
+          "override 状态机：`active` -> `revoked`；没有其他中间态。",
+          "holiday date 的 `dayType` 枚举：`holiday`（放假）、`non_teaching`（非教学日）、`make_up`（补课）、`teaching`（上课日）。",
+          "holiday date 操作会级联清除相关缓存 tag，保持 runtime 读模型与 DB 变更一致。",
+        ],
+      },
+      {
+        title: "import / draft / approve 审批链路",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "`src/features/schedule/import/actions.ts` 处理课表数据导入的完整链路：`draftScheduleImportAction` -> `approveScheduleImportAction` -> `setPrimaryScheduleImportBatchAction`。",
+          "Draft 阶段对输入做规范化：中文字段名转英文、时间字符串规范化（`HH:mm`）、空字符串转 null。规范后数据通过 `ScheduleImportDraftInputSchema` 校验，写入 `scheduleImportBatch` 表。",
+          "Approve 阶段检查阻断项（如冲突时间），若有阻断则返回 `APPROVE_IMPORT_BLOCKED` 错误和具体 issues。阻断项解决后才能继续审批。",
+          "审批通过后可通过 `setPrimaryScheduleImportBatchAction` 将该批次设为主课表，覆盖学校当前的主课表配置。",
+        ],
+        bullets: [
+          "导入行的 `weekday` 字段支持中文数字和阿拉伯数字，自动归一化为整数。",
+          "导入时间格式支持 `HH:mm` 和 `H:mm` 两种写法，自动补零规范化。",
+          "approve 阻断时会返回具体冲突项列表，帮助教师定位问题行。",
+          "setPrimary 后旧主课表不会自动归档，仍保留在 DB 中供历史查询。",
+        ],
+      },
+      {
+        title: "reminders DAL",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "`src/features/schedule/reminders/actions.ts` 提供提醒规则的保存、重试和刷新：`saveScheduleReminderRuleAction`、`retryScheduleReminderDispatchAction`、`refreshScheduleReminderCenterAction`。",
+          "提醒规则保存在 `scheduleReminderRule` 表，与 school scope 关联。当前首发允许的提醒类型、对象和渠道有限制，超出范围的写入会触发 `SCHEDULE_REMINDER_BLOCKED` 错误。",
+          "`retryScheduleReminderDispatch()` 用于重新触发一个失败的 dispatch 记录，保持幂等性。",
+        ],
+        bullets: [
+          "提醒规则写入后通过 `invalidateScheduleReminderTags()` 清除相关缓存。",
+          "当前首发只支持受限的提醒类型/对象/渠道，具体范围由 `ScheduleReminderRuleInputSchema` 约束。",
+          "dispatch retry 不会无限重试，受调度策略控制。",
+        ],
+      },
+      {
+        title: "使用边界",
+        stateLabel: "使用边界",
+        paragraphs: [
+          "schedule 系统当前的分层很清晰：runtime 读模型在 `schedule/runtime/server.ts`，proposal 在 `schedule/assistant`，operations 在 `schedule/operations`，import 在 `schedule/import`，reminders 在 `schedule/reminders`。每一层都有自己的 DAL 和 Server Action，不能跨层调用。",
+          "Proposal-only 边界是硬约束。`schedule.assistant` 的任何 hook consumer 只能产出 proposal/draft/annotation，不能绕过这个边界直接写 runtime schedule。",
+          "跨 session 趋势的 buckets 是行为标签，不是评价结论。不要把 `attention` bucket 等同于"学生有问题"，也不要把 `active` 等同于"学生表现优秀"。",
+        ],
+        bullets: [
+          "不要在插件里直接调用 `createScheduleOverride()` / `saveHolidayCalendarDate()` 等 runtime write DAL。",
+          "不要把跨 session 趋势的聚合结果当成确定性结论使用，它只是辅助判断的信息。",
+          "import 审批阻断时，issues 列表只描述冲突，不自动解决冲突。",
+          "Reminder dispatch retry 有策略限制，不要在循环里重试失败任务。",
+        ],
+      },
+      {
+        title: "后续扩展",
+        stateLabel: "后续扩展",
+        paragraphs: [
+          "未来可能补充：proposal 自动审批链路、跨 session 趋势的 richer aggregation rules、reminder 的 richer channel 支持、import 的 conflict auto-resolve。",
+          "这些扩展当前不在已落地的 contract 里，帮助内容会继续把已交付能力和未来扩展分开展示。",
+        ],
+      },
+    ],
+  },
+};
+"/help/dal": {
+  href: "/help/dal",
+  title: "数据访问层 (DAL) 开发指南",
+  summary: "理解 DAL 如何在 UI/Server Actions 与 Drizzle ORM 之间分层，所有数据库访问都必须经过 DAL 而不是绕过。",
+  audience: "面向要扩展或维护 DAL 模块、编写新 Server Action、或理解数据如何在层间流转的开发者。",
+  factSources: [
+    "src/lib/dal/auth.ts",
+    "src/lib/dal/membership.ts",
+    "src/lib/dal/learning.ts",
+    "src/lib/dal/classroom.ts",
+    "src/lib/dal/lesson-authoring.ts",
+    "src/lib/dal/course-authoring.ts",
+    "src/lib/dal/class-management.ts",
+    "src/lib/dal/plugins.ts",
+    "src/lib/dal/themes.ts",
+    "src/lib/dal/mcp.ts",
+  ],
+  coverage: [
+    "DAL 层职责边界与设计原则",
+    "模块划分：auth、memberships、learning、classroom、lesson/course authoring、plugins、themes、mcp",
+    "assertActiveTeacher / assertActiveStudent 模式",
+    "school scope 校验",
+    "append-only 提交记录",
+    "LexoRank 排序",
+  ],
+  caution: [
+    "UI 组件和 Server Actions 禁止直接导入 db 并操作数据库。",
+    "所有 foreign key 关系使用 onDelete: cascade，删除时注意级联影响。",
+    "taskSubmissions 和 quizAttempts 是 append-only，不允许 update 只允许 insert 新行并标 isLatest。",
+    "LexoRank 只用于 step 排序，禁止使用整数 position 列。",
+  ],
+  relatedLinks: [
+    { href: "/help/plugins", label: "插件开发", summary: "plugins.ts 中的 plugin hook 与 permission 校验依赖 DAL 完成 school scope 校验。" },
+    { href: "/help/themes", label: "主题开发", summary: "themes.ts 中主题注册后通过 DAL 持久化，切换时写入 cookie 由 runtime 消费。" },
+    { href: "/help/actions-interfaces", label: "Actions 与 Interfaces", summary: "Server Action 是 DAL 的直接调用方，理解 DAL 有助于正确使用 Actions。" },
+  ],
+  sections: [
+    {
+      title: "这页适合什么时候读",
+      paragraphs: [
+        "当你要新增一个 DAL 函数、编写调用数据库的 Server Action、或者需要确认某个数据访问应该落在哪个 DAL 模块时，直接看这页。",
+        "本页不重复 Drizzle schema 或具体 table 定义，只说明 DAL 层的设计约定、各模块职责和典型调用模式。",
+      ],
+    },
+    {
+      title: "当前可用",
+      stateLabel: "当前可用",
+      paragraphs: [
+        "DAL 是数据访问的唯一入口，所有 DB 操作必须通过 DAL 而不是直接从 Server Action 或 UI 调用 drizzle。",
+        "每个 DAL 文件专注一个业务域：auth/memberships 管理用户与会话、learning 管理学生进度与提交、classroom 管理课堂 session 与采证、lesson-authoring 管理课时与 step 排序、course-authoring 管理课程卡片与聚合查询、class-management 管理班级名册与批量导入、plugins 管理插件注册与 hook 分发、themes 管理主题 token 与运行时状态、mcp 管理 MCP server 注册与 capability。",
+        "每个 DAL 模块通过 `assertActiveTeacher()` 或 `assertActiveStudent()` 获取当前 actor scope，并以 schoolId 校验权限边界。所有查询默认带上 school scope 过滤，除非函数签名明确说明可跨校。",
+      ],
+      bullets: [
+        "auth.ts：`getCurrentUserDTO()` 从 Auth.js session 解析当前用户，`getCurrentUserSchoolIds()` 查询用户所在学校列表。",
+        "membership.ts：`getUserMembershipsDTO()` 返回用户的 school memberships，含 role 和 status，用于 school scope 校验。",
+        "learning.ts：学生进度记录（`markStepProgress`）、任务提交（`submitTaskAttempt`，append-only）、测验作答（`submitQuizAttempt`，append-only）、教师反馈（`saveAttemptFeedback`）。",
+        "classroom.ts：课堂 session 管理（`launchClassroomSession`、`changeClassroomActiveStep`、`endClassroomSession`）、采证记录（`recordClassroomEvidence`、`recordStudentQuickResponse`）、formative evaluation（`recordStudentFormativeEvaluation`）。",
+        "lesson-authoring.ts：`assertActiveTeacher()` 获取教师 scope；课时 CRUD、step 增删排序（LexoRank）、发布快照（`publishLesson`）与准备度检查（`getLessonPublishReadinessDTO`）。",
+        "course-authoring.ts：课程聚合查询（`getTeacherCourseCenterDTO`、`getTeacherCourseDetailDTO`）、创建与更新（`createCourseForTeacherScoped`、`updateCourseForTeacherScoped`）。",
+        "class-management.ts：班级名册导入导出（`importClassesForTeacher`、`importClassRosterForTeacher`）、学生密码重置（`resetStudentPasswordsForTeacher`）。",
+        "plugins.ts：`registerPluginManifest()`、`setPluginEnabled()`、`runPluginHook()` 做 plugin hook 分发，含 school scope、kill switch 与 permission 校验。",
+        "themes.ts：`registerThemeTokens()`、`getValidThemesForSchool()`、`getCurrentActorThemeRuntimeState()` 管理主题 registry 与运行时。",
+        "mcp.ts：`registerMcpServer()`、`setMcpCapabilityEnabled()`、`recordMcpAudit()` 管理 MCP server 注册与审计日志。",
+      ],
+    },
+    {
+      title: "DAL 设计原则",
+      paragraphs: [
+        "每个 DAL 文件是自包含的业务模块，不跨文件 join 业务无关的 table。所有跨域组合在调用方或上方 Server Action 层做 aggregation。",
+        "DAL 函数签名分为 query（只读，返回 DTO）和 mutation（写操作，返回 MutationResult）。query 可以带 cache hint（`cacheLife`/`cacheTag`），mutation 不做 cache。",
+        "所有 mutation 函数接收原始 input（未校验的 JS object），内部调用 Zod schema 做 parse 并 transform，确保 DB 操作前已完成校验。",
+        "school scope 校验在 DAL 入口做，不在调用方做。函数签名应显式传入 schoolId 或从 actor membership 推导，而不是隐式依赖全局状态。",
+        "错误使用 throw Error(message) 而非业务 Result type，调用方通过 catch 检测错误字符串做分支。错误 message 应简短、机器可读，如 `TEACHER_AUTH_REQUIRED`、`COURSE_NOT_FOUND`。",
+      ],
+    },
+    {
+      title: "append-only 提交记录",
+      paragraphs: [
+        "`taskSubmissions` 和 `quizAttempts` 是 append-only 表。写入时在同一个 transaction 内：先将同 publishedVersionId+stepId+studentId 的旧记录标 isLatest=false，再插入新行 isLatest=true。",
+        "这样保留完整尝试历史，同时 latest read model 始终指向最新一条。禁止做 update 操作修改已存在的 attempt 记录。",
+        "reading 时过滤 isLatest=true 拿到当前最新结果；history 页面不过滤，拿到所有历史。",
+      ],
+    },
+    {
+      title: "LexoRank 排序",
+      paragraphs: [
+        "课时内的 step 顺序使用 LexoRank rank 字符串（`lessonSteps.rank`），不是整数 position。",
+        "新增 step 时用 `createRankAfter(lastRank)` 或 `createRankBetween(before, after)` 计算 rank；拖拽排序时算出目标区间内的中间值。",
+        "禁止在 DAL 或 Server Action 中直接交换 integer position，这会触发级联更新。",
+      ],
+    },
+    {
+      title: "使用边界",
+      stateLabel: "使用边界",
+      paragraphs: [
+        "不要绕过 DAL 直接导入 db 并在 Server Action 中写 drizzle 查询。这会绕过 school scope 校验、audit 日志和 cache policy。",
+        "不要在 DAL 函数内部做 auth 判断后又允许 null return 而不抛错。所有需要权限的函数在拿不到 scope 时应抛出 `TEACHER_AUTH_REQUIRED` 或 `INACCESSIBLE_LESSON_MESSAGE`。",
+        "append-only 表（taskSubmissions、quizAttempts）禁止做 update，只做 insert 并更新 isLatest 标记。",
+        "不要在 lesson-authoring 或 classroom 等教师侧 DAL 中直接使用 studentId 做 scope 校验，应该先通过 course/class membership 推导 school scope 再过滤。",
+      ],
+    },
+    {
+      title: "后续扩展",
+      stateLabel: "后续扩展",
+      paragraphs: [
+        "未来可能将更多聚合查询下沉到 DAL 并增加 cache hint，提升 dashboard 类页面的加载性能。",
+        "未来可能为 classroom session 增加更多 real-time 事件类型（如 `step_completed`、`evidence_captured`），目前只有 `launched`、`active_step_changed`、`lock_mode_changed`、`slide_changed`、`ended`。",
+        "未来可能为 MCP capability 增加 more granular role-based access control。",
+      ],
+    },
+  ],
+};
+
+  "/help/classroom": {
+    href: "/help/classroom",
+    title: "课堂系统指南",
+    summary: "覆盖 Classroom/Session 的实时架构、SSE 推送、两极模式、在线状态追踪与过程性评价记录链路。",
+    audience: "面向要理解课堂实时系统架构、Session 生命周期、SSE 推送机制与过程性评价设计的开发者。",
+    factSources: [
+      "src/lib/dal/classroom.ts",
+      "src/actions/classroom-actions.ts",
+      "src/app/api/classroom/[sessionId]/events/route.ts",
+      "src/components/classroom/",
+    ],
+    coverage: [
+      "Session 生命周期：launched → live → ended",
+      "locked/unlocked 两极模式与教师控课",
+      "SSE 轮询推送 ClassroomSnapshot 的运行机制",
+      "Presence 追踪：touchClassroomPresenceAction 与 connectionState",
+      "课堂证据与干预记录链路",
+      "学生形成性评价（participationLevel + tags + observationNote）",
+    ],
+    caution: [
+      "SSE 当前是轮询模式（每 2 秒），不是 WebSocket 双向通道。",
+      "Session 状态只能由教师侧 Server Actions 变更，学生端只能追踪 presence。",
+      "证据与干预记录都经过 DAL 校验，不是任意写入路径。",
+      "形成性评价记录在 classroomEvidence 表中，kind 为 formative-evaluation。",
+    ],
+    relatedLinks: [
+      { href: "/classroom", label: "课堂控制台", summary: "教师进入课堂、控制步骤、查看在线状态。" },
+      { href: "/teacher/review", label: "教师回顾", summary: "查看课堂后的学生提交、反馈与跟进。" },
+    ],
+    sections: [
+      {
+        title: "这页适合什么时候读",
+        paragraphs: [
+          "当你需要理解课堂实时系统是如何工作的、Session 在各个阶段之间如何转换、或者 SSE 推送的具体机制时，直接看这页。",
+          "本页聚焦 Classroom/Session 的核心 contract，不覆盖教师端 UI 组件的详细实现或课程编排的完整链路。",
+        ],
+      },
+      {
+        title: "Session 生命周期",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "Session 共有三种状态：`offline`（未启动）、`live`（进行中）和 `ended`（已结束）。状态转换只能由教师触发，学生只能被动加入已 live 的 session。",
+          "启动路径：`launchClassroomSession()` 在一个事务中创建 session、插入所有学生为 participants、并写入第一条 `launched` 事件。第一个 activeStep 来自已发布课时的第一个步骤。",
+          "结束路径：`endClassroomSession()` 将 session 状态更新为 `ended` 并写入 `ended` 事件，之后不能再进行步骤切换或模式变更。",
+        ],
+        bullets: [
+          "`classroomSessions.status` 控制状态，不能从外部绕过 Server Action 直接写库。",
+          "Session 有 `version` 字段用于乐观并发控制，每次状态变更都会递增。",
+          "进行中的 Session 在浏览器刷新后可以继续，教师重启控制台会恢复最新 snapshot。",
+        ],
+      },
+      {
+        title: "locked / unlocked 两极模式",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "`locked = true` 时，教师控制当前步骤，学生端不允许自由切换步骤。教师通过 `changeClassroomStepAction()` 推进课堂，所有学生收到 SSE 推送后同步到同一步骤。",
+          "`locked = false`（unlocked）时，学生可以自行在已发布步骤范围内导航，教师仍能看到每个学生的当前位置和在线状态，但不会推送步骤切换事件。",
+          "模式切换通过 `changeClassroomModeAction()` 进行，会写入 `lock_mode_changed` 事件并递增 session version。",
+        ],
+        bullets: [
+          "locked 模式适合新授课或全班同步活动。",
+          "unlocked 模式适合自主探究或差异化练习环节。",
+          "切换模式不需要教师切换页面，在同一个控制面板内即可完成。",
+          "学生进入 session 时的初始 currentStepId 为 session.activeStepId，后续可自行更新（在 unlocked 时）。",
+        ],
+      },
+      {
+        title: "SSE 实时推送机制",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "SSE 端点为 `GET /api/classroom/[sessionId]/events`，运行在 Edge Runtime。它不是 WebSocket，而是基于 HTTP 的 Server-Sent Events，采用轮询 snapshot 的方式实现近实时同步。",
+          "轮询间隔为 2 秒（`CLASSROOM_SSE_POLL_INTERVAL_MS = 2000`）。每次轮询请求 `/api/classroom/[sessionId]/snapshot`，比对 version 是否增加。若 version 增加则推送完整 ClassroomSnapshot；若 session 已 ended 则关闭流。",
+          "客户端在建立 SSE 连接时携带 cookie 以便通过 Auth.js 校验身份。教师和学生的 SSE 端点返回相同的 snapshot 结构，但 UI 消费层面根据角色展示不同信息。",
+        ],
+        bullets: [
+          "SSE 是单向通道，客户端不能通过 SSE 发送指令。",
+          "所有状态变更（步骤切换、模式切换、Presence 更新）都通过 Server Actions 写入 DB，SSE 只是通知客户端拉取最新 snapshot。",
+          "session ended 后 SSE 流自动关闭，客户端收到 ended 事件后跳转到 recap 页面。",
+        ],
+      },
+      {
+        title: "Presence 追踪",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "学生进入课堂后，通过 `touchClassroomPresenceAction()` 定期更新自己的在线状态和当前步骤。连接状态分为 `connected`、`reconnecting` 和 `offline` 三种。",
+          "`updateClassroomParticipantConnection()` 会写入 `presence_changed` 类型的 timeline entry，用于记录学生进出课堂的时刻和当时所在的步骤。",
+          "Presence 数据用于教师判断学生是否跟随课堂、是否需要关注掉线或落后的学生。`buildParticipantAttention()` 函数综合连接状态、步骤进度和提交情况，判断是否需要教师关注。",
+        ],
+        bullets: [
+          "学生离开页面时不会立即标记为 offline，浏览器 beforeunload 事件触发最后的 presence 更新。",
+          "教师端看到的 `needsAttention` 判断基于 connectionState + progressLabel + submissionCount 综合计算。",
+          "Presence 数据不直接用于形成性评价，只作为辅助判断信号。",
+        ],
+      },
+      {
+        title: "课堂证据与干预记录",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "`recordClassroomEvidence()` 是证据记录的统一入口，支持多种 sourceType：`student-quick-response`（学生快速回应）、`student-submission`（任务/测验提交）、`teacher-observation`（教师课堂观察）。",
+          "证据会同时写入 `classroomEvidence` 表和 `classroomTimeline` 表（entryType 为 `evidence_captured`）。这样既保留原始证据内容，又生成一条时间线记录供教师和学生查看。",
+          "`recordClassroomIntervention()` 写入 `intervention_noted` 类型的 timeline entry，用于记录教师对全班或个别学生的干预措施（如调整进度、个别辅导提示等）。干预记录的 visibility 为 `teacher-only`。",
+        ],
+        bullets: [
+          "证据写入前会校验 session 状态和参与者身份，学生不能为他人记录证据。",
+          "evidenceType 用于区分证据的类别（如 observation / response / submission），不影响写入路径但影响后续查询和 UI 展示。",
+          "干预记录 targetScope 可为 `student` 或 `class`，但不能对全班指定个别学生（防止误用）。",
+        ],
+      },
+      {
+        title: "学生形成性评价",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "`recordStudentFormativeEvaluation()` 写入 kind 为 `formative-evaluation` 的 classroomEvidence 记录，内容包含 `participationLevel`（积极参与 / 正常参与 / 需要关注 / 未评价）、`tags`（标签数组）和 `observationNote`（观察备注）。",
+          "形成性评价只能由教师写入，写入前会通过 `getTeacherSessionScope()` 验证教师身份和学生是否在 session 中。",
+          "查询端通过 `listStudentFormativeEvaluationEntries()` 或 `getClassroomStudentDetailDTO()` 中的 evaluationEntries 字段获取某个学生在某次课堂中的所有评价记录，按时间倒序排列。",
+        ],
+        bullets: [
+          "latestParticipationLevel 出现在学生详情和 session recap 中，用于快速判断是否需要跟进。",
+          "participationLevel 与 needsFollowUp 挂钩：若为 `attention` 或 evidence 存在但无 evaluation 时，needsFollowUp 为 true。",
+          "当前 evaluationEntries 只从 classroomEvidence 表中读取，不涉及独立的 evaluation 表。",
+        ],
+      },
+      {
+        title: "使用边界",
+        stateLabel: "使用边界",
+        paragraphs: [
+          "Classroom 系统是教师主导的实时同步课堂，不是开放的学生自主系统。所有状态变更路径都经过 Server Actions 与 DAL 校验，不能绕过。",
+        ],
+        bullets: [
+          "SSE 是轮询模式，最小间隔 2 秒，不能做到毫秒级实时。",
+          "学生不能主动切换 locked 模式下的步骤，只有教师可以。",
+          "evidence 和 intervention 写入都有权限校验，不能跨 session 或跨学校记录。",
+          "当前没有 classroom-to-classroom 通信或多课堂联动的 contract。",
+        ],
+      },
+      {
+        title: "后续扩展",
+        stateLabel: "后续扩展",
+        paragraphs: [
+          "未来可能补充更细粒度的 attention 信号（如注视率、手动标记）、实时问答或投票功能、跨课堂联动的 session 管理，但这些当前仍属于后续扩展范畴。",
         ],
       },
     ],
