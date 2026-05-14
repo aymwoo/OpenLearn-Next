@@ -1,95 +1,694 @@
-import { readFileSync } from "node:fs";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 
-import { describe, expect, it } from "vitest";
+import {
+  changeClassroomActiveStep,
+  changeClassroomMode,
+  changeClassroomSlide,
+  endClassroomSession,
+  launchClassroomSession,
+  recordClassroomEvidence,
+  recordClassroomIntervention,
+  recordStudentFormativeEvaluation,
+  recordStudentQuickResponse,
+  refreshClassroomSnapshot,
+  updateClassroomParticipantConnection,
+} from "@/lib/dal/classroom";
+import { getCurrentUserDTO } from "@/lib/dal/auth";
+import { cacheTags } from "@/lib/cache-policy";
 
-const source = readFileSync("src/actions/classroom-actions.ts", "utf8");
-const clientSource = readFileSync("src/components/learning/classroom-runtime-client.tsx", "utf8");
-const classroomDalSource = readFileSync("src/lib/dal/classroom.ts", "utf8");
+// Mocks
+const mockUpdateTag = vi.fn();
+vi.mock("next/cache", () => ({
+  updateTag: mockUpdateTag,
+}));
 
-describe("classroom presence actions", () => {
-  it("validates touchClassroomPresenceAction input before DAL writes", () => {
-    expect(source).toContain("export async function touchClassroomPresenceAction");
-    expect(source).toContain("TouchClassroomPresenceInputSchema.safeParse");
-    expect(source).toContain("updateClassroomParticipantConnection");
+const mockLaunchClassroomSession = vi.fn();
+const mockChangeClassroomActiveStep = vi.fn();
+const mockChangeClassroomMode = vi.fn();
+const mockChangeClassroomSlide = vi.fn();
+const mockEndClassroomSession = vi.fn();
+const mockRecordClassroomEvidence = vi.fn();
+const mockRecordClassroomIntervention = vi.fn();
+const mockRecordStudentFormativeEvaluation = vi.fn();
+const mockRecordStudentQuickResponse = vi.fn();
+const mockRefreshClassroomSnapshot = vi.fn();
+const mockUpdateClassroomParticipantConnection = vi.fn();
+
+vi.mock("@/lib/dal/classroom", () => ({
+  launchClassroomSession: mockLaunchClassroomSession,
+  changeClassroomActiveStep: mockChangeClassroomActiveStep,
+  changeClassroomMode: mockChangeClassroomMode,
+  changeClassroomSlide: mockChangeClassroomSlide,
+  endClassroomSession: mockEndClassroomSession,
+  recordClassroomEvidence: mockRecordClassroomEvidence,
+  recordClassroomIntervention: mockRecordClassroomIntervention,
+  recordStudentFormativeEvaluation: mockRecordStudentFormativeEvaluation,
+  recordStudentQuickResponse: mockRecordStudentQuickResponse,
+  refreshClassroomSnapshot: mockRefreshClassroomSnapshot,
+  updateClassroomParticipantConnection: mockUpdateClassroomParticipantConnection,
+}));
+
+const mockGetCurrentUserDTO = vi.fn();
+vi.mock("@/lib/dal/auth", () => ({
+  getCurrentUserDTO: mockGetCurrentUserDTO,
+}));
+
+describe("classroom-actions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("keeps version conflict feedback with latest snapshot recovery", () => {
-    expect(source).toContain("VERSION_CONFLICT");
-    expect(source).toContain("latest: result.snapshot");
-    expect(source).toContain("课堂状态已经被更新。请先恢复最新状态，再继续操作。");
+  describe("launchClassroomSessionAction", () => {
+    const validInput = {
+      lessonId: "lesson-1",
+      publishedVersionId: "version-1",
+      classId: "class-1",
+    };
+
+    it("returns success with session data on valid input", async () => {
+      const mockResult = { sessionId: "session-1", snapshot: {} };
+      mockLaunchClassroomSession.mockResolvedValue(mockResult);
+
+      const { launchClassroomSessionAction } = await import("./classroom-actions");
+      const result = await launchClassroomSessionAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockLaunchClassroomSession).toHaveBeenCalledWith(validInput);
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
+
+    it("returns success even if sessionId is missing", async () => {
+      const mockResult = { snapshot: {} };
+      mockLaunchClassroomSession.mockResolvedValue(mockResult);
+
+      const { launchClassroomSessionAction } = await import("./classroom-actions");
+      const result = await launchClassroomSessionAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockUpdateTag).not.toHaveBeenCalled();
+    });
+
+    it("returns validation error on invalid input", async () => {
+      const { launchClassroomSessionAction } = await import("./classroom-actions");
+      const result = await launchClassroomSessionAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+      expect(mockLaunchClassroomSession).not.toHaveBeenCalled();
+    });
+
+    it("returns error on DAL exception", async () => {
+      mockLaunchClassroomSession.mockRejectedValue(new Error("CLASSROOM_LESSON_NOT_PUBLISHED"));
+
+      const { launchClassroomSessionAction } = await import("./classroom-actions");
+      const result = await launchClassroomSessionAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "CLASSROOM_LESSON_NOT_PUBLISHED",
+        message: "CLASSROOM_LESSON_NOT_PUBLISHED",
+      });
+    });
   });
 
-  it("wires connected and reconnecting presence touches in the student runtime", () => {
-    expect(clientSource).toContain("touchClassroomPresenceAction");
-    expect(clientSource).toContain("touchPresence('connected'");
-    expect(clientSource).toContain("touchPresence('reconnecting'");
+  describe("changeClassroomStepAction", () => {
+    const validInput = {
+      sessionId: "session-1",
+      targetStepId: "step-1",
+      expectedVersion: 1,
+    };
+
+    it("returns success with result on valid input", async () => {
+      const mockResult = { ok: true, sessionId: "session-1" };
+      mockChangeClassroomActiveStep.mockResolvedValue(mockResult);
+
+      const { changeClassroomStepAction } = await import("./classroom-actions");
+      const result = await changeClassroomStepAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
+
+    it("returns version conflict with latest snapshot", async () => {
+      const mockSnapshot = { sessionId: "session-1", version: 2 };
+      const mockResult = {
+        ok: false,
+        error: "VERSION_CONFLICT",
+        snapshot: mockSnapshot,
+      };
+      mockChangeClassroomActiveStep.mockResolvedValue(mockResult);
+
+      const { changeClassroomStepAction } = await import("./classroom-actions");
+      const result = await changeClassroomStepAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VERSION_CONFLICT",
+        message: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",
+        latest: mockSnapshot,
+        attemptedAction: { actionType: "change_step", targetStepId: "step-1" },
+      });
+    });
+
+    it("returns validation error on invalid input", async () => {
+      const { changeClassroomStepAction } = await import("./classroom-actions");
+      const result = await changeClassroomStepAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
+
+    it("handles ZodError during execution", async () => {
+      mockChangeClassroomActiveStep.mockRejectedValue(new z.ZodError([]));
+
+      const { changeClassroomStepAction } = await import("./classroom-actions");
+      const result = await changeClassroomStepAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
   });
 
-  it("validates evidence and intervention action input before DAL writes", () => {
-    expect(source).toContain("export async function recordClassroomEvidenceAction");
-    expect(source).toContain("export async function recordClassroomInterventionAction");
-    expect(source).toContain("RecordClassroomEvidenceInputSchema.safeParse");
-    expect(source).toContain("RecordClassroomInterventionInputSchema.safeParse");
-    expect(source).toContain("recordClassroomEvidence(");
-    expect(source).toContain("recordClassroomIntervention(");
+  describe("changeClassroomModeAction", () => {
+    const validInput = {
+      sessionId: "session-1",
+      locked: true,
+      expectedVersion: 1,
+    };
+
+    it("returns success with result on valid input", async () => {
+      const mockResult = { ok: true, sessionId: "session-1" };
+      mockChangeClassroomMode.mockResolvedValue(mockResult);
+
+      const { changeClassroomModeAction } = await import("./classroom-actions");
+      const result = await changeClassroomModeAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
+
+    it("returns version conflict on version mismatch", async () => {
+      const mockSnapshot = { sessionId: "session-1", version: 2 };
+      const mockResult = {
+        ok: false,
+        error: "VERSION_CONFLICT",
+        snapshot: mockSnapshot,
+      };
+      mockChangeClassroomMode.mockResolvedValue(mockResult);
+
+      const { changeClassroomModeAction } = await import("./classroom-actions");
+      const result = await changeClassroomModeAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VERSION_CONFLICT",
+        message: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",
+        latest: mockSnapshot,
+        attemptedAction: { actionType: "change_mode", targetLocked: true },
+      });
+    });
+
+    it("returns validation error on invalid input", async () => {
+      const { changeClassroomModeAction } = await import("./classroom-actions");
+      const result = await changeClassroomModeAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
+
+    it("returns error on DAL exception", async () => {
+      mockChangeClassroomMode.mockRejectedValue(new Error("CLASSROOM_ENDED"));
+
+      const { changeClassroomModeAction } = await import("./classroom-actions");
+      const result = await changeClassroomModeAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "CLASSROOM_ENDED",
+        message: "CLASSROOM_ENDED",
+      });
+    });
   });
 
-  it("invalidates classroom cache after evidence and intervention writes", () => {
-    expect(source).toContain("updateTag(cacheTags.classroom(parsed.data.sessionId))");
+  describe("changeClassroomSlideAction", () => {
+    const validInput = {
+      sessionId: "session-1",
+      stepId: "step-1",
+      slideIndex: 0,
+      expectedVersion: 1,
+    };
+
+    it("returns success with result on valid input", async () => {
+      const mockResult = { ok: true, sessionId: "session-1" };
+      mockChangeClassroomSlide.mockResolvedValue(mockResult);
+
+      const { changeClassroomSlideAction } = await import("./classroom-actions");
+      const result = await changeClassroomSlideAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
+
+    it("returns version conflict on version mismatch", async () => {
+      const mockSnapshot = { sessionId: "session-1", version: 2 };
+      const mockResult = {
+        ok: false,
+        error: "VERSION_CONFLICT",
+        snapshot: mockSnapshot,
+      };
+      mockChangeClassroomSlide.mockResolvedValue(mockResult);
+
+      const { changeClassroomSlideAction } = await import("./classroom-actions");
+      const result = await changeClassroomSlideAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VERSION_CONFLICT",
+        message: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",
+        latest: mockSnapshot,
+        attemptedAction: { actionType: "change_slide", targetStepId: "step-1", slideIndex: 0 },
+      });
+    });
+
+    it("returns validation error on invalid input", async () => {
+      const { changeClassroomSlideAction } = await import("./classroom-actions");
+      const result = await changeClassroomSlideAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
   });
 
-  it("maps evidence and intervention authorization failures to structured action errors", () => {
-    expect(source).toContain("CLASSROOM_EVIDENCE_UNAUTHORIZED");
-    expect(source).toContain("CLASSROOM_INTERVENTION_UNAUTHORIZED");
-    expect(source).toContain("UNAUTHORIZED");
+  describe("refreshClassroomSnapshotAction", () => {
+    const validInput = {
+      sessionId: "session-1",
+    };
+
+    it("returns success with snapshot on valid input", async () => {
+      const mockResult = { ok: true, sessionId: "session-1", snapshot: {} };
+      mockRefreshClassroomSnapshot.mockResolvedValue(mockResult);
+
+      const { refreshClassroomSnapshotAction } = await import("./classroom-actions");
+      const result = await refreshClassroomSnapshotAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
+
+    it("returns validation error on missing sessionId", async () => {
+      const { refreshClassroomSnapshotAction } = await import("./classroom-actions");
+      const result = await refreshClassroomSnapshotAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
+
+    it("returns error on session ended", async () => {
+      mockRefreshClassroomSnapshot.mockRejectedValue(new Error("CLASSROOM_ENDED"));
+
+      const { refreshClassroomSnapshotAction } = await import("./classroom-actions");
+      const result = await refreshClassroomSnapshotAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "CLASSROOM_ENDED",
+        message: "CLASSROOM_ENDED",
+      });
+    });
   });
 
-  it("adds a dedicated student quick-response action that keeps the classroom evidence write path", () => {
-    expect(source).toContain("export async function submitStudentQuickResponseAction");
-    expect(source).toContain("StudentQuickResponseInputSchema.safeParse");
-    expect(source).toContain("recordStudentQuickResponse");
-    expect(source).toContain("updateTag(cacheTags.classroom(parsed.data.sessionId))");
-    expect(source).toContain("updateTag(cacheTags.progress(parsed.data.lessonId, result.studentId))");
-    expect(source).toContain("updateTag(cacheTags.submission(parsed.data.lessonId, result.studentId))");
-    expect(classroomDalSource).toContain("export async function recordStudentQuickResponse");
-    expect(classroomDalSource).toContain("recordClassroomEvidence({");
-    expect(classroomDalSource).not.toContain("submitTaskAttempt(");
-    expect(classroomDalSource).not.toContain("submitQuizAttempt(");
+  describe("endClassroomSessionAction", () => {
+    const validInput = {
+      sessionId: "session-1",
+    };
+
+    it("returns success with result on valid input", async () => {
+      const mockResult = { ok: true, sessionId: "session-1" };
+      mockEndClassroomSession.mockResolvedValue(mockResult);
+
+      const { endClassroomSessionAction } = await import("./classroom-actions");
+      const result = await endClassroomSessionAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
+
+    it("returns validation error on missing sessionId", async () => {
+      const { endClassroomSessionAction } = await import("./classroom-actions");
+      const result = await endClassroomSessionAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
+
+    it("returns error on unauthorized", async () => {
+      mockEndClassroomSession.mockRejectedValue(new Error("TEACHER_AUTH_REQUIRED"));
+
+      const { endClassroomSessionAction } = await import("./classroom-actions");
+      const result = await endClassroomSessionAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "UNAUTHORIZED",
+        message: "您没有权限执行此操作。",
+      });
+    });
+
+    it("returns generic error on unexpected exception", async () => {
+      mockEndClassroomSession.mockRejectedValue(new Error("Some error"));
+
+      const { endClassroomSessionAction } = await import("./classroom-actions");
+      const result = await endClassroomSessionAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "Some error",
+        message: "Some error",
+      });
+    });
   });
 
-  it("adds a teacher-only formative evaluation action with schema validation and classroom cache invalidation", () => {
-    expect(source).toContain("export async function recordStudentFormativeEvaluationAction");
-    expect(source).toContain("RecordStudentFormativeEvaluationInputSchema.safeParse");
-    expect(source).toContain("recordStudentFormativeEvaluation(parsed.data)");
-    expect(source).toContain("updateTag(cacheTags.classroom(parsed.data.sessionId))");
-  });
+  describe("touchClassroomPresenceAction", () => {
+    const validInput = {
+      sessionId: "session-1",
+      connectionState: "connected" as const,
+      currentStepId: "step-1",
+    };
 
-  it("uses the fixed formative evaluation input schema for valid and invalid teacher payloads", async () => {
-    const { RecordStudentFormativeEvaluationInputSchema } = await import("@/lib/dto/classroom");
+    it("returns success when user is logged in", async () => {
+      mockGetCurrentUserDTO.mockResolvedValue({ id: "student-1" });
+      mockUpdateClassroomParticipantConnection.mockResolvedValue(undefined);
 
-    expect(
-      RecordStudentFormativeEvaluationInputSchema.safeParse({
+      const { touchClassroomPresenceAction } = await import("./classroom-actions");
+      const result = await touchClassroomPresenceAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: { sessionId: "session-1" } });
+      expect(mockUpdateClassroomParticipantConnection).toHaveBeenCalledWith({
         sessionId: "session-1",
         studentId: "student-1",
-        participationLevel: "active",
-        tags: ["主动发言", "表达清晰"],
-        observationNote: "能够主动回应问题。",
-      }).success,
-    ).toBe(true);
+        connectionState: "connected",
+        currentStepId: "step-1",
+      });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
 
-    expect(
-      RecordStudentFormativeEvaluationInputSchema.safeParse({
+    it("returns error when user is not logged in", async () => {
+      mockGetCurrentUserDTO.mockResolvedValue(null);
+
+      const { touchClassroomPresenceAction } = await import("./classroom-actions");
+      const result = await touchClassroomPresenceAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "CLASSROOM_PARTICIPANT_REQUIRED",
+        message: "请先登录后再进入课堂。",
+      });
+      expect(mockUpdateClassroomParticipantConnection).not.toHaveBeenCalled();
+    });
+
+    it("handles optional currentStepId", async () => {
+      mockGetCurrentUserDTO.mockResolvedValue({ id: "student-1" });
+      mockUpdateClassroomParticipantConnection.mockResolvedValue(undefined);
+
+      const { touchClassroomPresenceAction } = await import("./classroom-actions");
+      const result = await touchClassroomPresenceAction({
+        sessionId: "session-1",
+        connectionState: "reconnecting",
+      });
+
+      expect(result).toEqual({ ok: true, data: { sessionId: "session-1" } });
+      expect(mockUpdateClassroomParticipantConnection).toHaveBeenCalledWith({
         sessionId: "session-1",
         studentId: "student-1",
-        participationLevel: "excellent",
-        tags: ["主动发言"],
-        observationNote: "超出范围的档位。",
-      }).success,
-    ).toBe(false);
+        connectionState: "reconnecting",
+        currentStepId: undefined,
+      });
+    });
+
+    it("returns validation error on invalid input", async () => {
+      const { touchClassroomPresenceAction } = await import("./classroom-actions");
+      const result = await touchClassroomPresenceAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
   });
 
-  it("maps formative evaluation authorization failures to the classroom action error shape", () => {
-    expect(source).toContain("TEACHER_AUTH_REQUIRED");
-    expect(source).toContain("UNAUTHORIZED");
+  describe("recordClassroomEvidenceAction", () => {
+    const validInput = {
+      sessionId: "session-1",
+      stepId: "step-1",
+      sourceType: "teacher-observation",
+      evidenceType: "observation",
+      payload: { note: "学生在认真思考" },
+    };
+
+    it("returns success with evidence on valid input", async () => {
+      const mockResult = { id: "evidence-1", sessionId: "session-1" };
+      mockRecordClassroomEvidence.mockResolvedValue(mockResult);
+
+      const { recordClassroomEvidenceAction } = await import("./classroom-actions");
+      const result = await recordClassroomEvidenceAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
+
+    it("returns validation error on invalid input", async () => {
+      const { recordClassroomEvidenceAction } = await import("./classroom-actions");
+      const result = await recordClassroomEvidenceAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
+
+    it("returns unauthorized error for classroom evidence", async () => {
+      mockRecordClassroomEvidence.mockRejectedValue(new Error("CLASSROOM_EVIDENCE_UNAUTHORIZED"));
+
+      const { recordClassroomEvidenceAction } = await import("./classroom-actions");
+      const result = await recordClassroomEvidenceAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "UNAUTHORIZED",
+        message: "您没有权限执行此操作。",
+      });
+    });
+
+    it("returns generic error on unexpected exception", async () => {
+      mockRecordClassroomEvidence.mockRejectedValue(new Error("DATABASE_ERROR"));
+
+      const { recordClassroomEvidenceAction } = await import("./classroom-actions");
+      const result = await recordClassroomEvidenceAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "DATABASE_ERROR",
+        message: "DATABASE_ERROR",
+      });
+    });
+  });
+
+  describe("recordClassroomInterventionAction", () => {
+    const validInput = {
+      sessionId: "session-1",
+      stepId: "step-1",
+      studentId: "student-1",
+      title: "提醒学生集中注意力",
+      body: "学生走神了",
+      targetScope: "student" as const,
+    };
+
+    it("returns success with intervention on valid input", async () => {
+      const mockResult = { id: "timeline-1", sessionId: "session-1" };
+      mockRecordClassroomIntervention.mockResolvedValue(mockResult);
+
+      const { recordClassroomInterventionAction } = await import("./classroom-actions");
+      const result = await recordClassroomInterventionAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
+
+    it("returns validation error on invalid input", async () => {
+      const { recordClassroomInterventionAction } = await import("./classroom-actions");
+      const result = await recordClassroomInterventionAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
+
+    it("returns unauthorized error for intervention", async () => {
+      mockRecordClassroomIntervention.mockRejectedValue(new Error("CLASSROOM_INTERVENTION_UNAUTHORIZED"));
+
+      const { recordClassroomInterventionAction } = await import("./classroom-actions");
+      const result = await recordClassroomInterventionAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "UNAUTHORIZED",
+        message: "您没有权限执行此操作。",
+      });
+    });
+  });
+
+  describe("recordStudentFormativeEvaluationAction", () => {
+    const validInput = {
+      sessionId: "session-1",
+      studentId: "student-1",
+      participationLevel: "active" as const,
+      tags: ["主动发言"],
+      observationNote: "表现积极",
+    };
+
+    it("returns success with evaluation on valid input", async () => {
+      const mockResult = { id: "evaluation-1", sessionId: "session-1" };
+      mockRecordStudentFormativeEvaluation.mockResolvedValue(mockResult);
+
+      const { recordStudentFormativeEvaluationAction } = await import("./classroom-actions");
+      const result = await recordStudentFormativeEvaluationAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
+
+    it("returns validation error on invalid input", async () => {
+      const { recordStudentFormativeEvaluationAction } = await import("./classroom-actions");
+      const result = await recordStudentFormativeEvaluationAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
+
+    it("returns unauthorized error for teacher auth", async () => {
+      mockRecordStudentFormativeEvaluation.mockRejectedValue(new Error("TEACHER_AUTH_REQUIRED"));
+
+      const { recordStudentFormativeEvaluationAction } = await import("./classroom-actions");
+      const result = await recordStudentFormativeEvaluationAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "UNAUTHORIZED",
+        message: "您没有权限执行此操作。",
+      });
+    });
+
+    it("returns custom error message on DAL failure", async () => {
+      mockRecordStudentFormativeEvaluation.mockRejectedValue(new Error("DATABASE_ERROR"));
+
+      const { recordStudentFormativeEvaluationAction } = await import("./classroom-actions");
+      const result = await recordStudentFormativeEvaluationAction(validInput);
+
+      // Note: handleClassroomActionError uses error.message for generic errors
+      expect(result).toEqual({
+        ok: false,
+        error: "DATABASE_ERROR",
+        message: "DATABASE_ERROR",
+      });
+    });
+  });
+
+  describe("submitStudentQuickResponseAction", () => {
+    const validInput = {
+      sessionId: "session-1",
+      lessonId: "lesson-1",
+      stepId: "step-1",
+      sourceType: "student-quick-response" as const,
+      evidenceType: "response" as const,
+      body: "我的回答是...",
+    };
+
+    it("returns success with response and invalidates multiple cache tags", async () => {
+      const mockResult = { id: "response-1", sessionId: "session-1", studentId: "student-1" };
+      mockRecordStudentQuickResponse.mockResolvedValue(mockResult);
+
+      const { submitStudentQuickResponseAction } = await import("./classroom-actions");
+      const result = await submitStudentQuickResponseAction(validInput);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.progress("lesson-1", "student-1"));
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.submission("lesson-1", "student-1"));
+    });
+
+    it("returns validation error on invalid input", async () => {
+      const { submitStudentQuickResponseAction } = await import("./classroom-actions");
+      const result = await submitStudentQuickResponseAction({});
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+    });
+
+    it("returns error on unexpected exception", async () => {
+      mockRecordStudentQuickResponse.mockRejectedValue(new Error("DATABASE_ERROR"));
+
+      const { submitStudentQuickResponseAction } = await import("./classroom-actions");
+      const result = await submitStudentQuickResponseAction(validInput);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "DATABASE_ERROR",
+        message: "DATABASE_ERROR",
+      });
+    });
+  });
+
+  describe("FormData normalization", () => {
+    it("handles FormData input for launchClassroomSessionAction", async () => {
+      const mockResult = { sessionId: "session-1" };
+      mockLaunchClassroomSession.mockResolvedValue(mockResult);
+
+      const formData = new FormData();
+      formData.append("lessonId", "lesson-1");
+      formData.append("publishedVersionId", "version-1");
+      formData.append("classId", "class-1");
+
+      const { launchClassroomSessionAction } = await import("./classroom-actions");
+      const result = await launchClassroomSessionAction(formData);
+
+      expect(result).toEqual({ ok: true, data: mockResult });
+      expect(mockLaunchClassroomSession).toHaveBeenCalledWith({
+        lessonId: "lesson-1",
+        publishedVersionId: "version-1",
+        classId: "class-1",
+      });
+    });
   });
 });
