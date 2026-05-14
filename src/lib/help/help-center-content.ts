@@ -904,7 +904,7 @@ export const config = {
         paragraphs: [
           "schedule 系统当前的分层很清晰：runtime 读模型在 `schedule/runtime/server.ts`，proposal 在 `schedule/assistant`，operations 在 `schedule/operations`，import 在 `schedule/import`，reminders 在 `schedule/reminders`。每一层都有自己的 DAL 和 Server Action，不能跨层调用。",
           "Proposal-only 边界是硬约束。`schedule.assistant` 的任何 hook consumer 只能产出 proposal/draft/annotation，不能绕过这个边界直接写 runtime schedule。",
-          "跨 session 趋势的 buckets 是行为标签，不是评价结论。不要把 `attention` bucket 等同于"学生有问题"，也不要把 `active` 等同于"学生表现优秀"。",
+          "跨 session 趋势的 buckets 是行为标签，不是评价结论。不要把 `attention` bucket 等同于\"学生有问题\"，也不要把 `active` 等同于\"学生表现优秀\"。",
         ],
         bullets: [
           "不要在插件里直接调用 `createScheduleOverride()` / `saveHolidayCalendarDate()` 等 runtime write DAL。",
@@ -923,8 +923,7 @@ export const config = {
       },
     ],
   },
-};
-"/help/dal": {
+  "/help/dal": {
   href: "/help/dal",
   title: "数据访问层 (DAL) 开发指南",
   summary: "理解 DAL 如何在 UI/Server Actions 与 Drizzle ORM 之间分层，所有数据库访问都必须经过 DAL 而不是绕过。",
@@ -1035,7 +1034,7 @@ export const config = {
       ],
     },
   ],
-};
+  },
 
   "/help/classroom": {
     href: "/help/classroom",
@@ -1177,6 +1176,157 @@ export const config = {
         stateLabel: "后续扩展",
         paragraphs: [
           "未来可能补充更细粒度的 attention 信号（如注视率、手动标记）、实时问答或投票功能、跨课堂联动的 session 管理，但这些当前仍属于后续扩展范畴。",
+        ],
+      },
+    ],
+  },
+  "/help/actions": {
+    href: "/help/actions",
+    title: "Server Actions 层指南",
+    summary:
+      "覆盖所有 Server Actions 的输入验证、错误映射、缓存失效模式与认证检查通用做法，帮助理解全系统 actions 的统一 contract。",
+    audience:
+      "面向要接入或扩展 Server Actions 的开发者，包括新增 action、核对权限边界、或调试缓存失效问题。",
+    factSources: [
+      "src/actions/lesson-authoring-actions.ts",
+      "src/actions/classroom-actions.ts",
+      "src/actions/learning-actions.ts",
+      "src/actions/class-management-actions.ts",
+      "src/actions/course-authoring-actions.ts",
+      "src/actions/plugin-actions.ts",
+      "src/actions/theme-actions.ts",
+      "src/actions/auth-actions.ts",
+      "src/actions/schedule-assistant-actions.ts",
+      "src/actions/schedule-import-actions.ts",
+      "src/actions/schedule-operations-actions.ts",
+      "src/actions/schedule-reminder-actions.ts",
+    ],
+    coverage: [
+      "Zod 输入验证与 normalizeInput",
+      "ActionResult 类型统一封装",
+      "错误映射：TEACHER_AUTH_REQUIRED -> UNAUTHORIZED，NOT_FOUND，CONFLICT",
+      "updateTag / revalidatePath 缓存失效",
+      "assertActiveTeacher 认证模式",
+      "lesson-authoring-actions (11 actions)",
+      "classroom-actions (11 actions)",
+      "learning-actions (4 actions)",
+      "class-management-actions (6 actions)",
+      "course-authoring-actions (2 actions)",
+      "plugin-actions (7 actions)",
+      "theme-actions (2 actions)",
+      "auth-actions (2 actions)",
+      "schedule re-exports (12 actions)",
+    ],
+    caution: [
+      "所有 actions 都必须通过 Server Actions 调用，不能在客户端直接调用 DAL。",
+      "assertActiveTeacher 是教师端 actions 的统一认证入口，学生端 action 则走各自的 user/session helper。",
+      "缓存失效必须使用 updateTag 或 revalidatePath，不能依赖客户端刷新。",
+      "Action 层负责把用户输入收口成 schema-safe payload，不应把未校验对象直接透传到 DAL。",
+    ],
+    relatedLinks: [
+      {
+        href: "/help/dal",
+        label: "DAL 开发",
+        summary: "先理解 DAL 边界，再看 action 如何调用它。",
+      },
+      {
+        href: "/help/auth",
+        label: "认证系统",
+        summary: "教师端 action 的鉴权与 memberships scope 依赖这里的 contract。",
+      },
+      {
+        href: "/help/classroom",
+        label: "课堂系统",
+        summary: "课堂 action 的 session/runtime 语义可回看这里。",
+      },
+      {
+        href: "/help/schedule",
+        label: "课表系统",
+        summary: "schedule actions 的 proposal-only 边界和导入审批链路在这里有更细说明。",
+      },
+    ],
+    sections: [
+      {
+        title: "这页适合什么时候读",
+        paragraphs: [
+          "当你要新增一个 Server Action、确认某个 mutation 应该在哪一层做输入校验，或者排查为什么某次写入之后页面没有 read-your-writes 时，直接看这页。",
+          "本页不解释每个业务 action 的全部产品语义，而是总结仓库里已经固定下来的 action 结构、鉴权入口、错误映射和缓存失效模式。",
+        ],
+      },
+      {
+        title: "当前可用",
+        stateLabel: "当前可用",
+        paragraphs: [
+          "当前仓库的 actions 都遵循同一条调用链：接收 `FormData` 或普通对象输入 -> 用 Zod schema 解析与规范化 -> 进入 DAL 或 server helper -> 调用 `updateTag()` / `revalidatePath()` 做显式失效 -> 返回统一的 success/error 结果。",
+          "教师端 action 普遍以 `assertActiveTeacher()` 作为第一层鉴权入口；课堂、学习和认证相关 action 会使用各自 domain 的 session helper，但都不会把原始 DB row 直接返回给 UI。",
+          "schedule 域当前通过 re-export 的 action 文件对外暴露 assistant/import/operations/reminders 四个子域；其中 assistant 仍然严格保持 proposal-only。",
+        ],
+        bullets: [
+          "lesson-authoring-actions：课时、步骤、发布与 readiness gating。",
+          "classroom-actions：开课、切换步骤、模式变更、evidence 与 formative evaluation。",
+          "learning-actions：学生 progress、task/quiz 提交与学习侧持久化。",
+          "course-authoring-actions：课程创建与更新。",
+          "plugin-actions / theme-actions：插件注册启停与主题生效。",
+          "auth-actions：登录入口和认证相关的轻量 server boundary。",
+        ],
+      },
+      {
+        title: "错误映射与返回约定",
+        paragraphs: [
+          "Action 层的职责之一，是把 DAL 抛出的机器可读错误映射成前端可消费的 `ActionResult`。常见模式是保留 `ok: false`、`error`、`message`，必要时再附加 `issues`、`fieldErrors` 或业务特定的 payload。",
+          "这意味着调用方不应该猜测底层异常类型，而应该只消费 action contract 暴露出来的字段。像 `PUBLISH_BLOCKED`、`APPROVE_IMPORT_BLOCKED` 这类结构化失败，都必须在 action 层被明确映射。",
+        ],
+        bullets: [
+          "认证失败常映射为 `UNAUTHORIZED` 或保留 domain error code。",
+          "找不到资源时返回 `NOT_FOUND` 或保留更具体的 machine-readable message。",
+          "结构化阻断项必须通过 `issues` 等字段返回，不能只丢一个笼统字符串。",
+        ],
+      },
+      {
+        title: "缓存失效模式",
+        paragraphs: [
+          "Next.js 16 下，写入后的 freshness 由 action 显式负责。教师端大多数 mutation 在成功后立刻调用 `updateTag()`，这样同请求链路中的后续读取可以看到最新结果。",
+          "如果 action 还需要驱动路由跳转或特定页面刷新，则会额外配合 `revalidatePath()`。关键点是：缓存失效只在 mutation 成功后触发，失败分支不应误触发缓存更新。",
+        ],
+        codeExample: {
+          title: "典型 action 结构",
+          language: "ts",
+          code: `export async function updateCourseAction(input: unknown) {
+  const teacher = await assertActiveTeacher();
+  const parsed = CourseUpdateActionInputSchema.parse(input);
+
+  try {
+    const data = await updateCourseForTeacherScoped(teacher, parsed);
+    updateTag("teacher-courses:teacher-1");
+    updateTag("course:course-1");
+
+    return { ok: true as const, data };
+  } catch (error) {
+    return toActionErrorResult(error);
+  }
+}`,
+        },
+      },
+      {
+        title: "使用边界",
+        stateLabel: "使用边界",
+        paragraphs: [
+          "不要把 Action 层写成薄透传。只要存在输入规范化、错误映射、缓存失效或鉴权边界，action 就必须显式承担这些工作。",
+          "也不要在客户端直接复刻 action 的校验与错误分支逻辑。客户端只负责提交输入和渲染 contract，真正的权限、Zod parse 和 cache invalidation 仍在服务端完成。",
+        ],
+        bullets: [
+          "不要在 action 里直接返回 raw database row。",
+          "不要跳过 Zod parse 直接把 unknown input 传入 DAL。",
+          "不要在失败分支里调用 `updateTag()` 或 `revalidatePath()`。",
+          "不要把 proposal-only 的 schedule action 写成直接改 runtime schedule。",
+        ],
+      },
+      {
+        title: "后续扩展",
+        stateLabel: "后续扩展",
+        paragraphs: [
+          "未来可以继续把重复的 error mapping、result helper 和 cache invalidation pattern 抽成更统一的 action utilities，但这些当前还不是单一共享框架。",
+          "帮助中心会继续以已落地 contract 为准，不会把尚未实现的统一 action base class 或自动 cache policy 写成现有能力。",
         ],
       },
     ],
