@@ -15,6 +15,7 @@ export const THEME_PAGE_MODULE_KEYS = [
   "page-title",
   "page-actions",
   "dashboard-overview",
+  "trend-overview",
   "class-list",
   "course-list",
   "course-detail",
@@ -29,6 +30,7 @@ export const THEME_PAGE_MODULE_KEYS = [
   "resource-library",
   "help-overview",
   "help-guide-detail",
+  "help-faq",
   "status-footer",
 ] as const;
 
@@ -39,6 +41,7 @@ export const TEACHER_THEME_ROUTE_KEYS = [
   "/teacher/courses/[courseId]",
   "/teacher/courses/[courseId]/lessons",
   "/teacher/students",
+  "/teacher/trends",
   "/teacher/review",
   "/teacher/launch",
   "/teacher/editor",
@@ -47,6 +50,7 @@ export const TEACHER_THEME_ROUTE_KEYS = [
   "/settings/plugins",
   "/resources",
   "/help",
+  "/help/faq",
   "/help/plugins",
   "/help/themes",
   "/help/actions-interfaces",
@@ -133,6 +137,17 @@ export const TEACHER_THEME_ROUTE_SURFACES: Record<TeacherThemeRouteKey, TeacherT
     label: "学生档案",
     defaultSplit: "60/40",
     allowedModules: ["student-directory"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
+  "/teacher/trends": {
+    label: "班级趋势",
+    defaultSplit: "60/40",
+    allowedModules: ["trend-overview"],
     shell: {
       mode: "left-nav",
       radius: "rounded",
@@ -228,6 +243,17 @@ export const TEACHER_THEME_ROUTE_SURFACES: Record<TeacherThemeRouteKey, TeacherT
       chrome: "default",
     },
   },
+  "/help/faq": {
+    label: "常见问题",
+    defaultSplit: "60/40",
+    allowedModules: ["help-faq"],
+    shell: {
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    },
+  },
   "/help/plugins": {
     label: "插件开发指南",
     defaultSplit: "60/40",
@@ -288,6 +314,10 @@ export function resolveTeacherThemeRouteSurface(pathname: string | null | undefi
     return "/teacher/review";
   }
 
+  if (pathname.startsWith("/teacher/trends")) {
+    return "/teacher/trends";
+  }
+
   if (pathname.startsWith("/teacher/students")) {
     return "/teacher/students";
   }
@@ -314,6 +344,10 @@ export function resolveTeacherThemeRouteSurface(pathname: string | null | undefi
 
   if (pathname.startsWith("/resources")) {
     return "/resources";
+  }
+
+  if (pathname.startsWith("/help/faq")) {
+    return "/help/faq";
   }
 
   if (pathname.startsWith("/help/actions-interfaces")) {
