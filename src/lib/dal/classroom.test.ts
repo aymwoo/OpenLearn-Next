@@ -1157,3 +1157,302 @@ describe("phase 25 session recap contracts", () => {
     expect(recap.selectedStudent?.pendingFeedbackCount).toBe(1);
   });
 });
+
+describe("getTeacherRecentSessionTrendDTO", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+
+    assertActiveTeacher.mockResolvedValue({
+      userId: "teacher-1",
+      schoolIds: ["school-1"],
+    });
+
+    findManyClassroomSessions.mockResolvedValue([
+      {
+        id: "session-4",
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        classId: "class-1",
+        teacherId: "teacher-1",
+        activeStepId: "step-2",
+        locked: false,
+        status: "ended",
+        version: 4,
+        updatedAt: new Date("2026-05-14T09:40:00Z"),
+        createdAt: new Date("2026-05-14T09:00:00Z"),
+        endedAt: new Date("2026-05-14T09:40:00Z"),
+      },
+      {
+        id: "session-3",
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        classId: "class-1",
+        teacherId: "teacher-1",
+        activeStepId: "step-2",
+        locked: false,
+        status: "ended",
+        version: 3,
+        updatedAt: new Date("2026-05-13T09:40:00Z"),
+        createdAt: new Date("2026-05-13T09:00:00Z"),
+        endedAt: new Date("2026-05-13T09:40:00Z"),
+      },
+      {
+        id: "session-2",
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        classId: "class-1",
+        teacherId: "teacher-1",
+        activeStepId: "step-2",
+        locked: false,
+        status: "ended",
+        version: 2,
+        updatedAt: new Date("2026-05-12T09:40:00Z"),
+        createdAt: new Date("2026-05-12T09:00:00Z"),
+        endedAt: new Date("2026-05-12T09:40:00Z"),
+      },
+      {
+        id: "session-1",
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        classId: "class-1",
+        teacherId: "teacher-1",
+        activeStepId: "step-2",
+        locked: false,
+        status: "ended",
+        version: 1,
+        updatedAt: new Date("2026-05-11T09:40:00Z"),
+        createdAt: new Date("2026-05-11T09:00:00Z"),
+        endedAt: new Date("2026-05-11T09:40:00Z"),
+      },
+      {
+        id: "session-0",
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        classId: "class-1",
+        teacherId: "teacher-1",
+        activeStepId: "step-2",
+        locked: false,
+        status: "ended",
+        version: 0,
+        updatedAt: new Date("2026-05-10T09:40:00Z"),
+        createdAt: new Date("2026-05-10T09:00:00Z"),
+        endedAt: new Date("2026-05-10T09:40:00Z"),
+      },
+    ]);
+    findManyLessons.mockResolvedValue([
+      { id: "lesson-1", title: "古诗导读", courseId: "course-1" },
+    ]);
+    findFirstClasses.mockResolvedValue({ id: "class-1", name: "一班" });
+    findManyPublishedLessonVersions.mockResolvedValue([
+      {
+        id: "pub-1",
+        snapshotJson: {
+          lesson: { title: "古诗导读" },
+          steps: [
+            {
+              id: "step-1",
+              lessonId: "lesson-1",
+              type: "content",
+              title: "开场导入",
+              rank: "a0",
+              payload: {
+                type: "content",
+                title: "开场导入",
+                body: "老师先带学生整体感知文本。",
+                teacherNotes: "提示",
+                materialRefs: [],
+              },
+            },
+            {
+              id: "step-2",
+              lessonId: "lesson-1",
+              type: "quiz",
+              title: "随堂测验",
+              rank: "b0",
+              payload: {
+                type: "quiz",
+                question: "这首诗主要描写什么季节？",
+                options: ["春", "夏", "秋", "冬"],
+                correctOptionIndex: 0,
+                explanation: "围绕春景意象展开。",
+                allowRetry: true,
+                retryPolicy: "once",
+                revealCorrectAnswer: true,
+              },
+            },
+          ],
+          materials: [],
+        },
+      },
+    ]);
+    findManyClassroomParticipants.mockResolvedValue([
+      { sessionId: "session-4", studentId: "student-1", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-14T09:30:00Z") },
+      { sessionId: "session-4", studentId: "student-2", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-14T09:30:00Z") },
+      { sessionId: "session-4", studentId: "student-3", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-14T09:30:00Z") },
+      { sessionId: "session-3", studentId: "student-1", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-13T09:30:00Z") },
+      { sessionId: "session-3", studentId: "student-2", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-13T09:30:00Z") },
+      { sessionId: "session-3", studentId: "student-3", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-13T09:30:00Z") },
+      { sessionId: "session-2", studentId: "student-1", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-12T09:30:00Z") },
+      { sessionId: "session-2", studentId: "student-2", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-12T09:30:00Z") },
+      { sessionId: "session-1", studentId: "student-1", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-11T09:30:00Z") },
+      { sessionId: "session-1", studentId: "student-2", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-11T09:30:00Z") },
+      { sessionId: "session-0", studentId: "student-4", connectionState: "connected", currentStepId: "step-2", lastSeenAt: new Date("2026-05-10T09:30:00Z") },
+    ]);
+    findManyUsers.mockResolvedValue([
+      { id: "student-1", name: "李雷" },
+      { id: "student-2", name: "韩梅梅" },
+      { id: "student-3", name: "王敏" },
+      { id: "student-4", name: "赵强" },
+    ]);
+    findManyLessonStepProgress.mockResolvedValue([
+      { id: "progress-1", publishedVersionId: "pub-1", lessonId: "lesson-1", stepId: "step-1", studentId: "student-1", state: "completed", completedAt: new Date("2026-05-14T09:10:00Z"), updatedAt: new Date("2026-05-14T09:10:00Z") },
+      { id: "progress-2", publishedVersionId: "pub-1", lessonId: "lesson-1", stepId: "step-2", studentId: "student-1", state: "completed", completedAt: new Date("2026-05-14T09:20:00Z"), updatedAt: new Date("2026-05-14T09:20:00Z") },
+      { id: "progress-3", publishedVersionId: "pub-1", lessonId: "lesson-1", stepId: "step-1", studentId: "student-2", state: "completed", completedAt: new Date("2026-05-14T09:11:00Z"), updatedAt: new Date("2026-05-14T09:11:00Z") },
+      { id: "progress-4", publishedVersionId: "pub-1", lessonId: "lesson-1", stepId: "step-1", studentId: "student-3", state: "completed", completedAt: new Date("2026-05-14T09:12:00Z"), updatedAt: new Date("2026-05-14T09:12:00Z") },
+    ]);
+    findManyTaskSubmissions.mockResolvedValue([]);
+    findManyQuizAttempts.mockResolvedValue([
+      { id: "quiz-1", publishedVersionId: "pub-1", lessonId: "lesson-1", stepId: "step-2", studentId: "student-1", attemptNo: 1, answerJson: { optionId: "a" }, outcomeJson: { correct: true }, isLatest: true, createdAt: new Date("2026-05-14T09:21:00Z") },
+      { id: "quiz-2", publishedVersionId: "pub-1", lessonId: "lesson-1", stepId: "step-2", studentId: "student-2", attemptNo: 1, answerJson: { optionId: "b" }, outcomeJson: { correct: false }, isLatest: true, createdAt: new Date("2026-05-14T09:22:00Z") },
+    ]);
+    findManyAttemptFeedback.mockResolvedValue([
+      { id: "feedback-1", studentId: "student-1", targetType: "quiz_attempt", targetId: "quiz-1", feedbackText: "已完成点评", createdAt: new Date("2026-05-14T09:30:00Z") },
+    ]);
+    findManyClassroomEvidence.mockResolvedValue([
+      {
+        id: "eval-session-4-student-2",
+        sessionId: "session-4",
+        studentId: "student-2",
+        stepId: "step-2",
+        sourceType: "teacher-observation",
+        evidenceType: "observation",
+        payloadJson: {
+          kind: "formative-evaluation",
+          participationLevel: "attention",
+          tags: ["需要跟进"],
+          observationNote: "课堂结束前仍需老师提醒。",
+        },
+        capturedById: "teacher-1",
+        createdAt: new Date("2026-05-14T09:31:00Z"),
+      },
+      {
+        id: "evidence-session-4-student-3",
+        sessionId: "session-4",
+        studentId: "student-3",
+        stepId: "step-2",
+        sourceType: "student-quick-response",
+        evidenceType: "response",
+        payloadJson: { body: "我还需要再想想。" },
+        capturedById: "student-3",
+        createdAt: new Date("2026-05-14T09:23:00Z"),
+      },
+      {
+        id: "eval-session-3-student-2",
+        sessionId: "session-3",
+        studentId: "student-2",
+        stepId: "step-2",
+        sourceType: "teacher-observation",
+        evidenceType: "observation",
+        payloadJson: {
+          kind: "formative-evaluation",
+          participationLevel: "attention",
+          tags: ["需要跟进"],
+          observationNote: "上一节课也需要补充引导。",
+        },
+        capturedById: "teacher-1",
+        createdAt: new Date("2026-05-13T09:31:00Z"),
+      },
+      {
+        id: "evidence-session-2-student-1",
+        sessionId: "session-2",
+        studentId: "student-1",
+        stepId: "step-2",
+        sourceType: "student-quick-response",
+        evidenceType: "response",
+        payloadJson: { body: "我理解了。" },
+        capturedById: "student-1",
+        createdAt: new Date("2026-05-12T09:23:00Z"),
+      },
+      {
+        id: "evidence-session-1-student-2",
+        sessionId: "session-1",
+        studentId: "student-2",
+        stepId: "step-2",
+        sourceType: "student-quick-response",
+        evidenceType: "response",
+        payloadJson: { body: "还不太确定。" },
+        capturedById: "student-2",
+        createdAt: new Date("2026-05-11T09:23:00Z"),
+      },
+    ]);
+    findManyClassroomTimeline.mockResolvedValue([]);
+  });
+
+  it("returns the latest four ended sessions inside the teacher scope", async () => {
+    const { getTeacherRecentSessionTrendDTO } = await import("./classroom");
+
+    const dto = await getTeacherRecentSessionTrendDTO({ classId: "class-1" });
+
+    expect(dto.view).toBe("sessions");
+    expect(dto.window.limit).toBe(4);
+    expect(dto.sessionPoints).toHaveLength(4);
+    expect(dto.sessionPoints.map((point) => point.sessionId)).toEqual([
+      "session-4",
+      "session-3",
+      "session-2",
+      "session-1",
+    ]);
+  });
+
+  it("ranks students deterministically by repeated follow-up, unevaluated, and missing submissions", async () => {
+    const { getTeacherRecentSessionTrendDTO } = await import("./classroom");
+
+    const dto = await getTeacherRecentSessionTrendDTO({ classId: "class-1" });
+
+    expect(dto.studentSummaries.slice(0, 3).map((student) => student.studentName)).toEqual([
+      "韩梅梅",
+      "王敏",
+      "李雷",
+    ]);
+    expect(dto.studentSummaries[0]).toMatchObject({
+      studentName: "韩梅梅",
+      needsFollowUpSessions: 3,
+      primarySignalLabel: "需关注",
+    });
+    expect(dto.studentSummaries[1]).toMatchObject({
+      studentName: "王敏",
+      unevaluatedSessions: 2,
+      missingSubmissionSessions: 2,
+      primarySignalLabel: "未评价",
+    });
+  });
+
+  it("returns selected anomaly detail with recap and review href pointers", async () => {
+    const { getTeacherRecentSessionTrendDTO } = await import("./classroom");
+
+    const dto = await getTeacherRecentSessionTrendDTO({
+      classId: "class-1",
+      sessionId: "session-4",
+    });
+
+    expect(dto.selectedSessionId).toBe("session-4");
+    expect(dto.selectedDetail?.session.primaryRecapHref).toBe("/classroom?sessionId=session-4&recapTab=students");
+    expect(dto.selectedDetail?.session.secondaryReviewHref).toBe("/teacher/review?lessonId=lesson-1&filter=needs_feedback");
+    expect(dto.selectedDetail?.impactedStudents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          studentName: "韩梅梅",
+          primaryRecapHref: "/classroom?sessionId=session-4&recapTab=students&studentId=student-2",
+          secondaryReviewHref: "/teacher/review?lessonId=lesson-1&filter=needs_feedback&studentId=student-2",
+        }),
+      ]),
+    );
+
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+    expect(source).toContain("export async function getTeacherRecentSessionTrendDTO");
+    expect(source).not.toContain("analyticsSnapshot");
+    expect(source).not.toContain("insert(classroomAnalytics");
+    expect(source).not.toContain("update(classroomAnalytics");
+  });
+});

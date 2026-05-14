@@ -29,6 +29,7 @@ import {
   ClassroomConsoleDTOSchema,
   ClassroomConsoleSessionEntryDTOSchema,
   ClassroomActionResultDTOSchema,
+  ClassroomRecentSessionTrendDTOSchema,
   ClassroomEvidenceDTOSchema,
   ClassroomSessionRecapDTOSchema,
   ClassroomSessionParticipationLabelSchema,
@@ -43,6 +44,7 @@ import {
   StudentQuickResponseInputSchema,
   StudentFormativeEvaluationEntryDTOSchema,
   ClassroomTimelineEntryDTOSchema,
+  GetTeacherRecentSessionTrendInputSchema,
   RecordClassroomEvidenceInputSchema,
   RecordClassroomInterventionInputSchema,
   ChangeClassroomSlideInputSchema,
@@ -238,6 +240,40 @@ function buildRepresentativeFollowUpCopy(input: {
 
 function buildClassroomSignalWorkload(studentSignals: Array<{ studentId: string; needsFollowUp: boolean }>) {
   return studentSignals.filter((item) => item.needsFollowUp).length;
+}
+
+function buildTrendPrimaryRecapHref(sessionId: string, studentId?: string) {
+  const params = new URLSearchParams({
+    sessionId,
+    recapTab: "students",
+  });
+
+  if (studentId) {
+    params.set("studentId", studentId);
+  }
+
+  return `/classroom?${params.toString()}`;
+}
+
+function buildTrendSecondaryReviewHref(input: {
+  lessonId: string;
+  studentId?: string;
+  pendingFeedbackCount: number;
+}) {
+  if (input.pendingFeedbackCount <= 0) {
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    lessonId: input.lessonId,
+    filter: "needs_feedback",
+  });
+
+  if (input.studentId) {
+    params.set("studentId", input.studentId);
+  }
+
+  return `/teacher/review?${params.toString()}`;
 }
 
 function buildFeedbackWorkloadFromAttempts(input: {
@@ -1612,6 +1648,470 @@ export async function getClassroomSessionRecapDTO(rawInput: unknown) {
     selectedStepId: input.stepId && stepSummaries.some((step) => step.stepId === input.stepId)
       ? input.stepId
       : stepSummaries[0]?.stepId ?? null,
+  });
+}
+
+type TrendSessionStudentSummary = {
+  studentId: string;
+  studentName: string;
+  participationLabel: "积极参与" | "正常参与" | "需要关注" | "未评价";
+  needsFollowUp: boolean;
+  pendingFeedbackCount: number;
+  missingSubmissionCount: number;
+  hasUnevaluatedSignal: boolean;
+  keySignals: string[];
+  primaryRecapHref: string;
+  secondaryReviewHref: string | null;
+};
+
+export async function getTeacherRecentSessionTrendDTO(rawInput: unknown) {
+  const input = GetTeacherRecentSessionTrendInputSchema.parse(rawInput);
+  const scope = await assertActiveTeacher();
+  const limit = input.limit ?? 4;
+
+  const endedSessions = await db.query.classroomSessions.findMany({
+    where: and(
+      eq(classroomSessions.teacherId, scope.userId),
+      eq(classroomSessions.status, "ended"),
+      eq(classroomSessions.classId, input.classId),
+      input.lessonId ? eq(classroomSessions.lessonId, input.lessonId) : undefined,
+    ),
+    orderBy: [desc(classroomSessions.endedAt), desc(classroomSessions.updatedAt)],
+  });
+
+  const sessions = endedSessions.slice(0, limit);
+  if (sessions.length === 0) {
+    return ClassroomRecentSessionTrendDTOSchema.parse({
+      view: input.view,
+      window: {
+        kind: "latest-ended-sessions",
+        limit,
+      },
+      classSummary: {
+        classId: input.classId,
+        className: "班级",
+        view: input.view,
+        windowSize: limit,
+        sessionCount: 0,
+        averageCompletionRate: 0,
+        averageSubmissionRate: 0,
+        totalFollowUpSignalsCount: 0,
+        totalPendingFeedbackCount: 0,
+        latestEndedAt: null,
+        trendLabel: "稳定",
+      },
+      sessionPoints: [],
+      studentSummaries: [],
+      selectedSessionId: null,
+      selectedDetail: null,
+    });
+  }
+
+  const sessionIds = sessions.map((session) => session.id);
+  const participantRows = await db.query.classroomParticipants.findMany({
+    where: inArray(classroomParticipants.sessionId, sessionIds),
+  });
+  const participantIds = [...new Set(participantRows.map((row) => row.studentId))];
+  const publishedVersionIds = [...new Set(sessions.map((session) => session.publishedVersionId))];
+  const [
+    lessonRows,
+    classRow,
+    publishedRows,
+    evidenceRows,
+    timelineRows,
+    studentRows,
+    progressRows,
+    latestTaskRows,
+    latestQuizRows,
+    feedbackRows,
+  ] = await Promise.all([
+    db.query.lessons.findMany({
+      where: inArray(lessons.id, [...new Set(sessions.map((session) => session.lessonId))]),
+    }),
+    db.query.classes.findFirst({ where: eq(classes.id, input.classId) }),
+    db.query.publishedLessonVersions.findMany({
+      where: inArray(publishedLessonVersions.id, publishedVersionIds),
+    }),
+    db.query.classroomEvidence.findMany({
+      where: inArray(classroomEvidence.sessionId, sessionIds),
+    }),
+    db.query.classroomTimeline.findMany({
+      where: inArray(classroomTimeline.sessionId, sessionIds),
+    }),
+    participantIds.length > 0
+      ? db.query.users.findMany({ where: inArray(users.id, participantIds) })
+      : Promise.resolve([]),
+    participantIds.length > 0
+      ? db.query.lessonStepProgress.findMany({
+          where: and(
+            inArray(lessonStepProgress.publishedVersionId, publishedVersionIds),
+            inArray(lessonStepProgress.studentId, participantIds),
+          ),
+        })
+      : Promise.resolve([]),
+    participantIds.length > 0
+      ? db.query.taskSubmissions.findMany({
+          where: and(
+            inArray(taskSubmissions.publishedVersionId, publishedVersionIds),
+            inArray(taskSubmissions.studentId, participantIds),
+            eq(taskSubmissions.isLatest, true),
+          ),
+        })
+      : Promise.resolve([]),
+    participantIds.length > 0
+      ? db.query.quizAttempts.findMany({
+          where: and(
+            inArray(quizAttempts.publishedVersionId, publishedVersionIds),
+            inArray(quizAttempts.studentId, participantIds),
+            eq(quizAttempts.isLatest, true),
+          ),
+        })
+      : Promise.resolve([]),
+    participantIds.length > 0
+      ? db.query.attemptFeedback.findMany({
+          where: inArray(attemptFeedback.studentId, participantIds),
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const lessonMap = new Map(lessonRows.map((lesson) => [lesson.id, lesson]));
+  const publishedMap = new Map(publishedRows.map((version) => [version.id, version]));
+  const studentNameMap = new Map(studentRows.map((student) => [student.id, student.name ?? "学生"]));
+  const participantsBySession = new Map<string, Array<(typeof participantRows)[number]>>();
+  const evidenceBySessionStudent = new Map<string, Array<(typeof evidenceRows)[number]>>();
+  const evaluationsBySessionStudent = new Map<string, Array<ReturnType<typeof StudentFormativeEvaluationEntryDTOSchema.parse>>>();
+  const progressByVersionStudent = new Map<string, Array<(typeof progressRows)[number]>>();
+  const tasksByVersionStudent = new Map<string, Array<(typeof latestTaskRows)[number]>>();
+  const quizzesByVersionStudent = new Map<string, Array<(typeof latestQuizRows)[number]>>();
+  const timelineBySessionStudent = new Map<string, Array<(typeof timelineRows)[number]>>();
+
+  for (const participant of participantRows) {
+    const key = participantsBySession.get(participant.sessionId) ?? [];
+    key.push(participant);
+    participantsBySession.set(participant.sessionId, key);
+  }
+
+  for (const row of progressRows) {
+    const key = `${row.publishedVersionId}:${row.studentId}`;
+    const entries = progressByVersionStudent.get(key) ?? [];
+    entries.push(row);
+    progressByVersionStudent.set(key, entries);
+  }
+
+  for (const row of latestTaskRows) {
+    const key = `${row.publishedVersionId}:${row.studentId}`;
+    const entries = tasksByVersionStudent.get(key) ?? [];
+    entries.push(row);
+    tasksByVersionStudent.set(key, entries);
+  }
+
+  for (const row of latestQuizRows) {
+    const key = `${row.publishedVersionId}:${row.studentId}`;
+    const entries = quizzesByVersionStudent.get(key) ?? [];
+    entries.push(row);
+    quizzesByVersionStudent.set(key, entries);
+  }
+
+  for (const row of evidenceRows) {
+    if (!row.studentId) {
+      continue;
+    }
+
+    const key = `${row.sessionId}:${row.studentId}`;
+    const rawPayload = row.payloadJson;
+    if (rawPayload && typeof rawPayload === "object" && (rawPayload as Record<string, unknown>).kind === "formative-evaluation") {
+      const entries = evaluationsBySessionStudent.get(key) ?? [];
+      const payload = ClassroomFormativeEvaluationPayloadSchema.parse(rawPayload);
+      entries.push(StudentFormativeEvaluationEntryDTOSchema.parse({
+        id: row.id,
+        sessionId: row.sessionId,
+        studentId: row.studentId,
+        participationLevel: payload.participationLevel,
+        tags: payload.tags,
+        observationNote: payload.observationNote,
+        capturedById: row.capturedById,
+        createdAt: toIso(row.createdAt),
+      }));
+      evaluationsBySessionStudent.set(key, entries);
+      continue;
+    }
+
+    const entries = evidenceBySessionStudent.get(key) ?? [];
+    entries.push(row);
+    evidenceBySessionStudent.set(key, entries);
+  }
+
+  for (const row of timelineRows) {
+    if (!row.studentId) {
+      continue;
+    }
+
+    const key = `${row.sessionId}:${row.studentId}`;
+    const entries = timelineBySessionStudent.get(key) ?? [];
+    entries.push(row);
+    timelineBySessionStudent.set(key, entries);
+  }
+
+  for (const entries of evaluationsBySessionStudent.values()) {
+    entries.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }
+
+  const sessionStudentSummaries = new Map<string, TrendSessionStudentSummary[]>();
+  const aggregatedStudentMap = new Map<string, {
+    studentId: string;
+    studentName: string;
+    latestParticipationLabel: "积极参与" | "正常参与" | "需要关注" | "未评价";
+    needsFollowUpSessions: number;
+    unevaluatedSessions: number;
+    missingSubmissionSessions: number;
+    pendingFeedbackSessions: number;
+    primarySignalLabel: "上升" | "稳定" | "回落" | "需关注" | "未评价";
+    primaryRecapHref: string | null;
+    secondaryReviewHref: string | null;
+  }>();
+
+  const sessionPoints = sessions.map((session) => {
+    const participants = participantsBySession.get(session.id) ?? [];
+    const published = publishedMap.get(session.publishedVersionId);
+    const snapshot = parseSnapshot(published?.snapshotJson);
+    const lesson = lessonMap.get(session.lessonId);
+    const steps = parseSnapshotSteps(snapshot, session.lessonId);
+    const submittableSteps = steps.filter((step) => step.type === "task" || step.type === "quiz");
+    const feedbackWorkload = buildFeedbackWorkloadFromAttempts({
+      taskRows: latestTaskRows.filter((row) => row.publishedVersionId === session.publishedVersionId),
+      quizRows: latestQuizRows.filter((row) => row.publishedVersionId === session.publishedVersionId),
+      feedbackRows,
+    });
+
+    const students = participants.map((participant) => {
+      const versionKey = `${session.publishedVersionId}:${participant.studentId}`;
+      const sessionKey = `${session.id}:${participant.studentId}`;
+      const progress = progressByVersionStudent.get(versionKey) ?? [];
+      const taskAttempts = tasksByVersionStudent.get(versionKey) ?? [];
+      const quizAttemptsForStudent = quizzesByVersionStudent.get(versionKey) ?? [];
+      const evidence = evidenceBySessionStudent.get(sessionKey) ?? [];
+      const evaluations = evaluationsBySessionStudent.get(sessionKey) ?? [];
+      const latestParticipationLevel = evaluations[0]?.participationLevel ?? null;
+      const completedStepCount = progress.filter((row) => row.state === "completed" || row.state === "skipped").length;
+      const missingSubmissionCount = submittableSteps.filter((step) => {
+        if (step.type === "task") {
+          return !taskAttempts.some((attempt) => attempt.stepId === step.id);
+        }
+
+        return !quizAttemptsForStudent.some((attempt) => attempt.stepId === step.id);
+      }).length;
+      const hasUnevaluatedSignal = evidence.length > 0 && evaluations.length === 0;
+      const needsFollowUp = latestParticipationLevel === "attention" || hasUnevaluatedSignal || missingSubmissionCount > 0;
+      const pendingFeedbackCount = [...taskAttempts, ...quizAttemptsForStudent].filter((attempt) => feedbackWorkload.pendingAttemptIds.has(attempt.id)).length;
+      const participationLabel = toParticipationLabel(latestParticipationLevel);
+      const keySignals = buildRepresentativeFollowUpCopy({
+        needsAttention: latestParticipationLevel === "attention",
+        hasUnevaluatedSignal,
+        missingSubmissionCount,
+      });
+      const primaryRecapHref = buildTrendPrimaryRecapHref(session.id, participant.studentId);
+      const secondaryReviewHref = buildTrendSecondaryReviewHref({
+        lessonId: session.lessonId,
+        studentId: participant.studentId,
+        pendingFeedbackCount,
+      });
+
+      const aggregatedStudent = aggregatedStudentMap.get(participant.studentId) ?? {
+        studentId: participant.studentId,
+        studentName: studentNameMap.get(participant.studentId) ?? "学生",
+        latestParticipationLabel: participationLabel,
+        needsFollowUpSessions: 0,
+        unevaluatedSessions: 0,
+        missingSubmissionSessions: 0,
+        pendingFeedbackSessions: 0,
+        primarySignalLabel: "稳定" as const,
+        primaryRecapHref: null,
+        secondaryReviewHref: null,
+      };
+
+      if (needsFollowUp) {
+        aggregatedStudent.needsFollowUpSessions += 1;
+      }
+      if (participationLabel === "未评价") {
+        aggregatedStudent.unevaluatedSessions += 1;
+      }
+      if (missingSubmissionCount > 0) {
+        aggregatedStudent.missingSubmissionSessions += 1;
+      }
+      if (pendingFeedbackCount > 0) {
+        aggregatedStudent.pendingFeedbackSessions += 1;
+      }
+      if (!aggregatedStudent.primaryRecapHref && needsFollowUp) {
+        aggregatedStudent.primaryRecapHref = primaryRecapHref;
+      }
+      if (!aggregatedStudent.secondaryReviewHref && secondaryReviewHref) {
+        aggregatedStudent.secondaryReviewHref = secondaryReviewHref;
+      }
+      if (aggregatedStudent.latestParticipationLabel === "未评价") {
+        aggregatedStudent.latestParticipationLabel = participationLabel;
+      }
+      if (latestParticipationLevel === "attention") {
+        aggregatedStudent.primarySignalLabel = "需关注";
+      } else if (participationLabel === "未评价" && aggregatedStudent.primarySignalLabel !== "需关注") {
+        aggregatedStudent.primarySignalLabel = "未评价";
+      } else if (missingSubmissionCount > 0 && !["需关注", "未评价"].includes(aggregatedStudent.primarySignalLabel)) {
+        aggregatedStudent.primarySignalLabel = "回落";
+      }
+      aggregatedStudentMap.set(participant.studentId, aggregatedStudent);
+
+      return {
+        studentId: participant.studentId,
+        studentName: studentNameMap.get(participant.studentId) ?? "学生",
+        participationLabel,
+        needsFollowUp,
+        pendingFeedbackCount,
+        missingSubmissionCount,
+        hasUnevaluatedSignal,
+        keySignals,
+        primaryRecapHref,
+        secondaryReviewHref,
+        completedStepCount,
+      };
+    });
+
+    sessionStudentSummaries.set(session.id, students);
+
+    const completedStudentCount = students.filter((student) => student.completedStepCount >= steps.length && steps.length > 0).length;
+    const studentAttemptCount = students.filter((student) => {
+      const versionKey = `${session.publishedVersionId}:${student.studentId}`;
+      return (tasksByVersionStudent.get(versionKey) ?? []).length + (quizzesByVersionStudent.get(versionKey) ?? []).length > 0;
+    }).length;
+    const followUpSignalsCount = students.filter((student) => student.needsFollowUp).length;
+    const attentionCount = students.filter((student) => student.participationLabel === "需要关注").length;
+    const unevaluatedCount = students.filter((student) => student.participationLabel === "未评价").length;
+
+    return {
+      sessionId: session.id,
+      lessonId: session.lessonId,
+      lessonTitle: snapshot.lesson?.title ?? lesson?.title ?? "课堂",
+      classId: session.classId,
+      className: classRow?.name ?? "班级",
+      startedAt: toIso(session.createdAt),
+      endedAt: toIso(session.endedAt),
+      completionRate: participants.length > 0 ? completedStudentCount / participants.length : 0,
+      submissionRate: participants.length > 0 ? studentAttemptCount / participants.length : 0,
+      followUpSignalsCount,
+      pendingFeedbackCount: students.reduce((sum, student) => sum + student.pendingFeedbackCount, 0),
+      attentionCount,
+      unevaluatedCount,
+      trendLabel: "稳定" as const,
+      primaryRecapHref: buildTrendPrimaryRecapHref(session.id),
+      secondaryReviewHref: buildTrendSecondaryReviewHref({
+        lessonId: session.lessonId,
+        pendingFeedbackCount: students.reduce((sum, student) => sum + student.pendingFeedbackCount, 0),
+      }),
+    };
+  }).map((point, index, points) => {
+    const previous = points[index + 1];
+    let trendLabel: "上升" | "稳定" | "回落" | "需关注" | "未评价" = "稳定";
+
+    if (point.followUpSignalsCount > 0 || point.unevaluatedCount > 0) {
+      trendLabel = point.unevaluatedCount > 0 ? "未评价" : "需关注";
+    } else if (previous && point.completionRate >= previous.completionRate + 0.05) {
+      trendLabel = "上升";
+    } else if (previous && point.completionRate <= previous.completionRate - 0.05) {
+      trendLabel = "回落";
+    }
+
+    return {
+      ...point,
+      trendLabel,
+    };
+  });
+
+  const selectedSessionId = input.sessionId && sessionPoints.some((point) => point.sessionId === input.sessionId)
+    ? input.sessionId
+    : sessionPoints.find((point) => point.followUpSignalsCount > 0)?.sessionId ?? sessionPoints[0]?.sessionId ?? null;
+  const selectedSessionPoint = selectedSessionId
+    ? sessionPoints.find((point) => point.sessionId === selectedSessionId) ?? null
+    : null;
+  const selectedStudents = selectedSessionId
+    ? sessionStudentSummaries.get(selectedSessionId) ?? []
+    : [];
+  const detailStudents = (input.studentId
+    ? selectedStudents.filter((student) => student.studentId === input.studentId)
+    : selectedStudents.filter((student) => student.needsFollowUp))
+    .slice(0, input.studentId ? 1 : 5);
+  const selectedDetail = selectedSessionPoint
+    ? {
+        session: selectedSessionPoint,
+        summary: `${selectedSessionPoint.className} 在本次课堂中有 ${selectedSessionPoint.followUpSignalsCount} 个需优先查看的趋势信号。`,
+        keySignals: [
+          `${selectedSessionPoint.followUpSignalsCount} 个课堂信号需要跟进`,
+          `${selectedSessionPoint.pendingFeedbackCount} 项待反馈提交`,
+          `${selectedSessionPoint.unevaluatedCount} 名学生仍处于未评价`,
+        ],
+        impactedStudents: detailStudents.map((student) => ({
+          studentId: student.studentId,
+          studentName: student.studentName,
+          participationLabel: student.participationLabel,
+          needsFollowUp: student.needsFollowUp,
+          pendingFeedbackCount: student.pendingFeedbackCount,
+          keySignals: student.keySignals,
+          primaryRecapHref: student.primaryRecapHref,
+          secondaryReviewHref: student.secondaryReviewHref,
+        })),
+        primaryRecapHref: selectedSessionPoint.primaryRecapHref,
+        secondaryReviewHref: selectedSessionPoint.secondaryReviewHref,
+      }
+    : null;
+
+  const studentSummaries = [...aggregatedStudentMap.values()]
+    .sort((left, right) => {
+      if (right.needsFollowUpSessions !== left.needsFollowUpSessions) {
+        return right.needsFollowUpSessions - left.needsFollowUpSessions;
+      }
+      if (right.unevaluatedSessions !== left.unevaluatedSessions) {
+        return right.unevaluatedSessions - left.unevaluatedSessions;
+      }
+      if (right.missingSubmissionSessions !== left.missingSubmissionSessions) {
+        return right.missingSubmissionSessions - left.missingSubmissionSessions;
+      }
+
+      return left.studentName.localeCompare(right.studentName, "zh-CN");
+    });
+
+  const sessionCount = sessionPoints.length;
+  const classSummary = {
+    classId: input.classId,
+    className: classRow?.name ?? "班级",
+    view: input.view,
+    windowSize: limit,
+    sessionCount,
+    averageCompletionRate: sessionCount > 0
+      ? sessionPoints.reduce((sum, point) => sum + point.completionRate, 0) / sessionCount
+      : 0,
+    averageSubmissionRate: sessionCount > 0
+      ? sessionPoints.reduce((sum, point) => sum + point.submissionRate, 0) / sessionCount
+      : 0,
+    totalFollowUpSignalsCount: sessionPoints.reduce((sum, point) => sum + point.followUpSignalsCount, 0),
+    totalPendingFeedbackCount: sessionPoints.reduce((sum, point) => sum + point.pendingFeedbackCount, 0),
+    latestEndedAt: sessionPoints[0]?.endedAt ?? null,
+    trendLabel: sessionPoints.some((point) => point.trendLabel === "需关注" || point.trendLabel === "未评价")
+      ? "需关注"
+      : sessionPoints.some((point) => point.trendLabel === "上升")
+        ? "上升"
+        : sessionPoints.some((point) => point.trendLabel === "回落")
+          ? "回落"
+          : "稳定",
+  };
+
+  return ClassroomRecentSessionTrendDTOSchema.parse({
+    view: input.view,
+    window: {
+      kind: "latest-ended-sessions",
+      limit,
+    },
+    classSummary,
+    sessionPoints,
+    studentSummaries,
+    selectedSessionId,
+    selectedDetail,
   });
 }
 

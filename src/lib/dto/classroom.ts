@@ -18,6 +18,8 @@ export const ClassroomEvaluationTagSchema = z.enum(["主动发言", "专注跟�
 export const ClassroomStudentDetailTabSchema = z.enum(["evidence", "evaluation"]);
 export const ClassroomSessionRecapDetailTabSchema = z.enum(["students", "steps"]);
 export const ClassroomSessionParticipationLabelSchema = z.enum(["积极参与", "正常参与", "需要关注", "未评价"]);
+export const ClassroomTrendViewSchema = z.enum(["sessions"]).default("sessions");
+export const ClassroomTrendSignalLabelSchema = z.enum(["上升", "稳定", "回落", "需关注", "未评价"]);
 
 export const ClassroomFormativeEvaluationPayloadSchema = z.object({
   kind: z.literal("formative-evaluation"),
@@ -259,6 +261,94 @@ export const ClassroomSessionRecapDTOSchema = z.object({
   selectedStudent: ClassroomSessionRecapStudentDetailDTOSchema.nullable(),
   stepSummaries: z.array(ClassroomSessionRecapStepSummaryDTOSchema),
   selectedStepId: z.string().nullable(),
+});
+
+export const GetTeacherRecentSessionTrendInputSchema = z.object({
+  classId: z.string().min(1),
+  lessonId: z.string().min(1).optional(),
+  studentId: z.string().min(1).optional(),
+  sessionId: z.string().min(1).optional(),
+  view: ClassroomTrendViewSchema.optional().default("sessions"),
+  limit: z.number().int().positive().max(4).optional().default(4),
+});
+
+export const ClassroomTrendSessionPointDTOSchema = z.object({
+  sessionId: z.string(),
+  lessonId: z.string(),
+  lessonTitle: z.string(),
+  classId: z.string(),
+  className: z.string(),
+  startedAt: z.string(),
+  endedAt: z.string(),
+  completionRate: z.number().min(0).max(1),
+  submissionRate: z.number().min(0).max(1),
+  followUpSignalsCount: z.number().int().nonnegative(),
+  pendingFeedbackCount: z.number().int().nonnegative(),
+  attentionCount: z.number().int().nonnegative(),
+  unevaluatedCount: z.number().int().nonnegative(),
+  trendLabel: ClassroomTrendSignalLabelSchema,
+  primaryRecapHref: z.string(),
+  secondaryReviewHref: z.string().nullable(),
+});
+
+export const ClassroomClassTrendSummaryDTOSchema = z.object({
+  classId: z.string(),
+  className: z.string(),
+  view: ClassroomTrendViewSchema,
+  windowSize: z.number().int().positive(),
+  sessionCount: z.number().int().nonnegative(),
+  averageCompletionRate: z.number().min(0).max(1),
+  averageSubmissionRate: z.number().min(0).max(1),
+  totalFollowUpSignalsCount: z.number().int().nonnegative(),
+  totalPendingFeedbackCount: z.number().int().nonnegative(),
+  latestEndedAt: z.string().nullable(),
+  trendLabel: ClassroomTrendSignalLabelSchema,
+});
+
+export const ClassroomStudentTrendSummaryDTOSchema = z.object({
+  studentId: z.string(),
+  studentName: z.string(),
+  latestParticipationLabel: ClassroomSessionParticipationLabelSchema,
+  needsFollowUpSessions: z.number().int().nonnegative(),
+  unevaluatedSessions: z.number().int().nonnegative(),
+  missingSubmissionSessions: z.number().int().nonnegative(),
+  pendingFeedbackSessions: z.number().int().nonnegative(),
+  primarySignalLabel: ClassroomTrendSignalLabelSchema,
+  primaryRecapHref: z.string().nullable(),
+  secondaryReviewHref: z.string().nullable(),
+});
+
+export const ClassroomTrendImpactedStudentDTOSchema = z.object({
+  studentId: z.string(),
+  studentName: z.string(),
+  participationLabel: ClassroomSessionParticipationLabelSchema,
+  needsFollowUp: z.boolean(),
+  pendingFeedbackCount: z.number().int().nonnegative(),
+  keySignals: z.array(z.string()),
+  primaryRecapHref: z.string(),
+  secondaryReviewHref: z.string().nullable(),
+});
+
+export const ClassroomTrendDetailDTOSchema = z.object({
+  session: ClassroomTrendSessionPointDTOSchema,
+  summary: z.string(),
+  keySignals: z.array(z.string()),
+  impactedStudents: z.array(ClassroomTrendImpactedStudentDTOSchema),
+  primaryRecapHref: z.string(),
+  secondaryReviewHref: z.string().nullable(),
+});
+
+export const ClassroomRecentSessionTrendDTOSchema = z.object({
+  view: ClassroomTrendViewSchema,
+  window: z.object({
+    kind: z.literal("latest-ended-sessions"),
+    limit: z.number().int().positive(),
+  }),
+  classSummary: ClassroomClassTrendSummaryDTOSchema,
+  sessionPoints: z.array(ClassroomTrendSessionPointDTOSchema),
+  studentSummaries: z.array(ClassroomStudentTrendSummaryDTOSchema),
+  selectedSessionId: z.string().nullable(),
+  selectedDetail: ClassroomTrendDetailDTOSchema.nullable(),
 });
 
 export const ClassroomParticipantDTOSchema = z.object({
@@ -505,6 +595,13 @@ export type ClassroomSessionRecapStudentDetailDTO = z.infer<typeof ClassroomSess
 export type ClassroomSessionRecapStepSummaryDTO = z.infer<typeof ClassroomSessionRecapStepSummaryDTOSchema>;
 export type GetClassroomSessionRecapInput = z.infer<typeof GetClassroomSessionRecapInputSchema>;
 export type ClassroomSessionRecapDTO = z.infer<typeof ClassroomSessionRecapDTOSchema>;
+export type GetTeacherRecentSessionTrendInput = z.infer<typeof GetTeacherRecentSessionTrendInputSchema>;
+export type ClassroomTrendSessionPointDTO = z.infer<typeof ClassroomTrendSessionPointDTOSchema>;
+export type ClassroomClassTrendSummaryDTO = z.infer<typeof ClassroomClassTrendSummaryDTOSchema>;
+export type ClassroomStudentTrendSummaryDTO = z.infer<typeof ClassroomStudentTrendSummaryDTOSchema>;
+export type ClassroomTrendImpactedStudentDTO = z.infer<typeof ClassroomTrendImpactedStudentDTOSchema>;
+export type ClassroomTrendDetailDTO = z.infer<typeof ClassroomTrendDetailDTOSchema>;
+export type ClassroomRecentSessionTrendDTO = z.infer<typeof ClassroomRecentSessionTrendDTOSchema>;
 export type ClassroomParticipantDTO = z.infer<typeof ClassroomParticipantDTOSchema>;
 export type ClassroomParticipantMonitoringDTO = z.infer<typeof ClassroomParticipantMonitoringDTOSchema>;
 export type ClassroomSnapshotDTO = z.infer<typeof ClassroomSnapshotDTOSchema>;
