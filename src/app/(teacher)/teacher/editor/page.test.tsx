@@ -17,7 +17,7 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
 }));
 
-vi.mock("@/lib/dal/lesson-authoring", () => ({
+vi.mock("@/features/runtime-platform/authoring", () => ({
   assertActiveTeacher: () => assertActiveTeacher(),
   getTeacherAuthoringOverview: () => getTeacherAuthoringOverview(),
   getLessonEditorDTO: (...args: unknown[]) => getLessonEditorDTO(...args),
@@ -117,5 +117,73 @@ describe("TeacherEditorPage runtime branches", () => {
     expect(screen.getByText("请先从 七年级科学 的课时入口选择要编辑的课时")).toBeTruthy();
     expect(screen.queryByText("lesson editor shell")).toBeNull();
     expect(getLessonEditorDTO).not.toHaveBeenCalled();
+  });
+
+  it("rejects a lessonId that does not belong to the scoped course", async () => {
+    getTeacherAuthoringOverview.mockResolvedValue({
+      courses: [
+        {
+          id: "course-1",
+          title: "七年级科学",
+          subject: "科学",
+          classLabels: [],
+          enrollmentCount: 0,
+        },
+      ],
+      lessons: [
+        {
+          id: "lesson-2",
+          courseId: "course-2",
+          title: "另一门课的课时",
+        },
+      ],
+    });
+
+    render(
+      await TeacherEditorPage({
+        searchParams: Promise.resolve({ courseId: "course-1", lessonId: "lesson-2" }),
+      }),
+    );
+
+    expect(screen.getByText("请先从 七年级科学 的课时入口选择要编辑的课时")).toBeTruthy();
+    expect(getLessonEditorDTO).not.toHaveBeenCalled();
+  });
+
+  it("loads the editor only when both courseId and lessonId form a valid scoped pair", async () => {
+    getTeacherAuthoringOverview.mockResolvedValue({
+      courses: [
+        {
+          id: "course-1",
+          title: "七年级科学",
+          subject: "科学",
+          classLabels: [],
+          enrollmentCount: 0,
+        },
+      ],
+      lessons: [
+        {
+          id: "lesson-1",
+          courseId: "course-1",
+          title: "第一课",
+        },
+      ],
+    });
+    getLessonEditorDTO.mockResolvedValue({
+      lesson: { id: "lesson-1" },
+      course: { id: "course-1", schoolId: "school-1" },
+    });
+
+    render(
+      await TeacherEditorPage({
+        searchParams: Promise.resolve({ courseId: "course-1", lessonId: "lesson-1" }),
+      }),
+    );
+
+    expect(screen.getByText("lesson editor shell")).toBeTruthy();
+    expect(getLessonEditorDTO).toHaveBeenCalledWith("lesson-1");
+    expect(listBuiltInTeachingStepTemplates).toHaveBeenCalledWith({
+      actorId: "teacher-1",
+      schoolId: "school-1",
+    });
   });
 });
