@@ -1,49 +1,39 @@
 ---
 gsd_state_version: 1.0
-milestone: null
-milestone_name: null
-current_phase: null
-current_phase_name: null
-current_plan: null
-status: backlog_planning_after_v1_3_archive
-stopped_at: Phase 14-02 COURSE-06 completed; next follow-up remains COURSE-07 or Phase 15 planning
-last_updated: "2026-05-15T08:40:00.000Z"
+milestone: v2.0
+milestone_name: Runtime Platform Foundations
+current_phase: Not started
+current_phase_name: Defining requirements
+current_plan: "—"
+status: planning
+stopped_at: Milestone v2.0 initialized
+last_updated: "2026-05-15T10:21:35Z"
 last_activity: 2026-05-15
 progress:
-  total_phases: 14
-  completed_phases: 12
-  total_plans: 49
-  completed_plans: 49
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
-## Position
+## Current Position
 
-**Current Milestone:** None active
-**Current Phase:** None active
-**Current Phase Name:** None active
-**Current Plan:** None active
-**Total Plans in Phase:** None active
-**Status:** Backlog planning start after v1.3 archive
-**Progress:**
-[██████████] 100%
-**Historical Snapshot:** Archived v1.3 progress retained for reference only
-**Last Activity:** 2026-05-15
-**Last session:** 2026-05-15T07:50:00.000Z
-**Stopped At:** Phase 14-02 COURSE-06 completed; next follow-up remains COURSE-07 or Phase 15 planning
-**Resume File:** `.planning/milestones/v1.3-MILESTONE-AUDIT.md`
+Milestone: v2.0 Runtime Platform Foundations
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-15 -- Milestone v2.0 started
 
-## Archive And Planning Notes
+## Milestone Notes
 
-- v1.3 archive 只关闭真实 milestone scope：Phase 21-26。
-- `COURSE-04` ~ `COURSE-09`、`AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05`、`CLASS-05` 继续保留为 known gaps，不再伪装成已随 v1.3 一起关闭。
-- `src/lib/help/help-center-content.ts` 的 parse blocker 与缺失帮助页 key 已修复，`./node_modules/.bin/next build` 已恢复通过。
-- live `.planning` 当前仍不指向任何 active milestone implementation。
-- 当前优先 follow-up scope 仍是 Phase 14，其中 `14-01 / COURSE-04`、`14-02 / COURSE-06` 与 `14-03 / COURSE-05` 已完成；本轮已把课程详情页补齐 teacher school-scoped 的课程-班级关联 add/remove。
-- `COURSE-07`、Phase 15 与现有 `AUTH` / `DATA` / `CLASS-05` known gaps 继续后置。
-- 下一步 scope 待从 `COURSE-07`、Phase 15 与其余 known gaps 中重新选择，不在此处预写新的 milestone 名称。
+- 当前 milestone 从 backlog 空档切换到 `v2.0 Runtime Platform Foundations`。
+- 这轮目标是直接重组主工程边界，并交付一个可运行、可审计、可受控的 sandboxed runtime step。
+- 研究已完成，当前进入 requirements 与 roadmap 定义阶段。
+- `COURSE-07`、`AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05`、`CLASS-05` 继续保留为 project-level safety gaps。
+- PostgreSQL、Redis/Event Bus、WebSocket 在本轮只建立 seam，不做正式 cutover。
 
 ## Accumulated Context
 
@@ -170,10 +160,10 @@ progress:
 
 ## Next Steps
 
-1. v1.3 已按 `.planning/milestones/v1.3-MILESTONE-AUDIT.md` 归档；Phase 14 的 `COURSE-04`~`COURSE-06` 短 scope 也已完成。
-2. 后续规划候选转向 `COURSE-07`、Phase 15 与其余 known gaps，同时继续复用已锁定的 classroom contracts：`/classroom` 主域、history reopen、split workload、显式 `未评价`。
+1. v1.3 已按 `.planning/milestones/v1.3-MILESTONE-AUDIT.md` 归档；carry-over 课程域短 scope 现已完成到 Phase 15。
+2. 后续 live planning 候选转向 `COURSE-07` 与其余 known gaps，同时继续复用已锁定的 classroom contracts：`/classroom` 主域、history reopen、split workload、显式 `未评价`。
 3. 如需恢复一键 `pnpm verify:phase24`，先处理仓库当前 `pnpm` build approval 门禁，再重跑同一组已通过的 direct test/verifier checks。
-4. `COURSE-04` ~ `COURSE-06` 已完成；`COURSE-07`、Phase 15 和 known gaps 继续后置，在 scope 确认前不新增 milestone 名称或 phase 编号。
+4. 在下一轮 scope 确认前，不新增 milestone 名称或 phase 编号。
 
 ## Performance Metrics
 
