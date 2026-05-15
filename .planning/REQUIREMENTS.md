@@ -9,9 +9,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ## Current planning posture
 
-- 当前没有 active milestone implementation；`v1.3` 已归档，归档事实以 `.planning/MILESTONES.md` 与 `.planning/milestones/v1.3-MILESTONE-AUDIT.md` 为准。
-- 下一步 live scope 只能从 `COURSE-07`、Phase 15 carry-over backlog 与 `AUTH-01`~`AUTH-06`、`DATA-01`~`DATA-05`、`CLASS-05` known gaps 中选择。
-- 本文件继续保留完整 requirement truth，不在此处预写新的 milestone 名称、日期或 phase。
+- 当前 active milestone 为 `v2.0 Runtime Platform Foundations`。
+- 本文件继续保留完整 requirement truth，同时新增本轮 committed scope、deferred scope 与 traceability 映射。
+- `v2.0` 聚焦 runtime platform foundations、sandboxed runtime pilot 与 platform governance，不把 PostgreSQL / Redis / WebSocket 正式 cutover 绑为本轮完成条件。
 
 ### Foundation and design
 
@@ -108,8 +108,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **COURSE-05**: Teacher can delete an eligible course with explicit confirmation and clear feedback when deletion is blocked.
 - [x] **COURSE-06**: Teacher can associate or remove classes from a course within the teacher's school scope.
 - [ ] **COURSE-07**: Teacher can manage course student enrollment associations within the course management workflow.
-- [ ] **COURSE-08**: Teacher can import multiple courses from a structured batch file and receive row-level validation results before changes are applied.
-- [ ] **COURSE-09**: Teacher can review import outcomes as created, updated, skipped, or failed rows without silently creating duplicates.
+- [x] **COURSE-08**: Teacher can import multiple courses from a structured batch file and receive row-level validation results before changes are applied.
+- [x] **COURSE-09**: Teacher can review import outcomes as created, updated, skipped, or failed rows without silently creating duplicates.
 - [x] **COURSE-10**: Teacher can open a course and continue directly into lesson or teaching-plan management from a dedicated entry point.
 
 ### v1.x Teaching schedule OS extension
@@ -139,9 +139,65 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ANALYTICS-02**: Teacher can inspect class-level and student-level trends across recent teaching sessions with drill-down to raw evidence.
 - [x] **UI-05**: System provides high-quality Stitch-aligned planning, runtime, evaluation, and analytics surfaces with responsive, product-level interaction polish.
 
+### v2.0 Runtime platform foundations
+
+#### Safety and compatibility
+
+- [ ] **SAFE-01**: System can prove existing teacher authoring, publish, launch, student player, and classroom control flows still work after V2 boundary changes through committed regression coverage.
+- [ ] **SAFE-02**: New runtime and plugin host actions enforce existing server-side authz, school scope, and DTO shaping rules before external execution is enabled.
+- [ ] **SAFE-03**: Runtime and classroom pilot state is durably recoverable from persisted truth and not dependent only on SSE or in-memory transport state.
+
+#### Repo and boundary evolution
+
+- [ ] **ARCH-01**: Developer can access new runtime-platform capabilities through explicit feature public APIs and compatibility re-exports instead of deep cross-domain imports.
+- [ ] **ARCH-02**: Developer can work with extracted shared contract packages for runtime bridge, runtime events, permissions, and descriptors without moving the whole product to multi-app deployment in v2.0.
+- [ ] **ARCH-03**: Developer can configure future PostgreSQL, Redis/Event Bus, and WebSocket adapters behind explicit seams without making those services required in v2.0.
+
+#### Runtime bridge contracts
+
+- [ ] **BRDG-01**: Teacher-authored lesson steps can carry a versioned runtime descriptor without replacing the current linear lesson snapshot model.
+- [ ] **BRDG-02**: Host and runtime can exchange versioned TeachingBridge messages validated by shared schemas.
+- [ ] **BRDG-03**: Runtime bootstrap provides a session-scoped capability context and minimal lesson/classroom metadata without exposing cookies, secrets, or raw database rows.
+- [ ] **BRDG-04**: Host returns typed success or failure result envelopes for runtime save, submit, and event requests.
+
+#### Runtime session and persistence
+
+- [ ] **RTSE-01**: System can create a durable runtime session linked to lesson step, classroom session, and actor scope.
+- [ ] **RTSE-02**: System records runtime ready, interaction, save, submit, and teacher-control events in a canonical event log or outbox.
+- [ ] **RTSE-03**: Runtime-generated writes flow only through host-side server actions or route handlers and DAL, never directly from iframe code to the database.
+- [ ] **RTSE-04**: Runtime-related writes update the correct cache tags or downstream read models so teacher and student surfaces stay consistent after mutation.
+
+#### Runtime host and HTML courseware pilot
+
+- [ ] **RHOST-01**: Teacher preview, student player, and classroom surfaces can render a sandboxed iframe Runtime Host for a runtime-capable step.
+- [ ] **RHOST-02**: Host can bootstrap the iframe runtime, sync runtime height, and deliver classroom snapshot updates during an active lesson.
+- [ ] **RHOST-03**: Teacher can add and publish one built-in HTML courseware runtime step inside the existing lesson authoring workflow.
+- [ ] **RHOST-04**: Student can open the built-in HTML runtime step in the existing learning flow, complete one real interaction, and submit a structured result successfully.
+
+#### Platform governance and audit
+
+- [ ] **GOVR-01**: System enforces capability checks before any runtime or plugin action can invoke an allowlisted host operation.
+- [ ] **GOVR-02**: Plugin manifest v2 can declare runtime type, requested capabilities, permissions, and lifecycle metadata without enabling arbitrary remote code execution.
+- [ ] **GOVR-03**: System can drive built-in runtime or plugin lifecycle states across installed, enabled, mounted, ready, suspended, disabled, and failed.
+- [ ] **GOVR-04**: Teacher, admin, or developer can inspect runtime or plugin allowed or denied actions, actor, result, timestamp, and health state in an audit timeline or inspector surface.
+
+#### Transport evolution
+
+- [ ] **TRNS-01**: Runtime and classroom events flow through a transport boundary that preserves current SSE delivery while allowing a future WebSocket adapter.
+- [ ] **TRNS-02**: Durable classroom and runtime session state remains the source of truth while transport adapters act only as delivery channels.
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
+
+### Runtime platform expansion
+
+- **RTPX-01**: Developer can cut the primary durable store from SQLite to PostgreSQL after runtime-platform contracts and migration tooling are proven.
+- **RTPX-02**: System can run Redis or BullMQ-backed fanout and async workers after the outbox model is stable.
+- **RTPX-03**: Classroom and runtime delivery can move to WebSocket or Socket.IO after transport parity and rollback support are verified.
+- **RTPX-04**: System can host a second built-in runtime type after the first HTML courseware pilot is stable.
+- **RTPX-05**: Admin can manage third-party runtime or plugin packages only after local built-in contracts, trust boundaries, and audit tooling are stable.
+- **RTPX-06**: System can run AI runtime workflows inside the same capability and audit framework after human-approval and evaluation gates are proven.
 
 ### AI and learning intelligence
 
@@ -188,6 +244,12 @@ Explicitly excluded. Documented to prevent scope creep.
 | Public social feed or public class stream | Adds moderation, privacy, and distraction risks outside the core workflow. |
 | Real external system course import in v1.2 | This milestone focuses on local course-center usability; external auth and mapping are deferred. |
 | Bidirectional course sync in v1.2 | Remote conflict ownership and retry behavior need separate validation after local import works. |
+| PostgreSQL primary cutover in v2.0 | Runtime foundation should prove contracts and seams before changing the primary durable store. |
+| Redis or BullMQ rollout in v2.0 | Outbox and canonical event semantics should stabilize before distributed workers are introduced. |
+| WebSocket replacing SSE in v2.0 | Transport parity and rollback need independent validation after the transport boundary exists. |
+| More than one built-in runtime type in v2.0 | One HTML runtime pilot is enough to validate the platform without multiplying the blast radius. |
+| Plugin marketplace or third-party remote runtime execution in v2.0 | Trust, packaging, versioning, and security review are not stable enough for this milestone. |
+| Full AI runtime or autonomous classroom control in v2.0 | Human approval, evaluation, and audit rails must be proven before expanding execution authority. |
 
 ## Traceability
 
@@ -261,8 +323,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COURSE-05 | Phase 14 | Complete |
 | COURSE-06 | Phase 14 | Complete |
 | COURSE-07 | Phase 14 | Pending |
-| COURSE-08 | Phase 15 | Pending |
-| COURSE-09 | Phase 15 | Pending |
+| COURSE-08 | Phase 15 | Complete |
+| COURSE-09 | Phase 15 | Complete |
 | COURSE-10 | Phase 13 | Complete |
 | SCHEDULE-01 | Phase 18 | Complete |
 | SCHEDULE-02 | Phase 18 | Complete |
@@ -285,13 +347,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANALYTICS-01 | Phase 25 | Complete |
 | ANALYTICS-02 | Phase 26 | Complete |
 | UI-05 | Phase 26 | Complete |
+| SAFE-01 | — | Pending |
+| SAFE-02 | — | Pending |
+| SAFE-03 | — | Pending |
+| ARCH-01 | — | Pending |
+| ARCH-02 | — | Pending |
+| ARCH-03 | — | Pending |
+| BRDG-01 | — | Pending |
+| BRDG-02 | — | Pending |
+| BRDG-03 | — | Pending |
+| BRDG-04 | — | Pending |
+| RTSE-01 | — | Pending |
+| RTSE-02 | — | Pending |
+| RTSE-03 | — | Pending |
+| RTSE-04 | — | Pending |
+| RHOST-01 | — | Pending |
+| RHOST-02 | — | Pending |
+| RHOST-03 | — | Pending |
+| RHOST-04 | — | Pending |
+| GOVR-01 | — | Pending |
+| GOVR-02 | — | Pending |
+| GOVR-03 | — | Pending |
+| GOVR-04 | — | Pending |
+| TRNS-01 | — | Pending |
+| TRNS-02 | — | Pending |
 
 **Coverage:**
-- v1/v1.1/v1.2/v1.x/v1.3 requirements: 90 total
+- v1/v1.1/v1.2/v1.x/v1.3/v2.0 requirements: 114 total
 - Mapped to phases: 90
-- Unmapped: 0
+- Unmapped: 24
 - Duplicate mappings: 0
 
 ---
 *Requirements defined: 2026-05-04*  
-*Last updated: 2026-05-15 after completing Phase 14 COURSE-06 and returning live planning to backlog selection*
+*Last updated: 2026-05-15 after defining milestone v2.0 Runtime Platform Foundations requirements*
