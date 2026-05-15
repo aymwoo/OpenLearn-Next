@@ -144,14 +144,14 @@ Requirements for initial release. Each maps to roadmap phases.
 #### Safety and compatibility
 
 - [ ] **SAFE-01**: System can prove existing teacher authoring, publish, launch, student player, and classroom control flows still work after V2 boundary changes through committed regression coverage.
-- [ ] **SAFE-02**: New runtime and plugin host actions enforce existing server-side authz, school scope, and DTO shaping rules before external execution is enabled.
+- [x] **SAFE-02**: New runtime and plugin host actions enforce existing server-side authz, school scope, and DTO shaping rules before external execution is enabled.
 - [ ] **SAFE-03**: Runtime and classroom pilot state is durably recoverable from persisted truth and not dependent only on SSE or in-memory transport state.
 
 #### Repo and boundary evolution
 
 - [x] **ARCH-01**: Developer can access new runtime-platform capabilities through explicit feature public APIs and compatibility re-exports instead of deep cross-domain imports.
 - [x] **ARCH-02**: Developer can work with extracted shared contract packages for runtime bridge, runtime events, permissions, and descriptors without moving the whole product to multi-app deployment in v2.0.
-- [ ] **ARCH-03**: Developer can configure future PostgreSQL, Redis/Event Bus, and WebSocket adapters behind explicit seams without making those services required in v2.0.
+- [x] **ARCH-03**: Developer can configure future PostgreSQL, Redis/Event Bus, and WebSocket adapters behind explicit seams without making those services required in v2.0.
 
 #### Runtime bridge contracts
 
@@ -348,11 +348,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANALYTICS-02 | Phase 26 | Complete |
 | UI-05 | Phase 26 | Complete |
 | SAFE-01 | Phase 27 | Pending |
-| SAFE-02 | Phase 27 | Pending |
+| SAFE-02 | Phase 27 | Complete |
 | SAFE-03 | Phase 28 | Pending |
 | ARCH-01 | Phase 27 | Complete |
 | ARCH-02 | Phase 27 | Complete |
-| ARCH-03 | Phase 27 | Pending |
+| ARCH-03 | Phase 27 | Complete |
 | BRDG-01 | Phase 28 | Pending |
 | BRDG-02 | Phase 28 | Pending |
 | BRDG-03 | Phase 28 | Pending |
