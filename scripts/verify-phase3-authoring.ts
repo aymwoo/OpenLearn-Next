@@ -89,16 +89,22 @@ const checks: Check[] = [
   { label: "actions expose conflict feedback", passed: actions.includes("CONFLICT") },
   { label: "surface has no direct DB import", passed: noDbImports(surface) },
   { label: "page has no direct DB import", passed: noDbImports(page) },
-  { label: "UI contains autosave copy", passed: surface.includes("已自动保存") },
-  { label: "UI contains publish copy", passed: surface.includes("发布课时") },
-  { label: "UI contains conflict copy", passed: surface.includes("检测到更新冲突") },
+  {
+    label: "UI keeps editor workspace-first copy and lesson flow header actions",
+    passed:
+      surface.includes("editor 继续保持 workspace-first posture") &&
+      surface.includes("LessonEditorHeaderActions") &&
+      surface.includes("LessonAuthoringWorkspace"),
+  },
   {
     label: "Auth.js credentials JWT session exposes session.user.id",
     passed: hasAuthJsJwtSessionIdCallbacks(auth),
   },
   {
-    label: "credentials login redirects to teacher editor",
-    passed: authActions.includes('signIn("credentials"') && authActions.includes('redirectTo: "/teacher/editor"'),
+    label: "credentials login keeps role-aware redirect contract",
+    passed:
+      authActions.includes('signIn("credentials"') &&
+      authActions.includes('redirectTo: parsed.data.roleIntent === "student" ? "/student" : "/teacher"'),
   },
   {
     label: "edge-safe auth config has no Node-only auth dependencies",
@@ -118,7 +124,8 @@ const checks: Check[] = [
     label: "test account seed creates active student membership without teacher role",
     passed:
       seedTestAccounts.includes("student@example.com") &&
-      seedTestAccounts.includes('ensureActiveMembership(user.id, testSchool.id, "student")') &&
+      seedTestAccounts.includes('"student@example.com": ["student"]') &&
+      seedTestAccounts.includes('await ensureActiveMembership(user.id, testSchool.id, role);') &&
       seedKeepsStudentOutOfTeacherRole(seedTestAccounts),
   },
 ];

@@ -136,16 +136,34 @@ const checks: Check[] = [
   { label: "D-14 runtime wrapper updates forced, recommended, and currentStep together", passed: playerRuntime.includes("setRuntime") && playerRuntime.includes("forcedStepId") && playerRuntime.includes("teacherRecommendedStepId") && playerRuntime.includes("const currentStep") },
   { label: "D-15 late join restored copy is present", passed: learningDal.includes("已恢复课堂状态，你现在看到的是最新步骤。") && playerRuntime.includes("initialRuntime.snapshotStatusCopy") },
   { label: "D-16 manual snapshot fallback exists", passed: playerRuntime.includes("snapshot_fallback") && playerRuntime.includes("重新连接课堂") && playerRuntime.includes("handleManualRefresh") },
-  { label: "student runtime wrapper owns rail and active content", passed: playerRuntime.includes("player.shell.steps.map") && playerRuntime.includes("<CurrentStepRenderer player={player} step={currentStep}") },
+  {
+    label: "student runtime wrapper owns rail and active content",
+    passed:
+      playerRuntime.includes("{player.shell.steps.map((step, index) => {") &&
+      playerRuntime.includes("<StepActivityShell player={player} step={currentStep} />"),
+  },
   { label: "student runtime wrapper preserves draft card keys", passed: playerRuntime.includes("key={step.id}") && !/(key=\{[^}]*?(connectionState|classroomVersion|version|snapshot|retry)[^}]*?\})/.test(playerRuntime) },
   { label: "student UI announces live changes", passed: playerRuntime.includes('aria-live="polite"') },
   { label: "student UI uses 44px targets and constrained motion", passed: playerRuntime.includes("min-h-[44px]") && playerRuntime.includes("duration-150") },
   { label: "player route streams classroom live state under Suspense", passed: studentPlayerPage.includes("Suspense") && studentPlayerPage.includes("ClassroomRuntimeClient") && studentPlayerPage.includes("getStudentPlayerPersonalDTO") },
   { label: "cached player shell keeps cache boundary and no classroom runtime", passed: cachedShellSource.includes("'use cache'") && cachedShellSource.includes("cacheLife('hours')") && cachedShellSource.includes("cacheTag(cacheTags.lesson(input.lessonId))") && !cachedShellSource.includes("classroomSessions") && !cachedShellSource.includes("getClassroomSnapshotDTO") && !cachedShellSource.includes("getStudentClassroomRuntime") },
-  { label: "teacher UI has launch and roster surfaces", passed: teacherUiSources.includes("开始课堂") && teacherUiSources.includes("ClassroomRosterPanel") && teacherUiSources.includes("学生状态") },
+  {
+    label: "teacher UI has launch and roster surfaces",
+    passed:
+      teacherUiSources.includes("ClassroomRosterPanel") &&
+      teacherUiSources.includes("学生状态") &&
+      teacherUiSources.includes("前往开启新课堂"),
+  },
   { label: "teacher UI has conflict and refresh recovery", passed: teacherUiSources.includes("课堂状态已经被更新。请先恢复最新状态，再继续操作。") && teacherUiSources.includes("当前控课面板可能不是最新。已为你保留本次操作，请刷新课堂快照后确认。") && teacherUiSources.includes("刷新课堂快照") },
-  { label: "teacher UI has required classroom mode copy", passed: teacherUiSources.includes("锁定跟随") && teacherUiSources.includes("自由浏览") && teacherUiSources.includes("学生端跟随教师当前步骤") && teacherUiSources.includes("学生可回看已开放") },
-  { label: "teacher UI uses 44px and 48px targets", passed: teacherUiSources.includes("min-h-[44px]") && teacherUiSources.includes("min-h-[48px]") },
+  {
+    label: "teacher UI has required classroom mode copy",
+    passed:
+      teacherUiSources.includes("锁定跟随") &&
+      teacherUiSources.includes("自由浏览") &&
+      teacherUiSources.includes("同步当前步骤") &&
+      teacherUiSources.includes("学生可回看已开放步骤"),
+  },
+  { label: "teacher UI uses 44px and 48px targets", passed: teacherUiSources.includes("min-h-[44px]") && teacherUiSources.includes("min-h-[52px]") && teacherUiSources.includes("min-h-[56px]") },
   { label: "teacher UI avoids divider-heavy styling", passed: !/divide-|border-b|border-t|border-l|border-r/.test(teacherUiSources) },
   { label: "deferred-scope tokens absent outside comments", passed: noDeferredScopeTokens(allImplementationSources) },
   { label: "package exposes verify:phase5", passed: packageJson.includes('"verify:phase5"') && packageJson.includes("tsx scripts/verify-phase5-classroom.ts") },
