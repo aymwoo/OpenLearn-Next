@@ -17,6 +17,7 @@ const recap: ClassroomSessionRecapDTO = {
     id: 'session-1',
     status: 'ended',
     lessonId: 'lesson-1',
+    classId: 'class-1',
     lessonTitle: '古诗导读',
     className: '一班',
     startedAt: '2026-05-14T08:00:00.000Z',
@@ -95,6 +96,25 @@ describe('ClassroomSessionRecapSurface', () => {
     expect(screen.getByRole('button', { name: '查看学生复盘' })).toBeTruthy()
     expect(screen.getByText('环节诊断')).toBeTruthy()
     expect(screen.getByText('用于判断哪一环节需要回看，不替代学生复盘主路径')).toBeTruthy()
+  })
+
+  it('keeps /classroom as the recap home and adds a secondary trends deep-link', () => {
+    render(<ClassroomSessionRecapSurface recap={recap} />)
+
+    expect(
+      screen.getAllByText((content) =>
+        content.includes('本页继续留在 `/classroom` 内查看这节课的完成、参与和后续工作。'),
+      ).length,
+    ).toBeGreaterThan(0)
+    expect(
+      screen
+        .getAllByRole('link', { name: '查看班级趋势' })
+        .some(
+          (link) =>
+            link.getAttribute('href') ===
+            '/teacher/trends?classId=class-1&lessonId=lesson-1&sessionId=session-1&view=sessions',
+        ),
+    ).toBe(true)
   })
 
   it('renders the exact grouped evidence labels and explicit 未评价 state', () => {

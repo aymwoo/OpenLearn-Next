@@ -19,9 +19,9 @@ const teacherSidebarItems = [
   { label: "班级管理", href: "/teacher/classes", icon: "GraduationCap" },
   { label: "课程管理", href: "/teacher/courses", icon: "BookOpen" },
   { label: "学生档案", href: "/teacher/students", icon: "Users" },
+  { label: "班级趋势", href: "/teacher/trends", icon: "LineChart" },
   { label: "教学资源", href: "/resources", icon: "FolderKanban" },
   { label: "批改中心", href: "/teacher/review", icon: "CheckSquare" },
-  { label: "数据报表", href: "/teacher/reports", icon: "LineChart" },
 ] as const;
 
 type TeacherSidebarShellProps = {

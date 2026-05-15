@@ -1,6 +1,7 @@
 ---
 phase: quick-260511-nuf
 plan: 0
+status: complete
 subsystem: schedule
 tags: [import, csv, schedule, bell-slot, dto, validation]
 

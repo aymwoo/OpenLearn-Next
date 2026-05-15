@@ -60,10 +60,13 @@ const staticChecks: StaticCheck[] = [
       nonCommentIncludes(evaluationFormSource, "需要关注"),
   },
   {
-    label: "detail panel keeps evidence and evaluation tabs together",
+    label: "detail panel keeps unified evidence and evaluation tabs together",
     passed:
       nonCommentIncludes(detailPanelSource, "课堂证据") &&
-      nonCommentIncludes(detailPanelSource, "过程评价"),
+      nonCommentIncludes(detailPanelSource, "过程评价") &&
+      nonCommentIncludes(detailPanelSource, "FeedbackComposer") &&
+      nonCommentIncludes(detailPanelSource, "多源证据") &&
+      nonCommentIncludes(detailPanelSource, "待补反馈"),
   },
   {
     label: "classroom action keeps teacher-only formative evaluation write path",
@@ -72,8 +75,13 @@ const staticChecks: StaticCheck[] = [
       nonCommentIncludes(classroomActionSource, "updateTag(cacheTags.classroom(parsed.data.sessionId))"),
   },
   {
-    label: "classroom dal keeps formative evaluation payload marker",
-    passed: nonCommentIncludes(classroomDalSource, 'kind: "formative-evaluation"'),
+    label: "classroom dal keeps formative evaluation marker and multi-source aggregation",
+    passed:
+      nonCommentIncludes(classroomDalSource, 'kind: "formative-evaluation"') &&
+      nonCommentIncludes(classroomDalSource, "latestTaskSubmissions") &&
+      nonCommentIncludes(classroomDalSource, "latestQuizAttempts") &&
+      nonCommentIncludes(classroomDalSource, "unifiedEvidenceItems") &&
+      nonCommentIncludes(classroomDalSource, "feedbackTarget"),
   },
 ];
 

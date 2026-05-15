@@ -1,16 +1,16 @@
 ---
-status: investigating
+status: resolved
 trigger: "Phase 21 UAT Test 5: teacher records intervention via recordClassroomInterventionAction, sees it in classroomTimeline with teacher-only visibility, but the interface layout becomes messy/unusable. Goal: find_root_cause_only."
 created: 2026-05-13T00:00:00Z
-updated: 2026-05-13T00:16:00Z
+updated: 2026-05-14T15:10:00Z
 ---
 
 ## Current Focus
 
-hypothesis: The root cause is architectural: Phase 21 added durable intervention persistence, but the classroom runtime read model and surface never gained a dedicated timeline/intervention UI contract, so intervention content has no bounded layout slot and any current presentation is an ad hoc/misaligned structure.
-test: Confirm whether snapshot DTO/page/component tree exposes any timeline entries or intervention-specific renderer.
-expecting: If the hypothesis is true, timeline data will exist only in DAL write helpers/DTO definitions, while the runtime page renders only hero/control/roster panels with no timeline section.
-next_action: Finalize diagnosis from confirmed absence of timeline read/render integration.
+hypothesis: 已关闭。根因判断被后续 Phase 21 实现验证为正确。
+test: 对照 `.planning/phases/21-teaching-design-contracts-and-evidence-foundation/21-04-SUMMARY.md` 与当前 classroom runtime 组件，确认独立 timeline panel 已落地。
+expecting: debug 记录应转为 resolved，而不是继续保留 investigating。
+next_action: none
 
 ## Symptoms
 
@@ -61,4 +61,8 @@ root_cause:
 fix:
   Add a typed classroom timeline read model to getClassroomSnapshotDTO (or a dedicated teacher runtime DTO), then render interventions inside a dedicated timeline panel/card with explicit responsive width, wrapping, and entry sublayout instead of ad hoc insertion into existing control/roster sections.
 verification:
-files_changed: []
+  后续 Phase 21-04 已按该方向落地 typed teacher timeline read model 与独立 `ClassroomTimelinePanel`。当前 `src/lib/dal/classroom.ts` 已暴露 `teacherTimeline`，`src/components/classroom/classroom-control-panel.tsx` 已在右侧次级栏渲染 timeline panel。
+files_changed:
+  - src/lib/dal/classroom.ts
+  - src/components/classroom/classroom-timeline-panel.tsx
+  - src/components/classroom/classroom-control-panel.tsx

@@ -1,6 +1,7 @@
 ---
 phase: quick-260511-ef0-teacher-sidebar-shell-tsx-ui-usesactivet
 plan: 1
+status: complete
 summary_type: quick-task
 tags:
   - shell

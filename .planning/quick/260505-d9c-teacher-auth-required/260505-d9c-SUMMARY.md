@@ -1,6 +1,7 @@
 ---
 phase: 260505-d9c-teacher-auth-required
 plan: 01
+status: complete
 subsystem: auth
 tags: [authjs, jwt, credentials, drizzle, sqlite, teacher-auth]
 requires:

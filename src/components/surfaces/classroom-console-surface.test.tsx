@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from 'node:fs'
+
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { ClassroomConsoleSurface } from './classroom-console-surface'
 import type { ClassroomConsoleDTO, ClassroomSessionRecapDTO, ClassroomSnapshotDTO } from '@/lib/dto/classroom'
+
+const source = readFileSync('src/components/surfaces/classroom-console-surface.tsx', 'utf8')
 
 vi.mock('@/components/classroom/classroom-control-panel', () => ({
   ClassroomControlPanel: () => <div>实时课堂控制</div>,
@@ -80,6 +84,7 @@ const recap: ClassroomSessionRecapDTO = {
     id: 'session-1',
     status: 'ended',
     lessonId: 'lesson-1',
+    classId: 'class-1',
     lessonTitle: '古诗导读',
     className: '一班',
     startedAt: '2026-05-14T08:00:00.000Z',
@@ -117,5 +122,13 @@ describe('ClassroomConsoleSurface', () => {
     render(<ClassroomConsoleSurface consoleData={{ ...consoleData, sessionEntries: [] }} initialSnapshot={snapshot} />)
 
     expect(screen.getByText('实时课堂控制')).toBeTruthy()
+  })
+
+  it('reuses the shared teacher skeleton without horizontal scroll wrappers', () => {
+    expect(source).toContain('surfaceWidths.workspace')
+    expect(source).toContain('surfaceWidths.heroBody')
+    expect(source).toContain('teacherSurfaceRhythm.stack')
+    expect(source).toContain('ClassroomSessionRecapSurface')
+    expect(source).not.toContain('overflow-x-auto')
   })
 })

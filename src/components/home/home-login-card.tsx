@@ -75,6 +75,7 @@ export function HomeLoginCard() {
               <div className="flex items-center gap-3">
                 <UserRound className="size-4 text-white/42" aria-hidden />
                 <input
+                  key={roleIntent}
                   id="home-email"
                   name="email"
                   type="text"

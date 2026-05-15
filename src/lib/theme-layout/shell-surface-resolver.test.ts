@@ -7,6 +7,7 @@ import {
   resolveShellVariant,
   resolveTeacherShellUiState,
 } from "@/lib/theme-layout/shell-surface-resolver";
+import { resolveTeacherThemeRouteSurface } from "@/lib/theme-layout/route-surface-registry";
 
 const defaultSurface = DEFAULT_THEME_LAYOUT_RUNTIME.defaultSurface;
 
@@ -133,6 +134,24 @@ describe("shell surface resolver", () => {
     expect(shellState.layout.mainBorderRadius).toBe(
       "var(--layout-content-radius, 2rem)",
     );
+  });
+
+  it("resolves /teacher/trends through the shared rounded teacher shell", () => {
+    expect(resolveTeacherThemeRouteSurface("/teacher/trends")).toBe("/teacher/trends");
+    expect(resolveTeacherThemeRouteSurface("/teacher/trends/session-1")).toBe("/teacher/trends");
+
+    const resolved = getShellSurfaceConfig({
+      routeKey: "/teacher/trends",
+      layoutRuntime: DEFAULT_THEME_LAYOUT_RUNTIME,
+    });
+
+    expect(resolved.shellConfig).toEqual({
+      mode: "left-nav",
+      radius: "rounded",
+      width: "default",
+      chrome: "default",
+    });
+    expect(resolved.surfaceMetadata.label).toBe("班级趋势");
   });
 
   it("derives region visibility from metadata instead of jsx-local booleans", () => {

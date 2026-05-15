@@ -1,3 +1,9 @@
+---
+phase: quick
+plan: 260510-vfb
+status: complete
+---
+
 ## Summary
 
 - 将 `/teacher/editor` 的步骤编辑 modal 继续收敛到更接近 Stitch 的单容器双栏结构：外层 modal 只负责 backdrop、dialog 容器与关闭按钮，标题说明回到左栏编辑面板顶部。

@@ -2,10 +2,68 @@ import NextAuth from "next-auth";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { memberships, users } from "@/db/schema";
 import { authConfig } from "./auth.config";
+
+type RoleIntent = "teacher" | "student";
+
+function normalizeRoleIntent(value: unknown): RoleIntent | null {
+  return value === "teacher" || value === "student" ? value : null;
+}
+
+export async function authorizeCredentials(credentials: Record<string, unknown> | undefined) {
+  if (!credentials?.email || !credentials?.password) {
+    return null;
+  }
+
+  const roleIntent = normalizeRoleIntent(credentials.roleIntent);
+
+  if (!roleIntent) {
+    return null;
+  }
+
+  const loginId = String(credentials.email).trim();
+  const userRecords = await db
+    .select()
+    .from(users)
+    .where(
+      roleIntent === "student"
+        ? eq(users.studentNumber, loginId)
+        : eq(users.email, loginId)
+    )
+    .limit(1);
+  const user = userRecords[0];
+
+  if (!user || !user.password) {
+    return null;
+  }
+
+  const activeMemberships = await db
+    .select({ id: memberships.id })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.userId, user.id),
+        eq(memberships.role, roleIntent),
+        eq(memberships.status, "active")
+      )
+    )
+    .limit(1);
+
+  if (activeMemberships.length === 0) {
+    return null;
+  }
+
+  const isValid = await bcrypt.compare(String(credentials.password), user.password);
+
+  if (!isValid) {
+    return null;
+  }
+
+  return { id: user.id, name: user.name, email: user.email, roles: [roleIntent] };
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -18,6 +76,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
       }
 
+      if (Array.isArray(user?.roles)) {
+        token.roles = user.roles;
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -25,6 +87,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (session.user && userId) {
         session.user.id = String(userId);
+        session.user.roles = Array.isArray(token.roles) ? token.roles : [];
       }
 
       return session;
@@ -35,30 +98,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: "账号密码登录",
       credentials: {
         email: { label: "账号", type: "text", placeholder: "请输入教师邮箱或学生学号" },
-        password: { label: "密码", type: "password" }
+        password: { label: "密码", type: "password" },
+        roleIntent: { label: "角色", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
-
-        const emailStr = String(credentials.email);
-        const userRecords = await db
-          .select()
-          .from(users)
-          .where(eq(users.email, emailStr))
-          .limit(1);
-        const userByEmail = userRecords[0];
-        const userByStudentNumber =
-          userByEmail ?? (await db.select().from(users).where(eq(users.studentNumber, emailStr)).limit(1))[0];
-        const user = userByStudentNumber;
-
-        if (!user || !user.password) return null;
-
-        const isValid = await bcrypt.compare(String(credentials.password), user.password);
-        if (isValid) {
-          return { id: user.id, name: user.name, email: user.email };
-        }
-
-        return null;
+        return authorizeCredentials(credentials as Record<string, unknown> | undefined);
       }
     })
   ]

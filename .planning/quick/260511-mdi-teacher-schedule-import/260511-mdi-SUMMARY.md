@@ -1,6 +1,7 @@
 ---
 phase: quick-260511-mdi
 plan: 260511-mdi
+status: complete
 subsystem: schedule-import
 tags: [schedule, import, csv, template, route, react, vitest]
 requires:

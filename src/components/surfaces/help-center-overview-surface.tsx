@@ -10,6 +10,7 @@ import {
   helpStateNotes,
   teacherHelpModules,
 } from "@/lib/help/help-center-content";
+import { cn } from "@/lib/utils";
 
 const splitCards = [
   {
@@ -39,14 +40,19 @@ export function HelpCenterOverviewSurface() {
         <section className={teacherSurfaceRhythm.hero}>
           <div className={teacherSurfaceRhythm.heroInset}>
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div className="max-w-[52rem]">
+              <div className={surfaceWidths.heroTitle}>
                 <p className="text-sm uppercase tracking-[0.18em] text-on-surface-variant">
                   Help center
                 </p>
                 <h2 className="mt-4 text-[2.4rem] font-semibold tracking-[-0.03em] text-on-surface sm:text-[2.9rem]">
                   在产品内找到教师使用说明与开发接入指南
                 </h2>
-                <p className="mt-4 max-w-[44rem] text-sm leading-7 text-on-surface-variant sm:text-base">
+                <p
+                  className={cn(
+                    surfaceWidths.heroBody,
+                    "mt-4 text-sm leading-7 text-on-surface-variant sm:text-base",
+                  )}
+                >
                   帮助中心以当前代码实现、DAL 和 Server Actions 为事实来源。首页先完成教师 /
                   开发者分流，再把插件、主题和 schedule 扩展指南拆到独立子页，避免你在产品页和散落文档之间来回跳转。
                 </p>

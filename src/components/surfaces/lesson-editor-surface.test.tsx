@@ -18,4 +18,13 @@ describe("LessonEditorSurface quick layout trim", () => {
     expect(source).toContain("开课前摘要");
     expect(source).toContain("themes={themes}");
   });
+
+  it("reuses the shared teacher product skeleton without horizontal scroll rails", () => {
+    expect(source).toContain("surfaceWidths.workspace");
+    expect(source).toContain("surfaceWidths.heroBody");
+    expect(source).toContain("teacherSurfaceRhythm.stack");
+    expect(source).toContain("teacherSurfaceRhythm.hero");
+    expect(source).toContain("teacherSurfaceRhythm.section");
+    expect(source).not.toContain("overflow-x-auto");
+  });
 });

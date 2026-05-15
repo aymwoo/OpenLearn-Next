@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, CheckCircle2, ClipboardList, MessageSquareMore, UsersRound } from "lucide-react";
 
@@ -24,6 +25,7 @@ export function ClassroomSessionRecapSurface({ recap }: { recap: ClassroomSessio
   };
 
   const selectedStudentId = recap.selectedStudent?.studentId ?? null;
+  const trendsHref = `/teacher/trends?classId=${encodeURIComponent(recap.session.classId)}&lessonId=${encodeURIComponent(recap.session.lessonId)}&sessionId=${encodeURIComponent(recap.session.id)}&view=sessions`;
 
   return (
     <div className="space-y-5">
@@ -59,9 +61,14 @@ export function ClassroomSessionRecapSurface({ recap }: { recap: ClassroomSessio
             <p className="text-sm text-on-surface-variant">教师后续工作</p>
             <h3 className="mt-2 text-2xl font-semibold text-on-surface">把课堂信号和批改反馈分开处理</h3>
           </div>
-          <Button type="button" variant="secondary" className="min-h-[44px]" onClick={() => recap.studentSummaries[0] && selectStudent(recap.studentSummaries[0].studentId)}>
-            查看学生复盘
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" variant="secondary" className="min-h-[44px]" onClick={() => recap.studentSummaries[0] && selectStudent(recap.studentSummaries[0].studentId)}>
+              查看学生复盘
+            </Button>
+            <Button asChild type="button" variant="secondary" className="min-h-[44px]">
+              <Link href={trendsHref}>查看班级趋势</Link>
+            </Button>
+          </div>
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-2">

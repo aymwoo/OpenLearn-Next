@@ -1,8 +1,14 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
 import type { ReactNode } from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+const source = readFileSync(
+  "src/components/surfaces/help-center-overview-surface.tsx",
+  "utf8",
+);
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
@@ -46,5 +52,14 @@ describe("HelpCenterOverviewSurface", () => {
     expect(text).not.toContain("const proposalAction = {");
     expect(container.querySelector("pre")).toBeNull();
     expect(container.textContent?.includes("```") ?? false).toBe(false);
+  });
+
+  it("reuses the shared teacher product skeleton without horizontal scroll wrappers", () => {
+    expect(source).toContain("surfaceWidths.workspace");
+    expect(source).toContain("surfaceWidths.heroTitle");
+    expect(source).toContain("surfaceWidths.heroBody");
+    expect(source).toContain("teacherSurfaceRhythm.stack");
+    expect(source).toContain("teacherSurfaceRhythm.hero");
+    expect(source).not.toContain("overflow-x-auto");
   });
 });

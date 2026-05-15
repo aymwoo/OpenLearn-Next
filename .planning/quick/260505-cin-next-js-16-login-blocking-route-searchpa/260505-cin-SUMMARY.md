@@ -1,6 +1,7 @@
 ---
 phase: 260505-cin-next-js-16-login-blocking-route-searchpa
 plan: 01
+status: complete
 subsystem: auth-ui
 tags: [nextjs-16, react-suspense, authjs, login]
 

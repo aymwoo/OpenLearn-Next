@@ -1,22 +1,38 @@
 ## ROADMAP
 
-**Milestone:** v1.3 Teaching Orchestration & Classroom Intelligence
-**Phases:** 6
+**Milestone:** none active
+**Planning mode:** backlog planning start after v1.3 archive
 **Granularity:** coarse
-**Coverage:** 12/12 v1.3 requirements mapped ✓ + v1.2 carry-over backlog frozen separately
+**Coverage:** Live roadmap currently keeps carry-over backlog and historical phase reference only. Archived v1.3 facts live in `.planning/MILESTONES.md` and `.planning/milestones/v1.3-MILESTONE-AUDIT.md`.
 
-### Current milestone phases
+### Current planning posture
+
+- 当前没有 active milestone implementation。
+- `v1.3 Teaching Orchestration & Classroom Intelligence` 已归档；归档事实以 archive 文档为准，不在 live roadmap 重复收口。
+- Phase 14 的短 scope 已完成；`14-01 / COURSE-04`、`14-02 / COURSE-06` 与 `14-03 / COURSE-05` 均已收口。
+- 刚完成的短 scope 只覆盖 `COURSE-04`~`COURSE-06`，即课程生命周期、删除 guardrail 与班级关联。
+- `COURSE-07`、Phase 15，以及 `AUTH-01`~`AUTH-06`、`DATA-01`~`DATA-05`、`CLASS-05` 继续后置。
+- 在 scope 最终确认前，不新增 milestone 名称，也不把 backlog 伪装成已启动 phase。
+
+### Archived v1.3 phases (reference only)
 
 - [x] **Phase 21: Teaching design contracts and evidence foundation** - Extend the current linear lesson model with teaching-design metadata, class-launch contracts, and durable classroom evidence primitives. (completed 2026-05-13)
 - [x] **Phase 22: Teacher orchestration workspace and launch preparation** - Turn the current editor and launch path into a class-ready teaching orchestration workspace with readiness gating. (completed 2026-05-13)
 - [x] **Phase 23: Student in-class activity flow** - Upgrade the student runtime into a clearer classroom activity experience with durable quick-response and evidence capture. (completed 2026-05-13)
-- [x] **Phase 24: Live classroom operations and formative evaluation** - Bring runtime monitoring, participation tracking, observation notes, and unified evaluation workflow into the teacher classroom product surface. (completed 2026-05-13)
+- [x] **Phase 24: Live classroom operations and formative evaluation** - Bring runtime monitoring, participation tracking, observation notes, and unified evaluation workflow into the teacher classroom product surface. (completed 2026-05-14 after re-verifying EVAL-02 on `/classroom` single-student detail)
 - [x] **Phase 25: Teaching data capture and session analytics** - Aggregate classroom evidence into deterministic session-level metrics, recap views, and teacher workload summaries. (completed 2026-05-14)
-- [ ] **Phase 26: Cross-session trends and Stitch productization** - Deliver student/class trend analysis and complete high-quality Stitch-aligned productization across planning, runtime, evaluation, and analytics pages.
+- [x] **Phase 26: Cross-session trends and Stitch productization** - Deliver student/class trend analysis and complete high-quality Stitch-aligned productization across planning, runtime, evaluation, and analytics pages. (completed 2026-05-14)
+
+### Archived v1.3 close note
+
+- 本次 v1.3 close 只覆盖 Phase 21-26。
+- Phase 13、16-20 属于已完成历史，不是本次 close 的新增 scope。
+- Phase 14、15 仍是 carry-over backlog，不计入 v1.3 close。
+- `AUTH-01`~`AUTH-06`、`DATA-01`~`DATA-05`、`CLASS-05` 仍是项目级 known gaps。
 
 ### Carry-over backlog from v1.2
 
-- [ ] **Phase 14: Course lifecycle and associations** - Add publish, unpublish, archive, delete, and class/student association workflows with school-scoped guardrails.
+- [x] **Phase 14: Course lifecycle and associations** - Complete the course detail workflow short scope: `14-01` lifecycle, `14-02` class association, and `14-03` delete guardrails are all done; `COURSE-07` remains explicitly deferred. (completed 2026-05-15)
 - [ ] **Phase 15: Batch course import** - Add structured batch import, duplicate detection, and import-result feedback on top of the same course rules.
 
 ### Completed history
@@ -50,16 +66,16 @@
 ### Phase 14: Course lifecycle and associations
 **Goal**: Teachers can safely manage course visibility, cleanup, and roster associations inside the course workflow.
 **Depends on**: Phase 13
-**Requirements**: COURSE-04, COURSE-05, COURSE-06, COURSE-07
+**Requirements**: COURSE-04, COURSE-05, COURSE-06
 **Success Criteria**:
-  1. Teacher can publish, unpublish, and archive a course and see consistent status behavior across the course center and adjacent teacher flows.
-  2. Teacher can delete an eligible course only through a guarded path with explicit confirmation and clear failure feedback when deletion is blocked.
-  3. Teacher can associate and remove classes within the teacher's school scope.
-  4. Teacher can manage student enrollments for a course without bypassing existing school and membership boundaries.
+   1. Teacher can publish, unpublish, and archive a course and see consistent status behavior across the course center and adjacent teacher flows.
+   2. Teacher can delete an eligible course only through a guarded path with explicit confirmation and clear failure feedback when deletion is blocked.
+   3. Teacher can associate and remove classes within the teacher's school scope.
+   4. Current live planning intentionally defers student enrollment management (`COURSE-07`) to a later scope instead of folding it into this short draft.
 **Plans**: 3 plans
-- [ ] 14-01-PLAN.md — Add course lifecycle actions and status-safe visibility rules.
-- [ ] 14-02-PLAN.md — Build class association management within school scope.
-- [ ] 14-03-PLAN.md — Build course enrollment management and deletion guardrails.
+- [x] 14-01-PLAN.md — Add course lifecycle actions and status-safe visibility rules.
+- [x] 14-02-PLAN.md — Build class association management within school scope.
+- [x] 14-03-PLAN.md — Add deletion guardrails and explicit blocked-delete feedback.
 **UI hint**: yes
 
 ### Phase 15: Batch course import
@@ -245,20 +261,22 @@
   3. The final product surfaces feel intentionally designed for teacher daily work, not like disconnected admin tools.
   4. Regression or verification coverage exists for the major routes so later feature work does not silently degrade the milestone quality bar.
 **Plans**: 6 plans
-- [ ] 26-01-PLAN.md — Build cross-session trend read models for class and student comparisons.
-- [ ] 26-02-PLAN.md — Register the trends route inside the shared teacher shell and deliver the first class-first trends page.
-- [ ] 26-03-PLAN.md — Add recap-to-trends dual entry and productize editor/launch as the start of the teacher chain.
-- [ ] 26-04-PLAN.md — Productize trends, dashboard, help, and settings into the same Stitch-aligned teacher system.
-- [ ] 26-05-PLAN.md — Productize classroom and review while preserving their route ownership.
-- [ ] 26-06-PLAN.md — Add `verify:phase26` static guards and final regression wiring for route quality, responsive behavior, and analytics safety boundaries.
+- [x] 26-01-PLAN.md — Build cross-session trend read models for class and student comparisons.
+- [x] 26-02-PLAN.md — Register the trends route inside the shared teacher shell and deliver the first class-first trends page.
+- [x] 26-03-PLAN.md — Add recap-to-trends dual entry and productize editor/launch as the start of the teacher chain.
+- [x] 26-04-PLAN.md — Productize trends, dashboard, help, and settings into the same Stitch-aligned teacher system.
+- [x] 26-05-PLAN.md — Productize classroom and review while preserving their route ownership.
+- [x] 26-06-PLAN.md — Add `verify:phase26` static guards and final regression wiring for route quality, responsive behavior, and analytics safety boundaries.
 **UI hint**: yes
 
 ### Progress
 
+Historical phase snapshot retained for backlog planning reference.
+
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 13. Course center foundation | 5/5 | Complete   | 2026-05-09 |
-| 14. Course lifecycle and associations | 0/3 | Not started | - |
+| 14. Course lifecycle and associations | 3/3 | Complete | 2026-05-15 |
 | 15. Batch course import | 0/3 | Not started | - |
 | 16. Theme plugins and layout orchestration | 4/4 | Complete | 2026-05-09 |
 | 17. Teacher flow editor enhancement | 4/4 | Complete   | 2026-05-10 |
@@ -268,6 +286,6 @@
 | 21. Teaching design contracts and evidence foundation | 5/5 | Complete   | 2026-05-13 |
 | 22. Teacher orchestration workspace and launch preparation | 3/3 | Complete | 2026-05-13 |
 | 23. Student in-class activity flow | 3/3 | Complete   | 2026-05-13 |
-| 24. Live classroom operations and formative evaluation | 4/4 | Complete   | 2026-05-13 |
-| 25. Teaching data capture and session analytics | 0/3 | Not started | - |
-| 26. Cross-session trends and Stitch productization | 0/6 | Not started | - |
+| 24. Live classroom operations and formative evaluation | 4/4 | Complete | 2026-05-14 |
+| 25. Teaching data capture and session analytics | 3/3 | Complete | 2026-05-14 |
+| 26. Cross-session trends and Stitch productization | 6/6 | Complete    | 2026-05-14 |

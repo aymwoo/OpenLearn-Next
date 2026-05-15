@@ -26,6 +26,10 @@ vi.mock("@/actions/classroom-actions", () => ({
   endClassroomSessionAction: vi.fn(),
 }));
 
+vi.mock("@/actions/learning-actions", () => ({
+  sendAttemptFeedbackAction: vi.fn(),
+}));
+
 vi.mock("./classroom-conflict-panel", () => ({
   ClassroomConflictPanel: () => <div>冲突面板</div>,
 }));

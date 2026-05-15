@@ -176,6 +176,14 @@ describe("settings and plugin entry surfaces", () => {
     expect(studentsSource).not.toContain("max-w-[1280px]");
   });
 
+  it("keeps settings on the shared teacher rhythm without horizontal scroll wrappers", () => {
+    expect(source).toContain("surfaceWidths.heroTitle");
+    expect(source).toContain("surfaceWidths.heroBody");
+    expect(source).toContain("teacherSurfaceRhythm.hero");
+    expect(source).toContain("teacherSurfaceRhythm.stack");
+    expect(source).not.toContain("overflow-x-auto");
+  });
+
   it("renders plugin management controls in labs settings", () => {
     expect(source).toContain("插件管理");
     expect(source).toContain("setPluginEnabledAction");

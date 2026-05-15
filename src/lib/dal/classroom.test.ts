@@ -839,8 +839,17 @@ describe("same-route classroom student detail contracts", () => {
       classroomDto.ClassroomStudentDetailDTOSchema.safeParse({
         studentId: "student-1",
         studentName: "李雷",
+        progressEntries: [],
         evidenceEntries: [],
         evaluationEntries: [],
+        unifiedEvidenceItems: [],
+        attemptSummary: {
+          pendingFeedbackCount: 0,
+          latestTaskSubmissions: [],
+          latestQuizAttempts: [],
+          taskSubmissionHistory: [],
+          quizAttemptHistory: [],
+        },
         latestParticipationLevel: "normal",
       }).success,
     ).toBe(true);
@@ -855,6 +864,10 @@ describe("same-route classroom student detail contracts", () => {
     expect(source).toContain('payload.kind === "formative-evaluation"');
     expect(source).toContain("evaluationEntries");
     expect(source).toContain("evidenceEntries");
+    expect(source).toContain("unifiedEvidenceItems");
+    expect(source).toContain("latestTaskSubmissions");
+    expect(source).toContain("latestQuizAttempts");
+    expect(source).toContain("feedbackTarget");
     expect(source).not.toContain("getTeacherLessonReviewDTO");
     expect(source).not.toContain("@/lib/dal/learning");
   });
@@ -903,6 +916,74 @@ describe("same-route classroom student detail contracts", () => {
     ];
     findManyClassroomEvidence.mockResolvedValueOnce(detailEvidenceRows);
     findManyClassroomEvidence.mockResolvedValueOnce(detailEvidenceRows);
+    const detailTimelineRows = [
+      {
+        id: "timeline-1",
+        sessionId: "session-1",
+        studentId: "student-1",
+        stepId: "step-2",
+        entryType: "intervention_noted",
+        actorId: "teacher-1",
+        payloadJson: {
+          title: "提醒作答",
+          body: "已提醒他先完成测验再继续讨论。",
+        },
+        createdAt: new Date("2026-05-12T10:05:00Z"),
+      },
+    ];
+    findManyClassroomTimeline.mockResolvedValueOnce(detailTimelineRows);
+    findManyClassroomTimeline.mockResolvedValueOnce(detailTimelineRows);
+    findManyLessonStepProgress.mockResolvedValueOnce([
+      {
+        id: "progress-1",
+        publishedVersionId: "pub-1",
+        lessonId: "lesson-in-scope",
+        stepId: "step-1",
+        studentId: "student-1",
+        state: "completed",
+        completedAt: new Date("2026-05-12T10:01:00Z"),
+        updatedAt: new Date("2026-05-12T10:01:00Z"),
+      },
+    ]);
+    findManyTaskSubmissions.mockResolvedValueOnce([
+      {
+        id: "attempt-1",
+        publishedVersionId: "pub-1",
+        lessonId: "lesson-in-scope",
+        stepId: "step-2",
+        studentId: "student-1",
+        attemptNo: 1,
+        payloadJson: { body: "提交了讨论记录" },
+        isLatest: true,
+        createdAt: new Date("2026-05-12T10:03:00Z"),
+      },
+    ]);
+    findManyQuizAttempts.mockResolvedValueOnce([
+      {
+        id: "quiz-1",
+        publishedVersionId: "pub-1",
+        lessonId: "lesson-in-scope",
+        stepId: "step-2",
+        studentId: "student-1",
+        attemptNo: 1,
+        answerJson: { selectedIndex: 0 },
+        outcomeJson: { isCorrect: true },
+        isLatest: true,
+        createdAt: new Date("2026-05-12T10:04:00Z"),
+      },
+    ]);
+    findManyAttemptFeedback.mockResolvedValueOnce([
+      {
+        id: "feedback-1",
+        targetType: "quiz_attempt",
+        targetId: "quiz-1",
+        teacherId: "teacher-1",
+        studentId: "student-1",
+        body: "已完成点评",
+        createdAt: new Date("2026-05-12T10:05:00Z"),
+        updatedAt: new Date("2026-05-12T10:05:00Z"),
+      },
+    ]);
 
     const { getClassroomStudentDetailDTO, getClassroomSnapshotDTO } = await import("./classroom");
 
@@ -924,6 +1005,14 @@ describe("same-route classroom student detail contracts", () => {
     });
     expect(detail?.evaluationEntries).toHaveLength(1);
     expect(detail?.evidenceEntries).toHaveLength(1);
+    expect(detail?.progressEntries).toHaveLength(2);
+    expect(detail?.attemptSummary.latestTaskSubmissions).toHaveLength(1);
+    expect(detail?.attemptSummary.latestQuizAttempts).toHaveLength(1);
+    expect(detail?.attemptSummary.pendingFeedbackCount).toBe(1);
+    expect(detail?.unifiedEvidenceItems.some((item) => item.kind === "progress")).toBe(true);
+    expect(detail?.unifiedEvidenceItems.some((item) => item.kind === "task")).toBe(true);
+    expect(detail?.unifiedEvidenceItems.some((item) => item.kind === "quiz")).toBe(true);
+    expect(detail?.unifiedEvidenceItems.some((item) => item.kind === "timeline")).toBe(true);
     expect(detail?.evaluationEntries[0]?.observationNote).toBe("需要老师跟进。");
     expect(detail?.evidenceEntries[0]?.payload).toMatchObject({ note: "提交了讨论记录" });
   });

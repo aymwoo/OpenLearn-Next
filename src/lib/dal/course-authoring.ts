@@ -1,20 +1,28 @@
 import "server-only";
 
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
 import { classes, courseClasses, courseEnrollments, courses, lessons, lessonSteps, schools } from "@/db/schema";
 import { cacheTags } from "@/lib/cache-policy";
 import {
+  CourseLifecycleInputSchema,
+  CourseDeleteEligibilityDTOSchema,
+  CourseDeleteInputSchema,
   CourseCreateInputSchema,
+  CourseClassAssociationInputSchema,
   CourseLessonEntryDTOSchema,
   CourseUpdateInputSchema,
+  type CourseDeleteBlockedReasonDTO,
+  TeacherCourseAvailableClassDTOSchema,
   TeacherCourseCardDTOSchema,
   TeacherCourseCenterDTOSchema,
   TeacherCourseDetailDTOSchema,
   TeacherCourseLessonsEntryDTOSchema,
+  type CourseClassAssociationInput,
   type CourseCreateInput,
+  type CourseDeleteInput,
   type CourseUpdateInput,
 } from "@/lib/dto/course-authoring";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
@@ -43,6 +51,12 @@ type TeacherScope = {
   schoolIds: string[];
 };
 
+type CourseDeleteEligibilityCounts = {
+  lessonCount: number;
+  classAssociationCount: number;
+  enrollmentCount: number;
+};
+
 function assertSchoolAccess(scope: TeacherScope, schoolId: string) {
   if (!scope.schoolIds.includes(schoolId)) {
     throw new Error("TEACHER_AUTH_REQUIRED");
@@ -56,6 +70,10 @@ function ensureCourseOwnership(scope: TeacherScope, course: typeof courses.$infe
   }
 }
 
+function sortClassesByName<T extends { name: string }>(items: T[]) {
+  return [...items].sort((left, right) => left.name.localeCompare(right.name, "zh-CN"));
+}
+
 async function getScopedOwnedCourse(courseId: string, scope: TeacherScope) {
   const course = await db.query.courses.findFirst({ where: eq(courses.id, courseId) });
 
@@ -65,6 +83,18 @@ async function getScopedOwnedCourse(courseId: string, scope: TeacherScope) {
 
   ensureCourseOwnership(scope, course);
   return course;
+}
+
+async function getScopedSchoolClass(classId: string, schoolId: string, scope: TeacherScope) {
+  assertSchoolAccess(scope, schoolId);
+
+  const classRow = await db.query.classes.findFirst({ where: eq(classes.id, classId) });
+
+  if (!classRow || classRow.schoolId !== schoolId) {
+    throw new Error("CLASS_NOT_FOUND");
+  }
+
+  return classRow;
 }
 
 function toIso(value: Date | number | null | undefined) {
@@ -85,6 +115,45 @@ function sortByStatusThenUpdatedAt<T extends { status: string; updatedAt: Date |
     }
 
     return new Date(right.updatedAt ?? 0).getTime() - new Date(left.updatedAt ?? 0).getTime();
+  });
+}
+
+function buildCourseDeleteReasons(counts: CourseDeleteEligibilityCounts): CourseDeleteBlockedReasonDTO[] {
+  const reasons: CourseDeleteBlockedReasonDTO[] = [];
+
+  if (counts.lessonCount > 0) {
+    reasons.push({
+      code: "COURSE_HAS_LESSONS",
+      message: `当前课程下还有 ${counts.lessonCount} 个课时，需先清理课时后才能删除课程。`,
+      count: counts.lessonCount,
+    });
+  }
+
+  if (counts.classAssociationCount > 0) {
+    reasons.push({
+      code: "COURSE_HAS_CLASS_ASSOCIATIONS",
+      message: `当前课程仍关联 ${counts.classAssociationCount} 个班级，需先解除班级关联后才能删除课程。`,
+      count: counts.classAssociationCount,
+    });
+  }
+
+  if (counts.enrollmentCount > 0) {
+    reasons.push({
+      code: "COURSE_HAS_ENROLLMENTS",
+      message: `当前课程仍有 ${counts.enrollmentCount} 条学生关联记录，需先清理课程成员后才能删除课程。`,
+      count: counts.enrollmentCount,
+    });
+  }
+
+  return reasons;
+}
+
+function buildCourseDeleteEligibility(counts: CourseDeleteEligibilityCounts) {
+  const reasons = buildCourseDeleteReasons(counts);
+
+  return CourseDeleteEligibilityDTOSchema.parse({
+    canDelete: reasons.length === 0,
+    reasons,
   });
 }
 
@@ -240,13 +309,26 @@ async function getCachedTeacherCourseDetailDTO(input: ScopedCourseQueryInput & C
     .map((link) => classMap.get(link.classId))
     .filter((item): item is (typeof classRows)[number] => Boolean(item))
     .map((item) => ({ id: item.id, name: item.name }));
+  const linkedClassIds = new Set(classLinks.map((item) => item.id));
+  const availableClasses = sortClassesByName(
+    classRows
+      .filter((item) => item.schoolId === course.schoolId && !linkedClassIds.has(item.id))
+      .map((item) => TeacherCourseAvailableClassDTOSchema.parse({ id: item.id, name: item.name }))
+  );
+  const deleteEligibility = buildCourseDeleteEligibility({
+    lessonCount: scopedLessons.length,
+    classAssociationCount: classLinks.length,
+    enrollmentCount: enrollmentCountByCourseId.get(course.id) ?? 0,
+  });
 
   return TeacherCourseDetailDTOSchema.parse({
     ...course,
     lessonCount: lessonCountByCourseId.get(course.id) ?? 0,
     classLabels: classLabelsByCourseId.get(course.id) ?? [],
     classLinks,
+    availableClasses,
     enrollmentCount: enrollmentCountByCourseId.get(course.id) ?? 0,
+    deleteEligibility,
     updatedAt: toIso(course.updatedAt),
     lessons: [...scopedLessons]
       .sort((left, right) => new Date(right.updatedAt ?? 0).getTime() - new Date(left.updatedAt ?? 0).getTime())
@@ -268,7 +350,7 @@ async function getCachedTeacherCourseLessonsEntryDTO(input: ScopedCourseQueryInp
   cacheTag(cacheTags.course(input.courseId));
 
   const scopedCourses = await getScopedCourses(input);
-  const course = scopedCourses.find((item) => item.id === input.courseId);
+  const course = scopedCourses.find((item) => item.id === input.courseId && item.status !== "archived");
 
   if (!course) {
     throw new Error("COURSE_NOT_FOUND");
@@ -395,4 +477,112 @@ export async function updateCourseForTeacherScoped(input: CourseUpdateInput) {
 
   const detail = await getTeacherCourseDetailDTO({ courseId: updated.id });
   return TeacherCourseDetailDTOSchema.parse(detail);
+}
+
+export async function addCourseClassAssociationForTeacherScoped(input: CourseClassAssociationInput) {
+  const scope = await assertActiveTeacher();
+  const parsed = CourseClassAssociationInputSchema.parse(input);
+  const course = await getScopedOwnedCourse(parsed.courseId, scope);
+  const classRow = await getScopedSchoolClass(parsed.classId, course.schoolId, scope);
+
+  const existingLink = await db.query.courseClasses.findFirst({
+    where: and(eq(courseClasses.courseId, course.id), eq(courseClasses.classId, classRow.id)),
+  });
+
+  if (!existingLink) {
+    await db.insert(courseClasses).values({
+      courseId: course.id,
+      classId: classRow.id,
+    });
+  }
+
+  const detail = await getTeacherCourseDetailDTO({ courseId: course.id });
+  return TeacherCourseDetailDTOSchema.parse(detail);
+}
+
+export async function removeCourseClassAssociationForTeacherScoped(input: CourseClassAssociationInput) {
+  const scope = await assertActiveTeacher();
+  const parsed = CourseClassAssociationInputSchema.parse(input);
+  const course = await getScopedOwnedCourse(parsed.courseId, scope);
+  const classRow = await getScopedSchoolClass(parsed.classId, course.schoolId, scope);
+
+  await db
+    .delete(courseClasses)
+    .where(and(eq(courseClasses.courseId, course.id), eq(courseClasses.classId, classRow.id)));
+
+  const detail = await getTeacherCourseDetailDTO({ courseId: course.id });
+  return TeacherCourseDetailDTOSchema.parse(detail);
+}
+
+async function updateCourseStatusForTeacherScoped(input: { courseId: string; nextStatus: "draft" | "published" | "archived" }) {
+  const scope = await assertActiveTeacher();
+  const parsed = CourseLifecycleInputSchema.parse({ courseId: input.courseId });
+  const course = await getScopedOwnedCourse(parsed.courseId, scope);
+
+  const targetStatus = input.nextStatus;
+
+  if (course.status === targetStatus) {
+    return getTeacherCourseDetailDTO({ courseId: course.id });
+  }
+
+  const [updated] = await db
+    .update(courses)
+    .set({
+      status: targetStatus,
+      updatedAt: new Date(),
+    })
+    .where(eq(courses.id, course.id))
+    .returning();
+
+  const detail = await getTeacherCourseDetailDTO({ courseId: updated.id });
+  return TeacherCourseDetailDTOSchema.parse(detail);
+}
+
+export async function publishCourseForTeacherScoped(input: { courseId: string }) {
+  return updateCourseStatusForTeacherScoped({
+    courseId: input.courseId,
+    nextStatus: "published",
+  });
+}
+
+export async function unpublishCourseForTeacherScoped(input: { courseId: string }) {
+  return updateCourseStatusForTeacherScoped({
+    courseId: input.courseId,
+    nextStatus: "draft",
+  });
+}
+
+export async function archiveCourseForTeacherScoped(input: { courseId: string }) {
+  return updateCourseStatusForTeacherScoped({
+    courseId: input.courseId,
+    nextStatus: "archived",
+  });
+}
+
+export async function deleteCourseForTeacherScoped(input: CourseDeleteInput) {
+  const scope = await assertActiveTeacher();
+  const parsed = CourseDeleteInputSchema.parse(input);
+  const course = await getScopedOwnedCourse(parsed.courseId, scope);
+  const detail = await getTeacherCourseDetailDTO({ courseId: course.id });
+
+  if (parsed.confirmationText !== detail.title) {
+    throw new Error("COURSE_DELETE_CONFIRMATION_MISMATCH");
+  }
+
+  if (!detail.deleteEligibility.canDelete) {
+    const error = new Error("COURSE_DELETE_BLOCKED") as Error & {
+      reasons?: CourseDeleteBlockedReasonDTO[];
+      userMessage?: string;
+    };
+    error.reasons = detail.deleteEligibility.reasons;
+    error.userMessage = "课程暂时不能删除，请先处理以下阻断项。";
+    throw error;
+  }
+
+  await db.delete(courses).where(eq(courses.id, course.id));
+
+  return {
+    id: course.id,
+    title: course.title,
+  };
 }

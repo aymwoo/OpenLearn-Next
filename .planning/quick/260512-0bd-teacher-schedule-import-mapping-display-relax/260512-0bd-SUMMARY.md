@@ -1,13 +1,13 @@
 ---
-+type: quick
-+slug: 260512-0bd-teacher-schedule-import-mapping-display-relax
-+status: completed
-+started_at: 2026-05-11T16:13:39.446Z
-+completed_at: 2026-05-12T00:20:30.000Z
-+tasks_completed: 2
-+files_modified: 5
-+commit: pending
-+---
+type: quick
+slug: 260512-0bd-teacher-schedule-import-mapping-display-relax
+status: complete
+started_at: 2026-05-11T16:13:39.446Z
+completed_at: 2026-05-12T00:20:30.000Z
+tasks_completed: 2
+files_modified: 5
+commit: pending
+---
 
 # Quick Task 260512-0bd: 放宽教师课表导入映射展示阻断
 

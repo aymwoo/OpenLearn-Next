@@ -5,8 +5,23 @@ const { assertActiveTeacher } = vi.hoisted(() => ({
   assertActiveTeacher: vi.fn(),
 }));
 
-const { createCourseForTeacherScoped, updateCourseForTeacherScoped } = vi.hoisted(() => ({
+const {
+  addCourseClassAssociationForTeacherScoped,
+  archiveCourseForTeacherScoped,
+  createCourseForTeacherScoped,
+  deleteCourseForTeacherScoped,
+  publishCourseForTeacherScoped,
+  removeCourseClassAssociationForTeacherScoped,
+  unpublishCourseForTeacherScoped,
+  updateCourseForTeacherScoped,
+} = vi.hoisted(() => ({
+  addCourseClassAssociationForTeacherScoped: vi.fn(),
+  archiveCourseForTeacherScoped: vi.fn(),
   createCourseForTeacherScoped: vi.fn(),
+  deleteCourseForTeacherScoped: vi.fn(),
+  publishCourseForTeacherScoped: vi.fn(),
+  removeCourseClassAssociationForTeacherScoped: vi.fn(),
+  unpublishCourseForTeacherScoped: vi.fn(),
   updateCourseForTeacherScoped: vi.fn(),
 }));
 
@@ -21,7 +36,13 @@ vi.mock("@/lib/dal/lesson-authoring", () => ({
 }));
 
 vi.mock("@/lib/dal/course-authoring", () => ({
+  addCourseClassAssociationForTeacherScoped,
+  archiveCourseForTeacherScoped,
   createCourseForTeacherScoped,
+  deleteCourseForTeacherScoped,
+  publishCourseForTeacherScoped,
+  removeCourseClassAssociationForTeacherScoped,
+  unpublishCourseForTeacherScoped,
   updateCourseForTeacherScoped,
 }));
 
@@ -195,6 +216,9 @@ describe("updateCourseAction", () => {
     });
 
     expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(`expected success, got ${result.error}`);
+    }
     expect(result.data).toMatchObject({
       id: "course-1",
       title: "更新后的课程",
@@ -284,5 +308,277 @@ describe("updateCourseAction", () => {
       error: "VALIDATION_ERROR",
       message: "输入内容不完整，请检查后再保存。",
     });
+  });
+});
+
+describe("course class association actions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
+  });
+
+  it("adds a class association and invalidates course tags", async () => {
+    const { addCourseClassAssociationAction } = await import("./course-authoring-actions");
+
+    addCourseClassAssociationForTeacherScoped.mockResolvedValueOnce({
+      id: "course-1",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "更新后的课程",
+      subject: "math",
+      grade: "g8",
+      status: "draft",
+      lessonCount: 5,
+      classLabels: ["八年级一班", "八年级二班"],
+      classLinks: [
+        { id: "class-1", name: "八年级一班" },
+        { id: "class-2", name: "八年级二班" },
+      ],
+      availableClasses: [],
+      enrollmentCount: 30,
+      deleteEligibility: { canDelete: false, reasons: [] },
+      updatedAt: new Date().toISOString(),
+      lessons: [],
+    });
+
+    const result = await addCourseClassAssociationAction({ courseId: "course-1", classId: "class-2" });
+
+    expect(result.ok).toBe(true);
+    expect(addCourseClassAssociationForTeacherScoped).toHaveBeenCalledWith({ courseId: "course-1", classId: "class-2" });
+    expect(updateTag).toHaveBeenCalledWith("teacher-courses:teacher-1");
+    expect(updateTag).toHaveBeenCalledWith("course:course-1");
+  });
+
+  it("removes a class association and invalidates course tags", async () => {
+    const { removeCourseClassAssociationAction } = await import("./course-authoring-actions");
+
+    removeCourseClassAssociationForTeacherScoped.mockResolvedValueOnce({
+      id: "course-1",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "更新后的课程",
+      subject: "math",
+      grade: "g8",
+      status: "draft",
+      lessonCount: 5,
+      classLabels: ["八年级一班"],
+      classLinks: [{ id: "class-1", name: "八年级一班" }],
+      availableClasses: [{ id: "class-2", name: "八年级二班" }],
+      enrollmentCount: 30,
+      deleteEligibility: { canDelete: false, reasons: [] },
+      updatedAt: new Date().toISOString(),
+      lessons: [],
+    });
+
+    const result = await removeCourseClassAssociationAction({ courseId: "course-1", classId: "class-2" });
+
+    expect(result.ok).toBe(true);
+    expect(removeCourseClassAssociationForTeacherScoped).toHaveBeenCalledWith({ courseId: "course-1", classId: "class-2" });
+    expect(updateTag).toHaveBeenCalledWith("teacher-courses:teacher-1");
+    expect(updateTag).toHaveBeenCalledWith("course:course-1");
+  });
+
+  it("maps CLASS_NOT_FOUND to NOT_FOUND for class association actions", async () => {
+    const { addCourseClassAssociationAction } = await import("./course-authoring-actions");
+
+    addCourseClassAssociationForTeacherScoped.mockRejectedValueOnce(new Error("CLASS_NOT_FOUND"));
+
+    const result = await addCourseClassAssociationAction({ courseId: "course-1", classId: "class-missing" });
+
+    expect(result).toEqual({
+      ok: false,
+      error: "NOT_FOUND",
+      message: "班级不存在或已被移除。",
+    });
+  });
+});
+
+describe("course lifecycle actions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
+  });
+
+  it("publishCourseAction validates courseId before calling DAL", async () => {
+    const { publishCourseAction } = await import("./course-authoring-actions");
+
+    const result = await publishCourseAction({});
+
+    expect(result).toEqual({
+      ok: false,
+      error: "VALIDATION_ERROR",
+      message: "输入内容不完整，请检查后再保存。",
+    });
+    expect(publishCourseForTeacherScoped).not.toHaveBeenCalled();
+  });
+
+  it("publishCourseAction updates status and invalidates tags", async () => {
+    const { publishCourseAction } = await import("./course-authoring-actions");
+
+    publishCourseForTeacherScoped.mockResolvedValueOnce({
+      id: "course-1",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "更新后的课程",
+      subject: "math",
+      grade: "g8",
+      status: "published",
+      lessonCount: 5,
+      classLabels: ["八年级一班"],
+      classLinks: [{ id: "class-1", name: "八年级一班" }],
+      availableClasses: [],
+      enrollmentCount: 30,
+      deleteEligibility: { canDelete: false, reasons: [] },
+      updatedAt: new Date().toISOString(),
+      lessons: [],
+    });
+
+    const result = await publishCourseAction({ courseId: "course-1" });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(`expected success, got ${result.error}`);
+    }
+    expect(result.data).toMatchObject({ id: "course-1", status: "published" });
+    expect(updateTag).toHaveBeenCalledWith("teacher-courses:teacher-1");
+    expect(updateTag).toHaveBeenCalledWith("course:course-1");
+  });
+
+  it("unpublishCourseAction restores draft status and invalidates tags", async () => {
+    const { unpublishCourseAction } = await import("./course-authoring-actions");
+
+    unpublishCourseForTeacherScoped.mockResolvedValueOnce({
+      id: "course-1",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "更新后的课程",
+      subject: "math",
+      grade: "g8",
+      status: "draft",
+      lessonCount: 5,
+      classLabels: ["八年级一班"],
+      classLinks: [{ id: "class-1", name: "八年级一班" }],
+      availableClasses: [],
+      enrollmentCount: 30,
+      deleteEligibility: { canDelete: false, reasons: [] },
+      updatedAt: new Date().toISOString(),
+      lessons: [],
+    });
+
+    const result = await unpublishCourseAction({ courseId: "course-1" });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(`expected success, got ${result.error}`);
+    }
+    expect(result.data).toMatchObject({ id: "course-1", status: "draft" });
+    expect(updateTag).toHaveBeenCalledWith("teacher-courses:teacher-1");
+    expect(updateTag).toHaveBeenCalledWith("course:course-1");
+  });
+
+  it("archiveCourseAction archives the course and invalidates tags", async () => {
+    const { archiveCourseAction } = await import("./course-authoring-actions");
+
+    archiveCourseForTeacherScoped.mockResolvedValueOnce({
+      id: "course-1",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "更新后的课程",
+      subject: "math",
+      grade: "g8",
+      status: "archived",
+      lessonCount: 5,
+      classLabels: ["八年级一班"],
+      classLinks: [{ id: "class-1", name: "八年级一班" }],
+      availableClasses: [],
+      enrollmentCount: 30,
+      deleteEligibility: { canDelete: true, reasons: [] },
+      updatedAt: new Date().toISOString(),
+      lessons: [],
+    });
+
+    const result = await archiveCourseAction({ courseId: "course-1" });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(`expected success, got ${result.error}`);
+    }
+    expect(result.data).toMatchObject({ id: "course-1", status: "archived" });
+    expect(updateTag).toHaveBeenCalledWith("teacher-courses:teacher-1");
+    expect(updateTag).toHaveBeenCalledWith("course:course-1");
+  });
+});
+
+describe("deleteCourseAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
+  });
+
+  it("returns validation error when delete confirmation is incomplete", async () => {
+    const { deleteCourseAction } = await import("./course-authoring-actions");
+
+    const result = await deleteCourseAction({ courseId: "course-1" });
+
+    expect(result).toEqual({
+      ok: false,
+      error: "VALIDATION_ERROR",
+      message: "输入内容不完整，请检查后再保存。",
+    });
+    expect(deleteCourseForTeacherScoped).not.toHaveBeenCalled();
+  });
+
+  it("returns blocked reasons when course deletion is not eligible", async () => {
+    const { deleteCourseAction } = await import("./course-authoring-actions");
+
+    const blockedError = new Error("COURSE_DELETE_BLOCKED") as Error & {
+      reasons?: Array<{ code: string; message: string; count: number }>;
+      userMessage?: string;
+    };
+    blockedError.userMessage = "课程暂时不能删除，请先处理以下阻断项。";
+    blockedError.reasons = [
+      {
+        code: "COURSE_HAS_LESSONS",
+        message: "当前课程下还有 2 个课时，需先清理课时后才能删除课程。",
+        count: 2,
+      },
+    ];
+    deleteCourseForTeacherScoped.mockRejectedValueOnce(blockedError);
+
+    const result = await deleteCourseAction({
+      courseId: "course-1",
+      confirmationText: "七年级科学探究",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      error: "DELETE_BLOCKED",
+      message: "课程暂时不能删除，请先处理以下阻断项。",
+      reasons: blockedError.reasons,
+    });
+  });
+
+  it("deletes eligible courses and invalidates course tags", async () => {
+    const { deleteCourseAction } = await import("./course-authoring-actions");
+
+    deleteCourseForTeacherScoped.mockResolvedValueOnce({
+      id: "course-1",
+      title: "七年级科学探究",
+    });
+
+    const result = await deleteCourseAction({
+      courseId: "course-1",
+      confirmationText: "七年级科学探究",
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        id: "course-1",
+        title: "七年级科学探究",
+      },
+    });
+    expect(updateTag).toHaveBeenCalledWith("teacher-courses:teacher-1");
+    expect(updateTag).toHaveBeenCalledWith("course:course-1");
   });
 });

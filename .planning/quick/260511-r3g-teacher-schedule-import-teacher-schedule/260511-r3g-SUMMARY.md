@@ -1,7 +1,7 @@
 ---
 type: quick
 slug: 260511-r3g-teacher-schedule-import-teacher-schedule
-status: completed
+status: complete
 started_at: 2026-05-11T11:30:33.900Z
 completed_at: 2026-05-11T11:45:00.000Z
 tasks_completed: 3

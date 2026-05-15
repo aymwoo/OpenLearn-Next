@@ -1,6 +1,7 @@
 ---
 phase: quick
 plan: 1
+status: complete
 subsystem: "dev-bootstrap"
 tags:
   - "db"

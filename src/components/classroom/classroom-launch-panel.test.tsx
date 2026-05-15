@@ -1,9 +1,16 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ClassroomLaunchPanel } from "./classroom-launch-panel";
+
+const launchSurfaceSource = readFileSync(
+  "src/components/surfaces/classroom-launch-surface.tsx",
+  "utf8",
+);
 
 const launchClassroomSessionAction = vi.fn();
 const push = vi.fn();
@@ -271,4 +278,12 @@ describe("ClassroomLaunchPanel", () => {
 
     expect((screen.getByRole('button', { name: '开启新课堂' }) as HTMLButtonElement).disabled).toBe(false)
   })
+
+  it("keeps the launch surface on the shared teacher skeleton without horizontal card rails", () => {
+    expect(launchSurfaceSource).toContain("surfaceWidths.workspace");
+    expect(launchSurfaceSource).toContain("surfaceWidths.heroBody");
+    expect(launchSurfaceSource).toContain("teacherSurfaceRhythm.stack");
+    expect(launchSurfaceSource).toContain("xl:grid-cols-[minmax(0,1fr)_320px]");
+    expect(launchSurfaceSource).not.toContain("overflow-x-auto");
+  });
 });

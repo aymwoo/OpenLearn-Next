@@ -1,37 +1,49 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Teaching Orchestration & Classroom Intelligence
-current_phase: 26
-current_phase_name: cross-session-trends-and-stitch-productization
-current_plan: 1
-status: executing
-stopped_at: Phase 26 UI-SPEC approved
-last_updated: "2026-05-14T12:08:38.209Z"
-last_activity: 2026-05-14
+milestone: null
+milestone_name: null
+current_phase: null
+current_phase_name: null
+current_plan: null
+status: backlog_planning_after_v1_3_archive
+stopped_at: Phase 14-02 COURSE-06 completed; next follow-up remains COURSE-07 or Phase 15 planning
+last_updated: "2026-05-15T08:40:00.000Z"
+last_activity: 2026-05-15
 progress:
   total_phases: 14
-  completed_phases: 11
+  completed_phases: 12
   total_plans: 49
-  completed_plans: 43
-  percent: 88
+  completed_plans: 49
+  percent: 100
 ---
 
 # Project State
 
 ## Position
 
-**Current Phase:** 26
-**Current Phase Name:** cross-session-trends-and-stitch-productization
-**Current Plan:** 1
-**Total Plans in Phase:** 6
-**Status:** Executing Phase 26
+**Current Milestone:** None active
+**Current Phase:** None active
+**Current Phase Name:** None active
+**Current Plan:** None active
+**Total Plans in Phase:** None active
+**Status:** Backlog planning start after v1.3 archive
 **Progress:**
 [██████████] 100%
-**Last Activity:** 2026-05-14
-**Last session:** 2026-05-14T11:21:08.082Z
-**Stopped At:** Phase 26 UI-SPEC approved
-**Resume File:** .planning/phases/26-cross-session-trends-and-stitch-productization/26-UI-SPEC.md
+**Historical Snapshot:** Archived v1.3 progress retained for reference only
+**Last Activity:** 2026-05-15
+**Last session:** 2026-05-15T07:50:00.000Z
+**Stopped At:** Phase 14-02 COURSE-06 completed; next follow-up remains COURSE-07 or Phase 15 planning
+**Resume File:** `.planning/milestones/v1.3-MILESTONE-AUDIT.md`
+
+## Archive And Planning Notes
+
+- v1.3 archive 只关闭真实 milestone scope：Phase 21-26。
+- `COURSE-04` ~ `COURSE-09`、`AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05`、`CLASS-05` 继续保留为 known gaps，不再伪装成已随 v1.3 一起关闭。
+- `src/lib/help/help-center-content.ts` 的 parse blocker 与缺失帮助页 key 已修复，`./node_modules/.bin/next build` 已恢复通过。
+- live `.planning` 当前仍不指向任何 active milestone implementation。
+- 当前优先 follow-up scope 仍是 Phase 14，其中 `14-01 / COURSE-04`、`14-02 / COURSE-06` 与 `14-03 / COURSE-05` 已完成；本轮已把课程详情页补齐 teacher school-scoped 的课程-班级关联 add/remove。
+- `COURSE-07`、Phase 15 与现有 `AUTH` / `DATA` / `CLASS-05` known gaps 继续后置。
+- 下一步 scope 待从 `COURSE-07`、Phase 15 与其余 known gaps 中重新选择，不在此处预写新的 milestone 名称。
 
 ## Accumulated Context
 
@@ -72,6 +84,8 @@ progress:
 - [Phase 13]: TeacherCourseCenterDTO 由服务端输出 defaultSchoolId 与 availableSchools，建课流程不再硬编码 school-1。
 - [Phase 13]: 建课抽屉只消费服务端 DTO 提供的 defaultSchoolId 与 availableSchools，不再保留任何 school-1 客户端默认值。
 - [Phase 13]: 多学校教师在抽屉内显式选择学校，单学校教师显示只读学校摘要，无学校 scope 时直接禁用创建。
+- [Phase 14]: 课程生命周期主入口固定在课程详情页，publish/unpublish/archive 通过显式 action 按钮执行；archived 课程详情可读，但不能继续进入 course-aware lessons entry。
+- [Phase 14]: 课程删除必须输入完整课程名确认，删除资格由服务端 `deleteEligibility` 合同决定；若仍有课时、班级关联或课程成员记录，则详情页内直接展示阻断项。
 - [Phase 16]: `manifest.theme.layout` 已升级为 typed、allowlisted 的 region-based contract，禁止 `className`、`script`、原始 `style` 注入。
 - [Phase 16]: 主题运行时继续复用 `activeThemeId -> DAL -> ThemeInjector -> TeacherSidebarShell` 单一路径，不新增平行主题系统。
 - [Phase 16]: 教师端壳层固定支持 `left-nav`、`top-nav`、`top-nav-secondary-rail` 三种模式，`/teacher`、`/settings`、`/resources` 统一走同一 theme-aware shell。
@@ -156,9 +170,10 @@ progress:
 
 ## Next Steps
 
-1. 使用 `/gsd-plan-phase 26` 拆分 cross-session trends、analytics navigation 与 Stitch productization 收尾。
-2. 规划时复用已锁定的 Phase 25 recap contract：`/classroom` 内 history reopen、student-first recap、split workload、显式 `未评价`。
-3. Phase 14 与 Phase 15 继续保持 carry-over backlog，不混入当前 v1.3 主线推进。
+1. v1.3 已按 `.planning/milestones/v1.3-MILESTONE-AUDIT.md` 归档；Phase 14 的 `COURSE-04`~`COURSE-06` 短 scope 也已完成。
+2. 后续规划候选转向 `COURSE-07`、Phase 15 与其余 known gaps，同时继续复用已锁定的 classroom contracts：`/classroom` 主域、history reopen、split workload、显式 `未评价`。
+3. 如需恢复一键 `pnpm verify:phase24`，先处理仓库当前 `pnpm` build approval 门禁，再重跑同一组已通过的 direct test/verifier checks。
+4. `COURSE-04` ~ `COURSE-06` 已完成；`COURSE-07`、Phase 15 和 known gaps 继续后置，在 scope 确认前不新增 milestone 名称或 phase 编号。
 
 ## Performance Metrics
 
@@ -243,10 +258,12 @@ progress:
 | 260511-ef0 | 重构 teacher-sidebar-shell.tsx 的 UI 状态决策逻辑，把 theme state、shell mode、route mode、surface variant 从 JSX 中抽离到集中 resolver，减少 ternary nesting 和条件爆炸，并补充状态组合测试，保持 UI 不变 | 2026-05-11 | 7dc94d8 | [260511-ef0-teacher-sidebar-shell-tsx-ui-usesactivet](./quick/260511-ef0-teacher-sidebar-shell-tsx-ui-usesactivet/) |
 | 260511-emt | 升级 teacher shell 的测试体系，优先把 teacher-sidebar-shell 相关 implementation-detail tests 从 readFileSync + toContain 迁移成基于 React Testing Library 的 semantic UI testing，保持覆盖率并最小风险分阶段迁移 | 2026-05-11 | 5cc6b57 | [260511-emt-teacher-shell-readfilesync-tocontain-imp](./quick/260511-emt-teacher-shell-readfilesync-tocontain-imp/) |
 | 260511-ewp | 为 schedule 域建立 `src/features/schedule/` feature root、boundary map、shared DTO/auth/cache contracts 与子域 public barrels，并把页面入口、surface、actions、DAL 逐步收口到 feature root | 2026-05-11 | 50b6f39 | [260511-ewp-teaching-schedule-os-src-features-schedu](./quick/260511-ewp-teaching-schedule-os-src-features-schedu/) |
+| 260515-course-06-class-association | 在课程详情页增加 teacher school-scoped 的课程-班级关联管理，只做 class association add/remove，不触及 student enrollment | 2026-05-15 | 未提交 | [260515-course-06-class-association](./quick/260515-course-06-class-association/) |
 | 260511-tsm | 在 /teacher/editor 复用现有设置 modal，增加主题设置、结构预览与 `预览 / 保存 / 生效` 按钮，并继续走现有 theme action 生效链路 | 2026-05-11 | e45bfcd | [260511-tsm-theme-settings-preview-modal](./quick/260511-tsm-theme-settings-preview-modal/) |
 | 260511-sqe | 为 /teacher/schedule 主页面增加 4 个快捷操作卡片，直达导入、单次变更与节假日、AI 助手、提醒配置 | 2026-05-11 | 待提交 | [260511-sqe-teacher-schedule-quick-actions](./quick/260511-sqe-teacher-schedule-quick-actions/) |
 | 260511-tca | 教师首页 `/teacher` 的 CTA 从"查看完整日历"改为"查看课表"，并跳转到 `/teacher/schedule`，同时补充对应回归测试 | 2026-05-11 | 864760c | [260511-tca-teacher-dashboard-schedule-cta](./quick/260511-tca-teacher-dashboard-schedule-cta/) |
 | 260511-mdi | 为 /teacher/schedule/import 添加课程表导入模板下载，根据导入的代码和逻辑生成导入模板 | 2026-05-11 | 8600eb8 | [260511-mdi-teacher-schedule-import](./quick/260511-mdi-teacher-schedule-import/) |
+| 260514-umb | 修复教师/学生登录角色意图校验漏洞并补回归测试 | 2026-05-14 | 未提交 | [260514-umb-auth-role-intent-guard](./quick/260514-umb-auth-role-intent-guard/) |
 | 260511-mv9 | 将 /teacher/schedule/import 页面的导入模板字段名改为中文，并修改导入代码能够正确识别中文字段 | 2026-05-11 | aa94f76 | [260511-mv9-teacher-schedule-import](./quick/260511-mv9-teacher-schedule-import/) |
 | 260511-nuf | 在课程表导入模板中增加上课时间字段（bellSlotStartTime/bellSlotEndTime），并修改导入 server 支持导入上课时间 | 2026-05-11 | 740f867 | [260511-nuf-schedule-import-time](./quick/260511-nuf-schedule-import-time/) |
 | 260511-on3 | 为 /teacher/schedule 页面增加导入课表 Modal，点击弹出文件选择框并上传 CSV，自动跳转到审核页 | 2026-05-11 | 6601fba | [260511-on3-teacher-schedule-modal-sse](./quick/260511-on3-teacher-schedule-modal-sse/) |
@@ -262,10 +279,11 @@ progress:
 | 260513-pd8 | 调整 /teacher/schedule 课程 hover 明细浮层配色，强化与默认课程卡的层次区分并保持现代视觉风格 | 2026-05-13 | 8ee4f4c | [260513-pd8-hover](./quick/260513-pd8-hover/) |
 | 260513-pjo | 将 /teacher/schedule 课程 hover 明细浮层进一步收敛为 glassmorphism 风格，增强半透明、blur 与高光层次 | 2026-05-13 | 3007a54 | [260513-pjo-hover-glassmorphism](./quick/260513-pjo-hover-glassmorphism/) |
 | 260513-pmb | 将 /teacher/schedule 课程 hover 明细浮层从 glassmorphism 收回到 premium education tonal 风格，强化 surface 层次与柔和质感 | 2026-05-13 | e53ab39 | [260513-pmb-hover-premium-education-tonal-glassmorph](./quick/260513-pmb-hover-premium-education-tonal-glassmorph/) |
+| 260515-v13 | 修复 help center parse blocker，并将 v1.3 归档口径收敛为真实的 Phase 21-26 scope 与 known gaps | 2026-05-15 | 未提交 | [260515-v13-close-blockers](./quick/260515-v13-close-blockers/) |
 
 ## Current Position
 
-Phase: 26 (cross-session-trends-and-stitch-productization) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 26
-Last activity: 2026-05-14 -- Phase 26 execution started
+Phase: none active
+Plan: none active
+Status: backlog planning start after v1.3 archive
+Last activity: 2026-05-15 -- live planning reset to backlog selection start after v1.3 archive reconciliation

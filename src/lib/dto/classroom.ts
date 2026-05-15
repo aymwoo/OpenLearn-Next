@@ -6,6 +6,12 @@ import {
   TeachingDesignFallbackReasonSchema,
   TeachingDesignStatusSchema,
 } from "@/lib/dto/lesson-authoring";
+import {
+  AttemptFeedbackDTOSchema,
+  LearningProgressDTOSchema,
+  QuizAttemptDTOSchema,
+  TaskAttemptDTOSchema,
+} from "@/lib/dto/learning";
 
 export const ClassroomModeSchema = z.enum(["locked", "unlocked"]);
 export const ClassroomConnectionStateSchema = z.enum(["connected", "reconnecting", "offline"]);
@@ -249,6 +255,7 @@ export const ClassroomSessionRecapDTOSchema = z.object({
     id: z.string(),
     status: z.literal("ended"),
     lessonId: z.string(),
+    classId: z.string(),
     lessonTitle: z.string(),
     className: z.string(),
     startedAt: z.string(),
@@ -490,11 +497,38 @@ export const ClassroomEvidenceDTOSchema = z.object({
   createdAt: z.string(),
 });
 
+export const ClassroomStudentAttemptSummaryDTOSchema = z.object({
+  pendingFeedbackCount: z.number().int().nonnegative(),
+  latestTaskSubmissions: z.array(TaskAttemptDTOSchema),
+  latestQuizAttempts: z.array(QuizAttemptDTOSchema),
+  taskSubmissionHistory: z.array(TaskAttemptDTOSchema),
+  quizAttemptHistory: z.array(QuizAttemptDTOSchema),
+});
+
+export const ClassroomStudentEvidenceItemDTOSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  detail: z.string(),
+  kind: z.enum(["presence", "progress", "task", "quiz", "response", "observation", "timeline", "feedback"]),
+  createdAt: z.string().nullable().default(null),
+  feedbackTarget: z
+    .object({
+      targetType: z.enum(["task_submission", "quiz_attempt"]),
+      targetId: z.string(),
+      latestFeedback: AttemptFeedbackDTOSchema.nullable().default(null),
+    })
+    .nullable()
+    .default(null),
+});
+
 export const ClassroomStudentDetailDTOSchema = z.object({
   studentId: z.string(),
   studentName: z.string(),
+  progressEntries: z.array(LearningProgressDTOSchema),
   evidenceEntries: z.array(ClassroomEvidenceDTOSchema),
   evaluationEntries: z.array(StudentFormativeEvaluationEntryDTOSchema),
+  unifiedEvidenceItems: z.array(ClassroomStudentEvidenceItemDTOSchema),
+  attemptSummary: ClassroomStudentAttemptSummaryDTOSchema,
   latestParticipationLevel: ClassroomParticipationLevelSchema.nullable(),
 });
 
@@ -616,6 +650,8 @@ export type StudentFormativeEvaluationEntryDTO = z.infer<typeof StudentFormative
 export type ClassroomStudentDetailDTO = z.infer<typeof ClassroomStudentDetailDTOSchema>;
 export type GetClassroomStudentDetailInput = z.infer<typeof GetClassroomStudentDetailInputSchema>;
 export type ClassroomEvidenceDTO = z.infer<typeof ClassroomEvidenceDTOSchema>;
+export type ClassroomStudentAttemptSummaryDTO = z.infer<typeof ClassroomStudentAttemptSummaryDTOSchema>;
+export type ClassroomStudentEvidenceItemDTO = z.infer<typeof ClassroomStudentEvidenceItemDTOSchema>;
 export type ClassroomTimelineEntryDTO = z.infer<typeof ClassroomTimelineEntryDTOSchema>;
 export type ClassroomTeacherTimelineEntryDTO = z.infer<typeof ClassroomTeacherTimelineEntryDTOSchema>;
 export type LaunchClassroomInput = z.infer<typeof LaunchClassroomInputSchema>;

@@ -31,13 +31,18 @@ describe("Phase 04 teacher review cockpit", () => {
 
     expect(reviewSource).toContain("FeedbackComposer");
     expect(reviewSource).toContain("needs_feedback");
+    expect(reviewSource).toContain("surfaceWidths.workspace");
+    expect(reviewSource).toContain("surfaceWidths.heroBody");
+    expect(reviewSource).toContain("teacherSurfaceRhythm.stack");
     expect(reviewSource).toContain("teacherSurfaceRhythm.card");
     expect(reviewSource).toContain("teacherSurfaceRhythm.cardInset");
+    expect(reviewSource).not.toContain("overflow-x-auto");
   });
 
   it("does not introduce excluded review scope", () => {
     expect(reviewSource).not.toContain("gradebook");
     expect(reviewSource).not.toContain("rubric");
     expect(reviewSource).not.toContain("bulk");
+    expect(reviewSource).not.toContain("/teacher/trends");
   });
 });

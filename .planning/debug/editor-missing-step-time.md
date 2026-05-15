@@ -1,16 +1,16 @@
 ---
-status: investigating
+status: resolved
 trigger: "In editor, step card should show estimatedMinutes from teachingDesign (or legacy default if missing), but user reports看不到模块的时间"
 created: 2026-05-13T00:00:00Z
-updated: 2026-05-13T00:18:00Z
+updated: 2026-05-14T15:10:00Z
 ---
 
 ## Current Focus
 
-hypothesis: FlowStepCard does compute and render duration, but the duration badge is implemented as a small unlabeled top-right flex item (`18 min`) inside a crowded row, so it is easy to collapse/be visually lost in the real editor card layout even though the DOM contains the text
-test: verify that no alternative editor-card duration surface exists, and inspect whether the current badge relies only on a tiny right-aligned visual chip with no dedicated label or protected layout sizing
-expecting: if the only per-step time UI is that small chip and tests only assert raw text presence, then the most likely root cause is presentation/layout, not missing data wiring
-next_action: finalize diagnosis from workspace card structure and test coverage gap
+hypothesis: 已关闭。根因判断被后续 Phase 21 实现验证为正确。
+test: 对照 `.planning/phases/21-teaching-design-contracts-and-evidence-foundation/21-05-SUMMARY.md` 与当前代码，确认步骤卡时长已升级为独立中文标签元信息。
+expecting: debug 记录应转为 resolved，而不是继续保留 investigating。
+next_action: none
 
 ## Symptoms
 
@@ -54,5 +54,9 @@ started: Discovered during UAT
 root_cause:
 FlowStepCard does not lose estimatedMinutes in data flow; instead, it exposes the step time only as a small top-right `min` badge inside a crowded flex row. Because this badge is the sole per-step duration affordance and lacks a stronger/labeled metadata slot or layout protection, the editor can appear to have no visible module time even though the DOM contains the value.
 fix:
+  Phase 21-05 已将步骤卡时长从弱化的右上角 `min` badge 收敛为更稳定的独立元信息展示，并补上对应回归测试。
 verification:
-files_changed: []
+  `.planning/phases/21-teaching-design-contracts-and-evidence-foundation/21-05-SUMMARY.md` 已明确记录“步骤卡时长必须作为独立中文标签元信息展示”，当前 `src/components/authoring/lesson-authoring-workspace.tsx` 仍保留 `总时长约 … 分钟` 与步骤时长展示。
+files_changed:
+  - src/components/authoring/lesson-authoring-workspace.tsx
+  - src/components/authoring/lesson-authoring-workspace.test.tsx

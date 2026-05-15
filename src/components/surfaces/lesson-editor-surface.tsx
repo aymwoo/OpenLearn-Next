@@ -8,11 +8,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { LessonEditorHeaderActions } from "@/components/authoring/lesson-editor-header-actions";
 import { LessonAuthoringWorkspace } from "@/components/authoring/lesson-authoring-workspace";
+import { surfaceWidths } from "@/components/surfaces/surface-widths";
+import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import type {
   LessonEditorDTO,
   TeacherAuthoringOverviewDTO,
 } from "@/lib/dto/lesson-authoring";
 import type { BuiltInTeachingStepTemplatePayload, ThemeRegistryDTO } from "@/lib/dto/resource-ai";
+import { cn } from "@/lib/utils";
 
 type BuiltInTemplateForAuthoring = BuiltInTeachingStepTemplatePayload & {
   id: string;
@@ -53,7 +56,7 @@ export function LessonEditorSurface({
     : null;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={cn(surfaceWidths.workspace, teacherSurfaceRhythm.stack, "flex flex-col pb-12 pt-3")}>
       {/* Mobile warning */}
       <div className="lg:hidden rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient">
         <div className="flex items-center gap-3">
@@ -63,8 +66,21 @@ export function LessonEditorSurface({
       </div>
 
       {/* Compact Header Bar */}
-      <section className="rounded-[var(--radius-shell)] bg-surface-container-low shadow-ambient">
-        <div className="rounded-[calc(var(--radius-shell)-0.25rem)] bg-surface-container-lowest px-5 py-4 sm:px-6">
+      <section className={cn(teacherSurfaceRhythm.hero, "rounded-none")}>
+        <div className="space-y-5">
+          <div className={surfaceWidths.heroTitle}>
+            <Badge variant="accent" className="bg-surface-container-lowest text-primary">
+              课时编排
+            </Badge>
+            <h1 className="mt-4 text-[2.2rem] font-semibold tracking-[-0.03em] text-on-surface sm:text-[2.65rem]">
+              在同一教师工作链里完成备课、预览与开课准备
+            </h1>
+            <p className={cn(surfaceWidths.heroBody, "mt-3 text-sm leading-7 text-on-surface-variant sm:text-base")}>
+              editor 继续保持 workspace-first posture。这里负责组织步骤、资料和发布状态，不把趋势分析挤进备课主舞台。
+            </p>
+          </div>
+
+          <div className="rounded-[calc(var(--radius-shell)-0.25rem)] bg-surface-container-lowest px-5 py-4 sm:px-6">
           {/* Row 1: Title + Actions */}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 flex-1">
@@ -134,11 +150,12 @@ export function LessonEditorSurface({
               />
             </div>
           </div>
+          </div>
         </div>
       </section>
 
       {/* Full-width Authoring Workspace */}
-      <section className="flex-1 rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient overflow-hidden">
+      <section className={cn(teacherSurfaceRhythm.section, "flex-1 overflow-hidden")}>
         <LessonAuthoringWorkspace
           overview={overview}
           lesson={lesson}

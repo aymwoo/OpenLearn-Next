@@ -7,4 +7,18 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
+  test: {
+    include: ["src/**/*.{test,spec}.ts", "src/**/*.{test,spec}.tsx"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json"],
+      include: ["src/actions/**"],
+      exclude: [
+        "src/**/*.test.**",
+        "src/**/*.spec.**",
+        "src/db/**",
+        "src/app/api/**",
+      ],
+    },
+  },
 });

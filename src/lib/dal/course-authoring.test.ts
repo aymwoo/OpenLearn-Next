@@ -3,15 +3,22 @@ import { existsSync, readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findManyCourses = vi.fn();
+const findFirstCourses = vi.fn();
 const findManyLessons = vi.fn();
 const findManyLessonSteps = vi.fn();
 const findManyCourseEnrollments = vi.fn();
 const findManyCourseClasses = vi.fn();
+const findFirstCourseClasses = vi.fn();
 const findManyClasses = vi.fn();
+const findFirstClasses = vi.fn();
 const findManySchools = vi.fn();
 const assertActiveTeacher = vi.fn();
 const cacheLife = vi.fn();
 const cacheTag = vi.fn();
+const deleteWhere = vi.fn();
+const insertValues = vi.fn();
+const dbInsert = vi.fn(() => ({ values: insertValues }));
+const dbDelete = vi.fn(() => ({ where: deleteWhere }));
 
 vi.mock("server-only", () => ({}));
 
@@ -22,13 +29,15 @@ vi.mock("next/cache", () => ({
 
 vi.mock("@/db", () => ({
   db: {
+    insert: dbInsert,
+    delete: dbDelete,
     query: {
-      courses: { findMany: findManyCourses },
+      courses: { findMany: findManyCourses, findFirst: findFirstCourses },
       lessons: { findMany: findManyLessons },
       lessonSteps: { findMany: findManyLessonSteps },
       courseEnrollments: { findMany: findManyCourseEnrollments },
-      courseClasses: { findMany: findManyCourseClasses },
-      classes: { findMany: findManyClasses },
+      courseClasses: { findMany: findManyCourseClasses, findFirst: findFirstCourseClasses },
+      classes: { findMany: findManyClasses, findFirst: findFirstClasses },
       schools: { findMany: findManySchools },
     },
   },
@@ -41,12 +50,35 @@ vi.mock("@/lib/dal/lesson-authoring", () => ({
 describe("course authoring DAL", () => {
   beforeEach(() => {
     vi.resetModules();
-    vi.clearAllMocks();
+    for (const mockFn of [
+      findManyCourses,
+      findFirstCourses,
+      findManyLessons,
+      findManyLessonSteps,
+      findManyCourseEnrollments,
+      findManyCourseClasses,
+      findFirstCourseClasses,
+      findManyClasses,
+      findFirstClasses,
+      findManySchools,
+      assertActiveTeacher,
+      cacheLife,
+      cacheTag,
+      deleteWhere,
+      insertValues,
+      dbInsert,
+      dbDelete,
+    ]) {
+      mockFn.mockReset();
+    }
 
     assertActiveTeacher.mockResolvedValue({
       userId: "teacher-1",
       schoolIds: ["school-1"],
     });
+    deleteWhere.mockResolvedValue(undefined);
+    insertValues.mockResolvedValue(undefined);
+    findFirstCourseClasses.mockResolvedValue(null);
 
     findManyCourses.mockResolvedValue([
       {
@@ -110,6 +142,35 @@ describe("course authoring DAL", () => {
         updatedAt: new Date("2026-05-11T10:00:00.000Z"),
       },
     ]);
+    findFirstCourses.mockImplementation(async ({ where }: { where?: unknown }) => {
+      if (typeof where === "function") {
+        const allCourses = await findManyCourses.mock.results.at(-1)?.value;
+        return allCourses?.find((item: { id: string }) => item.id === "course-published-newer") ?? null;
+      }
+
+      const candidates = findManyCourses.mock.results.at(-1)?.value;
+      const resolved = await candidates;
+
+      if (!where || typeof where !== "object" || resolved == null) {
+        return resolved?.[0] ?? null;
+      }
+
+      const whereText = JSON.stringify(where);
+      if (whereText.includes("course-draft-new")) {
+        return resolved.find((item: { id: string }) => item.id === "course-draft-new") ?? null;
+      }
+      if (whereText.includes("course-published-newer")) {
+        return resolved.find((item: { id: string }) => item.id === "course-published-newer") ?? null;
+      }
+      if (whereText.includes("course-archived")) {
+        return resolved.find((item: { id: string }) => item.id === "course-archived") ?? null;
+      }
+      if (whereText.includes("course-same-school-foreign")) {
+        return resolved.find((item: { id: string }) => item.id === "course-same-school-foreign") ?? null;
+      }
+
+      return null;
+    });
 
     findManyLessons.mockResolvedValue([
       {
@@ -178,9 +239,9 @@ describe("course authoring DAL", () => {
     findManyClasses.mockResolvedValue([
       { id: "class-1", schoolId: "school-1", name: "七年级一班" },
       { id: "class-2", schoolId: "school-1", name: "七年级二班" },
+      { id: "class-4", schoolId: "school-1", name: "七年级三班" },
       { id: "class-3", schoolId: "school-2", name: "外校实验班" },
     ]);
-
     findManySchools.mockResolvedValue([
       { id: "school-1", name: "晨曦实验学校" },
       { id: "school-2", name: "星河联合校区" },
@@ -245,9 +306,103 @@ describe("course authoring DAL", () => {
       { id: "class-1", name: "七年级一班" },
       { id: "class-2", name: "七年级二班" },
     ]);
+    expect(dto.availableClasses).toEqual([{ id: "class-4", name: "七年级三班" }]);
     expect(dto.lessons.map((lesson) => lesson.id)).toEqual(["lesson-2", "lesson-1"]);
     expect(dto.lessons[0]).toEqual(expect.objectContaining({ id: "lesson-2", stepCount: 1, status: "published" }));
     expect(dto.lessons[1]).toEqual(expect.objectContaining({ id: "lesson-1", stepCount: 2, status: "draft" }));
+  });
+
+  it("adds a class association within the teacher school scope and returns refreshed detail DTO", async () => {
+    findFirstCourses.mockResolvedValueOnce({
+      id: "course-draft-new",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "七年级科学探究",
+      subject: "科学",
+      grade: "七年级",
+      status: "draft",
+      updatedAt: new Date("2026-05-08T10:00:00.000Z"),
+    });
+    findFirstClasses.mockResolvedValueOnce({ id: "class-4", schoolId: "school-1", name: "七年级三班" });
+    findFirstCourseClasses.mockResolvedValueOnce(null);
+    findManyCourseClasses.mockResolvedValueOnce([
+      { courseId: "course-draft-new", classId: "class-1" },
+      { courseId: "course-draft-new", classId: "class-2" },
+      { courseId: "course-draft-new", classId: "class-4" },
+    ]);
+
+    const { addCourseClassAssociationForTeacherScoped } = await import("./course-authoring");
+
+    const dto = await addCourseClassAssociationForTeacherScoped({
+      courseId: "course-draft-new",
+      classId: "class-4",
+    });
+
+    expect(dbInsert).toHaveBeenCalled();
+    expect(insertValues).toHaveBeenCalledWith({
+      courseId: "course-draft-new",
+      classId: "class-4",
+    });
+    expect(dto.classLinks).toEqual([
+      { id: "class-1", name: "七年级一班" },
+      { id: "class-2", name: "七年级二班" },
+      { id: "class-4", name: "七年级三班" },
+    ]);
+    expect(dto.availableClasses).toEqual([]);
+  });
+
+  it("removes a class association and returns refreshed detail DTO", async () => {
+    findFirstCourses.mockResolvedValueOnce({
+      id: "course-draft-new",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "七年级科学探究",
+      subject: "科学",
+      grade: "七年级",
+      status: "draft",
+      updatedAt: new Date("2026-05-08T10:00:00.000Z"),
+    });
+    findFirstClasses.mockResolvedValueOnce({ id: "class-2", schoolId: "school-1", name: "七年级二班" });
+    findManyCourseClasses.mockResolvedValueOnce([
+      { courseId: "course-draft-new", classId: "class-1" },
+    ]);
+
+    const { removeCourseClassAssociationForTeacherScoped } = await import("./course-authoring");
+
+    const dto = await removeCourseClassAssociationForTeacherScoped({
+      courseId: "course-draft-new",
+      classId: "class-2",
+    });
+
+    expect(dbDelete).toHaveBeenCalled();
+    expect(deleteWhere).toHaveBeenCalled();
+    expect(dto.classLinks).toEqual([{ id: "class-1", name: "七年级一班" }]);
+    expect(dto.availableClasses).toEqual([
+      { id: "class-2", name: "七年级二班" },
+      { id: "class-4", name: "七年级三班" },
+    ]);
+  });
+
+  it("rejects cross-school class associations with CLASS_NOT_FOUND", async () => {
+    findFirstCourses.mockResolvedValueOnce({
+      id: "course-draft-new",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "七年级科学探究",
+      subject: "科学",
+      grade: "七年级",
+      status: "draft",
+      updatedAt: new Date("2026-05-08T10:00:00.000Z"),
+    });
+    findFirstClasses.mockResolvedValueOnce({ id: "class-3", schoolId: "school-2", name: "外校实验班" });
+    const { addCourseClassAssociationForTeacherScoped } = await import("./course-authoring");
+
+    await expect(
+      addCourseClassAssociationForTeacherScoped({
+        courseId: "course-draft-new",
+        classId: "class-3",
+      })
+    ).rejects.toThrow("CLASS_NOT_FOUND");
   });
 
   it("returns only current course lesson summaries for the course-aware lessons entry per D-09 D-10", async () => {
@@ -258,6 +413,12 @@ describe("course authoring DAL", () => {
     expect(dto.course.id).toBe("course-draft-new");
     expect(dto.lessons.map((lesson) => lesson.id)).toEqual(["lesson-2", "lesson-1"]);
     expect(dto.lessons.some((lesson) => lesson.id === "lesson-out-of-scope")).toBe(false);
+  });
+
+  it("hides archived courses from the lessons entry teacher flow per COURSE-04", async () => {
+    const { getTeacherCourseLessonsEntryDTO } = await import("./course-authoring");
+
+    await expect(getTeacherCourseLessonsEntryDTO({ courseId: "course-archived" })).rejects.toThrow("COURSE_NOT_FOUND");
   });
 
   it("rejects same-school foreign course detail reads with COURSE_NOT_FOUND", async () => {
@@ -313,5 +474,54 @@ describe("course authoring DAL", () => {
 
     expect(source).toContain("/teacher/courses/");
     expect(source).toContain("/lessons");
+  });
+
+  it("keeps archived courses out of the adjacent lessons-entry CTA copy per COURSE-04", () => {
+    const source = readFileSync("src/components/surfaces/teacher-course-detail-surface.tsx", "utf8");
+
+    expect(source).toContain("已归档课程需先恢复为草稿后再进入课时管理");
+  });
+
+  it("returns delete eligibility reasons for courses with lessons, class links, or enrollments per COURSE-05", async () => {
+    const { getTeacherCourseDetailDTO } = await import("./course-authoring");
+
+    const dto = await getTeacherCourseDetailDTO({ courseId: "course-draft-new" });
+
+    expect(dto.deleteEligibility.canDelete).toBe(false);
+    expect(dto.deleteEligibility.reasons).toEqual([
+      expect.objectContaining({ code: "COURSE_HAS_LESSONS", count: 2 }),
+      expect.objectContaining({ code: "COURSE_HAS_CLASS_ASSOCIATIONS", count: 2 }),
+      expect.objectContaining({ code: "COURSE_HAS_ENROLLMENTS", count: 2 }),
+    ]);
+  });
+
+  it("deletes eligible teacher-owned courses only after delete guardrails pass", async () => {
+    findFirstCourses.mockResolvedValueOnce({
+      id: "course-published-newer",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "整本书阅读",
+      subject: "语文",
+      grade: "八年级",
+      status: "published",
+      updatedAt: new Date("2026-05-09T09:00:00.000Z"),
+    });
+    findManyLessons.mockResolvedValueOnce([]);
+    findManyCourseClasses.mockResolvedValueOnce([]);
+    findManyCourseEnrollments.mockResolvedValueOnce([]);
+
+    const { deleteCourseForTeacherScoped } = await import("./course-authoring");
+
+    const result = await deleteCourseForTeacherScoped({
+      courseId: "course-published-newer",
+      confirmationText: "整本书阅读",
+    });
+
+    expect(result).toEqual({
+      id: "course-published-newer",
+      title: "整本书阅读",
+    });
+    expect(dbDelete).toHaveBeenCalled();
+    expect(deleteWhere).toHaveBeenCalled();
   });
 });

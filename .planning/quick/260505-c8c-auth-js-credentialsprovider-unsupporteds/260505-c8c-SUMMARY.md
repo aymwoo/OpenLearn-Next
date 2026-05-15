@@ -1,6 +1,7 @@
 ---
 phase: quick-auth-js-credentialsprovider-unsupportedstrategy
 plan: "01"
+status: complete
 subsystem: auth
 tags:
   - quick

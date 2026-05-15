@@ -1,6 +1,7 @@
 ---
 phase: 260505-cqc-credentialssignin
 plan: 01
+status: complete
 subsystem: auth
 tags:
   - quick-task

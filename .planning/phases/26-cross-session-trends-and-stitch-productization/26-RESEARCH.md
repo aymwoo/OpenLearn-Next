@@ -161,16 +161,23 @@ src/
 - **Plan 26-03:** 对 `editor / launch / classroom / review / trends / dashboard / help / settings` 做 shared productization pass。
 - **Plan 26-04:** 用 focused regression + `verify:phase26` 收口 analytics safety 和 UI quality bar。
 
-## Open Questions
+## Resolved planning decisions
 
-1. **独立 trends route 的最终命名是什么？**
-   - 可由 planner 决定，但要兼顾教师心智与主导航可读性。
+1. **独立 trends route 的最终命名（RESOLVED）**
+   - 锁定为 `/teacher/trends`。它同时满足 D-01 / D-02 的独立教师入口与双入口要求，
+     也已经与 `26-UI-SPEC.md` 和现有 planner 输出保持一致。
 
-2. **recent sessions 的默认窗口是多少节？**
-   - 建议先锁为“最近 3-5 次 ended sessions”，避免首发就做无限滚动 analytics index。
+2. **recent sessions 的默认窗口（RESOLVED）**
+   - 锁定为最近 **4** 次 ended classroom sessions；若不足 4 次，则返回全部可用
+     sessions，不做无限滚动 analytics index。
 
-3. **student trend 排序口径是什么？**
-   - 建议优先按 `需要关注` 次数、未评价/未提交持续出现、课堂信号累积排序，保持 deterministic。
+3. **student trend 排序口径（RESOLVED）**
+   - 锁定为 `needsFollowUpSessions DESC`、`unevaluatedSessions DESC`、
+     `missingSubmissionSessions DESC`，最后以 `studentName ASC` 作为 deterministic
+     tie-breaker。
+
+4. **Planning status（RESOLVED）**
+   - Phase 26 规划前置问题已收敛，不再保留 blocking open questions。
 
 ## Sources
 

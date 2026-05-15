@@ -1,6 +1,7 @@
 ---
 phase: quick
 plan: 260507-v0p
+status: complete
 subsystem: class-management-ui
 tags: [stitch, card-view, progress-ring, view-toggle, student-roster]
 requires: []

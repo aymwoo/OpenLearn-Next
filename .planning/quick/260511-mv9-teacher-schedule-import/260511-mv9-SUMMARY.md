@@ -1,7 +1,7 @@
 ---
 type: quick
 slug: 260511-mv9-teacher-schedule-import
-status: completed
+status: complete
 started_at: 2026-05-11T08:41:00Z
 completed_at: 2026-05-11T08:42:30Z
 tasks_completed: 3

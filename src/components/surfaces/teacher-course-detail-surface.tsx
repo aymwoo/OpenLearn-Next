@@ -8,7 +8,15 @@ import {
   Users,
 } from "lucide-react";
 
-import { updateCourseAction } from "@/actions/course-authoring-actions";
+import {
+  addCourseClassAssociationAction,
+  archiveCourseAction,
+  deleteCourseAction,
+  publishCourseAction,
+  removeCourseClassAssociationAction,
+  unpublishCourseAction,
+  updateCourseAction,
+} from "@/actions/course-authoring-actions";
 import { CourseDetailForm } from "@/components/courses/course-detail-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +42,7 @@ export function TeacherCourseDetailSurface({
     courseStatusMeta[course.status as keyof typeof courseStatusMeta] ??
     courseStatusMeta.draft;
   const lessonsEntryHref = `/teacher/courses/${course.id}/lessons`;
+  const lessonsEntryDisabled = course.status === "archived";
 
   return (
     <div className={teacherSurfaceRhythm.stack}>
@@ -75,12 +84,20 @@ export function TeacherCourseDetailSurface({
               进入课程编排上下文
             </h2>
             <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-              先进入该课程的课时列表或空态，再决定继续已有课时还是新建第一个课时。
+              {lessonsEntryDisabled
+                ? "已归档课程需先恢复为草稿后再进入课时管理。"
+                : "先进入该课程的课时列表或空态，再决定继续已有课时还是新建第一个课时。"}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <Button asChild className="px-5 text-sm">
-                <Link href={lessonsEntryHref}>进入课时管理</Link>
-              </Button>
+              {lessonsEntryDisabled ? (
+                <Button disabled className="px-5 text-sm">
+                  归档课程不可进入课时管理
+                </Button>
+              ) : (
+                <Button asChild className="px-5 text-sm">
+                  <Link href={lessonsEntryHref}>进入课时管理</Link>
+                </Button>
+              )}
               <Button variant="secondary" className="px-5 text-sm">
                 当前页直接编辑课程信息
               </Button>
@@ -121,6 +138,12 @@ export function TeacherCourseDetailSurface({
             <CourseDetailForm
               course={course}
               updateCourseAction={updateCourseAction}
+              addCourseClassAssociationAction={addCourseClassAssociationAction}
+              removeCourseClassAssociationAction={removeCourseClassAssociationAction}
+              publishCourseAction={publishCourseAction}
+              unpublishCourseAction={unpublishCourseAction}
+              archiveCourseAction={archiveCourseAction}
+              deleteCourseAction={deleteCourseAction}
             />
           </div>
 
@@ -203,7 +226,7 @@ export function TeacherCourseDetailSurface({
               </div>
             ) : (
               <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-                当前尚未关联班级，后续阶段会补齐班级与学生关联管理。
+                当前尚未关联班级，可直接在左侧详情编辑区完成课程与班级的关联维护。
               </p>
             )}
           </div>
@@ -211,13 +234,20 @@ export function TeacherCourseDetailSurface({
           <div className={cn(teacherSurfaceRhythm.cardInset, "mt-4 p-5")}>
             <p className="text-sm text-on-surface-variant">课程内下一步</p>
             <p className="mt-2 text-sm leading-7 text-on-surface-variant">
-              这里继续保留“进入课时管理”主 CTA，确保教师不会从列表页直接跳到全局
-              editor，而是始终保留课程上下文。
+              {lessonsEntryDisabled
+                ? "课程已归档，先在本页恢复为草稿，再继续进入课程内课时入口。"
+                : "这里继续保留“进入课时管理”主 CTA，确保教师不会从列表页直接跳到全局 editor，而是始终保留课程上下文。"}
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Button asChild className="px-5 text-sm">
-                <Link href={lessonsEntryHref}>进入课时管理</Link>
-              </Button>
+              {lessonsEntryDisabled ? (
+                <Button disabled className="px-5 text-sm">
+                  已归档课程需先恢复为草稿后再进入课时管理
+                </Button>
+              ) : (
+                <Button asChild className="px-5 text-sm">
+                  <Link href={lessonsEntryHref}>进入课时管理</Link>
+                </Button>
+              )}
               <Button variant="secondary" className="px-5 text-sm">
                 已在本页完成课程编辑
               </Button>

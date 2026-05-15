@@ -16,7 +16,6 @@ import {
   courseClasses,
   courseEnrollments,
   lessons,
-  lessonSteps,
   lessonStepProgress,
   publishedLessonVersions,
   quizAttempts,
@@ -54,6 +53,11 @@ import {
   RefreshClassroomSnapshotInputSchema,
   EndClassroomInputSchema,
 } from "@/lib/dto/classroom";
+import {
+  LearningProgressDTOSchema,
+  QuizAttemptDTOSchema,
+  TaskAttemptDTOSchema,
+} from "@/lib/dto/learning";
 import {
   lessonStepPayloadSchema,
   type TeachingDesign,
@@ -329,6 +333,182 @@ function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: strin
     });
 }
 
+function getAttemptPolicy(step?: ReturnType<typeof parseSnapshotSteps>[number]) {
+  const payload = step?.payload as { allowRetry?: boolean; retryPolicy?: string; revealCorrectAnswer?: boolean } | undefined;
+
+  return {
+    allowRetry:
+      payload?.allowRetry === true ||
+      payload?.retryPolicy === "once" ||
+      payload?.retryPolicy === "unlimited",
+    revealCorrectAnswer: payload?.revealCorrectAnswer === true,
+  };
+}
+
+function toFeedbackDTO(row: typeof attemptFeedback.$inferSelect, lessonId?: string) {
+  return {
+    id: row.id,
+    lessonId,
+    targetType: row.targetType,
+    targetId: row.targetId,
+    teacherId: row.teacherId,
+    studentId: row.studentId,
+    body: row.body,
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
+  };
+}
+
+function toTaskAttemptDTO(
+  row: typeof taskSubmissions.$inferSelect,
+  feedback: typeof attemptFeedback.$inferSelect | null = null,
+  policy = { allowRetry: false },
+) {
+  return TaskAttemptDTOSchema.parse({
+    id: row.id,
+    publishedVersionId: row.publishedVersionId,
+    lessonId: row.lessonId,
+    stepId: row.stepId,
+    studentId: row.studentId,
+    attemptNo: row.attemptNo,
+    payload: row.payloadJson,
+    isLatest: row.isLatest,
+    canRetryTask: policy.allowRetry,
+    feedback: feedback ? toFeedbackDTO(feedback, row.lessonId) : null,
+    createdAt: toIso(row.createdAt),
+  });
+}
+
+function toQuizAttemptDTO(
+  row: typeof quizAttempts.$inferSelect,
+  feedback: typeof attemptFeedback.$inferSelect | null = null,
+  policy = { allowRetry: false, revealCorrectAnswer: false },
+) {
+  return QuizAttemptDTOSchema.parse({
+    id: row.id,
+    publishedVersionId: row.publishedVersionId,
+    lessonId: row.lessonId,
+    stepId: row.stepId,
+    studentId: row.studentId,
+    attemptNo: row.attemptNo,
+    answer: row.answerJson,
+    outcome: row.outcomeJson,
+    isLatest: row.isLatest,
+    canRetryQuiz: policy.allowRetry,
+    showCorrectAnswer:
+      policy.revealCorrectAnswer &&
+      Boolean((row.outcomeJson as { showCorrectAnswer?: boolean } | null)?.showCorrectAnswer),
+    feedback: feedback ? toFeedbackDTO(feedback, row.lessonId) : null,
+    createdAt: toIso(row.createdAt),
+  });
+}
+
+function summarizeTaskAttemptPayload(payload: unknown) {
+  if (typeof payload === "string") {
+    return payload;
+  }
+
+  if (payload && typeof payload === "object") {
+    const record = payload as { text?: string; answer?: string; body?: string };
+    return record.text ?? record.answer ?? record.body ?? "已提交任务内容";
+  }
+
+  return "已提交任务内容";
+}
+
+function summarizeQuizOutcome(outcome: unknown) {
+  if (!outcome || typeof outcome !== "object") {
+    return "已记录你的答案";
+  }
+
+  const record = outcome as { isCorrect?: boolean | null; correct?: boolean | null };
+  const isCorrect = typeof record.isCorrect === "boolean" ? record.isCorrect : record.correct;
+
+  if (isCorrect === true) {
+    return "答对了";
+  }
+
+  if (isCorrect === false) {
+    return "还可以再想想";
+  }
+
+  return "已记录你的答案";
+}
+
+function formatTimelineDetail(
+  row: typeof classroomTimeline.$inferSelect,
+  stepMap: Map<string, ReturnType<typeof parseSnapshotSteps>[number]>,
+) {
+  const payload = (row.payloadJson ?? {}) as Record<string, unknown>;
+
+  if (row.entryType === "intervention_noted") {
+    const title = typeof payload.title === "string" ? payload.title.trim() : "课堂干预";
+    const body = typeof payload.body === "string" ? payload.body.trim() : "已记录课堂干预";
+    return `${title}：${body}`;
+  }
+
+  if (row.entryType === "presence_changed") {
+    const state = payload.connectionState;
+    const stepId = typeof payload.currentStepId === "string" ? payload.currentStepId : null;
+    const stepTitle = stepId ? stepMap.get(stepId)?.title ?? null : null;
+    const stateLabel =
+      state === "connected"
+        ? "已进入课堂"
+        : state === "reconnecting"
+          ? "正在重新连接"
+          : state === "offline"
+            ? "当前离线"
+            : "在线状态已更新";
+
+    return stepTitle ? `${stateLabel}，所在环节：${stepTitle}` : stateLabel;
+  }
+
+  if (row.entryType === "evidence_captured") {
+    const sourceType = payload.sourceType;
+    if (sourceType === "student-quick-response") {
+      return "已记录课堂回应";
+    }
+    if (sourceType === "student-submission") {
+      return "已记录课堂提交";
+    }
+    if (sourceType === "teacher-observation") {
+      return "已记录课堂观察";
+    }
+  }
+
+  return extractEvidenceDetail(row.payloadJson);
+}
+
+function summarizeProgressEntries(
+  steps: ReturnType<typeof parseSnapshotSteps>,
+  rows: Array<typeof lessonStepProgress.$inferSelect>,
+) {
+  const progressByStep = new Map(rows.map((row) => [row.stepId, row]));
+
+  return steps.map((step) => {
+    const row = progressByStep.get(step.id);
+    return LearningProgressDTOSchema.parse({
+      stepId: step.id,
+      state: row?.state ?? "not_started",
+      completedAt: row?.completedAt ? toIso(row.completedAt) : null,
+      updatedAt: row?.updatedAt ? toIso(row.updatedAt) : undefined,
+    });
+  });
+}
+
+function progressStateLabel(state: "not_started" | "in_progress" | "completed" | "skipped") {
+  switch (state) {
+    case "completed":
+      return "已完成";
+    case "skipped":
+      return "已跳过";
+    case "in_progress":
+      return "进行中";
+    default:
+      return "未开始";
+  }
+}
+
 const STEP_FAMILY_LABELS: Record<"content" | "task" | "quiz", string> = {
   content: "教师讲授",
   task: "学生任务",
@@ -344,12 +524,6 @@ const TEACHING_INTENT_LABELS: Record<TeachingDesign["activityIntent"], string> =
   apply: "应用",
 };
 
-const STEP_DEFAULT_MINUTES: Record<"content" | "task" | "quiz", number> = {
-  content: 12,
-  task: 15,
-  quiz: 8,
-};
-
 function summarizeText(value: string | undefined, fallback: string) {
   const normalized = value?.replace(/\s+/g, " ").trim();
   if (!normalized) {
@@ -357,18 +531,6 @@ function summarizeText(value: string | undefined, fallback: string) {
   }
 
   return normalized.length > 56 ? `${normalized.slice(0, 56).trim()}…` : normalized;
-}
-
-function getEstimatedMinutes(payload: ReturnType<typeof lessonStepPayloadSchema.parse>) {
-  if (payload.type === "content") {
-    return payload.teacherNotes ? 15 : STEP_DEFAULT_MINUTES.content;
-  }
-
-  if (payload.type === "task") {
-    return payload.allowRetry ? 15 : 12;
-  }
-
-  return payload.options.length > 3 ? 10 : STEP_DEFAULT_MINUTES.quiz;
 }
 
 function resolveTeachingDesign(payload: ReturnType<typeof lessonStepPayloadSchema.parse>) {
@@ -927,7 +1089,7 @@ export async function getClassroomStudentDetailDTO(rawInput: unknown) {
     return null;
   }
 
-  await getTeacherSessionScope(input.sessionId);
+  const { session } = await getTeacherSessionScope(input.sessionId);
   const participant = await db.query.classroomParticipants.findFirst({
     where: and(
       eq(classroomParticipants.sessionId, input.sessionId),
@@ -939,14 +1101,48 @@ export async function getClassroomStudentDetailDTO(rawInput: unknown) {
     return null;
   }
 
-  const student = await db.query.users.findFirst({ where: eq(users.id, input.studentId) });
+  const [student, lesson, published, evidenceRows, timelineRows, progressRows, taskHistory, quizHistory, feedbackRows] =
+    await Promise.all([
+      db.query.users.findFirst({ where: eq(users.id, input.studentId) }),
+      db.query.lessons.findFirst({ where: eq(lessons.id, session.lessonId) }),
+      db.query.publishedLessonVersions.findFirst({ where: eq(publishedLessonVersions.id, session.publishedVersionId) }),
+      db.query.classroomEvidence.findMany({
+        where: and(
+          eq(classroomEvidence.sessionId, input.sessionId),
+          eq(classroomEvidence.studentId, input.studentId),
+        ),
+      }),
+      db.query.classroomTimeline.findMany({
+        where: and(
+          eq(classroomTimeline.sessionId, input.sessionId),
+          eq(classroomTimeline.studentId, input.studentId),
+        ),
+      }),
+      db.query.lessonStepProgress.findMany({
+        where: and(
+          eq(lessonStepProgress.studentId, input.studentId),
+          eq(lessonStepProgress.publishedVersionId, session.publishedVersionId),
+        ),
+      }),
+      db.query.taskSubmissions.findMany({
+        where: and(
+          eq(taskSubmissions.studentId, input.studentId),
+          eq(taskSubmissions.publishedVersionId, session.publishedVersionId),
+        ),
+      }),
+      db.query.quizAttempts.findMany({
+        where: and(
+          eq(quizAttempts.studentId, input.studentId),
+          eq(quizAttempts.publishedVersionId, session.publishedVersionId),
+        ),
+      }),
+      db.query.attemptFeedback.findMany({ where: eq(attemptFeedback.studentId, input.studentId) }),
+    ]);
 
-  const evidenceRows = await db.query.classroomEvidence.findMany({
-    where: and(
-      eq(classroomEvidence.sessionId, input.sessionId),
-      eq(classroomEvidence.studentId, input.studentId),
-    ),
-  });
+  const snapshot = parseSnapshot(published?.snapshotJson);
+  const steps = parseSnapshotSteps(snapshot, lesson?.id ?? session.lessonId);
+  const stepMap = new Map(steps.map((step) => [step.id, step]));
+  const feedbackByTargetId = new Map(feedbackRows.map((row) => [row.targetId, row]));
 
   const evaluationEntries = evidenceRows
     .map((evidence) => {
@@ -976,6 +1172,21 @@ export async function getClassroomStudentDetailDTO(rawInput: unknown) {
     .filter((entry): entry is ReturnType<typeof StudentFormativeEvaluationEntryDTOSchema.parse> => Boolean(entry))
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 
+  const progressEntries = summarizeProgressEntries(steps, progressRows);
+  const taskSubmissionHistory = [...taskHistory]
+    .sort((a, b) => a.attemptNo - b.attemptNo)
+    .map((row) => toTaskAttemptDTO(row, feedbackByTargetId.get(row.id) ?? null, getAttemptPolicy(stepMap.get(row.stepId))));
+  const quizAttemptHistory = [...quizHistory]
+    .sort((a, b) => a.attemptNo - b.attemptNo)
+    .map((row) => toQuizAttemptDTO(row, feedbackByTargetId.get(row.id) ?? null, getAttemptPolicy(stepMap.get(row.stepId))));
+  const latestTaskSubmissions = taskSubmissionHistory.filter((row) => row.isLatest);
+  const latestQuizAttempts = quizAttemptHistory.filter((row) => row.isLatest);
+  const feedbackWorkload = buildFeedbackWorkloadFromAttempts({
+    taskRows: taskHistory,
+    quizRows: quizHistory,
+    feedbackRows,
+  });
+
   const evidenceEntries = evidenceRows
     .filter((evidence) => {
       const rawPayload = evidence.payloadJson;
@@ -1001,11 +1212,91 @@ export async function getClassroomStudentDetailDTO(rawInput: unknown) {
     )
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 
+  const unifiedEvidenceItems = [
+    {
+      id: `presence-${participant.studentId}`,
+      title: "课堂在线状态",
+      detail:
+        participant.connectionState === "connected"
+          ? "当前在线，正在跟随课堂。"
+          : participant.connectionState === "reconnecting"
+            ? "正在重新连接课堂。"
+            : "当前离线，需要关注是否已掉线。",
+      kind: "presence" as const,
+      createdAt: toIso(participant.lastSeenAt),
+      feedbackTarget: null,
+    },
+    ...progressEntries
+      .filter((entry) => entry.state !== "not_started")
+      .map((entry) => ({
+        id: `progress-${entry.stepId}`,
+        title: stepMap.get(entry.stepId)?.title ?? "学习进度",
+        detail: `进度状态：${progressStateLabel(entry.state)}`,
+        kind: "progress" as const,
+        createdAt: entry.updatedAt ?? entry.completedAt ?? null,
+        feedbackTarget: null,
+      })),
+    ...latestTaskSubmissions.map((attempt) => ({
+      id: `task-${attempt.id}`,
+      title: stepMap.get(attempt.stepId)?.title ?? "任务提交",
+      detail: summarizeTaskAttemptPayload(attempt.payload),
+      kind: "task" as const,
+      createdAt: attempt.createdAt,
+      feedbackTarget: {
+        targetType: "task_submission" as const,
+        targetId: attempt.id,
+        latestFeedback: attempt.feedback,
+      },
+    })),
+    ...latestQuizAttempts.map((attempt) => ({
+      id: `quiz-${attempt.id}`,
+      title: stepMap.get(attempt.stepId)?.title ?? "测验作答",
+      detail: summarizeQuizOutcome(attempt.outcome),
+      kind: "quiz" as const,
+      createdAt: attempt.createdAt,
+      feedbackTarget: {
+        targetType: "quiz_attempt" as const,
+        targetId: attempt.id,
+        latestFeedback: attempt.feedback,
+      },
+    })),
+    ...evidenceEntries.map((entry) => ({
+      id: `evidence-${entry.id}`,
+      title: stepMap.get(entry.stepId ?? "")?.title ?? "课堂证据",
+      detail: extractEvidenceDetail(entry.payload),
+      kind: entry.sourceType === "student-quick-response" ? ("response" as const) : ("observation" as const),
+      createdAt: entry.createdAt,
+      feedbackTarget: null,
+    })),
+    ...timelineRows.map((row) => ({
+      id: `timeline-${row.id}`,
+      title:
+        row.entryType === "intervention_noted"
+          ? "课堂干预"
+          : row.entryType === "presence_changed"
+            ? "课堂在线状态"
+            : "课堂采证",
+      detail: formatTimelineDetail(row, stepMap),
+      kind: "timeline" as const,
+      createdAt: toIso(row.createdAt),
+      feedbackTarget: null,
+    })),
+  ].sort((a, b) => Date.parse(b.createdAt ?? new Date(0).toISOString()) - Date.parse(a.createdAt ?? new Date(0).toISOString()));
+
   return ClassroomStudentDetailDTOSchema.parse({
     studentId: participant.studentId,
     studentName: student?.name ?? "学生",
+    progressEntries,
     evidenceEntries,
     evaluationEntries,
+    unifiedEvidenceItems,
+    attemptSummary: {
+      pendingFeedbackCount: feedbackWorkload.pendingFeedbackCount,
+      latestTaskSubmissions,
+      latestQuizAttempts,
+      taskSubmissionHistory,
+      quizAttemptHistory,
+    },
     latestParticipationLevel: evaluationEntries[0]?.participationLevel ?? null,
   });
 }
@@ -1557,7 +1848,6 @@ export async function getClassroomSessionRecapDTO(rawInput: unknown) {
     : null;
   const participationBuckets = buildParticipationBuckets(studentSummaries.map((student) => student._latestParticipationLevel ?? null));
   const completedStudentCount = studentSummaries.filter((student) => student._completedStepCount >= steps.length && steps.length > 0).length;
-  const evidenceRowsWithoutEvaluation = studentSummaries.filter((student) => student._hasUnevaluatedSignal);
   const stepSummaries = steps.map((step) => {
     const completionCount = studentSummaries.filter((student) => {
       const progress = progressByStudent.get(student.studentId) ?? [];
@@ -1602,6 +1892,7 @@ export async function getClassroomSessionRecapDTO(rawInput: unknown) {
       id: session.id,
       status: "ended",
       lessonId: session.lessonId,
+      classId: session.classId,
       lessonTitle: snapshot.lesson?.title ?? lesson?.title ?? "课堂",
       className: clazz?.name ?? "班级",
       startedAt: toIso(session.createdAt),

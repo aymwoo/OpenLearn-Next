@@ -11,6 +11,7 @@ import { ClassroomLaunchPanel } from "@/components/classroom/classroom-launch-pa
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { surfaceWidths } from "@/components/surfaces/surface-widths";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import type { ClassroomConsoleDTO } from "@/lib/dto/classroom";
 import { cn } from "@/lib/utils";
@@ -36,7 +37,13 @@ export function ClassroomLaunchSurface({
   ).size;
 
   return (
-    <div className={cn(teacherSurfaceRhythm.stack, "p-4 sm:p-5 lg:p-6")}>
+    <div
+      className={cn(
+        surfaceWidths.workspace,
+        teacherSurfaceRhythm.stack,
+        "p-4 sm:p-5 lg:p-6",
+      )}
+    >
       <section
         className={cn(
           "overflow-hidden bg-surface-container-low",
@@ -50,14 +57,19 @@ export function ClassroomLaunchSurface({
           )}
         >
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div>
+            <div className={surfaceWidths.heroTitle}>
               <Badge variant="accent" className="bg-white/15 text-white">
                 课堂启动准备页
               </Badge>
               <h1 className="mt-4 text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[3rem]">
                 开启新课堂
               </h1>
-              <p className="mt-3 text-sm leading-7 text-on-primary/85 sm:text-base sm:leading-8">
+              <p
+                className={cn(
+                  surfaceWidths.heroBody,
+                  "mt-3 text-sm leading-7 text-on-primary/85 sm:text-base sm:leading-8",
+                )}
+              >
                 先确认已发布课时、整班名册与课堂节奏，再进入运行台。若当前已有 live
                 classroom，可从右侧次级恢复区继续上课，但不会压过新开课堂主动作。
               </p>

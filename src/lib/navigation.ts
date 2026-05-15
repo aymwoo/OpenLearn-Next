@@ -16,6 +16,7 @@ export const navigationItems: readonly NavigationItem[] = [
 
 export const teacherNavigationItems: readonly NavigationItem[] = [
   { label: '工作台', href: '/teacher' },
+  { label: '班级趋势', href: '/teacher/trends' },
   { label: '课时编辑', href: '/teacher/editor' },
   { label: '课堂运行', href: '/classroom' },
   { label: '资源中心', href: '/resources' },

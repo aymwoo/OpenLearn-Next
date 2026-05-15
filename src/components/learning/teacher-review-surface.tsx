@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 
 import { FeedbackComposer } from "@/components/learning/feedback-composer";
+import { surfaceWidths } from "@/components/surfaces/surface-widths";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -281,7 +282,13 @@ export function TeacherReviewSurface({
     : 0;
 
   return (
-    <div className={cn(teacherSurfaceRhythm.stack, "p-6 lg:p-8")}>
+    <div
+      className={cn(
+        surfaceWidths.workspace,
+        teacherSurfaceRhythm.stack,
+        "p-6 lg:p-8",
+      )}
+    >
       <section
         className={cn(
           "overflow-hidden bg-surface-container-low",
@@ -295,14 +302,19 @@ export function TeacherReviewSurface({
           )}
         >
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div>
+            <div className={surfaceWidths.heroTitle}>
               <Badge variant="accent" className="mb-4 bg-white/15 text-white">
                 批量学生评价
               </Badge>
               <h1 className="text-[2.25rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[3rem]">
                 {review?.title ?? "批量学生评价"}
               </h1>
-              <p className="mt-4 leading-8 text-on-primary/85">
+              <p
+                className={cn(
+                  surfaceWidths.heroBody,
+                  "mt-4 leading-8 text-on-primary/85",
+                )}
+              >
                 以 Stitch 的“批量学生评价”结构承接现有复盘数据。保留 lesson
                 review 数据流，只把学生筛选、批量处理和反馈输入整理到同一页面。
               </p>

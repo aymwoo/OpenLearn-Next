@@ -77,6 +77,7 @@ export async function signInAction(
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
+      roleIntent: parsed.data.roleIntent,
       redirectTo: parsed.data.roleIntent === "student" ? "/student" : "/teacher",
     });
   } catch (error: unknown) {

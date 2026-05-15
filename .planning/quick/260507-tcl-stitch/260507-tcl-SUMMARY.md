@@ -1,6 +1,7 @@
 ---
 phase: quick-260507-tcl-stitch
 plan: 01
+status: complete
 subsystem: class-management-ui
 tags: [filter, bulk-actions, avatar, stitch-alignment]
 requires: []

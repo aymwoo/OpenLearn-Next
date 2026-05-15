@@ -1,6 +1,12 @@
 import { z } from "zod";
 
 export const TeacherCourseStatusSchema = z.enum(["draft", "published", "archived"]);
+export const CourseLifecycleActionSchema = z.enum(["publish", "unpublish", "archive"]);
+export const CourseDeleteBlockedReasonCodeSchema = z.enum([
+  "COURSE_HAS_LESSONS",
+  "COURSE_HAS_CLASS_ASSOCIATIONS",
+  "COURSE_HAS_ENROLLMENTS",
+]);
 
 export const CourseCreateInputSchema = z
   .object({
@@ -21,6 +27,37 @@ export const CourseUpdateInputSchema = z
     status: TeacherCourseStatusSchema,
   })
   .strict();
+
+export const CourseLifecycleInputSchema = z
+  .object({
+    courseId: z.string().min(1),
+  })
+  .strict();
+
+export const CourseClassAssociationInputSchema = z
+  .object({
+    courseId: z.string().min(1),
+    classId: z.string().min(1),
+  })
+  .strict();
+
+export const CourseDeleteInputSchema = z
+  .object({
+    courseId: z.string().min(1),
+    confirmationText: z.string().trim().min(1),
+  })
+  .strict();
+
+export const CourseDeleteBlockedReasonDTOSchema = z.object({
+  code: CourseDeleteBlockedReasonCodeSchema,
+  message: z.string(),
+  count: z.number().int().positive(),
+});
+
+export const CourseDeleteEligibilityDTOSchema = z.object({
+  canDelete: z.boolean(),
+  reasons: z.array(CourseDeleteBlockedReasonDTOSchema).default([]),
+});
 
 export const TeacherCourseCardDTOSchema = z.object({
   id: z.string(),
@@ -64,6 +101,11 @@ export const CourseClassLinkDTOSchema = z.object({
   name: z.string(),
 });
 
+export const TeacherCourseAvailableClassDTOSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
 export const TeacherCourseDetailDTOSchema = z.object({
   id: z.string(),
   schoolId: z.string(),
@@ -75,7 +117,9 @@ export const TeacherCourseDetailDTOSchema = z.object({
   lessonCount: z.number().int().nonnegative().default(0),
   classLabels: z.array(z.string()).default([]),
   classLinks: z.array(CourseClassLinkDTOSchema).default([]),
+  availableClasses: z.array(TeacherCourseAvailableClassDTOSchema).default([]),
   enrollmentCount: z.number().int().nonnegative().default(0),
+  deleteEligibility: CourseDeleteEligibilityDTOSchema,
   updatedAt: z.string(),
   lessons: z.array(CourseLessonEntryDTOSchema).default([]),
 });
@@ -92,7 +136,13 @@ export type TeacherCourseScopeSchoolDTO = z.infer<typeof TeacherCourseScopeSchoo
 export type TeacherCourseCenterDTO = z.infer<typeof TeacherCourseCenterDTOSchema>;
 export type CourseLessonEntryDTO = z.infer<typeof CourseLessonEntryDTOSchema>;
 export type CourseClassLinkDTO = z.infer<typeof CourseClassLinkDTOSchema>;
+export type TeacherCourseAvailableClassDTO = z.infer<typeof TeacherCourseAvailableClassDTOSchema>;
+export type CourseDeleteBlockedReasonDTO = z.infer<typeof CourseDeleteBlockedReasonDTOSchema>;
+export type CourseDeleteEligibilityDTO = z.infer<typeof CourseDeleteEligibilityDTOSchema>;
 export type TeacherCourseDetailDTO = z.infer<typeof TeacherCourseDetailDTOSchema>;
 export type TeacherCourseLessonsEntryDTO = z.infer<typeof TeacherCourseLessonsEntryDTOSchema>;
 export type CourseCreateInput = z.infer<typeof CourseCreateInputSchema>;
 export type CourseUpdateInput = z.infer<typeof CourseUpdateInputSchema>;
+export type CourseLifecycleAction = z.infer<typeof CourseLifecycleActionSchema>;
+export type CourseClassAssociationInput = z.infer<typeof CourseClassAssociationInputSchema>;
+export type CourseDeleteInput = z.infer<typeof CourseDeleteInputSchema>;

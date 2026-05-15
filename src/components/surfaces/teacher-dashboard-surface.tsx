@@ -19,14 +19,15 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { teacherSurfaceRhythm } from '@/components/surfaces/teacher-surface-rhythm'
+import { surfaceWidths } from '@/components/surfaces/surface-widths'
 import { cn } from '@/lib/utils'
 
 export function TeacherDashboardSurface() {
   return (
-    <div className={cn('flex w-full flex-col pb-12 pt-3', teacherSurfaceRhythm.stack)}>
+    <div className={cn(surfaceWidths.workspace, 'flex w-full flex-col pb-12 pt-3', teacherSurfaceRhythm.stack)}>
       <section className={cn(teacherSurfaceRhythm.hero, 'rounded-none')}>
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,22rem)] xl:items-start">
-          <div className="min-w-0 space-y-3 xl:pr-6">
+          <div className={cn('min-w-0 space-y-3 xl:pr-6', surfaceWidths.heroTitle)}>
             <Badge variant="accent" className="bg-surface-container-lowest text-primary">
               教师指挥台
             </Badge>
@@ -34,7 +35,7 @@ export function TeacherDashboardSurface() {
               <h1 className="max-w-none text-[2.5rem] font-semibold tracking-[-0.03em] text-on-surface sm:text-[2.85rem]">
                 今天把《编程基础：让角色动起来》编排成可运行课堂
               </h1>
-              <p className="max-w-4xl text-sm leading-7 text-on-surface-variant sm:text-base">
+              <p className={cn(surfaceWidths.heroBody, 'text-sm leading-7 text-on-surface-variant sm:text-base')}>
                 你今天有 3 节课、12 份待批改作业，以及一节正在进行中的培优班直播。先盯住课堂节奏，
                 再处理需要在今天闭环的批改与通知。
               </p>
@@ -55,6 +56,12 @@ export function TeacherDashboardSurface() {
                   <p className="mt-1 text-sm leading-6">5 名学生作业逾期，12 份批改待完成，建议先清理高风险名单。</p>
                 </div>
               </div>
+              <Button asChild variant="secondary" className="mt-4 min-h-10 w-full justify-between text-primary/90">
+                <Link href="/teacher/trends">
+                  查看班级趋势
+                  <ArrowUpRight className="size-4" />
+                </Link>
+              </Button>
             </div>
           </div>
         </div>

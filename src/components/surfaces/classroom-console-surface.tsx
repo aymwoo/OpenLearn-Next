@@ -15,6 +15,7 @@ import { ClassroomSessionRecapSurface } from "@/components/classroom/classroom-s
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { surfaceWidths } from "@/components/surfaces/surface-widths";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import type { ClassroomConsoleSessionEntryDTO, ClassroomSessionRecapDTO, ClassroomSnapshotDTO, ClassroomStudentDetailDTO, ClassroomStudentDetailTab } from "@/lib/dto/classroom";
 import { cn } from "@/lib/utils";
@@ -63,7 +64,13 @@ export function ClassroomConsoleSurface({
 
   if (recap) {
     return (
-      <div className={cn(teacherSurfaceRhythm.stack, "p-4 sm:p-5 lg:p-6")}>
+      <div
+        className={cn(
+          surfaceWidths.workspace,
+          teacherSurfaceRhythm.stack,
+          "p-4 sm:p-5 lg:p-6",
+        )}
+      >
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <ClassroomSessionRecapSurface recap={recap} />
           <div className="space-y-5">
@@ -76,7 +83,13 @@ export function ClassroomConsoleSurface({
 
   if (initialSnapshot) {
     return (
-      <div className={cn(teacherSurfaceRhythm.stack, "p-4 sm:p-5 lg:p-6")}>
+      <div
+        className={cn(
+          surfaceWidths.workspace,
+          teacherSurfaceRhythm.stack,
+          "p-4 sm:p-5 lg:p-6",
+        )}
+      >
         <section
           className={cn(
             "overflow-hidden bg-surface-container-low",
@@ -90,14 +103,19 @@ export function ClassroomConsoleSurface({
             )}
           >
             <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-              <div>
+              <div className={surfaceWidths.heroTitle}>
                 <Badge variant="accent" className="bg-white/15 text-white">
                   课堂教学运行管理
                 </Badge>
                 <h1 className="mt-4 text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[3rem]">
                   {initialSnapshot.lessonTitle}
                 </h1>
-                <p className="mt-3 text-sm leading-7 text-on-primary/85 sm:text-base sm:leading-8">
+                <p
+                  className={cn(
+                    surfaceWidths.heroBody,
+                    "mt-3 text-sm leading-7 text-on-primary/85 sm:text-base sm:leading-8",
+                  )}
+                >
                   当前面向 {initialSnapshot.className}{" "}
                   进行课堂流程运行。保留现有同步逻辑，仅优化教师控课台的分区、节奏感与信息优先级。
                 </p>
@@ -162,7 +180,13 @@ export function ClassroomConsoleSurface({
   }
 
   return (
-    <div className={cn(teacherSurfaceRhythm.stack, "p-4 sm:p-5 lg:p-6")}>
+    <div
+      className={cn(
+        surfaceWidths.workspace,
+        teacherSurfaceRhythm.stack,
+        "p-4 sm:p-5 lg:p-6",
+      )}
+    >
       <section
         className={cn(
           "overflow-hidden bg-surface-container-low",
@@ -176,14 +200,19 @@ export function ClassroomConsoleSurface({
           )}
         >
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div>
+            <div className={surfaceWidths.heroTitle}>
               <Badge variant="accent" className="bg-white/15 text-white">
                 课堂教学流程运行管理
               </Badge>
               <h1 className="mt-4 text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[3rem]">
                 进入课堂运行台
               </h1>
-              <p className="mt-3 text-sm leading-7 text-on-primary/85 sm:text-base sm:leading-8">
+              <p
+                className={cn(
+                  surfaceWidths.heroBody,
+                  "mt-3 text-sm leading-7 text-on-primary/85 sm:text-base sm:leading-8",
+                )}
+              >
                 这里继续负责 live classroom
                 的锁定模式、步骤推进与冲突恢复。若你要新开课堂，请先回到专用的开启新课堂页面完成准备。
               </p>

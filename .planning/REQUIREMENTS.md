@@ -7,6 +7,12 @@
 
 Requirements for initial release. Each maps to roadmap phases.
 
+## Current planning posture
+
+- 当前没有 active milestone implementation；`v1.3` 已归档，归档事实以 `.planning/MILESTONES.md` 与 `.planning/milestones/v1.3-MILESTONE-AUDIT.md` 为准。
+- 下一步 live scope 只能从 `COURSE-07`、Phase 15 carry-over backlog 与 `AUTH-01`~`AUTH-06`、`DATA-01`~`DATA-05`、`CLASS-05` known gaps 中选择。
+- 本文件继续保留完整 requirement truth，不在此处预写新的 milestone 名称、日期或 phase。
+
 ### Foundation and design
 
 - [x] **FOUND-01**: User can open a Next.js 16 App Router application bootstrapped with React 19.2, TypeScript, Turbopack, and the required project structure.
@@ -98,9 +104,9 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **COURSE-01**: Teacher can open a teacher-scoped course center that lists each visible course with title, subject, grade, status, lesson count, class links, enrollment count, and updated time.
 - [x] **COURSE-02**: Teacher can create a course manually through a validated form inside the teacher workflow.
 - [x] **COURSE-03**: Teacher can edit course base information such as title, subject, grade, and status and see read-your-writes feedback after save.
-- [ ] **COURSE-04**: Teacher can publish, unpublish, or archive a course without making archived or inactive courses appear in the wrong teacher flows.
-- [ ] **COURSE-05**: Teacher can delete an eligible course with explicit confirmation and clear feedback when deletion is blocked.
-- [ ] **COURSE-06**: Teacher can associate or remove classes from a course within the teacher's school scope.
+- [x] **COURSE-04**: Teacher can publish, unpublish, or archive a course without making archived or inactive courses appear in the wrong teacher flows.
+- [x] **COURSE-05**: Teacher can delete an eligible course with explicit confirmation and clear feedback when deletion is blocked.
+- [x] **COURSE-06**: Teacher can associate or remove classes from a course within the teacher's school scope.
 - [ ] **COURSE-07**: Teacher can manage course student enrollment associations within the course management workflow.
 - [ ] **COURSE-08**: Teacher can import multiple courses from a structured batch file and receive row-level validation results before changes are applied.
 - [ ] **COURSE-09**: Teacher can review import outcomes as created, updated, skipped, or failed rows without silently creating duplicates.
@@ -121,17 +127,17 @@ Requirements for initial release. Each maps to roadmap phases.
 ### v1.3 Teaching orchestration and classroom intelligence
 
 - [x] **ORCH-01**: Teacher can enrich each teaching step with structured teaching intent, estimated duration, activity mode, and evidence expectations without replacing the current linear step model.
-- [ ] **ORCH-02**: Teacher can prepare a class-facing launch plan from a published lesson, including roster scope, key materials, and runtime emphasis before class starts.
-- [ ] **ORCH-03**: Teacher can see launch readiness and missing prerequisites for classroom implementation before starting a live session.
+- [x] **ORCH-02**: Teacher can prepare a class-facing launch plan from a published lesson, including roster scope, key materials, and runtime emphasis before class starts.
+- [x] **ORCH-03**: Teacher can see launch readiness and missing prerequisites for classroom implementation before starting a live session.
 - [x] **ACT-01**: Student can see classroom-friendly activity guidance, expected output, and current completion state for the active teaching step.
 - [x] **ACT-02**: Student can submit quick in-class evidence or check-in responses that are durably recorded alongside existing task and quiz evidence.
 - [x] **ACT-03**: Teacher can monitor live roster presence, step adoption, progress, submission counts, and students needing intervention during class.
 - [x] **EVAL-01**: Teacher can capture lightweight participation marks, observation notes, or evaluation tags during or after class without introducing a full gradebook.
 - [x] **EVAL-02**: Teacher can review aggregated evidence from progress, tasks, quizzes, quick responses, presence, observations, and feedback for each student.
 - [x] **EVAL-03**: Classroom sessions durably store presence, intervention, and evidence timeline data for recap, audit, and later analytics.
-- [ ] **ANALYTICS-01**: Teacher can view lesson or session summary metrics for completion, participation, submissions, and feedback workload.
-- [ ] **ANALYTICS-02**: Teacher can inspect class-level and student-level trends across recent teaching sessions with drill-down to raw evidence.
-- [ ] **UI-05**: System provides high-quality Stitch-aligned planning, runtime, evaluation, and analytics surfaces with responsive, product-level interaction polish.
+- [x] **ANALYTICS-01**: Teacher can view lesson or session summary metrics for completion, participation, submissions, and feedback workload.
+- [x] **ANALYTICS-02**: Teacher can inspect class-level and student-level trends across recent teaching sessions with drill-down to raw evidence.
+- [x] **UI-05**: System provides high-quality Stitch-aligned planning, runtime, evaluation, and analytics surfaces with responsive, product-level interaction polish.
 
 ## v2 Requirements
 
@@ -251,9 +257,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COURSE-01 | Phase 13 | Complete |
 | COURSE-02 | Phase 13 | Complete |
 | COURSE-03 | Phase 13 | Complete |
-| COURSE-04 | Phase 14 | Pending |
-| COURSE-05 | Phase 14 | Pending |
-| COURSE-06 | Phase 14 | Pending |
+| COURSE-04 | Phase 14 | Complete |
+| COURSE-05 | Phase 14 | Complete |
+| COURSE-06 | Phase 14 | Complete |
 | COURSE-07 | Phase 14 | Pending |
 | COURSE-08 | Phase 15 | Pending |
 | COURSE-09 | Phase 15 | Pending |
@@ -268,17 +274,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCHEDULE-08 | Phase 18 | Complete |
 | SCHEDULE-09 | Phase 18 | Complete |
 | ORCH-01 | Phase 21 | Complete |
-| ORCH-02 | Phase 22 | Pending |
-| ORCH-03 | Phase 22 | Pending |
+| ORCH-02 | Phase 22 | Complete |
+| ORCH-03 | Phase 22 | Complete |
 | ACT-01 | Phase 23 | Complete |
 | ACT-02 | Phase 23 | Complete |
 | ACT-03 | Phase 24 | Complete |
 | EVAL-01 | Phase 24 | Complete |
 | EVAL-02 | Phase 24 | Complete |
 | EVAL-03 | Phase 21 | Complete |
-| ANALYTICS-01 | Phase 25 | Pending |
-| ANALYTICS-02 | Phase 26 | Pending |
-| UI-05 | Phase 26 | Pending |
+| ANALYTICS-01 | Phase 25 | Complete |
+| ANALYTICS-02 | Phase 26 | Complete |
+| UI-05 | Phase 26 | Complete |
 
 **Coverage:**
 - v1/v1.1/v1.2/v1.x/v1.3 requirements: 90 total
@@ -288,4 +294,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-04*  
-*Last updated: 2026-05-12 after defining milestone v1.3 teaching orchestration requirements*
+*Last updated: 2026-05-15 after completing Phase 14 COURSE-06 and returning live planning to backlog selection*

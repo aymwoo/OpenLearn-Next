@@ -71,6 +71,7 @@ function buildSurfaceMetadata(
 
 function renderShell({
   routeKey = "/teacher",
+  activePath = "/teacher",
   shellVariant = "left-nav",
   shellConfig = {
     mode: "left-nav",
@@ -83,6 +84,7 @@ function renderShell({
   hidePageHeader = false,
 }: {
   routeKey?: TeacherThemeRouteKey;
+  activePath?: string;
   shellVariant?: ThemeShellConfig["mode"];
   shellConfig?: ThemeShellConfig;
   surfaceMetadata?: ShellSurfaceMetadata;
@@ -92,7 +94,7 @@ function renderShell({
   return render(
     <TeacherSidebarShellFrame
       routeKey={routeKey}
-      activePath="/teacher"
+      activePath={activePath}
       shellVariant={shellVariant}
       shellConfig={shellConfig}
       surfaceMetadata={surfaceMetadata}
@@ -185,6 +187,24 @@ describe("TeacherSidebarShell theme layout hooks", () => {
 
     expect(within(primaryNav).getByRole("link", { name: "班级管理" }).getAttribute("aria-current")).toBe("page");
     expect(within(primaryNav).getByRole("link", { name: "工作台" }).getAttribute("aria-current")).toBeNull();
+  });
+
+  it("shows 班级趋势 as the visible analytics entry and removes 数据报表 drift", () => {
+    renderShell({
+      routeKey: "/teacher/trends",
+      activePath: "/teacher/trends",
+      surfaceMetadata: buildSurfaceMetadata({
+        routeKey: "/teacher/trends",
+        label: "班级趋势",
+      }),
+    });
+
+    const primaryNav = screen.getByRole("navigation", { name: "教师端侧边导航" });
+    const trendsLink = within(primaryNav).getByRole("link", { name: "班级趋势" });
+
+    expect(trendsLink.getAttribute("href")).toBe("/teacher/trends");
+    expect(trendsLink.getAttribute("aria-current")).toBe("page");
+    expect(within(primaryNav).queryByRole("link", { name: "数据报表" })).toBeNull();
   });
 
   it("renders shell regions from metadata visibility only", () => {

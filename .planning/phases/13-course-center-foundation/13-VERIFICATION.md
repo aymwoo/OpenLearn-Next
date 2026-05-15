@@ -1,33 +1,27 @@
 ---
 phase: 13-course-center-foundation
-verified: 2026-05-09T15:10:06Z
-status: human_needed
+verified: 2026-05-14T15:02:01Z
+status: passed
 score: 5/5 must-haves verified
 overrides_applied: 0
 re_verification:
   previous_status: human_needed
   previous_score: 5/5
-  gaps_closed: []
+  gaps_closed:
+    - human_verification.course_scope_and_school_selector
+    - human_verification.create_and_edit_read_your_writes
+    - human_verification.course_to_lesson_handoff
   gaps_remaining: []
   regressions: []
-human_verification:
-  - test: "以真实教师账号打开 `/teacher/courses`，核对课程列表与建课学校范围"
-    expected: "只能看到当前教师本人拥有的课程；单学校教师默认学校正确，多学校教师可见且可切换真实学校选项。"
-    why_human: "需要真实登录态、页面交互与视觉核对；自动化只验证了代码路径与测试桩。"
-  - test: "在课程中心新建课程，再进入详情页编辑标题/学科/年级/状态"
-    expected: "新课程立即出现在课程卡片网格；详情页出现持久成功反馈，且刷新后仍显示最新字段。"
-    why_human: "需要浏览器里验证 read-your-writes 体验、文案可见性与交互完整性。"
-  - test: "从课程详情进入课时管理，分别验证空课程与已有课时课程的 handoff"
-    expected: "空课程通过“新建第一个课时”进入 editor；已有课时课程可继续编辑，不出现脱离课程上下文的跳转。"
-    why_human: "需要端到端导航确认支持路径无误，并检查空态/已有态的实际可用性。"
+human_verification: []
 ---
 
 # Phase 13: Course center foundation Verification Report
 
 **Phase Goal:** Teachers can open a usable course center, create and edit
 courses, and move from a course into lesson or teaching-plan management.
-**Verified:** 2026-05-09T15:10:06Z
-**Status:** human_needed
+**Verified:** 2026-05-14T15:02:01Z
+**Status:** passed
 **Re-verification:** Yes — final closure re-check
 
 ## Goal Achievement
@@ -118,25 +112,15 @@ courses, and move from a course into lesson or teaching-plan management.
 | --- | --- | --- | --- | --- |
 | — | — | No new blocker or warning anti-pattern found in the latest-worktree re-verification scope. | ℹ️ Info | Remaining uncertainty is limited to unchanged human UAT items. |
 
-### Human Verification Required
+### Human verification closure
 
-### 1. Course center scope and school selector
+2026-05-14 已完成真实浏览器验证，结果记录在
+`13-HUMAN-UAT.md`：
 
-**Test:** 使用真实教师账号打开 `/teacher/courses`，分别验证单学校教师与多学校教师页面。  
-**Expected:** 列表中只出现当前教师本人拥有的课程；建课抽屉显示正确默认学校，多学校场景可切换真实学校。  
-**Why human:** 需要真实登录态、页面渲染与可视交互确认。
-
-### 2. Create and edit read-your-writes
-
-**Test:** 在课程中心抽屉创建课程，然后进入详情页修改标题、学科、年级与状态。  
-**Expected:** 新课程立即出现在总览；详情页出现持久成功反馈，且页面字段显示最新值。  
-**Why human:** 需要浏览器里确认刷新体验、交互反馈和文案可见性。
-
-### 3. Course-to-lesson handoff
-
-**Test:** 从课程详情进入课时管理；对空课程执行“新建第一个课时”，对已有课时课程执行“继续编辑已有课时”。  
-**Expected:** 两条路径都保持课程上下文，不会把教师错误带到脱离课程语境的入口。  
-**Why human:** 需要端到端导航与实际 UI 行为验证。
+1. `teacher@example.com/password` 多学校场景下，课程中心只显示本人课程，建课抽屉显示两个真实学校选项且默认 `OpenLearn 测试学校`。
+2. `other-teacher@example.com/password` 单学校场景下，课程中心只显示 `非本人课程-作用域校验`，建课抽屉改为只读学校摘要 `OpenLearn 第二测试学校`。
+3. 新建课程后课程卡片立即出现；详情页保存后显示持久成功反馈，刷新后仍保留最新字段。
+4. 空课程通过“新建第一个课时”进入带 `courseId`/`lessonId` 的 editor；已有课时课程通过“继续编辑”进入同样保持课程上下文的 editor。
 
 ### Gaps Summary
 
@@ -151,10 +135,11 @@ courses, and move from a course into lesson or teaching-plan management.
 7. 聚焦回归套件已再次运行，`7 files, 32 tests passed`，覆盖 course center / create / edit / course-aware editor handoff / lesson ownership / cache invalidation / reorder regression。
 8. 关键静态回退模式已再次确认不存在：`course-create-drawer.tsx` 不含 `schoolId = "school-1"`，`/teacher/editor` 入口不含 `overview.lessons[0]` 默认回退。
 
-因此，Phase 13 继续保持 **5/5 must-haves verified**。当前没有新增自动化
-gap，也没有 blocker / warning 级 residual risk；状态继续为 `human_needed`，仅因真实登录态、浏览器交互与端到端 handoff 仍需人工确认。
+因此，Phase 13 保持 **5/5 must-haves verified**，且真实登录态、浏览器交互与
+端到端 handoff 已完成 closure。当前没有新增自动化 gap，也没有 blocker /
+warning 级 residual risk；状态收口为 `passed`。
 
 ---
 
-_Verified: 2026-05-09T15:10:06Z_
+_Verified: 2026-05-14T15:02:01Z_
 _Verifier: the agent (gsd-verifier)_
