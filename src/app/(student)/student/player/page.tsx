@@ -1,17 +1,17 @@
 import { Suspense } from 'react'
 
 import {
+  assertStudentCanOpenPlayer,
+  getStudentDashboardDTO,
+  getStudentPlayerPersonalDTO,
+  getStudentPlayerShellDTO,
+} from '@/features/runtime-platform/player'
+import {
   PlayerPersonalFallback,
   PlayerPersonalRegion,
   PlayerSurface,
 } from '@/components/surfaces/player-surface'
 import { ClassroomRuntimeClient } from '@/components/learning/classroom-runtime-client'
-import {
-  getStudentDashboardDTO,
-  assertStudentCanOpenPlayer,
-  getStudentPlayerPersonalDTO,
-  getStudentPlayerShellDTO,
-} from '@/lib/dal/learning'
 import type { StudentPlayerShellDTO } from '@/lib/dto/learning'
 
 type StudentPlayerScope = Awaited<ReturnType<typeof assertStudentCanOpenPlayer>>

@@ -4,7 +4,7 @@ import { PluginRenderer } from "@/components/plugins/plugin-renderer";
 import { LessonEditorSurface } from "@/components/surfaces/lesson-editor-surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { assertActiveTeacher, getLessonEditorDTO, getTeacherAuthoringOverview } from "@/lib/dal/lesson-authoring";
+import { assertActiveTeacher, getLessonEditorDTO, getTeacherAuthoringOverview } from "@/features/runtime-platform/authoring";
 import { getValidThemesForSchool } from "@/lib/dal/themes";
 import { listBuiltInTeachingStepTemplates } from "@/lib/dal/plugins";
 import { getActiveThemeId } from "@/lib/theme-cookie";

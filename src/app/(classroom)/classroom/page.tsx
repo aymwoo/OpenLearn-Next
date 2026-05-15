@@ -1,5 +1,10 @@
-import { getClassroomConsoleDTO, getClassroomSessionRecapDTO, getClassroomSnapshotDTO, getClassroomStudentDetailDTO } from '@/lib/dal/classroom'
 import { ClassroomConsoleSurface } from '@/components/surfaces/classroom-console-surface'
+import {
+  getClassroomConsoleDTO,
+  getClassroomSessionRecapDTO,
+  getClassroomSnapshotDTO,
+  getClassroomStudentDetailDTO,
+} from '@/features/runtime-platform/classroom'
 import { ClassroomSessionRecapDetailTabSchema, ClassroomStudentDetailTabSchema } from '@/lib/dto/classroom'
 
 export default async function ClassroomPage({
