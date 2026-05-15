@@ -63,7 +63,7 @@
   3. Shared contract packages or equivalent extracted boundaries exist for runtime bridge, runtime events, permissions, and descriptors.
   4. PostgreSQL, Redis/Event Bus, and WebSocket seams exist as future adapters without becoming required services in this phase.
 **Plans**: 4 plans
-- [ ] 27-01-PLAN.md — Freeze the compatibility baseline for the current classroom-critical flows and add regression harness coverage.
+- [x] 27-01-PLAN.md — Freeze the compatibility baseline for the current classroom-critical flows and add regression harness coverage.
 - [x] 27-02-PLAN.md — Introduce runtime-platform feature roots, public barrels, and compatibility re-export rules in the main project. (completed 2026-05-15)
 - [x] 27-03-PLAN.md — Extract shared runtime contracts, permissions, and descriptor packages or equivalent stable boundaries.
 - [x] 27-04-PLAN.md — Add infrastructure seam adapters for PostgreSQL, Redis/Event Bus, and WebSocket without enabling cutover. (completed 2026-05-15)
@@ -378,7 +378,7 @@ Current milestone phases plus historical snapshot retained for planning referenc
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 27. Compatibility baseline and V2 boundary scaffolding | 4/4 | Complete | 2026-05-15 |
+| 27. Compatibility baseline and V2 boundary scaffolding | 4/4 | Complete   | 2026-05-15 |
 | 28. Runtime bridge contracts and session persistence | 0/4 | Not started | - |
 | 29. Runtime Host and HTML courseware pilot | 0/4 | Not started | - |
 | 30. Capability enforcement and plugin lifecycle | 0/4 | Not started | - |

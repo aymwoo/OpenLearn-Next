@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Runtime Platform Foundations
-status: executing
-last_updated: "2026-05-15T14:44:23.519Z"
+status: verifying
+last_updated: "2026-05-15T15:08:39.000Z"
 last_activity: 2026-05-15
 progress:
   total_phases: 20
-  completed_phases: 14
+  completed_phases: 15
   total_plans: 59
-  completed_plans: 58
-  percent: 98
+  completed_plans: 59
+  percent: 100
 ---
 
 # Project State
@@ -21,8 +21,8 @@ Milestone: v2.0 Runtime Platform Foundations
 Phase: 27 (compatibility-baseline-and-v2-boundary-scaffolding) — COMPLETE
 Phase name: Compatibility baseline and V2 boundary scaffolding
 Plan: 4 of 4
-Status: Ready for next phase planning
-Last activity: 2026-05-15 -- Completed Phase 27 Plan 04
+Status: Phase complete — ready for verification
+Last activity: 2026-05-15 -- Completed Phase 27 Plan 01 compatibility baseline gate
 
 ## Milestone Notes
 
@@ -92,6 +92,8 @@ Last activity: 2026-05-15 -- Completed Phase 27 Plan 04
 - [Phase 27]: contracts 纯度通过 focused test 直接读取源码守卫，而不是只依赖人工约定。
 - [Phase 27]: PostgreSQL、Event Bus、WebSocket seams 统一集中在 `runtime-platform/seams`，并且只暴露 SQLite / in-process / SSE 默认 adapter，不引入 provider toggle。
 - [Phase 27]: runtime/plugin host actions 先经 `createGuardedHostAction` 执行 actor scope、school scope 与 DTO parse，再允许后续 host operation 扩展。
+- [Phase 27]: `verify:phase27` 采用组合旧 verifier、Phase 27 静态 guards 与 focused route tests 的 canonical gate。
+- [Phase 27]: 兼容回归固定锁住 editor 的 `courseId + lessonId`、launch published snapshot、classroom `sessionId` 分支与 player shell/personal split。
 - [Quick 260511-tsm]: `/teacher/editor` 现在复用现有 `EditorSettingsModal` 提供主题设置入口；server 侧注入“默认主题 + 学校有效主题 + 当前 activeThemeId”，modal 内将 `预览 / 保存 / 生效` 明确区分为局部预览、本地待生效状态和现有 `setActiveThemeAction` 全局生效链路，不新增 preview runtime 或 draft 持久化。
 - [Quick 260511-sqe]: `/teacher/schedule` 主页面现在在 hero 下方提供 4 个快捷操作卡片，直接跳转到导入、单次变更与节假日、AI 助手和提醒配置；视觉上继续复用 `teacherSurfaceRhythm.section/cardInset`，不新增 schedule 专用导航壳层。
 - [Quick 260511-mdi]: `/teacher/schedule/import` 现在提供与 `ScheduleImportDraftRowInputSchema` 对齐的 CSV 导入模板下载；模板列、示例行与 CSV 文本统一由 feature helper 生成，并在导入审核页 hero 直接提供下载入口。
@@ -175,6 +177,7 @@ Last activity: 2026-05-15 -- Completed Phase 27 Plan 04
 
 | Scope        | Duration | Tasks   | Files    |
 | ------------ | -------- | ------- | -------- |
+| Phase 27 P01 | 4 min    | 2 tasks | 8 files  |
 | Phase 10 P06 | 4 min    | 2 tasks | 4 files  |
 | Phase 12 P01 | 2 min    | 2 tasks | 8 files  |
 | Phase 12 P02 | 1 min    | 2 tasks | 5 files  |

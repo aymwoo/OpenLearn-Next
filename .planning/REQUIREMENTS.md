@@ -143,7 +143,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 #### Safety and compatibility
 
-- [ ] **SAFE-01**: System can prove existing teacher authoring, publish, launch, student player, and classroom control flows still work after V2 boundary changes through committed regression coverage.
+- [x] **SAFE-01**: System can prove existing teacher authoring, publish, launch, student player, and classroom control flows still work after V2 boundary changes through committed regression coverage.
 - [x] **SAFE-02**: New runtime and plugin host actions enforce existing server-side authz, school scope, and DTO shaping rules before external execution is enabled.
 - [ ] **SAFE-03**: Runtime and classroom pilot state is durably recoverable from persisted truth and not dependent only on SSE or in-memory transport state.
 
@@ -347,7 +347,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANALYTICS-01 | Phase 25 | Complete |
 | ANALYTICS-02 | Phase 26 | Complete |
 | UI-05 | Phase 26 | Complete |
-| SAFE-01 | Phase 27 | Pending |
+| SAFE-01 | Phase 27 | Complete |
 | SAFE-02 | Phase 27 | Complete |
 | SAFE-03 | Phase 28 | Pending |
 | ARCH-01 | Phase 27 | Complete |
