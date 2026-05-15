@@ -15,6 +15,7 @@
     "verify:phase6": "tsx scripts/verify-phase6-foundations.ts",
     "verify:phase11": "tsx scripts/verify-phase11-readiness.ts",
     "verify:phase12": "tsx scripts/verify-phase12-launch-and-builtins.ts",
+    "verify:phase15": "tsx scripts/verify-phase15-course-import.ts",
     "verify:phase16": "tsx scripts/verify-phase16-theme-layout.ts",
     "verify:phase17": "tsx scripts/verify-phase17-editor.ts",
     "verify:phase18": "tsx scripts/verify-phase18-schedule.ts",
@@ -28,7 +29,8 @@
     "verify:phase26": "tsx scripts/verify-phase26-trends-productization.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
-    "db:bootstrap:dev": "drizzle-kit push && tsx scripts/bootstrap-dev-db.ts",
+    "db:migrate": "tsx scripts/prepare-dev-db.ts",
+    "db:bootstrap:dev": "pnpm db:migrate && tsx scripts/bootstrap-dev-db.ts",
     "test": "vitest"
   },
   "dependencies": {

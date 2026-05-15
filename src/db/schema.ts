@@ -172,6 +172,73 @@ export const courseEnrollments = sqliteTable(
   ]
 );
 
+export const courseImportBatch = sqliteTable(
+  "courseImportBatch",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    actorId: text("actorId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sourceType: text("sourceType", { enum: ["csv"] }).notNull().default("csv"),
+    sourceLabel: text("sourceLabel").notNull(),
+    status: text("status", {
+      enum: ["draft", "in_review", "ready_to_apply", "applied", "partially_applied"],
+    })
+      .notNull()
+      .default("draft"),
+    rowCount: integer("rowCount").notNull().default(0),
+    createdCount: integer("createdCount").notNull().default(0),
+    updatedCount: integer("updatedCount").notNull().default(0),
+    skippedCount: integer("skippedCount").notNull().default(0),
+    failedCount: integer("failedCount").notNull().default(0),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    appliedAt: integer("appliedAt", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("courseImportBatch_school_status_idx").on(table.schoolId, table.status),
+    index("courseImportBatch_actor_idx").on(table.actorId),
+  ]
+);
+
+export const courseImportRow = sqliteTable(
+  "courseImportRow",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    batchId: text("batchId")
+      .notNull()
+      .references(() => courseImportBatch.id, { onDelete: "cascade" }),
+    sourceRowKey: text("sourceRowKey").notNull(),
+    matchKey: text("matchKey").notNull(),
+    rawPayloadJson: text("rawPayloadJson", { mode: "json" }).notNull(),
+    normalizedRowJson: text("normalizedRowJson", { mode: "json" }),
+    validationIssuesJson: text("validationIssuesJson", { mode: "json" }).notNull(),
+    matchedCourseSnapshotJson: text("matchedCourseSnapshotJson", { mode: "json" }),
+    status: text("status", {
+      enum: ["ready_to_create", "matched_existing", "same_file_conflict", "invalid", "blocked"],
+    })
+      .notNull(),
+    decision: text("decision", { enum: ["update", "skip"] }),
+    result: text("result", { enum: ["created", "updated", "skipped", "failed"] }),
+    resultReason: text("resultReason"),
+    appliedCourseId: text("appliedCourseId").references(() => courses.id, { onDelete: "cascade" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("courseImportRow_batch_status_idx").on(table.batchId, table.status),
+    uniqueIndex("courseImportRow_batch_rowKey_unique").on(table.batchId, table.sourceRowKey),
+    index("courseImportRow_batch_matchKey_idx").on(table.batchId, table.matchKey),
+  ]
+);
+
 export const lessons = sqliteTable(
   "lesson",
   {

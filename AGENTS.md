@@ -101,6 +101,8 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 ### SQLite + Drizzle
 - `drizzle.config.ts` with `dialect: 'sqlite'` and `dbCredentials.url = process.env.DB_FILE_NAME`.
 - Local `.env`: `DB_FILE_NAME=file:local.db` for libSQL compatibility.
+- Development bootstrap is migration-first: run `pnpm db:migrate` before seed scripts; do not rely on `drizzle-kit push` as the default path.
+- Existing `local.db` files created before migration tracking must be bridged once by writing `__drizzle_migrations` metadata, then continue with normal migrations.
 - Auth tables: `users`, `accounts`, `sessions`, `verificationTokens` matching Auth.js adapter expectations.
 - Role extension: separate `userProfiles`/`memberships`/`schoolUsers` table rather than overloading Auth.js core tables too much.
 - All foreign keys: `.references(() => parent.id, { onDelete: 'cascade' })`.

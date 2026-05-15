@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { createCourseAction } from "@/actions/course-authoring-actions";
+import { CourseImportModal } from "@/components/courses/course-import-modal";
 import { CourseCreateDrawer } from "@/components/courses/course-create-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,10 @@ export function TeacherCourseCenterSurface({
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <Button asChild variant="secondary" className="px-5 text-sm">
+              <Link href="/teacher/courses/import/template">下载 CSV 模板</Link>
+            </Button>
+            <CourseImportModal schoolId={data.defaultSchoolId} />
             <Button
               asChild
               variant={data.includeArchived ? "secondary" : "tertiary"}
@@ -74,10 +79,10 @@ export function TeacherCourseCenterSurface({
             label="当前课程数"
             value={`${data.courses.length} 门`}
           />
-          <CourseCenterMetric
-            label="默认视图"
-            value={data.includeArchived ? "含已归档" : "仅活跃课程"}
-          />
+            <CourseCenterMetric
+              label="默认视图"
+              value={data.includeArchived ? "含已归档" : "仅活跃课程"}
+            />
           <CourseCenterMetric label="进入方式" value="先看详情，再进课时管理" />
         </div>
       </section>

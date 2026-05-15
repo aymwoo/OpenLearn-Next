@@ -77,10 +77,15 @@ See `DESIGN.md` for full spec. Key rules:
 ```bash
 npx drizzle-kit generate   # generate migration from schema changes
 npx drizzle-kit migrate    # apply migrations
-npx drizzle-kit push       # push schema directly (local dev only, never production)
+pnpm db:migrate            # repo default: bridge old local.db if needed, then apply migrations
+pnpm db:bootstrap:dev      # run db:migrate first, then seed dev data
 ```
 
 Drizzle config at `drizzle.config.ts`. Schema: `src/db/schema.ts`, migrations: `./drizzle/`.
+
+Use migration-first for this repo. `drizzle-kit push` is not part of the normal dev bootstrap flow because it bypasses migration history.
+
+For an older `local.db` created before migration tracking, `pnpm db:migrate` will detect an existing schema without `__drizzle_migrations`, write the latest migration metadata once, and then continue with normal `migrate` runs.
 
 <!-- gitnexus:start -->
 <!-- Single source of truth: ./AI_SHARED/GITNEXUS.md. Do not copy this block into other agent files. -->

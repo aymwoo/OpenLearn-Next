@@ -559,6 +559,29 @@ export async function archiveCourseForTeacherScoped(input: { courseId: string })
   });
 }
 
+export async function updateMatchedCourseStatusForTeacherScoped(input: {
+  courseId: string;
+  status: "draft" | "published" | "archived";
+}) {
+  const scope = await assertActiveTeacher();
+  const course = await getScopedOwnedCourse(input.courseId, scope);
+
+  if (course.status === input.status) {
+    return course;
+  }
+
+  const [updated] = await db
+    .update(courses)
+    .set({
+      status: input.status,
+      updatedAt: new Date(),
+    })
+    .where(eq(courses.id, course.id))
+    .returning();
+
+  return updated;
+}
+
 export async function deleteCourseForTeacherScoped(input: CourseDeleteInput) {
   const scope = await assertActiveTeacher();
   const parsed = CourseDeleteInputSchema.parse(input);

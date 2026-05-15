@@ -16,6 +16,10 @@ vi.mock("@/actions/course-authoring-actions", () => ({
   createCourseAction: (...args: unknown[]) => createCourseAction(...args),
 }));
 
+vi.mock("@/components/courses/course-import-modal", () => ({
+  CourseImportModal: () => <button type="button">批量导入课程</button>,
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     refresh,
@@ -88,6 +92,22 @@ describe("TeacherCourseCenterSurface create flow", () => {
 
   it("removes the hardcoded schoolId = \"school-1\" default from the drawer source", () => {
     expect(drawerSource).not.toContain('schoolId = "school-1"');
+  });
+
+  it("shows course import entry and csv template download in the hero", () => {
+    render(
+      <TeacherCourseCenterSurface
+        data={{
+          defaultSchoolId: "school-9",
+          availableSchools: [{ id: "school-9", name: "九号校区" }],
+          courses: [],
+          includeArchived: false,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "批量导入课程" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "下载 CSV 模板" }).getAttribute("href")).toBe("/teacher/courses/import/template");
   });
 });
 
