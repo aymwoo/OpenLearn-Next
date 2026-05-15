@@ -8,3 +8,5 @@
   - `src/actions/plugin-actions.test.ts`
   - `src/actions/theme-actions.test.ts`
 - These failures were observed while verifying runtime-platform boundary changes and are out of scope for this plan because the modified files compile posture was limited to route import migration and feature barrels.
+- `pnpm typecheck` for Phase 27 Plan 03 is blocked by the repository's current `pnpm approve-builds` gate before it reaches `tsc --noEmit`.
+- Direct `./node_modules/.bin/tsc --noEmit` also fails in the same pre-existing unrelated test files above, so full repo typecheck remains deferred outside this plan's contracts-only scope.

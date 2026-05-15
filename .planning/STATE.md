@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Runtime Platform Foundations
 status: executing
-last_updated: "2026-05-15T14:18:19Z"
-last_activity: 2026-05-15 -- Completed Phase 27 Plan 02
+last_updated: "2026-05-15T14:28:22Z"
+last_activity: 2026-05-15 -- Completed Phase 27 Plan 03
 progress:
   total_phases: 20
   completed_phases: 14
   total_plans: 59
-  completed_plans: 56
-  percent: 95
+  completed_plans: 57
+  percent: 97
 ---
 
 # Project State
@@ -20,9 +20,9 @@ progress:
 Milestone: v2.0 Runtime Platform Foundations
 Phase: 27 (compatibility-baseline-and-v2-boundary-scaffolding) — EXECUTING
 Phase name: Compatibility baseline and V2 boundary scaffolding
-Plan: 2 of 4
-Status: Executing Phase 27
-Last activity: 2026-05-15 -- Completed Phase 27 Plan 02
+Plan: 3 of 4
+Status: Ready to execute
+Last activity: 2026-05-15 -- Completed Phase 27 Plan 03
 
 ## Milestone Notes
 
@@ -87,6 +87,9 @@ Last activity: 2026-05-15 -- Completed Phase 27 Plan 02
 - [Phase 27]: `runtime-platform` 采用单根 + 子域 public barrels（authoring / launch / classroom / player / plugins），而不是并列多 feature roots。
 - [Phase 27]: 四条课堂主链 route 先切到 `@/features/runtime-platform/*` imports，legacy DAL 继续保留为 compatibility shim，避免同步改动用户可见行为。
 - [Phase 27]: plugin runtime 边界先在 `runtime-platform/plugins` 占位，明确 ownership posture，但本阶段不做 runtime host、event bus、WebSocket 或 Redis cutover。
+- [Phase 27]: contracts root 保持在 `runtime-platform` 单根内部，先提供 `packages/contracts` 的等价边界，而不提前切正式 monorepo。
+- [Phase 27]: bridge、events、permissions、descriptors 全部采用 Zod schema + inferred type 双导出，保持与现有 DTO 风格一致。
+- [Phase 27]: contracts 纯度通过 focused test 直接读取源码守卫，而不是只依赖人工约定。
 - [Quick 260511-tsm]: `/teacher/editor` 现在复用现有 `EditorSettingsModal` 提供主题设置入口；server 侧注入“默认主题 + 学校有效主题 + 当前 activeThemeId”，modal 内将 `预览 / 保存 / 生效` 明确区分为局部预览、本地待生效状态和现有 `setActiveThemeAction` 全局生效链路，不新增 preview runtime 或 draft 持久化。
 - [Quick 260511-sqe]: `/teacher/schedule` 主页面现在在 hero 下方提供 4 个快捷操作卡片，直接跳转到导入、单次变更与节假日、AI 助手和提醒配置；视觉上继续复用 `teacherSurfaceRhythm.section/cardInset`，不新增 schedule 专用导航壳层。
 - [Quick 260511-mdi]: `/teacher/schedule/import` 现在提供与 `ScheduleImportDraftRowInputSchema` 对齐的 CSV 导入模板下载；模板列、示例行与 CSV 文本统一由 feature helper 生成，并在导入审核页 hero 直接提供下载入口。
@@ -164,7 +167,7 @@ Last activity: 2026-05-15 -- Completed Phase 27 Plan 02
 2. 后续 live planning 候选转向 `COURSE-07` 与其余 known gaps，同时继续复用已锁定的 classroom contracts：`/classroom` 主域、history reopen、split workload、显式 `未评价`。
 3. 如需恢复一键 `pnpm verify:phase24`，先处理仓库当前 `pnpm` build approval 门禁，再重跑同一组已通过的 direct test/verifier checks。
 4. 在下一轮 scope 确认前，不新增 milestone 名称或 phase 编号。
-5. Phase 27 已完成 27-02；下一步继续 27-03 shared runtime contracts，沿用 `runtime-platform` 单根边界。
+5. Phase 27 已完成 27-03；下一步继续 27-04 infrastructure seams，沿用 `runtime-platform` 单根边界。
 
 ## Performance Metrics
 
@@ -201,6 +204,7 @@ Last activity: 2026-05-15 -- Completed Phase 27 Plan 02
 | Phase 24 P03 | 6 min | 2 tasks | 10 files |
 | Phase 24 P04 | 12 min | 3 tasks | 10 files |
 | Phase 27 P02 | 9 min | 2 tasks | 12 files |
+| Phase 27 P03 | 10 min | 2 tasks | 8 files |
 
 ### Quick Tasks Completed
 
