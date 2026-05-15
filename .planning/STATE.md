@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Runtime Platform Foundations
-current_phase: Not started
-current_phase_name: Defining requirements
-current_plan: "—"
+current_phase: 27
+current_phase_name: Compatibility baseline and V2 boundary scaffolding
+current_plan: 27-CONTEXT pending
 status: planning
-stopped_at: Milestone v2.0 initialized
-last_updated: "2026-05-15T10:21:35Z"
+stopped_at: Roadmap approved; ready for phase discussion
+last_updated: "2026-05-15T10:38:56Z"
 last_activity: 2026-05-15
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
-  total_plans: 0
+  total_plans: 24
   completed_plans: 0
   percent: 0
 ---
@@ -22,16 +22,17 @@ progress:
 ## Current Position
 
 Milestone: v2.0 Runtime Platform Foundations
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-05-15 -- Milestone v2.0 started
+Phase: 27
+Phase name: Compatibility baseline and V2 boundary scaffolding
+Plan: 27-CONTEXT pending
+Status: Roadmap approved; ready for phase discussion
+Last activity: 2026-05-15 -- Roadmap approved for milestone v2.0
 
 ## Milestone Notes
 
 - 当前 milestone 从 backlog 空档切换到 `v2.0 Runtime Platform Foundations`。
 - 这轮目标是直接重组主工程边界，并交付一个可运行、可审计、可受控的 sandboxed runtime step。
-- 研究已完成，当前进入 requirements 与 roadmap 定义阶段。
+- 研究与 requirements 已确认，roadmap 已创建；下一步进入 Phase 27 discuss/plan。
 - `COURSE-07`、`AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05`、`CLASS-05` 继续保留为 project-level safety gaps。
 - PostgreSQL、Redis/Event Bus、WebSocket 在本轮只建立 seam，不做正式 cutover。
 

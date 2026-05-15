@@ -347,37 +347,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANALYTICS-01 | Phase 25 | Complete |
 | ANALYTICS-02 | Phase 26 | Complete |
 | UI-05 | Phase 26 | Complete |
-| SAFE-01 | — | Pending |
-| SAFE-02 | — | Pending |
-| SAFE-03 | — | Pending |
-| ARCH-01 | — | Pending |
-| ARCH-02 | — | Pending |
-| ARCH-03 | — | Pending |
-| BRDG-01 | — | Pending |
-| BRDG-02 | — | Pending |
-| BRDG-03 | — | Pending |
-| BRDG-04 | — | Pending |
-| RTSE-01 | — | Pending |
-| RTSE-02 | — | Pending |
-| RTSE-03 | — | Pending |
-| RTSE-04 | — | Pending |
-| RHOST-01 | — | Pending |
-| RHOST-02 | — | Pending |
-| RHOST-03 | — | Pending |
-| RHOST-04 | — | Pending |
-| GOVR-01 | — | Pending |
-| GOVR-02 | — | Pending |
-| GOVR-03 | — | Pending |
-| GOVR-04 | — | Pending |
-| TRNS-01 | — | Pending |
-| TRNS-02 | — | Pending |
+| SAFE-01 | Phase 27 | Pending |
+| SAFE-02 | Phase 27 | Pending |
+| SAFE-03 | Phase 28 | Pending |
+| ARCH-01 | Phase 27 | Pending |
+| ARCH-02 | Phase 27 | Pending |
+| ARCH-03 | Phase 27 | Pending |
+| BRDG-01 | Phase 28 | Pending |
+| BRDG-02 | Phase 28 | Pending |
+| BRDG-03 | Phase 28 | Pending |
+| BRDG-04 | Phase 28 | Pending |
+| RTSE-01 | Phase 28 | Pending |
+| RTSE-02 | Phase 28 | Pending |
+| RTSE-03 | Phase 28 | Pending |
+| RTSE-04 | Phase 28 | Pending |
+| RHOST-01 | Phase 29 | Pending |
+| RHOST-02 | Phase 29 | Pending |
+| RHOST-03 | Phase 29 | Pending |
+| RHOST-04 | Phase 32 | Pending |
+| GOVR-01 | Phase 30 | Pending |
+| GOVR-02 | Phase 30 | Pending |
+| GOVR-03 | Phase 30 | Pending |
+| GOVR-04 | Phase 31 | Pending |
+| TRNS-01 | Phase 31 | Pending |
+| TRNS-02 | Phase 31 | Pending |
 
 **Coverage:**
 - v1/v1.1/v1.2/v1.x/v1.3/v2.0 requirements: 114 total
-- Mapped to phases: 90
-- Unmapped: 24
+- Mapped to phases: 114
+- Unmapped: 0
 - Duplicate mappings: 0
 
 ---
 *Requirements defined: 2026-05-04*  
-*Last updated: 2026-05-15 after defining milestone v2.0 Runtime Platform Foundations requirements*
+*Last updated: 2026-05-15 after creating the milestone v2.0 roadmap*
