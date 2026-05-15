@@ -1,0 +1,10 @@
+# Deferred Items
+
+## 2026-05-15
+
+- `./node_modules/.bin/tsc --noEmit` currently fails in pre-existing test files unrelated to Phase 27 Plan 02:
+  - `src/actions/learning-actions.test.ts`
+  - `src/actions/lesson-authoring-actions.test.ts`
+  - `src/actions/plugin-actions.test.ts`
+  - `src/actions/theme-actions.test.ts`
+- These failures were observed while verifying runtime-platform boundary changes and are out of scope for this plan because the modified files compile posture was limited to route import migration and feature barrels.

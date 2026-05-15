@@ -7,7 +7,7 @@
 
 ### Current milestone phases
 
-- [ ] **Phase 27: Compatibility baseline and V2 boundary scaffolding** - Freeze the existing classroom-critical flows, establish compatibility guardrails, and introduce the first explicit runtime-platform boundaries in the main project.
+- [ ] **Phase 27: Compatibility baseline and V2 boundary scaffolding** - Freeze the existing classroom-critical flows, establish compatibility guardrails, and introduce the first explicit runtime-platform boundaries in the main project. (27-02 completed 2026-05-15)
 - [ ] **Phase 28: Runtime bridge contracts and session persistence** - Define runtime descriptors and TeachingBridge contracts, add runtime session persistence, and append canonical runtime events through a durable outbox path.
 - [ ] **Phase 29: Runtime Host and HTML courseware pilot** - Deliver the first sandboxed HTML courseware runtime through teacher preview, student player, and classroom-compatible host surfaces.
 - [ ] **Phase 30: Capability enforcement and plugin lifecycle** - Upgrade platform governance with capability-checked host actions, plugin manifest v2, lifecycle state, and allowed or denied audit semantics.
@@ -64,7 +64,7 @@
   4. PostgreSQL, Redis/Event Bus, and WebSocket seams exist as future adapters without becoming required services in this phase.
 **Plans**: 4 plans
 - [ ] 27-01-PLAN.md — Freeze the compatibility baseline for the current classroom-critical flows and add regression harness coverage.
-- [ ] 27-02-PLAN.md — Introduce runtime-platform feature roots, public barrels, and compatibility re-export rules in the main project.
+- [x] 27-02-PLAN.md — Introduce runtime-platform feature roots, public barrels, and compatibility re-export rules in the main project. (completed 2026-05-15)
 - [ ] 27-03-PLAN.md — Extract shared runtime contracts, permissions, and descriptor packages or equivalent stable boundaries.
 - [ ] 27-04-PLAN.md — Add infrastructure seam adapters for PostgreSQL, Redis/Event Bus, and WebSocket without enabling cutover.
 **UI hint**: yes
@@ -378,7 +378,7 @@ Current milestone phases plus historical snapshot retained for planning referenc
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 27. Compatibility baseline and V2 boundary scaffolding | 0/4 | Not started | - |
+| 27. Compatibility baseline and V2 boundary scaffolding | 1/4 | In progress | 2026-05-15 |
 | 28. Runtime bridge contracts and session persistence | 0/4 | Not started | - |
 | 29. Runtime Host and HTML courseware pilot | 0/4 | Not started | - |
 | 30. Capability enforcement and plugin lifecycle | 0/4 | Not started | - |

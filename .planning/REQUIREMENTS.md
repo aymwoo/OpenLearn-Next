@@ -149,7 +149,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 #### Repo and boundary evolution
 
-- [ ] **ARCH-01**: Developer can access new runtime-platform capabilities through explicit feature public APIs and compatibility re-exports instead of deep cross-domain imports.
+- [x] **ARCH-01**: Developer can access new runtime-platform capabilities through explicit feature public APIs and compatibility re-exports instead of deep cross-domain imports.
 - [ ] **ARCH-02**: Developer can work with extracted shared contract packages for runtime bridge, runtime events, permissions, and descriptors without moving the whole product to multi-app deployment in v2.0.
 - [ ] **ARCH-03**: Developer can configure future PostgreSQL, Redis/Event Bus, and WebSocket adapters behind explicit seams without making those services required in v2.0.
 
@@ -350,7 +350,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAFE-01 | Phase 27 | Pending |
 | SAFE-02 | Phase 27 | Pending |
 | SAFE-03 | Phase 28 | Pending |
-| ARCH-01 | Phase 27 | Pending |
+| ARCH-01 | Phase 27 | Complete |
 | ARCH-02 | Phase 27 | Pending |
 | ARCH-03 | Phase 27 | Pending |
 | BRDG-01 | Phase 28 | Pending |
