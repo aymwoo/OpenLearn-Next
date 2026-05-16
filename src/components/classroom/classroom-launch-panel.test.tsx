@@ -286,4 +286,11 @@ describe("ClassroomLaunchPanel", () => {
     expect(launchSurfaceSource).toContain("xl:grid-cols-[minmax(0,1fr)_320px]");
     expect(launchSurfaceSource).not.toContain("overflow-x-auto");
   });
+
+  it("adds a secondary seeded proof affordance without replacing the main launch CTA", () => {
+    expect(launchSurfaceSource).toContain("seeded proof 演示");
+    expect(launchSurfaceSource).toContain("开发测试课时");
+    expect(launchSurfaceSource).toContain("互动证明：HTML 课件实验");
+    expect(launchSurfaceSource).toContain("开启新课堂");
+  });
 });

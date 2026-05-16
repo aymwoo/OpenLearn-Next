@@ -9,6 +9,7 @@ import { ClassroomConsoleSurface } from './classroom-console-surface'
 import type { ClassroomConsoleDTO, ClassroomSessionRecapDTO, ClassroomSnapshotDTO } from '@/lib/dto/classroom'
 
 const source = readFileSync('src/components/surfaces/classroom-console-surface.tsx', 'utf8')
+const controlPanelSource = readFileSync('src/components/classroom/classroom-control-panel.tsx', 'utf8')
 
 vi.mock('@/components/classroom/classroom-control-panel', () => ({
   ClassroomControlPanel: () => <div>实时课堂控制</div>,
@@ -130,5 +131,12 @@ describe('ClassroomConsoleSurface', () => {
     expect(source).toContain('teacherSurfaceRhythm.stack')
     expect(source).toContain('ClassroomSessionRecapSurface')
     expect(source).not.toContain('overflow-x-auto')
+  })
+
+  it('keeps proof first-feedback in classroom and exposes the inspector deep-link as a secondary action', () => {
+    expect(controlPanelSource).toContain('已有学生完成当前互动提交')
+    expect(controlPanelSource).toContain('当前互动结果待重试，可进入运行排查')
+    expect(controlPanelSource).toContain('查看运行轨迹')
+    expect(controlPanelSource).toContain('runtimeSessionId=')
   })
 })
