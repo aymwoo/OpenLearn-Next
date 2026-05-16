@@ -47,6 +47,7 @@ describe("Phase 04 student DTO surfaces", () => {
 
   it("keeps quick-response rendering inside the same classroom runtime shell", () => {
     expect(runtimeSource).toContain("StepActivityShell");
+    expect(runtimeSource).toContain("RuntimeHostClient");
     expect(runtimeSource).toContain("当前活动");
     expect(runtimeSource).toContain("活动提示");
     expect(runtimeSource).toContain("提交要求");
@@ -62,5 +63,14 @@ describe("Phase 04 student DTO surfaces", () => {
     expect(runtimeSource).toContain("正在重新连接课堂，会先显示最近一次课堂状态。");
     expect(runtimeSource).toMatch(/return \(\) => \{\s*source\?\.close\(\)/);
     expect(runtimeSource).not.toMatch(/source\.onerror = \(\) => \{\s*source\?\.close\(\)/);
+  });
+
+  it("keeps runtime failure recovery on the same learning surface with retry CTA", () => {
+    expect(runtimeSource).toContain("重试刚才的操作");
+    expect(runtimeSource).toContain("当前状态暂未保存成功，请直接重试保存");
+    expect(runtimeSource).toContain("本次互动结果暂未提交成功，请重试当前提交");
+    expect(runtimeSource).toContain("snapshot_fallback");
+    expect(runtimeSource).not.toContain("runtime-inspector");
+    expect(runtimeSource).not.toContain("inspector auto-jump");
   });
 });
