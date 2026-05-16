@@ -28,6 +28,20 @@ export const RuntimeStepStateDTOSchema = z.object({
   disabledReason: z.string().nullable().default(null),
   snapshotStatusCopy: z.string().nullable().default(null),
   manualRefreshAvailable: z.boolean().default(false),
+  lastFailedAction: z.enum(["runtime-save", "runtime-submit"]).nullable().default(null),
+  latestRuntime: z
+    .object({
+      sessionId: z.string(),
+      runtimeId: z.string(),
+      runtimeVersion: z.string(),
+      stateVersion: z.number().int().positive(),
+      kind: z.enum(["ready", "saved", "submitted", "reset"]),
+      updatedAt: z.string(),
+    })
+    .nullable()
+    .default(null),
+  latestRuntimeStateSummary: z.record(z.string(), z.unknown()).default({}),
+  runtimeRecoveryStatus: z.enum(["unavailable", "available", "restored"]).default("unavailable"),
 });
 
 export const AttemptFeedbackDTOSchema = z.object({

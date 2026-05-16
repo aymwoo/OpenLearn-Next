@@ -47,6 +47,7 @@ export default function HtmlCoursewarePilotPage() {
   const [draft, setDraft] = useState<RuntimeDraftState>(DEFAULT_STATE);
   const [lastFailedAction, setLastFailedAction] = useState<"runtime-save" | "runtime-submit" | null>(null);
   const [terminalSubmitState, setTerminalSubmitState] = useState<TerminalSubmitState | null>(null);
+  const [lastRetryCurrentActionRequest, setLastRetryCurrentActionRequest] = useState(0);
 
   const summary = useMemo(
     () => ({
@@ -107,6 +108,10 @@ export default function HtmlCoursewarePilotPage() {
             interactionCount:
               typeof restored.interactionCount === "number" ? restored.interactionCount : prev.interactionCount,
           }));
+        }
+
+        if (typeof (message.bootstrap as { latestStateSummary?: { summary?: { retryCurrentActionRequest?: unknown } } } | null)?.latestStateSummary?.summary?.retryCurrentActionRequest === 'number') {
+          setLastRetryCurrentActionRequest((message.bootstrap as { latestStateSummary?: { summary?: { retryCurrentActionRequest?: number } } }).latestStateSummary?.summary?.retryCurrentActionRequest ?? 0)
         }
 
         postToHost({
@@ -187,6 +192,20 @@ export default function HtmlCoursewarePilotPage() {
 
     return () => window.removeEventListener("message", handleMessage);
   }, [runtimeInstanceId]);
+
+  useEffect(() => {
+    if (!runtimeInstanceId || !bridgeContext || !lastFailedAction || isTerminalSubmitState) {
+      return;
+    }
+
+    if (lastRetryCurrentActionRequest === 0) {
+      return
+    }
+
+    const retryEvent = lastFailedAction === 'runtime-submit' ? handleSubmit : handleSave
+    retryEvent()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridgeContext, isTerminalSubmitState, lastFailedAction, lastRetryCurrentActionRequest, runtimeInstanceId])
 
   const handleInteract = () => {
     if (!runtimeInstanceId || !bridgeContext || isTerminalSubmitState) {

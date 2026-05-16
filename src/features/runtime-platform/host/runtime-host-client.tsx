@@ -41,6 +41,9 @@ type RuntimeHostClientProps = {
   snapshotPayload?: Record<string, unknown> | null;
   latestRuntimeStateSummary?: Record<string, unknown>;
   note?: string | null;
+  retryCurrentActionRequest?: number;
+  onActionFailure?: (action: "runtime-save" | "runtime-submit") => void;
+  onActionRecovered?: (action: "runtime-save" | "runtime-submit") => void;
 };
 
 function getSurfaceTitle(surface: RuntimeHostSurface) {
@@ -91,6 +94,9 @@ export function RuntimeHostClient({
   snapshotPayload,
   latestRuntimeStateSummary,
   note,
+  retryCurrentActionRequest = 0,
+  onActionFailure,
+  onActionRecovered,
 }: RuntimeHostClientProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const runtimeInstanceIdRef = useRef(`runtime-host-${createRuntimeBridgeMessageId()}`);
@@ -201,6 +207,7 @@ export function RuntimeHostClient({
           snapshot: {
             ...snapshotPayload,
             latestRuntimeStateSummary: latestRuntimeStateSummary ?? {},
+            retryCurrentActionRequest,
           },
         }),
       );
@@ -211,7 +218,7 @@ export function RuntimeHostClient({
         setStatusCopy("runtime host 已连接，可继续互动、保存与提交。");
         setErrorCopy(null);
       }
-  }, [bootstrap, frameReady, latestRuntimeStateSummary, note, snapshotPayload, status, stepTitle, surface]);
+  }, [bootstrap, frameReady, latestRuntimeStateSummary, note, retryCurrentActionRequest, snapshotPayload, status, stepTitle, surface]);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -267,6 +274,9 @@ export function RuntimeHostClient({
             setStatus,
             setStatusCopy,
           });
+          if (message.kind === "runtime-submit" || message.kind === "runtime-save") {
+            onActionFailure?.(message.kind);
+          }
           setErrorCopy(result.message);
           return;
         }
@@ -276,11 +286,13 @@ export function RuntimeHostClient({
         if (message.kind === "runtime-save") {
           setStatus("save-success");
           setStatusCopy("runtime state 已通过 trusted host boundary 保存。");
+          onActionRecovered?.("runtime-save");
         }
 
         if (message.kind === "runtime-submit") {
           setStatus("submit-success");
           setStatusCopy("runtime submit 已通过 trusted host boundary 提交。");
+          onActionRecovered?.("runtime-submit");
         }
 
         if (message.kind === "runtime-interaction") {
@@ -306,13 +318,16 @@ export function RuntimeHostClient({
           setStatus,
           setStatusCopy,
         });
+        if (message.kind === "runtime-submit" || message.kind === "runtime-save") {
+          onActionFailure?.(message.kind);
+        }
         setErrorCopy(error instanceof Error ? error.message : "RUNTIME_HOST_REQUEST_FAILED");
       });
     }
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [bootstrap, classroomSessionId, publishedVersionId]);
+  }, [bootstrap, classroomSessionId, onActionFailure, onActionRecovered, publishedVersionId]);
 
   return (
     <RuntimeHostFrame

@@ -12,6 +12,7 @@ import { QuickResponseStepCard } from '@/components/learning/quick-response-step
 import { QuizStepCard } from '@/components/learning/quiz-step-card'
 import { TaskStepCard } from '@/components/learning/task-step-card'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
+import { RuntimeHostClient } from '@/features/runtime-platform/host'
 import { touchClassroomPresenceAction } from '@/actions/classroom-actions'
 import { markStepProgressAction } from '@/actions/learning-actions'
 import type {
@@ -83,9 +84,47 @@ function ContentStepCard({ player, step, state }: { player: StudentPlayerDTO; st
   )
 }
 
-function CurrentStepRenderer({ player, step }: { player: StudentPlayerDTO; step: LearningStepDTO }) {
+function CurrentStepRenderer({
+  player,
+  step,
+  retryCurrentActionRequest,
+  onRuntimeActionFailure,
+  onRuntimeActionRecovered,
+}: {
+  player: StudentPlayerDTO;
+  step: LearningStepDTO;
+  retryCurrentActionRequest: number;
+  onRuntimeActionFailure: (action: 'runtime-save' | 'runtime-submit') => void;
+  onRuntimeActionRecovered: (action: 'runtime-save' | 'runtime-submit') => void;
+}) {
   const state = getStepState(player, step.id)
   const activity = getStepActivity(player, step.id)
+  const runtimeDescriptor = step.payload.runtime
+
+  if (runtimeDescriptor) {
+    return (
+      <RuntimeHostClient
+        descriptor={runtimeDescriptor}
+        surface="student-player"
+        actorScope="student"
+        lessonId={player.shell.lessonId}
+        stepId={step.id}
+        stepTitle={step.title}
+        publishedVersionId={player.shell.publishedVersionId}
+        classroomSessionId={player.runtime.classroomSessionId}
+        snapshotPayload={step.payload as unknown as Record<string, unknown>}
+        latestRuntimeStateSummary={player.runtime.latestRuntimeStateSummary}
+        retryCurrentActionRequest={retryCurrentActionRequest}
+        onActionFailure={onRuntimeActionFailure}
+        onActionRecovered={onRuntimeActionRecovered}
+        note={
+          player.runtime.runtimeRecoveryStatus === 'restored'
+            ? '已恢复上次 runtime 状态，继续保持课堂上下文。'
+            : '当前步骤通过共享 runtime host 渲染，并继续复用 trusted submit/save boundary。'
+        }
+      />
+    )
+  }
 
   if (!activity) {
     return null
@@ -150,12 +189,32 @@ function CurrentStepRenderer({ player, step }: { player: StudentPlayerDTO; step:
   )
 }
 
-function StepActivityShell({ player, step }: { player: StudentPlayerDTO; step: LearningStepDTO }) {
+function StepActivityShell({
+  player,
+  step,
+  retryCurrentActionRequest,
+  onRuntimeActionFailure,
+  onRuntimeActionRecovered,
+}: {
+  player: StudentPlayerDTO;
+  step: LearningStepDTO;
+  retryCurrentActionRequest: number;
+  onRuntimeActionFailure: (action: 'runtime-save' | 'runtime-submit') => void;
+  onRuntimeActionRecovered: (action: 'runtime-save' | 'runtime-submit') => void;
+}) {
   const activity = getStepActivity(player, step.id)
   const state = getStepState(player, step.id)
 
   if (!activity) {
-    return <CurrentStepRenderer player={player} step={step} />
+    return (
+      <CurrentStepRenderer
+        player={player}
+        step={step}
+        retryCurrentActionRequest={retryCurrentActionRequest}
+        onRuntimeActionFailure={onRuntimeActionFailure}
+        onRuntimeActionRecovered={onRuntimeActionRecovered}
+      />
+    )
   }
 
   return (
@@ -189,7 +248,43 @@ function StepActivityShell({ player, step }: { player: StudentPlayerDTO; step: L
       </div>
 
       <div className="mt-6">
-        <CurrentStepRenderer player={player} step={step} />
+        <CurrentStepRenderer
+          player={player}
+          step={step}
+          retryCurrentActionRequest={retryCurrentActionRequest}
+          onRuntimeActionFailure={onRuntimeActionFailure}
+          onRuntimeActionRecovered={onRuntimeActionRecovered}
+        />
+      </div>
+    </section>
+  )
+}
+
+function RuntimeFailureRecoveryCard({
+  runtime,
+  onRetryCurrentAction,
+}: {
+  runtime: StudentPlayerDTO['runtime']
+  onRetryCurrentAction: () => void
+}) {
+  if (!runtime.lastFailedAction) {
+    return null
+  }
+
+  const failureCopy = runtime.lastFailedAction === 'runtime-submit'
+    ? '本次互动结果暂未提交成功，请重试当前提交；老师会先在课堂面板看到异常状态。'
+    : '当前状态暂未保存成功，请直接重试保存，系统会保留你刚才填写的内容。'
+
+  return (
+    <section className="rounded-[var(--radius-shell)] bg-[#fef2f2] p-5 shadow-ambient sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-[#b42318]">当前运行需要恢复</p>
+          <p className="mt-2 leading-7 text-[#7a271a]">{failureCopy}</p>
+        </div>
+        <Button type="button" onClick={onRetryCurrentAction} className="min-h-[44px]">
+          重试刚才的操作
+        </Button>
       </div>
     </section>
   )
@@ -220,7 +315,28 @@ export function ClassroomRuntimeClient({
 
   const [runtime, setRuntime] = useState(initialRuntime)
   const [snapshotStatusCopy, setSnapshotStatusCopy] = useState<string | null>(initialRuntime.snapshotStatusCopy)
+  const [retryCurrentActionRequest, setRetryCurrentActionRequest] = useState(0)
   const currentRuntimeStepId = runtime.forcedStepId ?? personal.progress.resumeStepId ?? shell.steps[0]?.id ?? null
+  const currentStep = shell.steps.find((step) => step.id === currentRuntimeStepId) ?? shell.steps[0] ?? null
+
+  const handleRetryCurrentAction = () => {
+    setRetryCurrentActionRequest((prev) => prev + 1)
+    setSnapshotStatusCopy('已保留当前学习上下文，请直接在当前 runtime 中重试刚才的操作。')
+  }
+
+  const handleRuntimeActionFailure = (action: 'runtime-save' | 'runtime-submit') => {
+    setRuntime((prev) => ({
+      ...prev,
+      lastFailedAction: action,
+    }))
+  }
+
+  const handleRuntimeActionRecovered = (action: 'runtime-save' | 'runtime-submit') => {
+    setRuntime((prev) => ({
+      ...prev,
+      lastFailedAction: prev.lastFailedAction === action ? null : prev.lastFailedAction,
+    }))
+  }
 
   const touchPresence = useCallback(async (
     connectionState: 'connected' | 'reconnecting' | 'offline',
@@ -345,9 +461,6 @@ export function ClassroomRuntimeClient({
   }, [currentRuntimeStepId, runtime.connectionState, sessionId, touchPresence])
 
   const player = { shell, ...personal, runtime } satisfies StudentPlayerDTO
-  const currentStepId = player.runtime.forcedStepId ?? player.progress.resumeStepId
-  const currentStep = player.shell.steps.find((step) => step.id === currentStepId)
-    ?? player.shell.steps[0]
   const completedSteps = player.progress.steps.filter((step) => step.state === 'completed' || step.state === 'skipped').length
 
   if (!currentStep) {
@@ -438,6 +551,8 @@ export function ClassroomRuntimeClient({
         </aside>
 
         <main className="min-w-0 space-y-5">
+          <RuntimeFailureRecoveryCard runtime={player.runtime} onRetryCurrentAction={handleRetryCurrentAction} />
+
           {player.runtime.teacherRecommendedStepId && !player.runtime.locked && currentStep.id !== player.runtime.teacherRecommendedStepId && (
             <div className="rounded-[var(--radius-shell)] bg-primary-container/20 p-4 shadow-ambient">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -463,7 +578,13 @@ export function ClassroomRuntimeClient({
               <Badge variant="accent">{player.runtime.forcedStepId === currentStep.id ? '老师指定' : stateCopy[getStepState(player, currentStep.id)]}</Badge>
             </div>
             <div className="mt-6">
-              <StepActivityShell player={player} step={currentStep} />
+              <StepActivityShell
+                player={player}
+                step={currentStep}
+                retryCurrentActionRequest={retryCurrentActionRequest}
+                onRuntimeActionFailure={handleRuntimeActionFailure}
+                onRuntimeActionRecovered={handleRuntimeActionRecovered}
+              />
             </div>
           </Card>
 
