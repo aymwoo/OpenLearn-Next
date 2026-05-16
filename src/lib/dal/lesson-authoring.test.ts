@@ -16,6 +16,7 @@ const findManyClasses = vi.fn();
 const findManyClassMembers = vi.fn();
 const findManyPluginRegistrations = vi.fn();
 const selectCourseClassNames = vi.fn();
+const selectWhere = vi.fn();
 const insertReturning = vi.fn();
 const insertValues = vi.fn(() => ({ returning: insertReturning }));
 const updateReturning = vi.fn();
@@ -57,6 +58,7 @@ vi.mock("@/db", () => ({
         innerJoin: () => ({
           where: () => selectCourseClassNames(),
         }),
+        where: () => selectWhere(),
       }),
     }),
     query: {
@@ -83,6 +85,7 @@ vi.mock("@/lib/dal/membership", () => ({
 }));
 
 const source = readFileSync("src/lib/dal/lesson-authoring.ts", "utf8");
+const dtoSource = readFileSync("src/lib/dto/lesson-authoring.ts", "utf8");
 
 describe("lesson authoring DAL boundary", () => {
   beforeEach(() => {
@@ -130,6 +133,7 @@ describe("lesson authoring DAL boundary", () => {
       },
     ]);
     selectCourseClassNames.mockResolvedValue([{ className: "七年级一班" }]);
+    selectWhere.mockResolvedValue([{ value: 0 }]);
     insertReturning.mockResolvedValue([
       {
         id: "step-created",
@@ -178,6 +182,11 @@ describe("lesson authoring DAL boundary", () => {
     expect(source).toContain("getLessonEditorDTO");
   });
 
+  it("extends content, task, and quiz payload schemas with an optional runtime descriptor", () => {
+    expect(dtoSource).toContain('import { RuntimeDescriptorSchema } from "@/features/runtime-platform/contracts/descriptors";');
+    expect(dtoSource).toContain("runtime: RuntimeDescriptorSchema.optional()");
+  });
+
   it("enforces course ownership for lesson authoring reads and writes", () => {
     expect(source).toContain("course.ownerId !== scope.userId");
     expect(source).toContain("courseRows.filter((course) => course.ownerId === scope.userId)");
@@ -220,6 +229,109 @@ describe("lesson authoring DAL boundary", () => {
         }),
       })
     );
+  });
+
+  it("freezes the full runtime descriptor into the published snapshot", async () => {
+    const { publishLesson } = await import("./lesson-authoring");
+
+    const runtimeStepRows = [
+      {
+        id: "step-runtime",
+        lessonId: "lesson-owned",
+        type: "task",
+        title: "交互实验",
+        rank: "a1",
+        payloadJson: {
+          type: "task",
+          prompt: "提交你的实验结果",
+          submissionType: "text",
+          materialRefs: [],
+          runtime: {
+            version: "v2",
+            runtimeId: "runtime-html-courseware",
+            runtimeVersion: "2026.05.0",
+            kind: "html-courseware",
+            displayName: "HTML 实验",
+            stateSchemaVersion: "state-v1",
+            entry: {
+              sandbox: "iframe",
+              bootstrap: "/runtime/html-courseware",
+            },
+            bootstrap: {
+              contextMode: "minimal",
+              resumeStrategy: "latest-or-create",
+              capabilitySnapshot: "session-scoped",
+            },
+            submitTarget: {
+              primary: "classroom-evidence",
+              additional: ["task-submission"],
+            },
+            requestedCapabilities: ["runtime:submission:create"],
+          },
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-09T08:40:00.000Z"),
+      },
+    ];
+
+    findManyLessonSteps
+      .mockResolvedValueOnce(runtimeStepRows)
+      .mockResolvedValueOnce(runtimeStepRows)
+      .mockResolvedValueOnce(runtimeStepRows)
+      .mockResolvedValueOnce(runtimeStepRows);
+    insertReturning.mockResolvedValueOnce([
+      {
+        id: "published-version-1",
+        publishedAt: new Date("2026-05-10T09:00:00.000Z"),
+      },
+    ]);
+
+    await publishLesson({ lessonId: "lesson-owned" });
+
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        snapshotJson: expect.objectContaining({
+          steps: [
+            expect.objectContaining({
+              payload: expect.objectContaining({
+                runtime: expect.objectContaining({
+                  runtimeId: "runtime-html-courseware",
+                  runtimeVersion: "2026.05.0",
+                  stateSchemaVersion: "state-v1",
+                  submitTarget: {
+                    primary: "classroom-evidence",
+                    additional: ["task-submission"],
+                  },
+                }),
+              }),
+            }),
+          ],
+        }),
+      }),
+    );
+  });
+
+  it("freezes the canonical html courseware pilot descriptor into the published snapshot chain", async () => {
+    const { getCanonicalRuntimeProofSnapshotStep } = await import("../../../scripts/bootstrap-dev-db");
+    const snapshotStep = getCanonicalRuntimeProofSnapshotStep("lesson-owned");
+
+    expect(snapshotStep).toMatchObject({
+      lessonId: "lesson-owned",
+      type: "task",
+      title: expect.stringContaining("HTML"),
+      payload: expect.objectContaining({
+        runtime: expect.objectContaining({
+          kind: "html-courseware",
+          entry: expect.objectContaining({
+            bootstrap: "/runtime/html-courseware/pilot",
+          }),
+          submitTarget: {
+            primary: "classroom-evidence",
+            additional: ["task-submission"],
+          },
+        }),
+      }),
+    });
   });
 
   it("returns structured readiness blocking issues for draft completeness and plugin availability", async () => {
