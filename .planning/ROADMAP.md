@@ -8,10 +8,10 @@
 ### Current milestone phases
 
 - [x] **Phase 27: Compatibility baseline and V2 boundary scaffolding** - Freeze the existing classroom-critical flows, establish compatibility guardrails, and introduce the first explicit runtime-platform boundaries in the main project. (completed 2026-05-15)
-- [ ] **Phase 28: Runtime bridge contracts and session persistence** - Define runtime descriptors and TeachingBridge contracts, add runtime session persistence, and append canonical runtime events through a durable outbox path.
-- [ ] **Phase 29: Runtime Host and HTML courseware pilot** - Deliver the first sandboxed HTML courseware runtime through teacher preview, student player, and classroom-compatible host surfaces.
-- [ ] **Phase 30: Capability enforcement and plugin lifecycle** - Upgrade platform governance with capability-checked host actions, plugin manifest v2, lifecycle state, and allowed or denied audit semantics.
-- [ ] **Phase 31: Transport boundary and runtime inspector** - Add a transport gateway around the current SSE model and expose an operator-grade runtime or plugin timeline and health inspector.
+- [x] **Phase 28: Runtime bridge contracts and session persistence** - Define runtime descriptors and TeachingBridge contracts, add runtime session persistence, and append canonical runtime events through a durable outbox path. (completed 2026-05-16)
+- [x] **Phase 29: Runtime Host and HTML courseware pilot** - Deliver the first sandboxed HTML courseware runtime through teacher preview, student player, and classroom-compatible host surfaces. (completed 2026-05-16)
+- [x] **Phase 30: Capability enforcement and plugin lifecycle** - Upgrade platform governance with capability-checked host actions, plugin manifest v2, lifecycle state, and allowed or denied audit semantics. (completed 2026-05-16)
+- [x] **Phase 31: Transport boundary and runtime inspector** - Add a transport gateway around the current SSE model and expose an operator-grade runtime or plugin timeline and health inspector. (completed 2026-05-16)
 - [ ] **Phase 32: End-to-end hardening and milestone proof** - Close remaining integration gaps, prove the full runtime-hosted lesson path end-to-end, and ship the milestone demo with regression and safety verification.
 
 ### Current planning posture
@@ -79,10 +79,17 @@
   3. The system can create durable runtime sessions linked to lesson step, classroom session, and actor scope.
   4. Runtime ready, interaction, save, submit, and teacher-control events are appended through a canonical event log or outbox path while preserving DAL and cache discipline.
 **Plans**: 4 plans
-- [ ] 28-01-PLAN.md — Define runtime descriptor, bridge schema, capability token, and host result contracts.
-- [ ] 28-02-PLAN.md — Add runtime session persistence and scope-safe bootstrap metadata loaders.
-- [ ] 28-03-PLAN.md — Append canonical runtime events and outbox records through host-side server actions or route handlers.
-- [ ] 28-04-PLAN.md — Add cache invalidation matrix coverage and durability checks for runtime-related writes.
+**Wave 1**
+- [x] 28-01-PLAN.md — Define runtime descriptor, bridge schema, capability token, and host result contracts.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 28-02-PLAN.md — Add runtime session persistence and scope-safe bootstrap metadata loaders.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 28-03-PLAN.md — Append canonical runtime events and outbox records through host-side server actions or route handlers.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [x] 28-04-PLAN.md — Add cache invalidation matrix coverage and durability checks for runtime-related writes.
 **UI hint**: yes
 
 ### Phase 29: Runtime Host and HTML courseware pilot
@@ -95,10 +102,10 @@
   3. Teachers can add and publish one built-in HTML courseware runtime step inside the existing lesson authoring flow.
   4. Students can complete one real interaction inside the HTML runtime and submit a structured result through the existing server boundary.
 **Plans**: 4 plans
-- [ ] 29-01-PLAN.md — Build the Runtime Host shell, sandboxed iframe container, and host bootstrap wiring.
-- [ ] 29-02-PLAN.md — Wire runtime-capable step rendering into teacher preview, student player, and classroom-compatible read models.
-- [ ] 29-03-PLAN.md — Add built-in HTML courseware runtime authoring, publish, and descriptor persistence.
-- [ ] 29-04-PLAN.md — Prove end-to-end HTML runtime interaction and structured submit flow with regression coverage.
+- [x] 29-01-PLAN.md — Build the Runtime Host shell, sandboxed iframe container, and host bootstrap wiring.
+- [x] 29-02-PLAN.md — Wire runtime-capable step rendering into teacher preview, student player, and classroom-compatible read models.
+- [x] 29-03-PLAN.md — Add built-in HTML courseware runtime authoring, publish, and descriptor persistence.
+- [x] 29-04-PLAN.md — Prove end-to-end HTML runtime interaction and structured submit flow with regression coverage.
 **UI hint**: yes
 
 ### Phase 30: Capability enforcement and plugin lifecycle
@@ -111,10 +118,10 @@
   3. Built-in runtime or plugin lifecycle state flows across installed, enabled, mounted, ready, suspended, disabled, and failed.
   4. Allowed and denied action outcomes are persisted with enough detail to support later operator inspection.
 **Plans**: 4 plans
-- [ ] 30-01-PLAN.md — Add capability-gated host action dispatch for runtime and plugin requests.
-- [ ] 30-02-PLAN.md — Extend plugin manifest contracts to v2 runtime and lifecycle metadata.
-- [ ] 30-03-PLAN.md — Persist and expose lifecycle state transitions for built-in runtime or plugin packages.
-- [ ] 30-04-PLAN.md — Add allowed or denied action audit records and governance-focused regression coverage.
+- [x] 30-01-PLAN.md — Add capability-gated host action dispatch for runtime and plugin requests.
+- [x] 30-02-PLAN.md — Extend plugin manifest contracts to v2 runtime and lifecycle metadata.
+- [x] 30-03-PLAN.md — Persist and expose lifecycle state transitions for built-in runtime or plugin packages.
+- [x] 30-04-PLAN.md — Add allowed or denied action audit records and governance-focused regression coverage.
 **UI hint**: yes
 
 ### Phase 31: Transport boundary and runtime inspector
@@ -127,10 +134,17 @@
   3. Teacher, admin, or developer can inspect actor, event, result, timestamp, health, and allowed or denied traces in a runtime or plugin timeline.
   4. The inspector helps explain producer-to-transport-to-consumer behavior without introducing a second source of truth.
 **Plans**: 4 plans
-- [ ] 31-01-PLAN.md — Introduce a transport gateway and keep the current SSE path as the first adapter.
-- [ ] 31-02-PLAN.md — Connect canonical runtime and classroom events to the transport boundary without changing durable truth ownership.
-- [ ] 31-03-PLAN.md — Build an inspector surface for runtime or plugin timeline, result, and health traces.
-- [ ] 31-04-PLAN.md — Add transport and inspector verification coverage for freshness, parity, and rollback-safe semantics.
+**Wave 1**
+- [x] 31-01-PLAN.md — Introduce the transport gateway contract, SSE-first adapter registry, and durable delivery-attempt truth.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 31-02-PLAN.md — Connect runtime and classroom canonical events to the transport boundary while preserving durable truth ownership and current SSE delivery.
+
+**Wave 3** *(blocked on Waves 1-2 completion)*
+- [x] 31-03-PLAN.md — Build the independent runtime inspector read model and single-timeline operator surface with deterministic health.
+
+**Wave 4** *(blocked on Waves 2-3 completion)*
+- [x] 31-04-PLAN.md — Add canonical transport and inspector verification coverage for parity, scope safety, and rollback-safe semantics.
 **UI hint**: yes
 
 ### Phase 32: End-to-end hardening and milestone proof
@@ -143,10 +157,10 @@
   3. The milestone ships with explicit hardening around cache freshness, session durability, capability denial, and rollback-safe transport behavior.
   4. The project can demonstrate a real Runtime Platform foundation without having performed PostgreSQL, Redis/Event Bus, or WebSocket cutover.
 **Plans**: 4 plans
-- [ ] 32-01-PLAN.md — Close cross-phase integration gaps across authoring, publish, launch, player, classroom, and inspector surfaces.
-- [ ] 32-02-PLAN.md — Harden session durability, cache freshness, and failure recovery for the runtime-hosted lesson path.
-- [ ] 32-03-PLAN.md — Add final end-to-end regression and milestone proof coverage for the HTML runtime demo.
-- [ ] 32-04-PLAN.md — Productize the milestone proof surfaces and finalize the v2.0 Runtime Platform Foundations demo handoff.
+- [x] 32-01-PLAN.md — Fix the deterministic proof seed and thread runtimeSessionId plus submit summary through the classroom truth path.
+- [ ] 32-02-PLAN.md — Harden terminal submit posture and same-surface failure recovery in the shared host and student runtime flow.
+- [ ] 32-03-PLAN.md — Add the canonical `verify:phase32` gate with proof-focused drift guards and regression coverage.
+- [ ] 32-04-PLAN.md — Productize launch/classroom/inspector proof affordances and publish the explicit demo handoff.
 **UI hint**: yes
 
 ### Phase 13: Course center foundation
@@ -379,11 +393,11 @@ Current milestone phases plus historical snapshot retained for planning referenc
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 27. Compatibility baseline and V2 boundary scaffolding | 4/4 | Complete   | 2026-05-15 |
-| 28. Runtime bridge contracts and session persistence | 0/4 | Not started | - |
-| 29. Runtime Host and HTML courseware pilot | 0/4 | Not started | - |
-| 30. Capability enforcement and plugin lifecycle | 0/4 | Not started | - |
+| 28. Runtime bridge contracts and session persistence | 4/4 | Complete    | 2026-05-16 |
+| 29. Runtime Host and HTML courseware pilot | 4/4 | Complete | 2026-05-16 |
+| 30. Capability enforcement and plugin lifecycle | 4/4 | Complete | 2026-05-16 |
 | 31. Transport boundary and runtime inspector | 0/4 | Not started | - |
-| 32. End-to-end hardening and milestone proof | 0/4 | Not started | - |
+| 32. End-to-end hardening and milestone proof | 1/4 | In Progress|  |
 | 13. Course center foundation | 5/5 | Complete   | 2026-05-09 |
 | 14. Course lifecycle and associations | 3/3 | Complete | 2026-05-15 |
 | 15. Batch course import | 3/3 | Complete | 2026-05-15 |

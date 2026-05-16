@@ -145,7 +145,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **SAFE-01**: System can prove existing teacher authoring, publish, launch, student player, and classroom control flows still work after V2 boundary changes through committed regression coverage.
 - [x] **SAFE-02**: New runtime and plugin host actions enforce existing server-side authz, school scope, and DTO shaping rules before external execution is enabled.
-- [ ] **SAFE-03**: Runtime and classroom pilot state is durably recoverable from persisted truth and not dependent only on SSE or in-memory transport state.
+- [x] **SAFE-03**: Runtime and classroom pilot state is durably recoverable from persisted truth and not dependent only on SSE or in-memory transport state.
 
 #### Repo and boundary evolution
 
@@ -155,24 +155,24 @@ Requirements for initial release. Each maps to roadmap phases.
 
 #### Runtime bridge contracts
 
-- [ ] **BRDG-01**: Teacher-authored lesson steps can carry a versioned runtime descriptor without replacing the current linear lesson snapshot model.
-- [ ] **BRDG-02**: Host and runtime can exchange versioned TeachingBridge messages validated by shared schemas.
-- [ ] **BRDG-03**: Runtime bootstrap provides a session-scoped capability context and minimal lesson/classroom metadata without exposing cookies, secrets, or raw database rows.
-- [ ] **BRDG-04**: Host returns typed success or failure result envelopes for runtime save, submit, and event requests.
+- [x] **BRDG-01**: Teacher-authored lesson steps can carry a versioned runtime descriptor without replacing the current linear lesson snapshot model.
+- [x] **BRDG-02**: Host and runtime can exchange versioned TeachingBridge messages validated by shared schemas.
+- [x] **BRDG-03**: Runtime bootstrap provides a session-scoped capability context and minimal lesson/classroom metadata without exposing cookies, secrets, or raw database rows.
+- [x] **BRDG-04**: Host returns typed success or failure result envelopes for runtime save, submit, and event requests.
 
 #### Runtime session and persistence
 
-- [ ] **RTSE-01**: System can create a durable runtime session linked to lesson step, classroom session, and actor scope.
-- [ ] **RTSE-02**: System records runtime ready, interaction, save, submit, and teacher-control events in a canonical event log or outbox.
-- [ ] **RTSE-03**: Runtime-generated writes flow only through host-side server actions or route handlers and DAL, never directly from iframe code to the database.
-- [ ] **RTSE-04**: Runtime-related writes update the correct cache tags or downstream read models so teacher and student surfaces stay consistent after mutation.
+- [x] **RTSE-01**: System can create a durable runtime session linked to lesson step, classroom session, and actor scope.
+- [x] **RTSE-02**: System records runtime ready, interaction, save, submit, and teacher-control events in a canonical event log or outbox.
+- [x] **RTSE-03**: Runtime-generated writes flow only through host-side server actions or route handlers and DAL, never directly from iframe code to the database.
+- [x] **RTSE-04**: Runtime-related writes update the correct cache tags or downstream read models so teacher and student surfaces stay consistent after mutation.
 
 #### Runtime host and HTML courseware pilot
 
-- [ ] **RHOST-01**: Teacher preview, student player, and classroom surfaces can render a sandboxed iframe Runtime Host for a runtime-capable step.
-- [ ] **RHOST-02**: Host can bootstrap the iframe runtime, sync runtime height, and deliver classroom snapshot updates during an active lesson.
-- [ ] **RHOST-03**: Teacher can add and publish one built-in HTML courseware runtime step inside the existing lesson authoring workflow.
-- [ ] **RHOST-04**: Student can open the built-in HTML runtime step in the existing learning flow, complete one real interaction, and submit a structured result successfully.
+- [x] **RHOST-01**: Teacher preview, student player, and classroom surfaces can render a sandboxed iframe Runtime Host for a runtime-capable step.
+- [x] **RHOST-02**: Host can bootstrap the iframe runtime, sync runtime height, and deliver classroom snapshot updates during an active lesson.
+- [x] **RHOST-03**: Teacher can add and publish one built-in HTML courseware runtime step inside the existing lesson authoring workflow.
+- [x] **RHOST-04**: Student can open the built-in HTML runtime step in the existing learning flow, complete one real interaction, and submit a structured result successfully.
 
 #### Platform governance and audit
 
@@ -349,22 +349,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-05 | Phase 26 | Complete |
 | SAFE-01 | Phase 27 | Complete |
 | SAFE-02 | Phase 27 | Complete |
-| SAFE-03 | Phase 28 | Pending |
+| SAFE-03 | Phase 28 | Complete |
 | ARCH-01 | Phase 27 | Complete |
 | ARCH-02 | Phase 27 | Complete |
 | ARCH-03 | Phase 27 | Complete |
-| BRDG-01 | Phase 28 | Pending |
-| BRDG-02 | Phase 28 | Pending |
-| BRDG-03 | Phase 28 | Pending |
-| BRDG-04 | Phase 28 | Pending |
-| RTSE-01 | Phase 28 | Pending |
-| RTSE-02 | Phase 28 | Pending |
-| RTSE-03 | Phase 28 | Pending |
-| RTSE-04 | Phase 28 | Pending |
-| RHOST-01 | Phase 29 | Pending |
-| RHOST-02 | Phase 29 | Pending |
-| RHOST-03 | Phase 29 | Pending |
-| RHOST-04 | Phase 32 | Pending |
+| BRDG-01 | Phase 28 | Complete |
+| BRDG-02 | Phase 28 | Complete |
+| BRDG-03 | Phase 28 | Complete |
+| BRDG-04 | Phase 28 | Complete |
+| RTSE-01 | Phase 28 | Complete |
+| RTSE-02 | Phase 28 | Complete |
+| RTSE-03 | Phase 28 | Complete |
+| RTSE-04 | Phase 28 | Complete |
+| RHOST-01 | Phase 29 | Complete |
+| RHOST-02 | Phase 29 | Complete |
+| RHOST-03 | Phase 29 | Complete |
+| RHOST-04 | Phase 32 | Complete |
 | GOVR-01 | Phase 30 | Pending |
 | GOVR-02 | Phase 30 | Pending |
 | GOVR-03 | Phase 30 | Pending |
@@ -380,4 +380,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-04*  
-*Last updated: 2026-05-15 after creating the milestone v2.0 roadmap*
+*Last updated: 2026-05-16 after closing Phase 29 runtime host and HTML courseware pilot*

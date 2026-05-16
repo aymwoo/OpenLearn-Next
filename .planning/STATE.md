@@ -2,15 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Runtime Platform Foundations
-status: verifying
-last_updated: "2026-05-15T15:08:39.000Z"
-last_activity: 2026-05-15
+current_phase: 32
+current_phase_name: end-to-end-hardening-and-milestone-proof
+current_plan: 2
+status: executing
+last_updated: "2026-05-16T14:35:40.026Z"
+last_activity: 2026-05-16
 progress:
   total_phases: 20
-  completed_phases: 15
-  total_plans: 59
-  completed_plans: 59
-  percent: 100
+  completed_phases: 19
+  total_plans: 79
+  completed_plans: 76
+  percent: 96
 ---
 
 # Project State
@@ -18,17 +21,27 @@ progress:
 ## Current Position
 
 Milestone: v2.0 Runtime Platform Foundations
-Phase: 27 (compatibility-baseline-and-v2-boundary-scaffolding) — COMPLETE
-Phase name: Compatibility baseline and V2 boundary scaffolding
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-05-15 -- Completed Phase 27 Plan 01 compatibility baseline gate
+Phase: 32 (end-to-end-hardening-and-milestone-proof) — EXECUTING
+Phase name: Capability enforcement and plugin lifecycle
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-05-16
+
+<!--
+GSD compatibility fields for older state parsers.
+Current Phase: 32
+Current Phase Name: end-to-end-hardening-and-milestone-proof
+Current Plan: 2
+Total Plans in Phase: 4
+Last Activity Description: Phase 32 execution started
+-->
 
 ## Milestone Notes
 
 - 当前 milestone 从 backlog 空档切换到 `v2.0 Runtime Platform Foundations`。
 - 这轮目标是直接重组主工程边界，并交付一个可运行、可审计、可受控的 sandboxed runtime step。
-- 研究与 requirements 已确认，roadmap 已创建；下一步进入 Phase 27 discuss/plan。
+- Phase 29 已完成 shared Runtime Host、三处 surface wiring、本地 HTML courseware pilot、`verify:phase29` 和 close artifacts。
+- Phase 30 已完成 capability-gated host actions、manifest v2 governance、lifecycle persistence、governance audit 与 `verify:phase30`。
 - `COURSE-07`、`AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05`、`CLASS-05` 继续保留为 project-level safety gaps。
 - PostgreSQL、Redis/Event Bus、WebSocket 在本轮只建立 seam，不做正式 cutover。
 
@@ -164,6 +177,9 @@ Last activity: 2026-05-15 -- Completed Phase 27 Plan 01 compatibility baseline g
 - [Phase 25]: participation 概览与学生摘要固定显式保留 `未评价`，不得默认并入 `正常参与`。
 - [Phase 25]: ended classroom 主舞台固定切成 recap hero + workload split + student-first drill-down；`环节诊断` 只作为次级诊断区。
 - [Phase 25]: `verify:phase25` 以静态 guard + focused tests 同时守住 route posture、split workload、`未评价` 语义和 second-source-of-truth anti-pattern。
+- [Phase 32]: canonical proof step 固定复用 htmlCourseware descriptor，避免 seed lesson 与 runtime contract 漂移。 — 保证 bootstrap、published snapshot 与真实 runtime descriptor 共用同一 contract。
+- [Phase 32]: runtime submit truth 必须由服务端返回 runtimeSessionId、submittedAt 与 proofSummary。 — 让 classroom first-feedback 与 inspector drill-down 共享同一 durable truth。
+- [Phase 32]: classroom monitoring 只暴露从 durable evidence 映射出的 runtimeProof。 — 避免 UI 重解 runtime state JSON 形成第二真相源。
 
 ## Next Steps
 
@@ -171,7 +187,7 @@ Last activity: 2026-05-15 -- Completed Phase 27 Plan 01 compatibility baseline g
 2. 后续 live planning 候选转向 `COURSE-07` 与其余 known gaps，同时继续复用已锁定的 classroom contracts：`/classroom` 主域、history reopen、split workload、显式 `未评价`。
 3. 如需恢复一键 `pnpm verify:phase24`，先处理仓库当前 `pnpm` build approval 门禁，再重跑同一组已通过的 direct test/verifier checks。
 4. 在下一轮 scope 确认前，不新增 milestone 名称或 phase 编号。
-5. Phase 27 已完成 27-04；下一步进入 Phase 28 runtime bridge contracts and session persistence。
+5. Phase 30 已完成代码、focused verification 与 GSD summaries；下一阶段可进入 Phase 31 transport boundary and runtime inspector。
 
 ## Performance Metrics
 
@@ -211,6 +227,7 @@ Last activity: 2026-05-15 -- Completed Phase 27 Plan 01 compatibility baseline g
 | Phase 27 P02 | 9 min | 2 tasks | 12 files |
 | Phase 27 P03 | 10 min | 2 tasks | 8 files |
 | Phase 27 P04 | 15 min | 2 tasks | 13 files |
+| Phase 32 P01 | 15 min | 2 tasks | 9 files |
 
 ### Quick Tasks Completed
 
@@ -282,10 +299,3 @@ Last activity: 2026-05-15 -- Completed Phase 27 Plan 01 compatibility baseline g
 | 260513-pjo | 将 /teacher/schedule 课程 hover 明细浮层进一步收敛为 glassmorphism 风格，增强半透明、blur 与高光层次 | 2026-05-13 | 3007a54 | [260513-pjo-hover-glassmorphism](./quick/260513-pjo-hover-glassmorphism/) |
 | 260513-pmb | 将 /teacher/schedule 课程 hover 明细浮层从 glassmorphism 收回到 premium education tonal 风格，强化 surface 层次与柔和质感 | 2026-05-13 | e53ab39 | [260513-pmb-hover-premium-education-tonal-glassmorph](./quick/260513-pmb-hover-premium-education-tonal-glassmorph/) |
 | 260515-v13 | 修复 help center parse blocker，并将 v1.3 归档口径收敛为真实的 Phase 21-26 scope 与 known gaps | 2026-05-15 | 未提交 | [260515-v13-close-blockers](./quick/260515-v13-close-blockers/) |
-
-## Current Position
-
-Phase: none active
-Plan: none active
-Status: backlog planning start after v1.3 archive
-Last activity: 2026-05-15 -- live planning reset to backlog selection start after v1.3 archive reconciliation
