@@ -1,11 +1,14 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
 
 import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction } from '@/actions/classroom-actions'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
+import { RuntimeDescriptorSchema } from '@/features/runtime-platform/contracts/descriptors'
+import { RuntimeHostClient } from '@/features/runtime-platform/host'
 import { ClassroomConflictPanel } from './classroom-conflict-panel'
 import { ClassroomRosterPanel } from './classroom-roster-panel'
 import { ClassroomSessionHistoryPanel } from './classroom-session-history-panel'
@@ -39,9 +42,33 @@ export function ClassroomControlPanel({
 
   const currentSnapshot = conflict?.latest || initialSnapshot
   const currentStep = currentSnapshot.steps.find((step: ClassroomStepDTO) => step.id === currentSnapshot.activeStepId)
+  const currentRuntimeDescriptor = (() => {
+    if (!currentStep?.payload || typeof currentStep.payload !== 'object' || !('runtime' in currentStep.payload)) {
+      return null
+    }
+
+    const parsedDescriptor = RuntimeDescriptorSchema.safeParse(currentStep.payload.runtime)
+    return parsedDescriptor.success ? parsedDescriptor.data : null
+  })()
   const connectedCount = currentSnapshot.monitoringSummary.connectedCount
   const totalParticipants = currentSnapshot.participants.length
   const attentionCount = currentSnapshot.monitoringSummary.needsAttentionCount
+  const submittedRuntimeParticipants = currentSnapshot.participants.filter(
+    (participant) => participant.runtimeProof?.status === 'submitted',
+  )
+  const runtimeAttentionParticipants = currentSnapshot.participants.filter(
+    (participant) =>
+      participant.runtimeProof?.status === 'failed'
+      || (!participant.runtimeProof
+        && participant.attentionReasons.some((reason) => reason.includes('当前环节未提交'))),
+  )
+  const primaryRuntimeProof = submittedRuntimeParticipants[0]?.runtimeProof
+    ?? currentSnapshot.participants.find((participant) => participant.runtimeProof)?.runtimeProof
+    ?? null
+  const runtimeInspectorHref = primaryRuntimeProof?.inspectorHref
+    ?? (primaryRuntimeProof?.runtimeSessionId
+      ? `/settings/labs/runtime-inspector?runtimeSessionId=${primaryRuntimeProof.runtimeSessionId}`
+      : null)
 
   const handleChangeStep = (stepId: string) => {
     if (conflict || isPending) return
@@ -231,7 +258,52 @@ export function ClassroomControlPanel({
           </div>
         </Card>
 
-        {currentStep && currentStep.type === 'content' && currentStep.payload && typeof currentStep.payload === 'object' && 'markdown' in currentStep.payload && currentStep.payload.markdown ? (
+        {currentRuntimeDescriptor ? (
+          <Card className="bg-surface-container-low p-5 sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-sm text-on-surface-variant">proof first-feedback</p>
+                <h3 className="mt-2 text-2xl font-semibold text-on-surface">
+                  {submittedRuntimeParticipants.length > 0
+                    ? '已有学生完成当前互动提交'
+                    : runtimeAttentionParticipants.length > 0
+                      ? '当前互动结果待重试，可进入运行排查'
+                      : '当前 proof 会话仍在等待学生提交'}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-on-surface-variant">
+                  {submittedRuntimeParticipants.length > 0
+                    ? `已有 ${submittedRuntimeParticipants.length} 名学生完成本次 runtime 互动提交，教师可先在课堂面板确认完成，再进入运行排查。`
+                    : runtimeAttentionParticipants.length > 0
+                      ? `当前有 ${runtimeAttentionParticipants.length} 名学生仍显示未提交或异常，先在课堂面板确认，再按需继续 drill-down。`
+                      : '学生一旦完成当前互动提交，这里会先给教师成功或异常提示，不需要先切去 inspector。'}
+                </p>
+              </div>
+
+              {runtimeInspectorHref ? (
+                <Button asChild variant="secondary" className="min-h-[44px] px-5">
+                  <Link href={runtimeInspectorHref}>查看运行轨迹</Link>
+                </Button>
+              ) : null}
+            </div>
+          </Card>
+        ) : null}
+
+        {currentStep && currentRuntimeDescriptor ? (
+          <RuntimeHostClient
+            descriptor={currentRuntimeDescriptor}
+            surface="classroom-stage"
+            actorScope="teacher"
+            lessonId={currentSnapshot.lessonId}
+            stepId={currentStep.id}
+            stepTitle={currentStep.title}
+            publishedVersionId={currentSnapshot.publishedVersionId}
+            classroomSessionId={currentSnapshot.sessionId}
+            snapshotPayload={currentStep.payload as Record<string, unknown>}
+            note="课堂主舞台复用共享 runtime host，继续保留现有教师控课动作与 SSE 快照同步。"
+          />
+        ) : null}
+
+        {currentStep && !currentRuntimeDescriptor && currentStep.type === 'content' && currentStep.payload && typeof currentStep.payload === 'object' && 'markdown' in currentStep.payload && currentStep.payload.markdown ? (
           <Card className="bg-surface-container-low p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>

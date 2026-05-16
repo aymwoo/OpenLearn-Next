@@ -113,6 +113,26 @@ export function ClassroomLaunchSurface({
           <Card className="bg-surface-container-low p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
+                <p className="text-sm text-on-surface-variant">seeded proof 演示</p>
+                <h2 className="mt-2 text-xl font-semibold text-on-surface">
+                  复用 canonical demo lesson 走完整 proof 链路
+                </h2>
+              </div>
+              <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-on-surface-variant shadow-ambient">
+                次级发现入口
+              </span>
+            </div>
+
+            <p className="mt-3 text-sm leading-6 text-on-surface-variant">
+              如需演示 milestone proof，可优先使用开发测试课时中的
+              “互动证明：HTML 课件实验” 环节，按既有 editor/publish → launch/classroom →
+              inspector 路径复现 canonical seeded proof 演示；主动作仍保持为开启新课堂。
+            </p>
+          </Card>
+
+          <Card className="bg-surface-container-low p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
                 <p className="text-sm text-on-surface-variant">
                   继续正在运行的课堂
                 </p>
