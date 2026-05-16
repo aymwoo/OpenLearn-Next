@@ -15,7 +15,11 @@ import {
   publishedLessonVersions,
   themeTokenRegistries,
 } from "@/db/schema";
-import { PluginManifestSchema } from "@/lib/dto/resource-ai";
+import {
+  BUILT_IN_TEACHING_STEP_DEFINITIONS,
+  PluginManifestSchema,
+  type BuiltInTeachingStepDefinition,
+} from "@/lib/dto/resource-ai";
 import { registerThemeTokens } from "@/server/themes/registry";
 
 import { seedTestAccounts } from "./seed-test-accounts";
@@ -26,6 +30,46 @@ const DEV_COURSE_SUBJECT = "初中信息科技";
 const DEV_COURSE_GRADE = "七年级";
 const DEV_LESSON_TITLE = "开发测试课时";
 const DEV_LESSON_OBJECTIVE = "帮助开发环境快速验证教师备课、学生学习与课堂联调链路。";
+
+const CANONICAL_RUNTIME_PROOF_STEP_RANK = "b5";
+
+function getHtmlCoursewareBuiltInDefinition(): BuiltInTeachingStepDefinition {
+  const definition = BUILT_IN_TEACHING_STEP_DEFINITIONS.find((item) => item.builtInKey === "htmlCourseware");
+
+  if (!definition) {
+    throw new Error("CANONICAL_RUNTIME_PROOF_STEP_MISSING");
+  }
+
+  return definition;
+}
+
+export function getCanonicalRuntimeProofStepDefinition() {
+  const definition = getHtmlCoursewareBuiltInDefinition();
+
+  return {
+    type: definition.stepType,
+    title: "互动证明：HTML 课件实验",
+    rank: CANONICAL_RUNTIME_PROOF_STEP_RANK,
+    payload: {
+      ...definition.initialPayload,
+      prompt: "在 HTML 互动课件中完成观察、填写结论，并提交结构化证明结果。",
+      successCriteria: "成功完成互动输入并提交观察摘要，教师可在课堂面板立即看到完成反馈。",
+    },
+  };
+}
+
+export function getCanonicalRuntimeProofSnapshotStep(lessonId: string) {
+  const definition = getCanonicalRuntimeProofStepDefinition();
+
+  return {
+    id: `canonical-runtime-proof-${lessonId}`,
+    lessonId,
+    type: definition.type,
+    title: definition.title,
+    rank: definition.rank,
+    payload: definition.payload,
+  };
+}
 
 const DEV_STEP_DEFINITIONS = [
   {
@@ -39,6 +83,9 @@ const DEV_STEP_DEFINITIONS = [
       teacherNotes: "先让学生说出日常接触到的信息载体，再进入本节目标。",
       materialRefs: [],
     },
+  },
+  {
+    ...getCanonicalRuntimeProofStepDefinition(),
   },
   {
     type: "task" as const,
