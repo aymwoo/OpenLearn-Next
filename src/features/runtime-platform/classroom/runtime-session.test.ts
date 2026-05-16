@@ -82,6 +82,15 @@ describe("runtime session service", () => {
     expect(source).toContain("runtime.submission.created");
   });
 
+  it("returns runtimeSessionId and a structured proof summary from runtime submit", () => {
+    expect(source).toContain("runtimeSessionId: runtimeSession.sessionId");
+    expect(source).toContain("classroomSessionId: context.session.id");
+    expect(source).toContain("submittedAt");
+    expect(source).toContain("proofSummary");
+    expect(source).toContain("submittedStateLabel");
+    expect(source).toContain("/settings/labs/runtime-inspector?runtimeSessionId=");
+  });
+
   it("persists runtime lifecycle transitions and governance audit writes", () => {
     expect(source).toContain("runtimeLifecycleTransitions");
     expect(source).toContain("createRuntimeGovernanceAudit");

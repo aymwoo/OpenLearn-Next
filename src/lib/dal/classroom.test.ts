@@ -428,6 +428,50 @@ describe("getClassroomConsoleDTO", () => {
   });
 });
 
+describe("runtime bridge boundaries", () => {
+  it("routes runtime actions through guarded host action wrappers", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain("export async function bootstrapRuntimeSession");
+    expect(source).toContain("export async function recordRuntimeInteraction");
+    expect(source).toContain("export async function saveRuntimeSessionState");
+    expect(source).toContain("export async function submitRuntimeSessionState");
+    expect(source).toContain("export async function recordRuntimeTeacherControl");
+    expect(source).toContain("invokeRuntimeHostAction");
+  });
+
+  it("publishes classroom canonical events through the transport gateway after durable inserts", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain("publishClassroomTransportEvent");
+    expect(source).toContain("publishTransportEvent");
+    expect(source).toContain('kind: "launched"');
+    expect(source).toContain('kind: "active_step_changed"');
+    expect(source).toContain('kind: "lock_mode_changed"');
+    expect(source).toContain('kind: "slide_changed"');
+    expect(source).toContain('kind: "ended"');
+  });
+
+  it("keeps runtime submit freshness tied to real classroom and progress truth", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain("recordRuntimeClassroomEvidence");
+    expect(source).toContain("sourceType: \"student-submission\"");
+    expect(source).toContain("runtimeBridge: true");
+  });
+
+  it("keeps the SSE events route on event-stream and records consumer-facing traces", () => {
+    const source = readFileSync("src/app/api/classroom/[sessionId]/events/route.ts", "utf8");
+
+    expect(source).toContain('"Content-Type": "text/event-stream; charset=utf-8"');
+    expect(source).toContain("recordTransportConsumerTrace");
+    expect(source).toContain('traceType: "snapshot"');
+    expect(source).toContain('traceType: "keepalive"');
+    expect(source).toContain('traceType: "stream_closed"');
+    expect(source).toContain('traceType: "stream_failed"');
+  });
+});
+
 describe("classroom evidence foundation contracts", () => {
   it("defines durable classroom evidence and timeline tables with session-owned cascade boundaries", async () => {
     const source = readFileSync("src/db/schema.ts", "utf8");
@@ -650,7 +694,17 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
         stepId: "step-2",
         sourceType: "student-submission",
         evidenceType: "submission",
-        payloadJson: {},
+        payloadJson: {
+          runtimeSessionId: "runtime-session-1",
+          runtimeInstanceId: "runtime-instance-1",
+          submittedAt: "2026-05-12T10:03:30.000Z",
+          proofSummary: {
+            title: "HTML 课件已提交",
+            submittedStateLabel: "已完成互动证明",
+            bridgeTargets: ["classroom-evidence", "task-submission"],
+            inspectorHref: "/settings/labs/runtime-inspector?runtimeSessionId=runtime-session-1",
+          },
+        },
         capturedById: "student-1",
         createdAt: new Date("2026-05-12T10:03:30Z"),
       },
@@ -695,6 +749,13 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
         submissionCount: 2,
         needsAttention: false,
         attentionReasons: [],
+        runtimeProof: expect.objectContaining({
+          runtimeSessionId: "runtime-session-1",
+          status: "submitted",
+          summaryTitle: "HTML 课件已提交",
+          summaryLabel: "已完成互动证明",
+          inspectorHref: "/settings/labs/runtime-inspector?runtimeSessionId=runtime-session-1",
+        }),
       }),
       expect.objectContaining({
         studentId: "student-2",
@@ -702,6 +763,7 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
         submissionCount: 0,
         needsAttention: true,
         attentionReasons: expect.arrayContaining(["当前离线", "落后于当前环节", "当前环节未提交"]),
+        runtimeProof: null,
       }),
       expect.objectContaining({
         studentId: "student-3",
@@ -709,8 +771,18 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
         submissionCount: 0,
         needsAttention: true,
         attentionReasons: expect.arrayContaining(["落后于当前环节", "当前环节未提交"]),
+        runtimeProof: null,
       }),
     ]);
+  });
+
+  it("keeps classroom action forwarding aligned with the extended runtime proof contract", () => {
+    const source = readFileSync("src/actions/classroom-actions.ts", "utf8");
+
+    expect(source).toContain("RuntimeSubmitResultSchema.parse");
+    expect(source).toContain("updateTag(cacheTags.classroom(parsed.data.payload.classroomSessionId))");
+    expect(source).toContain("updateTag(cacheTags.progress(result.lessonId, result.actorId))");
+    expect(source).toContain("updateTag(cacheTags.submission(result.lessonId, result.actorId))");
   });
 
   it("marks participants ahead of the teacher step without creating new evaluation tables", async () => {
