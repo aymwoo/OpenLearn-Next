@@ -4,16 +4,17 @@ milestone: v2.0
 milestone_name: Runtime Platform Foundations
 current_phase: 32
 current_phase_name: end-to-end-hardening-and-milestone-proof
-current_plan: 2
+current_plan: 3
 status: executing
-last_updated: "2026-05-16T14:35:40.026Z"
+stopped_at: Completed 32-02-PLAN.md
+last_updated: "2026-05-16T15:07:36.412Z"
 last_activity: 2026-05-16
 progress:
   total_phases: 20
   completed_phases: 19
   total_plans: 79
-  completed_plans: 76
-  percent: 96
+  completed_plans: 77
+  percent: 97
 ---
 
 # Project State
@@ -22,16 +23,17 @@ progress:
 
 Milestone: v2.0 Runtime Platform Foundations
 Phase: 32 (end-to-end-hardening-and-milestone-proof) — EXECUTING
-Phase name: Capability enforcement and plugin lifecycle
-Plan: 2 of 4
+Phase name: End-to-end hardening and milestone proof
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-05-16
+Progress: [██████████] 97%
 
 <!--
 GSD compatibility fields for older state parsers.
 Current Phase: 32
 Current Phase Name: end-to-end-hardening-and-milestone-proof
-Current Plan: 2
+Current Plan: 3
 Total Plans in Phase: 4
 Last Activity Description: Phase 32 execution started
 -->
@@ -180,6 +182,9 @@ Last Activity Description: Phase 32 execution started
 - [Phase 32]: canonical proof step 固定复用 htmlCourseware descriptor，避免 seed lesson 与 runtime contract 漂移。 — 保证 bootstrap、published snapshot 与真实 runtime descriptor 共用同一 contract。
 - [Phase 32]: runtime submit truth 必须由服务端返回 runtimeSessionId、submittedAt 与 proofSummary。 — 让 classroom first-feedback 与 inspector drill-down 共享同一 durable truth。
 - [Phase 32]: classroom monitoring 只暴露从 durable evidence 映射出的 runtimeProof。 — 避免 UI 重解 runtime state JSON 形成第二真相源。
+- [Phase 32]: submit 成功固定进入 terminal locked state，并通过 proof summary 在 runtime 内显示完成确认。
+- [Phase 32]: reconnect 与 snapshot fallback banner 继续由 player shell 承载，不把失败恢复跳转到 inspector。
+- [Phase 32]: save 或 submit 失败保持在当前 runtime surface，并把主恢复动作固定为重试刚才的操作。
 
 ## Next Steps
 
@@ -228,6 +233,13 @@ Last Activity Description: Phase 32 execution started
 | Phase 27 P03 | 10 min | 2 tasks | 8 files |
 | Phase 27 P04 | 15 min | 2 tasks | 13 files |
 | Phase 32 P01 | 15 min | 2 tasks | 9 files |
+| Phase 32 P02 | 4 min | 2 tasks | 7 files |
+
+## Session Tracking
+
+Last session: 2026-05-16T15:07:36.182Z
+Stopped At: Completed 32-02-PLAN.md
+Resume File: None
 
 ### Quick Tasks Completed
 
