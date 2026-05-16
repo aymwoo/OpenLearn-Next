@@ -63,12 +63,54 @@ import {
   type TeachingDesign,
 } from "@/lib/dto/lesson-authoring";
 import { resolveTeachingDesignInput } from "@/lib/teaching-design";
+import {
+  RuntimeHostActionResultDTOSchema,
+} from "@/lib/dto/classroom";
+import {
+  RuntimeSaveResultSchema,
+  RuntimeSubmitResultSchema,
+  RuntimeTeacherControlResultSchema,
+} from "@/features/runtime-platform/contracts/bridge";
+import { invokeRuntimeHostAction } from "@/features/runtime-platform/host-actions/runtime-host";
+import { publishTransportEvent, recordTransportConsumerTrace } from "@/features/runtime-platform/seams";
+import type {
+  BootstrapRuntimeSessionInput,
+  RecordRuntimeReadyInput,
+  RecordRuntimeInteractionInput,
+  RecordRuntimeTeacherControlInput,
+  SaveRuntimeStateInput,
+  SubmitRuntimeStateInput,
+} from "@/lib/dto/classroom";
 
 function toIso(value: Date | number | null | undefined) {
   if (!value) {
     return new Date(0).toISOString();
   }
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+async function publishClassroomTransportEvent(input: {
+  sessionId: string;
+  schoolId?: string | null;
+  eventId: string;
+  correlationId: string;
+  kind: "launched" | "active_step_changed" | "lock_mode_changed" | "slide_changed" | "ended";
+  payload: Record<string, unknown>;
+}) {
+  return publishTransportEvent({
+    sessionId: input.sessionId,
+    channel: "classroom-events",
+    kind: input.kind,
+    correlationId: input.correlationId,
+    truthPersisted: true,
+    truthRef: {
+      type: "classroom-event",
+      id: input.eventId,
+      classroomSessionId: input.sessionId,
+      schoolId: input.schoolId ?? undefined,
+    },
+    payload: input.payload,
+  });
 }
 
 type PublishedSnapshot = {
@@ -158,6 +200,49 @@ function buildParticipantAttention(input: {
   return {
     needsAttention: attentionReasons.length > 0,
     attentionReasons,
+  };
+}
+
+function extractRuntimeProofFromEvidence(input: {
+  payload: unknown;
+  createdAt: Date | number | null | undefined;
+}) {
+  const payload = (input.payload ?? {}) as {
+    runtimeSessionId?: unknown;
+    runtimeInstanceId?: unknown;
+    submittedAt?: unknown;
+    proofSummary?: {
+      title?: unknown;
+      submittedStateLabel?: unknown;
+      inspectorHref?: unknown;
+    };
+  };
+
+  if (typeof payload.runtimeSessionId !== "string" || payload.runtimeSessionId.length === 0) {
+    return null;
+  }
+
+  const submittedAt = typeof payload.submittedAt === "string" && payload.submittedAt.length > 0
+    ? payload.submittedAt
+    : toIso(input.createdAt);
+  const summaryTitle = typeof payload.proofSummary?.title === "string" && payload.proofSummary.title.length > 0
+    ? payload.proofSummary.title
+    : "运行时互动已提交";
+  const summaryLabel = typeof payload.proofSummary?.submittedStateLabel === "string" && payload.proofSummary.submittedStateLabel.length > 0
+    ? payload.proofSummary.submittedStateLabel
+    : "已完成互动证明";
+  const inspectorHref = typeof payload.proofSummary?.inspectorHref === "string" && payload.proofSummary.inspectorHref.length > 0
+    ? payload.proofSummary.inspectorHref
+    : `/settings/labs/runtime-inspector?runtimeSessionId=${payload.runtimeSessionId}`;
+
+  return {
+    runtimeSessionId: payload.runtimeSessionId,
+    runtimeInstanceId: typeof payload.runtimeInstanceId === "string" ? payload.runtimeInstanceId : null,
+    submittedAt,
+    status: "submitted" as const,
+    summaryTitle,
+    summaryLabel,
+    inspectorHref,
   };
 }
 
@@ -829,6 +914,62 @@ async function createClassroomTimelineEntry(input: {
   });
 }
 
+async function insertRuntimeClassroomEvidence(input: {
+  sessionId: string;
+  studentId?: string | null;
+  stepId?: string | null;
+  sourceType: "student-submission" | "system";
+  evidenceType: "submission" | "quiz-response" | "artifact";
+  payload: Record<string, unknown>;
+  capturedById: string;
+}) {
+  const session = await getSessionWithLessonSteps(input.sessionId);
+
+  if (input.studentId) {
+    await ensureSessionStudentParticipant(session.id, input.studentId);
+  }
+
+  if (input.stepId) {
+    await assertSessionStepInPublishedSnapshot(session, input.stepId);
+  }
+
+  const [evidence] = await db.insert(classroomEvidence).values({
+    sessionId: session.id,
+    studentId: input.studentId ?? null,
+    stepId: input.stepId ?? null,
+    sourceType: input.sourceType,
+    evidenceType: input.evidenceType,
+    payloadJson: input.payload,
+    capturedById: input.capturedById,
+  }).returning();
+
+  await createClassroomTimelineEntry({
+    sessionId: session.id,
+    studentId: input.studentId ?? null,
+    stepId: input.stepId ?? null,
+    entryType: "evidence_captured",
+    actorId: input.capturedById,
+    payload: {
+      evidenceId: evidence.id,
+      sourceType: input.sourceType,
+      evidenceType: input.evidenceType,
+      runtimeBridge: true,
+    },
+  });
+
+  return ClassroomEvidenceDTOSchema.parse({
+    id: evidence.id,
+    sessionId: evidence.sessionId,
+    studentId: evidence.studentId,
+    stepId: evidence.stepId,
+    sourceType: evidence.sourceType,
+    evidenceType: evidence.evidenceType,
+    payload: evidence.payloadJson,
+    capturedById: evidence.capturedById,
+    createdAt: toIso(evidence.createdAt),
+  });
+}
+
 export async function ensureClassroomParticipant(input: { sessionId: string; studentId: string }) {
   const session = await getSessionWithLessonSteps(input.sessionId);
   const currentUser = await getCurrentUserDTO();
@@ -960,6 +1101,20 @@ export async function recordClassroomEvidence(input: unknown) {
     payload: evidence.payloadJson,
     capturedById: evidence.capturedById,
     createdAt: toIso(evidence.createdAt),
+  });
+}
+
+export async function recordRuntimeClassroomEvidence(input: {
+  sessionId: string;
+  studentId?: string;
+  stepId: string;
+  sourceType: "student-submission" | "system";
+  evidenceType: "submission" | "quiz-response" | "artifact";
+  payload: Record<string, unknown>;
+  capturedById: string;
+}) {
+  return insertRuntimeClassroomEvidence({
+    ...input,
   });
 }
 
@@ -1535,6 +1690,7 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
   const studentUsers = userIds.length > 0 ? await db.query.users.findMany({ where: inArray(users.id, userIds) }) : [];
   const userMap = new Map(studentUsers.map(u => [u.id, u.name]));
   const submissionCountByStudentId = new Map<string, number>();
+  const runtimeProofByStudentId = new Map<string, ReturnType<typeof extractRuntimeProofFromEvidence>>();
 
   for (const evidence of evidenceRows) {
     if (!evidence.studentId || evidence.stepId !== session.activeStepId) {
@@ -1545,6 +1701,15 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
       evidence.studentId,
       (submissionCountByStudentId.get(evidence.studentId) ?? 0) + 1,
     );
+
+    const runtimeProof = extractRuntimeProofFromEvidence({
+      payload: evidence.payloadJson,
+      createdAt: evidence.createdAt,
+    });
+
+    if (runtimeProof) {
+      runtimeProofByStudentId.set(evidence.studentId, runtimeProof);
+    }
   }
 
   const participantDtos = participants.map((p) => {
@@ -1571,6 +1736,7 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
       submissionCount,
       needsAttention: attentionState.needsAttention,
       attentionReasons: attentionState.attentionReasons,
+      runtimeProof: runtimeProofByStudentId.get(p.studentId) ?? null,
     };
   });
   const monitoringSummary = {
@@ -2460,7 +2626,7 @@ export async function launchClassroomSession(input: unknown) {
   }
   const firstStep = steps[0];
 
-  const session = await db.transaction(async (tx) => {
+  const { session, launchEventId } = await db.transaction(async (tx) => {
     const [newSession] = await tx.insert(classroomSessions).values({
       lessonId: payload.lessonId,
       publishedVersionId: payload.publishedVersionId,
@@ -2482,15 +2648,24 @@ export async function launchClassroomSession(input: unknown) {
 
     await tx.insert(classroomParticipants).values(participantValues);
 
-    await tx.insert(classroomEvents).values({
+    const [launchEvent] = await tx.insert(classroomEvents).values({
       sessionId: newSession.id,
       version: 1,
       type: "launched",
       actorId: scope.userId,
       payloadJson: { activeStepId: firstStep.id, locked: false, slideIndex: 0 },
-    });
+    }).returning();
 
-    return newSession;
+    return { session: newSession, launchEventId: launchEvent.id };
+  });
+
+  await publishClassroomTransportEvent({
+    sessionId: session.id,
+    schoolId: lesson.schoolId,
+    eventId: launchEventId,
+    correlationId: `classroom:${session.id}:launched:${session.version}`,
+    kind: "launched",
+    payload: { activeStepId: session.activeStepId, locked: session.locked, version: session.version },
   });
 
   return getClassroomSnapshotDTO({ sessionId: session.id });
@@ -2544,12 +2719,21 @@ export async function changeClassroomActiveStep(input: unknown) {
     });
   }
 
-  await db.insert(classroomEvents).values({
+  const [event] = await db.insert(classroomEvents).values({
     sessionId: session.id,
     version: updated.version,
     type: "active_step_changed",
     actorId: scope.userId,
     payloadJson: { activeStepId: payload.targetStepId, slideIndex: 0 },
+  }).returning();
+
+  await publishClassroomTransportEvent({
+    sessionId: session.id,
+    schoolId: null,
+    eventId: event.id,
+    correlationId: `classroom:${session.id}:active_step_changed:${updated.version}`,
+    kind: "active_step_changed",
+    payload: { activeStepId: payload.targetStepId, version: updated.version },
   });
 
   return ClassroomActionResultDTOSchema.parse({
@@ -2601,12 +2785,21 @@ export async function changeClassroomMode(input: unknown) {
     });
   }
 
-  await db.insert(classroomEvents).values({
+  const [event] = await db.insert(classroomEvents).values({
     sessionId: session.id,
     version: updated.version,
     type: "lock_mode_changed",
     actorId: scope.userId,
     payloadJson: { locked: payload.locked },
+  }).returning();
+
+  await publishClassroomTransportEvent({
+    sessionId: session.id,
+    schoolId: null,
+    eventId: event.id,
+    correlationId: `classroom:${session.id}:lock_mode_changed:${updated.version}`,
+    kind: "lock_mode_changed",
+    payload: { locked: payload.locked, version: updated.version },
   });
 
   return ClassroomActionResultDTOSchema.parse({
@@ -2658,12 +2851,21 @@ export async function changeClassroomSlide(input: unknown) {
     });
   }
 
-  await db.insert(classroomEvents).values({
+  const [event] = await db.insert(classroomEvents).values({
     sessionId: session.id,
     version: updated.version,
     type: "slide_changed",
     actorId: scope.userId,
     payloadJson: { stepId: payload.stepId, slideIndex: payload.slideIndex },
+  }).returning();
+
+  await publishClassroomTransportEvent({
+    sessionId: session.id,
+    schoolId: null,
+    eventId: event.id,
+    correlationId: `classroom:${session.id}:slide_changed:${updated.version}`,
+    kind: "slide_changed",
+    payload: { stepId: payload.stepId, slideIndex: payload.slideIndex, version: updated.version },
   });
 
   return ClassroomActionResultDTOSchema.parse({
@@ -2707,12 +2909,21 @@ export async function endClassroomSession(input: unknown) {
     .where(eq(classroomSessions.id, session.id))
     .returning();
 
-  await db.insert(classroomEvents).values({
+  const [event] = await db.insert(classroomEvents).values({
     sessionId: session.id,
     version: updated.version,
     type: "ended",
     actorId: scope.userId,
     payloadJson: {},
+  }).returning();
+
+  await publishClassroomTransportEvent({
+    sessionId: session.id,
+    schoolId: null,
+    eventId: event.id,
+    correlationId: `classroom:${session.id}:ended:${updated.version}`,
+    kind: "ended",
+    payload: { version: updated.version, status: "ended" },
   });
 
   return ClassroomActionResultDTOSchema.parse({
@@ -2720,4 +2931,76 @@ export async function endClassroomSession(input: unknown) {
     sessionId: session.id,
     snapshot: await getClassroomSnapshotDTO({ sessionId: session.id }),
   });
+}
+
+export async function bootstrapRuntimeSession(input: BootstrapRuntimeSessionInput) {
+  const result = await invokeRuntimeHostAction({
+    action: "runtime-bootstrap",
+    messageId: input.messageId,
+    correlationId: input.correlationId,
+    runtimeInstanceId: input.runtimeInstanceId,
+    payload: input.payload,
+  });
+
+  return result.bootstrap;
+}
+
+export async function recordRuntimeInteraction(input: RecordRuntimeInteractionInput) {
+  const result = await invokeRuntimeHostAction({
+    action: "runtime-interaction",
+    messageId: input.messageId,
+    correlationId: input.correlationId,
+    runtimeInstanceId: input.runtimeInstanceId,
+    payload: input.payload,
+  });
+
+  return RuntimeHostActionResultDTOSchema.parse(result.envelope);
+}
+
+export async function recordRuntimeReady(input: RecordRuntimeReadyInput) {
+  const result = await invokeRuntimeHostAction({
+    action: "runtime-ready",
+    messageId: input.messageId,
+    correlationId: input.correlationId,
+    runtimeInstanceId: input.runtimeInstanceId,
+    payload: input.payload,
+  });
+
+  return RuntimeHostActionResultDTOSchema.parse(result.envelope);
+}
+
+export async function saveRuntimeSessionState(input: SaveRuntimeStateInput) {
+  const result = await invokeRuntimeHostAction({
+    action: "runtime-save",
+    messageId: input.messageId,
+    correlationId: input.correlationId,
+    runtimeInstanceId: input.runtimeInstanceId,
+    payload: input.payload,
+  });
+
+  return RuntimeSaveResultSchema.parse(RuntimeHostActionResultDTOSchema.parse(result.envelope).result);
+}
+
+export async function submitRuntimeSessionState(input: SubmitRuntimeStateInput) {
+  const result = await invokeRuntimeHostAction({
+    action: "runtime-submit",
+    messageId: input.messageId,
+    correlationId: input.correlationId,
+    runtimeInstanceId: input.runtimeInstanceId,
+    payload: input.payload,
+  });
+
+  return RuntimeSubmitResultSchema.parse(RuntimeHostActionResultDTOSchema.parse(result.envelope).result);
+}
+
+export async function recordRuntimeTeacherControl(input: RecordRuntimeTeacherControlInput) {
+  const result = await invokeRuntimeHostAction({
+    action: "runtime-teacher-control",
+    messageId: input.messageId,
+    correlationId: input.correlationId,
+    runtimeInstanceId: input.runtimeInstanceId,
+    payload: input.payload,
+  });
+
+  return RuntimeTeacherControlResultSchema.parse(RuntimeHostActionResultDTOSchema.parse(result.envelope).result);
 }

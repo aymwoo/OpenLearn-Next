@@ -12,6 +12,39 @@ import {
   QuizAttemptDTOSchema,
   TaskAttemptDTOSchema,
 } from "@/lib/dto/learning";
+import {
+  RuntimeBootstrapRequestEnvelopeSchema,
+  RuntimeReadyRequestEnvelopeSchema,
+  RuntimeInteractionRequestEnvelopeSchema,
+  RuntimeSaveRequestEnvelopeSchema,
+  RuntimeSubmitRequestEnvelopeSchema,
+  RuntimeTeacherControlRequestEnvelopeSchema,
+  TeachingBridgeResultEnvelopeSchema,
+} from "@/features/runtime-platform/contracts/bridge";
+export {
+  CreateOrResumeRuntimeSessionInputSchema,
+  RuntimeBootstrapDTOSchema,
+  RuntimeCapabilityContextSummarySchema,
+  RuntimeClassroomSummarySchema,
+  RuntimeSessionIdentitySchema,
+  RuntimeSessionSummarySchema,
+  RuntimeStateSummarySchema,
+  RuntimeStepSummarySchema,
+  RuntimeLessonSummarySchema,
+  RuntimeActorSummarySchema,
+} from "@/features/runtime-platform/classroom/runtime-session-contracts";
+import type {
+  CreateOrResumeRuntimeSessionInput,
+  RuntimeActorSummary,
+  RuntimeBootstrapDTO,
+  RuntimeCapabilityContextSummary,
+  RuntimeClassroomSummary,
+  RuntimeLessonSummary,
+  RuntimeSessionIdentity,
+  RuntimeSessionSummary,
+  RuntimeStateSummary,
+  RuntimeStepSummary,
+} from "@/features/runtime-platform/classroom/runtime-session-contracts";
 
 export const ClassroomModeSchema = z.enum(["locked", "unlocked"]);
 export const ClassroomConnectionStateSchema = z.enum(["connected", "reconnecting", "offline"]);
@@ -379,6 +412,18 @@ export const ClassroomParticipantMonitoringDTOSchema = ClassroomParticipantDTOSc
   submissionCount: z.number().int().nonnegative(),
   needsAttention: z.boolean(),
   attentionReasons: z.array(z.string()),
+  runtimeProof: z
+    .object({
+      runtimeSessionId: z.string().min(1),
+      runtimeInstanceId: z.string().min(1).nullable().default(null),
+      submittedAt: z.string().min(1),
+      status: z.enum(["submitted", "failed", "missing"]),
+      summaryTitle: z.string().min(1),
+      summaryLabel: z.string().min(1),
+      inspectorHref: z.string().min(1),
+    })
+    .nullable()
+    .default(null),
 });
 
 export const ClassroomTeacherTimelineEntryDTOSchema = z.object({
@@ -599,6 +644,14 @@ export const ClassroomActionResultDTOSchema = z.object({
   serverVersion: z.number().int().optional(),
 });
 
+export const BootstrapRuntimeSessionInputSchema = RuntimeBootstrapRequestEnvelopeSchema;
+export const RecordRuntimeReadyInputSchema = RuntimeReadyRequestEnvelopeSchema;
+export const RecordRuntimeInteractionInputSchema = RuntimeInteractionRequestEnvelopeSchema;
+export const SaveRuntimeStateInputSchema = RuntimeSaveRequestEnvelopeSchema;
+export const SubmitRuntimeStateInputSchema = RuntimeSubmitRequestEnvelopeSchema;
+export const RecordRuntimeTeacherControlInputSchema = RuntimeTeacherControlRequestEnvelopeSchema;
+export const RuntimeHostActionResultDTOSchema = TeachingBridgeResultEnvelopeSchema;
+
 export type ClassroomMode = z.infer<typeof ClassroomModeSchema>;
 export type ClassroomConnectionState = z.infer<typeof ClassroomConnectionStateSchema>;
 export type ClassroomParticipationLevel = z.infer<typeof ClassroomParticipationLevelSchema>;
@@ -663,3 +716,22 @@ export type TouchClassroomPresenceInput = z.infer<typeof TouchClassroomPresenceI
 export type EndClassroomInput = z.infer<typeof EndClassroomInputSchema>;
 export type PendingTeacherControlDTO = z.infer<typeof PendingTeacherControlDTOSchema>;
 export type ClassroomActionResultDTO = z.infer<typeof ClassroomActionResultDTOSchema>;
+export type BootstrapRuntimeSessionInput = z.infer<typeof BootstrapRuntimeSessionInputSchema>;
+export type RecordRuntimeReadyInput = z.infer<typeof RecordRuntimeReadyInputSchema>;
+export type RecordRuntimeInteractionInput = z.infer<typeof RecordRuntimeInteractionInputSchema>;
+export type SaveRuntimeStateInput = z.infer<typeof SaveRuntimeStateInputSchema>;
+export type SubmitRuntimeStateInput = z.infer<typeof SubmitRuntimeStateInputSchema>;
+export type RecordRuntimeTeacherControlInput = z.infer<typeof RecordRuntimeTeacherControlInputSchema>;
+export type RuntimeHostActionResultDTO = z.infer<typeof RuntimeHostActionResultDTOSchema>;
+export type {
+  RuntimeSessionIdentity,
+  RuntimeSessionSummary,
+  RuntimeStateSummary,
+  RuntimeStepSummary,
+  RuntimeLessonSummary,
+  RuntimeClassroomSummary,
+  RuntimeActorSummary,
+  RuntimeCapabilityContextSummary,
+  RuntimeBootstrapDTO,
+  CreateOrResumeRuntimeSessionInput,
+};
