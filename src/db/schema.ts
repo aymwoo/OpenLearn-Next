@@ -591,6 +591,182 @@ export const classroomTimeline = sqliteTable(
   ]
 );
 
+export const runtimeStepSessions = sqliteTable(
+  "runtimeStepSession",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    classroomSessionId: text("classroomSessionId")
+      .notNull()
+      .references(() => classroomSessions.id, { onDelete: "cascade" }),
+    publishedVersionId: text("publishedVersionId")
+      .notNull()
+      .references(() => publishedLessonVersions.id, { onDelete: "cascade" }),
+    lessonId: text("lessonId")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    stepId: text("stepId")
+      .notNull()
+      .references(() => lessonSteps.id, { onDelete: "cascade" }),
+    runtimeId: text("runtimeId").notNull(),
+    runtimeVersion: text("runtimeVersion").notNull(),
+    actorId: text("actorId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    actorScope: text("actorScope", { enum: ["host", "teacher", "student", "plugin", "system"] }).notNull(),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    resetReason: text("resetReason"),
+    isLatest: integer("isLatest", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("runtimeStepSessions_latest_identity_unique").on(
+      table.classroomSessionId,
+      table.stepId,
+      table.actorId,
+      table.actorScope,
+      table.runtimeVersion,
+      table.isLatest,
+    ),
+    index("runtimeStepSessions_classroom_step_actor_idx").on(table.classroomSessionId, table.stepId, table.actorId),
+    index("runtimeStepSessions_actor_history_idx").on(table.actorId, table.createdAt),
+  ],
+);
+
+export const runtimeStepStates = sqliteTable(
+  "runtimeStepState",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    runtimeSessionId: text("runtimeSessionId")
+      .notNull()
+      .references(() => runtimeStepSessions.id, { onDelete: "cascade" }),
+    stateVersion: integer("stateVersion").notNull(),
+    kind: text("kind", { enum: ["ready", "saved", "submitted", "reset"] }).notNull(),
+    stateJson: text("stateJson", { mode: "json" }).notNull(),
+    summaryJson: text("summaryJson", { mode: "json" }).notNull(),
+    isLatest: integer("isLatest", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("runtimeStepStates_session_version_unique").on(table.runtimeSessionId, table.stateVersion),
+    uniqueIndex("runtimeStepStates_session_latest_unique").on(table.runtimeSessionId, table.isLatest),
+    index("runtimeStepStates_session_history_idx").on(table.runtimeSessionId, table.stateVersion),
+  ],
+);
+
+export const runtimeEventOutbox = sqliteTable(
+  "runtimeEventOutbox",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    runtimeSessionId: text("runtimeSessionId")
+      .notNull()
+      .references(() => runtimeStepSessions.id, { onDelete: "cascade" }),
+    classroomSessionId: text("classroomSessionId")
+      .notNull()
+      .references(() => classroomSessions.id, { onDelete: "cascade" }),
+    stepId: text("stepId")
+      .notNull()
+      .references(() => lessonSteps.id, { onDelete: "cascade" }),
+    eventType: text("eventType").notNull(),
+    messageId: text("messageId").notNull(),
+    correlationId: text("correlationId").notNull(),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    deliveryChannel: text("deliveryChannel", { enum: ["in-process", "sse", "event-bus", "websocket"] }).notNull(),
+    deliveryStatus: text("deliveryStatus", { enum: ["pending", "sent", "failed"] }).notNull().default("pending"),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    deliveredAt: integer("deliveredAt", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    uniqueIndex("runtimeEventOutbox_message_unique").on(table.messageId),
+    index("runtimeEventOutbox_session_created_idx").on(table.runtimeSessionId, table.createdAt),
+    index("runtimeEventOutbox_delivery_idx").on(table.deliveryStatus, table.deliveryChannel, table.createdAt),
+  ],
+);
+
+export const transportDeliveryAttempts = sqliteTable(
+  "transportDeliveryAttempt",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    runtimeSessionId: text("runtimeSessionId").references(() => runtimeStepSessions.id, {
+      onDelete: "cascade",
+    }),
+    classroomSessionId: text("classroomSessionId").references(() => classroomSessions.id, {
+      onDelete: "cascade",
+    }),
+    schoolId: text("schoolId").references(() => schools.id, { onDelete: "cascade" }),
+    truthRefType: text("truthRefType").notNull(),
+    truthRefId: text("truthRefId").notNull(),
+    channel: text("channel").notNull(),
+    kind: text("kind").notNull(),
+    adapterId: text("adapterId"),
+    adapterMode: text("adapterMode", { enum: ["sse", "websocket"] }),
+    messageId: text("messageId").notNull(),
+    correlationId: text("correlationId").notNull(),
+    truthPersisted: integer("truthPersisted", { mode: "boolean" }).notNull().default(false),
+    deliveryAttempted: integer("deliveryAttempted", { mode: "boolean" }).notNull().default(false),
+    attemptStatus: text("attemptStatus", {
+      enum: ["pending", "delivered", "failed", "skipped"],
+    })
+      .notNull()
+      .default("pending"),
+    payloadSummaryJson: text("payloadSummaryJson", { mode: "json" }).notNull(),
+    failureReason: text("failureReason"),
+    attemptedAt: integer("attemptedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    deliveredAt: integer("deliveredAt", { mode: "timestamp_ms" }),
+    failedAt: integer("failedAt", { mode: "timestamp_ms" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("transportDeliveryAttempt_message_unique").on(table.messageId),
+    index("transportDeliveryAttempt_truth_idx").on(table.truthRefType, table.truthRefId, table.createdAt),
+    index("transportDeliveryAttempt_session_idx").on(table.classroomSessionId, table.runtimeSessionId, table.createdAt),
+    index("transportDeliveryAttempt_correlation_idx").on(table.correlationId, table.createdAt),
+  ],
+);
+
+export const transportConsumerTraces = sqliteTable(
+  "transportConsumerTrace",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    attemptId: text("attemptId").references(() => transportDeliveryAttempts.id, { onDelete: "cascade" }),
+    classroomSessionId: text("classroomSessionId").references(() => classroomSessions.id, {
+      onDelete: "cascade",
+    }),
+    runtimeSessionId: text("runtimeSessionId").references(() => runtimeStepSessions.id, {
+      onDelete: "cascade",
+    }),
+    correlationId: text("correlationId").notNull(),
+    adapterId: text("adapterId").notNull(),
+    adapterMode: text("adapterMode", { enum: ["sse", "websocket"] }).notNull(),
+    traceType: text("traceType", {
+      enum: ["snapshot", "keepalive", "stream_closed", "stream_failed"],
+    }).notNull(),
+    status: text("status", { enum: ["emitted", "failed", "closed"] }).notNull(),
+    snapshotVersion: integer("snapshotVersion"),
+    detailJson: text("detailJson", { mode: "json" }).notNull(),
+    emittedAt: integer("emittedAt", { mode: "timestamp_ms" }),
+    failedAt: integer("failedAt", { mode: "timestamp_ms" }),
+    closedAt: integer("closedAt", { mode: "timestamp_ms" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("transportConsumerTrace_attempt_idx").on(table.attemptId, table.createdAt),
+    index("transportConsumerTrace_session_idx").on(table.classroomSessionId, table.runtimeSessionId, table.createdAt),
+    index("transportConsumerTrace_correlation_idx").on(table.correlationId, table.createdAt),
+  ],
+);
+
 export const resources = sqliteTable("resource", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   schoolId: text("schoolId").notNull().references(() => schools.id, { onDelete: "cascade" }),
@@ -716,9 +892,26 @@ export const pluginRegistrations = sqliteTable("pluginRegistration", {
   manifestJson: text("manifestJson", { mode: "json" }).notNull(),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
   killSwitchEnabled: integer("killSwitchEnabled", { mode: "boolean" }).notNull().default(false),
+  lifecycleState: text("lifecycleState", {
+    enum: ["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"],
+  }).notNull().default("installed"),
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
 });
+
+export const pluginLifecycleTransitions = sqliteTable("pluginLifecycleTransition", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  pluginId: text("pluginId").notNull().references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+  fromState: text("fromState", {
+    enum: ["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"],
+  }),
+  toState: text("toState", {
+    enum: ["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"],
+  }).notNull(),
+  reason: text("reason"),
+  actorId: text("actorId").references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+}, (table) => [index("pluginLifecycleTransition_plugin_created_idx").on(table.pluginId, table.createdAt)]);
 
 export const pluginHookRuns = sqliteTable("pluginHookRun", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -733,10 +926,63 @@ export const pluginActionAudits = sqliteTable("pluginActionAudit", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   pluginId: text("pluginId").notNull().references(() => pluginRegistrations.id, { onDelete: "cascade" }),
   action: text("action").notNull(),
+  decision: text("decision", { enum: ["allowed", "denied"] }).notNull().default("allowed"),
+  reasonCode: text("reasonCode"),
+  schoolId: text("schoolId").references(() => schools.id, { onDelete: "cascade" }),
+  actorScope: text("actorScope", { enum: ["host", "teacher", "student", "plugin", "system"] }),
+  lifecycleState: text("lifecycleState", {
+    enum: ["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"],
+  }),
+  correlationId: text("correlationId"),
   payloadJson: text("payloadJson", { mode: "json" }).notNull(),
   actorId: text("actorId").references(() => users.id, { onDelete: "cascade" }),
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
-});
+}, (table) => [
+  index("pluginActionAudit_plugin_created_idx").on(table.pluginId, table.createdAt),
+  index("pluginActionAudit_decision_created_idx").on(table.decision, table.createdAt),
+]);
+
+export const runtimeLifecycleTransitions = sqliteTable("runtimeLifecycleTransition", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  runtimeSessionId: text("runtimeSessionId").notNull().references(() => runtimeStepSessions.id, { onDelete: "cascade" }),
+  fromState: text("fromState", {
+    enum: ["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"],
+  }),
+  toState: text("toState", {
+    enum: ["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"],
+  }).notNull(),
+  reason: text("reason"),
+  actorId: text("actorId").references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+}, (table) => [index("runtimeLifecycleTransition_session_created_idx").on(table.runtimeSessionId, table.createdAt)]);
+
+export const governanceAudits = sqliteTable("governanceAudit", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  targetType: text("targetType", { enum: ["plugin", "runtime"] }).notNull(),
+  targetId: text("targetId").notNull(),
+  runtimeSessionId: text("runtimeSessionId").references(() => runtimeStepSessions.id, { onDelete: "cascade" }),
+  classroomSessionId: text("classroomSessionId").references(() => classroomSessions.id, { onDelete: "cascade" }),
+  pluginId: text("pluginId").references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+  schoolId: text("schoolId").references(() => schools.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  decision: text("decision", { enum: ["allowed", "denied"] }).notNull(),
+  reasonCode: text("reasonCode"),
+  actorId: text("actorId").references(() => users.id, { onDelete: "cascade" }),
+  actorScope: text("actorScope", { enum: ["host", "teacher", "student", "plugin", "system"] }),
+  lifecycleState: text("lifecycleState", {
+    enum: ["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"],
+  }),
+  killSwitchEnabled: integer("killSwitchEnabled", { mode: "boolean" }).notNull().default(false),
+  requestedCapabilitiesJson: text("requestedCapabilitiesJson", { mode: "json" }).notNull(),
+  grantedCapabilitiesJson: text("grantedCapabilitiesJson", { mode: "json" }).notNull(),
+  requiredPermission: text("requiredPermission"),
+  correlationId: text("correlationId").notNull(),
+  payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+}, (table) => [
+  index("governanceAudit_target_created_idx").on(table.targetType, table.targetId, table.createdAt),
+  index("governanceAudit_decision_created_idx").on(table.decision, table.createdAt),
+]);
 
 export const themeTokenRegistries = sqliteTable("themeTokenRegistry", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

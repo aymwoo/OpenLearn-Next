@@ -10,7 +10,7 @@ export const TEST_SCHOOL_NAME = "OpenLearn 测试学校";
 
 export const TEST_ACCOUNTS = [
   { name: "测试教师", email: "teacher@example.com", password: "password" },
-  { name: "测试学生", email: "student@example.com", password: "password" },
+  { name: "测试学生", email: "student@example.com", password: "password", studentNumber: "student@example.com" },
 ] as const;
 
 const TEST_ACCOUNT_ROLES: Record<(typeof TEST_ACCOUNTS)[number]["email"], Array<"teacher" | "student" | "admin">> = {
@@ -81,7 +81,11 @@ async function upsertTestUser(
   if (existingUser) {
     await db
       .update(users)
-      .set({ name: account.name, password: passwordHash })
+      .set({
+        name: account.name,
+        password: passwordHash,
+        studentNumber: "studentNumber" in account ? account.studentNumber : null,
+      })
       .where(eq(users.id, existingUser.id));
 
     return existingUser;
@@ -92,6 +96,7 @@ async function upsertTestUser(
     .values({
       name: account.name,
       email: account.email,
+      studentNumber: "studentNumber" in account ? account.studentNumber : null,
       password: passwordHash,
     })
     .returning({ id: users.id });
@@ -127,7 +132,7 @@ async function ensureActiveMembership(userId: string, schoolId: string, role: "t
 async function main() {
   await seedTestAccounts();
   console.log(
-    "测试账号 seed 完成：teacher@example.com 具备 active teacher/admin memberships；student@example.com 具备 active student membership"
+    "测试账号 seed 完成：teacher@example.com 具备 active teacher/admin memberships；student@example.com 具备 active student membership，并作为测试学生登录标识"
   );
 }
 

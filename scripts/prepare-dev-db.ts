@@ -13,6 +13,7 @@ const DEV_SENTINEL_TABLE = "user";
 
 type MigrationJournal = {
   entries: Array<{
+    idx: number;
     tag: string;
     when: number;
   }>;
@@ -26,49 +27,123 @@ async function tableExists(tableName: string) {
   return result.length > 0;
 }
 
-function readLatestMigration() {
-  const journal = JSON.parse(
+function readMigrationJournal() {
+  return JSON.parse(
     readFileSync(`${MIGRATIONS_FOLDER}/meta/_journal.json`, "utf8"),
   ) as MigrationJournal;
+}
 
-  const latestEntry = journal.entries.at(-1);
+function readMigrationByTag(tag: string) {
+  const journal = readMigrationJournal();
+  const entry = journal.entries.find((candidate) => candidate.tag === tag);
 
-  if (!latestEntry) {
-    throw new Error("drizzle/meta/_journal.json 没有可用 migration 条目。");
+  if (!entry) {
+    throw new Error(`未找到 migration 元数据：${tag}`);
   }
 
-  const migrationSql = readFileSync(`${MIGRATIONS_FOLDER}/${latestEntry.tag}.sql`, "utf8");
+  const migrationSql = readFileSync(`${MIGRATIONS_FOLDER}/${entry.tag}.sql`, "utf8");
 
   return {
     hash: crypto.createHash("sha256").update(migrationSql).digest("hex"),
-    createdAt: latestEntry.when,
-    tag: latestEntry.tag,
+    createdAt: entry.when,
+    tag: entry.tag,
   };
 }
 
-async function bridgeExistingSchemaIfNeeded() {
+async function columnExists(tableName: string, columnName: string) {
+  const result = await db.values(sql.raw(`PRAGMA table_info("${tableName}")`));
+
+  return result.some((row) => String(row[1] ?? "") === columnName);
+}
+
+async function detectExistingSchemaTag() {
+  const hasTransportSchema =
+    await tableExists("transportDeliveryAttempt")
+    && await tableExists("transportConsumerTrace")
+    && await tableExists("governanceAudit")
+    && await tableExists("pluginLifecycleTransition")
+    && await columnExists("pluginRegistration", "lifecycleState");
+
+  if (hasTransportSchema) {
+    return "0002_runtime-governance-transport";
+  }
+
+  const hasRuntimeSessionSchema =
+    await tableExists("runtimeStepSession")
+    && await tableExists("runtimeStepState")
+    && await tableExists("runtimeEventOutbox");
+
+  if (hasRuntimeSessionSchema) {
+    return "0001_curved_overlord";
+  }
+
+  const hasBaselineSchema = await tableExists(DEV_SENTINEL_TABLE);
+  return hasBaselineSchema ? "0000_phase15-course-import" : null;
+}
+
+async function readRecordedMigrationTag() {
   const hasMigrationTable = await tableExists(MIGRATION_TABLE);
 
-  if (hasMigrationTable) {
-    return false;
+  if (!hasMigrationTable) {
+    return null;
   }
 
-  const hasExistingSchema = await tableExists(DEV_SENTINEL_TABLE);
+  const rows = await db.values(sql.raw(`SELECT created_at FROM ${MIGRATION_TABLE} ORDER BY created_at DESC LIMIT 1`));
+  const createdAt = Number(rows[0]?.[0] ?? NaN);
 
-  if (!hasExistingSchema) {
-    return false;
+  if (!Number.isFinite(createdAt)) {
+    return null;
   }
 
-  const latestMigration = readLatestMigration();
+  const journal = readMigrationJournal();
+  return journal.entries.find((entry) => entry.when === createdAt)?.tag ?? null;
+}
 
-  await db.run(sql.raw(`CREATE TABLE IF NOT EXISTS ${MIGRATION_TABLE} (id INTEGER PRIMARY KEY AUTOINCREMENT, hash text NOT NULL, created_at numeric)`));
+async function createMigrationTableIfNeeded() {
+  const hasMigrationTable = await tableExists(MIGRATION_TABLE);
+
+  if (!hasMigrationTable) {
+    await db.run(sql.raw(`CREATE TABLE IF NOT EXISTS ${MIGRATION_TABLE} (id INTEGER PRIMARY KEY AUTOINCREMENT, hash text NOT NULL, created_at numeric)`));
+  }
+}
+
+async function syncMigrationMetadataToTag(tag: string | null) {
+  await createMigrationTableIfNeeded();
+  await db.run(sql.raw(`DELETE FROM ${MIGRATION_TABLE}`));
+
+  if (!tag) {
+    return;
+  }
+
+  const migration = readMigrationByTag(tag);
   await db.run(
-    sql`insert into ${sql.identifier(MIGRATION_TABLE)} (hash, created_at) values (${latestMigration.hash}, ${latestMigration.createdAt})`,
+    sql`insert into ${sql.identifier(MIGRATION_TABLE)} (hash, created_at) values (${migration.hash}, ${migration.createdAt})`,
   );
+}
 
-  console.log(
-    `检测到已有开发库但缺少 migration 元数据，已桥接到 ${latestMigration.tag}。`,
-  );
+async function bridgeExistingSchemaIfNeeded() {
+  const schemaTag = await detectExistingSchemaTag();
+
+  if (!schemaTag) {
+    return false;
+  }
+
+  const recordedTag = await readRecordedMigrationTag();
+
+  if (recordedTag === schemaTag) {
+    return false;
+  }
+
+  await syncMigrationMetadataToTag(schemaTag);
+
+  if (recordedTag) {
+    console.log(
+      `检测到开发库 migration 元数据与实际 schema 不一致，已从 ${recordedTag} 修正到 ${schemaTag}。`,
+    );
+    return true;
+  }
+
+  console.log(`检测到已有开发库但缺少 migration 元数据，已桥接到 ${schemaTag}。`);
 
   return true;
 }
