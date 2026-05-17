@@ -1,24 +1,70 @@
 ## ROADMAP
 
-**Milestone:** v2.1 Safety Closure and Course Membership Loop
+**Milestone:** v2.2 WebSocket Classroom Transport Cutover
 **Phases:** 3
 **Granularity:** coarse
-**Coverage:** Covers Phase 33-35 for milestone `v2.1 Safety Closure and Course Membership Loop`. Historical phases remain below as reference; archived milestone facts live in `.planning/MILESTONES.md` and `.planning/milestones/`.
+**Coverage:** Covers Phase 36-38 for milestone `v2.2 WebSocket Classroom Transport Cutover`. Historical phases remain below as reference; archived milestone facts live in `.planning/MILESTONES.md` and `.planning/milestones/`.
 
 ### Current milestone phases
 
-- [x] **Phase 33: Project-level auth, data, and classroom durability closure** - Close `AUTH-01`~`AUTH-06`, `DATA-01`~`DATA-05`, and `CLASS-05` so the current classroom stack has honest authz, DTO, DAL, persistence, and durability guarantees. (completed 2026-05-17)
-- [x] **Phase 34: Course membership management loop** - Complete `COURSE-07` on top of the tightened auth/data boundary so teachers can safely manage course student enrollment within the course workflow. (completed 2026-05-17)
-- [x] **Phase 35: Verification baseline convergence and milestone close** - Finish the parallel `lint` / `typecheck` baseline repair for active surfaces and publish an honest milestone-close proof that explains why runtime expansion remains deferred. (completed 2026-05-17)
+- [x] **Phase 36: WebSocket classroom transport cutover** - Replace the current classroom SSE delivery path with authenticated, true bidirectional `ws` channels while preserving existing durable truth ownership in DAL, classroom sessions, and runtime events. (completed 2026-05-17)
+- [ ] **Phase 37: Redis fanout and multi-instance delivery convergence** - Back the new WebSocket transport with `ioredis` fanout, session-scoped topic routing, and multi-instance-safe publish or subscribe semantics.
+- [ ] **Phase 38: Cutover verification, fallback, and operational hardening** - Publish the canonical verifier, rollback or fallback posture, local-dev bootstrap, and observability proof for the new `ws + ioredis` classroom transport.
 
 ### Current planning posture
 
-- 当前 active milestone 为 `v2.1 Safety Closure and Course Membership Loop`，从 Phase 33 开始继续编号。
-- 当前 roadmap 的成功线不是继续扩 runtime host/platform 面，而是先把项目级 authz、DAL/DTO、SQLite durability、classroom truth 和 course membership 缺口收口成可 ship posture。
-- Phase 33 已通过 `pnpm verify:phase33` 收口；当前 milestone 的下一条主线是基于这套 auth/data baseline 完成 `COURSE-07`。
-- 先做安全缺口，因为 Phase 27-32 已证明 runtime platform foundation 成立；如果此时继续扩 runtime 类型、transport cutover 或基础设施，会在未收口的权限和持久化边界上继续放大 blast radius。
-- `lint` / `typecheck` 基线修复作为并行工作流推进，不等到功能全部完成后才集中补救；每个 phase 都要随改动同步减少基线噪音，Phase 35 负责最终收口。
-- `RTPX-01` ~ `RTPX-06` 保持 deferred，待本轮安全与成员闭环完成后再决定下一轮 runtime/platform expansion。
+- 当前 active milestone 为 `v2.2 WebSocket Classroom Transport Cutover`，从 Phase 36 开始继续编号。
+- 这是新的 milestone，不是已有 backlog phase：`v2.1` 已归档，而 `RTPX-02` / `RTPX-03` 在前一轮一直被明确 deferred。
+- 当前成功线是把课堂实时链路从 `Edge Runtime SSE` 升级为真正双向 `WebSocket`，并用 `ioredis` 承接 fanout 与多实例 delivery，而不是继续扩 sandbox、PostgreSQL 或多 runtime。
+- Phase 27 与 Phase 31 已经提供 seam 和 transport gateway，Phase 33-35 已经收口权限、DTO、durability 与 baseline；因此本轮可以把 blast radius 聚焦在 transport cutover 本身，而不是再次回头补基础边界。
+- 本轮保持 classroom/runtime durable truth 在 SQLite + DAL + canonical event path，不让 Redis 或 WebSocket 反客为主成为新的业务真相源。
+- `RTPX-01`、`RTPX-04`、`RTPX-05`、`RTPX-06` 继续 deferred，直到 `ws + ioredis` cutover 被验证为稳定。
+
+### Phase Details
+
+### Phase 36: WebSocket classroom transport cutover
+**Goal**: 在现有 transport gateway 和课堂 durability truth 之上，完成课堂与 runtime 的正式 WebSocket 双向通信切换，并固定技术选型为 `ws`。
+**Depends on**: Phase 31, Phase 33, Phase 35
+**Requirements**: RTPX-03
+**Success Criteria**:
+  1. Teacher、student、classroom、runtime host 之间存在统一的、鉴权后的 WebSocket 握手与双向消息信封，而不是继续依赖单向 `EventSource`。
+  2. 教师控制命令、runtime command、snapshot push 与 keepalive 都通过同一 WebSocket channel contract 流动，并保持 actor scope 与 session scope 校验。
+  3. WebSocket route handler 不新增 direct DB shortcut；业务真相继续由 DAL、Server Actions、classroom session 与 canonical event path 持有。
+  4. 现有 classroom/player/runtime surface 在切换后仍保留锁定/解锁、环节推进、snapshot recovery 与错误反馈语义。
+**Plans**: 3 plans
+- [x] 36-01-PLAN.md — Define the `ws` handshake, message envelope, connection registry, and session-scoped route cutover boundary.
+- [ ] 36-02-PLAN.md — Wire classroom control, player sync, and runtime command flows onto the bidirectional WebSocket channel without creating a second truth path.
+- [ ] 36-03-PLAN.md — Add focused verification for WebSocket route auth, message validation, and classroom parity against the current SSE behavior.
+**UI hint**: yes
+
+### Phase 37: Redis fanout and multi-instance delivery convergence
+**Goal**: 用 `ioredis` 把新的 WebSocket transport 升级为可多实例分发的课堂 fanout 基础设施，同时保持 Redis 只是 delivery 层，不是业务真相源。
+**Depends on**: Phase 36
+**Requirements**: RTPX-02
+**Success Criteria**:
+  1. WebSocket publish/subscribe 通过 `ioredis` 在 session 或 runtime scope 下完成 fanout，不再依赖单进程内存连接表作为唯一分发机制。
+  2. Redis topic、channel、subscription lifecycle 与 connection ownership 明确绑定 school/session/runtime scope，并有连接异常恢复语义。
+  3. Redis adapter 失败不会篡改 classroom/runtime durable truth，只影响 delivery attempt 与恢复路径。
+  4. 本地开发与测试环境具备诚实的 Redis bootstrap 或 fallback posture，而不是隐式假定生产集群存在。
+**Plans**: 3 plans
+- [ ] 37-01-PLAN.md — Add the `ioredis` adapter, connection factory, and session-scoped publish/subscribe contract for classroom transport.
+- [ ] 37-02-PLAN.md — Converge runtime/classroom fanout, reconnection, and cross-instance delivery semantics on the Redis-backed adapter.
+- [ ] 37-03-PLAN.md — Add Redis health, local bootstrap expectations, and focused failure-recovery verification for the new delivery path.
+**UI hint**: no
+
+### Phase 38: Cutover verification, fallback, and operational hardening
+**Goal**: 把 `ws + ioredis` cutover 收口为单一可验证交付面，包括 fallback posture、观测性、开发/验收路径和 milestone close artifact。
+**Depends on**: Phase 37
+**Requirements**: RTPX-02, RTPX-03
+**Success Criteria**:
+  1. 仓库存在 canonical verifier，能覆盖鉴权握手、消息验证、teacher control、student sync、runtime command 与 Redis fanout 基线。
+  2. 当 WebSocket 或 Redis 不可用时，系统具备明确 fallback 或 rollback posture，并在 planning 中诚实记录，不把失败伪装成透明成功。
+  3. 本地开发、测试和演示路径可重复执行，明确需要的 Redis 启动方式、环境变量与 smoke steps。
+  4. milestone close 结论明确限定在 `ws + ioredis` classroom transport，不误扩展到 PostgreSQL、第二 runtime 或 sandbox 增强。
+**Plans**: 2 plans
+- [ ] 38-01-PLAN.md — Publish the canonical cutover verifier and route-by-route parity proof for classroom, player, and runtime flows.
+- [ ] 38-02-PLAN.md — Document fallback, bootstrap, observability, and milestone close posture for the new transport stack.
+**UI hint**: no
 
 ### Archived v2.0 phases (reference only)
 

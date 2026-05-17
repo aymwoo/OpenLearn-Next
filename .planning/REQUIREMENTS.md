@@ -9,11 +9,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ## Current planning posture
 
-- 当前 active milestone 为 `v2.1 Safety Closure and Course Membership Loop`。
+- 当前 active milestone 为 `v2.2 WebSocket Classroom Transport Cutover`。
 - 本文件继续保留完整 requirement truth，同时新增本轮 committed scope、deferred scope 与 traceability 映射。
-- Phase 33 已通过 `verify:phase33` 收口 `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05` 与 `CLASS-05`；当前 committed scope 转向 `COURSE-07` 与 `lint` / `typecheck` 基线修复。
-- 之所以不继续扩 runtime/platform，是因为 Phase 27-32 已经证明平台 foundation 可运行，而当前更高优先级的 ship blocker 是项目级授权、DTO、持久化与成员闭环缺口。
-- `RTPX-01` ~ `RTPX-06` 继续 deferred，不把 PostgreSQL / Redis / WebSocket / 多 runtime expansion 绑进本轮完成条件。
+- `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05`、`CLASS-05`、`COURSE-07`、`QUAL-01`、`QUAL-02` 已在前一 milestone 关闭；本轮 committed scope 改为 `RTPX-02` 与 `RTPX-03`。
+- 当前目标不是泛化 runtime/platform 扩张，而是把课堂实时链路的正式 cutover 限定在 `ws + ioredis`，并复用已完成的 transport boundary、auth/data baseline 与 classroom durability truth。
+- `RTPX-01`、`RTPX-04`、`RTPX-05`、`RTPX-06` 继续 deferred，不把 PostgreSQL、第二 runtime、第三方 runtime 或 AI runtime expansion 绑进本轮完成条件。
 
 ### Foundation and design
 
@@ -109,7 +109,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **COURSE-04**: Teacher can publish, unpublish, or archive a course without making archived or inactive courses appear in the wrong teacher flows.
 - [x] **COURSE-05**: Teacher can delete an eligible course with explicit confirmation and clear feedback when deletion is blocked.
 - [x] **COURSE-06**: Teacher can associate or remove classes from a course within the teacher's school scope.
-- [ ] **COURSE-07**: Teacher can manage course student enrollment associations within the course management workflow.
+- [x] **COURSE-07**: Teacher can manage course student enrollment associations within the course management workflow.
 - [x] **COURSE-08**: Teacher can import multiple courses from a structured batch file and receive row-level validation results before changes are applied.
 - [x] **COURSE-09**: Teacher can review import outcomes as created, updated, skipped, or failed rows without silently creating duplicates.
 - [x] **COURSE-10**: Teacher can open a course and continue directly into lesson or teaching-plan management from a dedicated entry point.
@@ -190,12 +190,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### v2.1 Safety closure and repository health
 
-- [ ] **QUAL-01**: Developer can run milestone-scoped lint verification for touched app, test, and script surfaces without being blocked by newly introduced baseline regressions.
-- [ ] **QUAL-02**: Developer can run milestone-scoped typecheck verification for touched app and test surfaces without unresolved active-scope blockers.
+- [x] **QUAL-01**: Developer can run milestone-scoped lint verification for touched app, test, and script surfaces without being blocked by newly introduced baseline regressions.
+- [x] **QUAL-02**: Developer can run milestone-scoped typecheck verification for touched app and test surfaces without unresolved active-scope blockers.
 
 ## v2 Requirements
 
-Deferred to future release. Tracked but not in current roadmap.
+Tracked for runtime-platform follow-up. Current roadmap activates `RTPX-02` and `RTPX-03`; the rest remain deferred.
 
 ### Runtime platform expansion
 
@@ -329,7 +329,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COURSE-04 | Phase 14 | Complete |
 | COURSE-05 | Phase 14 | Complete |
 | COURSE-06 | Phase 14 | Complete |
-| COURSE-07 | Phase 34 | Pending |
+| COURSE-07 | Phase 34 | Complete |
+| RTPX-01 | Deferred | Deferred |
+| RTPX-02 | Phase 37 | Pending |
+| RTPX-03 | Phase 36 | Complete |
+| RTPX-04 | Deferred | Deferred |
+| RTPX-05 | Deferred | Deferred |
+| RTPX-06 | Deferred | Deferred |
 | COURSE-08 | Phase 15 | Complete |
 | COURSE-09 | Phase 15 | Complete |
 | COURSE-10 | Phase 13 | Complete |
@@ -382,11 +388,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QUAL-02 | Phase 35 | Complete |
 
 **Coverage:**
-- v1/v1.1/v1.2/v1.x/v1.3/v2.0/v2.1 requirements: 116 total
-- Mapped to phases: 116
+- v1/v1.1/v1.2/v1.x/v1.3/v2.0/v2.1/v2.2 requirements: 122 total
+- Mapped to phases: 122
 - Unmapped: 0
 - Duplicate mappings: 0
 
 ---
 *Requirements defined: 2026-05-04*  
-*Last updated: 2026-05-17 after closing Phase 35 verification baseline convergence and milestone close requirements*
+*Last updated: 2026-05-17 after opening milestone v2.2 WebSocket Classroom Transport Cutover*

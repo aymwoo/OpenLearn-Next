@@ -1,19 +1,19 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.1
-milestone_name: Safety Closure and Course Membership Loop
-current_phase: 35
-current_phase_name: verification-baseline-convergence-and-milestone-close
-current_plan: 3
-status: completed
-stopped_at: Phase 35 completed via verify:phase35
-last_updated: "2026-05-17T23:30:00.000Z"
-last_activity: "2026-05-17 -- Phase 35 completed with verify:phase35 passed; v2.1 archived"
+milestone: v2.2
+milestone_name: WebSocket Classroom Transport Cutover
+current_phase: 36
+current_phase_name: websocket-classroom-transport-cutover
+current_plan: 1
+status: verifying
+stopped_at: Completed 36-01-PLAN.md
+last_updated: "2026-05-17T22:38:31.701Z"
+last_activity: 2026-05-17
 progress:
-  total_phases: 23
-  completed_phases: 23
-  total_plans: 89
-  completed_plans: 89
+  total_phases: 26
+  completed_phases: 24
+  total_plans: 93
+  completed_plans: 93
   percent: 100
 ---
 
@@ -21,31 +21,30 @@ progress:
 
 ## Current Position
 
-Milestone: v2.1 Safety Closure and Course Membership Loop
-Phase: 35 (verification-baseline-convergence-and-milestone-close) — COMPLETED
-Phase name: Verification baseline convergence and milestone close
-Plan: 3 of 3
-Status: Phase 35 complete; `v2.1` archived
-Last activity: 2026-05-17 -- Phase 35 completed with verify:phase35 passed; v2.1 archived
+Milestone: v2.2 WebSocket Classroom Transport Cutover
+Phase: 36 (websocket-classroom-transport-cutover) — EXECUTING
+Phase name: WebSocket classroom transport cutover
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-05-17
 Progress: [██████████] 100%
 
 <!--
 GSD compatibility fields for older state parsers.
-Current Phase: 35
-Current Phase Name: verification-baseline-convergence-and-milestone-close
-Current Plan: 3
-Total Plans in Phase: 3
-Last Activity Description: Phase 35 completed with verify:phase35 passed; v2.1 archived
+Current Phase: 36
+Current Phase Name: websocket-classroom-transport-cutover
+Current Plan: 1
+Total Plans in Phase: 1
+Last Activity Description: Phase 36 execution started
 -->
 
 ## Milestone Notes
 
-- 当前 milestone 已切换到 `v2.1 Safety Closure and Course Membership Loop`。
-- 之所以先开安全收口 milestone，而不是继续扩 runtime 平台，是因为 Phase 27-32 已经证明 runtime host、governance、transport boundary、inspector 与 HTML runtime proof path 可运行；当前更高优先级的风险是项目级 authz、DAL/DTO、SQLite durability、classroom truth 与 course membership 闭环缺口。
-- Phase 33 已通过 `verify:phase33` 收口 `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05` 与 `CLASS-05`，当前 auth/data/classroom durability baseline 已有单一可重复证据链。
-- Phase 34 已完成 `COURSE-07`，课程成员管理现已建立在已验证的 scope、DAL、DTO 与 persistence contract 上。
-- `lint` / `typecheck` 基线修复作为并行工作流推进，并在 Phase 35 统一收口到 milestone close posture。
-- `RTPX-01` ~ `RTPX-06` 继续 deferred；PostgreSQL、Redis/Event Bus、WebSocket 与多 runtime expansion 暂不进入本轮完成条件。
+- 当前 active milestone 已切换到 `v2.2 WebSocket Classroom Transport Cutover`。
+- 这不是已有 backlog phase 的续写，而是一个新的 milestone 起点：`v2.1` 已归档，而 WebSocket + Redis cutover 在现有 planning 中一直被明确列为 deferred follow-up。
+- 本轮 committed scope 只激活 `RTPX-02` 与 `RTPX-03`：先把课堂实时链路从单向 SSE 升级为基于 `ws` 的双向 channel，再用 `ioredis` 补齐 fanout 与多实例分发。
+- Phase 31 已经提供 transport gateway、SSE-first adapter 和 delivery attempt truth，所以当前 phase 不需要重做 transport abstraction，而是要在既有边界上做正式 cutover。
+- `RTPX-01`、`RTPX-04`、`RTPX-05`、`RTPX-06` 继续 deferred；本轮不同时推进 PostgreSQL、第二 runtime、第三方 runtime/package 或 AI runtime expansion。
 
 ## Accumulated Context
 
@@ -191,13 +190,16 @@ Last Activity Description: Phase 35 completed with verify:phase35 passed; v2.1 a
 - [Phase 32]: `verify:phase32` 作为唯一外部 milestone-close gate，Phase 27-31 verifier 只做内部 prerequisite。
 - [Phase 32]: proof drift 继续用 focused semantic assertions 锁定，不用宽泛 snapshot 或注释字符串计数代替。
 - [Phase 32]: 旧 verifier 漂移优先最小修正 verifier 本身，不修改运行时业务代码去迎合过时检查。
+- [Phase 36]: 普通 HTTP GET 访问 /api/ws/classroom/[sessionId] 返回 426 说明，真实 upgrade 由 Node http server 承接。 — 让 route 明确暴露 cutover 入口，同时不伪装普通 HTTP 成功握手。
+- [Phase 36]: Gateway 保持 SSE 为 primary rollback surface，同时把 ws 接入 supplemental delivery，避免 cutover 第一阶段改变 durable truth。 — 把 WebSocket 限定为 delivery 层，降低高风险 blast radius。
+- [Phase 36]: WebSocket 握手显式校验 token、membership、session scope 与请求 actor scope，避免 route 直接信任客户端 actor。 — 保证课堂 route 只信任服务端 scope 解析结果。
 
 ## Next Steps
 
-1. 为下一轮 milestone 决定新的 active scope，并在确认前继续保持 runtime/platform expansion 为 deferred。
-2. 如需继续 repo health 收口，优先处理 `verify:phase35` 已明确隔离出的 repo-wide `lint` backlog。
-3. 保持 Phase 33/34/35 的 canonical verifier 与 close artifacts 作为当前 safety closure 的单一证据链。
-4. 在新的 milestone 启动前，不改写 `v2.1` 的诚实 close posture：full `typecheck` 已绿，milestone-scoped lint 已绿，repo-wide lint backlog 仍存在。
+1. 执行 `.planning/phases/36-websocket-classroom-transport-cutover/36-01-PLAN.md`，先锁定 `ws` 握手、双向消息信封、连接注册表和课堂 route cutover 边界。
+2. 完成 Phase 36 后进入 Phase 37，把 `ioredis` fanout、topic routing 和 multi-instance delivery 收口到正式 adapter，而不是继续停留在单机内存分发。
+3. 在 Phase 38 做 cutover verification、rollback/fallback posture、开发环境 bootstrap 与运维可观测性收口。
+4. 继续保留 `v2.1` 的 archived close posture，不把 repo-wide lint backlog 与本轮 transport cutover 混成同一个完成条件。
 
 ## Performance Metrics
 
@@ -241,12 +243,13 @@ Last Activity Description: Phase 35 completed with verify:phase35 passed; v2.1 a
 | Phase 32 P02 | 4 min | 2 tasks | 7 files |
 | Phase 32 P04 | 2 min | 2 tasks | 10 files |
 | Phase 32 P03 | 9 min | 2 tasks | 10 files |
+| Phase 36 P01 | 11 min | 2 tasks | 16 files |
 
 ## Session Tracking
 
-Last session: 2026-05-17T13:52:27.272Z
-Stopped At: Phase 35 completed via verify:phase35
-Resume File: .planning/phases/35-verification-baseline-convergence-and-milestone-close/
+Last session: 2026-05-17T22:38:31.695Z
+Stopped At: Completed 36-01-PLAN.md
+Resume File: None
 
 ### Quick Tasks Completed
 
