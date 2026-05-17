@@ -4,11 +4,13 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 
 import {
+  addCourseEnrollmentForTeacherScoped,
   addCourseClassAssociationForTeacherScoped,
   archiveCourseForTeacherScoped,
   createCourseForTeacherScoped,
   deleteCourseForTeacherScoped,
   publishCourseForTeacherScoped,
+  removeCourseEnrollmentForTeacherScoped,
   removeCourseClassAssociationForTeacherScoped,
   unpublishCourseForTeacherScoped,
   updateCourseForTeacherScoped,
@@ -18,6 +20,7 @@ import {
   CourseClassAssociationInputSchema,
   CourseCreateInputSchema,
   CourseDeleteInputSchema,
+  CourseEnrollmentInputSchema,
   CourseLifecycleInputSchema,
   CourseUpdateInputSchema,
   type CourseDeleteBlockedReasonDTO,
@@ -64,6 +67,30 @@ function handleActionError(error: unknown) {
 
   if (error instanceof Error && error.message === "CLASS_NOT_FOUND") {
     return { ok: false as const, error: "NOT_FOUND", message: "班级不存在或已被移除。" };
+  }
+
+  if (error instanceof Error && error.message === "COURSE_ENROLLMENT_EXISTS") {
+    return {
+      ok: false as const,
+      error: "DUPLICATE",
+      message: "该学生已经在当前课程中，无需重复添加。",
+    };
+  }
+
+  if (error instanceof Error && error.message === "STUDENT_NOT_ELIGIBLE") {
+    return {
+      ok: false as const,
+      error: "NOT_FOUND",
+      message: "你当前无法管理这名学生的课程关联。",
+    };
+  }
+
+  if (error instanceof Error && error.message === "COURSE_MEMBERSHIP_READ_ONLY") {
+    return {
+      ok: false as const,
+      error: "READ_ONLY",
+      message: "归档课程仅支持查看成员，暂不支持修改。",
+    };
   }
 
   if (error instanceof Error && error.message === "COURSE_DELETE_CONFIRMATION_MISMATCH") {
@@ -139,12 +166,38 @@ async function runCourseClassAssociationAction(
   }
 }
 
+async function runCourseEnrollmentAction(
+  input: FormData | Record<string, unknown>,
+  handler: (input: { courseId: string; studentId: string }) => Promise<TeacherCourseDetailDTO>
+): Promise<CourseUpdateActionResult> {
+  const normalized = normalizeInput(input);
+  const parsed = CourseEnrollmentInputSchema.safeParse(normalized);
+  if (!parsed.success) return validationError();
+
+  try {
+    const actor = await assertActiveTeacher();
+    const course = await handler(parsed.data);
+    invalidateCourseTags(actor.userId, course.id);
+    return { ok: true, data: course };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
 export async function addCourseClassAssociationAction(input: FormData | Record<string, unknown>): Promise<CourseUpdateActionResult> {
   return runCourseClassAssociationAction(input, addCourseClassAssociationForTeacherScoped);
 }
 
 export async function removeCourseClassAssociationAction(input: FormData | Record<string, unknown>): Promise<CourseUpdateActionResult> {
   return runCourseClassAssociationAction(input, removeCourseClassAssociationForTeacherScoped);
+}
+
+export async function addCourseEnrollmentAction(input: FormData | Record<string, unknown>): Promise<CourseUpdateActionResult> {
+  return runCourseEnrollmentAction(input, addCourseEnrollmentForTeacherScoped);
+}
+
+export async function removeCourseEnrollmentAction(input: FormData | Record<string, unknown>): Promise<CourseUpdateActionResult> {
+  return runCourseEnrollmentAction(input, removeCourseEnrollmentForTeacherScoped);
 }
 
 async function runCourseLifecycleAction(

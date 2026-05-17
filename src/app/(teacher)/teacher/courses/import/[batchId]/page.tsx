@@ -10,14 +10,10 @@ type CourseImportReviewPageProps = {
 export default async function CourseImportReviewPage({ params }: CourseImportReviewPageProps) {
   const { batchId } = await params;
 
-  try {
-    const batch = await getCourseImportBatchDTO({ batchId });
+  let batch;
 
-    return (
-      <div className="min-h-full p-6 lg:p-8">
-        <CourseImportReviewSurface batch={batch} />
-      </div>
-    );
+  try {
+    batch = await getCourseImportBatchDTO({ batchId });
   } catch (error) {
     if (error instanceof Error && error.message === "COURSE_IMPORT_BATCH_NOT_FOUND") {
       notFound();
@@ -25,4 +21,10 @@ export default async function CourseImportReviewPage({ params }: CourseImportRev
 
     throw error;
   }
+
+  return (
+    <div className="min-h-full p-6 lg:p-8">
+      <CourseImportReviewSurface batch={batch} />
+    </div>
+  );
 }

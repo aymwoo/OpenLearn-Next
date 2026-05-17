@@ -21,7 +21,7 @@ import {
   taskSubmissions,
   users,
 } from "@/db/schema";
-import { getCurrentUserDTO } from "@/lib/dal/auth";
+import { getCurrentActorDTO } from "@/lib/dal/auth";
 import { ensureClassroomParticipant } from "@/lib/dal/classroom";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
@@ -311,6 +311,9 @@ async function assertStudentMutationTarget(input: LearningWriteInput, scope: Stu
 }
 
 function toTaskAttemptDTO(row: typeof taskSubmissions.$inferSelect, feedback: typeof attemptFeedback.$inferSelect | null = null, policy = { allowRetry: false }) {
+  const rawPayload = row.payloadJson;
+  const payload = rawPayload && typeof rawPayload === "object" ? rawPayload : {};
+
   return {
     id: row.id,
     publishedVersionId: row.publishedVersionId,
@@ -318,7 +321,7 @@ function toTaskAttemptDTO(row: typeof taskSubmissions.$inferSelect, feedback: ty
     stepId: row.stepId,
     studentId: row.studentId,
     attemptNo: row.attemptNo,
-    payload: row.payloadJson,
+    payload,
     isLatest: row.isLatest,
     canRetryTask: policy.allowRetry,
     feedback: feedback ? toFeedbackDTO(feedback, row.lessonId) : null,
@@ -398,22 +401,24 @@ function summarizeProgress(steps: LearningStepDTO[], records: Array<typeof lesso
 }
 
 async function assertActiveStudent(): Promise<StudentScope> {
-  const user = await getCurrentUserDTO();
+  const actor = await getCurrentActorDTO();
 
-  if (!user) {
+  if (!actor) {
     throw new Error(INACCESSIBLE_LESSON_MESSAGE);
   }
 
-  const memberships = await getUserMembershipsDTO(user.id);
-  const schoolIds = memberships
-    .filter((membership) => membership.role === "student" && membership.status === "active")
-    .map((membership) => membership.schoolId);
+  const memberships = await getUserMembershipsDTO(actor.id);
+  const schoolIds = actor.activeMembershipRoles.includes("student")
+    ? memberships
+        .filter((membership) => membership.role === "student" && membership.status === "active")
+        .map((membership) => membership.schoolId)
+    : [];
 
   if (schoolIds.length === 0) {
     throw new Error(INACCESSIBLE_LESSON_MESSAGE);
   }
 
-  return { userId: user.id, studentName: user.name ?? "同学", schoolIds };
+  return { userId: actor.id, studentName: actor.name ?? "同学", schoolIds };
 }
 
 async function getStudentCourseIds(scope: StudentScope) {

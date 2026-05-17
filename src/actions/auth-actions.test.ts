@@ -45,4 +45,31 @@ describe("signInAction", () => {
       redirectTo: "/teacher",
     });
   });
+
+  it("routes admin credentials sign-in to the admin workspace", async () => {
+    const membershipLimit = vi.fn().mockResolvedValue([{ id: "membership-1" }]);
+    const membershipWhere = vi.fn().mockReturnValue({ limit: membershipLimit });
+    const membershipFrom = vi.fn().mockReturnValue({ where: membershipWhere });
+
+    const userLimit = vi.fn().mockResolvedValue([{ id: "user-2" }]);
+    const userWhere = vi.fn().mockReturnValue({ limit: userLimit });
+    const userFrom = vi.fn().mockReturnValue({ where: userWhere });
+
+    dbSelect.mockReturnValueOnce({ from: userFrom }).mockReturnValueOnce({ from: membershipFrom });
+
+    const { signInAction } = await import("./auth-actions");
+    const formData = new FormData();
+    formData.set("email", "admin@openlearn.dev");
+    formData.set("password", "secret");
+    formData.set("roleIntent", "admin");
+
+    await signInAction({}, formData);
+
+    expect(signIn).toHaveBeenCalledWith("credentials", {
+      email: "admin@openlearn.dev",
+      password: "secret",
+      roleIntent: "admin",
+      redirectTo: "/admin",
+    });
+  });
 });

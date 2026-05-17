@@ -67,6 +67,23 @@ export const ClassroomFormativeEvaluationPayloadSchema = z.object({
   observationNote: z.string(),
 });
 
+export const ClassroomEvidencePayloadDTOSchema = z
+  .object({
+    note: z.string().optional(),
+    body: z.string().optional(),
+    observationNote: z.string().optional(),
+    title: z.string().optional(),
+    lessonId: z.string().optional(),
+    kind: z.string().optional(),
+    participationLevel: ClassroomParticipationLevelSchema.optional(),
+    tags: z.array(ClassroomEvaluationTagSchema).optional(),
+    sourceType: ClassroomEvidenceSourceTypeSchema.optional(),
+    evidenceType: ClassroomEvidenceTypeSchema.optional(),
+    runtimeBridge: z.boolean().optional(),
+    evidenceId: z.string().optional(),
+  })
+  .passthrough();
+
 export const RecordStudentFormativeEvaluationInputSchema = z.object({
   sessionId: z.string().min(1),
   studentId: z.string().min(1),
@@ -537,7 +554,7 @@ export const ClassroomEvidenceDTOSchema = z.object({
   stepId: z.string().nullable(),
   sourceType: ClassroomEvidenceSourceTypeSchema,
   evidenceType: ClassroomEvidenceTypeSchema,
-  payload: z.record(z.string(), z.unknown()),
+  payload: ClassroomEvidencePayloadDTOSchema,
   capturedById: z.string(),
   createdAt: z.string(),
 });

@@ -60,6 +60,21 @@ function proxyCoversTeacherRoutes(source: string) {
   return source.includes("authConfig") && /matcher:[\s\S]*(teacher|\.\*)/.test(source);
 }
 
+function credentialsLoginKeepsRoleAwareRedirectContract(source: string) {
+  const legacyInlineRedirect = source.includes(
+    'redirectTo: parsed.data.roleIntent === "student" ? "/student" : "/teacher"',
+  );
+  const workspaceEntryRedirect =
+    source.includes("resolveWorkspaceEntry(parsed.data.roleIntent)") &&
+    source.includes('if (roleIntent === "student")') &&
+    source.includes('return "/student"') &&
+    source.includes('if (roleIntent === "admin")') &&
+    source.includes('return "/admin"') &&
+    source.includes('return "/teacher"');
+
+  return source.includes('signIn("credentials"') && (legacyInlineRedirect || workspaceEntryRedirect);
+}
+
 function seedKeepsStudentOutOfTeacherRole(source: string) {
   const studentIndex = source.indexOf("student@example.com");
   if (studentIndex === -1) return false;
@@ -102,9 +117,7 @@ const checks: Check[] = [
   },
   {
     label: "credentials login keeps role-aware redirect contract",
-    passed:
-      authActions.includes('signIn("credentials"') &&
-      authActions.includes('redirectTo: parsed.data.roleIntent === "student" ? "/student" : "/teacher"'),
+    passed: credentialsLoginKeepsRoleAwareRedirectContract(authActions),
   },
   {
     label: "edge-safe auth config has no Node-only auth dependencies",

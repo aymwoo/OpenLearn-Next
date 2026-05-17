@@ -5,16 +5,29 @@ import { signIn, signOut } from "@/lib/auth/auth";
 import { db } from "@/db";
 import { memberships, users } from "@/db/schema";
 import { z } from "zod";
+import { WorkspaceRoleSchema } from "@/lib/dto/membership";
 
 const credentialsSchema = z.object({
   email: z.string().trim().min(1, "请输入账号。"),
   password: z.string().min(1, "请输入密码。"),
-  roleIntent: z.enum(["teacher", "student"]).default("student"),
+  roleIntent: WorkspaceRoleSchema.default("student"),
 });
 
 export type SignInActionState = {
   error?: string;
 };
+
+function resolveWorkspaceEntry(roleIntent: z.infer<typeof WorkspaceRoleSchema>) {
+  if (roleIntent === "student") {
+    return "/student";
+  }
+
+  if (roleIntent === "admin") {
+    return "/admin";
+  }
+
+  return "/teacher";
+}
 
 function isCredentialsSigninError(error: unknown) {
   if (typeof error !== "object" || error === null) return false;
@@ -64,11 +77,13 @@ export async function signInAction(
       .limit(1);
 
     if (roleMemberships.length === 0) {
-      return {
-        error:
-          parsed.data.roleIntent === "teacher"
-            ? "该账号没有教师权限，请切换到学生登录或使用教师账号。"
-            : "该账号没有学生权限，请切换到教师登录或使用学生账号。",
+        return {
+          error:
+            parsed.data.roleIntent === "teacher"
+              ? "该账号没有教师权限，请切换到学生登录或使用教师账号。"
+              : parsed.data.roleIntent === "student"
+                ? "该账号没有学生权限，请切换到教师登录或使用学生账号。"
+                : "该账号没有管理后台权限，请使用管理员账号。",
       };
     }
   }
@@ -78,7 +93,7 @@ export async function signInAction(
       email: parsed.data.email,
       password: parsed.data.password,
       roleIntent: parsed.data.roleIntent,
-      redirectTo: parsed.data.roleIntent === "student" ? "/student" : "/teacher",
+      redirectTo: resolveWorkspaceEntry(parsed.data.roleIntent),
     });
   } catch (error: unknown) {
     if (isCredentialsSigninError(error)) {

@@ -16,15 +16,10 @@ export default async function TeacherCourseLessonsPage({ params, searchParams }:
   const { courseId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const errorMessage = resolvedSearchParams?.error ? decodeURIComponent(resolvedSearchParams.error) : null;
+  let data;
 
   try {
-    const data = await getTeacherCourseLessonsEntryDTO({ courseId });
-
-    return (
-      <div className="min-h-full p-6 lg:p-8">
-        <CourseLessonsEntrySurface data={data} errorMessage={errorMessage} />
-      </div>
-    );
+    data = await getTeacherCourseLessonsEntryDTO({ courseId });
   } catch (error) {
     if (error instanceof Error && error.message === "COURSE_NOT_FOUND") {
       notFound();
@@ -32,4 +27,10 @@ export default async function TeacherCourseLessonsPage({ params, searchParams }:
 
     throw error;
   }
+
+  return (
+    <div className="min-h-full p-6 lg:p-8">
+      <CourseLessonsEntrySurface data={data} errorMessage={errorMessage} />
+    </div>
+  );
 }

@@ -4,7 +4,12 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
-import { UserDTOSchema, type UserDTO } from "@/lib/dto/user";
+import {
+  CurrentActorDTOSchema,
+  UserDTOSchema,
+  type CurrentActorDTO,
+  type UserDTO,
+} from "@/lib/dto/user";
 
 export async function getCurrentUserDTO(): Promise<UserDTO | null> {
   const session = await auth();
@@ -29,13 +34,42 @@ export async function getCurrentUserDTO(): Promise<UserDTO | null> {
   return result.data;
 }
 
-export async function getCurrentUserSchoolIds(): Promise<string[]> {
+export async function getCurrentActorDTO(): Promise<CurrentActorDTO | null> {
   const user = await getCurrentUserDTO();
+
   if (!user) {
-    return [];
+    return null;
   }
 
   const memberships = await getUserMembershipsDTO(user.id);
+  const activeMemberships = memberships.filter((membership) => membership.status === "active");
+  const workspaceRoles = activeMemberships
+    .map((membership) => membership.role)
+    .filter((role): role is "admin" | "teacher" | "student" =>
+      role === "admin" || role === "teacher" || role === "student"
+    );
 
-  return [...new Set(memberships.filter((membership) => membership.status === "active").map((membership) => membership.schoolId))];
+  const result = CurrentActorDTOSchema.safeParse({
+    ...user,
+    activeMembershipRoles: [...new Set(activeMemberships.map((membership) => membership.role))],
+    workspaceRoles: [...new Set(workspaceRoles)],
+    schoolIds: [...new Set(activeMemberships.map((membership) => membership.schoolId))],
+  });
+
+  if (!result.success) {
+    console.error("Failed to parse Current Actor DTO:", result.error);
+    return null;
+  }
+
+  return result.data;
+}
+
+export async function getCurrentUserSchoolIds(): Promise<string[]> {
+  const actor = await getCurrentActorDTO();
+
+  if (!actor) {
+    return [];
+  }
+
+  return actor.schoolIds;
 }

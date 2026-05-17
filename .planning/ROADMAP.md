@@ -1,11 +1,26 @@
 ## ROADMAP
 
-**Milestone:** v2.0 Runtime Platform Foundations
-**Phases:** 6
+**Milestone:** v2.1 Safety Closure and Course Membership Loop
+**Phases:** 3
 **Granularity:** coarse
-**Coverage:** Covers Phase 27-32 for milestone `v2.0 Runtime Platform Foundations`. Historical phases remain below as reference; archived v1.3 facts still live in `.planning/MILESTONES.md` and `.planning/milestones/v1.3-MILESTONE-AUDIT.md`.
+**Coverage:** Covers Phase 33-35 for milestone `v2.1 Safety Closure and Course Membership Loop`. Historical phases remain below as reference; archived milestone facts live in `.planning/MILESTONES.md` and `.planning/milestones/`.
 
 ### Current milestone phases
+
+- [x] **Phase 33: Project-level auth, data, and classroom durability closure** - Close `AUTH-01`~`AUTH-06`, `DATA-01`~`DATA-05`, and `CLASS-05` so the current classroom stack has honest authz, DTO, DAL, persistence, and durability guarantees. (completed 2026-05-17)
+- [x] **Phase 34: Course membership management loop** - Complete `COURSE-07` on top of the tightened auth/data boundary so teachers can safely manage course student enrollment within the course workflow. (completed 2026-05-17)
+- [x] **Phase 35: Verification baseline convergence and milestone close** - Finish the parallel `lint` / `typecheck` baseline repair for active surfaces and publish an honest milestone-close proof that explains why runtime expansion remains deferred. (completed 2026-05-17)
+
+### Current planning posture
+
+- 当前 active milestone 为 `v2.1 Safety Closure and Course Membership Loop`，从 Phase 33 开始继续编号。
+- 当前 roadmap 的成功线不是继续扩 runtime host/platform 面，而是先把项目级 authz、DAL/DTO、SQLite durability、classroom truth 和 course membership 缺口收口成可 ship posture。
+- Phase 33 已通过 `pnpm verify:phase33` 收口；当前 milestone 的下一条主线是基于这套 auth/data baseline 完成 `COURSE-07`。
+- 先做安全缺口，因为 Phase 27-32 已证明 runtime platform foundation 成立；如果此时继续扩 runtime 类型、transport cutover 或基础设施，会在未收口的权限和持久化边界上继续放大 blast radius。
+- `lint` / `typecheck` 基线修复作为并行工作流推进，不等到功能全部完成后才集中补救；每个 phase 都要随改动同步减少基线噪音，Phase 35 负责最终收口。
+- `RTPX-01` ~ `RTPX-06` 保持 deferred，待本轮安全与成员闭环完成后再决定下一轮 runtime/platform expansion。
+
+### Archived v2.0 phases (reference only)
 
 - [x] **Phase 27: Compatibility baseline and V2 boundary scaffolding** - Freeze the existing classroom-critical flows, establish compatibility guardrails, and introduce the first explicit runtime-platform boundaries in the main project. (completed 2026-05-15)
 - [x] **Phase 28: Runtime bridge contracts and session persistence** - Define runtime descriptors and TeachingBridge contracts, add runtime session persistence, and append canonical runtime events through a durable outbox path. (completed 2026-05-16)
@@ -13,13 +28,6 @@
 - [x] **Phase 30: Capability enforcement and plugin lifecycle** - Upgrade platform governance with capability-checked host actions, plugin manifest v2, lifecycle state, and allowed or denied audit semantics. (completed 2026-05-16)
 - [x] **Phase 31: Transport boundary and runtime inspector** - Add a transport gateway around the current SSE model and expose an operator-grade runtime or plugin timeline and health inspector. (completed 2026-05-16)
 - [x] **Phase 32: End-to-end hardening and milestone proof** - Close remaining integration gaps, prove the full runtime-hosted lesson path end-to-end, and ship the milestone demo with regression and safety verification. (completed 2026-05-17)
-
-### Current planning posture
-
-- 当前 active milestone 为 `v2.0 Runtime Platform Foundations`，从 Phase 27 开始继续编号。
-- 本轮 roadmap 的成功线不是基础设施正式 cutover，而是交付一个可运行、可审计、可受控的 runtime-hosted HTML courseware step。
-- PostgreSQL、Redis/Event Bus、WebSocket 在本轮只建立 seam 和 transport boundary，不作为正式切换完成条件。
-- `COURSE-07` 与 `AUTH-01`~`AUTH-06`、`DATA-01`~`DATA-05`、`CLASS-05` 继续作为 project-level safety gaps 保留。
 
 ### Archived v1.3 phases (reference only)
 
@@ -52,6 +60,52 @@
 - [x] **Phase 20: Help center and developer guides** - Build `/help` as a structured help center covering plugin development, theme development, and the currently available data interfaces and actions with codebase-accurate guidance. (completed 2026-05-11)
 
 ### Phase Details
+
+### Phase 33: Project-level auth, data, and classroom durability closure
+**Goal**: Close the long-running project-level auth, DAL/DTO, schema, validation, and classroom durability gaps so the current classroom product is trustworthy to ship before any further runtime-platform expansion.
+**Depends on**: Phase 32
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, DATA-01, DATA-02, DATA-03, DATA-04, DATA-05, CLASS-05
+**Success Criteria**:
+  1. Auth.js session truth, role routing, `proxy.ts` protection, and server-side actor/scope checks are aligned so teacher, student, admin, and future-role paths no longer rely on partial or implied guards.
+  2. Touched reads and writes are demonstrably server-only through DAL + Server Actions, return sanitized DTOs, and validate persistence inputs with Zod instead of ad hoc or client-trusted shaping.
+  3. SQLite schema, cascade behavior, indexes or unique constraints, and classroom session durability are reconciled with requirement truth and proven through focused verification rather than backlog notes.
+  4. The phase closes without introducing new `lint` or `typecheck` regressions in the touched auth, data, classroom, and verification surfaces.
+**Plans**: 4 plans
+- [x] 33-01-PLAN.md — Reconcile Auth.js session, role-entry, and `proxy.ts` protection against the actual protected route families and actor model.
+- [x] 33-02-PLAN.md — Audit and tighten DAL, DTO sanitation, and server-side scope enforcement across the highest-risk classroom and course reads or writes.
+- [x] 33-03-PLAN.md — Close schema, cascade, index, Zod, and classroom durability gaps with focused persistence verification.
+- [x] 33-04-PLAN.md — Publish the phase verifier and sweep milestone-touched `lint` / `typecheck` regressions for auth, data, and classroom surfaces.
+**UI hint**: yes
+
+### Phase 34: Course membership management loop
+**Goal**: Complete the missing course-member workflow so teachers can safely manage which students belong to a course within the existing course detail experience.
+**Depends on**: Phase 33
+**Requirements**: COURSE-07
+**Success Criteria**:
+  1. Teacher can view current course members and eligible students through a teacher- and school-scoped read model that does not leak same-school foreign rosters.
+  2. Teacher can add or remove course-student associations with explicit feedback, duplicate prevention, and read-your-writes behavior inside the existing course management workflow.
+  3. Enrollment writes reuse the tightened auth, DAL, DTO, cache, and validation contracts from Phase 33 rather than adding a parallel shortcut path.
+  4. The touched course-management surfaces and regression suites remain inside the active `lint` / `typecheck` convergence posture.
+**Plans**: 3 plans
+- [x] 34-01-PLAN.md — Define course-member read models, eligibility search, and scope-safe DTO contracts for the course detail workflow.
+- [x] 34-02-PLAN.md — Implement add or remove enrollment actions with duplicate guards, failure semantics, and cache invalidation.
+- [x] 34-03-PLAN.md — Productize the course-member UI loop and add focused verification plus baseline repair for the touched course surfaces.
+**UI hint**: yes
+
+### Phase 35: Verification baseline convergence and milestone close
+**Goal**: Converge the parallel `lint` / `typecheck` cleanup into an honest milestone-close gate and record why project safety closure had to precede further runtime-platform expansion.
+**Depends on**: Phase 34
+**Requirements**: QUAL-01, QUAL-02
+**Success Criteria**:
+  1. Milestone-scoped `lint` verification passes for the touched app, test, and script surfaces without relying on hand-waved historical blockers in the active scope.
+  2. Milestone-scoped `typecheck` verification passes for the touched app and test surfaces, or any remaining non-scope repo blockers are explicitly isolated and documented outside the close claim.
+  3. The milestone ships with a single honest close posture that ties auth, data, classroom durability, course membership, and baseline health together instead of closing them as disconnected fixes.
+  4. Close artifacts explicitly record that runtime/platform expansion remains deferred until these ship blockers are removed.
+**Plans**: 3 plans
+- [x] 35-01-PLAN.md — Inventory and eliminate remaining milestone-scoped `lint` blockers across app, tests, scripts, and planning verification assets. (completed 2026-05-17)
+- [x] 35-02-PLAN.md — Inventory and eliminate remaining milestone-scoped `typecheck` blockers, then codify the canonical verification commands. (completed 2026-05-17)
+- [x] 35-03-PLAN.md — Publish close artifacts, verification evidence, and the next-milestone handoff explaining why runtime expansion stays deferred. (completed 2026-05-17)
+**UI hint**: no
 
 ### Phase 27: Compatibility baseline and V2 boundary scaffolding
 **Goal**: Establish the compatibility baseline, regression harness, and main-project runtime-platform boundaries so V2 work can proceed without breaking the current classroom product.
@@ -395,6 +449,9 @@ Current milestone phases plus historical snapshot retained for planning referenc
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
+| 33. Project-level auth, data, and classroom durability closure | 4/4 | Complete | 2026-05-17 |
+| 34. Course membership management loop | 3/3 | Complete | 2026-05-17 |
+| 35. Verification baseline convergence and milestone close | 3/3 | Complete | 2026-05-17 |
 | 27. Compatibility baseline and V2 boundary scaffolding | 4/4 | Complete   | 2026-05-15 |
 | 28. Runtime bridge contracts and session persistence | 4/4 | Complete    | 2026-05-16 |
 | 29. Runtime Host and HTML courseware pilot | 4/4 | Complete | 2026-05-16 |

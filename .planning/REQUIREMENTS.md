@@ -9,9 +9,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ## Current planning posture
 
-- 当前 active milestone 为 `v2.0 Runtime Platform Foundations`。
+- 当前 active milestone 为 `v2.1 Safety Closure and Course Membership Loop`。
 - 本文件继续保留完整 requirement truth，同时新增本轮 committed scope、deferred scope 与 traceability 映射。
-- `v2.0` 聚焦 runtime platform foundations、sandboxed runtime pilot 与 platform governance，不把 PostgreSQL / Redis / WebSocket 正式 cutover 绑为本轮完成条件。
+- Phase 33 已通过 `verify:phase33` 收口 `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05` 与 `CLASS-05`；当前 committed scope 转向 `COURSE-07` 与 `lint` / `typecheck` 基线修复。
+- 之所以不继续扩 runtime/platform，是因为 Phase 27-32 已经证明平台 foundation 可运行，而当前更高优先级的 ship blocker 是项目级授权、DTO、持久化与成员闭环缺口。
+- `RTPX-01` ~ `RTPX-06` 继续 deferred，不把 PostgreSQL / Redis / WebSocket / 多 runtime expansion 绑进本轮完成条件。
 
 ### Foundation and design
 
@@ -24,20 +26,20 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Authentication and authorization
 
-- [ ] **AUTH-01**: User can sign in and maintain a session through Auth.js v5 with Drizzle-backed auth tables.
-- [ ] **AUTH-02**: Admin, teacher, and student roles can access role-appropriate workspaces after sign-in.
-- [ ] **AUTH-03**: Server code models future super admin, school admin, parent, developer, and AI Agent roles without exposing unfinished workflows in the UI.
-- [ ] **AUTH-04**: `proxy.ts` redirects unauthenticated users away from protected teacher, student, classroom, admin, and API route families.
-- [ ] **AUTH-05**: Server Actions and DAL functions verify actor identity, role, school membership, ownership, enrollment, and resource scope before returning or mutating data.
-- [ ] **AUTH-06**: UI receives sanitized DTOs only and never receives raw database rows, credentials, provider tokens, internal prompts, or private plugin data.
+- [x] **AUTH-01**: User can sign in and maintain a session through Auth.js v5 with Drizzle-backed auth tables.
+- [x] **AUTH-02**: Admin, teacher, and student roles can access role-appropriate workspaces after sign-in.
+- [x] **AUTH-03**: Server code models future super admin, school admin, parent, developer, and AI Agent roles without exposing unfinished workflows in the UI.
+- [x] **AUTH-04**: `proxy.ts` redirects unauthenticated users away from protected teacher, student, classroom, admin, and API route families.
+- [x] **AUTH-05**: Server Actions and DAL functions verify actor identity, role, school membership, ownership, enrollment, and resource scope before returning or mutating data.
+- [x] **AUTH-06**: UI receives sanitized DTOs only and never receives raw database rows, credentials, provider tokens, internal prompts, or private plugin data.
 
 ### Data layer and schema
 
-- [ ] **DATA-01**: Developer can use a SQLite-first Drizzle database with migrations and table groups for auth, schools, courses, lessons, steps, progress, submissions, classroom sessions, AI/RAG metadata, MCP metadata, plugins, and themes.
-- [ ] **DATA-02**: Developer can rely on `onDelete: cascade` or equivalent cascade behavior for all parent-owned child records.
-- [ ] **DATA-03**: Developer can access all persistent data only through DAL modules under a server-only boundary.
-- [ ] **DATA-04**: Developer can validate all user, AI, MCP, plugin, step payload, and submission inputs with Zod before persistence.
-- [ ] **DATA-05**: Developer can use documented indexes and unique constraints for high-frequency reads and writes, including lesson step order, progress identity, latest submissions, classroom sessions, and scoped permissions.
+- [x] **DATA-01**: Developer can use a SQLite-first Drizzle database with migrations and table groups for auth, schools, courses, lessons, steps, progress, submissions, classroom sessions, AI/RAG metadata, MCP metadata, plugins, and themes.
+- [x] **DATA-02**: Developer can rely on `onDelete: cascade` or equivalent cascade behavior for all parent-owned child records.
+- [x] **DATA-03**: Developer can access all persistent data only through DAL modules under a server-only boundary.
+- [x] **DATA-04**: Developer can validate all user, AI, MCP, plugin, step payload, and submission inputs with Zod before persistence.
+- [x] **DATA-05**: Developer can use documented indexes and unique constraints for high-frequency reads and writes, including lesson step order, progress identity, latest submissions, classroom sessions, and scoped permissions.
 
 ### Courses, lessons, and teacher authoring
 
@@ -68,7 +70,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **CLASS-02**: Teacher can see and change the active step of a live classroom session.
 - [x] **CLASS-03**: Teacher can switch a classroom session between locked mode, where students follow the active step, and unlocked mode, where students can move independently.
 - [x] **CLASS-04**: Student player reflects active step and lock mode changes through an Edge Runtime SSE stream.
-- [ ] **CLASS-05**: Classroom session state, current step, lock mode, participants, and events are durable in SQLite and not stored only in SSE memory.
+- [x] **CLASS-05**: Classroom session state, current step, lock mode, participants, and events are durable in SQLite and not stored only in SSE memory.
 - [x] **CLASS-06**: Reconnecting or late-joining students receive a consistent snapshot of classroom session state.
 - [x] **CLASS-07**: Teacher can recover from classroom control conflicts or stale UI with clear state feedback.
 
@@ -176,15 +178,20 @@ Requirements for initial release. Each maps to roadmap phases.
 
 #### Platform governance and audit
 
-- [ ] **GOVR-01**: System enforces capability checks before any runtime or plugin action can invoke an allowlisted host operation.
-- [ ] **GOVR-02**: Plugin manifest v2 can declare runtime type, requested capabilities, permissions, and lifecycle metadata without enabling arbitrary remote code execution.
-- [ ] **GOVR-03**: System can drive built-in runtime or plugin lifecycle states across installed, enabled, mounted, ready, suspended, disabled, and failed.
-- [ ] **GOVR-04**: Teacher, admin, or developer can inspect runtime or plugin allowed or denied actions, actor, result, timestamp, and health state in an audit timeline or inspector surface.
+- [x] **GOVR-01**: System enforces capability checks before any runtime or plugin action can invoke an allowlisted host operation.
+- [x] **GOVR-02**: Plugin manifest v2 can declare runtime type, requested capabilities, permissions, and lifecycle metadata without enabling arbitrary remote code execution.
+- [x] **GOVR-03**: System can drive built-in runtime or plugin lifecycle states across installed, enabled, mounted, ready, suspended, disabled, and failed.
+- [x] **GOVR-04**: Teacher, admin, or developer can inspect runtime or plugin allowed or denied actions, actor, result, timestamp, and health state in an audit timeline or inspector surface.
 
 #### Transport evolution
 
-- [ ] **TRNS-01**: Runtime and classroom events flow through a transport boundary that preserves current SSE delivery while allowing a future WebSocket adapter.
-- [ ] **TRNS-02**: Durable classroom and runtime session state remains the source of truth while transport adapters act only as delivery channels.
+- [x] **TRNS-01**: Runtime and classroom events flow through a transport boundary that preserves current SSE delivery while allowing a future WebSocket adapter.
+- [x] **TRNS-02**: Durable classroom and runtime session state remains the source of truth while transport adapters act only as delivery channels.
+
+### v2.1 Safety closure and repository health
+
+- [ ] **QUAL-01**: Developer can run milestone-scoped lint verification for touched app, test, and script surfaces without being blocked by newly introduced baseline regressions.
+- [ ] **QUAL-02**: Developer can run milestone-scoped typecheck verification for touched app and test surfaces without unresolved active-scope blockers.
 
 ## v2 Requirements
 
@@ -263,17 +270,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOUND-04 | Phase 1 | Complete |
 | FOUND-05 | Phase 1 | Complete |
 | FOUND-06 | Phase 1 | Complete |
-| AUTH-01 | Phase 2 | Pending |
-| AUTH-02 | Phase 2 | Pending |
-| AUTH-03 | Phase 2 | Pending |
-| AUTH-04 | Phase 2 | Pending |
-| AUTH-05 | Phase 2 | Pending |
-| AUTH-06 | Phase 2 | Pending |
-| DATA-01 | Phase 2 | Pending |
-| DATA-02 | Phase 2 | Pending |
-| DATA-03 | Phase 2 | Pending |
-| DATA-04 | Phase 2 | Pending |
-| DATA-05 | Phase 2 | Pending |
+| AUTH-01 | Phase 33 | Complete |
+| AUTH-02 | Phase 33 | Complete |
+| AUTH-03 | Phase 33 | Complete |
+| AUTH-04 | Phase 33 | Complete |
+| AUTH-05 | Phase 33 | Complete |
+| AUTH-06 | Phase 33 | Complete |
+| DATA-01 | Phase 33 | Complete |
+| DATA-02 | Phase 33 | Complete |
+| DATA-03 | Phase 33 | Complete |
+| DATA-04 | Phase 33 | Complete |
+| DATA-05 | Phase 33 | Complete |
 | LESSON-01 | Phase 3 | Complete |
 | LESSON-02 | Phase 3 | Complete |
 | LESSON-03 | Phase 3 | Complete |
@@ -295,7 +302,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLASS-02 | Phase 5 | Complete |
 | CLASS-03 | Phase 5 | Complete |
 | CLASS-04 | Phase 5 | Complete |
-| CLASS-05 | Phase 5 | Pending |
+| CLASS-05 | Phase 33 | Complete |
 | CLASS-06 | Phase 5 | Complete |
 | CLASS-07 | Phase 5 | Complete |
 | AI-01 | Phase 6 | Complete |
@@ -322,7 +329,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COURSE-04 | Phase 14 | Complete |
 | COURSE-05 | Phase 14 | Complete |
 | COURSE-06 | Phase 14 | Complete |
-| COURSE-07 | Phase 14 | Pending |
+| COURSE-07 | Phase 34 | Pending |
 | COURSE-08 | Phase 15 | Complete |
 | COURSE-09 | Phase 15 | Complete |
 | COURSE-10 | Phase 13 | Complete |
@@ -365,19 +372,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RHOST-02 | Phase 29 | Complete |
 | RHOST-03 | Phase 29 | Complete |
 | RHOST-04 | Phase 32 | Complete |
-| GOVR-01 | Phase 30 | Pending |
-| GOVR-02 | Phase 30 | Pending |
-| GOVR-03 | Phase 30 | Pending |
-| GOVR-04 | Phase 31 | Pending |
-| TRNS-01 | Phase 31 | Pending |
-| TRNS-02 | Phase 31 | Pending |
+| GOVR-01 | Phase 30 | Complete |
+| GOVR-02 | Phase 30 | Complete |
+| GOVR-03 | Phase 30 | Complete |
+| GOVR-04 | Phase 31 | Complete |
+| TRNS-01 | Phase 31 | Complete |
+| TRNS-02 | Phase 31 | Complete |
+| QUAL-01 | Phase 35 | Complete |
+| QUAL-02 | Phase 35 | Complete |
 
 **Coverage:**
-- v1/v1.1/v1.2/v1.x/v1.3/v2.0 requirements: 114 total
-- Mapped to phases: 114
+- v1/v1.1/v1.2/v1.x/v1.3/v2.0/v2.1 requirements: 116 total
+- Mapped to phases: 116
 - Unmapped: 0
 - Duplicate mappings: 0
 
 ---
 *Requirements defined: 2026-05-04*  
-*Last updated: 2026-05-16 after closing Phase 29 runtime host and HTML courseware pilot*
+*Last updated: 2026-05-17 after closing Phase 35 verification baseline convergence and milestone close requirements*

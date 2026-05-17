@@ -9,10 +9,12 @@ import {
 } from "lucide-react";
 
 import {
+  addCourseEnrollmentAction,
   addCourseClassAssociationAction,
   archiveCourseAction,
   deleteCourseAction,
   publishCourseAction,
+  removeCourseEnrollmentAction,
   removeCourseClassAssociationAction,
   unpublishCourseAction,
   updateCourseAction,
@@ -43,6 +45,13 @@ export function TeacherCourseDetailSurface({
     courseStatusMeta.draft;
   const lessonsEntryHref = `/teacher/courses/${course.id}/lessons`;
   const lessonsEntryDisabled = course.status === "archived";
+  const detailFormKey = [
+    course.updatedAt,
+    course.status,
+    course.enrollmentCount,
+    course.classLinks.length,
+    course.availableClasses.length,
+  ].join(":");
 
   return (
     <div className={teacherSurfaceRhythm.stack}>
@@ -136,10 +145,13 @@ export function TeacherCourseDetailSurface({
 
           <div className="mt-5">
             <CourseDetailForm
+              key={detailFormKey}
               course={course}
               updateCourseAction={updateCourseAction}
               addCourseClassAssociationAction={addCourseClassAssociationAction}
               removeCourseClassAssociationAction={removeCourseClassAssociationAction}
+              addCourseEnrollmentAction={addCourseEnrollmentAction}
+              removeCourseEnrollmentAction={removeCourseEnrollmentAction}
               publishCourseAction={publishCourseAction}
               unpublishCourseAction={unpublishCourseAction}
               archiveCourseAction={archiveCourseAction}

@@ -1,19 +1,19 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Runtime Platform Foundations
-current_phase: 32
-current_phase_name: end-to-end-hardening-and-milestone-proof
-current_plan: 7
+milestone: v2.1
+milestone_name: Safety Closure and Course Membership Loop
+current_phase: 35
+current_phase_name: verification-baseline-convergence-and-milestone-close
+current_plan: 3
 status: completed
-stopped_at: Completed 32-07-PLAN.md
-last_updated: "2026-05-17T18:19:00.000Z"
-last_activity: 2026-05-17 -- Phase 32 completed
+stopped_at: Phase 35 completed via verify:phase35
+last_updated: "2026-05-17T23:30:00.000Z"
+last_activity: "2026-05-17 -- Phase 35 completed with verify:phase35 passed; v2.1 archived"
 progress:
-  total_phases: 20
-  completed_phases: 20
-  total_plans: 82
-  completed_plans: 82
+  total_phases: 23
+  completed_phases: 23
+  total_plans: 89
+  completed_plans: 89
   percent: 100
 ---
 
@@ -21,33 +21,31 @@ progress:
 
 ## Current Position
 
-Milestone: v2.0 Runtime Platform Foundations
-Phase: 32 (end-to-end-hardening-and-milestone-proof) — COMPLETED
-Phase name: End-to-end hardening and milestone proof
-Plan: 7 of 7
-Status: Completed Phase 32
-Last activity: 2026-05-17 -- Phase 32 completed
+Milestone: v2.1 Safety Closure and Course Membership Loop
+Phase: 35 (verification-baseline-convergence-and-milestone-close) — COMPLETED
+Phase name: Verification baseline convergence and milestone close
+Plan: 3 of 3
+Status: Phase 35 complete; `v2.1` archived
+Last activity: 2026-05-17 -- Phase 35 completed with verify:phase35 passed; v2.1 archived
 Progress: [██████████] 100%
 
 <!--
 GSD compatibility fields for older state parsers.
-Current Phase: 32
-Current Phase Name: end-to-end-hardening-and-milestone-proof
-Current Plan: 7
-Total Plans in Phase: 7
-Last Activity Description: Phase 32 completed
+Current Phase: 35
+Current Phase Name: verification-baseline-convergence-and-milestone-close
+Current Plan: 3
+Total Plans in Phase: 3
+Last Activity Description: Phase 35 completed with verify:phase35 passed; v2.1 archived
 -->
 
 ## Milestone Notes
 
-- 当前 milestone 从 backlog 空档切换到 `v2.0 Runtime Platform Foundations`。
-- 这轮目标是直接重组主工程边界，并交付一个可运行、可审计、可受控的 sandboxed runtime step。
-- Phase 29 已完成 shared Runtime Host、三处 surface wiring、本地 HTML courseware pilot、`verify:phase29` 和 close artifacts。
-- Phase 30 已完成 capability-gated host actions、manifest v2 governance、lifecycle persistence、governance audit 与 `verify:phase30`。
-- Phase 31 已完成 transport boundary、runtime inspector、focused verification 与 close artifacts。
-- Phase 32 已完成 end-to-end hardening、proof UAT、verification/security close artifacts 与 `verify:phase32`。
-- `COURSE-07`、`AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05`、`CLASS-05` 继续保留为 project-level safety gaps。
-- PostgreSQL、Redis/Event Bus、WebSocket 在本轮只建立 seam，不做正式 cutover。
+- 当前 milestone 已切换到 `v2.1 Safety Closure and Course Membership Loop`。
+- 之所以先开安全收口 milestone，而不是继续扩 runtime 平台，是因为 Phase 27-32 已经证明 runtime host、governance、transport boundary、inspector 与 HTML runtime proof path 可运行；当前更高优先级的风险是项目级 authz、DAL/DTO、SQLite durability、classroom truth 与 course membership 闭环缺口。
+- Phase 33 已通过 `verify:phase33` 收口 `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05` 与 `CLASS-05`，当前 auth/data/classroom durability baseline 已有单一可重复证据链。
+- Phase 34 已完成 `COURSE-07`，课程成员管理现已建立在已验证的 scope、DAL、DTO 与 persistence contract 上。
+- `lint` / `typecheck` 基线修复作为并行工作流推进，并在 Phase 35 统一收口到 milestone close posture。
+- `RTPX-01` ~ `RTPX-06` 继续 deferred；PostgreSQL、Redis/Event Bus、WebSocket 与多 runtime expansion 暂不进入本轮完成条件。
 
 ## Accumulated Context
 
@@ -196,11 +194,10 @@ Last Activity Description: Phase 32 completed
 
 ## Next Steps
 
-1. v1.3 已按 `.planning/milestones/v1.3-MILESTONE-AUDIT.md` 归档；carry-over 课程域短 scope 现已完成到 Phase 15。
-2. 后续 live planning 候选转向 `COURSE-07` 与其余 known gaps，同时继续复用已锁定的 classroom contracts：`/classroom` 主域、history reopen、split workload、显式 `未评价`。
-3. 如需恢复里程碑级一键验证，先处理仓库当前 `pnpm` build approval 门禁，再重跑当前 canonical `pnpm verify:phase32` 与所需的 focused verifier checks。
-4. 在下一轮 scope 确认前，不新增 milestone 名称或 phase 编号。
-5. `v2.0 Runtime Platform Foundations` 已完成收口；下一步应先确认新的 milestone 目标或 carry-over scope，再开启新的 phase。
+1. 为下一轮 milestone 决定新的 active scope，并在确认前继续保持 runtime/platform expansion 为 deferred。
+2. 如需继续 repo health 收口，优先处理 `verify:phase35` 已明确隔离出的 repo-wide `lint` backlog。
+3. 保持 Phase 33/34/35 的 canonical verifier 与 close artifacts 作为当前 safety closure 的单一证据链。
+4. 在新的 milestone 启动前，不改写 `v2.1` 的诚实 close posture：full `typecheck` 已绿，milestone-scoped lint 已绿，repo-wide lint backlog 仍存在。
 
 ## Performance Metrics
 
@@ -247,9 +244,9 @@ Last Activity Description: Phase 32 completed
 
 ## Session Tracking
 
-Last session: 2026-05-17T18:19:00.000Z
-Stopped At: Completed 32-07-PLAN.md
-Resume File: None
+Last session: 2026-05-17T13:52:27.272Z
+Stopped At: Phase 35 completed via verify:phase35
+Resume File: .planning/phases/35-verification-baseline-convergence-and-milestone-close/
 
 ### Quick Tasks Completed
 

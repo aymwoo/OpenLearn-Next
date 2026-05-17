@@ -7,10 +7,13 @@ const findFirstCourses = vi.fn();
 const findManyLessons = vi.fn();
 const findManyLessonSteps = vi.fn();
 const findManyCourseEnrollments = vi.fn();
+const findFirstCourseEnrollments = vi.fn();
 const findManyCourseClasses = vi.fn();
 const findFirstCourseClasses = vi.fn();
 const findManyClasses = vi.fn();
 const findFirstClasses = vi.fn();
+const findManyClassMembers = vi.fn();
+const findManyUsers = vi.fn();
 const findManySchools = vi.fn();
 const assertActiveTeacher = vi.fn();
 const cacheLife = vi.fn();
@@ -35,9 +38,11 @@ vi.mock("@/db", () => ({
       courses: { findMany: findManyCourses, findFirst: findFirstCourses },
       lessons: { findMany: findManyLessons },
       lessonSteps: { findMany: findManyLessonSteps },
-      courseEnrollments: { findMany: findManyCourseEnrollments },
+      courseEnrollments: { findMany: findManyCourseEnrollments, findFirst: findFirstCourseEnrollments },
       courseClasses: { findMany: findManyCourseClasses, findFirst: findFirstCourseClasses },
+      classMembers: { findMany: findManyClassMembers },
       classes: { findMany: findManyClasses, findFirst: findFirstClasses },
+      users: { findMany: findManyUsers },
       schools: { findMany: findManySchools },
     },
   },
@@ -56,10 +61,13 @@ describe("course authoring DAL", () => {
       findManyLessons,
       findManyLessonSteps,
       findManyCourseEnrollments,
+      findFirstCourseEnrollments,
       findManyCourseClasses,
       findFirstCourseClasses,
       findManyClasses,
       findFirstClasses,
+      findManyClassMembers,
+      findManyUsers,
       findManySchools,
       assertActiveTeacher,
       cacheLife,
@@ -79,6 +87,7 @@ describe("course authoring DAL", () => {
     deleteWhere.mockResolvedValue(undefined);
     insertValues.mockResolvedValue(undefined);
     findFirstCourseClasses.mockResolvedValue(null);
+    findFirstCourseEnrollments.mockResolvedValue(null);
 
     findManyCourses.mockResolvedValue([
       {
@@ -221,11 +230,11 @@ describe("course authoring DAL", () => {
     ]);
 
     findManyCourseEnrollments.mockResolvedValue([
-      { id: "enrollment-1", courseId: "course-draft-new" },
-      { id: "enrollment-2", courseId: "course-draft-new" },
-      { id: "enrollment-3", courseId: "course-published-newer" },
-      { id: "enrollment-foreign", courseId: "course-same-school-foreign" },
-      { id: "enrollment-4", courseId: "course-out-of-scope" },
+      { id: "enrollment-1", courseId: "course-draft-new", studentId: "student-1" },
+      { id: "enrollment-2", courseId: "course-draft-new", studentId: "student-2" },
+      { id: "enrollment-3", courseId: "course-published-newer", studentId: "student-3" },
+      { id: "enrollment-foreign", courseId: "course-same-school-foreign", studentId: "student-2" },
+      { id: "enrollment-4", courseId: "course-out-of-scope", studentId: "student-9" },
     ]);
 
     findManyCourseClasses.mockResolvedValue([
@@ -241,6 +250,23 @@ describe("course authoring DAL", () => {
       { id: "class-2", schoolId: "school-1", name: "七年级二班" },
       { id: "class-4", schoolId: "school-1", name: "七年级三班" },
       { id: "class-3", schoolId: "school-2", name: "外校实验班" },
+    ]);
+    findManyClassMembers.mockResolvedValue([
+      { id: "member-1", classId: "class-1", userId: "student-1", role: "student" },
+      { id: "member-2", classId: "class-1", userId: "student-3", role: "student" },
+      { id: "member-3", classId: "class-2", userId: "student-2", role: "student" },
+      { id: "member-4", classId: "class-2", userId: "student-3", role: "student" },
+      { id: "member-5", classId: "class-2", userId: "teacher-2", role: "teacher" },
+      { id: "member-6", classId: "class-3", userId: "student-9", role: "student" },
+      { id: "member-7", classId: "class-4", userId: "student-4", role: "student" },
+    ]);
+    findManyUsers.mockResolvedValue([
+      { id: "student-1", name: "林小满", studentNumber: "S-001" },
+      { id: "student-2", name: "周以恒", studentNumber: "S-002" },
+      { id: "student-3", name: "许知远", studentNumber: "S-003" },
+      { id: "student-4", name: "沈星河", studentNumber: "S-004" },
+      { id: "student-9", name: "外校学生", studentNumber: "S-999" },
+      { id: "teacher-2", name: "同班教师", studentNumber: null },
     ]);
     findManySchools.mockResolvedValue([
       { id: "school-1", name: "晨曦实验学校" },
@@ -307,9 +333,44 @@ describe("course authoring DAL", () => {
       { id: "class-2", name: "七年级二班" },
     ]);
     expect(dto.availableClasses).toEqual([{ id: "class-4", name: "七年级三班" }]);
+    expect(dto.members).toEqual([
+      {
+        studentId: "student-1",
+        studentName: "林小满",
+        studentNumber: "S-001",
+        classLabels: ["七年级一班"],
+        enrollmentStatus: "active",
+      },
+      {
+        studentId: "student-2",
+        studentName: "周以恒",
+        studentNumber: "S-002",
+        classLabels: ["七年级二班"],
+        enrollmentStatus: "active",
+      },
+    ]);
+    expect(dto.eligibleStudents).toEqual([
+      {
+        studentId: "student-3",
+        studentName: "许知远",
+        studentNumber: "S-003",
+        classLabels: ["七年级一班", "七年级二班"],
+        isAlreadyEnrolled: false,
+      },
+    ]);
     expect(dto.lessons.map((lesson) => lesson.id)).toEqual(["lesson-2", "lesson-1"]);
     expect(dto.lessons[0]).toEqual(expect.objectContaining({ id: "lesson-2", stepCount: 1, status: "published" }));
     expect(dto.lessons[1]).toEqual(expect.objectContaining({ id: "lesson-1", stepCount: 2, status: "draft" }));
+  });
+
+  it("limits membership candidates to linked classes only and excludes unrelated school roster rows", async () => {
+    const { getTeacherCourseDetailDTO } = await import("./course-authoring");
+
+    const dto = await getTeacherCourseDetailDTO({ courseId: "course-draft-new" });
+
+    expect(dto.members.every((student) => student.studentId !== "student-9")).toBe(true);
+    expect(dto.eligibleStudents.map((student) => student.studentId)).toEqual(["student-3"]);
+    expect(dto.eligibleStudents.some((student) => student.studentId === "student-4")).toBe(false);
   });
 
   it("adds a class association within the teacher school scope and returns refreshed detail DTO", async () => {
@@ -405,6 +466,198 @@ describe("course authoring DAL", () => {
     ).rejects.toThrow("CLASS_NOT_FOUND");
   });
 
+  it("adds an eligible course enrollment and returns refreshed detail DTO", async () => {
+    findFirstCourses.mockResolvedValueOnce({
+      id: "course-draft-new",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "七年级科学探究",
+      subject: "科学",
+      grade: "七年级",
+      status: "draft",
+      updatedAt: new Date("2026-05-08T10:00:00.000Z"),
+    });
+    findManyCourseClasses.mockResolvedValueOnce([
+      { courseId: "course-draft-new", classId: "class-1" },
+      { courseId: "course-draft-new", classId: "class-2" },
+    ]);
+    findManyClassMembers.mockResolvedValueOnce([
+      { id: "member-1", classId: "class-1", userId: "student-1", role: "student" },
+      { id: "member-2", classId: "class-2", userId: "student-2", role: "student" },
+      { id: "member-3", classId: "class-2", userId: "student-3", role: "student" },
+    ]);
+    findFirstCourseEnrollments.mockResolvedValueOnce(null);
+    findManyCourseEnrollments.mockResolvedValueOnce([
+      { id: "enrollment-1", courseId: "course-draft-new", studentId: "student-1" },
+      { id: "enrollment-2", courseId: "course-draft-new", studentId: "student-2" },
+      { id: "enrollment-3", courseId: "course-draft-new", studentId: "student-3" },
+    ]);
+
+    const { addCourseEnrollmentForTeacherScoped } = await import("./course-authoring");
+
+    const dto = await addCourseEnrollmentForTeacherScoped({
+      courseId: "course-draft-new",
+      studentId: "student-3",
+    });
+
+    expect(dbInsert).toHaveBeenCalled();
+    expect(insertValues).toHaveBeenCalledWith({
+      courseId: "course-draft-new",
+      studentId: "student-3",
+      status: "active",
+    });
+    expect(dto.members.map((member) => member.studentId)).toEqual(["student-1", "student-2", "student-3"]);
+    expect(dto.eligibleStudents).toEqual([]);
+    expect(dto.enrollmentCount).toBe(3);
+  });
+
+  it("rejects duplicate course enrollments explicitly", async () => {
+    findFirstCourses.mockResolvedValueOnce({
+      id: "course-draft-new",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "七年级科学探究",
+      subject: "科学",
+      grade: "七年级",
+      status: "draft",
+      updatedAt: new Date("2026-05-08T10:00:00.000Z"),
+    });
+    findManyCourseClasses.mockResolvedValueOnce([
+      { courseId: "course-draft-new", classId: "class-1" },
+      { courseId: "course-draft-new", classId: "class-2" },
+    ]);
+    findManyClassMembers.mockResolvedValueOnce([
+      { id: "member-1", classId: "class-1", userId: "student-1", role: "student" },
+      { id: "member-2", classId: "class-2", userId: "student-2", role: "student" },
+    ]);
+    findFirstCourseEnrollments.mockResolvedValueOnce({
+      id: "enrollment-2",
+      courseId: "course-draft-new",
+      studentId: "student-2",
+    });
+
+    const { addCourseEnrollmentForTeacherScoped } = await import("./course-authoring");
+
+    await expect(
+      addCourseEnrollmentForTeacherScoped({
+        courseId: "course-draft-new",
+        studentId: "student-2",
+      })
+    ).rejects.toThrow("COURSE_ENROLLMENT_EXISTS");
+  });
+
+  it("rejects out-of-scope students when adding a course enrollment", async () => {
+    findFirstCourses.mockResolvedValueOnce({
+      id: "course-draft-new",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "七年级科学探究",
+      subject: "科学",
+      grade: "七年级",
+      status: "draft",
+      updatedAt: new Date("2026-05-08T10:00:00.000Z"),
+    });
+    findManyCourseClasses.mockResolvedValueOnce([{ courseId: "course-draft-new", classId: "class-1" }]);
+    findManyClassMembers.mockResolvedValueOnce([
+      { id: "member-1", classId: "class-1", userId: "student-1", role: "student" },
+    ]);
+
+    const { addCourseEnrollmentForTeacherScoped } = await import("./course-authoring");
+
+    await expect(
+      addCourseEnrollmentForTeacherScoped({
+        courseId: "course-draft-new",
+        studentId: "student-9",
+      })
+    ).rejects.toThrow("STUDENT_NOT_ELIGIBLE");
+  });
+
+  it("blocks archived course membership writes", async () => {
+    findFirstCourses.mockResolvedValueOnce({
+      id: "course-archived",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "往期实验复盘",
+      subject: "科学",
+      grade: "七年级",
+      status: "archived",
+      updatedAt: new Date("2026-05-10T10:00:00.000Z"),
+    });
+
+    const { addCourseEnrollmentForTeacherScoped, removeCourseEnrollmentForTeacherScoped } = await import("./course-authoring");
+
+    await expect(
+      addCourseEnrollmentForTeacherScoped({
+        courseId: "course-archived",
+        studentId: "student-2",
+      })
+    ).rejects.toThrow("COURSE_MEMBERSHIP_READ_ONLY");
+
+    findFirstCourses.mockResolvedValueOnce({
+      id: "course-archived",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "往期实验复盘",
+      subject: "科学",
+      grade: "七年级",
+      status: "archived",
+      updatedAt: new Date("2026-05-10T10:00:00.000Z"),
+    });
+
+    await expect(
+      removeCourseEnrollmentForTeacherScoped({
+        courseId: "course-archived",
+        studentId: "student-2",
+      })
+    ).rejects.toThrow("COURSE_MEMBERSHIP_READ_ONLY");
+  });
+
+  it("removes a course enrollment and returns the student to the eligible pool", async () => {
+    findFirstCourses.mockResolvedValueOnce({
+      id: "course-draft-new",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      title: "七年级科学探究",
+      subject: "科学",
+      grade: "七年级",
+      status: "draft",
+      updatedAt: new Date("2026-05-08T10:00:00.000Z"),
+    });
+    findManyCourseClasses.mockResolvedValueOnce([
+      { courseId: "course-draft-new", classId: "class-1" },
+      { courseId: "course-draft-new", classId: "class-2" },
+    ]);
+    findManyClassMembers.mockResolvedValueOnce([
+      { id: "member-1", classId: "class-1", userId: "student-1", role: "student" },
+      { id: "member-2", classId: "class-2", userId: "student-2", role: "student" },
+      { id: "member-3", classId: "class-2", userId: "student-3", role: "student" },
+    ]);
+    findManyCourseEnrollments.mockResolvedValueOnce([
+      { id: "enrollment-1", courseId: "course-draft-new", studentId: "student-1" },
+      { id: "enrollment-3", courseId: "course-draft-new", studentId: "student-3" },
+    ]);
+
+    const { removeCourseEnrollmentForTeacherScoped } = await import("./course-authoring");
+
+    const dto = await removeCourseEnrollmentForTeacherScoped({
+      courseId: "course-draft-new",
+      studentId: "student-2",
+    });
+
+    expect(dbDelete).toHaveBeenCalled();
+    expect(deleteWhere).toHaveBeenCalled();
+    expect(dto.members.map((member) => member.studentId)).toEqual(["student-1", "student-3"]);
+    expect(dto.eligibleStudents).toEqual([
+      {
+        studentId: "student-2",
+        studentName: "周以恒",
+        studentNumber: "S-002",
+        classLabels: ["七年级二班"],
+        isAlreadyEnrolled: false,
+      },
+    ]);
+  });
+
   it("returns only current course lesson summaries for the course-aware lessons entry per D-09 D-10", async () => {
     const { getTeacherCourseLessonsEntryDTO } = await import("./course-authoring");
 
@@ -492,6 +745,34 @@ describe("course authoring DAL", () => {
       expect.objectContaining({ code: "COURSE_HAS_LESSONS", count: 2 }),
       expect.objectContaining({ code: "COURSE_HAS_CLASS_ASSOCIATIONS", count: 2 }),
       expect.objectContaining({ code: "COURSE_HAS_ENROLLMENTS", count: 2 }),
+    ]);
+    expect(dto.members).toHaveLength(dto.enrollmentCount);
+  });
+
+  it("keeps archived course detail readable with membership slices aligned to delete blockers", async () => {
+    findManyCourseEnrollments.mockResolvedValueOnce([
+      { id: "archived-enrollment-1", courseId: "course-archived", studentId: "student-2" },
+    ]);
+    findManyCourseClasses.mockResolvedValueOnce([{ courseId: "course-archived", classId: "class-2" }]);
+
+    const { getTeacherCourseDetailDTO } = await import("./course-authoring");
+
+    const dto = await getTeacherCourseDetailDTO({ courseId: "course-archived" });
+
+    expect(dto.status).toBe("archived");
+    expect(dto.members).toEqual([
+      {
+        studentId: "student-2",
+        studentName: "周以恒",
+        studentNumber: "S-002",
+        classLabels: ["七年级二班"],
+        enrollmentStatus: "active",
+      },
+    ]);
+    expect(dto.enrollmentCount).toBe(1);
+    expect(dto.deleteEligibility.reasons).toEqual([
+      expect.objectContaining({ code: "COURSE_HAS_CLASS_ASSOCIATIONS", count: 1 }),
+      expect.objectContaining({ code: "COURSE_HAS_ENROLLMENTS", count: 1 }),
     ]);
   });
 

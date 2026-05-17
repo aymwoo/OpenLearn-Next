@@ -2,6 +2,15 @@ import { z } from "zod";
 
 import { lessonStepPayloadSchema } from "./lesson-authoring";
 
+export const TaskAttemptPayloadDTOSchema = z
+  .object({
+    text: z.string().optional(),
+    answer: z.string().optional(),
+    body: z.string().optional(),
+    note: z.string().optional(),
+  })
+  .passthrough();
+
 export const ProgressStateSchema = z.enum(["not_started", "in_progress", "completed", "skipped"]);
 export const StudentProgressMutationStateSchema = z.enum(["in_progress", "completed"]);
 
@@ -64,7 +73,7 @@ export const TaskAttemptDTOSchema = z.object({
   stepId: z.string(),
   studentId: z.string(),
   attemptNo: z.number().int().positive(),
-  payload: z.unknown(),
+  payload: TaskAttemptPayloadDTOSchema,
   isLatest: z.boolean(),
   canRetryTask: z.boolean(),
   successMessage: z.string().default("已提交，本次尝试已记录"),
@@ -244,6 +253,7 @@ export type LearningStepDTO = z.infer<typeof LearningStepDTOSchema>;
 export type StudentLessonCardDTO = z.infer<typeof StudentLessonCardDTOSchema>;
 export type StudentDashboardDTO = z.infer<typeof StudentDashboardDTOSchema>;
 export type RuntimeStepStateDTO = z.infer<typeof RuntimeStepStateDTOSchema>;
+export type TaskAttemptPayloadDTO = z.infer<typeof TaskAttemptPayloadDTOSchema>;
 export type TaskAttemptDTO = z.infer<typeof TaskAttemptDTOSchema>;
 export type QuizAttemptDTO = z.infer<typeof QuizAttemptDTOSchema>;
 export type StudentQuickResponseAttemptDTO = z.infer<typeof StudentQuickResponseAttemptDTOSchema>;

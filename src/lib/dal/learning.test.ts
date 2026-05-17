@@ -58,8 +58,9 @@ describe("learning DAL student read boundary", () => {
   it("is server-only and requires an active student", () => {
     expect(source.trimStart().startsWith('import "server-only";')).toBe(true);
     expect(source).toContain("assertActiveStudent");
-    expect(source).toContain("getCurrentUserDTO");
+    expect(source).toContain("getCurrentActorDTO");
     expect(source).toContain("getUserMembershipsDTO");
+    expect(source).toContain('actor.activeMembershipRoles.includes("student")');
     expect(source).toContain('membership.role === "student"');
     expect(source).toContain('membership.status === "active"');
   });
@@ -172,6 +173,12 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain('teacherRecommendedStepId = classroomRuntime.activeStepId');
     expect(source).toContain("slideIndex = classroomRuntime.slideIndex");
     expect(source).toContain("disabledStepIds: locked ? steps.map(s => s.id).filter(id => id !== forcedStepId) : []");
+  });
+
+  it("sanitizes task attempt payloads before returning DTOs", () => {
+    expect(dtoSource).toContain("TaskAttemptPayloadDTOSchema");
+    expect(source).toContain("const rawPayload = row.payloadJson");
+    expect(source).toContain('const payload = rawPayload && typeof rawPayload === "object" ? rawPayload : {}');
   });
 });
 

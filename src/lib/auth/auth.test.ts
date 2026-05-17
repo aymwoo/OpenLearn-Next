@@ -38,8 +38,7 @@ describe("authorizeCredentials", () => {
   });
 
   it("rejects sign-in when the requested role membership is missing", async () => {
-    const membershipLimit = vi.fn().mockResolvedValue([]);
-    const membershipWhere = vi.fn().mockReturnValue({ limit: membershipLimit });
+    const membershipWhere = vi.fn().mockResolvedValue([]);
     const membershipFrom = vi.fn().mockReturnValue({ where: membershipWhere });
 
     const userLimit = vi.fn().mockResolvedValue([
@@ -64,8 +63,7 @@ describe("authorizeCredentials", () => {
   });
 
   it("looks up student sign-in by student number and requires the matching role intent", async () => {
-    const membershipLimit = vi.fn().mockResolvedValue([{ id: "membership-1" }]);
-    const membershipWhere = vi.fn().mockReturnValue({ limit: membershipLimit });
+    const membershipWhere = vi.fn().mockResolvedValue([{ role: "student" }, { role: "parent" }]);
     const membershipFrom = vi.fn().mockReturnValue({ where: membershipWhere });
 
     const userLimit = vi.fn().mockResolvedValue([
@@ -88,8 +86,38 @@ describe("authorizeCredentials", () => {
       id: "user-2",
       name: "Student",
       email: "student@openlearn.dev",
-      roles: ["student"],
+      roles: ["student", "parent"],
+      workspaceRole: "student",
     });
     expect(compare).toHaveBeenCalledWith("secret", "hashed");
+  });
+
+  it("supports admin workspace sign-in without exposing extra UI-only assumptions", async () => {
+    const membershipWhere = vi.fn().mockResolvedValue([{ role: "admin" }, { role: "school_admin" }]);
+    const membershipFrom = vi.fn().mockReturnValue({ where: membershipWhere });
+
+    const userLimit = vi.fn().mockResolvedValue([
+      { id: "user-3", name: "Admin", email: "admin@openlearn.dev", password: "hashed" },
+    ]);
+    const userWhere = vi.fn().mockReturnValue({ limit: userLimit });
+    const userFrom = vi.fn().mockReturnValue({ where: userWhere });
+
+    compare.mockResolvedValue(true);
+    dbSelect.mockReturnValueOnce({ from: userFrom }).mockReturnValueOnce({ from: membershipFrom });
+
+    const { authorizeCredentials } = await import("./auth");
+    const user = await authorizeCredentials({
+      email: "admin@openlearn.dev",
+      password: "secret",
+      roleIntent: "admin",
+    });
+
+    expect(user).toEqual({
+      id: "user-3",
+      name: "Admin",
+      email: "admin@openlearn.dev",
+      roles: ["admin", "school_admin"],
+      workspaceRole: "admin",
+    });
   });
 });

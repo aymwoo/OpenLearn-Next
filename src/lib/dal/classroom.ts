@@ -72,7 +72,7 @@ import {
   RuntimeTeacherControlResultSchema,
 } from "@/features/runtime-platform/contracts/bridge";
 import { invokeRuntimeHostAction } from "@/features/runtime-platform/host-actions/runtime-host";
-import { publishTransportEvent, recordTransportConsumerTrace } from "@/features/runtime-platform/seams";
+import { publishTransportEvent } from "@/features/runtime-platform/seams";
 import type {
   BootstrapRuntimeSessionInput,
   RecordRuntimeReadyInput,
@@ -401,6 +401,36 @@ function extractEvidenceDetail(payload: unknown) {
   return "已记录课堂证据";
 }
 
+function toClassroomEvidencePayloadDTO(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return {};
+  }
+
+  const record = payload as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = {};
+
+  for (const key of [
+    "note",
+    "body",
+    "observationNote",
+    "title",
+    "lessonId",
+    "kind",
+    "participationLevel",
+    "tags",
+    "sourceType",
+    "evidenceType",
+    "runtimeBridge",
+    "evidenceId",
+  ]) {
+    if (key in record) {
+      sanitized[key] = record[key];
+    }
+  }
+
+  return sanitized;
+}
+
 function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string) {
   return [...(snapshot.steps ?? [])]
     .sort((a, b) => a.rank.localeCompare(b.rank))
@@ -449,6 +479,9 @@ function toTaskAttemptDTO(
   feedback: typeof attemptFeedback.$inferSelect | null = null,
   policy = { allowRetry: false },
 ) {
+  const rawPayload = row.payloadJson;
+  const payload = rawPayload && typeof rawPayload === "object" ? rawPayload : {};
+
   return TaskAttemptDTOSchema.parse({
     id: row.id,
     publishedVersionId: row.publishedVersionId,
@@ -456,7 +489,7 @@ function toTaskAttemptDTO(
     stepId: row.stepId,
     studentId: row.studentId,
     attemptNo: row.attemptNo,
-    payload: row.payloadJson,
+    payload,
     isLatest: row.isLatest,
     canRetryTask: policy.allowRetry,
     feedback: feedback ? toFeedbackDTO(feedback, row.lessonId) : null,
@@ -909,7 +942,7 @@ async function createClassroomTimelineEntry(input: {
     stepId: entry.stepId,
     entryType: entry.entryType,
     actorId: entry.actorId,
-    payload: entry.payloadJson,
+    payload: toClassroomEvidencePayloadDTO(entry.payloadJson),
     createdAt: toIso(entry.createdAt),
   });
 }
@@ -964,7 +997,7 @@ async function insertRuntimeClassroomEvidence(input: {
     stepId: evidence.stepId,
     sourceType: evidence.sourceType,
     evidenceType: evidence.evidenceType,
-    payload: evidence.payloadJson,
+    payload: toClassroomEvidencePayloadDTO(evidence.payloadJson),
     capturedById: evidence.capturedById,
     createdAt: toIso(evidence.createdAt),
   });
@@ -1098,7 +1131,7 @@ export async function recordClassroomEvidence(input: unknown) {
     stepId: evidence.stepId,
     sourceType: evidence.sourceType,
     evidenceType: evidence.evidenceType,
-    payload: evidence.payloadJson,
+    payload: toClassroomEvidencePayloadDTO(evidence.payloadJson),
     capturedById: evidence.capturedById,
     createdAt: toIso(evidence.createdAt),
   });
@@ -1360,7 +1393,7 @@ export async function getClassroomStudentDetailDTO(rawInput: unknown) {
         stepId: evidence.stepId,
         sourceType: evidence.sourceType,
         evidenceType: evidence.evidenceType,
-        payload: evidence.payloadJson,
+        payload: toClassroomEvidencePayloadDTO(evidence.payloadJson),
         capturedById: evidence.capturedById,
         createdAt: toIso(evidence.createdAt),
       }),

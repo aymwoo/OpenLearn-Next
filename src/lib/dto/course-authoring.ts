@@ -41,6 +41,13 @@ export const CourseClassAssociationInputSchema = z
   })
   .strict();
 
+export const CourseEnrollmentInputSchema = z
+  .object({
+    courseId: z.string().min(1),
+    studentId: z.string().min(1),
+  })
+  .strict();
+
 export const CourseDeleteInputSchema = z
   .object({
     courseId: z.string().min(1),
@@ -106,6 +113,22 @@ export const TeacherCourseAvailableClassDTOSchema = z.object({
   name: z.string(),
 });
 
+export const TeacherCourseMemberDTOSchema = z.object({
+  studentId: z.string(),
+  studentName: z.string(),
+  studentNumber: z.string(),
+  classLabels: z.array(z.string()).default([]),
+  enrollmentStatus: z.literal("active"),
+});
+
+export const TeacherCourseEligibleStudentDTOSchema = z.object({
+  studentId: z.string(),
+  studentName: z.string(),
+  studentNumber: z.string(),
+  classLabels: z.array(z.string()).default([]),
+  isAlreadyEnrolled: z.boolean().default(false),
+});
+
 export const TeacherCourseDetailDTOSchema = z.object({
   id: z.string(),
   schoolId: z.string(),
@@ -118,6 +141,8 @@ export const TeacherCourseDetailDTOSchema = z.object({
   classLabels: z.array(z.string()).default([]),
   classLinks: z.array(CourseClassLinkDTOSchema).default([]),
   availableClasses: z.array(TeacherCourseAvailableClassDTOSchema).default([]),
+  members: z.array(TeacherCourseMemberDTOSchema).default([]),
+  eligibleStudents: z.array(TeacherCourseEligibleStudentDTOSchema).default([]),
   enrollmentCount: z.number().int().nonnegative().default(0),
   deleteEligibility: CourseDeleteEligibilityDTOSchema,
   updatedAt: z.string(),
@@ -137,6 +162,8 @@ export type TeacherCourseCenterDTO = z.infer<typeof TeacherCourseCenterDTOSchema
 export type CourseLessonEntryDTO = z.infer<typeof CourseLessonEntryDTOSchema>;
 export type CourseClassLinkDTO = z.infer<typeof CourseClassLinkDTOSchema>;
 export type TeacherCourseAvailableClassDTO = z.infer<typeof TeacherCourseAvailableClassDTOSchema>;
+export type TeacherCourseMemberDTO = z.infer<typeof TeacherCourseMemberDTOSchema>;
+export type TeacherCourseEligibleStudentDTO = z.infer<typeof TeacherCourseEligibleStudentDTOSchema>;
 export type CourseDeleteBlockedReasonDTO = z.infer<typeof CourseDeleteBlockedReasonDTOSchema>;
 export type CourseDeleteEligibilityDTO = z.infer<typeof CourseDeleteEligibilityDTOSchema>;
 export type TeacherCourseDetailDTO = z.infer<typeof TeacherCourseDetailDTOSchema>;
@@ -145,4 +172,5 @@ export type CourseCreateInput = z.infer<typeof CourseCreateInputSchema>;
 export type CourseUpdateInput = z.infer<typeof CourseUpdateInputSchema>;
 export type CourseLifecycleAction = z.infer<typeof CourseLifecycleActionSchema>;
 export type CourseClassAssociationInput = z.infer<typeof CourseClassAssociationInputSchema>;
+export type CourseEnrollmentInput = z.infer<typeof CourseEnrollmentInputSchema>;
 export type CourseDeleteInput = z.infer<typeof CourseDeleteInputSchema>;

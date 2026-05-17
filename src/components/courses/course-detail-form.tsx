@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ type CourseDetailFormProps = {
   updateCourseAction: (input: Record<string, unknown>) => Promise<CourseMutationResult>;
   addCourseClassAssociationAction: (input: Record<string, unknown>) => Promise<CourseMutationResult>;
   removeCourseClassAssociationAction: (input: Record<string, unknown>) => Promise<CourseMutationResult>;
+  addCourseEnrollmentAction: (input: Record<string, unknown>) => Promise<CourseMutationResult>;
+  removeCourseEnrollmentAction: (input: Record<string, unknown>) => Promise<CourseMutationResult>;
   publishCourseAction: (input: Record<string, unknown>) => Promise<CourseMutationResult>;
   unpublishCourseAction: (input: Record<string, unknown>) => Promise<CourseMutationResult>;
   archiveCourseAction: (input: Record<string, unknown>) => Promise<CourseMutationResult>;
@@ -53,6 +55,8 @@ export function CourseDetailForm({
   updateCourseAction,
   addCourseClassAssociationAction,
   removeCourseClassAssociationAction,
+  addCourseEnrollmentAction,
+  removeCourseEnrollmentAction,
   publishCourseAction,
   unpublishCourseAction,
   archiveCourseAction,
@@ -70,6 +74,9 @@ export function CourseDetailForm({
     status: course.status,
     classLinks: course.classLinks,
     availableClasses: course.availableClasses,
+    members: course.members,
+    eligibleStudents: course.eligibleStudents,
+    enrollmentCount: course.enrollmentCount,
     deleteEligibility: course.deleteEligibility,
   });
   const [form, setForm] = useState({
@@ -78,33 +85,28 @@ export function CourseDetailForm({
     grade: course.grade,
   });
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-
-  useEffect(() => {
-    const nextSavedCourse = {
-      title: course.title,
-      subject: course.subject,
-      grade: course.grade,
-      status: course.status,
-      classLinks: course.classLinks,
-      availableClasses: course.availableClasses,
-      deleteEligibility: course.deleteEligibility,
-    };
-
-    setSavedCourse(nextSavedCourse);
-    setForm({
-      title: nextSavedCourse.title,
-      subject: nextSavedCourse.subject,
-      grade: nextSavedCourse.grade,
-    });
-    setSelectedClassId(nextSavedCourse.availableClasses[0]?.id ?? "");
-    setDeleteConfirmation("");
-  }, [course.availableClasses, course.classLinks, course.deleteEligibility, course.enrollmentCount, course.grade, course.status, course.subject, course.title]);
+  const [memberSearch, setMemberSearch] = useState("");
 
   const currentStatus = savedCourse.status;
   const classLinks = savedCourse.classLinks;
   const availableClasses = savedCourse.availableClasses;
+  const members = savedCourse.members;
+  const eligibleStudents = savedCourse.eligibleStudents;
+  const enrollmentCount = savedCourse.enrollmentCount;
   const deleteEligibility = savedCourse.deleteEligibility;
+  const membershipReadOnly = currentStatus === "archived";
   const deleteConfirmationMatches = deleteConfirmation.trim() === savedCourse.title;
+  const normalizedMemberSearch = memberSearch.trim().toLowerCase();
+  const filteredEligibleStudents = eligibleStudents.filter((student) => {
+    if (!normalizedMemberSearch) {
+      return true;
+    }
+
+    return (
+      student.studentName.toLowerCase().includes(normalizedMemberSearch) ||
+      student.studentNumber.toLowerCase().includes(normalizedMemberSearch)
+    );
+  });
 
   const resetForm = () => {
     setForm({
@@ -114,6 +116,7 @@ export function CourseDetailForm({
     });
     setSelectedClassId(savedCourse.availableClasses[0]?.id ?? "");
     setDeleteConfirmation("");
+    setMemberSearch("");
     setError("");
     setSuccessMessage("");
     router.refresh();
@@ -127,6 +130,9 @@ export function CourseDetailForm({
       status: nextCourse.status,
       classLinks: nextCourse.classLinks,
       availableClasses: nextCourse.availableClasses,
+      members: nextCourse.members,
+      eligibleStudents: nextCourse.eligibleStudents,
+      enrollmentCount: nextCourse.enrollmentCount,
       deleteEligibility: nextCourse.deleteEligibility,
     });
     setForm({
@@ -136,6 +142,7 @@ export function CourseDetailForm({
     });
     setSelectedClassId(nextCourse.availableClasses[0]?.id ?? "");
     setDeleteConfirmation("");
+    setMemberSearch("");
   };
 
   const runCourseMutation = (
@@ -225,6 +232,28 @@ export function CourseDetailForm({
           classId,
         }),
       () => `已解除与 ${className} 的课程关联。`,
+    );
+  };
+
+  const addCourseMember = (studentId: string, studentName: string) => {
+    runCourseMutation(
+      () =>
+        addCourseEnrollmentAction({
+          courseId: course.id,
+          studentId,
+        }),
+      () => `已将 ${studentName} 加入当前课程。`,
+    );
+  };
+
+  const removeCourseMember = (studentId: string, studentName: string) => {
+    runCourseMutation(
+      () =>
+        removeCourseEnrollmentAction({
+          courseId: course.id,
+          studentId,
+        }),
+      () => `已将 ${studentName} 移出当前课程。`,
     );
   };
 
@@ -412,6 +441,118 @@ export function CourseDetailForm({
         </div>
       </div>
 
+      <div className="mt-5 rounded-[1.5rem] bg-surface-container-low px-4 py-4 shadow-ambient">
+        <div className="flex flex-col gap-4">
+          <div>
+            <p className="text-sm text-on-surface-variant">课程成员管理</p>
+            <p className="mt-2 text-base font-semibold text-on-surface">在课程详情页内维护这门课程的学生范围</p>
+            <p className="mt-2 text-sm leading-7 text-on-surface-variant">
+              在课程详情页内维护这门课程的学生范围，不会改动班级原始名册。
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-3 text-sm text-on-surface">
+              <p className="text-on-surface-variant">当前成员</p>
+              <p className="mt-2 text-lg font-semibold">{enrollmentCount} 名</p>
+            </div>
+            <div className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-3 text-sm text-on-surface">
+              <p className="text-on-surface-variant">可添加学生</p>
+              <p className="mt-2 text-lg font-semibold">{eligibleStudents.length} 名</p>
+            </div>
+            <div className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-3 text-sm text-on-surface">
+              <p className="text-on-surface-variant">当前筛选结果</p>
+              <p className="mt-2 text-lg font-semibold">{filteredEligibleStudents.length} 名</p>
+            </div>
+          </div>
+
+          {membershipReadOnly ? (
+            <p className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-3 text-sm leading-7 text-on-surface-variant">
+              归档课程仅支持查看成员，暂不支持修改。你仍可查看当前成员与删除阻断项，再决定是否先恢复为草稿。
+            </p>
+          ) : null}
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.92fr)]">
+            <div className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-4">
+              <p className="text-sm font-medium text-on-surface">当前成员</p>
+              {members.length > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-3" aria-label="课程当前成员列表">
+                  {members.map((member) => (
+                    <div key={member.studentId} className="min-w-[220px] rounded-[1.25rem] bg-surface-container-low px-4 py-3 text-sm text-on-surface">
+                      <p className="font-semibold">{member.studentName}</p>
+                      <p className="mt-1 text-on-surface-variant">学号：{member.studentNumber}</p>
+                      <p className="mt-1 text-on-surface-variant">班级：{member.classLabels.join("、") || "未标注班级"}</p>
+                      <Button
+                        type="button"
+                        variant="tertiary"
+                        className="mt-3 min-h-10 px-0 text-sm text-[#b42318]"
+                        onClick={() => removeCourseMember(member.studentId, member.studentName)}
+                        disabled={isPending || membershipReadOnly}
+                        aria-label={`移出课程：${member.studentName}`}
+                      >
+                        移出课程
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-[1.25rem] bg-surface-container-low px-4 py-4 text-sm leading-7 text-on-surface-variant">
+                  <p className="font-semibold text-on-surface">这门课程还没有学生成员</p>
+                  <p className="mt-2">
+                    先从可管理的学生范围中添加成员，课程删除校验和后续课堂参与范围都会基于这里的成员记录。
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-4">
+              <p className="text-sm font-medium text-on-surface">加入课程</p>
+              <div className="mt-4 grid gap-2">
+                <label htmlFor="course-member-search" className="text-sm font-medium text-on-surface">
+                  搜索学生姓名或学号
+                </label>
+                <input
+                  id="course-member-search"
+                  value={memberSearch}
+                  onChange={(event) => setMemberSearch(event.target.value)}
+                  className={ghostTextFieldClassName}
+                  placeholder="搜索学生姓名或学号"
+                  disabled={isPending || membershipReadOnly}
+                />
+              </div>
+
+              <div className="mt-4 space-y-3" aria-label="可添加学生列表">
+                {eligibleStudents.length === 0 ? (
+                  <p className="rounded-[1.25rem] bg-surface-container-low px-4 py-3 text-sm leading-7 text-on-surface-variant">
+                    当前没有更多可添加的学生，或该课程已覆盖你可管理的学生范围。
+                  </p>
+                ) : filteredEligibleStudents.length === 0 ? (
+                  <p className="rounded-[1.25rem] bg-surface-container-low px-4 py-3 text-sm leading-7 text-on-surface-variant">
+                    未找到符合条件的学生，请调整关键词，或先确认这门课程已关联正确班级。
+                  </p>
+                ) : (
+                  filteredEligibleStudents.map((student) => (
+                    <div key={student.studentId} className="rounded-[1.25rem] bg-surface-container-low px-4 py-3 text-sm text-on-surface">
+                      <p className="font-semibold">{student.studentName}</p>
+                      <p className="mt-1 text-on-surface-variant">学号：{student.studentNumber}</p>
+                      <p className="mt-1 text-on-surface-variant">班级：{student.classLabels.join("、") || "未标注班级"}</p>
+                      <Button
+                        type="button"
+                        className="mt-3 min-h-11"
+                        onClick={() => addCourseMember(student.studentId, student.studentName)}
+                        disabled={isPending || membershipReadOnly}
+                      >
+                        加入课程
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="mt-5 rounded-[1.5rem] bg-[#fff7f7] px-4 py-4 shadow-ambient">
         <div className="flex flex-col gap-4">
           <div>
@@ -453,7 +594,10 @@ export function CourseDetailForm({
                 {deleteEligibility.reasons.map((reason) => (
                   <li key={reason.code} className="rounded-[1.25rem] bg-surface-container-low px-4 py-3 text-sm">
                     <p className="font-semibold text-on-surface">{reason.message}</p>
-                    <p className="mt-1 text-on-surface-variant">当前涉及 {reason.count} 条关联记录。</p>
+                    <p className="mt-1 text-on-surface-variant">
+                      当前涉及 {reason.count} 条关联记录。
+                      {reason.code === "COURSE_HAS_ENROLLMENTS" ? " 请先在上方课程成员管理区清理学生关联。" : ""}
+                    </p>
                   </li>
                 ))}
               </ul>

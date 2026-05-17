@@ -13,9 +13,11 @@ describe("runtime session service", () => {
   it("exports one canonical runtime proof step from the dev bootstrap path", () => {
     const definition = getCanonicalRuntimeProofStepDefinition();
     const snapshotStep = getCanonicalRuntimeProofSnapshotStep("lesson-proof");
+    const definitionRuntime = (definition.payload as { runtime: Record<string, unknown> }).runtime;
+    const snapshotRuntime = (snapshotStep.payload as { runtime: Record<string, unknown> }).runtime;
 
     expect(definition.type).toBe("task");
-    expect(definition.payload.runtime).toMatchObject({
+    expect(definitionRuntime).toMatchObject({
       kind: "html-courseware",
       entry: {
         sandbox: "iframe",
@@ -29,13 +31,12 @@ describe("runtime session service", () => {
     expect(snapshotStep).toMatchObject({
       lessonId: "lesson-proof",
       type: "task",
-      payload: expect.objectContaining({
-        runtime: expect.objectContaining({
-          kind: "html-courseware",
-          entry: expect.objectContaining({
-            bootstrap: "/runtime/html-courseware/pilot",
-          }),
-        }),
+      payload: expect.any(Object),
+    });
+    expect(snapshotRuntime).toMatchObject({
+      kind: "html-courseware",
+      entry: expect.objectContaining({
+        bootstrap: "/runtime/html-courseware/pilot",
       }),
     });
   });

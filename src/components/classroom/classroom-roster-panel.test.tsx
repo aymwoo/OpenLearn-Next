@@ -53,6 +53,7 @@ const participants: ClassroomSnapshotDTO["participants"] = [
     submissionCount: 2,
     needsAttention: false,
     attentionReasons: [],
+    runtimeProof: null,
   },
   {
     studentId: "student-2",
@@ -64,6 +65,7 @@ const participants: ClassroomSnapshotDTO["participants"] = [
     submissionCount: 0,
     needsAttention: true,
     attentionReasons: ["当前离线", "落后于当前环节", "当前环节未提交"],
+    runtimeProof: null,
   },
 ];
 

@@ -12,14 +12,10 @@ type TeacherCourseDetailPageProps = {
 export default async function TeacherCourseDetailPage({ params }: TeacherCourseDetailPageProps) {
   const { courseId } = await params;
 
-  try {
-    const course = await getTeacherCourseDetailDTO({ courseId });
+  let course;
 
-    return (
-      <div className="min-h-full p-6 lg:p-8">
-        <TeacherCourseDetailSurface course={course} />
-      </div>
-    );
+  try {
+    course = await getTeacherCourseDetailDTO({ courseId });
   } catch (error) {
     if (error instanceof Error && error.message === "COURSE_NOT_FOUND") {
       notFound();
@@ -27,4 +23,10 @@ export default async function TeacherCourseDetailPage({ params }: TeacherCourseD
 
     throw error;
   }
+
+  return (
+    <div className="min-h-full p-6 lg:p-8">
+      <TeacherCourseDetailSurface course={course} />
+    </div>
+  );
 }

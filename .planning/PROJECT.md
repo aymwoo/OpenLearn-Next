@@ -10,24 +10,23 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## Current Milestone: v2.0 Runtime Platform Foundations
+## Current Milestone: v2.1 Safety Closure and Course Membership Loop
 
-**Goal:** 把 OpenLearn Next 从当前单体教学应用推进为可渐进迁移的 Runtime Platform 骨架，并至少跑通一条真实的 sandboxed runtime-hosted courseware 链路。
+**Goal:** 在不继续扩 runtime 平台 blast radius 的前提下，优先收口项目级安全、鉴权、持久化和课程成员闭环缺口，把已经跑通的课堂主链路提升到可持续、可授权、可验证的 ship posture。
 
 **Target features:**
-- 在主工程内引入 V2 边界：`src/features/*`、`packages/contracts/*`、runtime/plugin 适配层与 compatibility re-export。
-- 交付最小 `Runtime Host + iframe sandbox + TeachingBridge` 主链路，并以 `HTML courseware` 作为首个内置 runtime 试点。
-- 引入 canonical runtime event envelope、durable event log/outbox、runtime session persistence 与 inspector/audit timeline。
-- 为 PostgreSQL、Redis/Event Bus、WebSocket 建立迁移 seam，但本 milestone 不做正式基础设施 cutover。
-- 保持现有 `lesson -> launch -> classroom -> evidence` 主链路可继续运行，并以兼容回归作为安全门。
+- 收口 `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05` 与 `CLASS-05`，让认证、授权、DAL、DTO、Zod 校验、SQLite durability 和课堂真相源重新对齐。
+- 完成 `COURSE-07`，让教师可在课程详情工作流中安全管理课程成员，而不是只停在课程-班级关联。
+- 并行推进 `lint` / `typecheck` 基线修复，至少让本 milestone 触达的 active surfaces 和 canonical verification path 不再被历史噪音长期阻断。
+- 保持 `v2.0` 已落地的 runtime host、governance、transport boundary 和 inspector 能力稳定可用，但本轮不继续扩新 runtime 类型或基础设施 cutover。
 
 ## Current Planning Posture
 
-- 当前 active milestone 为 `v2.0 Runtime Platform Foundations`。
-- 这轮 scope 以 V2 架构骨架和 runtime pilot 为先，不以补完旧 backlog 为主要目标。
-- 当前 milestone 采用渐进兼容策略：直接重组主工程，但不接受 big-bang rewrite。
-- `COURSE-07`、`AUTH-01`~`AUTH-06`、`DATA-01`~`DATA-05`、`CLASS-05` 仍保留为 project-level safety gaps，需要在 V2 过程中被收紧或纳入安全门。
-- PostgreSQL、Redis/Event Bus、WebSocket 在本轮只建立 seam 和 adapter，不作为正式 cutover 的完成条件。
+- 当前 active milestone 为 `v2.1 Safety Closure and Course Membership Loop`。
+- 先做安全缺口而不是继续扩 runtime 平台，因为 Phase 27-32 已经证明 Runtime Platform foundation、HTML runtime pilot、governance、transport boundary 和 inspector 可运行；当前更大的 ship blocker 已经变成项目级 authz、DTO、DAL、durability 与 course membership 闭环缺口。
+- 如果在 `AUTH` / `DATA` / `CLASS-05` / `COURSE-07` 未收口前继续扩 runtime 类型、事件基础设施或第三方 runtime，会把未完成的权限边界和持久化风险扩散到更多 surface，放大后续回收成本。
+- 本轮继续采用渐进兼容策略：沿现有 DAL + Server Actions + SQLite + SSE 主链路补强真相源、授权和约束，不做新的平台级 big-bang rewrite。
+- `RTPX-01` ~ `RTPX-06` 保持 deferred，直到本轮安全与成员闭环完成后再评估下一轮 runtime/platform expansion。
 
 ## Requirements
 
@@ -58,20 +57,21 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - [x] 教师已可以在统一评价工作流中整合 progress、task、quiz、presence、observation、feedback 等多源证据，完成轻量过程性评价。（Validated in Phase 24）
 - [x] 系统已可以沉淀课堂事件、参与记录、学习证据和教学干预数据，并生成可追溯的统计分析与复盘视图。（Validated in Phases 21, 25, 26）
 - [x] 新增教师端规划、运行、评价、分析页面已继续对齐 Stitch 设计语言，并达到当前 milestone 目标下的产品化质量。（Validated in Phase 26）
+- [x] 已在主工程内建立 runtime-platform feature roots、shared contract seam、sandboxed HTML runtime pilot、canonical runtime session/event truth、governance audit 与 transport boundary。（Validated in Phases 27-31）
+- [x] 已证明教师 `editor/publish -> launch/classroom -> student runtime submit -> inspector` 的 runtime-hosted lesson 主链路可重复跑通，并具备 proof-oriented hardening 与 close gate。（Validated in Phase 32）
 
 ### Active
 
-- [ ] 系统在不破坏现有课堂主链路的前提下完成 V2 主工程边界重组，并建立清晰的 runtime、contract、plugin 接缝。
-- [ ] 教师可以在现有 lesson/classroom 流程中运行一个 sandboxed `HTML courseware` runtime step，并让学生完成真实交互与提交。
-- [ ] 系统对 runtime / plugin 行为形成 canonical event log、capability enforcement 与 inspector/audit timeline。
-- [ ] 系统为 PostgreSQL、Redis/Event Bus、WebSocket 建立后续迁移 seam，但本里程碑不把这些高风险 cutover 绑为完成条件。
+- [ ] 系统通过 Auth.js v5、`proxy.ts`、DAL 和 Server Actions 真正确认 actor identity、role、school membership、ownership、enrollment 和 DTO sanitation，不再把 `AUTH-01` ~ `AUTH-06` 作为长期悬空 requirement。
+- [ ] 系统对 SQLite-first schema、cascade、server-only DAL、Zod persistence boundary、indexes/unique constraints 和 classroom durability 给出代码与验证双重闭环，收口 `DATA-01` ~ `DATA-05` 与 `CLASS-05`。
+- [ ] 教师可以在课程管理工作流中完成课程成员关联的查看、添加、移除与约束反馈，闭合 `COURSE-07`。
+- [ ] 当前 active milestone 触达的 app/test/scripts surfaces 拥有可持续的 `lint` / `typecheck` 基线，不再长期依赖“已知历史噪音”作为默认解释。
 
-### Carry-over safety gaps
+### Milestone entry gaps
 
-- [ ] `COURSE-07` 仍未完成：课程学生关联管理继续保留为后置业务 gap。
-- [ ] `AUTH-01` ~ `AUTH-06` 仍未整体标记为完成。
-- [ ] `DATA-01` ~ `DATA-05` 仍未整体标记为完成。
-- [ ] `CLASS-05` 仍需继续补证课堂 session durability 的完整 requirement 闭环。
+- [ ] `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05` 与 `CLASS-05` 作为本轮第一优先 committed scope 进入新 milestone，而不是继续挂在 backlog 备注里。
+- [ ] `COURSE-07` 作为第二优先 committed scope 进入本轮，前置依赖是先把 auth/data/scope/durability 边界收紧。
+- [ ] repo health 的 `lint` / `typecheck` baseline 修复作为并行工作流推进，并在 milestone close 前收口到诚实可验证状态。
 
 ### Out of Scope
 
@@ -83,6 +83,7 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - 在 v2.0 内正式完成 PostgreSQL 主库切换 — 本轮先建立数据库方言与迁移 seam，再在后续 milestone 切换。
 - 在 v2.0 内以 Redis/Event Bus 或 WebSocket 全面替换当前 SSE/同步写主链路 — 本轮先抽象 transport 和 event boundary，再分阶段迁移。
 - 在 v2.0 内首发多 runtime、plugin marketplace 或完整 AI runtime — 先用一个内置 `HTML courseware` runtime pilot 验证平台内核。
+- 在 v2.1 内继续扩更多 runtime 类型、第三方 runtime package、PostgreSQL primary cutover 或 transport 正式切换 — 这些能力在本轮安全与课程成员闭环前继续保持 deferred。
 
 ## Context
 
@@ -162,4 +163,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-15 after starting milestone v2.0 Runtime Platform Foundations*
+*Last updated: 2026-05-17 after initializing milestone v2.1 Safety Closure and Course Membership Loop*

@@ -4,7 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
-import { classes, courseClasses, courseEnrollments, courses, lessons, lessonSteps, schools } from "@/db/schema";
+import { classMembers, classes, courseClasses, courseEnrollments, courses, lessons, lessonSteps, schools, users } from "@/db/schema";
 import { cacheTags } from "@/lib/cache-policy";
 import {
   CourseLifecycleInputSchema,
@@ -12,6 +12,7 @@ import {
   CourseDeleteInputSchema,
   CourseCreateInputSchema,
   CourseClassAssociationInputSchema,
+  CourseEnrollmentInputSchema,
   CourseLessonEntryDTOSchema,
   CourseUpdateInputSchema,
   type CourseDeleteBlockedReasonDTO,
@@ -19,10 +20,13 @@ import {
   TeacherCourseCardDTOSchema,
   TeacherCourseCenterDTOSchema,
   TeacherCourseDetailDTOSchema,
+  TeacherCourseEligibleStudentDTOSchema,
   TeacherCourseLessonsEntryDTOSchema,
+  TeacherCourseMemberDTOSchema,
   type CourseClassAssociationInput,
   type CourseCreateInput,
   type CourseDeleteInput,
+  type CourseEnrollmentInput,
   type CourseUpdateInput,
 } from "@/lib/dto/course-authoring";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
@@ -57,6 +61,13 @@ type CourseDeleteEligibilityCounts = {
   enrollmentCount: number;
 };
 
+type CourseMembershipRosterRow = {
+  studentId: string;
+  studentName: string;
+  studentNumber: string;
+  classLabels: string[];
+};
+
 function assertSchoolAccess(scope: TeacherScope, schoolId: string) {
   if (!scope.schoolIds.includes(schoolId)) {
     throw new Error("TEACHER_AUTH_REQUIRED");
@@ -72,6 +83,18 @@ function ensureCourseOwnership(scope: TeacherScope, course: typeof courses.$infe
 
 function sortClassesByName<T extends { name: string }>(items: T[]) {
   return [...items].sort((left, right) => left.name.localeCompare(right.name, "zh-CN"));
+}
+
+function sortStudentsByIdentity<T extends { studentName: string; studentNumber: string }>(items: T[]) {
+  return [...items].sort((left, right) => {
+    const byStudentNumber = left.studentNumber.localeCompare(right.studentNumber, "zh-CN");
+
+    if (byStudentNumber !== 0) {
+      return byStudentNumber;
+    }
+
+    return left.studentName.localeCompare(right.studentName, "zh-CN");
+  });
 }
 
 async function getScopedOwnedCourse(courseId: string, scope: TeacherScope) {
@@ -221,12 +244,116 @@ async function getCourseAggregation(courseIds: string[], schoolIds: string[]) {
 
   return {
     lessonRows,
+    enrollmentRows,
     courseClassRows,
     classRows,
     lessonCountByCourseId,
     enrollmentCountByCourseId,
     classLabelsByCourseId,
   };
+}
+
+async function getCourseMembershipRoster(input: {
+  linkedClasses: Array<{ id: string; name: string }>;
+  enrollmentRows: Array<{ courseId: string; studentId: string }>;
+  courseId: string;
+}) {
+  const linkedClassIds = input.linkedClasses.map((item) => item.id);
+  const classNameById = new Map(input.linkedClasses.map((item) => [item.id, item.name]));
+  const linkedClassMembershipRows = linkedClassIds.length
+    ? await db.query.classMembers.findMany({
+        where: and(inArray(classMembers.classId, linkedClassIds), eq(classMembers.role, "student")),
+      })
+    : [];
+  const scopedMembershipRows = linkedClassMembershipRows.filter(
+    (member) => linkedClassIds.includes(member.classId) && member.role === "student"
+  );
+
+  const classLabelsByStudentId = new Map<string, Set<string>>();
+  for (const member of scopedMembershipRows) {
+    const className = classNameById.get(member.classId);
+    if (!className) {
+      continue;
+    }
+
+    const currentLabels = classLabelsByStudentId.get(member.userId) ?? new Set<string>();
+    currentLabels.add(className);
+    classLabelsByStudentId.set(member.userId, currentLabels);
+  }
+
+  const enrolledStudentIds = [...new Set(
+    input.enrollmentRows.filter((row) => row.courseId === input.courseId).map((row) => row.studentId)
+  )];
+  const rosterStudentIds = [...new Set(scopedMembershipRows.map((row) => row.userId))];
+  const studentIds = [...new Set([...enrolledStudentIds, ...rosterStudentIds])];
+  const studentRows = studentIds.length ? await db.query.users.findMany({ where: inArray(users.id, studentIds) }) : [];
+  const studentById = new Map(studentRows.map((row) => [row.id, row]));
+
+  const rosterByStudentId = new Map<string, CourseMembershipRosterRow>();
+  for (const studentId of studentIds) {
+    const student = studentById.get(studentId);
+    if (!student) {
+      continue;
+    }
+
+    rosterByStudentId.set(studentId, {
+      studentId,
+      studentName: student.name?.trim() || "未命名学生",
+      studentNumber: student.studentNumber?.trim() || studentId,
+      classLabels: input.linkedClasses
+        .map((classItem) => classItem.name)
+        .filter((className) => classLabelsByStudentId.get(studentId)?.has(className) ?? false),
+    });
+  }
+
+  const members = sortStudentsByIdentity(
+    enrolledStudentIds
+      .map((studentId) => rosterByStudentId.get(studentId))
+      .filter((row): row is CourseMembershipRosterRow => Boolean(row))
+  ).map((row) =>
+    TeacherCourseMemberDTOSchema.parse({
+      ...row,
+      enrollmentStatus: "active",
+    })
+  );
+
+  const eligibleStudents = sortStudentsByIdentity(
+    rosterStudentIds
+      .filter((studentId) => !enrolledStudentIds.includes(studentId))
+      .map((studentId) => rosterByStudentId.get(studentId))
+      .filter((row): row is CourseMembershipRosterRow => Boolean(row))
+  ).map((row) =>
+    TeacherCourseEligibleStudentDTOSchema.parse({
+      ...row,
+      isAlreadyEnrolled: false,
+    })
+  );
+
+  return {
+    members,
+    eligibleStudents,
+  };
+}
+
+async function getLinkedClassEligibleStudentIds(courseId: string) {
+  const linkedClassRows = await db.query.courseClasses.findMany({
+    where: eq(courseClasses.courseId, courseId),
+  });
+
+  const linkedClassIds = [...new Set(linkedClassRows.map((row) => row.classId))];
+  if (linkedClassIds.length === 0) {
+    return [];
+  }
+
+  const linkedClassMembers = await db.query.classMembers.findMany({
+    where: and(inArray(classMembers.classId, linkedClassIds), eq(classMembers.role, "student")),
+  });
+
+  return [...new Set(
+    linkedClassMembers
+      .filter((member) => linkedClassIds.includes(member.classId) && member.role === "student")
+      .map((member) => member.userId)
+  )];
 }
 
 async function getCachedTeacherCourseCenterDTO(input: ScopedCourseQueryInput & { includeArchived: boolean }) {
@@ -284,7 +411,7 @@ async function getCachedTeacherCourseDetailDTO(input: ScopedCourseQueryInput & C
     throw new Error("COURSE_NOT_FOUND");
   }
 
-  const { lessonRows, courseClassRows, classRows, lessonCountByCourseId, enrollmentCountByCourseId, classLabelsByCourseId } =
+  const { lessonRows, enrollmentRows, courseClassRows, classRows, lessonCountByCourseId, enrollmentCountByCourseId, classLabelsByCourseId } =
     await getCourseAggregation([course.id], input.schoolIds);
 
   const scopedLessons = lessonRows.filter((lesson) => lesson.courseId === course.id);
@@ -315,6 +442,11 @@ async function getCachedTeacherCourseDetailDTO(input: ScopedCourseQueryInput & C
       .filter((item) => item.schoolId === course.schoolId && !linkedClassIds.has(item.id))
       .map((item) => TeacherCourseAvailableClassDTOSchema.parse({ id: item.id, name: item.name }))
   );
+  const membershipRoster = await getCourseMembershipRoster({
+    linkedClasses: classLinks,
+    enrollmentRows,
+    courseId: course.id,
+  });
   const deleteEligibility = buildCourseDeleteEligibility({
     lessonCount: scopedLessons.length,
     classAssociationCount: classLinks.length,
@@ -327,6 +459,8 @@ async function getCachedTeacherCourseDetailDTO(input: ScopedCourseQueryInput & C
     classLabels: classLabelsByCourseId.get(course.id) ?? [],
     classLinks,
     availableClasses,
+    members: membershipRoster.members,
+    eligibleStudents: membershipRoster.eligibleStudents,
     enrollmentCount: enrollmentCountByCourseId.get(course.id) ?? 0,
     deleteEligibility,
     updatedAt: toIso(course.updatedAt),
@@ -509,6 +643,60 @@ export async function removeCourseClassAssociationForTeacherScoped(input: Course
   await db
     .delete(courseClasses)
     .where(and(eq(courseClasses.courseId, course.id), eq(courseClasses.classId, classRow.id)));
+
+  const detail = await getTeacherCourseDetailDTO({ courseId: course.id });
+  return TeacherCourseDetailDTOSchema.parse(detail);
+}
+
+export async function addCourseEnrollmentForTeacherScoped(input: CourseEnrollmentInput) {
+  const scope = await assertActiveTeacher();
+  const parsed = CourseEnrollmentInputSchema.parse(input);
+  const course = await getScopedOwnedCourse(parsed.courseId, scope);
+
+  if (course.status === "archived") {
+    throw new Error("COURSE_MEMBERSHIP_READ_ONLY");
+  }
+
+  const eligibleStudentIds = await getLinkedClassEligibleStudentIds(course.id);
+  if (!eligibleStudentIds.includes(parsed.studentId)) {
+    throw new Error("STUDENT_NOT_ELIGIBLE");
+  }
+
+  const existingEnrollment = await db.query.courseEnrollments.findFirst({
+    where: and(eq(courseEnrollments.courseId, course.id), eq(courseEnrollments.studentId, parsed.studentId)),
+  });
+
+  if (existingEnrollment) {
+    throw new Error("COURSE_ENROLLMENT_EXISTS");
+  }
+
+  await db.insert(courseEnrollments).values({
+    courseId: course.id,
+    studentId: parsed.studentId,
+    status: "active",
+  });
+
+  const detail = await getTeacherCourseDetailDTO({ courseId: course.id });
+  return TeacherCourseDetailDTOSchema.parse(detail);
+}
+
+export async function removeCourseEnrollmentForTeacherScoped(input: CourseEnrollmentInput) {
+  const scope = await assertActiveTeacher();
+  const parsed = CourseEnrollmentInputSchema.parse(input);
+  const course = await getScopedOwnedCourse(parsed.courseId, scope);
+
+  if (course.status === "archived") {
+    throw new Error("COURSE_MEMBERSHIP_READ_ONLY");
+  }
+
+  const eligibleStudentIds = await getLinkedClassEligibleStudentIds(course.id);
+  if (!eligibleStudentIds.includes(parsed.studentId)) {
+    throw new Error("STUDENT_NOT_ELIGIBLE");
+  }
+
+  await db
+    .delete(courseEnrollments)
+    .where(and(eq(courseEnrollments.courseId, course.id), eq(courseEnrollments.studentId, parsed.studentId)));
 
   const detail = await getTeacherCourseDetailDTO({ courseId: course.id });
   return TeacherCourseDetailDTOSchema.parse(detail);

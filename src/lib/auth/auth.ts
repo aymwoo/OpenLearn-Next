@@ -5,12 +5,20 @@ import bcrypt from "bcryptjs";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { memberships, users } from "@/db/schema";
+import {
+  type MembershipRole,
+  WorkspaceRoleSchema,
+  type WorkspaceRole,
+} from "@/lib/dto/membership";
 import { authConfig } from "./auth.config";
 
-type RoleIntent = "teacher" | "student";
+function normalizeRoleIntent(value: unknown): WorkspaceRole | null {
+  const result = WorkspaceRoleSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
 
-function normalizeRoleIntent(value: unknown): RoleIntent | null {
-  return value === "teacher" || value === "student" ? value : null;
+function resolveLoginField(roleIntent: WorkspaceRole) {
+  return roleIntent === "student" ? users.studentNumber : users.email;
 }
 
 export async function authorizeCredentials(credentials: Record<string, unknown> | undefined) {
@@ -28,11 +36,7 @@ export async function authorizeCredentials(credentials: Record<string, unknown> 
   const userRecords = await db
     .select()
     .from(users)
-    .where(
-      roleIntent === "student"
-        ? eq(users.studentNumber, loginId)
-        : eq(users.email, loginId)
-    )
+    .where(eq(resolveLoginField(roleIntent), loginId))
     .limit(1);
   const user = userRecords[0];
 
@@ -41,18 +45,18 @@ export async function authorizeCredentials(credentials: Record<string, unknown> 
   }
 
   const activeMemberships = await db
-    .select({ id: memberships.id })
+    .select({ role: memberships.role })
     .from(memberships)
     .where(
       and(
         eq(memberships.userId, user.id),
-        eq(memberships.role, roleIntent),
         eq(memberships.status, "active")
       )
-    )
-    .limit(1);
+    );
 
-  if (activeMemberships.length === 0) {
+  const activeRoles = [...new Set(activeMemberships.map((membership) => membership.role as MembershipRole))];
+
+  if (!activeRoles.includes(roleIntent)) {
     return null;
   }
 
@@ -62,7 +66,13 @@ export async function authorizeCredentials(credentials: Record<string, unknown> 
     return null;
   }
 
-  return { id: user.id, name: user.name, email: user.email, roles: [roleIntent] };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    roles: activeRoles,
+    workspaceRole: roleIntent,
+  };
 }
 
 const nodeAuthConfig = {
@@ -80,6 +90,10 @@ const nodeAuthConfig = {
         token.roles = user.roles;
       }
 
+      if (typeof user?.workspaceRole === "string") {
+        token.workspaceRole = user.workspaceRole;
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -88,6 +102,8 @@ const nodeAuthConfig = {
       if (session.user && userId) {
         session.user.id = String(userId);
         session.user.roles = Array.isArray(token.roles) ? token.roles : [];
+        session.user.workspaceRole =
+          typeof token.workspaceRole === "string" ? token.workspaceRole : undefined;
       }
 
       return session;

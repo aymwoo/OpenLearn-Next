@@ -200,6 +200,7 @@ const snapshot: ClassroomSnapshotDTO = {
       submissionCount: 2,
       needsAttention: false,
       attentionReasons: [],
+      runtimeProof: null,
     },
   ],
   monitoringSummary: {
@@ -290,15 +291,11 @@ describe('ClassroomStudentDetailPanel', () => {
               runtimeProof: {
                 status: 'submitted',
                 runtimeSessionId: 'runtime-session-1',
-                inspectorHref: null,
+                runtimeInstanceId: null,
+                inspectorHref: '/settings/labs/runtime-inspector?runtimeSessionId=runtime-session-1',
                 submittedAt: '2026-05-12T10:05:00.000Z',
-                proofSummary: {
-                  title: '已完成本次互动证明',
-                  submittedStateLabel: '已提交',
-                  summary: {
-                    confidence: 'high',
-                  },
-                },
+                summaryTitle: '已完成本次互动证明',
+                summaryLabel: '已提交',
               },
             },
           ],

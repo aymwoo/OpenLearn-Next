@@ -1,44 +1,43 @@
 import { describe, expect, it } from "vitest";
 
-import { authConfig, isAuthorizedRouteAccess } from "./auth.config";
+import {
+  authConfig,
+  isAuthorizedRouteAccess,
+  isProtectedRouteFamily,
+  protectedRouteFamilies,
+} from "./auth.config";
 
 describe("isAuthorizedRouteAccess", () => {
-  it("allows authenticated requests through proxy when roles metadata is unavailable", () => {
+  it("allows authenticated requests through proxy even when role metadata is unavailable", () => {
     expect(
       isAuthorizedRouteAccess({
         isLoggedIn: true,
         pathname: "/teacher",
-        roles: [],
       })
     ).toBe(true);
   });
 
-  it("blocks logged-in students from teacher routes", () => {
+  it("blocks unauthenticated access to protected route families", () => {
     expect(
       isAuthorizedRouteAccess({
-        isLoggedIn: true,
+        isLoggedIn: false,
         pathname: "/teacher",
-        roles: ["student"],
       })
     ).toBe(false);
-  });
 
-  it("blocks logged-in teachers from student routes", () => {
     expect(
       isAuthorizedRouteAccess({
-        isLoggedIn: true,
-        pathname: "/student/player",
-        roles: ["teacher"],
+        isLoggedIn: false,
+        pathname: "/api/classroom/session-1/snapshot",
       })
     ).toBe(false);
   });
 
-  it("allows matching role routes and shared classroom access", () => {
+  it("allows public routes and lets role checks stay in layouts or DAL", () => {
     expect(
       isAuthorizedRouteAccess({
         isLoggedIn: true,
         pathname: "/teacher/review",
-        roles: ["teacher"],
       })
     ).toBe(true);
 
@@ -46,9 +45,36 @@ describe("isAuthorizedRouteAccess", () => {
       isAuthorizedRouteAccess({
         isLoggedIn: true,
         pathname: "/classroom",
-        roles: ["student"],
       })
     ).toBe(true);
+
+    expect(
+      isAuthorizedRouteAccess({
+        isLoggedIn: false,
+        pathname: "/api/auth/session",
+      })
+    ).toBe(true);
+
+    expect(
+      isAuthorizedRouteAccess({
+        isLoggedIn: false,
+        pathname: "/",
+      })
+    ).toBe(true);
+  });
+});
+
+describe("protectedRouteFamilies", () => {
+  it("keeps protected route families explicit", () => {
+    expect(protectedRouteFamilies).toEqual([
+      "/teacher",
+      "/student",
+      "/classroom",
+      "/admin",
+      "/api/classroom",
+    ]);
+    expect(isProtectedRouteFamily("/api/classroom/session-1/events")).toBe(true);
+    expect(isProtectedRouteFamily("/api/auth/session")).toBe(false);
   });
 });
 

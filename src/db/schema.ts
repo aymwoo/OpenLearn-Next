@@ -167,6 +167,7 @@ export const courseEnrollments = sqliteTable(
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
   (table) => [
+    uniqueIndex("courseEnrollments_course_student_unique").on(table.courseId, table.studentId),
     index("courseEnrollments_courseId_idx").on(table.courseId),
     index("courseEnrollments_studentId_idx").on(table.studentId),
   ]
