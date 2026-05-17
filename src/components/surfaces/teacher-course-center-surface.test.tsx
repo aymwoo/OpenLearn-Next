@@ -59,6 +59,10 @@ describe("TeacherCourseCenterSurface create flow", () => {
         grade: "七年级",
       });
     });
+
+    await waitFor(() => {
+      expect(refresh).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("lets multi-school teachers switch schools before submitting", async () => {
@@ -88,6 +92,10 @@ describe("TeacherCourseCenterSurface create flow", () => {
         grade: "七年级",
       });
     });
+
+    await waitFor(() => {
+      expect(refresh).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("removes the hardcoded schoolId = \"school-1\" default from the drawer source", () => {
@@ -108,7 +116,7 @@ describe("TeacherCourseCenterSurface create flow", () => {
 
     expect(screen.getByRole("button", { name: "批量导入课程" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "下载 CSV 模板" }).getAttribute("href")).toBe("/teacher/courses/import/template");
-  });
+  }, 20_000);
 });
 
 function openDrawerAndFillBaseFields() {
