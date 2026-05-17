@@ -5,16 +5,16 @@ milestone_name: Runtime Platform Foundations
 current_phase: 32
 current_phase_name: end-to-end-hardening-and-milestone-proof
 current_plan: 4
-status: executing
-stopped_at: Completed 32-04-PLAN.md
-last_updated: "2026-05-17T00:58:39.610Z"
-last_activity: 2026-05-16
+status: verifying
+stopped_at: Completed 32-03-PLAN.md
+last_updated: "2026-05-17T01:22:24.156Z"
+last_activity: 2026-05-17
 progress:
   total_phases: 20
-  completed_phases: 19
+  completed_phases: 20
   total_plans: 79
-  completed_plans: 78
-  percent: 99
+  completed_plans: 79
+  percent: 100
 ---
 
 # Project State
@@ -25,9 +25,9 @@ Milestone: v2.0 Runtime Platform Foundations
 Phase: 32 (end-to-end-hardening-and-milestone-proof) — EXECUTING
 Phase name: End-to-end hardening and milestone proof
 Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-05-16
-Progress: [██████████] 99%
+Status: Phase complete — ready for verification
+Last activity: 2026-05-17
+Progress: [██████████] 100%
 
 <!--
 GSD compatibility fields for older state parsers.
@@ -188,6 +188,9 @@ Last Activity Description: Phase 32 execution started
 - [Phase 32]: 把 canonical proof 发现入口收口在 /teacher/launch 的次级 affordance，不新增 dashboard。
 - [Phase 32]: 把教师 proof 成功或异常第一反馈固定留在 /classroom，再通过 runtimeSessionId 跳到 inspector。
 - [Phase 32]: 把 demo handoff 固定为 repo-local 文档，明确 bootstrap、账号、proof chain 与排障第二步。
+- [Phase 32]: `verify:phase32` 作为唯一外部 milestone-close gate，Phase 27-31 verifier 只做内部 prerequisite。
+- [Phase 32]: proof drift 继续用 focused semantic assertions 锁定，不用宽泛 snapshot 或注释字符串计数代替。
+- [Phase 32]: 旧 verifier 漂移优先最小修正 verifier 本身，不修改运行时业务代码去迎合过时检查。
 
 ## Next Steps
 
@@ -238,11 +241,12 @@ Last Activity Description: Phase 32 execution started
 | Phase 32 P01 | 15 min | 2 tasks | 9 files |
 | Phase 32 P02 | 4 min | 2 tasks | 7 files |
 | Phase 32 P04 | 2 min | 2 tasks | 10 files |
+| Phase 32 P03 | 9 min | 2 tasks | 10 files |
 
 ## Session Tracking
 
-Last session: 2026-05-17T00:58:39.361Z
-Stopped At: Completed 32-04-PLAN.md
+Last session: 2026-05-17T01:22:24.150Z
+Stopped At: Completed 32-03-PLAN.md
 Resume File: None
 
 ### Quick Tasks Completed
