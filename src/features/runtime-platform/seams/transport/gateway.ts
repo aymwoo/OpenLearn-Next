@@ -18,19 +18,30 @@ import {
   type RuntimeTransportPublishResult,
 } from "./contract";
 import { sseRuntimeTransportAdapter } from "./sse-adapter";
+import { wsRuntimeTransportAdapter } from "./ws-adapter";
 
-const transportAdapters: RuntimeTransportAdapter[] = [sseRuntimeTransportAdapter];
+const transportAdapters: RuntimeTransportAdapter[] = [
+  sseRuntimeTransportAdapter,
+  wsRuntimeTransportAdapter,
+];
 
-function resolveTransportAdapter(input: RuntimeTransportPublishInput) {
-  const adapter = transportAdapters.find((candidate) => {
-    if (candidate.mode !== "sse") {
-      return false;
-    }
+function adapterSupportsEvent(
+  candidate: RuntimeTransportAdapter,
+  input: RuntimeTransportPublishInput,
+) {
+  if (!(input.channel.startsWith("classroom") || input.kind.startsWith("runtime."))) {
+    return false;
+  }
 
-    return input.channel.startsWith("classroom") || input.kind.startsWith("runtime.");
-  });
+  if (candidate.mode === "sse") {
+    return true;
+  }
 
-  return adapter ?? null;
+  if (candidate.mode === "websocket") {
+    return true;
+  }
+
+  return false;
 }
 
 function summarizePayload(payload: RuntimeTransportPublishInput["payload"]) {
@@ -39,9 +50,32 @@ function summarizePayload(payload: RuntimeTransportPublishInput["payload"]) {
   };
 }
 
+function resolveTransportAdapter(input: RuntimeTransportPublishInput) {
+  const candidates = transportAdapters.filter((candidate) =>
+    adapterSupportsEvent(candidate, input),
+  );
+
+  return (
+    candidates.find((candidate) => candidate.mode === "sse") ??
+    candidates.find((candidate) => candidate.mode === "websocket") ??
+    null
+  );
+}
+
+function resolveSupplementalTransportAdapters(
+  input: RuntimeTransportPublishInput,
+  primaryAdapter: RuntimeTransportAdapter | null,
+) {
+  return transportAdapters.filter(
+    (candidate) =>
+      candidate.id !== primaryAdapter?.id && adapterSupportsEvent(candidate, input),
+  );
+}
+
 export async function publishTransportEvent(input: RuntimeTransportPublishInput): Promise<RuntimeTransportPublishResult> {
   const event = RuntimeTransportPublishInputSchema.parse(input);
   const adapter = resolveTransportAdapter(event);
+  const supplementalAdapters = resolveSupplementalTransportAdapters(event, adapter);
 
   const [attempt] = await db
     .insert(transportDeliveryAttempts)
@@ -79,6 +113,12 @@ export async function publishTransportEvent(input: RuntimeTransportPublishInput)
 
   try {
     await adapter.deliver(event);
+
+    if (supplementalAdapters.length > 0) {
+      await Promise.allSettled(
+        supplementalAdapters.map((secondaryAdapter) => secondaryAdapter.deliver(event)),
+      );
+    }
 
     await db
       .update(transportDeliveryAttempts)

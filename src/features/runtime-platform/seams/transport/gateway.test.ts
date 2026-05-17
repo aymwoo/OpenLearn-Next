@@ -8,6 +8,7 @@ const updateSet = vi.fn();
 const updateMock = vi.fn();
 const findFirstTransportDeliveryAttempts = vi.fn();
 const deliverMock = vi.fn();
+const websocketDeliverMock = vi.fn();
 
 vi.mock("server-only", () => ({}));
 
@@ -37,6 +38,20 @@ vi.mock("./sse-adapter", () => ({
   },
 }));
 
+vi.mock("./ws-adapter", () => ({
+  wsRuntimeTransportAdapter: {
+    id: "transport-websocket-adapter",
+    mode: "websocket",
+    describeOwnership: () => ({
+      sourceOfTruth: "classroom-session-write-path",
+      deliveryMode: "websocket",
+      posture: "default-only",
+      notes: [],
+    }),
+    deliver: websocketDeliverMock,
+  },
+}));
+
 describe("transport gateway", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -62,6 +77,7 @@ describe("transport gateway", () => {
       runtimeSessionId: "runtime-session-1",
     });
     deliverMock.mockResolvedValue(undefined);
+    websocketDeliverMock.mockResolvedValue(undefined);
   });
 
   it("routes classroom runtime events by channel and kind through the SSE adapter", async () => {
@@ -91,12 +107,49 @@ describe("transport gateway", () => {
         correlationId: "corr-1",
       }),
     );
+    expect(websocketDeliverMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "classroom-runtime",
+        kind: "runtime.ready",
+        correlationId: "corr-1",
+      }),
+    );
     expect(result).toMatchObject({
       truthPersisted: true,
       deliveryAttempted: true,
       attemptStatus: "delivered",
       adapterId: "transport-sse-adapter",
       adapterMode: "sse",
+    });
+  });
+
+  it("keeps SSE as rollback surface while faning out to websocket adapter when available", async () => {
+    const { publishTransportEvent } = await import("./gateway");
+
+    const result = await publishTransportEvent({
+      sessionId: "classroom-session-1",
+      channel: "classroom-events",
+      kind: "active_step_changed",
+      correlationId: "corr-ws-1",
+      truthPersisted: true,
+      truthRef: {
+        type: "classroom-event",
+        id: "event-ws-1",
+        classroomSessionId: "classroom-session-1",
+        schoolId: "school-1",
+      },
+      payload: {
+        version: 9,
+      },
+    });
+
+    expect(deliverMock).toHaveBeenCalledOnce();
+    expect(websocketDeliverMock).toHaveBeenCalledOnce();
+    expect(result).toMatchObject({
+      adapterId: "transport-sse-adapter",
+      adapterMode: "sse",
+      attemptStatus: "delivered",
+      truthPersisted: true,
     });
   });
 
