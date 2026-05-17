@@ -46,6 +46,7 @@ export function isAuthorizedRouteAccess({
 
 export const authConfig = {
   providers: [],
+  trustHost: true,
   pages: {
     signIn: "/",
   },

@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
@@ -65,7 +65,7 @@ export async function authorizeCredentials(credentials: Record<string, unknown> 
   return { id: user.id, name: user.name, email: user.email, roles: [roleIntent] };
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const nodeAuthConfig = {
   ...authConfig,
   adapter: DrizzleAdapter(db),
   session: { strategy: "jwt" },
@@ -106,4 +106,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     })
   ]
-});
+} satisfies NextAuthConfig;
+
+export const { handlers, auth, signIn, signOut } = NextAuth(nodeAuthConfig);

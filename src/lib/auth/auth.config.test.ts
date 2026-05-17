@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isAuthorizedRouteAccess } from "./auth.config";
+import { authConfig, isAuthorizedRouteAccess } from "./auth.config";
 
 describe("isAuthorizedRouteAccess", () => {
   it("allows authenticated requests through proxy when roles metadata is unavailable", () => {
@@ -49,5 +49,11 @@ describe("isAuthorizedRouteAccess", () => {
         roles: ["student"],
       })
     ).toBe(true);
+  });
+});
+
+describe("authConfig", () => {
+  it("enables trustHost for Auth.js routes", () => {
+    expect(authConfig.trustHost).toBe(true);
   });
 });
