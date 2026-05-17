@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Runtime Platform Foundations
 current_phase: 32
 current_phase_name: end-to-end-hardening-and-milestone-proof
-current_plan: 3
+current_plan: 4
 status: executing
-stopped_at: Completed 32-02-PLAN.md
-last_updated: "2026-05-16T15:07:36.412Z"
+stopped_at: Completed 32-04-PLAN.md
+last_updated: "2026-05-17T00:58:39.610Z"
 last_activity: 2026-05-16
 progress:
   total_phases: 20
   completed_phases: 19
   total_plans: 79
-  completed_plans: 77
-  percent: 97
+  completed_plans: 78
+  percent: 99
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 Milestone: v2.0 Runtime Platform Foundations
 Phase: 32 (end-to-end-hardening-and-milestone-proof) — EXECUTING
 Phase name: End-to-end hardening and milestone proof
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-05-16
-Progress: [██████████] 97%
+Progress: [██████████] 99%
 
 <!--
 GSD compatibility fields for older state parsers.
 Current Phase: 32
 Current Phase Name: end-to-end-hardening-and-milestone-proof
-Current Plan: 3
+Current Plan: 4
 Total Plans in Phase: 4
 Last Activity Description: Phase 32 execution started
 -->
@@ -185,6 +185,9 @@ Last Activity Description: Phase 32 execution started
 - [Phase 32]: submit 成功固定进入 terminal locked state，并通过 proof summary 在 runtime 内显示完成确认。
 - [Phase 32]: reconnect 与 snapshot fallback banner 继续由 player shell 承载，不把失败恢复跳转到 inspector。
 - [Phase 32]: save 或 submit 失败保持在当前 runtime surface，并把主恢复动作固定为重试刚才的操作。
+- [Phase 32]: 把 canonical proof 发现入口收口在 /teacher/launch 的次级 affordance，不新增 dashboard。
+- [Phase 32]: 把教师 proof 成功或异常第一反馈固定留在 /classroom，再通过 runtimeSessionId 跳到 inspector。
+- [Phase 32]: 把 demo handoff 固定为 repo-local 文档，明确 bootstrap、账号、proof chain 与排障第二步。
 
 ## Next Steps
 
@@ -234,11 +237,12 @@ Last Activity Description: Phase 32 execution started
 | Phase 27 P04 | 15 min | 2 tasks | 13 files |
 | Phase 32 P01 | 15 min | 2 tasks | 9 files |
 | Phase 32 P02 | 4 min | 2 tasks | 7 files |
+| Phase 32 P04 | 2 min | 2 tasks | 10 files |
 
 ## Session Tracking
 
-Last session: 2026-05-16T15:07:36.182Z
-Stopped At: Completed 32-02-PLAN.md
+Last session: 2026-05-17T00:58:39.361Z
+Stopped At: Completed 32-04-PLAN.md
 Resume File: None
 
 ### Quick Tasks Completed

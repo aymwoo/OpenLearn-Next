@@ -160,7 +160,7 @@
 - [x] 32-01-PLAN.md — Fix the deterministic proof seed and thread runtimeSessionId plus submit summary through the classroom truth path.
 - [x] 32-02-PLAN.md — Harden terminal submit posture and same-surface failure recovery in the shared host and student runtime flow.
 - [ ] 32-03-PLAN.md — Add the canonical `verify:phase32` gate with proof-focused drift guards and regression coverage.
-- [ ] 32-04-PLAN.md — Productize launch/classroom/inspector proof affordances and publish the explicit demo handoff.
+- [x] 32-04-PLAN.md — Productize launch/classroom/inspector proof affordances and publish the explicit demo handoff.
 **UI hint**: yes
 
 ### Phase 13: Course center foundation
@@ -397,7 +397,7 @@ Current milestone phases plus historical snapshot retained for planning referenc
 | 29. Runtime Host and HTML courseware pilot | 4/4 | Complete | 2026-05-16 |
 | 30. Capability enforcement and plugin lifecycle | 4/4 | Complete | 2026-05-16 |
 | 31. Transport boundary and runtime inspector | 0/4 | Not started | - |
-| 32. End-to-end hardening and milestone proof | 2/4 | In Progress|  |
+| 32. End-to-end hardening and milestone proof | 3/4 | In Progress|  |
 | 13. Course center foundation | 5/5 | Complete   | 2026-05-09 |
 | 14. Course lifecycle and associations | 3/3 | Complete | 2026-05-15 |
 | 15. Batch course import | 3/3 | Complete | 2026-05-15 |
