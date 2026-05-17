@@ -20,6 +20,7 @@ export const RuntimeTransportConsumerTraceTypeSchema = z.enum([
   "keepalive",
   "stream_closed",
   "stream_failed",
+  "runtime_event",
 ]);
 
 export const RuntimeTransportTruthRefSchema = z.object({
