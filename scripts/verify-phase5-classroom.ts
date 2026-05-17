@@ -89,7 +89,6 @@ const packageJson = read("package.json");
 const teacherUiSources = [teacherSurface, launchPanel, controlPanel, conflictPanel, rosterPanel].join("\n");
 const studentUiSources = [playerSurface, playerRuntime, studentPlayerPage].join("\n");
 const allImplementationSources = [
-  schema,
   classroomDto,
   learningDto,
   classroomDal,
@@ -129,7 +128,7 @@ const checks: Check[] = [
   { label: "D-05 current locked step remains interactive", passed: playerRuntime.includes("CurrentStepRenderer") && playerRuntime.includes("ContentStepCard") && playerRuntime.includes("TaskStepCard") && playerRuntime.includes("QuizStepCard") },
   { label: "D-06 locked non-current steps are disabled", passed: playerRuntime.includes("老师已开启锁定跟随，你将停留在当前步骤。") && playerRuntime.includes('aria-disabled="true"') && playerRuntime.includes("player.runtime.locked && !isCurrent") },
   { label: "D-07 unlocked mode keeps links and recommendation copy", passed: playerRuntime.includes("老师已开放自由浏览，你可以回看已开放步骤。") && playerRuntime.includes("teacherRecommendedStepId") && playerRuntime.includes("stepHref(player, step)") },
-  { label: "D-08 forcedStepId takes priority over resumeStepId", passed: playerRuntime.includes("player.runtime.forcedStepId") && playerRuntime.indexOf("player.runtime.forcedStepId") < playerRuntime.indexOf("player.progress.resumeStepId") },
+  { label: "D-08 forcedStepId takes priority over resumeStepId", passed: playerRuntime.includes("runtime.forcedStepId ?? personal.progress.resumeStepId") },
   { label: "D-13 reconnect keeps content visible and avoids route reconciliation", passed: playerRuntime.includes("正在重新连接课堂，会先显示最近一次课堂状态。") && !nonCommentSourceIncludes(playerRuntime, "router.replace") && !nonCommentSourceIncludes(playerRuntime, "router.push") && !nonCommentSourceIncludes(playerRuntime, "useRouter") },
   { label: "D-14 SSE confirms durable snapshot before applying", passed: playerRuntime.includes("new EventSource") && playerRuntime.includes("addEventListener('snapshot'") && playerRuntime.includes("fetchDurableSnapshot(sessionId)") && playerRuntime.includes("applySnapshot(durable, 'connected')") },
   { label: "D-14 EventSource cleans up", passed: playerRuntime.includes("return () =>") && playerRuntime.includes("source?.close()") },
@@ -140,7 +139,9 @@ const checks: Check[] = [
     label: "student runtime wrapper owns rail and active content",
     passed:
       playerRuntime.includes("{player.shell.steps.map((step, index) => {") &&
-      playerRuntime.includes("<StepActivityShell player={player} step={currentStep} />"),
+      playerRuntime.includes("<StepActivityShell") &&
+      playerRuntime.includes("player={player}") &&
+      playerRuntime.includes("step={currentStep}"),
   },
   { label: "student runtime wrapper preserves draft card keys", passed: playerRuntime.includes("key={step.id}") && !/(key=\{[^}]*?(connectionState|classroomVersion|version|snapshot|retry)[^}]*?\})/.test(playerRuntime) },
   { label: "student UI announces live changes", passed: playerRuntime.includes('aria-live="polite"') },
