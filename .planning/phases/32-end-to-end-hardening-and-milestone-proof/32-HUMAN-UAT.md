@@ -1,14 +1,14 @@
 ---
-status: diagnosed
+status: complete
 phase: 32-end-to-end-hardening-and-milestone-proof
 source: [32-VERIFICATION.md]
 started: 2026-05-17T01:43:20Z
-updated: 2026-05-17T06:46:34Z
+updated: 2026-05-17T10:57:55Z
 ---
 
 ## Current Test
 
-[testing complete]
+[testing complete — superseded by `32-UAT.md` final re-test after plans 32-05, 32-06, and 32-07]
 
 ## Tests
 
