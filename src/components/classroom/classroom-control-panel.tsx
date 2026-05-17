@@ -65,6 +65,7 @@ export function ClassroomControlPanel({
   const primaryRuntimeProof = submittedRuntimeParticipants[0]?.runtimeProof
     ?? currentSnapshot.participants.find((participant) => participant.runtimeProof)?.runtimeProof
     ?? null
+  const showRuntimeProofFeedback = Boolean(primaryRuntimeProof) || runtimeAttentionParticipants.length > 0
   const runtimeInspectorHref = primaryRuntimeProof?.inspectorHref
     ?? (primaryRuntimeProof?.runtimeSessionId
       ? `/settings/labs/runtime-inspector?runtimeSessionId=${primaryRuntimeProof.runtimeSessionId}`
@@ -258,7 +259,7 @@ export function ClassroomControlPanel({
           </div>
         </Card>
 
-        {currentRuntimeDescriptor ? (
+        {showRuntimeProofFeedback ? (
           <Card className="bg-surface-container-low p-5 sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">

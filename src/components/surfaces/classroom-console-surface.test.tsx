@@ -134,9 +134,12 @@ describe('ClassroomConsoleSurface', () => {
   })
 
   it('keeps proof first-feedback in classroom and exposes the inspector deep-link as a secondary action', () => {
+    expect(controlPanelSource).toContain('const showRuntimeProofFeedback = Boolean(primaryRuntimeProof) || runtimeAttentionParticipants.length > 0')
+    expect(controlPanelSource).toContain('{showRuntimeProofFeedback ? (')
     expect(controlPanelSource).toContain('已有学生完成当前互动提交')
     expect(controlPanelSource).toContain('当前互动结果待重试，可进入运行排查')
     expect(controlPanelSource).toContain('查看运行轨迹')
     expect(controlPanelSource).toContain('runtimeSessionId=')
+    expect(controlPanelSource).toContain('{currentStep && currentRuntimeDescriptor ? (')
   })
 })

@@ -30,19 +30,29 @@ describe("plugin DAL security boundary", () => {
     expect(source).toContain("eq(pluginRegistrations.schoolId, input.schoolId)");
     expect(source).toContain("eq(pluginRegistrations.enabled, true)");
     expect(source).toContain("eq(pluginRegistrations.killSwitchEnabled, false)");
+    expect(source).toContain("eq(pluginRegistrations.lifecycleState, \"enabled\")");
     expect(source).toContain("plugin.manifestJson.anchors.includes");
   });
 
   it("denies and audits school mismatch, permission denial, disabled, and kill switch cases", () => {
     expect(source).toContain("school_mismatch");
     expect(source).toContain("permission_denied");
-    expect(source).toContain("disabled");
+    expect(source).toContain("lifecycle_blocked");
     expect(source).toContain("kill_switch");
+    expect(source).toContain("not_allowlisted");
     expect(source).toContain("requiredPermission");
     expect(source).toContain("denied: true");
     expect(source).toContain("plugin.schoolId !== input.schoolId");
     expect(source).toContain("await createHookRun");
     expect(source).toContain("await createPluginAudit");
+    expect(source).toContain("await createGovernanceAudit");
+  });
+
+  it("persists lifecycle transitions and governance audit metadata", () => {
+    expect(source).toContain("pluginLifecycleTransitions");
+    expect(source).toContain("governanceAudits");
+    expect(source).toContain("lifecycleState");
+    expect(source).toContain("correlationId");
   });
 
   it("registers validated theme tokens when enabling theme plugins", () => {

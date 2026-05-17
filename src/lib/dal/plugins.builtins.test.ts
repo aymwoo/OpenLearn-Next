@@ -53,17 +53,31 @@ function createBuiltInPlugin(overrides: Record<string, unknown> = {}) {
     name: "教师讲授",
     enabled: true,
     killSwitchEnabled: false,
+    lifecycleState: "enabled",
     createdAt: new Date(),
     updatedAt: new Date(),
     manifestJson: {
       id: "built-in-direct-instruction",
       version: "1.0.0",
+      manifestVersion: 2,
       anchors: ["lesson.sidebar"],
       permissions: ["lesson:write:suggestion"],
       actions: ["suggestBuiltInTeachingStep", "insertBuiltInTeachingStepTemplate"],
       builtIn: true,
       defaultEnabled: true,
       nonDeletable: true,
+      governance: {
+        manifestVersion: 2,
+        contractVersion: "v2",
+        requestedCapabilities: [],
+        permissions: ["lesson:write:suggestion"],
+        lifecycle: {
+          ownerType: "host",
+          installScope: "school",
+          initialState: "installed",
+          mountMode: "manual",
+        },
+      },
     },
     ...overrides,
   };
@@ -160,12 +174,25 @@ describe("built-in plugin template resolution", () => {
         manifestJson: {
           id: "built-in-direct-instruction",
           version: "1.0.0",
+          manifestVersion: 2,
           anchors: ["lesson.sidebar"],
           permissions: ["lesson:write:suggestion"],
           actions: ["suggestBuiltInTeachingStep"],
           builtIn: true,
           defaultEnabled: true,
           nonDeletable: true,
+          governance: {
+            manifestVersion: 2,
+            contractVersion: "v2",
+            requestedCapabilities: [],
+            permissions: ["lesson:write:suggestion"],
+            lifecycle: {
+              ownerType: "host",
+              installScope: "school",
+              initialState: "installed",
+              mountMode: "manual",
+            },
+          },
         },
       }),
     );
@@ -221,5 +248,70 @@ describe("built-in plugin template resolution", () => {
     const { BUILT_IN_TEACHING_STEP_DEFINITIONS } = await import("@/lib/dto/resource-ai");
 
     expect(BUILT_IN_TEACHING_STEP_DEFINITIONS.some((definition) => definition.builtInKey === "markdownDeck")).toBe(true);
+  });
+
+  it("supports the html courseware built-in teaching definition with a local runtime descriptor", async () => {
+    const { BUILT_IN_TEACHING_STEP_DEFINITIONS } = await import("@/lib/dto/resource-ai");
+
+    const definition = BUILT_IN_TEACHING_STEP_DEFINITIONS.find((item) => item.builtInKey === "htmlCourseware");
+
+    expect(definition).toBeTruthy();
+    expect(definition?.initialPayload.type).toBe("task");
+    expect(definition?.initialPayload.runtime).toMatchObject({
+      kind: "html-courseware",
+      entry: {
+        sandbox: "iframe",
+        bootstrap: "/runtime/html-courseware/pilot",
+      },
+    });
+  });
+
+  it("rejects manifest v2 runtime entries that point to remote bootstrap URLs", async () => {
+    const { PluginManifestSchema } = await import("@/lib/dto/resource-ai");
+
+    expect(() =>
+      PluginManifestSchema.parse({
+        id: "plugin-remote",
+        version: "2.0.0",
+        manifestVersion: 2,
+        anchors: ["lesson.sidebar"],
+        permissions: ["lesson:write:suggestion"],
+        actions: ["suggestBuiltInTeachingStep"],
+        governance: {
+          manifestVersion: 2,
+          contractVersion: "v2",
+          permissions: ["lesson:write:suggestion"],
+          requestedCapabilities: ["runtime:ready"],
+          lifecycle: {
+            ownerType: "host",
+            installScope: "school",
+            initialState: "installed",
+            mountMode: "manual",
+          },
+          runtime: {
+            version: "v2",
+            runtimeId: "remote-runtime",
+            runtimeVersion: "2026.05.0",
+            kind: "html-courseware",
+            displayName: "Remote Runtime",
+            stateSchemaVersion: "state-v1",
+            entry: {
+              sandbox: "iframe",
+              bootstrap: "https://example.com/runtime.js",
+            },
+            bootstrap: {
+              contextMode: "minimal",
+              resumeStrategy: "latest-or-create",
+              capabilitySnapshot: "session-scoped",
+            },
+            submitTarget: {
+              primary: "classroom-evidence",
+              additional: [],
+            },
+            requestedCapabilities: ["runtime:ready"],
+          },
+        },
+      }),
+    ).toThrowError(/local-only|remote URL/);
   });
 });

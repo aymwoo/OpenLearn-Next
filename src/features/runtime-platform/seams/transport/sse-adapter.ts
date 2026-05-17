@@ -11,8 +11,9 @@ const ownership: RuntimeTransportOwnership = RuntimeTransportOwnershipSchema.par
   deliveryMode: "sse",
   posture: "default-only",
   notes: [
-    "SSE remains the only transport delivery posture during Phase 27.",
+    "SSE remains the only transport delivery posture during Phase 31.",
     "Transport stays a delivery concern and does not become the classroom truth path.",
+    "Business producers publish through the transport gateway instead of calling the SSE adapter directly.",
   ],
 });
 

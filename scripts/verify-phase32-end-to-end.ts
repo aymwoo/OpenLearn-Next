@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 type GuardLabel =
   | "editor/publish drift"
@@ -7,6 +8,8 @@ type GuardLabel =
   | "launch affordance drift"
   | "terminal posture drift"
   | "recovery drift"
+  | "sandbox startup drift"
+  | "classroom live refresh drift"
   | "classroom proof drift"
   | "inspector review drift"
   | "demo handoff drift";
@@ -20,7 +23,22 @@ function fail(label: GuardLabel, message: string) {
 }
 
 function run(args: readonly string[], label: string) {
+  const localBin = (name: string) => path.join(process.cwd(), "node_modules", ".bin", name);
+
   try {
+    if (args[0]?.startsWith("verify:phase")) {
+      const script = JSON.parse(packageSource).scripts?.[args[0]] as string | undefined;
+      if (script?.startsWith("tsx ")) {
+        execFileSync(localBin("tsx"), script.slice(4).split(" "), { stdio: "inherit" });
+        return;
+      }
+    }
+
+    if (args[0] === "exec" && args[1] === "vitest") {
+      execFileSync(localBin("vitest"), [...args.slice(2)], { stdio: "inherit" });
+      return;
+    }
+
     execFileSync("pnpm", [...args], { stdio: "inherit" });
   } catch (error) {
     console.error(`Phase 32 verifier failed while running: ${label}`);
@@ -34,10 +52,13 @@ const builtInDefinitionsSource = read("src/lib/dto/resource-ai.ts");
 const lessonAuthoringSource = read("src/lib/dal/lesson-authoring.ts");
 const launchSurfaceSource = read("src/components/surfaces/classroom-launch-surface.tsx");
 const hostClientSource = read("src/features/runtime-platform/host/runtime-host-client.tsx");
+const hostFrameSource = read("src/features/runtime-platform/host/runtime-host-frame.tsx");
 const pilotSource = read("src/app/runtime/html-courseware/pilot/page.tsx");
 const runtimeSurfaceSource = read("src/components/learning/classroom-runtime-client.tsx");
 const classroomDalSource = read("src/lib/dal/classroom.ts");
+const classroomPageSource = read("src/app/(classroom)/classroom/page.tsx");
 const classroomControlPanelSource = read("src/components/classroom/classroom-control-panel.tsx");
+const classroomLiveRefreshSource = read("src/components/classroom/classroom-live-snapshot-refresh.tsx");
 const inspectorDalSource = read("src/lib/dal/runtime-inspector.ts");
 const inspectorPageSource = read("src/app/settings/labs/runtime-inspector/page.tsx");
 const inspectorSurfaceSource = read("src/components/surfaces/runtime-inspector-surface.tsx");
@@ -98,11 +119,33 @@ const checks: Array<{ label: GuardLabel; passed: boolean; message: string }> = [
       "save or submit failures no longer stay on the same player surface with retry-current-action recovery",
   },
   {
+    label: "sandbox startup drift",
+    passed:
+      hostFrameSource.includes('sandbox="allow-scripts allow-forms allow-same-origin"') &&
+      !hostFrameSource.includes("allow-top-navigation") &&
+      !hostFrameSource.includes("allow-popups") &&
+      !hostFrameSource.includes("allow-downloads") &&
+      pilotSource.includes('runtimeInstanceId: "runtime-pilot-pending"'),
+    message:
+      "runtime host iframe no longer keeps the minimal same-origin sandbox posture required to prevent the UAT Test 2 opaque-origin startup regression",
+  },
+  {
+    label: "classroom live refresh drift",
+    passed:
+      classroomPageSource.includes("ClassroomLiveSnapshotRefresh") &&
+      classroomLiveRefreshSource.includes("new EventSource(`/api/classroom/${sessionId}/events`)") &&
+      classroomLiveRefreshSource.includes("router.refresh()") &&
+      classroomLiveRefreshSource.includes("source.close()"),
+    message:
+      "teacher live classroom no longer refreshes from SSE snapshot version changes before relying on the server-owned DTO again",
+  },
+  {
     label: "classroom proof drift",
     passed:
       classroomDalSource.includes("runtimeSessionId") &&
       classroomDalSource.includes("proofSummary") &&
       classroomControlPanelSource.includes("proof first-feedback") &&
+      classroomControlPanelSource.includes("showRuntimeProofFeedback") &&
       classroomControlPanelSource.includes("查看运行轨迹"),
     message:
       "classroom-first proof feedback or proof summary threading drifted away from the durable classroom truth path",
@@ -148,7 +191,9 @@ if (failed.length > 0) {
   process.exit(1);
 }
 
-console.log("Phase 32 proof contracts passed: editor/publish, launch, submit, recovery, classroom, inspector, and handoff stay intact");
+console.log(
+  "Phase 32 proof contracts passed: editor/publish, launch, submit, recovery, sandbox startup, classroom, inspector, and handoff stay intact",
+);
 
 run(
   [
@@ -160,6 +205,7 @@ run(
     "src/features/runtime-platform/host/runtime-host.test.tsx",
     "src/components/surfaces/student-player-surfaces.test.ts",
     "src/lib/dal/classroom.test.ts",
+    "src/components/classroom/classroom-live-snapshot-refresh.test.tsx",
     "src/lib/dal/runtime-inspector.test.ts",
     "src/components/surfaces/runtime-inspector-surface.test.tsx",
     "src/components/surfaces/classroom-console-surface.test.tsx",

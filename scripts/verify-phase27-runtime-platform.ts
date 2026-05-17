@@ -1,9 +1,16 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 type StaticCheck = {
   label: string;
   passed: boolean;
+};
+
+type RouteBoundaryCheck = {
+  label: string;
+  source: string;
+  requiredImport: string;
 };
 
 function read(path: string) {
@@ -11,7 +18,22 @@ function read(path: string) {
 }
 
 function runPnpm(args: readonly string[], label: string) {
+  const localBin = (name: string) => path.join(process.cwd(), "node_modules", ".bin", name);
+
   try {
+    if (args[0]?.startsWith("verify:phase")) {
+      const script = JSON.parse(packageSource).scripts?.[args[0]] as string | undefined;
+      if (script?.startsWith("tsx ")) {
+        execFileSync(localBin("tsx"), script.slice(4).split(" "), { stdio: "inherit" });
+        return;
+      }
+    }
+
+    if (args[0] === "exec" && args[1] === "vitest") {
+      execFileSync(localBin("vitest"), [...args.slice(2)], { stdio: "inherit" });
+      return;
+    }
+
     execFileSync("pnpm", [...args], { stdio: "inherit" });
   } catch (error) {
     console.error(`Phase 27 compatibility gate failed while running: ${label}`);
@@ -45,6 +67,31 @@ const hostGuards = read("src/features/runtime-platform/host-actions/guards.ts");
 const runtimeHost = read("src/features/runtime-platform/host-actions/runtime-host.ts");
 const pluginHost = read("src/features/runtime-platform/host-actions/plugin-host.ts");
 
+const legacyRouteImportPatterns = ["@/lib/dal/", "@/actions/"];
+
+const routeBoundaryChecks: RouteBoundaryCheck[] = [
+  {
+    label: "editor route imports runtime-platform authoring boundary only",
+    source: editorPage,
+    requiredImport: "@/features/runtime-platform/authoring",
+  },
+  {
+    label: "launch route imports runtime-platform launch boundary only",
+    source: launchPage,
+    requiredImport: "@/features/runtime-platform/launch",
+  },
+  {
+    label: "classroom route imports runtime-platform classroom boundary only",
+    source: classroomPage,
+    requiredImport: "@/features/runtime-platform/classroom",
+  },
+  {
+    label: "player route imports runtime-platform player boundary only",
+    source: playerPage,
+    requiredImport: "@/features/runtime-platform/player",
+  },
+];
+
 const staticChecks: StaticCheck[] = [
   {
     label: "package exposes canonical verify:phase27 entry",
@@ -54,11 +101,13 @@ const staticChecks: StaticCheck[] = [
   },
   {
     label: "route consumers import runtime-platform public barrels",
-    passed:
-      editorPage.includes("@/features/runtime-platform/authoring") &&
-      launchPage.includes("@/features/runtime-platform/launch") &&
-      classroomPage.includes("@/features/runtime-platform/classroom") &&
-      playerPage.includes("@/features/runtime-platform/player"),
+    passed: routeBoundaryChecks.every((check) => check.source.includes(check.requiredImport)),
+  },
+  {
+    label: "route consumers do not retain legacy deep imports",
+    passed: routeBoundaryChecks.every(
+      (check) => !legacyRouteImportPatterns.some((pattern) => check.source.includes(pattern)),
+    ),
   },
   {
     label: "editor retains courseId and lessonId guardrails",
@@ -88,7 +137,9 @@ const staticChecks: StaticCheck[] = [
       playerPage.includes("Suspense") &&
       playerPage.includes("getStudentPlayerShellDTO") &&
       playerPage.includes("getStudentPlayerPersonalDTO") &&
-      !playerPage.includes("getStudentPlayerDTO("),
+      !playerPage.includes("getStudentPlayerDTO(") &&
+      playerPage.includes('error.message === INACCESSIBLE_LESSON_MESSAGE') &&
+      !playerPage.includes("} catch {"),
   },
   {
     label: "contracts root stays pure and versioned",
@@ -118,11 +169,16 @@ const staticChecks: StaticCheck[] = [
   {
     label: "host actions remain guarded by actor scope, school scope, and DTO parsing",
     passed:
-      hostGuards.includes("SchoolScopedActorConstraintSchema.parse") &&
+      hostGuards.includes("resolveActor: () => Promise<SchoolScopedActorConstraint>") &&
+      hostGuards.includes("await resolveActor()") &&
       hostGuards.includes("inputSchema.parse") &&
+      !hostGuards.includes("envelope.actor") &&
+      !hostGuards.includes("trustedContext:") &&
       hostGuards.includes("HOST_ACTION_SCHOOL_SCOPE_REQUIRED") &&
       runtimeHost.includes("createGuardedHostAction") &&
-      pluginHost.includes("createGuardedHostAction"),
+      runtimeHost.includes('throw new Error("HOST_ACTION_UNSUPPORTED")') &&
+      pluginHost.includes("createGuardedHostAction") &&
+      pluginHost.includes('throw new Error("HOST_ACTION_UNSUPPORTED")'),
   },
 ];
 

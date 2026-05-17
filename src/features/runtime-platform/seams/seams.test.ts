@@ -1,7 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
 
 import {
   defaultRuntimeEventBusAdapter,
+  publishTransportEvent,
   runtimePlatformSeams,
   sqliteRuntimeDatabaseAdapter,
   sseRuntimeTransportAdapter,
@@ -20,6 +23,7 @@ describe("runtime-platform seams", () => {
     expect(runtimePlatformSeams.database.defaultAdapter).toBe("sqliteRuntimeDatabaseAdapter");
     expect(runtimePlatformSeams.eventBus.defaultAdapter).toBe("defaultRuntimeEventBusAdapter");
     expect(runtimePlatformSeams.transport.defaultAdapter).toBe("sseRuntimeTransportAdapter");
+    expect(typeof publishTransportEvent).toBe("function");
   });
 
   it("keeps database truth ownership on sqlite classroom/session writes", () => {
@@ -35,6 +39,9 @@ describe("runtime-platform seams", () => {
     expect(defaultRuntimeEventBusAdapter.describeOwnership().delivery).toBe("in-process");
     expect(sseRuntimeTransportAdapter.describeOwnership().deliveryMode).toBe("sse");
     expect(sseRuntimeTransportAdapter.describeOwnership().sourceOfTruth).toBe("classroom-session-write-path");
+    expect(sseRuntimeTransportAdapter.describeOwnership().notes).toContain(
+      "Business producers publish through the transport gateway instead of calling the SSE adapter directly.",
+    );
   });
 
   it("contains no provider toggles or hidden switches in seam metadata", () => {

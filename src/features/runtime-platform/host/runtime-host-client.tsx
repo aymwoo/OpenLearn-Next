@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
   bootstrapRuntimeSessionAction,
@@ -19,6 +19,7 @@ import {
   createRuntimeRequestEnvelope,
   createRuntimeSnapshotUpdateMessage,
   createRuntimeBridgeMessageId,
+  parseRuntimeBridgeMessage,
   isRuntimeBridgeMessageForInstance,
   postRuntimeBridgeMessage,
   type RuntimeHostSurface,
@@ -107,6 +108,120 @@ export function RuntimeHostClient({
   const [statusCopy, setStatusCopy] = useState(getInitialStatusCopy(surface));
   const [errorCopy, setErrorCopy] = useState<string | null>(null);
   const [bootstrap, setBootstrap] = useState<RuntimeBootstrapDTO | null>(null);
+
+  useLayoutEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) {
+        return;
+      }
+
+      const parsedMessage = parseRuntimeBridgeMessage(event.data);
+      if (!parsedMessage) {
+        return;
+      }
+
+      if (parsedMessage.kind === "runtime-frame-ready") {
+        setFrameReady(true);
+        setStatusCopy(bootstrap ? "runtime iframe 已 ready。" : "runtime iframe 已 ready，等待宿主 bootstrap。");
+        return;
+      }
+
+      const message = isRuntimeBridgeMessageForInstance(parsedMessage, runtimeInstanceIdRef.current);
+      if (!message) {
+        return;
+      }
+
+      if (message.kind === "runtime-height-change") {
+        setFrameHeight(Math.max(420, Math.min(1080, Math.round(message.height))));
+        return;
+      }
+
+      if (!classroomSessionId || !publishedVersionId) {
+        setStatus("snapshot-fallback");
+        setStatusCopy("当前 surface 为只读预览，runtime 互动不会写入课堂真相源。");
+        return;
+      }
+
+      const action =
+        message.kind === "runtime-ready"
+          ? recordRuntimeReadyAction
+          : message.kind === "runtime-interaction"
+          ? recordRuntimeInteractionAction
+          : message.kind === "runtime-save"
+            ? saveRuntimeStateAction
+            : message.kind === "runtime-submit"
+              ? submitRuntimeStateAction
+              : null;
+
+      if (!action) {
+        return;
+      }
+
+      void action(message).then((result) => {
+        if (!iframeRef.current?.contentWindow) {
+          return;
+        }
+
+        if (!result.ok) {
+          applyRuntimeFailureState({
+            failedKind: message.kind === "runtime-submit" ? "runtime-submit" : message.kind === "runtime-save" ? "runtime-save" : "other",
+            setStatus,
+            setStatusCopy,
+          });
+          if (message.kind === "runtime-submit" || message.kind === "runtime-save") {
+            onActionFailure?.(message.kind);
+          }
+          setErrorCopy(result.message);
+          return;
+        }
+
+        setErrorCopy(null);
+
+        if (message.kind === "runtime-save") {
+          setStatus("save-success");
+          setStatusCopy("runtime state 已通过 trusted host boundary 保存。");
+          onActionRecovered?.("runtime-save");
+        }
+
+        if (message.kind === "runtime-submit") {
+          setStatus("submit-success");
+          setStatusCopy("runtime submit 已通过 trusted host boundary 提交。");
+          onActionRecovered?.("runtime-submit");
+        }
+
+        if (message.kind === "runtime-interaction") {
+          setStatus("ready");
+          setStatusCopy("runtime interaction 已记录。");
+        }
+
+        if (message.kind === "runtime-ready") {
+          setStatus("ready");
+          setStatusCopy("runtime ready 已记录，宿主已进入可交互状态。");
+        }
+
+        postRuntimeBridgeMessage(
+          iframeRef.current.contentWindow,
+          {
+            ...(result.data as TeachingBridgeResultEnvelope),
+            channel: "openlearn-runtime-host-v1",
+          },
+        );
+      }).catch((error) => {
+        applyRuntimeFailureState({
+          failedKind: message.kind === "runtime-submit" ? "runtime-submit" : message.kind === "runtime-save" ? "runtime-save" : "other",
+          setStatus,
+          setStatusCopy,
+        });
+        if (message.kind === "runtime-submit" || message.kind === "runtime-save") {
+          onActionFailure?.(message.kind);
+        }
+        setErrorCopy(error instanceof Error ? error.message : "RUNTIME_HOST_REQUEST_FAILED");
+      });
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [bootstrap, classroomSessionId, onActionFailure, onActionRecovered, publishedVersionId]);
 
   useEffect(() => {
     if (!classroomSessionId || !publishedVersionId) {
@@ -219,115 +334,6 @@ export function RuntimeHostClient({
         setErrorCopy(null);
       }
   }, [bootstrap, frameReady, latestRuntimeStateSummary, note, retryCurrentActionRequest, snapshotPayload, status, stepTitle, surface]);
-
-  useEffect(() => {
-    function handleMessage(event: MessageEvent) {
-      if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) {
-        return;
-      }
-
-      const message = isRuntimeBridgeMessageForInstance(event.data, runtimeInstanceIdRef.current);
-      if (!message) {
-        return;
-      }
-
-      if (message.kind === "runtime-frame-ready") {
-        setFrameReady(true);
-        setStatusCopy(bootstrap ? "runtime iframe 已 ready。" : "runtime iframe 已 ready，等待宿主 bootstrap。");
-        return;
-      }
-
-      if (message.kind === "runtime-height-change") {
-        setFrameHeight(Math.max(420, Math.min(1080, Math.round(message.height))));
-        return;
-      }
-
-      if (!classroomSessionId || !publishedVersionId) {
-        setStatus("snapshot-fallback");
-        setStatusCopy("当前 surface 为只读预览，runtime 互动不会写入课堂真相源。");
-        return;
-      }
-
-      const action =
-        message.kind === "runtime-ready"
-          ? recordRuntimeReadyAction
-          : message.kind === "runtime-interaction"
-          ? recordRuntimeInteractionAction
-          : message.kind === "runtime-save"
-            ? saveRuntimeStateAction
-            : message.kind === "runtime-submit"
-              ? submitRuntimeStateAction
-              : null;
-
-      if (!action) {
-        return;
-      }
-
-      void action(message).then((result) => {
-        if (!iframeRef.current?.contentWindow) {
-          return;
-        }
-
-        if (!result.ok) {
-          applyRuntimeFailureState({
-            failedKind: message.kind === "runtime-submit" ? "runtime-submit" : message.kind === "runtime-save" ? "runtime-save" : "other",
-            setStatus,
-            setStatusCopy,
-          });
-          if (message.kind === "runtime-submit" || message.kind === "runtime-save") {
-            onActionFailure?.(message.kind);
-          }
-          setErrorCopy(result.message);
-          return;
-        }
-
-        setErrorCopy(null);
-
-        if (message.kind === "runtime-save") {
-          setStatus("save-success");
-          setStatusCopy("runtime state 已通过 trusted host boundary 保存。");
-          onActionRecovered?.("runtime-save");
-        }
-
-        if (message.kind === "runtime-submit") {
-          setStatus("submit-success");
-          setStatusCopy("runtime submit 已通过 trusted host boundary 提交。");
-          onActionRecovered?.("runtime-submit");
-        }
-
-        if (message.kind === "runtime-interaction") {
-          setStatus("ready");
-          setStatusCopy("runtime interaction 已记录。");
-        }
-
-        if (message.kind === "runtime-ready") {
-          setStatus("ready");
-          setStatusCopy("runtime ready 已记录，宿主已进入可交互状态。");
-        }
-
-        postRuntimeBridgeMessage(
-          iframeRef.current.contentWindow,
-          {
-            ...(result.data as TeachingBridgeResultEnvelope),
-            channel: "openlearn-runtime-host-v1",
-          },
-        );
-      }).catch((error) => {
-        applyRuntimeFailureState({
-          failedKind: message.kind === "runtime-submit" ? "runtime-submit" : message.kind === "runtime-save" ? "runtime-save" : "other",
-          setStatus,
-          setStatusCopy,
-        });
-        if (message.kind === "runtime-submit" || message.kind === "runtime-save") {
-          onActionFailure?.(message.kind);
-        }
-        setErrorCopy(error instanceof Error ? error.message : "RUNTIME_HOST_REQUEST_FAILED");
-      });
-    }
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [bootstrap, classroomSessionId, onActionFailure, onActionRecovered, publishedVersionId]);
 
   return (
     <RuntimeHostFrame

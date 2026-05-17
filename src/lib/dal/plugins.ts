@@ -3,7 +3,14 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { pluginActionAudits, pluginHookRuns, pluginRegistrations } from "@/db/schema";
+import {
+  governanceAudits,
+  pluginActionAudits,
+  pluginHookRuns,
+  pluginLifecycleTransitions,
+  pluginRegistrations,
+} from "@/db/schema";
+import type { PluginLifecycleState, RuntimeActorScope } from "@/features/runtime-platform/contracts/permissions";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { PluginActionInput, PluginActionResult, PluginManifest, PluginManifestSchema, PluginRegistrationDTO, PluginRegistrationDTOSchema } from "@/lib/dto/resource-ai";
@@ -75,24 +82,93 @@ function toPluginDTO(record: typeof pluginRegistrations.$inferSelect): PluginReg
     manifestJson: manifest,
     enabled: record.enabled,
     killSwitchEnabled: record.killSwitchEnabled,
+    lifecycleState: record.lifecycleState,
     builtIn: manifest.builtIn,
     defaultEnabled: manifest.defaultEnabled,
     nonDeletable: manifest.nonDeletable,
   });
 }
 
-async function createPluginAudit(pluginId: string, action: string, payloadJson: Record<string, unknown>, actorId: string) {
+async function createPluginAudit(input: {
+  pluginId: string;
+  action: string;
+  decision: "allowed" | "denied";
+  reason?: string | null;
+  schoolId?: string;
+  actorScope?: RuntimeActorScope;
+  lifecycleState?: PluginLifecycleState;
+  correlationId?: string;
+  payloadJson: Record<string, unknown>;
+  actorId: string;
+}) {
   const [record] = await db
     .insert(pluginActionAudits)
     .values({
-      pluginId,
-      action,
-      payloadJson,
-      actorId,
+      pluginId: input.pluginId,
+      action: input.action,
+      decision: input.decision,
+      reasonCode: input.reason ?? null,
+      schoolId: input.schoolId ?? null,
+      actorScope: input.actorScope ?? null,
+      lifecycleState: input.lifecycleState ?? null,
+      correlationId: input.correlationId ?? null,
+      payloadJson: input.payloadJson,
+      actorId: input.actorId,
     })
     .returning();
 
   return record;
+}
+
+async function createGovernanceAudit(input: {
+  pluginId: string;
+  schoolId: string;
+  action: string;
+  decision: "allowed" | "denied";
+  reason?: string | null;
+  actorId: string;
+  actorScope: RuntimeActorScope;
+  lifecycleState: PluginLifecycleState;
+  killSwitchEnabled: boolean;
+  requestedCapabilities: readonly string[];
+  requiredPermission?: string | null;
+  correlationId: string;
+  payloadJson: Record<string, unknown>;
+}) {
+  await db.insert(governanceAudits).values({
+    targetType: "plugin",
+    targetId: input.pluginId,
+    pluginId: input.pluginId,
+    schoolId: input.schoolId,
+    action: input.action,
+    decision: input.decision,
+    reasonCode: input.reason ?? null,
+    actorId: input.actorId,
+    actorScope: input.actorScope,
+    lifecycleState: input.lifecycleState,
+    killSwitchEnabled: input.killSwitchEnabled,
+    requestedCapabilitiesJson: [...input.requestedCapabilities],
+    grantedCapabilitiesJson: [],
+    requiredPermission: input.requiredPermission ?? null,
+    correlationId: input.correlationId,
+    payloadJson: input.payloadJson,
+  });
+}
+
+async function appendPluginLifecycleTransition(input: {
+  pluginId: string;
+  actorId: string;
+  fromState: PluginLifecycleState | null;
+  toState: PluginLifecycleState;
+  reason: string;
+}) {
+  await db.insert(pluginLifecycleTransitions).values({
+    pluginId: input.pluginId,
+    actorId: input.actorId,
+    fromState: input.fromState,
+    toState: input.toState,
+    reason: input.reason,
+  });
 }
 
 async function createHookRun(pluginId: string, hookAnchor: string, status: "success" | "failed", durationMs: number) {
@@ -111,26 +187,52 @@ async function createHookRun(pluginId: string, hookAnchor: string, status: "succ
 
 async function denyHook(input: {
   pluginId: string;
+  schoolId: string;
+  lifecycleState: PluginLifecycleState;
+  killSwitchEnabled: boolean;
   hookAnchor: string;
   action: string;
   payload: Record<string, unknown>;
   actorId: string;
-  reason: "disabled" | "kill_switch" | "not_allowed" | "school_mismatch" | "permission_denied";
+  reason: "kill_switch" | "not_allowlisted" | "school_mismatch" | "permission_denied" | "lifecycle_blocked";
   requiredPermission?: string;
+  requestedCapabilities?: readonly string[];
+  correlationId: string;
   startedAt: number;
 }) {
   await createHookRun(input.pluginId, input.hookAnchor, "failed", Date.now() - input.startedAt);
-  await createPluginAudit(
-    input.pluginId,
-    input.action,
-    {
+  await createPluginAudit({
+    pluginId: input.pluginId,
+    action: input.action,
+    decision: "denied",
+    reason: input.reason,
+    schoolId: input.schoolId,
+    actorScope: "teacher",
+    lifecycleState: input.lifecycleState,
+    correlationId: input.correlationId,
+    payloadJson: {
       ...input.payload,
       denied: true,
       reason: input.reason,
       ...(input.requiredPermission ? { requiredPermission: input.requiredPermission } : {}),
     },
-    input.actorId,
-  );
+    actorId: input.actorId,
+  });
+  await createGovernanceAudit({
+    pluginId: input.pluginId,
+    schoolId: input.schoolId,
+    action: input.action,
+    decision: "denied",
+    reason: input.reason,
+    actorId: input.actorId,
+    actorScope: "teacher",
+    lifecycleState: input.lifecycleState,
+    killSwitchEnabled: input.killSwitchEnabled,
+    requestedCapabilities: input.requestedCapabilities ?? [],
+    requiredPermission: input.requiredPermission ?? null,
+    correlationId: input.correlationId,
+    payloadJson: input.payload,
+  });
 
   return null;
 }
@@ -148,8 +250,17 @@ export async function registerPluginManifest(input: RegisterPluginManifestInput)
       manifestJson: parsedManifest,
       enabled: parsedManifest.defaultEnabled,
       killSwitchEnabled: false,
+      lifecycleState: parsedManifest.defaultEnabled ? "enabled" : "installed",
     })
     .returning();
+
+  await appendPluginLifecycleTransition({
+    pluginId: record.id,
+    actorId: input.actorId,
+    fromState: null,
+    toState: record.lifecycleState,
+    reason: "registered",
+  });
 
   return toPluginDTO(record);
 }
@@ -178,13 +289,25 @@ export async function setPluginEnabled(input: SetPluginEnabledInput) {
 
   const [record] = await db
     .update(pluginRegistrations)
-    .set({ enabled: input.enabled, updatedAt: new Date() })
+    .set({
+      enabled: input.enabled,
+      lifecycleState: input.enabled ? "enabled" : "disabled",
+      updatedAt: new Date(),
+    })
     .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
     .returning();
 
   if (!record) {
     throw new Error("PLUGIN_NOT_FOUND");
   }
+
+  await appendPluginLifecycleTransition({
+    pluginId: record.id,
+    actorId: input.actorId,
+    fromState: plugin.lifecycleState,
+    toState: record.lifecycleState,
+    reason: input.enabled ? "enabled" : "disabled",
+  });
 
   return {
     ...toPluginDTO(record),
@@ -207,13 +330,25 @@ export async function setPluginKillSwitch(input: { pluginId: string; actorId: st
 
   const [record] = await db
     .update(pluginRegistrations)
-    .set({ killSwitchEnabled: input.killSwitchEnabled, updatedAt: new Date() })
+    .set({
+      killSwitchEnabled: input.killSwitchEnabled,
+      lifecycleState: input.killSwitchEnabled ? "suspended" : plugin.lifecycleState === "suspended" ? "enabled" : plugin.lifecycleState,
+      updatedAt: new Date(),
+    })
     .where(eq(pluginRegistrations.id, input.pluginId))
     .returning();
 
   if (!record) {
     throw new Error("PLUGIN_NOT_FOUND");
   }
+
+  await appendPluginLifecycleTransition({
+    pluginId: record.id,
+    actorId: input.actorId,
+    fromState: plugin.lifecycleState,
+    toState: record.lifecycleState,
+    reason: input.killSwitchEnabled ? "kill-switch-enabled" : "kill-switch-disabled",
+  });
 
   return toPluginDTO(record);
 }
@@ -275,6 +410,7 @@ export async function getEnabledPluginsForAnchor(input: EnabledPluginsForAnchorI
       eq(pluginRegistrations.schoolId, input.schoolId),
       eq(pluginRegistrations.enabled, true),
       eq(pluginRegistrations.killSwitchEnabled, false),
+      eq(pluginRegistrations.lifecycleState, "enabled"),
     ),
   });
 
@@ -298,11 +434,15 @@ export async function runPluginHook(input: RunPluginHookInput) {
   if (!plugin.enabled) {
     return denyHook({
       pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      lifecycleState: plugin.lifecycleState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
       hookAnchor: input.hookAnchor,
       action: input.input.action,
       payload: input.input.payload,
       actorId: input.actorId,
-      reason: "disabled",
+      reason: "lifecycle_blocked",
+      correlationId: `${plugin.id}:${input.input.action}:${startedAt}`,
       startedAt,
     });
   }
@@ -310,11 +450,15 @@ export async function runPluginHook(input: RunPluginHookInput) {
   if (plugin.killSwitchEnabled) {
     return denyHook({
       pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      lifecycleState: plugin.lifecycleState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
       hookAnchor: input.hookAnchor,
       action: input.input.action,
       payload: input.input.payload,
       actorId: input.actorId,
       reason: "kill_switch",
+      correlationId: `${plugin.id}:${input.input.action}:${startedAt}`,
       startedAt,
     });
   }
@@ -322,11 +466,15 @@ export async function runPluginHook(input: RunPluginHookInput) {
   if (plugin.schoolId !== input.schoolId) {
     return denyHook({
       pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      lifecycleState: plugin.lifecycleState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
       hookAnchor: input.hookAnchor,
       action: input.input.action,
       payload: input.input.payload,
       actorId: input.actorId,
       reason: "school_mismatch",
+      correlationId: `${plugin.id}:${input.input.action}:${startedAt}`,
       startedAt,
     });
   }
@@ -335,24 +483,51 @@ export async function runPluginHook(input: RunPluginHookInput) {
   if (!hasMembership) {
     return denyHook({
       pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      lifecycleState: plugin.lifecycleState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
       hookAnchor: input.hookAnchor,
       action: input.input.action,
       payload: input.input.payload,
       actorId: input.actorId,
       reason: "school_mismatch",
+      correlationId: `${plugin.id}:${input.input.action}:${startedAt}`,
       startedAt,
     });
   }
 
   const manifest = PluginManifestSchema.parse(plugin.manifestJson);
-  if (!manifest.anchors.includes(input.hookAnchor) || !manifest.actions.includes(input.input.action)) {
+
+  if (plugin.lifecycleState === "suspended" || plugin.lifecycleState === "disabled" || plugin.lifecycleState === "failed") {
     return denyHook({
       pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      lifecycleState: plugin.lifecycleState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
       hookAnchor: input.hookAnchor,
       action: input.input.action,
       payload: input.input.payload,
       actorId: input.actorId,
-      reason: "not_allowed",
+      reason: "lifecycle_blocked",
+      requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
+      correlationId: `${plugin.id}:${input.input.action}:${startedAt}`,
+      startedAt,
+    });
+  }
+
+  if (!manifest.anchors.includes(input.hookAnchor) || !manifest.actions.includes(input.input.action)) {
+    return denyHook({
+      pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      lifecycleState: plugin.lifecycleState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
+      hookAnchor: input.hookAnchor,
+      action: input.input.action,
+      payload: input.input.payload,
+      actorId: input.actorId,
+      reason: "not_allowlisted",
+      requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
+      correlationId: `${plugin.id}:${input.input.action}:${startedAt}`,
       startedAt,
     });
   }
@@ -361,12 +536,17 @@ export async function runPluginHook(input: RunPluginHookInput) {
   if (!manifest.permissions.includes(requiredPermission)) {
     return denyHook({
       pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      lifecycleState: plugin.lifecycleState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
       hookAnchor: input.hookAnchor,
       action: input.input.action,
       payload: input.input.payload,
       actorId: input.actorId,
       reason: "permission_denied",
       requiredPermission,
+      requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
+      correlationId: `${plugin.id}:${input.input.action}:${startedAt}`,
       startedAt,
     });
   }
@@ -384,15 +564,38 @@ export async function runPluginHook(input: RunPluginHookInput) {
   const result = dispatchPluginAction(actionInput);
 
   await createHookRun(plugin.id, input.hookAnchor, "success", Date.now() - startedAt);
-  await createPluginAudit(
-    plugin.id,
-    input.input.action,
-    {
+  const correlationId = `${plugin.id}:${input.input.action}:${startedAt}`;
+  await createPluginAudit({
+    pluginId: plugin.id,
+    action: input.input.action,
+    decision: "allowed",
+    schoolId: plugin.schoolId,
+    actorScope: "teacher",
+    lifecycleState: plugin.lifecycleState,
+    correlationId,
+    payloadJson: {
       ...input.input.payload,
       result,
     },
-    input.actorId,
-  );
+    actorId: input.actorId,
+  });
+  await createGovernanceAudit({
+    pluginId: plugin.id,
+    schoolId: plugin.schoolId,
+    action: input.input.action,
+    decision: "allowed",
+    actorId: input.actorId,
+    actorScope: "teacher",
+    lifecycleState: plugin.lifecycleState,
+    killSwitchEnabled: plugin.killSwitchEnabled,
+    requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
+    requiredPermission,
+    correlationId,
+    payloadJson: {
+      ...input.input.payload,
+      result,
+    },
+  });
 
   return result;
 }

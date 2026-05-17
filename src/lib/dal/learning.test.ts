@@ -94,6 +94,14 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain("toStudentQuickResponseAttemptDTO(row, index + 1)");
   });
 
+  it("reads latest runtime recovery summary into the personal runtime DTO", () => {
+    expect(source).toContain("getLatestRuntimeRecoverySummary");
+    expect(source).toContain("latestRuntime");
+    expect(source).toContain("latestRuntimeStateSummary");
+    expect(source).toContain("runtimeRecoveryStatus");
+    expect(source).toContain('runtimeRecoveryStatus: latestRuntime ? (classroomSessionId ? "restored" : "available") : "unavailable"');
+  });
+
   it("derives Chinese student activity guidance server-side without leaking teacher-only wording", () => {
     expect(source).toContain("activityGuidance");
     expect(source).toContain("expectedOutput");
@@ -176,6 +184,15 @@ describe("learning DAL progress, append-only attempts, and teacher review", () =
     expect(source).toContain("append-only");
     expect(source).toContain("isLatest: 0");
     expect(source).toContain("isLatest: 1");
+  });
+
+  it("adds host-side runtime truth helpers for progress and append-only submit bridge", () => {
+    expect(source).toContain("export async function recordRuntimeProgressCompletion");
+    expect(source).toContain("export async function recordRuntimeTaskSubmission");
+    expect(source).toContain("export async function recordRuntimeQuizAttempt");
+    expect(source).toContain("state: \"completed\"");
+    expect(source).toContain("await tx.update(taskSubmissions)");
+    expect(source).toContain("await tx.update(quizAttempts)");
   });
 
   it("keeps quiz outcomes server-controlled without gradebook terms", () => {

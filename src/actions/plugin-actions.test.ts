@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { PluginManifest } from "@/lib/dto/resource-ai";
+
 const updateTag = vi.fn();
 
 const getCurrentUserDTOMock = vi.fn();
@@ -29,13 +31,14 @@ vi.mock("@/lib/dal/plugins", () => mockPluginDAL);
 const mockManifest = {
   id: "plugin-test-1",
   version: "1.0.0",
+  manifestVersion: 1,
   permissions: [],
-  anchors: ["dashboard.widget"] as const,
-  actions: ["addStepSuggestion"] as const,
+  anchors: ["dashboard.widget"],
+  actions: ["addStepSuggestion"],
   builtIn: false,
   defaultEnabled: false,
   nonDeletable: false,
-};
+} satisfies PluginManifest;
 
 const mockPluginDTO = {
   id: "plugin-1",
@@ -343,13 +346,12 @@ describe("plugin-actions", () => {
     it("validates hookAnchor enum via Zod", async () => {
       const { runPluginHookAction } = await import("./plugin-actions");
 
-      // @ts-expect-error — intentionally invalid anchor
       const result = await runPluginHookAction({
         pluginId: "plugin-1",
         schoolId: "school-1",
         hookAnchor: "invalid.anchor",
         input: { pluginId: "plugin-1", action: "addStepSuggestion", payload: {} },
-      });
+      } as unknown as Parameters<typeof runPluginHookAction>[0]);
 
       expect(result).toMatchObject({ success: false });
       expect(result.error).toBeTruthy();

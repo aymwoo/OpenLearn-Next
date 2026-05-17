@@ -162,6 +162,10 @@ describe("submitTaskAttemptAction", () => {
     });
 
     expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error("expected successful task submission result");
+    }
+
     expect(result.data).toMatchObject({
       id: "attempt-1",
       studentId: "student-1",
@@ -238,6 +242,10 @@ describe("submitQuizAttemptAction", () => {
     });
 
     expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error("expected successful quiz submission result");
+    }
+
     expect(result.data).toMatchObject({
       id: "attempt-1",
       studentId: "student-1",

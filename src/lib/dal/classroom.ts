@@ -2661,7 +2661,7 @@ export async function launchClassroomSession(input: unknown) {
 
   await publishClassroomTransportEvent({
     sessionId: session.id,
-    schoolId: lesson.schoolId,
+    schoolId: clazz.schoolId,
     eventId: launchEventId,
     correlationId: `classroom:${session.id}:launched:${session.version}`,
     kind: "launched",

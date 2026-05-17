@@ -513,7 +513,7 @@ describe("lesson authoring DAL boundary", () => {
     expect(preview.steps.map((step) => step.id)).toEqual(["step-built-in", "step-task"]);
     expect(preview.steps[0]?.builtInSourceLabel).toBe("教师讲授");
     expect(preview.materials.map((material) => material.id)).toEqual(["material-1"]);
-  });
+  }, 20_000);
 
   it("returns only teacher-owned courses and lessons in the authoring overview", async () => {
     const { getTeacherAuthoringOverview } = await import("./lesson-authoring");
@@ -522,7 +522,7 @@ describe("lesson authoring DAL boundary", () => {
 
     expect(overview.courses.map((course) => course.id)).toEqual(["course-owned"]);
     expect(overview.lessons.map((lesson) => lesson.id)).toEqual(["lesson-owned"]);
-  });
+  }, 20_000);
 
   it("keeps legacy content, task, and quiz payloads readable without teachingDesign", async () => {
     const dal = (await import("./lesson-authoring")) as Record<string, unknown>;

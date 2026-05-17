@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 function read(path: string) {
   return existsSync(path) ? readFileSync(path, "utf8") : "";
@@ -10,7 +11,14 @@ function fail(label: "capability drift" | "manifest drift" | "lifecycle drift" |
 }
 
 function run(args: readonly string[], label: string) {
+  const localBin = (name: string) => path.join(process.cwd(), "node_modules", ".bin", name);
+
   try {
+    if (args[0] === "exec" && args[1] === "vitest") {
+      execFileSync(localBin("vitest"), [...args.slice(2)], { stdio: "inherit" });
+      return;
+    }
+
     execFileSync("pnpm", [...args], { stdio: "inherit" });
   } catch (error) {
     console.error(`Phase 30 verifier failed while running: ${label}`);

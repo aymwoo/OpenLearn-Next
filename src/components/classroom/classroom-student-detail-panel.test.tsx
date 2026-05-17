@@ -277,4 +277,39 @@ describe('ClassroomStudentDetailPanel', () => {
     expect(screen.getByText('课堂时间线')).toBeTruthy()
     expect(screen.getAllByRole('button', { name: '过程评价' }).length).toBeGreaterThan(0)
   })
+
+  it('keeps proof first-feedback visible even when the current step is no longer a runtime step', () => {
+    render(
+      <ClassroomControlPanel
+        initialSnapshot={{
+          ...snapshot,
+          activeStepId: 'step-1',
+          participants: [
+            {
+              ...snapshot.participants[0]!,
+              runtimeProof: {
+                status: 'submitted',
+                runtimeSessionId: 'runtime-session-1',
+                inspectorHref: null,
+                submittedAt: '2026-05-12T10:05:00.000Z',
+                proofSummary: {
+                  title: '已完成本次互动证明',
+                  submittedStateLabel: '已提交',
+                  summary: {
+                    confidence: 'high',
+                  },
+                },
+              },
+            },
+          ],
+        }}
+      />,
+    )
+
+    expect(screen.getByText('已有学生完成当前互动提交')).toBeTruthy()
+    expect(screen.getByRole('link', { name: '查看运行轨迹' }).getAttribute('href')).toBe(
+      '/settings/labs/runtime-inspector?runtimeSessionId=runtime-session-1',
+    )
+    expect(screen.queryByText('Runtime Host')).toBeNull()
+  })
 })

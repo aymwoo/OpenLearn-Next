@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StageHero } from "@/components/surfaces/stage-hero";
+import { RuntimeHostClient } from "@/features/runtime-platform/host";
 import type { TeacherLessonPreviewDTO } from "@/lib/dto/lesson-authoring";
 
 type TeacherLessonPreviewSurfaceProps = {
@@ -130,6 +131,21 @@ export function TeacherLessonPreviewSurface({ preview }: TeacherLessonPreviewSur
                         </span>
                       ))}
                     </div>
+                  </div>
+                ) : null}
+
+                {step.payload.runtime ? (
+                  <div className="mt-5">
+                    <RuntimeHostClient
+                      descriptor={step.payload.runtime}
+                      surface="teacher-preview"
+                      actorScope="teacher"
+                      lessonId={preview.lesson.id}
+                      stepId={step.id}
+                      stepTitle={step.title}
+                      snapshotPayload={step.payload as unknown as Record<string, unknown>}
+                      note="教师草稿预览只下发当前步骤草稿与静态快照，不读取学生 progress 或 live classroom state。"
+                    />
                   </div>
                 ) : null}
               </Card>

@@ -84,7 +84,7 @@ export function RuntimeHostFrame({
             src={src}
             className="block w-full border-0"
             style={{ height: frameHeight }}
-            sandbox="allow-scripts allow-forms"
+            sandbox="allow-scripts allow-forms allow-same-origin"
           />
         </div>
       </div>

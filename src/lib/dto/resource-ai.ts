@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { PluginManifestGovernanceV2Schema } from "@/features/runtime-platform/contracts/descriptors";
+import { PluginPermissionSchema, PluginLifecycleStateSchema } from "@/features/runtime-platform/contracts/permissions";
 import { BuiltInTeachingStepKeySchema, lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
 import {
   TEACHER_THEME_ROUTE_KEYS,
@@ -414,6 +416,50 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
     },
   },
   {
+    builtInKey: "htmlCourseware",
+    pluginName: "HTML 互动课件",
+    title: "HTML 互动课件",
+    summary: "插入本地 HTML runtime pilot，在共享 Runtime Host 中完成互动、保存与提交。",
+    stepType: "task",
+    initialTitle: "HTML 互动课件",
+    initialPayload: {
+      type: "task",
+      prompt: "在互动课件中完成观察、填写结论，并提交你的结构化结果。",
+      submissionType: "text",
+      successCriteria: "完成至少一次互动输入，并提交观察结论与自评状态。",
+      allowRetry: true,
+      retryPolicy: "unlimited",
+      materialRefs: [],
+      runtime: {
+        version: "v2",
+        runtimeId: "runtime-html-courseware",
+        runtimeVersion: "2026.05.0",
+        kind: "html-courseware",
+        displayName: "HTML 互动课件 Pilot",
+        stateSchemaVersion: "state-v1",
+        entry: {
+          sandbox: "iframe",
+          bootstrap: "/runtime/html-courseware/pilot",
+        },
+        bootstrap: {
+          contextMode: "step-summary",
+          resumeStrategy: "latest-or-create",
+          capabilitySnapshot: "session-scoped",
+        },
+        submitTarget: {
+          primary: "classroom-evidence",
+          additional: ["task-submission"],
+        },
+        requestedCapabilities: [
+          "runtime:ready",
+          "runtime:event:emit",
+          "runtime:state:save",
+          "runtime:submission:create",
+        ],
+      },
+    },
+  },
+  {
     builtInKey: "survey",
     pluginName: "问卷调查",
     title: "问卷调查",
@@ -490,13 +536,23 @@ export type BuiltInTeachingPluginName = BuiltInTeachingStepDefinition["pluginNam
 export const PluginManifestSchema = z.object({
   id: z.string(),
   version: z.string(),
-  permissions: z.array(z.string()).default([]),
+  manifestVersion: z.literal(1).or(z.literal(2)).default(1),
+  permissions: z.array(PluginPermissionSchema).default([]),
   anchors: z.array(PluginHookAnchorSchema),
   actions: z.array(PluginActionSchema),
   builtIn: z.boolean().default(false),
   defaultEnabled: z.boolean().default(false),
   nonDeletable: z.boolean().default(false),
   theme: ThemeTokenRegistrySchema.optional(),
+  governance: PluginManifestGovernanceV2Schema.optional(),
+}).superRefine((manifest, ctx) => {
+  if (manifest.manifestVersion === 2 && !manifest.governance) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "manifest v2 requires governance metadata",
+      path: ["governance"],
+    });
+  }
 });
 export type PluginManifest = z.infer<typeof PluginManifestSchema>;
 
@@ -507,6 +563,7 @@ export const PluginRegistrationDTOSchema = z.object({
   manifestJson: PluginManifestSchema,
   enabled: z.boolean(),
   killSwitchEnabled: z.boolean(),
+  lifecycleState: PluginLifecycleStateSchema,
   builtIn: z.boolean(),
   defaultEnabled: z.boolean(),
   nonDeletable: z.boolean(),
@@ -535,8 +592,12 @@ export const PluginAuditDTOSchema = z.object({
   id: z.string(),
   pluginId: z.string(),
   action: z.string(),
+  decision: z.enum(["allowed", "denied"]),
+  reason: z.string().nullable(),
   payloadJson: z.record(z.string(), z.unknown()),
   actorId: z.string().nullable(),
+  schoolId: z.string().nullable().optional(),
+  correlationId: z.string().nullable().optional(),
   createdAt: z.number(),
 });
 export type PluginAuditDTO = z.infer<typeof PluginAuditDTOSchema>;

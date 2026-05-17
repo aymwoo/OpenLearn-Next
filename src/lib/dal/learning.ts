@@ -51,6 +51,7 @@ import {
   type TeacherReviewFilter,
 } from "@/lib/dto/learning";
 import { resolveTeachingDesignInput } from "@/lib/teaching-design";
+import { getLatestRuntimeRecoverySummary } from "@/features/runtime-platform/classroom/runtime-session";
 
 const INACCESSIBLE_LESSON_MESSAGE = "课时暂不可学习";
 
@@ -534,6 +535,127 @@ async function getProgressRecords(publishedVersionId: string, studentId: string)
   });
 }
 
+export async function recordRuntimeProgressCompletion(input: {
+  publishedVersionId: string;
+  lessonId: string;
+  stepId: string;
+  studentId: string;
+}) {
+  const existing = await db.query.lessonStepProgress.findFirst({
+    where: and(
+      eq(lessonStepProgress.publishedVersionId, input.publishedVersionId),
+      eq(lessonStepProgress.stepId, input.stepId),
+      eq(lessonStepProgress.studentId, input.studentId),
+    ),
+  });
+  const completedAt = new Date();
+
+  if (existing) {
+    await db
+      .update(lessonStepProgress)
+      .set({ state: "completed", completedAt, updatedAt: new Date() })
+      .where(eq(lessonStepProgress.id, existing.id));
+  } else {
+    await db.insert(lessonStepProgress).values({
+      publishedVersionId: input.publishedVersionId,
+      lessonId: input.lessonId,
+      stepId: input.stepId,
+      studentId: input.studentId,
+      state: "completed",
+      completedAt,
+    }).onConflictDoUpdate({
+      target: [lessonStepProgress.publishedVersionId, lessonStepProgress.stepId, lessonStepProgress.studentId],
+      set: { state: "completed", completedAt, updatedAt: new Date() },
+    });
+  }
+}
+
+export async function recordRuntimeTaskSubmission(input: {
+  publishedVersionId: string;
+  lessonId: string;
+  stepId: string;
+  studentId: string;
+  payload: Record<string, unknown>;
+}) {
+  const inserted = await db.transaction(async (tx) => {
+    const previous = await tx.query.taskSubmissions.findMany({
+      where: and(
+        eq(taskSubmissions.publishedVersionId, input.publishedVersionId),
+        eq(taskSubmissions.stepId, input.stepId),
+        eq(taskSubmissions.studentId, input.studentId),
+      ),
+      orderBy: desc(taskSubmissions.attemptNo),
+    });
+    const attemptNo = (previous[0]?.attemptNo ?? 0) + 1;
+
+    await tx.update(taskSubmissions)
+      .set({ isLatest: false })
+      .where(and(
+        eq(taskSubmissions.publishedVersionId, input.publishedVersionId),
+        eq(taskSubmissions.stepId, input.stepId),
+        eq(taskSubmissions.studentId, input.studentId),
+      ));
+
+    const [row] = await tx.insert(taskSubmissions).values({
+      publishedVersionId: input.publishedVersionId,
+      lessonId: input.lessonId,
+      stepId: input.stepId,
+      studentId: input.studentId,
+      attemptNo,
+      payloadJson: input.payload,
+      isLatest: true,
+    }).returning();
+
+    return row;
+  });
+
+  return toTaskAttemptDTO(inserted);
+}
+
+export async function recordRuntimeQuizAttempt(input: {
+  publishedVersionId: string;
+  lessonId: string;
+  stepId: string;
+  studentId: string;
+  answer: Record<string, unknown>;
+  outcome: Record<string, unknown>;
+}) {
+  const inserted = await db.transaction(async (tx) => {
+    const previous = await tx.query.quizAttempts.findMany({
+      where: and(
+        eq(quizAttempts.publishedVersionId, input.publishedVersionId),
+        eq(quizAttempts.stepId, input.stepId),
+        eq(quizAttempts.studentId, input.studentId),
+      ),
+      orderBy: desc(quizAttempts.attemptNo),
+    });
+    const attemptNo = (previous[0]?.attemptNo ?? 0) + 1;
+
+    await tx.update(quizAttempts)
+      .set({ isLatest: false })
+      .where(and(
+        eq(quizAttempts.publishedVersionId, input.publishedVersionId),
+        eq(quizAttempts.stepId, input.stepId),
+        eq(quizAttempts.studentId, input.studentId),
+      ));
+
+    const [row] = await tx.insert(quizAttempts).values({
+      publishedVersionId: input.publishedVersionId,
+      lessonId: input.lessonId,
+      stepId: input.stepId,
+      studentId: input.studentId,
+      attemptNo,
+      answerJson: input.answer,
+      outcomeJson: input.outcome,
+      isLatest: true,
+    }).returning();
+
+    return row;
+  });
+
+  return toQuizAttemptDTO(inserted);
+}
+
 export async function getStudentDashboardDTO() {
   const scope = await assertActiveStudent();
   const courseIds = await getStudentCourseIds(scope);
@@ -701,6 +823,13 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
     .reverse()
     .map((row, index) => toStudentQuickResponseAttemptDTO(row, index + 1));
   const latestQuickResponse = quickResponseHistory.at(-1) ?? null;
+  const latestRuntime = currentQuickResponseStepId
+    ? await getLatestRuntimeRecoverySummary({
+        lessonId: input.lessonId,
+        stepId: currentQuickResponseStepId,
+        actorId: scope.userId,
+      })
+    : null;
 
   return StudentPlayerPersonalDTOSchema.parse({
     progress: {
@@ -723,6 +852,18 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
       disabledReason: locked ? "老师已开启锁定跟随，你将停留在当前步骤。" : null,
       snapshotStatusCopy: (classroomSessionId && locked && forcedStepId !== progress.firstIncompleteStepId) ? "已恢复课堂状态，你现在看到的是最新步骤。" : null,
       manualRefreshAvailable: false,
+      latestRuntime: latestRuntime
+        ? {
+            sessionId: latestRuntime.sessionId,
+            runtimeId: latestRuntime.runtimeId,
+            runtimeVersion: latestRuntime.runtimeVersion,
+            stateVersion: latestRuntime.stateVersion,
+            kind: latestRuntime.kind,
+            updatedAt: latestRuntime.updatedAt,
+          }
+        : null,
+      latestRuntimeStateSummary: latestRuntime?.summary ?? {},
+      runtimeRecoveryStatus: latestRuntime ? (classroomSessionId ? "restored" : "available") : "unavailable",
     },
     canRetryTask: false,
     canRetryQuiz: false,

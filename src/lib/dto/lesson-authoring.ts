@@ -1,8 +1,11 @@
 import { z } from "zod";
 
+import { RuntimeDescriptorSchema } from "@/features/runtime-platform/contracts/descriptors";
+
 const builtInTeachingStepKeys = [
   "directInstruction",
   "markdownDeck",
+  "htmlCourseware",
   "survey",
   "inquiry",
   "inClassQuiz",
@@ -112,6 +115,7 @@ export const contentStepPayloadSchema = z.object({
   body: z.string().min(1),
   teacherNotes: z.string().optional(),
   materialRefs: z.array(materialRefSchema).default([]),
+  runtime: RuntimeDescriptorSchema.optional(),
   teachingDesign: TeachingDesignInputSchema.optional(),
   markdown: markdownStepConfigSchema.optional(),
   builtInSource: builtInSourceSchema.optional(),
@@ -125,6 +129,7 @@ export const taskStepPayloadSchema = z.object({
   allowRetry: z.boolean().optional(),
   retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
   materialRefs: z.array(materialRefSchema).default([]),
+  runtime: RuntimeDescriptorSchema.optional(),
   teachingDesign: TeachingDesignInputSchema.optional(),
   builtInSource: builtInSourceSchema.optional(),
 });
@@ -138,6 +143,7 @@ export const quizStepPayloadSchema = z.object({
   allowRetry: z.boolean().optional(),
   retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
   revealCorrectAnswer: z.boolean().optional(),
+  runtime: RuntimeDescriptorSchema.optional(),
   teachingDesign: TeachingDesignInputSchema.optional(),
   builtInSource: builtInSourceSchema.optional(),
 });

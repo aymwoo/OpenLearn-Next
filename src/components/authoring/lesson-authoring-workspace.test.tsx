@@ -76,6 +76,47 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
             },
           },
           {
+            id: "plugin-html",
+            pluginId: "plugin-html",
+            builtInKey: "htmlCourseware",
+            pluginName: "HTML 互动课件",
+            title: "HTML 互动课件",
+            summary: "在共享 Runtime Host 中运行本地 HTML pilot。",
+            stepType: "task",
+            initialTitle: "HTML 互动课件",
+            initialPayload: {
+              type: "task",
+              prompt: "在互动课件中完成观察并提交。",
+              submissionType: "text",
+              successCriteria: "完成至少一次互动输入。",
+              allowRetry: true,
+              retryPolicy: "unlimited",
+              materialRefs: [],
+              runtime: {
+                version: "v2",
+                runtimeId: "runtime-html-courseware",
+                runtimeVersion: "2026.05.0",
+                kind: "html-courseware",
+                displayName: "HTML 互动课件 Pilot",
+                stateSchemaVersion: "state-v1",
+                entry: {
+                  sandbox: "iframe",
+                  bootstrap: "/runtime/html-courseware/pilot",
+                },
+                bootstrap: {
+                  contextMode: "step-summary",
+                  resumeStrategy: "latest-or-create",
+                  capabilitySnapshot: "session-scoped",
+                },
+                submitTarget: {
+                  primary: "classroom-evidence",
+                  additional: ["task-submission"],
+                },
+                requestedCapabilities: ["runtime:submission:create"],
+              },
+            },
+          },
+          {
             id: "plugin-4",
             pluginId: "plugin-4",
             builtInKey: "inClassQuiz",
@@ -100,8 +141,9 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
     );
 
     expect(screen.getAllByText("内置教学环节").length).toBeGreaterThan(0);
-    expect(screen.getByText("2 个可用环节")).toBeTruthy();
+    expect(screen.getByText("3 个可用环节")).toBeTruthy();
     expect(screen.getByRole("button", { name: "教师讲授" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "HTML 互动课件" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "课堂测验" })).toBeTruthy();
     expect(screen.queryByText("面向全班进行重点讲授。")).toBeNull();
     expect(screen.queryByText("用简短测验即时检查掌握情况。")).toBeNull();

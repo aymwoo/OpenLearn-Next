@@ -8,6 +8,7 @@ export const RuntimeEventTypeSchema = z.enum([
   "runtime.interaction",
   "runtime.state.saved",
   "runtime.submission.created",
+  "runtime.teacher-control",
   "runtime.host-action.requested",
   "runtime.host-action.completed",
 ]);

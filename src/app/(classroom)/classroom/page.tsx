@@ -1,4 +1,5 @@
 import { ClassroomConsoleSurface } from '@/components/surfaces/classroom-console-surface'
+import { ClassroomLiveSnapshotRefresh } from '@/components/classroom/classroom-live-snapshot-refresh'
 import {
   getClassroomConsoleDTO,
   getClassroomSessionRecapDTO,
@@ -43,12 +44,17 @@ export default async function ClassroomPage({
     : null
 
   return (
-    <ClassroomConsoleSurface
-      consoleData={consoleData}
-      initialSnapshot={snapshot}
-      recap={recap}
-      studentDetail={studentDetail}
-      activeDetailTab={detailTab}
-    />
+    <>
+      {activeSession?.status === 'live' && snapshot ? (
+        <ClassroomLiveSnapshotRefresh sessionId={activeSession.id} initialVersion={snapshot.version} />
+      ) : null}
+      <ClassroomConsoleSurface
+        consoleData={consoleData}
+        initialSnapshot={snapshot}
+        recap={recap}
+        studentDetail={studentDetail}
+        activeDetailTab={detailTab}
+      />
+    </>
   )
 }

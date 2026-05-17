@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { readFileSync } from "node:fs";
 
 import {
   changeClassroomActiveStep,
@@ -33,7 +34,9 @@ const mockRecordClassroomIntervention = vi.fn();
 const mockRecordStudentFormativeEvaluation = vi.fn();
 const mockRecordStudentQuickResponse = vi.fn();
 const mockRefreshClassroomSnapshot = vi.fn();
+const mockRecordRuntimeReady = vi.fn();
 const mockUpdateClassroomParticipantConnection = vi.fn();
+const actionSource = readFileSync("src/actions/classroom-actions.ts", "utf8");
 
 vi.mock("@/lib/dal/classroom", () => ({
   launchClassroomSession: mockLaunchClassroomSession,
@@ -46,6 +49,7 @@ vi.mock("@/lib/dal/classroom", () => ({
   recordStudentFormativeEvaluation: mockRecordStudentFormativeEvaluation,
   recordStudentQuickResponse: mockRecordStudentQuickResponse,
   refreshClassroomSnapshot: mockRefreshClassroomSnapshot,
+  recordRuntimeReady: mockRecordRuntimeReady,
   updateClassroomParticipantConnection: mockUpdateClassroomParticipantConnection,
 }));
 
@@ -689,6 +693,83 @@ describe("classroom-actions", () => {
         publishedVersionId: "version-1",
         classId: "class-1",
       });
+    });
+
+    it("coerces step control FormData fields before validation", async () => {
+      mockChangeClassroomActiveStep.mockResolvedValue({ ok: true, sessionId: "session-1" });
+
+      const formData = new FormData();
+      formData.append("sessionId", "session-1");
+      formData.append("targetStepId", "step-1");
+      formData.append("expectedVersion", "1");
+
+      const { changeClassroomStepAction } = await import("./classroom-actions");
+      const result = await changeClassroomStepAction(formData);
+
+      expect(result).toEqual({ ok: true, data: { ok: true, sessionId: "session-1" } });
+      expect(mockChangeClassroomActiveStep).toHaveBeenCalledWith({
+        sessionId: "session-1",
+        targetStepId: "step-1",
+        expectedVersion: 1,
+      });
+    });
+
+    it("coerces mode control FormData fields before validation", async () => {
+      mockChangeClassroomMode.mockResolvedValue({ ok: true, sessionId: "session-1" });
+
+      const formData = new FormData();
+      formData.append("sessionId", "session-1");
+      formData.append("locked", "true");
+      formData.append("expectedVersion", "1");
+
+      const { changeClassroomModeAction } = await import("./classroom-actions");
+      const result = await changeClassroomModeAction(formData);
+
+      expect(result).toEqual({ ok: true, data: { ok: true, sessionId: "session-1" } });
+      expect(mockChangeClassroomMode).toHaveBeenCalledWith({
+        sessionId: "session-1",
+        locked: true,
+        expectedVersion: 1,
+      });
+    });
+
+    it("coerces slide control FormData fields before validation", async () => {
+      mockChangeClassroomSlide.mockResolvedValue({ ok: true, sessionId: "session-1" });
+
+      const formData = new FormData();
+      formData.append("sessionId", "session-1");
+      formData.append("stepId", "step-1");
+      formData.append("slideIndex", "0");
+      formData.append("expectedVersion", "1");
+
+      const { changeClassroomSlideAction } = await import("./classroom-actions");
+      const result = await changeClassroomSlideAction(formData);
+
+      expect(result).toEqual({ ok: true, data: { ok: true, sessionId: "session-1" } });
+      expect(mockChangeClassroomSlide).toHaveBeenCalledWith({
+        sessionId: "session-1",
+        stepId: "step-1",
+        slideIndex: 0,
+        expectedVersion: 1,
+      });
+    });
+  });
+
+  describe("runtime action boundaries", () => {
+    it("exposes runtime bootstrap save submit interaction and teacher-control actions", () => {
+      expect(actionSource).toContain("bootstrapRuntimeSessionAction");
+      expect(actionSource).toContain("recordRuntimeReadyAction");
+      expect(actionSource).toContain("recordRuntimeInteractionAction");
+      expect(actionSource).toContain("saveRuntimeStateAction");
+      expect(actionSource).toContain("submitRuntimeStateAction");
+      expect(actionSource).toContain("recordRuntimeTeacherControlAction");
+    });
+
+    it("refreshes classroom and downstream truth tags for runtime submit", () => {
+      expect(actionSource).toContain("updateTag(cacheTags.classroom(parsed.data.payload.classroomSessionId))");
+      expect(actionSource).toContain("updateTag(cacheTags.progress(result.lessonId, result.actorId))");
+      expect(actionSource).toContain("updateTag(cacheTags.submission(result.lessonId, result.actorId))");
+      expect(actionSource).toContain("updateTag(cacheTags.teacherReview(result.lessonId))");
     });
   });
 });

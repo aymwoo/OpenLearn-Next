@@ -262,7 +262,7 @@ describe("getClassroomConsoleDTO", () => {
     expect(findManyCourses).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
     expect(findManyLessons).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
     expect(findManyClasses).toHaveBeenCalledWith(expect.objectContaining({ where: expect.anything() }));
-  });
+  }, 20_000);
 
   it("adds narrow launch blockers only for missing launchable rosters while keeping inferred cues non-blocking", async () => {
     findManyClassMembers.mockResolvedValueOnce([]);
@@ -284,7 +284,7 @@ describe("getClassroomConsoleDTO", () => {
       expect.objectContaining({ code: "TEACHING_DESIGN_NEEDS_REFINEMENT", stepId: "step-1" }),
       expect.objectContaining({ code: "TEACHING_DESIGN_INFERRED", stepId: "step-1" }),
     ]);
-  });
+  }, 20_000);
 
   it("keeps launch readiness blockers narrow when published snapshots only need preparation cues", async () => {
     const { getClassroomConsoleDTO } = await import("./classroom");

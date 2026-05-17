@@ -4,30 +4,43 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 
 import {
+  bootstrapRuntimeSession,
   changeClassroomSlide,
   changeClassroomActiveStep,
   changeClassroomMode,
   endClassroomSession,
   launchClassroomSession,
+  recordRuntimeReady,
+  recordRuntimeInteraction,
+  recordRuntimeTeacherControl,
   recordClassroomEvidence,
   recordClassroomIntervention,
   recordStudentFormativeEvaluation,
   recordStudentQuickResponse,
   refreshClassroomSnapshot,
+  saveRuntimeSessionState,
+  submitRuntimeSessionState,
   updateClassroomParticipantConnection,
 } from "@/lib/dal/classroom";
 import { cacheTags } from "@/lib/cache-policy";
+import { RuntimeSubmitResultSchema } from "@/features/runtime-platform/contracts/bridge";
 import {
+  BootstrapRuntimeSessionInputSchema,
   ChangeClassroomModeInputSchema,
   ChangeClassroomSlideInputSchema,
   ChangeClassroomStepInputSchema,
   EndClassroomInputSchema,
   LaunchClassroomInputSchema,
+  RecordRuntimeReadyInputSchema,
+  RecordRuntimeInteractionInputSchema,
+  RecordRuntimeTeacherControlInputSchema,
   RecordClassroomEvidenceInputSchema,
   RecordClassroomInterventionInputSchema,
   RecordStudentFormativeEvaluationInputSchema,
   RefreshClassroomSnapshotInputSchema,
+  SaveRuntimeStateInputSchema,
   StudentQuickResponseInputSchema,
+  SubmitRuntimeStateInputSchema,
   TouchClassroomPresenceInputSchema,
 } from "@/lib/dto/classroom";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
@@ -44,6 +57,28 @@ function normalizeInput(input: FormData | Record<string, unknown>) {
     return input;
   }
   return Object.fromEntries(input.entries());
+}
+
+function normalizeClassroomControlInput(input: FormData | Record<string, unknown>) {
+  const normalized = normalizeInput(input);
+
+  return {
+    ...normalized,
+    expectedVersion:
+      typeof normalized.expectedVersion === "string"
+        ? Number(normalized.expectedVersion)
+        : normalized.expectedVersion,
+    slideIndex:
+      typeof normalized.slideIndex === "string"
+        ? Number(normalized.slideIndex)
+        : normalized.slideIndex,
+    locked:
+      normalized.locked === "true"
+        ? true
+        : normalized.locked === "false"
+          ? false
+          : normalized.locked,
+  };
 }
 
 function validationError(message = validationMessage) {
@@ -85,7 +120,7 @@ export async function launchClassroomSessionAction(input: FormData | Record<stri
 }
 
 export async function changeClassroomStepAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
-  const parsed = ChangeClassroomStepInputSchema.safeParse(normalizeInput(input));
+  const parsed = ChangeClassroomStepInputSchema.safeParse(normalizeClassroomControlInput(input));
   if (!parsed.success) return validationError();
 
   try {
@@ -110,7 +145,7 @@ export async function changeClassroomStepAction(input: FormData | Record<string,
 }
 
 export async function changeClassroomModeAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
-  const parsed = ChangeClassroomModeInputSchema.safeParse(normalizeInput(input));
+  const parsed = ChangeClassroomModeInputSchema.safeParse(normalizeClassroomControlInput(input));
   if (!parsed.success) return validationError();
 
   try {
@@ -135,7 +170,7 @@ export async function changeClassroomModeAction(input: FormData | Record<string,
 }
 
 export async function changeClassroomSlideAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
-  const parsed = ChangeClassroomSlideInputSchema.safeParse(normalizeInput(input));
+  const parsed = ChangeClassroomSlideInputSchema.safeParse(normalizeClassroomControlInput(input));
   if (!parsed.success) return validationError();
 
   try {
@@ -261,6 +296,87 @@ export async function submitStudentQuickResponseAction(input: FormData | Record<
     updateTag(cacheTags.classroom(parsed.data.sessionId));
     updateTag(cacheTags.progress(parsed.data.lessonId, result.studentId));
     updateTag(cacheTags.submission(parsed.data.lessonId, result.studentId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function bootstrapRuntimeSessionAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = BootstrapRuntimeSessionInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await bootstrapRuntimeSession(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.payload.classroomSessionId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function recordRuntimeReadyAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = RecordRuntimeReadyInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await recordRuntimeReady(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.payload.classroomSessionId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function recordRuntimeInteractionAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = RecordRuntimeInteractionInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await recordRuntimeInteraction(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.payload.classroomSessionId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function saveRuntimeStateAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = SaveRuntimeStateInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await saveRuntimeSessionState(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.payload.classroomSessionId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function submitRuntimeStateAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = SubmitRuntimeStateInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = RuntimeSubmitResultSchema.parse(await submitRuntimeSessionState(parsed.data));
+    updateTag(cacheTags.classroom(parsed.data.payload.classroomSessionId));
+    updateTag(cacheTags.progress(result.lessonId, result.actorId));
+    updateTag(cacheTags.submission(result.lessonId, result.actorId));
+    updateTag(cacheTags.teacherReview(result.lessonId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function recordRuntimeTeacherControlAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = RecordRuntimeTeacherControlInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await recordRuntimeTeacherControl(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.payload.classroomSessionId));
     return { ok: true, data: result };
   } catch (error) {
     return handleClassroomActionError(error);

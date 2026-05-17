@@ -213,7 +213,6 @@ describe("lesson authoring Server Actions — extended", () => {
   it("returns VALIDATION_ERROR when payload is missing required fields", async () => {
     const { addLessonStepAction } = await import("./lesson-authoring-actions");
 
-    // @ts-expect-error — intentionally incomplete input for validation test
     const result = await addLessonStepAction({ lessonId: "lesson-1", type: "content" });
 
     expect(result).toMatchObject({ ok: false, error: "VALIDATION_ERROR" });
@@ -356,6 +355,10 @@ describe("lesson authoring Server Actions — extended", () => {
     const result = await publishLessonAction({ lessonId: "lesson-1" });
 
     expect(result).toMatchObject({ ok: false, error: "PUBLISH_BLOCKED" });
+    if (result.ok) {
+      throw new Error("expected blocked publish result");
+    }
+
     expect(result).toHaveProperty("issues");
     expect(result.issues).toHaveLength(1);
     expect(publishLesson).not.toHaveBeenCalled();

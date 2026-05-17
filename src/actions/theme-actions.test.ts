@@ -100,7 +100,7 @@ describe("theme-actions", () => {
 
     it("returns error message when setActiveThemeId throws", async () => {
       const { setActiveThemeId } = await import("@/lib/theme-cookie");
-      setActiveThemeId.mockRejectedValueOnce(new Error("COOKIE_SET_FAILED"));
+      vi.mocked(setActiveThemeId).mockRejectedValueOnce(new Error("COOKIE_SET_FAILED"));
 
       const result = await setActiveThemeAction({ themeId: "theme-1" });
 
@@ -164,7 +164,6 @@ describe("theme-actions", () => {
     });
 
     it("returns a Zod validation error for missing required fields", async () => {
-      // @ts-expect-error — intentionally invalid input
       const result = await registerThemeTokensAction({ schoolId: "school-1" });
 
       expect(result).toMatchObject({ success: false });

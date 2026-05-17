@@ -10,6 +10,7 @@ const getClassroomSnapshotDTO = vi.fn();
 const getClassroomSessionRecapDTO = vi.fn();
 const getClassroomStudentDetailDTO = vi.fn();
 const classroomConsoleSurface = vi.fn();
+const refreshMock = vi.fn();
 
 vi.mock("@/features/runtime-platform/classroom", () => ({
   getClassroomConsoleDTO: () => getClassroomConsoleDTO(),
@@ -25,9 +26,23 @@ vi.mock("@/components/surfaces/classroom-console-surface", () => ({
   },
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: refreshMock,
+  }),
+}));
+
 describe("ClassroomPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal(
+      "EventSource",
+      class {
+        addEventListener() {}
+        removeEventListener() {}
+        close() {}
+      } as unknown as typeof EventSource,
+    );
     getClassroomSnapshotDTO.mockResolvedValue({ sessionId: "session-live", status: "live" });
     getClassroomSessionRecapDTO.mockResolvedValue({ session: { id: "session-ended" }, detailTab: "steps" });
     getClassroomStudentDetailDTO.mockResolvedValue({ student: { id: "student-1" } });

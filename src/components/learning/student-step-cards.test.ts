@@ -63,7 +63,9 @@ describe("Phase 04 interactive student step cards", () => {
   it("adds quick-response runtime routing without removing task and quiz cards", () => {
     expect(runtimeSource).toContain("QuickResponseStepCard");
     expect(runtimeSource).toContain("activity={activity}");
-    expect(runtimeSource).toContain("const currentStepId = player.runtime.forcedStepId ?? player.progress.resumeStepId");
+    expect(runtimeSource).toContain(
+      "const currentRuntimeStepId = runtime.forcedStepId ?? personal.progress.resumeStepId ?? shell.steps[0]?.id ?? null",
+    );
     expect(runtimeSource).toContain("student-quick-response");
     expect(runtimeSource).toContain("TaskStepCard");
     expect(runtimeSource).toContain("QuizStepCard");

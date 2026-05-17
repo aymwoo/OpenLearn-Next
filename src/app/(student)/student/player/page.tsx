@@ -23,6 +23,8 @@ type StudentPlayerPageProps = {
   }>
 }
 
+const INACCESSIBLE_LESSON_MESSAGE = "课时暂不可学习"
+
 async function PlayerPersonalLoader({
   lessonId,
   selectedStepId,
@@ -52,9 +54,13 @@ export default async function StudentPlayerPage({ searchParams }: StudentPlayerP
       scope = await assertStudentCanOpenPlayer({ lessonId })
       shell = await getStudentPlayerShellDTO({ lessonId, scope })
     }
-  } catch {
-    shell = null
-    scope = null
+  } catch (error) {
+    if (error instanceof Error && error.message === INACCESSIBLE_LESSON_MESSAGE) {
+      shell = null
+      scope = null
+    } else {
+      throw error
+    }
   }
 
   return (

@@ -21,13 +21,7 @@ vi.mock("@/features/runtime-platform/authoring", () => ({
   assertActiveTeacher: () => assertActiveTeacher(),
   getTeacherAuthoringOverview: () => getTeacherAuthoringOverview(),
   getLessonEditorDTO: (...args: unknown[]) => getLessonEditorDTO(...args),
-}));
-
-vi.mock("@/lib/dal/themes", () => ({
   getValidThemesForSchool: (...args: unknown[]) => getValidThemesForSchool(...args),
-}));
-
-vi.mock("@/lib/dal/plugins", () => ({
   listBuiltInTeachingStepTemplates: (...args: unknown[]) => listBuiltInTeachingStepTemplates(...args),
 }));
 
