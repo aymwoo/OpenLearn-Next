@@ -24,6 +24,12 @@ describe("RuntimeHost pilot wiring", () => {
     expect(pilotSource).toContain("disabled={isTerminalSubmitState}");
   });
 
+  it("keeps submit success and retry failure copy on the shared host boundary", () => {
+    expect(hostClientSource).toContain("当前状态暂未保存成功，请直接重试保存");
+    expect(hostClientSource).toContain("本次互动结果暂未提交成功，请重试当前提交");
+    expect(hostClientSource).toContain("runtime submit 已通过 trusted host boundary 提交");
+  });
+
   it("keeps the local html pilot on browser postMessage bridge only", () => {
     expect(pilotSource).toContain("window.parent.postMessage");
     expect(pilotSource).toContain("runtime-submit");

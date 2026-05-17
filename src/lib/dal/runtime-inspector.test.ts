@@ -35,4 +35,10 @@ describe("runtime inspector dal", () => {
     expect(source).not.toContain("prediction");
     expect(source).not.toContain("alert");
   });
+
+  it("keeps runtimeSessionId review focus on the selected proof session timeline", () => {
+    expect(source).toContain("input.runtimeSessionId");
+    expect(source).toContain("selectedRuntimeSessionId");
+    expect(source).toContain("sessionOptions.find((session) => session.runtimeSessionId === selectedSession.id)");
+  });
 });

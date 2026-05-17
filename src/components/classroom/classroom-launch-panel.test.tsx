@@ -293,4 +293,10 @@ describe("ClassroomLaunchPanel", () => {
     expect(launchSurfaceSource).toContain("互动证明：HTML 课件实验");
     expect(launchSurfaceSource).toContain("开启新课堂");
   });
+
+  it("keeps launch proof discoverability on the secondary surface copy", () => {
+    expect(launchSurfaceSource).toContain("次级发现入口");
+    expect(launchSurfaceSource).toContain("editor/publish → launch/classroom →");
+    expect(launchSurfaceSource).not.toContain("proof dashboard");
+  });
 });

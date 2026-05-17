@@ -73,4 +73,10 @@ describe("Phase 04 student DTO surfaces", () => {
     expect(runtimeSource).not.toContain("runtime-inspector");
     expect(runtimeSource).not.toContain("inspector auto-jump");
   });
+
+  it("keeps retry orchestration on the same player surface after submit success is locked", () => {
+    expect(runtimeSource).toContain("retryCurrentActionRequest");
+    expect(runtimeSource).toContain("已保留当前学习上下文，请直接在当前 runtime 中重试刚才的操作。");
+    expect(runtimeSource).toContain("RuntimeFailureRecoveryCard");
+  });
 });

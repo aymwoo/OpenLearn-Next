@@ -785,6 +785,14 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
     expect(source).toContain("updateTag(cacheTags.submission(result.lessonId, result.actorId))");
   });
 
+  it("keeps classroom first-feedback tied to the runtime proof summary and runtimeSessionId", () => {
+    const controlPanelSource = readFileSync("src/components/classroom/classroom-control-panel.tsx", "utf8");
+
+    expect(controlPanelSource).toContain("proof first-feedback");
+    expect(controlPanelSource).toContain("runtimeSessionId");
+    expect(controlPanelSource).toContain("查看运行轨迹");
+  });
+
   it("marks participants ahead of the teacher step without creating new evaluation tables", async () => {
     findManyClassroomParticipants.mockResolvedValueOnce([
       {

@@ -33,4 +33,10 @@ describe("runtime inspector surface", () => {
     expect(source).toContain("查看本次运行轨迹");
     expect(source).toContain("沿时间线排查治理、传输与消费状态");
   });
+
+  it("keeps inspector review posture anchored to runtimeSessionId and transport trace drill-down", () => {
+    expect(pageSource).toContain("runtimeSessionId?: string");
+    expect(pageSource).toContain("runtimeSessionId: resolvedSearchParams.runtimeSessionId");
+    expect(source).toContain("沿时间线排查治理、传输与消费状态");
+  });
 });

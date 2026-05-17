@@ -334,6 +334,21 @@ describe("lesson authoring DAL boundary", () => {
     });
   });
 
+  it("keeps editor/publish continuity tied to the canonical proof runtime title", async () => {
+    const { getCanonicalRuntimeProofStepDefinition } = await import("../../../scripts/bootstrap-dev-db");
+    const definition = getCanonicalRuntimeProofStepDefinition();
+
+    expect(definition.title).toBe("互动证明：HTML 课件实验");
+    expect(definition.payload).toMatchObject({
+      runtime: expect.objectContaining({
+        kind: "html-courseware",
+        entry: expect.objectContaining({
+          bootstrap: "/runtime/html-courseware/pilot",
+        }),
+      }),
+    });
+  });
+
   it("returns structured readiness blocking issues for draft completeness and plugin availability", async () => {
     const dal = (await import("./lesson-authoring")) as Record<string, unknown>;
     expect(typeof dal.getLessonPublishReadinessDTO).toBe("function");
