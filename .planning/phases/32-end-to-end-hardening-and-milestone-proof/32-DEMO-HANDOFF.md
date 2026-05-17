@@ -34,7 +34,7 @@ canonical runtime proof lesson。
    - 选择开发测试课时与开发测试班级，点击主 CTA **开启新课堂**。
    - launch surface 上会看到次级 proof affordance，提示可用 seeded demo 跑完整 proof。
 3. **student submit**
-   - 使用 `student@example.com` 登录并进入当前学生课堂。
+   - 使用学生登录标识 `student@example.com` 登录并进入当前学生课堂。
    - 在 HTML runtime 中完成真实互动并提交。
    - 成功后学生停留在 terminal success state，看到本次提交摘要。
 4. **classroom first-feedback**

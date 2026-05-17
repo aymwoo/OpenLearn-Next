@@ -156,11 +156,14 @@
   2. Existing classroom-critical routes still pass the committed compatibility baseline after all runtime-platform changes.
   3. The milestone ships with explicit hardening around cache freshness, session durability, capability denial, and rollback-safe transport behavior.
   4. The project can demonstrate a real Runtime Platform foundation without having performed PostgreSQL, Redis/Event Bus, or WebSocket cutover.
-**Plans**: 4 plans
+**Plans**: 7 plans
 - [x] 32-01-PLAN.md — Fix the deterministic proof seed and thread runtimeSessionId plus submit summary through the classroom truth path.
 - [x] 32-02-PLAN.md — Harden terminal submit posture and same-surface failure recovery in the shared host and student runtime flow.
 - [x] 32-03-PLAN.md — Add the canonical `verify:phase32` gate with proof-focused drift guards and regression coverage.
 - [x] 32-04-PLAN.md — Productize launch/classroom/inspector proof affordances and publish the explicit demo handoff.
+- [x] 32-05-PLAN.md — Accept the pre-bootstrap iframe ready handshake without weakening other runtime message instance filters.
+- [x] 32-06-PLAN.md — Add teacher-side live classroom snapshot refresh and ungated proof feedback or inspector drill-down on `/classroom`.
+- [x] 32-07-PLAN.md — Close the remaining live-browser iframe startup gap by aligning sandbox origin posture with the current runtime app route and locking it in `verify:phase32`. (completed 2026-05-17)
 **UI hint**: yes
 
 ### Phase 13: Course center foundation
@@ -396,8 +399,8 @@ Current milestone phases plus historical snapshot retained for planning referenc
 | 28. Runtime bridge contracts and session persistence | 4/4 | Complete    | 2026-05-16 |
 | 29. Runtime Host and HTML courseware pilot | 4/4 | Complete | 2026-05-16 |
 | 30. Capability enforcement and plugin lifecycle | 4/4 | Complete | 2026-05-16 |
-| 31. Transport boundary and runtime inspector | 0/4 | Not started | - |
-| 32. End-to-end hardening and milestone proof | 4/4 | Complete   | 2026-05-17 |
+| 31. Transport boundary and runtime inspector | 4/4 | Complete | 2026-05-16 |
+| 32. End-to-end hardening and milestone proof | 7/7 | Complete   | 2026-05-17 |
 | 13. Course center foundation | 5/5 | Complete   | 2026-05-09 |
 | 14. Course lifecycle and associations | 3/3 | Complete | 2026-05-15 |
 | 15. Batch course import | 3/3 | Complete | 2026-05-15 |
