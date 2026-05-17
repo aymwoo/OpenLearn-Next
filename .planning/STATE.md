@@ -4,16 +4,16 @@ milestone: v2.0
 milestone_name: Runtime Platform Foundations
 current_phase: 32
 current_phase_name: end-to-end-hardening-and-milestone-proof
-current_plan: 4
-status: verifying
-stopped_at: Completed 32-03-PLAN.md
-last_updated: "2026-05-17T01:22:24.156Z"
-last_activity: 2026-05-17
+current_plan: 7
+status: completed
+stopped_at: Completed 32-07-PLAN.md
+last_updated: "2026-05-17T18:19:00.000Z"
+last_activity: 2026-05-17 -- Phase 32 completed
 progress:
   total_phases: 20
   completed_phases: 20
-  total_plans: 79
-  completed_plans: 79
+  total_plans: 82
+  completed_plans: 82
   percent: 100
 ---
 
@@ -22,20 +22,20 @@ progress:
 ## Current Position
 
 Milestone: v2.0 Runtime Platform Foundations
-Phase: 32 (end-to-end-hardening-and-milestone-proof) — EXECUTING
+Phase: 32 (end-to-end-hardening-and-milestone-proof) — COMPLETED
 Phase name: End-to-end hardening and milestone proof
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-05-17
+Plan: 7 of 7
+Status: Completed Phase 32
+Last activity: 2026-05-17 -- Phase 32 completed
 Progress: [██████████] 100%
 
 <!--
 GSD compatibility fields for older state parsers.
 Current Phase: 32
 Current Phase Name: end-to-end-hardening-and-milestone-proof
-Current Plan: 4
-Total Plans in Phase: 4
-Last Activity Description: Phase 32 execution started
+Current Plan: 7
+Total Plans in Phase: 7
+Last Activity Description: Phase 32 completed
 -->
 
 ## Milestone Notes
@@ -44,6 +44,8 @@ Last Activity Description: Phase 32 execution started
 - 这轮目标是直接重组主工程边界，并交付一个可运行、可审计、可受控的 sandboxed runtime step。
 - Phase 29 已完成 shared Runtime Host、三处 surface wiring、本地 HTML courseware pilot、`verify:phase29` 和 close artifacts。
 - Phase 30 已完成 capability-gated host actions、manifest v2 governance、lifecycle persistence、governance audit 与 `verify:phase30`。
+- Phase 31 已完成 transport boundary、runtime inspector、focused verification 与 close artifacts。
+- Phase 32 已完成 end-to-end hardening、proof UAT、verification/security close artifacts 与 `verify:phase32`。
 - `COURSE-07`、`AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05`、`CLASS-05` 继续保留为 project-level safety gaps。
 - PostgreSQL、Redis/Event Bus、WebSocket 在本轮只建立 seam，不做正式 cutover。
 
@@ -196,9 +198,9 @@ Last Activity Description: Phase 32 execution started
 
 1. v1.3 已按 `.planning/milestones/v1.3-MILESTONE-AUDIT.md` 归档；carry-over 课程域短 scope 现已完成到 Phase 15。
 2. 后续 live planning 候选转向 `COURSE-07` 与其余 known gaps，同时继续复用已锁定的 classroom contracts：`/classroom` 主域、history reopen、split workload、显式 `未评价`。
-3. 如需恢复一键 `pnpm verify:phase24`，先处理仓库当前 `pnpm` build approval 门禁，再重跑同一组已通过的 direct test/verifier checks。
+3. 如需恢复里程碑级一键验证，先处理仓库当前 `pnpm` build approval 门禁，再重跑当前 canonical `pnpm verify:phase32` 与所需的 focused verifier checks。
 4. 在下一轮 scope 确认前，不新增 milestone 名称或 phase 编号。
-5. Phase 30 已完成代码、focused verification 与 GSD summaries；下一阶段可进入 Phase 31 transport boundary and runtime inspector。
+5. `v2.0 Runtime Platform Foundations` 已完成收口；下一步应先确认新的 milestone 目标或 carry-over scope，再开启新的 phase。
 
 ## Performance Metrics
 
@@ -245,8 +247,8 @@ Last Activity Description: Phase 32 execution started
 
 ## Session Tracking
 
-Last session: 2026-05-17T01:22:24.150Z
-Stopped At: Completed 32-03-PLAN.md
+Last session: 2026-05-17T18:19:00.000Z
+Stopped At: Completed 32-07-PLAN.md
 Resume File: None
 
 ### Quick Tasks Completed
@@ -319,3 +321,7 @@ Resume File: None
 | 260513-pjo | 将 /teacher/schedule 课程 hover 明细浮层进一步收敛为 glassmorphism 风格，增强半透明、blur 与高光层次 | 2026-05-13 | 3007a54 | [260513-pjo-hover-glassmorphism](./quick/260513-pjo-hover-glassmorphism/) |
 | 260513-pmb | 将 /teacher/schedule 课程 hover 明细浮层从 glassmorphism 收回到 premium education tonal 风格，强化 surface 层次与柔和质感 | 2026-05-13 | e53ab39 | [260513-pmb-hover-premium-education-tonal-glassmorph](./quick/260513-pmb-hover-premium-education-tonal-glassmorph/) |
 | 260515-v13 | 修复 help center parse blocker，并将 v1.3 归档口径收敛为真实的 Phase 21-26 scope 与 known gaps | 2026-05-15 | 未提交 | [260515-v13-close-blockers](./quick/260515-v13-close-blockers/) |
+| 260517-e35 | 修复 full-suite 测试中 teacher-course-center-surface 引发的 window is not defined 未处理异常；最小修复，保留现有行为，并返回任务目录、改动文件、验证结果与剩余风险 | 2026-05-17 | 未提交 | [260517-e35-full-suite-teacher-course-center-surface](./quick/260517-e35-full-suite-teacher-course-center-surface/) |
+| 260517-k2u | 修复 next start 下 Auth.js UntrustedHost 导致本地 production-like 登录 500；最小改动，不改变现有角色鉴权与登录逻辑，只让 repo-local localhost/127.0.0.1 验证可用，并返回 quick 任务目录、改动文件、验证结果与剩余风险 | 2026-05-17 | 未提交 | [260517-k2u-auth-localhost-untrustedhost](./quick/260517-k2u-auth-localhost-untrustedhost/) |
+| 260517-njy | 修复 /classroom 中切换环节与锁定跟随返回 VALIDATION_ERROR 的问题；最小修复，不改变现有 classroom DTO 与运行时契约，修完后返回 quick 任务目录、根因、改动文件、验证结果与剩余风险 | 2026-05-17 | 未提交 | [260517-njy-classroom-control-validation](./quick/260517-njy-classroom-control-validation/) |
+| 260517-gnb | 修复 student runtime host bootstrap 在 production-like 浏览器链路中返回 HOST_ACTION_DENIED:capability_missing 的问题；最小修复，不改 runtime contract 与 proof handoff 路径 | 2026-05-17 | 未提交 | [260517-gnb-student-runtime-host-bootstrap-productio](./quick/260517-gnb-student-runtime-host-bootstrap-productio/) |
