@@ -4,19 +4,22 @@ const updateTag = vi.fn();
 const { assertActiveTeacher } = vi.hoisted(() => ({
   assertActiveTeacher: vi.fn(),
 }));
-const { draftCourseImport, applyCourseImport } = vi.hoisted(() => ({
+const { draftCourseImport, prepareCourseImportApplyTask } = vi.hoisted(() => ({
   draftCourseImport: vi.fn(),
-  applyCourseImport: vi.fn(),
+  prepareCourseImportApplyTask: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ updateTag }));
 vi.mock("@/lib/dal/lesson-authoring", () => ({ assertActiveTeacher }));
-vi.mock("@/lib/dal/course-import", () => ({ draftCourseImport, applyCourseImport }));
+vi.mock("@/lib/dal/course-import", () => ({ draftCourseImport, prepareCourseImportApplyTask }));
 vi.mock("@/lib/cache-policy", () => ({
   cacheTags: {
     teacherCourses: (actorId: string) => `teacher-courses:${actorId}`,
     courseImportSchool: (schoolId: string) => `course:import-school:${schoolId}`,
     courseImportBatch: (batchId: string) => `course:import-batch:${batchId}`,
+    asyncTask: (taskId: string) => `async-task:${taskId}`,
+    asyncTaskList: (actorId: string) => `async-task-list:${actorId}`,
+    asyncTaskEntity: (entityType: string, entityId: string) => `async-task-entity:${entityType}:${entityId}`,
   },
 }));
 
@@ -49,8 +52,42 @@ describe("course import actions", () => {
     expect(updateTag).toHaveBeenCalledWith("course:import-batch:batch-1");
   });
 
-  it("delegates apply import and invalidates cache tags", async () => {
-    applyCourseImport.mockResolvedValue({ batchId: "batch-1", schoolId: "school-1", status: "partially_applied", summary: { created: 1, updated: 0, skipped: 0, failed: 1 }, rows: [] });
+  it("delegates async apply trigger and invalidates task plus batch tags", async () => {
+    prepareCourseImportApplyTask.mockResolvedValue({
+      batchId: "batch-1",
+      schoolId: "school-1",
+      taskId: "task-1",
+      taskStatus: "queued",
+      enqueueIntentStatus: "dispatched",
+      reusedExistingTask: false,
+      dispatchFailed: false,
+      message: "导入任务已创建，正在排队处理中。",
+      task: {
+        id: "task-1",
+        taskType: "course_import.apply_batch",
+        featureArea: "course_import",
+        status: "queued",
+        enqueueIntentStatus: "dispatched",
+        visibilityScope: "actor_owned",
+        entityRef: { entityType: "course_import_batch", entityId: "batch-1", entityLabel: null },
+        metadata: {
+          labelKey: "asyncTasks.courseImport.applyBatch.label",
+          summaryKey: "asyncTasks.courseImport.applyBatch.summary",
+          featureArea: "course_import",
+        },
+        progress: null,
+        result: null,
+        createdAt: new Date(0).toISOString(),
+        updatedAt: new Date(0).toISOString(),
+        completedAt: null,
+        queueJobId: null,
+        latestAttemptNumber: 0,
+        failure: null,
+        recovery: null,
+        attempts: [],
+        history: [],
+      },
+    });
     const { applyCourseImportAction } = await import("./course-import-actions");
     const result = await applyCourseImportAction({ batchId: "batch-1", matchedRowDecisions: [] });
 
@@ -58,5 +95,8 @@ describe("course import actions", () => {
     expect(updateTag).toHaveBeenCalledWith("teacher-courses:teacher-1");
     expect(updateTag).toHaveBeenCalledWith("course:import-school:school-1");
     expect(updateTag).toHaveBeenCalledWith("course:import-batch:batch-1");
+    expect(updateTag).toHaveBeenCalledWith("async-task:task-1");
+    expect(updateTag).toHaveBeenCalledWith("async-task-list:teacher-1");
+    expect(updateTag).toHaveBeenCalledWith("async-task-entity:course_import_batch:batch-1");
   });
 });
