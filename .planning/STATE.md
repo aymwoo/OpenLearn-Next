@@ -4,16 +4,16 @@ milestone: v2.3
 milestone_name: Async Task Platform
 current_phase: 41
 current_phase_name: first-real-product-slice-batch-import-async-workflow
-current_plan: 2
+current_plan: 3
 status: executing
-last_updated: "2026-05-18T23:11:43Z"
-last_activity: 2026-05-18 -- Completed 41-01 batch import async workflow integration
+last_updated: "2026-05-18T23:23:47.870Z"
+last_activity: 2026-05-18 -- Completed 41-02 async-aware batch import product surfaces
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 9
-  completed_plans: 7
-  percent: 78
+  completed_plans: 8
+  percent: 89
 ---
 
 # Project State
@@ -23,17 +23,17 @@ progress:
 Milestone: v2.3 Async Task Platform
 Phase: 41 (first-real-product-slice-batch-import-async-workflow) — EXECUTING
 Phase name: first-real-product-slice-batch-import-async-workflow
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-05-18 -- Completed 41-01 batch import async workflow integration
-Progress: [████████░░] 78%
-Next queued phase: Phase 41 - first-real-product-slice-batch-import-async-workflow (Plan 02)
+Last activity: 2026-05-18 -- Completed 41-02 async-aware batch import product surfaces
+Progress: [█████████░] 89%
+Next queued phase: Phase 41 - first-real-product-slice-batch-import-async-workflow (Plan 03)
 
 <!--
 GSD compatibility fields for older state parsers.
 Current Phase: 41
 Current Phase Name: first-real-product-slice-batch-import-async-workflow
-Current Plan: 2
+Current Plan: 3
 Total Plans in Phase: 3
 Last Activity Description: Phase 41 execution started
 -->
@@ -77,9 +77,11 @@ Items acknowledged and deferred at milestone close on 2026-05-18:
 - worker 必须是独立进程入口，不能并入 `server.ts` 或 web 请求生命周期。
 - 同一 course import batch 的 active task 通过 entityType/entityId + active status 集合在 DAL 层复用，而不是只依赖 BullMQ job id 去重。
 - worker completed 事件优先解析 typed AsyncTaskResultSummary，partial success 直接投影为 `partially_completed` rich result，而不是 generic done payload。
+- 产品面把 `pending_enqueue`、`dispatching`、`stalled_recovery` 统一折叠为 queued posture，避免把平台内部中间态直接泄露给 teacher/staff。
+- 课程中心只保留 hero 级最近导入任务卡，完成后继续展示最近摘要，但始终回流到 batch detail 作为单一事实页。
 
 ## Next Steps
 
-1. 执行 Phase 41 Plan 02，在 batch detail 与 course center surface 暴露 queued/running/partial/completed/failed 语义。
-2. 让课程导入产品面消费当前 rich result summary，而不是继续依赖同步 apply 结果。
-3. 在 Phase 41 Plan 03 补齐 focused verification，锁住 dedupe、partial success 与 cache-safe updates。
+1. 执行 Phase 41 Plan 03，补齐 batch import idempotency、partial success reporting、honest UI copy 与 cache-safe updates 的 focused verification。
+2. 用当前 batch detail 与 course center product surface 作为 verifier 基线，锁住 queued/running/retrying/partial/failure honest posture。
+3. 完成 Phase 41 后再进入 Phase 42 operator visibility and recovery。

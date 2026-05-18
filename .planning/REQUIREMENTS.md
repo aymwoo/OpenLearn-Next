@@ -26,8 +26,8 @@ Requirements for milestone `v2.3 Async Task Platform`. Each maps to exactly one 
 ### Async User Experience
 
 - [x] **ATP-11**: Teacher or staff user can trigger supported long-running operations as asynchronous jobs instead of waiting on one blocking request.
-- [ ] **ATP-12**: Teacher or staff user can see task status such as queued, running, completed, failed, or retrying from product-facing surfaces.
-- [ ] **ATP-13**: Teacher or staff user can see task result summaries or failure feedback that explain what finished, partially finished, or needs attention.
+- [x] **ATP-12**: Teacher or staff user can see task status such as queued, running, completed, failed, or retrying from product-facing surfaces.
+- [x] **ATP-13**: Teacher or staff user can see task result summaries or failure feedback that explain what finished, partially finished, or needs attention.
 - [x] **ATP-14**: Product surfaces keep user-visible state honest and do not treat "queued" as "done".
 
 ### Operator Visibility and Recovery
@@ -88,8 +88,8 @@ Which phases cover which requirements. Each requirement maps to exactly one road
 | ATP-09 | Phase 40 | Planned |
 | ATP-10 | Phase 40 | Planned |
 | ATP-11 | Phase 41 | Complete |
-| ATP-12 | Phase 41 | Planned |
-| ATP-13 | Phase 41 | Planned |
+| ATP-12 | Phase 41 | Complete |
+| ATP-13 | Phase 41 | Complete |
 | ATP-14 | Phase 41 | Complete |
 | ATP-15 | Phase 42 | Planned |
 | ATP-16 | Phase 42 | Planned |
