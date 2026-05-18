@@ -1,7 +1,7 @@
 ## ROADMAP
 
 **Current milestone:** `v2.3 Async Task Platform`
-**Status:** 📋 Planned
+**Status:** ◆ In Progress
 **Phase range:** Phase 39-43
 **Total plans:** 15
 **Previous archive:** `.planning/milestones/v2.2-ROADMAP.md`
@@ -15,7 +15,7 @@
 ## Milestones
 
 - ✅ **v2.2 WebSocket Classroom Transport Cutover** - Phase 36-38 shipped 2026-05-18. See `.planning/milestones/v2.2-ROADMAP.md`.
-- 📋 **v2.3 Async Task Platform** - Phase 39-43 planned.
+- ◆ **v2.3 Async Task Platform** - Phase 39 complete, Phase 40-43 pending.
 
 ## Phases
 
@@ -27,7 +27,7 @@
 
 </details>
 
-### 📋 v2.3 Async Task Platform (Planned)
+### ◆ v2.3 Async Task Platform (In Progress)
 
 **Milestone Goal:** 在不重开 classroom realtime mainline、不过早绑定 PostgreSQL 或 AI runtime 的前提下，交付可复用的 async execution platform，并让真实教育任务通过同一套 durable truth、worker posture、status/read model 和 operator recovery 跑通。
 
@@ -50,9 +50,14 @@
 **Plans**: 3 plans
 
 Plans:
-- [ ] 39-01-PLAN.md - Add the `src/features/async-tasks` feature root, typed task registry, and shared Zod contracts.
-- [ ] 39-02-PLAN.md - Add the SQLite async task ledger schema, event history tables, and DAL read models for task DTOs.
-- [ ] 39-03-PLAN.md - Add the application enqueue boundary and intent recording so server actions enqueue through one platform seam.
+**Wave 1**
+- [x] 39-01-PLAN.md - Add the `src/features/async-tasks` feature root, typed task registry, and shared Zod contracts.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 39-02-PLAN.md - Add the SQLite async task ledger schema, event history tables, and DAL read models for task DTOs.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 39-03-PLAN.md - Add the application enqueue boundary and intent recording so server actions enqueue through one platform seam.
 
 #### Phase 40: BullMQ infra seam and worker reliability posture
 
@@ -66,9 +71,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 40-01-PLAN.md - Add BullMQ connection factories, queue and worker bootstrap, and dedicated worker entry scripts.
-- [ ] 40-02-PLAN.md - Add QueueEvents projection, failure and attempt history recording, stalled recovery, and graceful shutdown posture.
-- [ ] 40-03-PLAN.md - Add retry, backoff, idempotency, and execution helpers plus a minimal platform verification task.
+- [x] 40-01-PLAN.md - Add BullMQ connection factories, queue and worker bootstrap, and dedicated worker entry scripts.
+- [x] 40-02-PLAN.md - Add QueueEvents projection, failure and attempt history recording, stalled recovery, and graceful shutdown posture.
+- [x] 40-03-PLAN.md - Add retry, backoff, idempotency, and execution helpers plus a minimal platform verification task.
 
 #### Phase 41: First real product slice - batch import async workflow
 
@@ -82,9 +87,19 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 41-01-PLAN.md - Integrate batch import onto the async task registry, enqueue path, and worker processor model.
-- [ ] 41-02-PLAN.md - Add teacher or staff status surfaces for task progress, result summary, and failure feedback.
-- [ ] 41-03-PLAN.md - Add focused verification for batch import idempotency, partial success reporting, and cache-safe state updates.
+**Wave 1**
+- [ ] 41-01-PLAN.md - Integrate batch import onto the async task registry, active-task dedupe, enqueue path, and worker processor model.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 41-02-PLAN.md - Add teacher/staff status surfaces on the batch detail truth page and the course-center recent-task card.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 41-03-PLAN.md - Add focused verification for batch import idempotency, partial success reporting, honest UI copy, and cache-safe state updates.
+
+Cross-cutting constraints:
+- 当前 batch 详情页是 review、运行态与结果态的单一事实页面；课程中心卡片只是轻量回流入口。
+- SQLite + DAL 继续持有业务真相；BullMQ/Redis 只承担 orchestration 与 execution substrate。
+- 同一 batch 在 active 状态下只允许一个任务实例，重复触发必须复用当前任务并保持 honest posture。
 
 #### Phase 42: Operator visibility and recovery
 
@@ -125,8 +140,8 @@ Phases execute in numeric order: 39 -> 40 -> 41 -> 42 -> 43
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 39. Async contracts and durable task truth | v2.3 | 0/3 | Not started | - |
-| 40. BullMQ infra seam and worker reliability posture | v2.3 | 0/3 | Not started | - |
+| 39. Async contracts and durable task truth | v2.3 | 3/3 | Complete | 2026-05-18 |
+| 40. BullMQ infra seam and worker reliability posture | v2.3 | 3/3 | Complete   | 2026-05-18 |
 | 41. First real product slice - batch import async workflow | v2.3 | 0/3 | Not started | - |
 | 42. Operator visibility and recovery | v2.3 | 0/3 | Not started | - |
 | 43. Additional validation workloads and milestone proof | v2.3 | 0/3 | Not started | - |

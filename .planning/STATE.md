@@ -2,19 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.3
 milestone_name: Async Task Platform
-current_phase: 0
-current_phase_name: roadmap-defined
-current_plan: 0
-status: planning
-stopped_at: Milestone v2.3 roadmap defined; ready for Phase 39 planning
-last_updated: "2026-05-18T12:00:00.000Z"
-last_activity: 2026-05-18 -- Defined roadmap for milestone v2.3
+current_phase: 40
+current_phase_name: bullmq-infra-seam-and-worker-reliability-posture
+current_plan: 1
+status: executing
+last_updated: "2026-05-18T22:54:41.263Z"
+last_activity: 2026-05-18 -- Phase 41 planning complete
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 15
-  completed_plans: 0
-  percent: 0
+  completed_phases: 2
+  total_plans: 9
+  completed_plans: 6
+  percent: 67
 ---
 
 # Project State
@@ -22,21 +21,21 @@ progress:
 ## Current Position
 
 Milestone: v2.3 Async Task Platform
-Phase: Not started (roadmap defined)
-Phase name: Roadmap defined
-Plan: —
-Status: Roadmap defined
-Last activity: 2026-05-18 -- Defined roadmap for milestone v2.3
-Progress: [░░░░░░░░░░] 0%
-Next queued phase: Phase 39 - Async contracts and durable task truth
+Phase: 40 (bullmq-infra-seam-and-worker-reliability-posture) — EXECUTING
+Phase name: BullMQ infra seam and worker reliability posture
+Plan: 1 of 3
+Status: Ready to execute
+Last activity: 2026-05-18 -- Phase 41 planning complete
+Progress: [██████████] 100%
+Next queued phase: Phase 40 - BullMQ infra seam and worker reliability posture
 
 <!--
 GSD compatibility fields for older state parsers.
-Current Phase: 0
-Current Phase Name: roadmap-defined
-Current Plan: 0
-Total Plans in Phase: 0
-Last Activity Description: Milestone v2.3 roadmap defined — ready to start Phase 39 planning
+Current Phase: 40
+Current Phase Name: bullmq-infra-seam-and-worker-reliability-posture
+Current Plan: 1
+Total Plans in Phase: 3
+Last Activity Description: Phase 41 planning complete — 3 plans ready
 -->
 
 ## Project Reference
@@ -44,7 +43,7 @@ Last Activity Description: Milestone v2.3 roadmap defined — ready to start Pha
 See: `.planning/PROJECT.md` (updated 2026-05-18)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Milestone v2.3 Async Task Platform planning
+**Current focus:** Phase 40 — bullmq-infra-seam-and-worker-reliability-posture
 
 ## Milestone Notes
 
@@ -79,6 +78,6 @@ Items acknowledged and deferred at milestone close on 2026-05-18:
 
 ## Next Steps
 
-1. 从 Phase 39 开始进入 `/gsd-discuss-phase 39` 或 `/gsd-plan-phase 39`。
-2. 把 Phase 39 拆成可执行 PLAN.md 并锁定 async task registry、ledger 和 enqueue seam。
-3. 在 Phase 39 完成后再推进 Phase 40 的 BullMQ worker 与 reliability posture。
+1. 进入 Phase 40，建立 BullMQ connection factory、queue/worker bootstrap 和独立 worker 入口。
+2. 把 QueueEvents projection、attempt history、retry/backoff 与 idempotency 收敛到 durable truth。
+3. 在 Phase 40 完成后再把 batch import 挂到统一 async platform 上验证真实 workload。
