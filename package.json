@@ -43,6 +43,7 @@
     "verify:phase37:redis": "REDIS_FANOUT_ENABLED=true node --import tsx scripts/verify-phase37-redis-fanout.ts",
     "verify:phase38": "node --import tsx scripts/verify-phase38-cutover-closeout.ts",
     "verify:phase39": "node --import tsx scripts/verify-phase39-async-tasks.ts",
+    "verify:phase41": "node --import tsx scripts/verify-phase41-batch-import.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "db:migrate": "tsx scripts/prepare-dev-db.ts",
