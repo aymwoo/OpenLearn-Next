@@ -255,6 +255,118 @@ export const courseImportRow = sqliteTable(
   ]
 );
 
+export const asyncTasks = sqliteTable(
+  "asyncTask",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    actorId: text("actorId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    taskType: text("taskType").notNull(),
+    featureArea: text("featureArea", {
+      enum: [
+        "platform",
+        "course_import",
+        "schedule",
+        "runtime",
+        "resource_processing",
+        "notifications",
+      ],
+    }).notNull(),
+    status: text("status", {
+      enum: [
+        "pending_enqueue",
+        "dispatching",
+        "dispatch_failed",
+        "queued",
+        "running",
+        "retrying",
+        "stalled_recovery",
+        "completed",
+        "partially_completed",
+        "failed",
+        "cancelled",
+      ],
+    })
+      .notNull()
+      .default("pending_enqueue"),
+    enqueueIntentStatus: text("enqueueIntentStatus", {
+      enum: ["pending_enqueue", "dispatching", "dispatch_failed", "dispatched"],
+    })
+      .notNull()
+      .default("pending_enqueue"),
+    visibilityScope: text("visibilityScope", {
+      enum: ["actor_owned", "school_operator", "system_operator"],
+    })
+      .notNull()
+      .default("actor_owned"),
+    entityType: text("entityType").notNull(),
+    entityId: text("entityId").notNull(),
+    entityLabel: text("entityLabel"),
+    labelKey: text("labelKey").notNull(),
+    summaryKey: text("summaryKey").notNull(),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    latestProgressJson: text("latestProgressJson", { mode: "json" }),
+    latestResultJson: text("latestResultJson", { mode: "json" }),
+    queueJobId: text("queueJobId"),
+    latestAttemptNumber: integer("latestAttemptNumber").notNull().default(0),
+    latestFailureReason: text("latestFailureReason"),
+    latestRecoveryJson: text("latestRecoveryJson", { mode: "json" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    startedAt: integer("startedAt", { mode: "timestamp_ms" }),
+    completedAt: integer("completedAt", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("asyncTasks_actor_status_idx").on(table.actorId, table.status),
+    index("asyncTasks_school_status_idx").on(table.schoolId, table.status),
+    index("asyncTasks_entity_idx").on(table.entityType, table.entityId, table.createdAt),
+    index("asyncTasks_type_created_idx").on(table.taskType, table.createdAt),
+    uniqueIndex("asyncTasks_queueJobId_unique").on(table.queueJobId),
+  ]
+);
+
+export const asyncTaskEvents = sqliteTable(
+  "asyncTaskEvent",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    taskId: text("taskId")
+      .notNull()
+      .references(() => asyncTasks.id, { onDelete: "cascade" }),
+    eventType: text("eventType").notNull(),
+    status: text("status", {
+      enum: [
+        "pending_enqueue",
+        "dispatching",
+        "dispatch_failed",
+        "queued",
+        "running",
+        "retrying",
+        "stalled_recovery",
+        "completed",
+        "partially_completed",
+        "failed",
+        "cancelled",
+      ],
+    }).notNull(),
+    attemptNumber: integer("attemptNumber").notNull().default(0),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("asyncTaskEvents_task_created_idx").on(table.taskId, table.createdAt),
+    index("asyncTaskEvents_status_created_idx").on(table.status, table.createdAt),
+    index("asyncTaskEvents_task_attempt_idx").on(table.taskId, table.attemptNumber, table.createdAt),
+  ]
+);
+
 export const lessons = sqliteTable(
   "lesson",
   {

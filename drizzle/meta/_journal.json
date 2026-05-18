@@ -29,6 +29,20 @@
       "when": 1779076800000,
       "tag": "0003_phase37_redis_fanout",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1779110004144,
+      "tag": "0004_phase39_async_tasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1779113629510,
+      "tag": "0005_phase40_async_task_runtime_projection",
+      "breakpoints": true
     }
   ]
 }

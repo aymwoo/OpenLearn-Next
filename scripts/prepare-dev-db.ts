@@ -57,6 +57,28 @@ async function columnExists(tableName: string, columnName: string) {
 }
 
 async function detectExistingSchemaTag() {
+  const hasAsyncTaskSchema =
+    await tableExists("asyncTask")
+    && await tableExists("asyncTaskEvent")
+    && await columnExists("asyncTask", "enqueueIntentStatus")
+    && await columnExists("asyncTask", "latestProgressJson")
+    && await columnExists("asyncTask", "latestResultJson");
+
+  const hasPhase40RuntimeProjectionSchema =
+    hasAsyncTaskSchema
+    && await columnExists("asyncTask", "latestAttemptNumber")
+    && await columnExists("asyncTask", "latestFailureReason")
+    && await columnExists("asyncTask", "latestRecoveryJson")
+    && await columnExists("asyncTaskEvent", "attemptNumber");
+
+  if (hasPhase40RuntimeProjectionSchema) {
+    return "0005_phase40_async_task_runtime_projection";
+  }
+
+  if (hasAsyncTaskSchema) {
+    return "0004_phase39_async_tasks";
+  }
+
   const hasRedisFanoutSchema =
     await tableExists("systemTransportSetting")
     && await columnExists("classroomSession", "transportModeSnapshot");

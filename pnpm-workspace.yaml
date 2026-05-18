@@ -3,6 +3,7 @@ allowBuilds:
   '@scarf/scarf': true
   esbuild: true
   gitnexus: true
+  msgpackr-extract: set this to true or false
   onnxruntime-node: true
   protobufjs: true
   sharp: true
