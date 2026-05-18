@@ -94,7 +94,7 @@ Plans:
 - [x] 41-02-PLAN.md - Add teacher/staff status surfaces on the batch detail truth page and the course-center recent-task card.
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 41-03-PLAN.md - Add focused verification for batch import idempotency, partial success reporting, honest UI copy, and cache-safe state updates.
+- [x] 41-03-PLAN.md - Add focused verification for batch import idempotency, partial success reporting, honest UI copy, and cache-safe state updates.
 
 Cross-cutting constraints:
 - 当前 batch 详情页是 review、运行态与结果态的单一事实页面；课程中心卡片只是轻量回流入口。
@@ -142,6 +142,6 @@ Phases execute in numeric order: 39 -> 40 -> 41 -> 42 -> 43
 |-------|-----------|----------------|--------|-----------|
 | 39. Async contracts and durable task truth | v2.3 | 3/3 | Complete | 2026-05-18 |
 | 40. BullMQ infra seam and worker reliability posture | v2.3 | 3/3 | Complete   | 2026-05-18 |
-| 41. First real product slice - batch import async workflow | v2.3 | 2/3 | In Progress|  |
+| 41. First real product slice - batch import async workflow | v2.3 | 3/3 | Complete   | 2026-05-18 |
 | 42. Operator visibility and recovery | v2.3 | 0/3 | Not started | - |
 | 43. Additional validation workloads and milestone proof | v2.3 | 0/3 | Not started | - |

@@ -5,15 +5,15 @@ milestone_name: Async Task Platform
 current_phase: 41
 current_phase_name: first-real-product-slice-batch-import-async-workflow
 current_plan: 3
-status: executing
-last_updated: "2026-05-18T23:23:47.870Z"
-last_activity: 2026-05-18 -- Completed 41-02 async-aware batch import product surfaces
+status: verifying
+last_updated: "2026-05-18T23:49:50.910Z"
+last_activity: 2026-05-18 -- Completed 41-03 batch import verification gate
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
-  percent: 89
+  completed_plans: 9
+  percent: 100
 ---
 
 # Project State
@@ -24,10 +24,10 @@ Milestone: v2.3 Async Task Platform
 Phase: 41 (first-real-product-slice-batch-import-async-workflow) — EXECUTING
 Phase name: first-real-product-slice-batch-import-async-workflow
 Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-05-18 -- Completed 41-02 async-aware batch import product surfaces
-Progress: [█████████░] 89%
-Next queued phase: Phase 41 - first-real-product-slice-batch-import-async-workflow (Plan 03)
+Status: Phase complete — ready for verification
+Last activity: 2026-05-18 -- Completed 41-03 batch import verification gate
+Progress: [██████████] 100%
+Next queued phase: Phase 42 - operator-visibility-and-recovery (Plan 01)
 
 <!--
 GSD compatibility fields for older state parsers.
@@ -79,6 +79,9 @@ Items acknowledged and deferred at milestone close on 2026-05-18:
 - worker completed 事件优先解析 typed AsyncTaskResultSummary，partial success 直接投影为 `partially_completed` rich result，而不是 generic done payload。
 - 产品面把 `pending_enqueue`、`dispatching`、`stalled_recovery` 统一折叠为 queued posture，避免把平台内部中间态直接泄露给 teacher/staff。
 - 课程中心只保留 hero 级最近导入任务卡，完成后继续展示最近摘要，但始终回流到 batch detail 作为单一事实页。
+- [Phase 41]: Phase 41 verifier 采用 exact import/string guards + focused suites，避免宽泛 grep 或注释噪音造成误判。
+- [Phase 41]: 课程中心 recent import card 在 active 状态必须展示 progress copy，而不是只保留 terminal summary。
+- [Phase 41]: 课程导入 DTO 在测试路径内使用本地 status schema，避免与 course-authoring DTO 形成循环初始化。
 
 ## Next Steps
 
