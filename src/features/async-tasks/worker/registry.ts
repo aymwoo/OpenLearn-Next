@@ -3,22 +3,17 @@ import "server-only";
 import type { Job, Processor } from "bullmq";
 
 import {
-  AsyncTaskPlatformHealthCheckResultSchema,
   asyncTaskRegistry,
 } from "@/features/async-tasks/server/registry";
+
+import { processCourseImportApplyBatchJob } from "./processors/course-import";
+import { processPlatformHealthcheckJob } from "./processors/platform-healthcheck";
 
 type AsyncTaskProcessor = Processor;
 
 const asyncTaskWorkerProcessors: Record<string, AsyncTaskProcessor> = {
-  "platform.healthcheck": async (job: Job) => {
-    const definition = asyncTaskRegistry[job.name];
-    const payload = definition?.payloadSchema.parse(job.data);
-
-    return AsyncTaskPlatformHealthCheckResultSchema.parse({
-      checksPassed: payload ? 1 : 0,
-      checksFailed: 0,
-    });
-  },
+  "course_import.apply_batch": async (job: Job) => processCourseImportApplyBatchJob(job),
+  "platform.healthcheck": async (job: Job) => processPlatformHealthcheckJob(job),
 };
 
 export function getAsyncTaskWorkerProcessor(taskType: string) {

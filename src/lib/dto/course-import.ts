@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+import {
+  AsyncTaskDetailDTOSchema,
+} from "@/features/async-tasks/shared/dto";
+import {
+  AsyncTaskEnqueueIntentStatusSchema,
+  AsyncTaskOutcomeCountsSchema,
+  AsyncTaskOutcomeStatusSchema,
+  AsyncTaskResultSummarySchema,
+  AsyncTaskStatusSchema,
+} from "@/features/async-tasks/shared/contract";
 import { TeacherCourseStatusSchema } from "@/lib/dto/course-authoring";
 
 export const CourseImportSourceTypeSchema = z.enum(["csv"]);
@@ -121,6 +131,37 @@ export const CourseImportApplyResultSchema = z.object({
   rows: z.array(CourseImportRowReviewDTOSchema),
 });
 
+export const CourseImportAsyncTaskPayloadSchema = z
+  .object({
+    batchId: z.string().min(1),
+    schoolId: z.string().min(1),
+    actorId: z.string().min(1),
+  })
+  .strict();
+
+export const CourseImportAsyncTaskResultSchema = AsyncTaskResultSummarySchema.extend({
+  batchId: z.string(),
+  schoolId: z.string(),
+  actorId: z.string(),
+  batchStatus: z.enum(["applied", "partially_applied"]),
+  applySummary: CourseImportApplySummarySchema,
+  failedRowCount: z.number().int().nonnegative(),
+  counts: AsyncTaskOutcomeCountsSchema,
+  outcome: AsyncTaskOutcomeStatusSchema,
+}).strict();
+
+export const CourseImportApplyTriggerResultSchema = z.object({
+  batchId: z.string(),
+  schoolId: z.string(),
+  taskId: z.string(),
+  taskStatus: AsyncTaskStatusSchema,
+  enqueueIntentStatus: AsyncTaskEnqueueIntentStatusSchema,
+  reusedExistingTask: z.boolean().default(false),
+  dispatchFailed: z.boolean().default(false),
+  message: z.string().min(1),
+  task: AsyncTaskDetailDTOSchema,
+});
+
 export type CourseImportBatchStatus = z.infer<typeof CourseImportBatchStatusSchema>;
 export type CourseImportRowStatus = z.infer<typeof CourseImportRowStatusSchema>;
 export type CourseImportRowDecision = z.infer<typeof CourseImportRowDecisionSchema>;
@@ -135,3 +176,6 @@ export type CourseImportApplySummary = z.infer<typeof CourseImportApplySummarySc
 export type CourseImportBatchDTO = z.infer<typeof CourseImportBatchDTOSchema>;
 export type ApplyCourseImportInput = z.infer<typeof ApplyCourseImportInputSchema>;
 export type CourseImportApplyResult = z.infer<typeof CourseImportApplyResultSchema>;
+export type CourseImportAsyncTaskPayload = z.infer<typeof CourseImportAsyncTaskPayloadSchema>;
+export type CourseImportAsyncTaskResult = z.infer<typeof CourseImportAsyncTaskResultSchema>;
+export type CourseImportApplyTriggerResult = z.infer<typeof CourseImportApplyTriggerResultSchema>;

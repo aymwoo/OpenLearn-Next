@@ -1,17 +1,23 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
-import { courseImportBatch, courseImportRow, courses } from "@/db/schema";
+import { asyncTaskEvents, asyncTasks, courseImportBatch, courseImportRow, courses } from "@/db/schema";
+import { AsyncTaskDetailDTOSchema } from "@/features/async-tasks/shared/dto";
+import { toAsyncTaskDetailDTOInput } from "@/features/async-tasks/server/mapper";
+import { enqueueAsyncTask } from "@/features/async-tasks/server/enqueue";
 import { cacheTags } from "@/lib/cache-policy";
 import {
   ApplyCourseImportInputSchema,
-  CourseImportApplyResultSchema,
+  CourseImportApplyTriggerResultSchema,
+  CourseImportAsyncTaskResultSchema,
   CourseImportBatchDTOSchema,
   CourseImportDraftInputSchema,
   type CourseImportApplySummary,
+  type CourseImportApplyTriggerResult,
+  type CourseImportAsyncTaskPayload,
   type CourseImportDraftInput,
   type CourseImportDraftRowInput,
   type CourseImportMatchedCourse,
@@ -22,6 +28,15 @@ import {
 } from "@/lib/dto/course-import";
 import { createCourseForTeacherScoped, updateMatchedCourseStatusForTeacherScoped } from "@/lib/dal/course-authoring";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
+
+const COURSE_IMPORT_ACTIVE_TASK_STATUSES = [
+  "pending_enqueue",
+  "dispatching",
+  "queued",
+  "running",
+  "retrying",
+  "stalled_recovery",
+] as const;
 
 function toIso(value: Date | number | null | undefined) {
   if (!value) {
@@ -271,28 +286,241 @@ async function persistRowApplyResult(input: {
     .where(eq(courseImportRow.id, input.rowId));
 }
 
-export async function applyCourseImport(input: {
+async function getAsyncTaskDetailSnapshot(taskId: string) {
+  const task = await db.query.asyncTasks.findFirst({ where: eq(asyncTasks.id, taskId) });
+
+  if (!task) {
+    throw new Error("ASYNC_TASK_NOT_FOUND");
+  }
+
+  const events = await db.query.asyncTaskEvents.findMany({
+    where: eq(asyncTaskEvents.taskId, taskId),
+    orderBy: [desc(asyncTaskEvents.createdAt)],
+  });
+
+  return AsyncTaskDetailDTOSchema.parse(toAsyncTaskDetailDTOInput(task, events));
+}
+
+async function getCourseImportBatchForActor(input: { batchId: string; schoolIds: string[]; actorId: string }) {
+  const batch = await db.query.courseImportBatch.findFirst({ where: eq(courseImportBatch.id, input.batchId) });
+
+  if (!batch || !input.schoolIds.includes(batch.schoolId) || batch.actorId !== input.actorId) {
+    throw new Error("COURSE_IMPORT_BATCH_NOT_FOUND");
+  }
+
+  if (batch.status === "draft") {
+    throw new Error("COURSE_IMPORT_BATCH_NOT_READY");
+  }
+
+  return batch;
+}
+
+async function findActiveCourseImportTask(batchId: string, schoolId: string) {
+  return db.query.asyncTasks.findFirst({
+    where: and(
+      eq(asyncTasks.entityType, "course_import_batch"),
+      eq(asyncTasks.entityId, batchId),
+      eq(asyncTasks.schoolId, schoolId),
+      inArray(asyncTasks.status, [...COURSE_IMPORT_ACTIVE_TASK_STATUSES]),
+    ),
+    orderBy: [desc(asyncTasks.createdAt)],
+  });
+}
+
+async function refreshStoredBatchRowsForAttempt(input: {
+  batchId: string;
+  schoolId: string;
+  actorId: string;
+  matchedRowDecisions: Map<string, CourseImportRowDecision>;
+  resetResults: boolean;
+}) {
+  const storedRows = await readStoredBatchRows(input.batchId);
+  const schoolCourses = await listSchoolCourses(input.schoolId);
+  const schoolCourseByKey = new Map(schoolCourses.map((course) => [buildMatchKey(course), course]));
+
+  for (const row of storedRows) {
+    const latestMatch = schoolCourseByKey.get(row.matchKey) ?? null;
+    const validationIssues: CourseImportValidationIssue[] = [];
+    let status: CourseImportRowStatus = "ready_to_create";
+    let matchedCourse: CourseImportMatchedCourse | null = null;
+    let decision: CourseImportRowDecision | null = null;
+
+    if (latestMatch) {
+      matchedCourse = buildMatchedCourse(latestMatch, input.actorId);
+
+      if (latestMatch.ownerId === input.actorId) {
+        status = "matched_existing";
+        decision = input.matchedRowDecisions.get(row.id) ?? row.decision ?? "skip";
+      } else {
+        status = "blocked";
+        matchedCourse = buildMatchedCourse(latestMatch, input.actorId);
+        validationIssues.push(
+          createRowIssue("FOREIGN_OWNED_MATCH", "命中了同校其他教师课程，不能更新。"),
+        );
+      }
+    }
+
+    await db
+      .update(courseImportRow)
+      .set({
+        status,
+        matchedCourseSnapshotJson: matchedCourse,
+        validationIssuesJson: validationIssues,
+        decision,
+        result: input.resetResults ? null : row.result,
+        resultReason: input.resetResults ? null : row.resultReason,
+        appliedCourseId: input.resetResults ? null : undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(courseImportRow.id, row.id));
+  }
+}
+
+function buildCourseImportTaskMessage(input: {
+  reusedExistingTask: boolean;
+  taskStatus: string;
+  dispatchFailed: boolean;
+}) {
+  if (input.reusedExistingTask) {
+    return "这批导入已在处理中，已复用当前任务。";
+  }
+
+  if (input.dispatchFailed || input.taskStatus === "dispatch_failed") {
+    return "导入任务创建成功，但当前未成功入队，请稍后重试。";
+  }
+
+  return "导入任务已创建，正在排队处理中。";
+}
+
+function toCourseImportApplyTriggerResult(input: {
+  batchId: string;
+  schoolId: string;
+  task: Awaited<ReturnType<typeof getAsyncTaskDetailSnapshot>>;
+  reusedExistingTask: boolean;
+}) {
+  return CourseImportApplyTriggerResultSchema.parse({
+    batchId: input.batchId,
+    schoolId: input.schoolId,
+    taskId: input.task.id,
+    taskStatus: input.task.status,
+    enqueueIntentStatus: input.task.enqueueIntentStatus,
+    reusedExistingTask: input.reusedExistingTask,
+    dispatchFailed: input.task.status === "dispatch_failed",
+    message: buildCourseImportTaskMessage({
+      reusedExistingTask: input.reusedExistingTask,
+      taskStatus: input.task.status,
+      dispatchFailed: input.task.status === "dispatch_failed",
+    }),
+    task: input.task,
+  });
+}
+
+export async function prepareCourseImportApplyTask(input: {
   batchId: string;
   matchedRowDecisions: Array<{ rowId: string; decision: CourseImportRowDecision }>;
-}) {
+}): Promise<CourseImportApplyTriggerResult> {
   const scope = await assertActiveTeacher();
   const parsed = ApplyCourseImportInputSchema.parse(input);
-  const batch = await db.query.courseImportBatch.findFirst({ where: eq(courseImportBatch.id, parsed.batchId) });
+  const batch = await getCourseImportBatchForActor({
+    batchId: parsed.batchId,
+    actorId: scope.userId,
+    schoolIds: scope.schoolIds,
+  });
+  const existingActiveTask = await findActiveCourseImportTask(batch.id, batch.schoolId);
 
-  if (!batch || !scope.schoolIds.includes(batch.schoolId)) {
+  if (existingActiveTask) {
+    const task = await getAsyncTaskDetailSnapshot(existingActiveTask.id);
+
+    return toCourseImportApplyTriggerResult({
+      batchId: batch.id,
+      schoolId: batch.schoolId,
+      task,
+      reusedExistingTask: true,
+    });
+  }
+
+  const priorTasks = await db.query.asyncTasks.findMany({
+    where: and(
+      eq(asyncTasks.entityType, "course_import_batch"),
+      eq(asyncTasks.entityId, batch.id),
+      eq(asyncTasks.schoolId, batch.schoolId),
+    ),
+    orderBy: [desc(asyncTasks.createdAt)],
+    limit: 1,
+  });
+
+  await refreshStoredBatchRowsForAttempt({
+    batchId: batch.id,
+    schoolId: batch.schoolId,
+    actorId: scope.userId,
+    matchedRowDecisions: new Map(parsed.matchedRowDecisions.map((item) => [item.rowId, item.decision])),
+    resetResults: priorTasks.length > 0,
+  });
+
+  const refreshedRows = await readStoredBatchRows(batch.id);
+  await db
+    .update(courseImportBatch)
+    .set({
+      status: inferBatchStatus(refreshedRows),
+      createdCount: 0,
+      updatedCount: 0,
+      skippedCount: 0,
+      failedCount: 0,
+      appliedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(courseImportBatch.id, batch.id));
+
+  const task = await enqueueAsyncTask({
+    actorId: scope.userId,
+    schoolId: batch.schoolId,
+    taskType: "course_import.apply_batch",
+    entityRef: {
+      entityType: "course_import_batch",
+      entityId: batch.id,
+      entityLabel: batch.sourceLabel,
+    },
+    payload: {
+      batchId: batch.id,
+      schoolId: batch.schoolId,
+      actorId: scope.userId,
+    } satisfies CourseImportAsyncTaskPayload,
+    dispatchRequested: true,
+  });
+
+  return toCourseImportApplyTriggerResult({
+    batchId: batch.id,
+    schoolId: batch.schoolId,
+    task,
+    reusedExistingTask: false,
+  });
+}
+
+export async function executeCourseImportApplyTask(payload: CourseImportAsyncTaskPayload) {
+  const parsedPayload = payload;
+  const batch = await db.query.courseImportBatch.findFirst({ where: eq(courseImportBatch.id, parsedPayload.batchId) });
+
+  if (!batch || batch.schoolId !== parsedPayload.schoolId || batch.actorId !== parsedPayload.actorId) {
     throw new Error("COURSE_IMPORT_BATCH_NOT_FOUND");
   }
 
   const stagedRows = await readStoredBatchRows(batch.id);
   const schoolCourses = await listSchoolCourses(batch.schoolId);
   const schoolCourseByKey = new Map(schoolCourses.map((course) => [buildMatchKey(course), course]));
-  const decisionByRowId = new Map(parsed.matchedRowDecisions.map((item) => [item.rowId, item.decision]));
 
   const finalRows: CourseImportRowReviewDTO[] = [];
 
   for (const row of stagedRows) {
+    if (
+      row.result &&
+      (row.result === "created" || row.result === "updated" || row.result === "skipped")
+    ) {
+      finalRows.push(row);
+      continue;
+    }
+
     const latestMatch = schoolCourseByKey.get(row.matchKey) ?? null;
-    const nextDecision = decisionByRowId.get(row.id) ?? row.decision ?? "skip";
+    const nextDecision = row.decision ?? "skip";
 
     if (row.status === "same_file_conflict" || row.status === "invalid" || row.status === "blocked") {
       const resultReason = row.validationIssues[0]?.message ?? "当前行仍存在阻断项。";
@@ -302,36 +530,50 @@ export async function applyCourseImport(input: {
     }
 
     if (!latestMatch) {
-      const created = await createCourseForTeacherScoped({
-        schoolId: batch.schoolId,
-        title: row.row.title,
-        subject: row.row.subject,
-        grade: row.row.grade,
-        status: "draft",
-      });
-      finalRows.push({
-        ...row,
-        status: "ready_to_create",
-        matchedCourse: null,
-        decision: null,
-        result: "created",
-        resultReason: "已创建为草稿课程。",
-      });
-      await persistRowApplyResult({
-        rowId: row.id,
-        status: "ready_to_create",
-        matchedCourse: null,
-        decision: null,
-        result: "created",
-        resultReason: "已创建为草稿课程。",
-        appliedCourseId: created.id,
-      });
+      try {
+        const created = await createCourseForTeacherScoped({
+          schoolId: batch.schoolId,
+          title: row.row.title,
+          subject: row.row.subject,
+          grade: row.row.grade,
+          status: "draft",
+        });
+        finalRows.push({
+          ...row,
+          status: "ready_to_create",
+          matchedCourse: null,
+          decision: null,
+          result: "created",
+          resultReason: "已创建为草稿课程。",
+        });
+        await persistRowApplyResult({
+          rowId: row.id,
+          status: "ready_to_create",
+          matchedCourse: null,
+          decision: null,
+          result: "created",
+          resultReason: "已创建为草稿课程。",
+          appliedCourseId: created.id,
+        });
+      } catch (error) {
+        const resultReason = error instanceof Error ? error.message : "课程创建失败，请稍后重试。";
+        finalRows.push({ ...row, result: "failed", resultReason });
+        await persistRowApplyResult({
+          rowId: row.id,
+          status: row.status,
+          matchedCourse: row.matchedCourse,
+          decision: row.decision,
+          validationIssues: row.validationIssues,
+          result: "failed",
+          resultReason,
+        });
+      }
       continue;
     }
 
-    if (latestMatch.ownerId !== scope.userId) {
+    if (latestMatch.ownerId !== parsedPayload.actorId) {
       const validationIssues = [createRowIssue("FOREIGN_OWNED_MATCH", "命中了同校其他教师课程，不能更新。")];
-      const matchedCourse = buildMatchedCourse(latestMatch, scope.userId);
+      const matchedCourse = buildMatchedCourse(latestMatch, parsedPayload.actorId);
       finalRows.push({
         ...row,
         status: "blocked",
@@ -354,7 +596,7 @@ export async function applyCourseImport(input: {
     }
 
     if (nextDecision === "skip") {
-      const matchedCourse = buildMatchedCourse(latestMatch, scope.userId);
+      const matchedCourse = buildMatchedCourse(latestMatch, parsedPayload.actorId);
       const resultReason = latestMatch.status === row.row.status ? "课程状态无变化，已跳过。" : "教师选择跳过该命中课程。";
       finalRows.push({
         ...row,
@@ -377,7 +619,7 @@ export async function applyCourseImport(input: {
     }
 
     if (latestMatch.status === row.row.status) {
-      const matchedCourse = buildMatchedCourse(latestMatch, scope.userId);
+      const matchedCourse = buildMatchedCourse(latestMatch, parsedPayload.actorId);
       finalRows.push({
         ...row,
         status: "matched_existing",
@@ -398,28 +640,51 @@ export async function applyCourseImport(input: {
       continue;
     }
 
-    await updateMatchedCourseStatusForTeacherScoped({
-      courseId: latestMatch.id,
-      status: row.row.status,
-    });
-    const matchedCourse = { ...buildMatchedCourse(latestMatch, scope.userId), status: row.row.status };
-    finalRows.push({
-      ...row,
-      status: "matched_existing",
-      matchedCourse,
-      decision: "update",
-      result: "updated",
-      resultReason: "已按审核决定更新课程状态。",
-    });
-    await persistRowApplyResult({
-      rowId: row.id,
-      status: "matched_existing",
-      matchedCourse,
-      decision: "update",
-      result: "updated",
-      resultReason: "已按审核决定更新课程状态。",
-      appliedCourseId: latestMatch.id,
-    });
+    try {
+      await updateMatchedCourseStatusForTeacherScoped({
+        courseId: latestMatch.id,
+        status: row.row.status,
+      });
+      const matchedCourse = { ...buildMatchedCourse(latestMatch, parsedPayload.actorId), status: row.row.status };
+      finalRows.push({
+        ...row,
+        status: "matched_existing",
+        matchedCourse,
+        decision: "update",
+        result: "updated",
+        resultReason: "已按审核决定更新课程状态。",
+      });
+      await persistRowApplyResult({
+        rowId: row.id,
+        status: "matched_existing",
+        matchedCourse,
+        decision: "update",
+        result: "updated",
+        resultReason: "已按审核决定更新课程状态。",
+        appliedCourseId: latestMatch.id,
+      });
+    } catch (error) {
+      const matchedCourse = buildMatchedCourse(latestMatch, parsedPayload.actorId);
+      const resultReason = error instanceof Error ? error.message : "课程更新失败，请稍后重试。";
+      finalRows.push({
+        ...row,
+        status: "matched_existing",
+        matchedCourse,
+        decision: "update",
+        result: "failed",
+        resultReason,
+      });
+      await persistRowApplyResult({
+        rowId: row.id,
+        status: "matched_existing",
+        matchedCourse,
+        decision: "update",
+        validationIssues: row.validationIssues,
+        result: "failed",
+        resultReason,
+        appliedCourseId: latestMatch.id,
+      });
+    }
   }
 
   const summary = buildApplySummary(finalRows);
@@ -438,11 +703,34 @@ export async function applyCourseImport(input: {
     })
     .where(eq(courseImportBatch.id, batch.id));
 
-  return CourseImportApplyResultSchema.parse({
+  return CourseImportAsyncTaskResultSchema.parse({
     batchId: batch.id,
     schoolId: batch.schoolId,
-    status: nextStatus,
-    summary,
-    rows: finalRows,
+    actorId: batch.actorId,
+    batchStatus: nextStatus,
+    applySummary: summary,
+    failedRowCount: summary.failed,
+    outcome: summary.failed > 0 ? "partially_completed" : "completed",
+    titleKey:
+      summary.failed > 0
+        ? "asyncTasks.courseImport.applyBatch.result.partial"
+        : "asyncTasks.courseImport.applyBatch.result.completed",
+    summaryKey:
+      summary.failed > 0
+        ? "asyncTasks.courseImport.applyBatch.result.partialSummary"
+        : "asyncTasks.courseImport.applyBatch.result.completedSummary",
+    counts: {
+      total: finalRows.length,
+      succeeded: summary.created + summary.updated,
+      partiallySucceeded: summary.failed > 0 ? summary.created + summary.updated : 0,
+      failed: summary.failed,
+      skipped: summary.skipped,
+    },
+    detail: {
+      batchId: batch.id,
+      schoolId: batch.schoolId,
+      batchStatus: nextStatus,
+      applySummary: summary,
+    },
   });
 }
