@@ -1,661 +1,632 @@
-# Architecture Research: v2.0 Runtime Platform Foundations
+# Architecture Patterns: v2.3 Async Task Platform
 
-**Project:** OpenLearn Next  
-**Researched:** 2026-05-15  
+**Domain:** BullMQ/async worker platform inside OpenLearn Next monolith  
+**Researched:** 2026-05-18  
 **Confidence:** HIGH
 
-## Current Shape
+## Recommended Architecture
 
-当前代码库本质上还是一个 **单体 Next.js App Router 应用**，但已经出现了两个很重要的“可迁移前例”：
+结论先说：**把 BullMQ 做成单体内的“后台执行平面”，不是新的业务真相源，也不是新的主写路径。**
 
-1. **稳定的 Server 边界已经存在**  
-   `src/app` 负责路由与页面组合；`src/actions/*` 负责 Server Actions；`src/lib/dal/*` 负责 DB + authz + DTO；显式缓存与 `updateTag()` 已经是既有约束。
+OpenLearn Next 现有正确姿势已经很清晰：
 
-2. **feature root 渐进迁移已经被验证过一次**  
-   `src/features/schedule/*` 不是实验文件夹，而是真实实现根；旧 `src/actions/schedule-*.ts` 与 `src/lib/dal/schedule-*.ts` 退化为 compatibility re-export。这证明“先抽 feature root，再保留旧入口适配层”是当前仓库里最安全的重构模式。
+- Next.js 16 monolith 继续承载 UI、Route Handlers、Server Actions
+- SQLite + DAL 继续承载 durable truth
+- Redis 已经是 optional delivery capability，并且已有连接/降级/posture 经验
+- runtime-platform 已经证明了“feature root + seam + compatibility shim”这条渐进路线可行
 
-3. **课堂 runtime 已有可复用骨架**  
-   学生播放器已采用 `shell + personal` 分层、`Suspense` 流式 personal state、SSE 接收课堂状态、`/api/classroom/[sessionId]/snapshot` 读取 durable snapshot。这是未来 Runtime Host 的天然接入点。
+因此 v2.3 不应该做成：
 
-4. **插件系统目前还是 server-side proposal system，不是真 runtime**  
-   现有插件链路是 `manifest -> enabled plugins -> runPluginHook() -> allowlisted action result -> UI widget`。它安全，但还没有真正的独立执行环境、生命周期、bridge、sandbox。
+`UI -> BullMQ -> Worker -> DB -> UI`
 
-5. **路由元数据与主题布局系统说明“壳层与实现”可以拆开**  
-   `route-surface-registry` 已经证明：把 route shell contract 从 JSX 硬编码中抽出来是可行的。V2 runtime host 也应该走“声明式 contract + resolver + renderer”这条路，而不是在页面里直接塞 iframe 逻辑。
+而应该做成：
 
-**结论：** 最安全的路径不是一次性把仓库改造成完整 monorepo，也不是在现有页面里临时塞一套 iframe 实验，而是 **沿用 schedule 的迁移方法，做一次“单体内平台化”重构**：先引入清晰边界、目录合同、compatibility barrel，再让 runtime host 逐步替换页面内的直接实现。
+`UI / Route / Server Action -> Feature Server Orchestrator -> DAL transaction -> task record + enqueue request -> BullMQ -> Worker -> DAL side effect -> status DTO / cache invalidation`
+
+也就是说：
+
+1. **业务提交与鉴权仍同步发生在 monolith 内**
+2. **BullMQ 只负责异步执行，不负责决定权限和业务真相**
+3. **Worker 永远通过 DAL / server orchestration 写回，不直接绕过边界“裸写数据库”**
+4. **先支持少量明确任务类型**（如 reminder dispatch、resource ingestion、AI/RAG preparation），不搞“万能任务平台”
 
 ---
 
-## Target Milestone Shape
-
-### 推荐目标：Hybrid V2，而不是一步到位 full monorepo
-
-本 milestone 应达到的目标形态是：
-
-- **继续保持当前 Next.js 主应用可运行、可发布、可渐进迁移**
-- **在仓库内引入 V2 所需的目标边界**：`features / runtimes / packages / plugins`
-- **暂不在本 milestone 强制把现有应用整体搬到 `/apps/web`**
-
-原因很直接：
-
-- 当前 Next.js 16、App Router、缓存、Server Actions、Auth.js、SQLite 路径都已经在根应用里稳定工作
-- 一次性迁到 `/apps/web` 会把“架构重组风险”和“runtime foundation 风险”叠加
-- 用户要的是“直接重构主项目”，不是“旁边再做个实验工程”；因此应 **直接在主仓库引入新结构，但保持当前 app 仍是唯一生产入口**
-
-### 推荐目录形态
+## Incremental Target Shape
 
 ```text
 src/
-  app/                        # 继续作为唯一 Next.js 路由入口
   features/
-    courseware/
-      authoring/
-      runtime/
+    async-tasks/                     # NEW: async task platform root
+      index.ts                       # NEW: public barrel
       shared/
-      ui/
-    classroom/
-      runtime/
-      events/
-      shared/
-    runtime-host/
-      host/
-      bridge/
-      shared/
-      ui/
-    plugins/
-      registry/
-      host/
-      shared/
-  runtimes/
-    courseware/
-      host-page/
-      bridge-client/
-      manifests/
-    plugin/
-      host-page/
-      bridge-client/
-  components/
-    ...                       # 旧共享 UI 继续存在，逐步收口到 feature/ui
-  actions/
-    ...                       # 旧入口保留，逐步 re-export 到 feature actions
+        contract.ts                  # NEW: queue names, job names, payload/result schemas
+        dto.ts                       # NEW: task/job status DTO schemas
+        idempotency.ts               # NEW: job key helpers
+      server/
+        enqueue.ts                   # NEW: enqueue boundary used by actions/routes/features
+        status.ts                    # NEW: read-model/status aggregation
+        orchestration.ts             # NEW: task record + queue add composition
+      worker/
+        registry.ts                  # NEW: worker processor registry
+        bootstrap.ts                 # NEW: worker startup/bootstrap
+        processors/
+          schedule-reminder.ts       # NEW: first real processor
+          resource-ingestion.ts      # NEW later
+          rag-indexing.ts            # NEW later
+      infra/
+        bullmq.ts                    # NEW: Queue / Worker / QueueEvents factories
+        connection.ts                # NEW: BullMQ-specific Redis connection policy
+        queue-events.ts              # NEW: QueueEvents listeners -> status sync
+      boundary-map.ts                # NEW: migration rules like runtime-platform
+
+  server/
+    workers/
+      entry.ts                       # NEW: dedicated worker process entrypoint
+
   lib/
     dal/
-    dto/
-    ...                       # 旧入口保留，逐步 re-export 到 feature/shared
+      async-tasks.ts                 # NEW compatibility DAL entrypoint or shim
+      schedule-reminders.ts          # MODIFIED: stop inline dispatch, enqueue instead
+      ai-rag.ts                      # MODIFIED later: enqueue heavy work, not inline
+      resources.ts                   # MODIFIED later: enqueue ingestion/index work
 
-packages/
-  contracts/
-    runtime-bridge/
-    runtime-events/
-    courseware/
-  runtime-bridge/
-    host-sdk/
-    iframe-sdk/
+  app/
+    api/
+      internal/
+        jobs/
+          [taskId]/route.ts          # NEW optional operator/status endpoint
+    settings/
+      labs/
+        jobs/page.tsx                # NEW optional operator UI
 
-plugins/
-  builtin-html-courseware/
-  builtin-reveal-courseware/
+db/
+  schema.ts                          # MODIFIED: persistent async task tables
 
-runtimes/
-  README.md                   # 先文档化；真正独立 app/runtime 之后再拆
+server.ts                            # MODIFIED: web server stays web-only; no worker autorun here
+scripts/
+  worker.ts                          # NEW optional local bootstrap script
 ```
-
-### 这个 target 的关键点
-
-- `src/app` **保留**：因为现有 Next.js 路由、PPR、SSE、Auth、DAL 已经绑定在这里
-- `src/features/*` **成为业务与平台能力的主实现根**
-- `packages/*` **只承载纯 TypeScript contract / SDK，不承载 DB、cookies、Next runtime 依赖**
-- `plugins/*` **只承载受控 manifest 与静态资源/构件，不承载任意远程代码执行**
-- `src/runtimes/*` **先作为 Next.js 内部 host 实现区**，未来再独立为 `/apps/runtime-host`
 
 ---
 
-## New Boundaries
+## New vs Modified Areas
 
-下面区分 **新增边界** 与 **修改现有边界**。
+## New Areas
 
-### 1. 新增：Feature Public API Boundary
+### 1. `src/features/async-tasks/*` — new feature root
 
-**现在引入：** `src/features/<domain>/index.ts`
-
-**规则：**
-
-- app routes 只能依赖 feature public barrel
-- feature 内部可再分 `actions / server / shared / ui`
-- 旧 `src/actions/*`、`src/lib/dal/*` 先作为 compatibility adapter 存在
-
-**建议目录合同：**
-
-```text
-src/features/runtime-host/
-  index.ts
-  actions.ts          # Server Actions public entry
-  server.ts           # server-only orchestration / DAL composition
-  shared/
-    dto.ts
-    events.ts
-    permissions.ts
-  ui/
-    runtime-host-surface.tsx
-    runtime-frame.tsx
-```
-
-**为什么现在就要做：** 这是后续把 runtime、plugin、courseware 从 route-first 代码里抽出来的前提。
-
----
-
-### 2. 新增：Runtime Host Boundary
-
-**新增边界，不要混进 classroom page 或 player page 里。**
+这是 v2.3 的核心。参考 `src/features/runtime-platform/*` 与 `src/features/schedule/*` 的既有做法，异步平台应该先成为一个独立 feature root，而不是散落在 `src/server/*` 与 `src/lib/*` 里。
 
 **职责：**
 
-- 接收 shell DTO / runtime session DTO
-- 决定加载哪种 runtime（html / reveal / future plugin runtime）
-- 创建 iframe sandbox
-- 建立 host ↔ iframe bridge
-- 把 iframe 发出的请求转成受控 host action
-- 把 classroom snapshot / step context / capability context 推送给 iframe
+- 定义 queue/job contract
+- 提供 enqueue API
+- 提供 worker processor registry
+- 聚合 job status DTO
+- 隔离 BullMQ 细节，避免业务代码直接 `new Queue()`
 
-**禁止职责：**
+### 2. `src/server/workers/entry.ts` — new worker bootstrap
 
-- 不直接访问数据库
-- 不直接读 cookies/auth（这些由 host page / server loader 解决）
-- 不允许 iframe 直接拿到内部 API 密钥、session cookie、DB 标识全集
+需要一个**独立于 Next web server 的 worker 入口**。现有 `server.ts` 已经只负责 Next HTTP server + WebSocket transport bootstrap，这个边界是正确的，不能把 BullMQ worker 直接塞进去，否则会把 web 生命周期与后台消费者生命周期绑死。
 
-**推荐实现位置：**
+**建议：**
 
-- `src/features/runtime-host/*`：host orchestration
-- `src/runtimes/courseware/host-page/*`：iframe 中真正执行的受限页面
+- `pnpm dev` / `pnpm start` 继续只跑 web app
+- 新增 `pnpm worker:dev` / `pnpm worker:start` 跑后台 worker
+- 本地可以同时开两个进程；部署时按 capability 决定是否启 worker
+
+### 3. Persistent async task tables — new DB truth layer for job status
+
+BullMQ 自身状态在 Redis，但本项目不能把 Redis 当业务真相源。所以需要新的 SQLite 持久层来表达“平台任务”的业务可见状态。
+
+建议最少新增两张表：
+
+#### `asyncTask`
+
+面向产品/业务的任务记录。
+
+建议字段：
+
+| Field | Purpose |
+|---|---|
+| `id` | 内部 task id，UI/DAL 主键 |
+| `queueName` | 业务队列名 |
+| `jobName` | 任务类型 |
+| `jobKey` | 幂等键/业务去重键 |
+| `status` | `queued/running/completed/failed/cancelled` |
+| `triggeredById` | 谁触发的 |
+| `schoolId` | 租户范围 |
+| `entityType` / `entityId` | 关联业务对象 |
+| `inputJson` | 经 DTO 清洗后的输入快照 |
+| `outputJson` | 结果摘要 |
+| `failureCode` / `failureReason` | 错误摘要 |
+| `progressJson` | 最新进度 |
+| `queueJobId` | BullMQ job.id 映射 |
+| `attemptsMade` | 重试次数快照 |
+| `createdAt` / `startedAt` / `completedAt` / `updatedAt` | 生命周期 |
+
+#### `asyncTaskEvent`
+
+面向审计/排障的事件流。
+
+建议字段：
+
+| Field | Purpose |
+|---|---|
+| `id` | event id |
+| `taskId` | 对应 asyncTask |
+| `eventType` | `enqueued/progress/completed/failed/retried` |
+| `payloadJson` | 事件明细 |
+| `createdAt` | 事件时间 |
+
+这和现有 `runtimeEventOutbox`、`transportDeliveryAttempts` 的模式一致：**Redis 负责 delivery，SQLite 负责 durable inspection truth。**
 
 ---
 
-### 3. 新增：Bridge Contract Boundary
+## Modified Areas
 
-这是 v2.0 最应该先固化的 contract。先有 contract，再有 runtime。
+### 1. `src/lib/dal/schedule-reminders.ts` / `src/features/schedule/reminders/server.ts`
 
-**推荐放在：** `packages/contracts/runtime-bridge/*`
+当前 reminder 逻辑仍然是：
 
-**必须先定义的消息类型：**
+- rule 保存到 SQLite
+- dispatch 记录写入 `scheduleReminderDispatch`
+- retry 时直接调用 `dispatchScheduleReminder()`
 
-| Direction | Event | Purpose |
+这非常适合做 v2.3 第一批迁移样板，但要改成：
+
+- **保存 rule 时仍然同步写 `scheduleReminderDispatch`**
+- **真正发送动作改为 enqueue `schedule-reminder.dispatch` job**
+- worker 执行时调用现有 `dispatchScheduleReminder()`
+- worker 成功/失败后更新 `scheduleReminderDispatch` + `asyncTask`
+
+这样 blast radius 最小，因为：
+
+- 现有 schema 已有 `planned/sent/failed/retry_required`
+- 现有 server helper `dispatchScheduleReminder()` 已经存在
+- UI 已有 DTO surface，可直接吃新状态
+
+### 2. `src/lib/dal/ai-rag.ts`、`src/lib/dal/resources.ts`
+
+这些是第二批候选。凡是可能出现：
+
+- 文档解析
+- 分块/embedding
+- Qdrant upsert
+- 大文件处理
+- 多步 AI 任务
+
+都应该未来迁到 async platform，但**不要在 v2.3 首批就全迁**。建议先只接一类任务，跑通平台，再扩张。
+
+### 3. `server.ts`
+
+只做**最小修改**：
+
+- 保持当前 web server + websocket transport 初始化方式不变
+- 不在 `server.ts` 中自动启动 BullMQ worker
+- 如果需要共享基础连接工厂，只抽公共模块，不改变 server posture
+
+### 4. `package.json`
+
+新增而非替换脚本：
+
+- `worker:dev`
+- `worker:start`
+- `verify:phaseXX` for async platform
+
+不要替换现有 `dev/start` 主路径。
+
+---
+
+## Component Boundaries
+
+| Component | Responsibility | Communicates With |
 |---|---|---|
-| iframe → host | `runtime.ready` | 子 runtime 完成加载并声明能力 |
-| iframe → host | `runtime.height.changed` | 请求宿主调整 iframe 高度 |
-| iframe → host | `runtime.event.emitted` | 上报课堂事件/互动事件 |
-| iframe → host | `runtime.submit.requested` | 请求提交学习产物 |
-| iframe → host | `runtime.state.patch` | 请求保存本地运行态（草稿/临时状态） |
-| host → iframe | `host.bootstrap` | 初始上下文：lesson/step/runtime/session/capabilities |
-| host → iframe | `host.classroom.snapshot` | 当前课堂状态、锁定状态、活动 step |
-| host → iframe | `host.navigation.changed` | 当前步骤/幻灯片/播放位置变更 |
-| host → iframe | `host.command` | 允许的控制命令，如 `goToSlide`、`pause` |
-| host → iframe | `host.result` | 对 submit/save/request 的结果回执 |
-
-**必须有的 envelope 字段：**
-
-- `protocolVersion`
-- `runtimeSessionId`
-- `messageId`
-- `type`
-- `timestamp`
-- `payload`
-
-**必须有的 host 校验：**
-
-- 校验 `event.origin`
-- 校验 `event.source === iframe.contentWindow`
-- 校验 `runtimeSessionId`
-- Zod 校验 message schema
-- capability 校验后才执行 action
+| Server Action / Route Handler | 接收用户请求、鉴权、参数校验 | Feature server orchestrator |
+| Feature server orchestrator | 同步业务写入 + 任务创建 + enqueue 编排 | DAL, async enqueue service |
+| DAL | durable truth、authz、DTO shaping、cache tags | SQLite |
+| Async enqueue service | 统一调用 BullMQ Queue.add，生成 jobId/jobKey | BullMQ Queue, asyncTask DAL |
+| Worker bootstrap | 注册 processors、QueueEvents、error handling | BullMQ Worker/QueueEvents |
+| Worker processor | 执行具体后台任务，不直接暴露给 UI | DAL/server helpers/external services |
+| Async task status service | 聚合 SQLite task/task-event + 可选 BullMQ snapshot | app routes, settings UI |
+| QueueEvents sync listener | 把 BullMQ completed/failed/progress 同步成 durable status | asyncTask tables |
 
 ---
 
-### 4. 新增：Runtime Event Boundary
+## Data Flow
 
-V2 计划里强调 Event Bus，但本 milestone **不要直接把所有写路径改成异步 consumer 驱动**。
-
-最安全做法是先引入：
+### Flow 1: enqueue
 
 ```text
-Server Action
-  -> feature server/orchestrator
-  -> DAL transaction (state change)
-  -> append domain event / outbox record
-  -> updateTag()
-  -> optional SSE fanout
+UI action
+  -> Server Action / Route Handler
+  -> Feature server orchestration
+  -> DAL transaction writes business truth
+  -> DAL inserts asyncTask(status=queued)
+  -> enqueue service calls Queue.add(jobName, payload, { jobId, attempts, backoff })
+  -> DAL updates asyncTask.queueJobId
+  -> updateTag() for impacted read models
+  -> return task status DTO immediately
 ```
 
-也就是：
+关键点：
 
-- **真相源仍是当前 DAL + SQLite 写入事务**
-- **事件先作为 durable outbox / domain event log 存在**
-- SSE、analytics、replay、plugin consumers 逐步消费这些事件
+- **用户能立刻得到可追踪 taskId**
+- **同步请求只做“可提交、可追踪”的确认，不等待异步完成**
+- **若 Queue.add 失败，要把 asyncTask 标记为 failed/queue_unavailable，而不是悄悄吞掉**
 
-这比“Action -> Event Bus -> Consumer -> DB”安全得多，因为：
+### Flow 2: worker execution
 
-- 当前系统依赖 Server Action 写后立即 `updateTag()` 实现 read-your-writes
-- Classroom / editor / player 都已经和同步写反馈耦合
-- SQLite 首发不适合一上来就把核心教学写路径全面异步化
+```text
+BullMQ Worker receives job
+  -> processor validates payload via Zod
+  -> mark asyncTask running
+  -> call domain server helper / DAL methods
+  -> optionally update progress
+  -> on success: persist output summary + completed status
+  -> on failure: persist failure summary + retry metadata
+```
 
-**推荐新增合同：**
+### Flow 3: status read
 
-- `packages/contracts/runtime-events`
-- `src/features/classroom/events`
-- `src/features/courseware/runtime/events`
+```text
+Page / polling route / operator UI
+  -> async task status service
+  -> read asyncTask + latest asyncTaskEvent from SQLite
+  -> return stable status DTO
+```
+
+这里**不要直接把 BullMQ Redis 状态暴露给 UI 当唯一来源**。UI 读 durable DTO，必要时附加 Redis best-effort snapshot，但不能反过来。
 
 ---
 
-### 5. 新增：Courseware Package Boundary
+## Recommended Contracts
 
-不要把未来课件简单视作一段 HTML 字符串。要有“包”的概念。
+### 1. Queue and job names
 
-**建议合同：**
+建议显式常量化，不允许业务代码手写字符串。
 
 ```ts
-type CoursewareManifest = {
-  id: string
-  version: string
-  runtime: 'html' | 'reveal'
-  entry: string
-  assets: string[]
-  capabilities: Array<'submit' | 'save' | 'emit-event' | 'resize' | 'navigate'>
-  contentSecurityPolicy?: string
+export const AsyncQueueName = {
+  default: "default",
+  notifications: "notifications",
+  resourceProcessing: "resource-processing",
+  ai: "ai",
+} as const;
+
+export const AsyncJobName = {
+  scheduleReminderDispatch: "schedule-reminder.dispatch",
+  resourceIngest: "resource.ingest",
+  ragIndex: "rag.index",
+} as const;
+```
+
+### 2. Job payload schemas
+
+每种 job 必须有 Zod schema。
+
+```ts
+const ScheduleReminderDispatchJobSchema = z.object({
+  taskId: z.string().min(1),
+  dispatchId: z.string().min(1),
+  schoolId: z.string().min(1),
+  triggeredById: z.string().min(1),
+});
+```
+
+### 3. Status DTO
+
+UI 与 route 层不要直接吃 BullMQ `Job` 对象。
+
+```ts
+type AsyncTaskStatusDTO = {
+  id: string;
+  queueName: string;
+  jobName: string;
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
+  progress: Record<string, unknown> | null;
+  attemptsMade: number;
+  failureReason: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+};
+```
+
+---
+
+## Patterns to Follow
+
+### Pattern 1: Enqueue boundary, never direct queue usage
+
+**What:** 所有业务代码都通过 `enqueueAsyncTask()` 进入队列。
+
+**When:** 任何需要 BullMQ 的地方。
+
+**Example:**
+
+```ts
+export async function enqueueScheduleReminderDispatch(input: ScheduleReminderDispatchInput) {
+  const payload = ScheduleReminderDispatchJobSchema.parse(input);
+
+  const task = await createQueuedAsyncTask({
+    queueName: "notifications",
+    jobName: "schedule-reminder.dispatch",
+    jobKey: `schedule-reminder:${payload.dispatchId}`,
+    inputJson: payload,
+    schoolId: payload.schoolId,
+    entityType: "scheduleReminderDispatch",
+    entityId: payload.dispatchId,
+  });
+
+  await notificationQueue.add("schedule-reminder.dispatch", {
+    ...payload,
+    taskId: task.id,
+  }, {
+    jobId: task.jobKey,
+    attempts: 5,
+    backoff: { type: "exponential", delay: 1000 },
+    removeOnComplete: false,
+    removeOnFail: false,
+  });
+
+  return toAsyncTaskStatusDTO(task);
 }
 ```
 
-**为什么：**
+**Why:** 这样 future switch（BullMQ → another queue）时换的是 infra，不是全业务层。
 
-- 未来 html / reveal / blockly / wasm 才能统一挂到 Runtime Host
-- 当前 SQLite / published lesson version 也更容易保存“runtime descriptor”，而不是保存散乱 blob
+### Pattern 2: Worker calls domain helpers, not ad-hoc SQL
 
----
+**What:** processor 内不要散写 SQL；调用 feature server helper / DAL。
 
-### 6. 新增：Plugin Runtime Boundary
+**When:** job processor 有业务 side effect 时。
 
-现有插件系统保留，但语义要拆成两层：
+**Example:**
 
-1. **现有 server plugin layer**：manifest + allowlisted action + audit
-2. **新增 runtime plugin layer**：受控 iframe runtime，由 Runtime Host 托管
+```ts
+const worker = new Worker("notifications", async (job) => {
+  const payload = ScheduleReminderDispatchJobSchema.parse(job.data);
+  await markAsyncTaskRunning(payload.taskId);
 
-**本 milestone 不建议让“所有插件”立即升级成 runtime plugin。**
+  const result = await runScheduleReminderDispatchJob(payload);
 
-先只支持：
-
-- built-in html courseware
-- built-in reveal courseware
-
-后续再开放第三方 runtime plugin。
-
-这是最重要的 scope control。
-
----
-
-### 7. 修改：App Route Boundary
-
-**当前：** 页面常直接 import `lib/dal/*`、`components/*`
-
-**目标：**
-
-- `src/app/**/page.tsx` 只做 route param 解析、Suspense 编排、feature surface 组合
-- route 不直接理解 runtime bridge 协议
-- route 不直接处理 iframe message
-
-**推荐页面模式：**
-
-```text
-page.tsx
-  -> feature server loader / DTO loader
-  -> feature surface
-  -> runtime host slot
+  await markAsyncTaskCompleted(payload.taskId, { result });
+  return result;
+});
 ```
 
----
+### Pattern 3: Durable status first, Redis status second
 
-### 8. 修改：DAL Boundary
+**What:** 产品 UI 读 SQLite `asyncTask`。
 
-DAL 仍是硬边界，不能被 runtime 化吞掉。
+**When:** settings、operator、user-facing async progress 页面。
 
-**未来也不变的规则：**
+**Why:** 项目已经明确 Redis 不是 durable truth。
 
-- iframe runtime 永不直连 DB
-- runtime bridge 永不绕过 Server Actions / server route handlers
-- courseware submission / save / emit-event 最终仍走 host-side action -> DAL
+### Pattern 4: Feature-by-feature migration with compatibility shims
 
-**改法：**
+**What:** 老入口保留 re-export，真实实现迁到 `src/features/async-tasks`。
 
-- 新 feature server 文件组合多个 DAL
-- 旧 DAL 文件逐步退化为 feature server dependency 或 compatibility re-export
+**When:** 修改已有 schedule/resource/ai 模块时。
 
----
-
-## Integration Strategy
-
-## 1. 总体策略：Inside-out migration
-
-**推荐路线：** 先改“边界与适配层”，再接 runtime host，最后再谈多 runtime 扩展。
-
-不要这样做：
-
-- 一步把项目整体迁到 `/apps/web`
-- 一步引入 Redis/Kafka/BullMQ 并重写所有写链路
-- 直接让 iframe 拿 cookie 调内部 API
-- 把用户 HTML 直接 `srcDoc` 到主页面并赋予同源能力
-
-要这样做：
-
-1. 先抽出 `runtime-host` feature root
-2. 先定义 typed bridge contract
-3. 用 **Next 页面中的 sandboxed iframe host** 落地第一版
-4. 先让 host 成为现有 player/classroom 的“子舞台”，而不是平行新系统
+**Why:** 这和 schedule、runtime-platform 的既有迁移模式一致，风险最低。
 
 ---
 
-## 2. Runtime Host 如何接到现有 app
+## Anti-Patterns to Avoid
 
-### 教师侧链路
+### Anti-Pattern 1: starting workers inside `server.ts`
 
-```text
-Teacher Editor / Launch
-  -> 产出 published lesson snapshot 中的 runtime descriptor
-  -> Teacher Preview / Classroom Launch 读取 descriptor
-  -> RuntimeHostSurface 决定是否渲染 iframe runtime
-```
+**What:** web app 启动时顺手启动 worker。
 
-### 学生侧链路
+**Why bad:**
 
-```text
-Student Player Page
-  -> getStudentPlayerShellDTO()
-  -> getStudentPlayerPersonalDTO() under Suspense
-  -> ClassroomRuntimeClient
-  -> StepActivityShell / CurrentStepRenderer
-  -> 当 step.type 或 step.payload.runtimeDescriptor 命中 runtime step 时
-     渲染 RuntimeHostSurface
-```
+- web/worker 生命周期耦合
+- scaling 时无法独立扩 worker
+- local/dev/prod posture 混乱
+- 容易把每个 web 实例都变成隐式消费者
 
-### 课堂侧链路
+**Instead:** 独立 worker entry process。
 
-```text
-Classroom Page
-  -> getClassroomConsoleDTO() / getClassroomSnapshotDTO()
-  -> ClassroomConsoleSurface
-  -> preview/live panel 中嵌入 RuntimeHostSurface
-  -> live snapshot 通过 host message 转发给 iframe
-```
+### Anti-Pattern 2: using BullMQ/Redis as the only status source
 
-**关键判断：** Runtime Host 不是新顶级产品路由；它首先应是 **现有 student/classroom/preview surface 内部的受控执行容器**。
+**What:** UI 直接查 Redis job state。
 
----
+**Why bad:** 违背 SQLite durable truth；Redis flush/expiry/deploy posture 会破坏产品可见状态。
 
-## 3. iframe + bridge 的安全集成方式
+**Instead:** SQLite `asyncTask` 为主，BullMQ 仅做 execution substrate。
 
-### 推荐 iframe 策略
+### Anti-Pattern 3: enqueue before business truth write
 
-使用：
+**What:** 先 Queue.add，再写业务表。
 
-```html
-sandbox="allow-scripts"
-```
+**Why bad:** job 可能先执行，读到不存在/未授权/未提交完成的数据。
 
-可按需要谨慎追加：
+**Instead:** 先同步写 durable truth，再 enqueue。
 
-- `allow-forms`（只有课件确实需要 form submit 行为时）
-- `allow-downloads`（只有导出型课件需要时）
+### Anti-Pattern 4: “generic any-job platform” from day one
 
-**不要在 milestone v2.0 默认加入：**
+**What:** 一开始设计 DSL、flow graph、dynamic processors、remote job definitions。
 
-- `allow-same-origin`
-- `allow-top-navigation`
-- `allow-popups`
+**Why bad:** 范围爆炸，验证慢，风险高。
 
-MDN 明确提醒：`allow-scripts + allow-same-origin` 会显著削弱 sandbox 意义；跨窗口通信应优先通过 `postMessage()`，且必须校验 `origin` 与 `source`。这与项目“插件禁止任意代码越权”的安全要求一致。  
-Sources: MDN iframe docs (last modified 2026-04-24), MDN postMessage docs (last modified 2026-04-13).
+**Instead:** 先做 1-2 个具体 job 类型，抽最小公共层。
 
-### 推荐 bridge 行为
+### Anti-Pattern 5: worker bypasses authz and tenant boundaries
 
-- iframe 只通过 `postMessage()` 请求宿主能力
-- 宿主只暴露白名单 capability，不暴露通用 `eval`/`fetch-anything` 能力
-- 消息协议放在 `packages/contracts/runtime-bridge`
-- 宿主收到消息后：`schema parse -> source/origin check -> capability check -> server action/route -> result ack`
+**What:** processor 只拿 ID 就直接改所有表。
 
-### 推荐 bootstrap 方式
+**Why bad:** 多学校/多角色边界被破坏。
 
-不要把完整 lesson/session 数据塞进 URL query。  
-要用：
-
-- `runtimeSessionId`
-- 短期 bootstrap token / signed descriptor id
-- 由 host page 在服务端解包成最小上下文 DTO
-
-这样 iframe 即使被复制 URL，也拿不到完整会话权限。
+**Instead:** payload 中保留 `schoolId`/`triggeredById`/entity scope，worker helper 再做 scope validation。
 
 ---
 
-## 4. 与当前缓存/PPR 约束的整合
+## Integration Points
 
-Next.js 16 当前约束不能破坏：
+## 1. Existing runtime-platform seam style
 
-- 公开 lesson shell / 页面框架可以缓存
-- 用户态 / classroom runtime state 必须在 Suspense 下流式读取
-- 写入后必须 `updateTag()` / `revalidateTag()`
+`src/features/runtime-platform/seams/*` 已经证明：**基础设施能力应该先被 seam 化。**
 
-**因此 Runtime Host 应分两层：**
+BullMQ 也应沿用这一思路：
 
-1. **Host Shell（可缓存或半缓存）**  
-   只渲染 iframe 容器、样式、runtime manifest、静态 UI chrome
+- `infra/connection.ts`：Redis connection policy
+- `infra/bullmq.ts`：Queue/Worker/QueueEvents 工厂
+- `worker/registry.ts`：processor registry
 
-2. **Host Session Region（不可缓存，Suspense 包裹）**  
-   提供当前 step、classroom snapshot、capabilities、personal progress
+而不是业务代码到处 `import { Queue } from "bullmq"`。
 
-**不要** 把当前课堂 session、lock state、student progress 放进 `use cache` 组件里。
+## 2. Existing durable event/outbox precedent
 
----
+`runtimeEventOutbox`、`transportDeliveryAttempts` 已经存在，说明项目接受这种模式：
 
-## 5. Event Bus 的 milestone 级落地方式
+- 先落 durable inspectable record
+- 再做 delivery/execution
 
-V2 文档中的 Event Bus 方向是对的，但 milestone v2.0 应先引入 **事件合同与 durable outbox**，而不是先引入分布式基础设施。
+异步平台应复用这一设计哲学，而不是反过来把 job lifecycle 完全藏在 Redis 里。
 
-### 当前 milestone 推荐
+## 3. Existing optional Redis posture
 
-- `runtime_event_log` / `domain_event_outbox` 表
-- 统一事件 schema
-- host / classroom / analytics 从该事件流读取
-- SSE 广播仍保持现有 HTTP/SSE 模式
+当前 Redis fanout 已经有：
 
-### 延后到后续 milestone
+- `REDIS_FANOUT_ENABLED`
+- 健康探测
+- degraded honesty
+- instance id / connection state
 
-- Redis Streams
-- BullMQ
-- 跨进程 consumer
-- AI runtime async orchestration
+BullMQ 平台应新增**自己的 capability flag**，不要偷用 websocket fanout 开关。
 
-**原因：** 这能把“平台演进方向”与“当前产品稳定性”解耦。
+建议：
 
----
+- `ASYNC_WORKER_ENABLED=true|false`
+- `REDIS_URL=...`
+- `WORKER_INSTANCE_ID=...`
 
-## Suggested Build Order
+并复用 ioredis posture 经验，但不要把两个 capability 混为一个开关。
 
-### 1. 先做目录边界，不先做多应用拆分
+## 4. Existing cache invalidation rules
 
-**第一批必须引入：**
+当前项目大量依赖 `updateTag()`。异步任务平台要明确两层失效：
 
-1. `src/features/runtime-host/*`
-2. `src/features/courseware/*`
-3. `packages/contracts/runtime-bridge/*`
-4. `packages/contracts/runtime-events/*`
-5. `plugins/builtin-html-courseware/*`
-6. `plugins/builtin-reveal-courseware/*`
+1. **enqueue 时**：更新任务列表/提交中心等“排队态”缓存
+2. **worker 完成时**：更新真正受副作用影响的业务 tags
 
-**同时保留兼容层：**
+例如 reminder dispatch：
 
-- `src/actions/*` re-export 新 feature actions
-- `src/lib/dal/*` 继续作为 DB 真相源，但逐步被 feature server 包起来
+- enqueue 后：`schedule:reminder:${schoolId}`
+- complete/fail 后：同样更新 `schedule:reminder:${schoolId}`
+
+对于 resource ingestion，完成后还要额外打 `resources:${schoolId}`、`resource:${id}` 等 tag。
 
 ---
 
-### 2. 先定义 contract，再接 UI
+## Safe Build Order
 
-顺序建议：
+这是最重要部分。建议按下面顺序推进。
 
-1. Runtime descriptor schema
-2. Bridge message schema
-3. Capability schema
-4. Runtime event schema
-5. Host-side adapter interface
+### Phase A — contracts + persistent status, no worker yet
 
-**不要先做一个“能跑的 iframe demo”再补协议。** 那会导致后续全部返工。
+**新增：**
 
----
+- `src/features/async-tasks/shared/contract.ts`
+- `src/features/async-tasks/shared/dto.ts`
+- `asyncTask` / `asyncTaskEvent` schema
+- `src/features/async-tasks/server/status.ts`
 
-### 3. 先做 Host Surface，再接一个最小 runtime
+**不做：**
 
-**第一版只支持一个最小内置 runtime：**
+- 不接 BullMQ worker
+- 不迁移业务逻辑
 
-- HTML courseware runtime 或 Reveal runtime 二选一
+**目标：** 先把“任务是什么、状态怎么看”定义清楚。
 
-推荐优先：**Reveal runtime**
+### Phase B — BullMQ infra seam + no-op sample worker
 
-因为仓库里已经有 `reveal.js` 依赖，且演示型课件比“任意 HTML”更容易施加能力边界。
+**新增：**
 
-第一版目标：
+- BullMQ connection factory
+- Queue factory
+- Worker bootstrap
+- QueueEvents sync listener
+- worker dev/start scripts
 
-- iframe 正常加载
-- `runtime.ready`
-- `host.bootstrap`
-- 高度同步
-- 一个提交动作 `runtime.submit.requested`
-- 一个课堂状态同步 `host.classroom.snapshot`
+**目标：** 跑通最小链路：enqueue -> worker pickup -> SQLite 状态变化。
 
----
+**首个样例 job：** `debug.ping` 或 `system.noop`。
 
-### 4. 再把现有 player/classroom 接到 host
+### Phase C — migrate schedule reminder dispatch as first real slice
 
-建议接入顺序：
+**修改：**
 
-1. `/teacher/editor/preview` 预览态接入 Runtime Host
-2. `/student/player` 接入 Runtime Host
-3. `/classroom` live console 接入 Runtime Host
+- `src/features/schedule/reminders/server.ts`
+- `src/lib/dal/schedule-reminders.ts`
+- `src/features/schedule/reminders/actions.ts`（返回 task status DTO 或保留兼容 DTO）
 
-原因：
+**目标：** 用最小业务风险证明平台真能承载真实任务。
 
-- preview 最容易控制风险
-- player 已有 `shell + personal + SSE` 分层，最适合承接 host
-- classroom console 最复杂，应该最后接
+为什么先它：
 
----
+- 已有 `scheduleReminderDispatch` durable table
+- 任务语义简单
+- 对 UI 影响清晰
+- 不涉及 classroom 主链路
 
-### 5. 再引入事件 outbox 与 replay/analytics consumer
+### Phase D — add operator/status surfaces
 
-这一步不是为了炫技，而是为了后续：
+**新增：**
 
-- 课堂回放
-- runtime 行为分析
-- 插件 side-effect 审计
-- AI runtime 观察性
+- internal jobs status route
+- optional settings labs page / admin operator panel
 
-但它应建立在 host 已经稳定工作的前提上。
+**目标：** 让平台可观察、可验证、可演示，不靠日志猜测。
 
----
+### Phase E — onboard second heavy workload
 
-### 6. 最后才考虑 `/apps/web` / `/apps/runtime-host`
+候选顺序：
 
-**本 milestone 结束时可以完成“边界准备”，不必完成“物理分仓”。**
+1. resource ingestion
+2. RAG indexing
+3. AI generation/post-processing
 
-当以下条件同时满足，再考虑抽成真正的 `/apps/web`：
-
-- 至少两个 runtime 已稳定接入
-- `packages/contracts/*` 已稳定
-- `src/features/*` 已成为默认实现根
-- 旧 `src/actions/*` / `src/lib/dal/*` 大部分只剩 compatibility barrel
+不要在 reminder slice 还没稳定前一次上多个 workload。
 
 ---
 
-## Compatibility Notes
+## Scalability Considerations
 
-### 1. 对当前 Next.js App Router 的兼容策略
-
-- 保持 `src/app` 不动，作为唯一路由入口
-- 使用 Next.js 推荐的 project organization：route groups、private folders、code outside app 都可共存；Next 官方明确支持按 feature/route 组织，而不要求单一结构  
-  Source: Next.js project structure docs, version 16.2.6, last updated 2026-05-13.
-
-**判断：** 当前项目最适合“`src/app` 保持稳定，`src/features` 扩张为实现根”。
-
----
-
-### 2. 对当前 DAL + Server Actions 规则的兼容策略
-
-- Runtime Host 不能绕开 Server Actions
-- iframe 不能直接请求内部 DB/API
-- 所有 submit/save/event write 最终仍回到 host-side server action / route handler
-- DAL 继续做 authz、DTO 清洗、cache tag 管理
-
-这不是过渡方案，而是未来也应该保持的硬边界。
+| Concern | At 100 users | At 10K users | At 1M users |
+|---|---|---|---|
+| Queue topology | 单 worker + 1-2 queues 足够 | 按 workload 拆 queue，避免互相阻塞 | 独立 worker deployment，按队列横向扩展 |
+| Redis posture | 单 Redis 即可 | Redis 成为 worker infra 依赖，但仍非业务 truth | 需要独立容量规划与 noeviction posture |
+| Status reads | 直接查 SQLite task tables | 增加索引、task list 分页、operator filters | 需要按 school/entity/time 做归档与 retention |
+| Retry handling | fixed/exponential backoff 即可 | 不同 job class 自定义 attempts/backoff | 需 dead-letter / poison job 策略 |
+| Worker code isolation | 单 registry 可接受 | 按 notifications/resources/ai 模块化 | 可能拆多个 worker process entry |
 
 ---
 
-### 3. 对当前显式缓存规则的兼容策略
+## Explicit Recommendation
 
-- cached shell 继续存在
-- runtime personal/session state 必须 Suspense-streamed
-- host-side mutation 后继续 `updateTag()`
-- SSE 仍是课堂广播主通道；runtime host 只是 SSE consumer，不是替代者
+对 v2.3，我的明确建议是：
 
-换言之：**Runtime Host 接入现有 classroom state machine，而不是重做一套 realtime 系统。**
+1. **新增 `src/features/async-tasks` 作为平台根**
+2. **新增 SQLite `asyncTask` / `asyncTaskEvent` 作为产品可见真相层**
+3. **BullMQ worker 独立进程启动，不并入 `server.ts`**
+4. **所有 enqueue 都走统一 boundary，不允许业务代码直接接触 BullMQ**
+5. **首批只迁移 `schedule reminder dispatch`，不要碰 classroom 主链路**
+6. **等第一条真实任务稳定后，再迁 resource/RAG/AI 任务**
 
----
-
-### 4. 对当前插件系统的兼容策略
-
-- 现有 server plugin registry、allowlist、audit 全部保留
-- runtime plugin 不直接替代现有 widget/plugin hook
-- 两者先并存：
-  - `server plugins` = 提案、注释、建议、受控动作
-  - `runtime plugins` = 受 sandbox 托管的交互执行单元
-
-这样可以避免把当前安全模型一次性推翻。
-
----
-
-### 5. 对未来 AI runtime 的兼容策略
-
-AI runtime 本 milestone **只预留边界，不真正落地执行环境**。
-
-现在就该引入的只有：
-
-- `packages/contracts/runtime-events`
-- `packages/contracts/capabilities`
-- `src/features/runtime-host/shared/permissions.ts`
-
-不要在 Runtime Foundations milestone 中同时启动：
-
-- Agent sandbox
-- tool marketplace
-- autonomous classroom control
-
-那会把 milestone 变成失控的“平台大爆炸”。
-
----
-
-## Bottom-line Recommendation
-
-**最安全的 milestone-level 架构路线是：**
-
-> **先做“单体内平台化”，不要先做“物理多应用化”。**  
-> 用 `src/features/* + packages/contracts/* + src/runtimes/* + compatibility re-export` 的方式，把当前 Next.js 主应用重构成 V2 边界清晰的 Runtime Platform 内核；然后把 Runtime Host 作为现有 `/teacher/editor/preview`、`/student/player`、`/classroom` 的受控执行容器接进去。
-
-如果只能选一个核心原则，那就是：
-
-> **Runtime 可以新，DAL 边界不能破；iframe 可以上，bridge contract 必须先行；目录可以重组，但当前可运行主链路不能断。**
+这条路线最符合项目当前哲学：**单体内平台化、SQLite durable truth、Redis optional capability、渐进 feature migration。**
 
 ## Sources
 
-- `.planning/PROJECT.md` — 项目硬约束与技术路线。Confidence: HIGH.
-- `.planning/REQUIREMENTS.md` — App Router、DAL、CLASS-05、Plugin 安全边界。Confidence: HIGH.
-- `.planning/ROADMAP.md` — schedule feature 与 theme/shell 演进前例。Confidence: HIGH.
-- `OpenLearn-Next-V2-Architecture-Plan.md` — V2 目标方向；其中 PostgreSQL / WebSocket / full apps split 不直接照搬到本 milestone。Confidence: MEDIUM.
-- `src/features/schedule/shared/boundary-map.ts` — 已验证的 compatibility re-export 迁移模式。Confidence: HIGH.
-- `src/components/plugins/plugin-renderer.tsx` + `src/lib/dal/plugins.ts` + `src/server/plugins/registry.ts` — 当前插件为 server proposal system，而非 runtime sandbox。Confidence: HIGH.
-- `src/components/learning/classroom-runtime-client.tsx` + `src/app/(student)/student/player/page.tsx` + `src/app/(classroom)/classroom/page.tsx` — 当前 classroom/player 的 runtime integration seam。Confidence: HIGH.
-- Next.js docs: project structure, caching, `use server` (v16.2.6, last updated 2026-05-13). Confidence: HIGH.
-- MDN: `<iframe>` docs (last modified 2026-04-24) and `window.postMessage()` docs (last modified 2026-04-13). Confidence: HIGH.
+- `.planning/PROJECT.md` — 当前 milestone 背景、durable truth、Redis optional posture、单体内平台化方向。Confidence: HIGH.
+- `.planning/MILESTONES.md` — BullMQ broader slice 仍 deferred，说明本轮必须控制范围。Confidence: HIGH.
+- `.planning/STATE.md` — 当前项目已归档 v2.2，适合开始新 milestone planning。Confidence: HIGH.
+- `src/features/runtime-platform/shared/boundary-map.ts` — 已验证的 public barrel + compatibility migration 模式。Confidence: HIGH.
+- `src/features/runtime-platform/seams/index.ts`、`redis-fanout-connection.ts`、`gateway.ts` — seam 化基础设施、Redis capability 与 durable delivery inspection 的现有做法。Confidence: HIGH.
+- `src/features/runtime-platform/classroom/runtime-session.ts` — `runtimeEventOutbox` 说明项目已经接受“SQLite inspectable truth + async delivery”模式。Confidence: HIGH.
+- `src/features/schedule/reminders/server.ts`、`actions.ts`、`src/server/schedule/reminder-dispatch.ts` — reminder dispatch 是最适合的首批 async migration slice。Confidence: HIGH.
+- `server.ts` — 当前 web server bootstrap 应保持 web-only。Confidence: HIGH.
+- BullMQ docs: introduction, queues, workers, connections, retrying jobs — Queue/Worker/QueueEvents 基础模型、producer/worker connection split、`maxRetriesPerRequest`、attempts/backoff。Official docs fetched 2026-05-18. Confidence: HIGH.

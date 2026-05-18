@@ -1,42 +1,42 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.2
-milestone_name: WebSocket Classroom Transport Cutover
-current_phase: 38
-current_phase_name: cutover-verification-fallback-and-operational-hardening
-current_plan: 2
-status: archived
-stopped_at: Milestone v2.2 archived; ready for next milestone planning
-last_updated: "2026-05-18T00:00:00.000Z"
-last_activity: 2026-05-18 -- Milestone v2.2 archived and ready for /gsd-new-milestone
+milestone: v2.3
+milestone_name: Async Task Platform
+current_phase: 0
+current_phase_name: roadmap-defined
+current_plan: 0
+status: planning
+stopped_at: Milestone v2.3 roadmap defined; ready for Phase 39 planning
+last_updated: "2026-05-18T12:00:00.000Z"
+last_activity: 2026-05-18 -- Defined roadmap for milestone v2.3
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
-  percent: 100
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 15
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Current Position
 
-Milestone: v2.2 WebSocket Classroom Transport Cutover — ARCHIVED
-Phase: 38 (cutover-verification-fallback-and-operational-hardening) — COMPLETE AND ARCHIVED
-Phase name: Cutover verification, fallback, and operational hardening
-Plan: 2 of 2
-Status: Archived
-Last activity: 2026-05-18 -- Milestone v2.2 archived and ready for /gsd-new-milestone
-Progress: [██████████] 100%
-Next queued phase: none; run /gsd-new-milestone to define fresh requirements and roadmap
+Milestone: v2.3 Async Task Platform
+Phase: Not started (roadmap defined)
+Phase name: Roadmap defined
+Plan: —
+Status: Roadmap defined
+Last activity: 2026-05-18 -- Defined roadmap for milestone v2.3
+Progress: [░░░░░░░░░░] 0%
+Next queued phase: Phase 39 - Async contracts and durable task truth
 
 <!--
 GSD compatibility fields for older state parsers.
-Current Phase: 38
-Current Phase Name: cutover-verification-fallback-and-operational-hardening
-Current Plan: 2
-Total Plans in Phase: 2
-Last Activity Description: Milestone v2.2 archived — roadmap and requirements archived, PROJECT.md evolved, next milestone planning pending
+Current Phase: 0
+Current Phase Name: roadmap-defined
+Current Plan: 0
+Total Plans in Phase: 0
+Last Activity Description: Milestone v2.3 roadmap defined — ready to start Phase 39 planning
 -->
 
 ## Project Reference
@@ -44,16 +44,14 @@ Last Activity Description: Milestone v2.2 archived — roadmap and requirements 
 See: `.planning/PROJECT.md` (updated 2026-05-18)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Planning next milestone
+**Current focus:** Milestone v2.3 Async Task Platform planning
 
 ## Milestone Notes
 
-- `v2.2 WebSocket Classroom Transport Cutover` 已在 2026-05-18 完成并归档。
-- Phase 36 已通过 `verify:phase36` 关闭：真实 schema 握手、canonical ws routing、WS-first classroom/player consumer 与 SSE rollback posture 已落到代码和 focused suites。
-- Phase 37 已通过 `verify:phase37` 关闭：optional Redis fanout、deploy-authoritative global setting、session snapshot、degraded operator visibility、recovery proof 与 honest local-only bootstrap posture 已落到代码和 focused suites。
-- Phase 38 已通过 `verify:phase38` 关闭：`38-VERIFICATION.md`、`38-FALLBACK-MATRIX.md`、`38-DEMO-RUNBOOK.md` 与 `38-CLOSEOUT.md` 已落地，milestone close posture 已收口为单一 executable gate。
-- milestone close 时未发现 `v2.2` milestone audit 文件；该风险已由用户显式接受并继续归档。
-- 后续如继续推进 runtime-platform，应单独立 phase 处理 `RTPX-01`、broader `RTPX-02`、`RTPX-04`、`RTPX-05`、`RTPX-06`。
+- `v2.3 Async Task Platform` 已启动，目标是在现有单体内建立可复用的 BullMQ/worker 后台任务平台。
+- 本轮主攻 broader `RTPX-02` async worker / BullMQ slice，不把 PostgreSQL、classroom realtime rewrite、AI 扩张或第三方 runtime/package governance 绑进来。
+- 当前范围包含四类真实验证任务：batch import、scheduled reminders、event post-processing、resource processing。
+- 当前 roadmap 已定义为 Phase 39-43，共 5 个 phases，按 durable task truth -> BullMQ infra -> batch import -> operator recovery -> additional workloads 顺序推进。
 
 ## Deferred Items
 
@@ -63,7 +61,7 @@ Items acknowledged and deferred at milestone close on 2026-05-18:
 |----------|------|--------|
 | milestone_close | missing-v2.2-milestone-audit | accepted-risk |
 | runtime_followup | rtpx-01-postgresql-cutover | deferred |
-| runtime_followup | broader-rtpx-02-async-worker-slice | deferred |
+| runtime_followup | broader-rtpx-02-async-worker-slice | active-in-v2.3 |
 | runtime_followup | rtpx-04-second-runtime | deferred |
 | runtime_followup | rtpx-05-third-party-runtime-governance | deferred |
 | runtime_followup | rtpx-06-ai-runtime-workflows | deferred |
@@ -76,9 +74,11 @@ Items acknowledged and deferred at milestone close on 2026-05-18:
 - Redis fanout 保持 optional、deploy-authoritative、delivery-only posture。
 - SSE rollback surface 继续作为设计内事实保留，不被伪装成已经移除。
 - durable truth 继续停留在 SQLite + DAL + canonical classroom/runtime write path。
+- v2.3 中 BullMQ/Redis 只能承担 orchestration 与 execution substrate，不能变成新的业务真相源。
+- worker 必须是独立进程入口，不能并入 `server.ts` 或 web 请求生命周期。
 
 ## Next Steps
 
-1. 运行 `/gsd-new-milestone` 创建 fresh `.planning/REQUIREMENTS.md`。
-2. 从 `RTPX-01`、broader `RTPX-02`、`RTPX-04`、`RTPX-05`、`RTPX-06` 中选择单一主攻方向。
-3. 不把 repo-wide 其它 backlog 或更大 infra rewrite 回写进 v2.2 已完成结论。
+1. 从 Phase 39 开始进入 `/gsd-discuss-phase 39` 或 `/gsd-plan-phase 39`。
+2. 把 Phase 39 拆成可执行 PLAN.md 并锁定 async task registry、ledger 和 enqueue seam。
+3. 在 Phase 39 完成后再推进 Phase 40 的 BullMQ worker 与 reliability posture。

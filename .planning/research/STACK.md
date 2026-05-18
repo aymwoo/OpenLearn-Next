@@ -1,176 +1,308 @@
-# Stack Research Memo — v2.0 Runtime Platform Foundations
+# Technology Stack — v2.3 Async Task Platform (BullMQ)
 
 **Project:** OpenLearn Next  
-**Researched:** 2026-05-15  
-**Confidence:** HIGH for adopt-now/defer sequencing, MEDIUM for later PostgreSQL/Redis/WebSocket cutover details until phase-specific validation
+**Researched:** 2026-05-18  
+**Scope:** 只覆盖本 milestone 新增的 async worker / BullMQ 能力；不重写课堂 realtime 主链路，不做 PostgreSQL cutover，不扩 AI runtime，不做第三方 runtime governance。
 
-## Current Baseline
+## Existing Baseline We Must Keep
 
-当前代码库已经不是“纯单体草稿”，而是一个**单 Next.js 16 应用 + 渐进式 feature/server 分层**：
+以下不是本 milestone 要替换的东西，而是要复用的既有基础：
 
-- **Framework/runtime**：`next@16.2.4`、`react@19.2.5`、Turbopack、Node runtime 为主。
-- **Auth**：`next-auth@5.0.0-beta.31` + `@auth/drizzle-adapter@1.11.2`。
-- **DB**：`drizzle-orm@0.45.2` + `@libsql/client@0.17.3`，`drizzle.config.ts` 仍是 `dialect: 'sqlite'`。
-- **Repo shape**：仍是**单 app 根目录工程**，但已经有 `src/features/`、`src/server/`；`pnpm-lock.yaml` 和 `pnpm-workspace.yaml` 已存在，说明仓库已具备切向 workspace 的基础，但**还没有真正 monorepo 编排**（无 `turbo.json`，无 `apps/*` / `packages/*` 落地）。
-- **Realtime**：当前课堂链路已验证的是 **SSE**，不是 WebSocket。
-- **Plugin/runtime safety**：当前已验证的是**声明式 manifest + allowlisted action**，还不是任意运行时插件执行。
+- **Web app/runtime**：Next.js 16 App Router + React 19.2 + custom `server.ts` Node entrypoint 已在运行。
+- **Auth/data truth**：Auth.js v5 + Drizzle ORM + SQLite-first + DAL / Server Actions 边界已成立。
+- **Realtime**：WebSocket-first classroom transport 已交付；`ioredis` fanout 已存在，但它是 **delivery capability**，不是业务真相源。
+- **Durable event patterns**：仓库里已经有 `runtimeEventOutbox`、`transportDeliveryAttempts`、`transportConsumerTraces` 等 append-only / audit-friendly persistence 模式。
 
-**结论：** v2.0 不应同时推翻 Next.js/Auth.js/Drizzle 主干；应该在其上做**仓库结构升级 + Runtime Host 最小链路 + 未来基础设施抽象**。
+**结论：** v2.3 不需要重选框架；只需要在现有 Node + Redis optional capability 之上补齐 **可复用 async queue + dedicated worker process + SQLite ledger/integration seam**。
 
-## Recommended For This Milestone
+## Recommended Stack Additions / Changes
 
-这部分是 **v2.0 现在就该做** 的。
+### Core Additions
 
-| Area | Adopt Now | Version / Shape | Why now |
-|---|---|---|---|
-| Workspace orchestration | **Turborepo** | `turbo@2.9.x` | 官方支持渐进式 monorepo；当前仓库已是 pnpm workspace 雏形，补上任务编排即可开始拆分 apps/packages，而不必先拆所有代码。 |
-| Package manager posture | **Continue pnpm** | keep current | 仓库已经是 `pnpm-lock.yaml` + `pnpm-workspace.yaml`；不要在此 milestone 再切 npm/bun。 |
-| App topology | **Move toward `apps/web` + `packages/*` + `runtimes/*` + `plugins/*`** | first step only | 这是 V2 架构目标本身；但首步只迁移当前主 app 到 `apps/web`，不要一次拆成多个独立部署。 |
-| Core framework | **Keep Next.js App Router** | `next@16.2.x`, `react@19.2.x` | 当前产品已验证；Next 16 官方继续要求 `proxy.ts`、Cache Components、Server Actions 边界。此 milestone 不值得换框架。 |
-| Runtime host implementation | **Minimal iframe Runtime Host** | browser iframe + `postMessage` + strict sandbox | 这是 V2 最关键的新能力，而且可在不引入新后端基础设施的情况下落地第一条真实 runtime 链路。 |
-| Bridge contract | **TeachingBridge SDK/contract package** | internal package, Zod-validated message schema | 应立即把 runtime 与主站通信从 ad-hoc DOM/props 升级成显式协议，否则后面 iframe/plugin/agent 都会反复重做。 |
-| Shared contracts | **Extract internal packages** | `packages/shared-types`, `packages/permissions`, `packages/teaching-bridge`, `packages/runtime-contracts` | 这是 monorepo restructuring 的最低收益点：先抽协议、权限、事件、DTO，不先拆 UI。 |
-| Event model | **Introduce typed event envelope + local publisher abstraction** | package + app-local implementation | 现在就定义事件模型，但先用本地实现/SQLite durable log，不强上 Redis。先把“Action → Event”边界立住。 |
-| Database adapter posture | **Keep Drizzle + DrizzleAdapter** | keep `drizzle-orm@0.45.x`, `@auth/drizzle-adapter@1.11.x` | Auth.js 官方 Drizzle 适配器本来就支持 SQLite/PostgreSQL；未来换数据库不需要先换 auth stack。 |
-| Testing for runtime foundation | **Add cross-package verification** | keep Vitest/Playwright | v2.0 应验证 iframe host、bridge handshake、permission denial、event emission；不需要引入新测试框架。 |
+| Technology | Version | Purpose | Why This Milestone Needs It | Confidence |
+|------------|---------|---------|------------------------------|------------|
+| `bullmq` | `^5.76.10` | Redis-backed queue, worker, delayed/retry job orchestration | 当前最合适的新增核心库。BullMQ v5 已不需要 `QueueScheduler`，直接提供 `Queue`、`Worker`、`QueueEvents`、`FlowProducer` 能力，适合把 async platform 做成独立但仍在单体内的平台层。 | HIGH |
+| `ioredis` | keep `^5.10.1` | Redis client for BullMQ | 项目已在用，无需换客户端；但要**新增 async queue 专用 connection factory**，不要直接复用现有 websocket fanout 连接单例。 | HIGH |
+| Redis service | existing deploy capability, now with queue role | Durable queue backend for BullMQ | BullMQ 必须依赖 Redis。本 milestone 应把 Redis 从“仅课堂 fanout 可选能力”扩展为“async task capability 的 deploy prerequisite”，但仍不让 Redis 成为业务 truth。 | HIGH |
+| Dedicated worker process | repo-local Node process via `tsx` / compiled Node entry | Runs `Worker` instances outside web request lifecycle | BullMQ worker 不应挂在 Next web server 请求进程里。当前仓库已有 `server.ts` 自定义入口，这正适合再加一个 `worker` entrypoint。 | HIGH |
+| SQLite task ledger tables via Drizzle | new schema in existing DB | Durable enqueue intent, task run state, auditability, UI read model | 保持现有“SQLite + DAL 是真相源”的项目原则。BullMQ 是 orchestration engine，不应成为唯一任务状态来源。 | HIGH |
+| `QueueEvents` projector | BullMQ built-in | Global job lifecycle observation | 用于把 `completed` / `failed` / `progress` 投影回 SQLite inspector / operator surface。推荐加入，但只创建少量共享实例。 | HIGH |
 
-### Recommended immediate repo target
+### Keep, But Use Differently
 
-```text
-/apps
-  /web                # 当前 Next.js 主应用迁入这里
+| Existing Piece | Keep? | New Role in v2.3 |
+|---------------|-------|------------------|
+| `server.ts` | Yes | 继续只承载 web app + websocket server；**不要**在这里顺手启动 BullMQ workers。 |
+| `ioredis` fanout code | Yes | 保持课堂 transport 专用；抽共用 Redis env parsing，但**不要**把 BullMQ 直接绑进 `redis-fanout-connection.ts`。 |
+| Drizzle + SQLite | Yes | 新增 async task ledger / projector 表，但继续作为 canonical operator truth。 |
+| canonical verifiers | Yes | 新 milestone 应复用现有验证风格，新增单一 `verify:phaseXX` 风格 close gate。 |
 
-/packages
-  /shared-types
-  /permissions
-  /teaching-bridge
-  /runtime-contracts
-  /event-core
+## Recommended Integration Shape
 
-/runtimes
-  /html-courseware    # 最小 runnable runtime 示例
+## 1) Process Topology
 
-/plugins
-  /html-courseware    # manifest + assets + runtime metadata
-```
-
-### Milestone-safe technical choices
-
-1. **Runtime Host 先做成 `apps/web` 内的受控宿主页**，不要先起第二个独立服务。  
-2. **TeachingBridge 先基于浏览器标准能力**：`postMessage` / `MessageChannel` + origin 校验 + Zod schema。  
-3. **事件总线先抽象接口，不先上 Redis Streams**。先做到：`Server Action -> EventPublisher -> durable log/outbox -> consumer hook`。  
-4. **数据库继续 SQLite 为 source of truth**，但开始重构出“数据库工厂/方言边界”，为 PostgreSQL 预留切换点。  
-
-## Defer For Later
-
-这部分是 **明确后置**，不要塞进 v2.0 foundation milestone。
-
-| Area | Defer To Later | Recommended later choice | Why defer |
-|---|---|---|---|
-| Primary DB migration | SQLite → PostgreSQL cutover | `pg@8.20.x` + Drizzle PostgreSQL dialect | 当前项目约束仍是 SQLite-first。runtime foundation 的主要风险不在数据库，而在结构和隔离边界。不要把数据迁移和 runtime host 混在一个 milestone。 |
-| Redis-backed queue/event infra | Real Redis bus / workers | `bullmq@5.76.x` + `ioredis@5.10.x` | BullMQ 官方明确依赖 ioredis 和阻塞连接模型，更适合“已有后台 worker”阶段；当前先抽象 bus 接口即可。 |
-| Bidirectional realtime | WebSocket gateway | `socket.io@4.8.x` / client `4.8.x` | Socket.IO 的强项是重连、房间、ack、多节点广播；这些是后续协作/多人 runtime 阶段价值更大，不是最小 runtime host 所必需。 |
-| Dedicated realtime app | `apps/realtime` or gateway | separate service later | 现在先保住现有 SSE 课堂路径，不要把实时网关、课堂现网和 runtime foundation 一起翻。 |
-| AI runtime isolation service | `apps/ai-gateway` / worker runtime | later phase | 当前 milestone 重点是 courseware/plugin runtime，不是 agent 执行平面。 |
-| pgvector migration | Qdrant replacement or coexistence | evaluate only after Postgres becomes primary DB | 当前 RAG 边界已围绕 Qdrant 设计；此时切向量栈只会扩大变量面。 |
-| Object storage | MinIO rollout | later when runtime assets/uploads require it | 先证明 runtime host 与 bridge；对象存储不是 foundation blocker。 |
-| CRDT collaboration | Yjs / collaborative editor | later collaboration milestone | 这是 WebSocket 后的第二层复杂度，不能和 runtime host 首次落地绑定。 |
-
-## Migration Notes
-
-建议按下面顺序推进，避免“重构 + 基础设施迁移 + 实时协议切换”三件事叠加爆炸。
-
-### 1. Repository first, runtime second
-
-先做：
-
-- 引入 `turbo.json`
-- 落地 `apps/web`
-- 抽 `packages/shared-types` / `packages/permissions` / `packages/teaching-bridge`
-- 保持应用行为不变
-
-**理由：** Turborepo 官方支持渐进接入；先把仓库骨架和任务依赖稳定下来，再加 runtime host，调试面最小。
-
-### 2. Minimal Runtime Host inside current web app
-
-在 `apps/web` 内新增：
-
-- runtime host route/page
-- iframe sandbox container
-- TeachingBridge handshake
-- runtime capability allowlist
-- one minimal `html-courseware` runtime sample
-
-**目标不是多 runtime 完整平台**，而是先证明：
-
-`Teacher page / Student page -> Runtime Host -> iframe -> TeachingBridge -> host action/event`
-
-### 3. Event abstraction before Redis
-
-现在就定义统一事件：
+**推荐：两个 Node 进程，仍在同一 repo / 同一部署单元内。**
 
 ```text
-id / type / actor / scope / payload / createdAt / traceId
+Process A: web
+- Next.js app router
+- Server Actions / DAL
+- existing WebSocket classroom transport
+- BullMQ producers only
+
+Process B: worker
+- BullMQ Worker instances
+- QueueEvents listeners / projector
+- DAL/Core API calls back into SQLite truth
 ```
 
-但实现先用：
+**为什么这样做：**
 
-- in-process publisher
-- SQLite durable event/outbox table
-- local consumer hooks for audit / analytics / notifications
+- worker 生命周期和 web 请求生命周期不同；混在 `server.ts` 会让重启、扩缩容、错误隔离都变差。
+- BullMQ 官方文档明确区分 producer 与 worker 的 Redis 连接语义：producer 应该 fail fast，worker 应长期等待恢复。
+- 这和你们现有“realtime 主链路已收口”的事实兼容，不会把 classroom mainline blast radius 扩大到 background execution。
 
-**这样做的价值：** 后面切 Redis/BullMQ 时换的是 transport，不是整个业务语义。
+## 2) Connection Strategy
 
-### 4. PostgreSQL compatibility prep before PostgreSQL cutover
+### 必须拆成两类 Redis 连接
 
-v2.0 里只做准备动作：
+| Connection Type | Used By | Recommended Behavior | Why |
+|-----------------|--------|----------------------|-----|
+| **Producer connection** | Next Route Handlers / Server Actions / DAL enqueue path | fail fast; do **not** wait forever | 用户请求不能因为 Redis 临时不可达而无限挂住。 |
+| **Worker connection** | BullMQ `Worker` | `maxRetriesPerRequest: null`; long-lived reconnecting connection | BullMQ 官方要求 worker 连接长期等待恢复；否则会破坏消费稳定性。 |
+| **QueueEvents connection** | observer / projector | dedicated blocking connection | BullMQ 文档说明 `QueueEvents` 不能像普通 producer 一样随意共享。 |
 
-- 把 `src/db/index.ts` 这类“直接绑定 libsql”的入口抽成工厂
-- 避免新 runtime/event schema 写死 SQLite-only 假设
-- 把 auth/db initialization 保持为可替换驱动，但**继续使用 `@auth/drizzle-adapter`**
+### Recommendation
 
-**不要在这一步做** 数据双写、全量迁移、线上切库。
+- 新建 `src/features/runtime-platform/async-tasks/redis.ts`
+- 提供：
+  - `createAsyncQueueProducerConnection()`
+  - `createAsyncQueueWorkerConnection()`
+  - `createAsyncQueueEventsConnection()`
+- **不要复用** `src/features/runtime-platform/seams/transport/redis-fanout-connection.ts` 作为 BullMQ connection singleton。
 
-### 5. Redis/BullMQ after DB direction is stable
+### Important Redis rules
 
-等 PostgreSQL 方向和事件模型稳定后，再引入：
+- 使用 **BullMQ `prefix`** 做 key namespace（例如 `openlearn:async`）。
+- **不要使用 ioredis `keyPrefix`**；BullMQ 官方明确说它与 BullMQ 不兼容。
+- Redis 生产配置需满足：
+  - persistence enabled（官方推荐 AOF）
+  - `maxmemory-policy=noeviction`
 
-- Redis for queue / event fanout / cross-instance invalidation needs
-- BullMQ workers for async runtime processing
+## 3) Data Truth Pattern
 
-否则你会先把系统拆成“多服务 + 多存储”，却还没验证 runtime host 本身是否是对的。
+### 推荐新增：SQLite task ledger，而不是只靠 Redis job state
 
-### 6. WebSocket after runtime semantics are real
+BullMQ 负责“排队与执行”；**SQLite 负责“任务真相、操作员可见性、与业务对象关联”**。
 
-先保留当前课堂 **SSE**。等出现以下真实需求再切：
+推荐在 Drizzle 中新增一组通用表：
 
-- runtime 内双向交互频繁
-- presence/rooms 成为核心模型
-- 跨节点广播成为实际需求
-- 协作编辑/白板进入 roadmap
+| Table | Purpose |
+|------|---------|
+| `asyncTaskRuns` | 一个业务任务的一次 durable intent / current status / queue binding |
+| `asyncTaskAttempts` | 每次 worker 尝试、错误、耗时、重试计数 |
+| `asyncTaskProgress` or JSON snapshot on run | 面向 UI 的最新进度、阶段、summary |
+| `asyncTaskDeadLetters` (optional) | 如果需要审计失败 payload，可单独存；否则先放在 attempts 即可 |
 
-届时再单独上 Socket.IO gateway，更稳。
+### Why this is the right shape
 
-## Do Not Do Yet
+- 与现有 `runtimeEventOutbox` / `transportDeliveryAttempts` 的 append-only 思路一致。
+- SQLite 仍可被 runtime inspector / settings / admin surfaces 直接消费。
+- Redis job 被 auto-remove 后，平台仍保有本地历史。
+- 后续如果换 Redis topology 或者补 queue replay，不会失去业务审计链。
 
-这些是本 milestone **明确不要做** 的：
+### Strong recommendation
 
-1. **不要替换 Next.js / React / Auth.js 主干。** 这不是框架重选 milestone。  
-2. **不要把 SQLite、PostgreSQL、Redis、WebSocket 一次性全上。** 这会让任何问题都无法定位。  
-3. **不要为 runtime host 提前引入独立微服务群。** 先在 `apps/web` 内跑通最小链路。  
-4. **不要把当前 SSE 课堂链路直接改成 WebSocket。** 当前课堂能力已验证，WebSocket 应该是后续 realtime milestone，不是 foundation blocker。  
-5. **不要把插件系统从声明式安全边界直接升级为任意 JS 执行。** v2.0 可以做 iframe runtime，不代表要放开插件直接拿宿主权限。  
-6. **不要把 Qdrant 立即换成 pgvector。** 这和 runtime foundation 没有直接耦合。  
-7. **不要改用 `@auth/pg-adapter` 作为迁移前提。** 既然项目已经走 Drizzle，后续 PostgreSQL 也应优先继续走 `@auth/drizzle-adapter`，减少 auth blast radius。  
-8. **不要把 monorepo restructuring 和业务大范围功能重写绑在一起。** 先迁结构，后迁实现。  
+入队链路应是：
+
+```text
+Server Action / DAL mutation
+-> write durable business truth in SQLite
+-> write asyncTaskRuns durable intent in SQLite
+-> enqueue BullMQ job with taskRunId + idempotency key
+```
+
+而不是：
+
+```text
+HTTP request -> directly push BullMQ job -> hope Redis state becomes truth
+```
+
+## 4) BullMQ Primitives To Adopt Now
+
+| Primitive | Adopt Now? | How to Use |
+|----------|------------|------------|
+| `Queue` | Yes | 统一 producer facade，所有 feature 只能通过内部 enqueue API 发任务。 |
+| `Worker` | Yes | 独立 worker 进程消费；按任务类型注册 processor。 |
+| `QueueEvents` | Yes | 投影全局完成/失败/进度到 SQLite ledger 和 operator UI。 |
+| `FlowProducer` | **Defer by default** | 只有当任务存在明确 parent-child dependency tree 时再引入。v2.3 先不要把平台复杂化成 DAG orchestration。 |
+
+## 5) Queue Semantics To Standardize
+
+### Default job policy
+
+推荐在平台层统一：
+
+- `attempts`: 3~5（按任务类型覆盖）
+- `backoff`: exponential + jitter
+- `removeOnComplete`: 保留少量最近成功 job
+- `removeOnFail`: 保留较多失败 job
+- 关键任务启用 `jobId` 或 `deduplication`，避免重复入队
+
+### Why
+
+- BullMQ 原生支持 retries / backoff / deduplication，足够支撑 v2.3。
+- 自动清理 Redis job 状态是必须的，否则 Redis 会变成无限增长的临时历史仓库。
+- 但不要把“BullMQ auto removal”误当成“可以不写 SQLite ledger”。两者职责不同。
+
+## Concrete Package / Script Changes
+
+## Dependencies
+
+```bash
+pnpm add bullmq
+```
+
+**No Redis client change needed** — `ioredis` 已经存在。
+
+## Recommended npm scripts
+
+```json
+{
+  "worker:dev": "node --import tsx src/workers/async-task-worker.ts",
+  "worker:start": "NODE_ENV=production node --import tsx src/workers/async-task-worker.ts"
+}
+```
+
+如果后续需要单进程跑多个 queue family，可再补：
+
+```json
+{
+  "worker:imports": "node --import tsx src/workers/import-worker.ts",
+  "worker:runtime": "node --import tsx src/workers/runtime-worker.ts"
+}
+```
+
+但 v2.3 先做一个统一 worker runner 更稳。
+
+## Recommended File Layout
+
+```text
+src/features/runtime-platform/async-tasks/
+  contracts.ts          # task name, payload, result, progress schemas (Zod)
+  queues.ts             # Queue singletons/factories
+  redis.ts              # producer/worker/events connection factories
+  enqueue.ts            # the only enqueue API for app code
+  ledger.ts             # Drizzle helpers for task run/attempt/progress truth
+  projector.ts          # QueueEvents -> SQLite projection
+  registry.ts           # taskName -> processor implementation
+
+src/workers/
+  async-task-worker.ts  # boot Worker(s), QueueEvents, shutdown hooks
+```
+
+## Environment Variables
+
+**不要复用** `REDIS_FANOUT_ENABLED` 作为 async worker 总开关。
+
+推荐新增：
+
+| Variable | Purpose | Recommendation |
+|---------|---------|----------------|
+| `ASYNC_TASKS_ENABLED` | deploy-authoritative feature gate | 独立于 realtime fanout 开关 |
+| `BULLMQ_REDIS_URL` | queue Redis URL | 若未提供，可回退 `REDIS_URL`；但配置语义要独立 |
+| `BULLMQ_PREFIX` | BullMQ key prefix | 默认 `openlearn:async` |
+| `WORKER_CONCURRENCY_DEFAULT` | safe default concurrency | 从小值开始，如 2 或 4 |
+| `WORKER_INSTANCE_ID` | operator visibility / logs | 类似当前 `RUNTIME_INSTANCE_ID` 思路 |
+
+**Why separate flags matter:**
+
+- `REDIS_FANOUT_ENABLED` 表示课堂 transport capability；
+- `ASYNC_TASKS_ENABLED` 表示后台任务 capability；
+- 两者不能绑死，否则会让课堂 delivery posture 和 async platform posture 互相污染。
+
+## Recommended Integration Points With Current Stack
+
+## 1) DAL + Server Actions remain the enqueue boundary
+
+任何 UI 或 page 不直接调用 BullMQ：
+
+- UI -> Server Action / Route Handler
+- Server Action / DAL -> durable DB write
+- 然后调用内部 `enqueueAsyncTask(...)`
+
+这与当前“UI 禁止直连 DB”的原则完全一致，也避免把 Redis queue API 暴露进页面层。
+
+## 2) Worker must re-enter through DAL / Core APIs
+
+worker 执行业务时，不应绕过现有权限 / DTO / cache discipline。
+
+推荐：
+
+- worker processor 调 feature-level service / DAL helper
+- 不让 processor 直接在散落文件里裸写表
+- 重要 mutation 继续沿用现有 canonical write path vocabulary
+
+## 3) Reuse existing operator posture
+
+现有系统已经有：
+
+- runtime inspector
+- settings operator surface
+- degraded honesty
+- canonical verify scripts
+
+v2.3 应复用同样模式，把 async platform 暴露为：
+
+- enabled / disabled
+- healthy / degraded
+- worker connected / disconnected
+- queue backlog size
+- last failure reason
+
+而不是再造一套不一致的运维语言。
+
+## What NOT To Add This Milestone
+
+| Do Not Add | Why |
+|-----------|-----|
+| PostgreSQL cutover | 用户已明确排除；而且 async worker 平台不需要先换主库。 |
+| Realtime mainline rewrite | WebSocket classroom transport 已交付，不应为了 BullMQ 再动主链路。 |
+| Redis Streams | 本 milestone 目标是 BullMQ worker platform，不是再开第二套 Redis messaging abstraction。 |
+| `QueueScheduler` | BullMQ v5 已不需要它来支撑 delayed jobs / retries / rate limiting。 |
+| `FlowProducer` as default foundation | 只有出现真正 parent-child job 依赖时才值得上；现在默认会过度设计。 |
+| bull-board / 外部 queue admin UI | 先把 SQLite ledger + repo-local operator surfaces 跑通；不要先引入新管理后台。 |
+| worker_threads / sandboxed processors | 除非出现明确 CPU-heavy job。当前 milestone 更像 I/O + orchestration 型任务平台。 |
+| `keyPrefix` in ioredis | BullMQ 官方明确不兼容；应使用 BullMQ 自己的 `prefix`。 |
+| 把 BullMQ job data 当成唯一历史存储 | Redis job auto-removal 是常态；历史必须回写 SQLite ledger。 |
+| 把 async tasks 和 `REDIS_FANOUT_ENABLED` 绑死 | transport capability 与 queue capability 是两条独立运维姿态。 |
+| AI runtime expansion / third-party runtime governance | 用户已明确排除。 |
+
+## Opinionated Recommendation
+
+**本 milestone 最对的新增栈，不是“再加一个 Redis 功能”，而是：**
+
+1. **`bullmq@5.76.x` + existing `ioredis@5.10.1`** 作为 async orchestration engine。  
+2. **独立 worker 进程**，不要塞进 `server.ts`。  
+3. **SQLite task ledger** 作为任务真相与 operator read model。  
+4. **独立 async Redis connection factory + env flags**，不要直接挪用 websocket fanout 单例。  
+5. **Queue / Worker / QueueEvents 先上，FlowProducer 先不默认引入。**
+
+如果只做其中一半，例如“只装 BullMQ，不加 SQLite ledger，不拆 worker 进程”，那不会得到一个 reusable async task platform，只会得到几个难运维的临时后台任务。
+
+## Installation
+
+```bash
+# New dependency
+pnpm add bullmq
+
+# No new Redis client required
+# ioredis is already present in the repo
+```
 
 ## Sources
 
-- `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`, `OpenLearn-Next-V2-Architecture-Plan.md`, `package.json`, `drizzle.config.ts`, `src/db/index.ts` — current repo baseline. Confidence: HIGH.
-- Next.js official docs: `proxy` API, self-hosting, `transpilePackages`, Next 16 cache/runtime behavior. Last updated 2026-05-13. Confidence: HIGH.
-- Auth.js official docs: v5 migration, Drizzle adapter, edge-compatible split config, universal `auth()`. Confidence: HIGH.
-- Drizzle official docs: SQLite/PostgreSQL dialect configuration and PostgreSQL setup. Confidence: HIGH.
-- Turborepo official docs: incremental monorepo adoption and repository structuring. Confidence: HIGH.
-- Socket.IO official docs v4 (last updated 2026-03-04): strengths are bidirectional comms, reconnection, rooms, acknowledgements, multi-node scaling. Confidence: HIGH.
-- BullMQ official docs: Redis/ioredis connection model and worker requirements. Confidence: HIGH.
-- Context7 MCP was unavailable in this agent session due API key failure; library verification used the required CLI fallback plus official docs. Confidence note: MEDIUM process risk, LOW content risk because official docs were also checked.
+- Repo read: `.planning/PROJECT.md`, `.planning/MILESTONES.md`, `.planning/STATE.md`, `package.json`, `server.ts`, `src/db/schema.ts`, `src/features/runtime-platform/seams/transport/redis-fanout-connection.ts`, `src/features/runtime-platform/seams/transport/redis-fanout-manager.ts`. Confidence: HIGH.
+- BullMQ official docs: Introduction, Connections, Workers, Going to production, Auto-removal of jobs, Retrying failing jobs, Deduplication. Confidence: HIGH.
+- BullMQ official API/docs site showing current release `v5.76.10`. Confidence: HIGH.
+- Context7 CLI fallback (`ctx7`) for BullMQ and ioredis, used because MCP Context7 API key was unavailable in this agent session. Confidence: MEDIUM on retrieval path, HIGH on content because official docs were cross-checked.
