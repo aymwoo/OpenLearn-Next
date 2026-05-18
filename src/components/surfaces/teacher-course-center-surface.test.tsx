@@ -120,6 +120,38 @@ describe("TeacherCourseCenterSurface create flow", () => {
     expect(screen.getByRole("button", { name: "批量导入课程" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "下载 CSV 模板" }).getAttribute("href")).toBe("/teacher/courses/import/template");
   }, 20_000);
+
+  it("renders recent import task card near hero with link back to batch detail", () => {
+    render(
+      <TeacherCourseCenterSurface
+        data={{
+          defaultSchoolId: "school-9",
+          availableSchools: [{ id: "school-9", name: "九号校区" }],
+          recentImportTask: {
+            taskId: "task-1",
+            batchId: "batch-1",
+            batchLabel: "courses.csv",
+            status: "partially_completed",
+            statusLabel: "已完成，但有失败项",
+            isActive: false,
+            progressLabel: null,
+            progressPercent: null,
+            summaryLabel: "created 1 · updated 0 · skipped 1 · failed 1",
+            latestError: null,
+            counts: { created: 1, updated: 0, skipped: 1, failed: 1 },
+            href: "/teacher/courses/import/batch-1",
+            updatedAt: "2026-05-15T00:00:00.000Z",
+          },
+          courses: [],
+          includeArchived: false,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("最近导入任务")).toBeTruthy();
+    expect(screen.getByText("已完成，但有失败项")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /返回批次详情/ }).getAttribute("href")).toBe("/teacher/courses/import/batch-1");
+  });
 });
 
 function openDrawerAndFillBaseFields() {

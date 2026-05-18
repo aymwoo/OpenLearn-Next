@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  ArrowUpRight,
   Clock3,
   FolderArchive,
   GraduationCap,
@@ -84,6 +85,38 @@ export function TeacherCourseCenterSurface({
               value={data.includeArchived ? "含已归档" : "仅活跃课程"}
             />
           <CourseCenterMetric label="进入方式" value="先看详情，再进课时管理" />
+        </div>
+
+        <div className="mt-6">
+          {data.recentImportTask ? (
+            <div className={cn(teacherSurfaceRhythm.cardInset, "flex min-h-28 flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between")}>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={data.recentImportTask.status === "completed" ? "success" : data.recentImportTask.status === "partially_completed" || data.recentImportTask.status === "running" || data.recentImportTask.status === "retrying" || data.recentImportTask.status === "queued" ? "accent" : "default"}>
+                    {data.recentImportTask.statusLabel}
+                  </Badge>
+                  <span className="text-sm text-on-surface-variant">最近导入任务</span>
+                </div>
+                <h2 className="text-xl font-semibold text-on-surface">{data.recentImportTask.batchLabel}</h2>
+                <p className="text-sm leading-7 text-on-surface-variant">
+                  {data.recentImportTask.summaryLabel ?? data.recentImportTask.latestError ?? "返回批次详情页查看当前 durable 状态与结果摘要。"}
+                </p>
+              </div>
+              <Button asChild variant="tertiary" className="min-h-11 px-0 text-sm">
+                <Link href={data.recentImportTask.href}>
+                  返回批次详情
+                  <ArrowUpRight className="ml-2 size-4" />
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className={cn(teacherSurfaceRhythm.cardInset, "p-5")}>
+              <p className="text-sm font-semibold text-on-surface">还没有最近导入任务</p>
+              <p className="mt-2 text-sm leading-7 text-on-surface-variant">
+                先上传 CSV 并完成审核；真正的导入任务会在你点击“应用本批导入”后出现在这里。
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

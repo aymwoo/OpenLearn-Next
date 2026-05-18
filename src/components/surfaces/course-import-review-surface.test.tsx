@@ -95,4 +95,73 @@ describe("CourseImportReviewSurface", () => {
     expect(screen.getAllByText("命中已有课程").length).toBeGreaterThan(0);
     expect(screen.getAllByText("同批重复").length).toBeGreaterThan(0);
   });
+
+  it("renders read-only async runtime state after task creation", () => {
+    render(
+      <CourseImportReviewSurface
+        batch={{
+          ...batch,
+          latestAsyncTask: null,
+          asyncTaskSummary: {
+            taskId: "task-1",
+            status: "queued",
+            statusLabel: "排队中",
+            isActive: true,
+            isTerminal: false,
+            shouldFreezeReviewDecisions: true,
+            progressPercent: 12,
+            progressLabel: "排队中",
+            progressNote: null,
+            processedRows: 0,
+            totalRows: 3,
+            latestError: null,
+            terminalHeadline: null,
+            terminalGuidance: null,
+            counts: null,
+            batchDetailHref: "/teacher/courses/import/batch-1",
+            lastUpdatedAt: "2026-05-15T00:00:00.000Z",
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("排队中")).toBeTruthy();
+    expect(screen.getByText(/逐行“更新 \/ 跳过”决定已切换为只读/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "应用本批导入" })).toBeNull();
+  });
+
+  it("renders exact partial-success headline and guidance", () => {
+    render(
+      <CourseImportReviewSurface
+        batch={{
+          ...batch,
+          status: "partially_applied",
+          applySummary: { created: 1, updated: 0, skipped: 1, failed: 1 },
+          latestAsyncTask: null,
+          asyncTaskSummary: {
+            taskId: "task-2",
+            status: "partially_completed",
+            statusLabel: "已完成，但有失败项",
+            isActive: false,
+            isTerminal: true,
+            shouldFreezeReviewDecisions: true,
+            progressPercent: 100,
+            progressLabel: null,
+            progressNote: null,
+            processedRows: 3,
+            totalRows: 3,
+            latestError: null,
+            terminalHeadline: "已完成，但有失败项",
+            terminalGuidance: "请根据失败原因修正 CSV 或处理冲突后，重新创建新的导入任务。",
+            counts: { created: 1, updated: 0, skipped: 1, failed: 1 },
+            batchDetailHref: "/teacher/courses/import/batch-1",
+            lastUpdatedAt: "2026-05-15T00:00:00.000Z",
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText("已完成，但有失败项").length).toBeGreaterThan(0);
+    expect(screen.getByText(/重新创建新的导入任务/)).toBeTruthy();
+  });
 });
