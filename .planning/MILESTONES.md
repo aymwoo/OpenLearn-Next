@@ -1,5 +1,22 @@
 # Milestones
 
+## v2.2 WebSocket Classroom Transport Cutover (Archived: 2026-05-18)
+
+**Closure scope:** Phase 36-38 only
+**Delivered scope:** 3 phases, 9 plans
+**Archive status:** Milestone scope closed; websocket baseline, optional Redis fanout, and canonical close artifacts shipped.
+
+### Delivered in scope
+
+- Phase 36: 课堂实时链路已切到 authenticated WebSocket transport baseline，并保留 SSE rollback surface。
+- Phase 37: `ioredis` fanout、session transport snapshot、degraded honesty 与 operator transport visibility 已落地。
+- Phase 38: `verify:phase38`、parity proof、fallback matrix、demo runbook 与 closeout artifact 已把 v2.2 close posture 收口为单一 gate。
+
+### Known gaps kept outside this milestone close
+
+- close 时不存在 `v2.2` milestone audit 文件；本次归档按用户明确接受风险继续。
+- `RTPX-01` PostgreSQL cutover、broader `RTPX-02` async worker/BullMQ slice、`RTPX-04`、`RTPX-05`、`RTPX-06` 继续 deferred。
+
 ## v2.1 Safety Closure and Course Membership Loop (Archived: 2026-05-17)
 
 **Closure scope:** Phase 33-35 only
