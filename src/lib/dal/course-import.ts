@@ -5,13 +5,16 @@ import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
 import { asyncTaskEvents, asyncTasks, courseImportBatch, courseImportRow, courses } from "@/db/schema";
+import type { AsyncTaskListItemDTO } from "@/features/async-tasks";
 import { AsyncTaskDetailDTOSchema } from "@/features/async-tasks/shared/dto";
+import { getEntityAsyncTaskListDTO } from "@/lib/dal/async-tasks";
 import { toAsyncTaskDetailDTOInput } from "@/features/async-tasks/server/mapper";
 import { enqueueAsyncTask } from "@/features/async-tasks/server/enqueue";
 import { cacheTags } from "@/lib/cache-policy";
 import {
   ApplyCourseImportInputSchema,
   CourseImportApplyTriggerResultSchema,
+  CourseImportAsyncTaskSummarySchema,
   CourseImportAsyncTaskResultSchema,
   CourseImportBatchDTOSchema,
   CourseImportDraftInputSchema,
@@ -24,6 +27,7 @@ import {
   type CourseImportRowDecision,
   type CourseImportRowReviewDTO,
   type CourseImportRowStatus,
+  type CourseImportAsyncTaskSummary,
   type CourseImportValidationIssue,
 } from "@/lib/dto/course-import";
 import { createCourseForTeacherScoped, updateMatchedCourseStatusForTeacherScoped } from "@/lib/dal/course-authoring";
@@ -88,6 +92,124 @@ function buildApplySummary(rows: CourseImportRowReviewDTO[]): CourseImportApplyS
     skipped: rows.filter((row) => row.result === "skipped").length,
     failed: rows.filter((row) => row.result === "failed").length,
   };
+}
+
+function getAsyncSurfaceStatusLabel(status: CourseImportAsyncTaskSummary["status"]) {
+  switch (status) {
+    case "queued":
+      return "排队中";
+    case "running":
+      return "导入中";
+    case "retrying":
+      return "重试中";
+    case "completed":
+      return "已完成";
+    case "partially_completed":
+      return "已完成，但有失败项";
+    case "failed":
+      return "导入失败";
+    case "dispatch_failed":
+      return "未入队";
+  }
+}
+
+function normalizeTaskStatusForCourseImport(task: AsyncTaskListItemDTO): CourseImportAsyncTaskSummary["status"] {
+  switch (task.status) {
+    case "pending_enqueue":
+    case "dispatching":
+    case "queued":
+    case "stalled_recovery":
+      return "queued";
+    case "running":
+      return "running";
+    case "retrying":
+      return "retrying";
+    case "completed":
+      return "completed";
+    case "partially_completed":
+      return "partially_completed";
+    case "failed":
+    case "cancelled":
+      return "failed";
+    case "dispatch_failed":
+      return "dispatch_failed";
+  }
+}
+
+function mapAsyncTaskToCourseImportSummary(input: {
+  batchId: string;
+  rowCount: number;
+  task: AsyncTaskListItemDTO;
+}): CourseImportAsyncTaskSummary {
+  const normalizedStatus = normalizeTaskStatusForCourseImport(input.task);
+  const detailRecord = input.task.result?.detail ?? {};
+  const resultCounts = detailRecord.applySummary ?? input.task.result?.counts ?? null;
+  const counts = resultCounts
+    ? {
+        created: Number((resultCounts as Record<string, unknown>).created ?? 0),
+        updated: Number((resultCounts as Record<string, unknown>).updated ?? 0),
+        skipped: Number((resultCounts as Record<string, unknown>).skipped ?? 0),
+        failed: Number((resultCounts as Record<string, unknown>).failed ?? 0),
+      }
+    : null;
+  const progressCounters = input.task.progress?.counters;
+  const processedRows = progressCounters
+    ? progressCounters.completed + progressCounters.failed + progressCounters.skipped
+    : counts
+      ? counts.created + counts.updated + counts.failed + counts.skipped
+      : null;
+  const totalRows = progressCounters?.total ?? (counts ? counts.created + counts.updated + counts.failed + counts.skipped : input.rowCount);
+  const latestError = normalizedStatus === "retrying"
+    ? "系统正在根据重试策略继续处理该批次。"
+    : normalizedStatus === "failed"
+      ? "导入任务未能完成，请检查失败原因后重新创建新任务。"
+      : normalizedStatus === "dispatch_failed"
+        ? "导入任务还没有成功进入队列。请先检查当前批次是否仍可应用，然后重新触发导入。"
+        : null;
+  const terminalHeadline =
+    normalizedStatus === "partially_completed"
+      ? "已完成，但有失败项"
+      : normalizedStatus === "completed"
+        ? "导入已完成"
+        : normalizedStatus === "failed"
+          ? "导入失败"
+          : normalizedStatus === "dispatch_failed"
+            ? "未成功进入队列"
+            : null;
+  const terminalGuidance =
+    normalizedStatus === "partially_completed" || normalizedStatus === "failed" || normalizedStatus === "dispatch_failed"
+      ? "请根据失败原因修正 CSV 或处理冲突后，重新创建新的导入任务。"
+      : null;
+
+  return CourseImportAsyncTaskSummarySchema.parse({
+    taskId: input.task.id,
+    status: normalizedStatus,
+    statusLabel: getAsyncSurfaceStatusLabel(normalizedStatus),
+    isActive: normalizedStatus === "queued" || normalizedStatus === "running" || normalizedStatus === "retrying",
+    isTerminal:
+      normalizedStatus === "completed" ||
+      normalizedStatus === "partially_completed" ||
+      normalizedStatus === "failed" ||
+      normalizedStatus === "dispatch_failed",
+    shouldFreezeReviewDecisions:
+      normalizedStatus === "queued" ||
+      normalizedStatus === "running" ||
+      normalizedStatus === "retrying" ||
+      normalizedStatus === "completed" ||
+      normalizedStatus === "partially_completed" ||
+      normalizedStatus === "failed",
+    progressPercent: input.task.progress?.percentComplete ?? null,
+    progressLabel: input.task.progress?.stageLabelKey ?? input.task.progress?.stage ?? null,
+    progressNote: input.task.progress?.messageKey ?? null,
+    processedRows,
+    totalRows,
+    latestError,
+    terminalHeadline,
+    terminalGuidance,
+    counts,
+    batchDetailHref: `/teacher/courses/import/${input.batchId}`,
+    lastUpdatedAt: input.task.updatedAt,
+  });
 }
 
 async function listSchoolCourses(schoolId: string) {
@@ -229,6 +351,21 @@ async function getCachedCourseImportBatchDTO(input: { batchId: string; actorId: 
   }
 
   const rows = await readStoredBatchRows(batch.id);
+  const latestAsyncTask = (
+    await getEntityAsyncTaskListDTO({
+      entityType: "course_import_batch",
+      entityId: batch.id,
+      schoolId: batch.schoolId,
+      limit: 1,
+    })
+  )[0] ?? null;
+  const asyncTaskSummary = latestAsyncTask
+    ? mapAsyncTaskToCourseImportSummary({
+        batchId: batch.id,
+        rowCount: batch.rowCount,
+        task: latestAsyncTask,
+      })
+    : null;
 
   return CourseImportBatchDTOSchema.parse({
     id: batch.id,
@@ -245,6 +382,8 @@ async function getCachedCourseImportBatchDTO(input: { batchId: string; actorId: 
       skipped: batch.skippedCount,
       failed: batch.failedCount,
     },
+    latestAsyncTask,
+    asyncTaskSummary,
     rows,
     createdAt: toIso(batch.createdAt),
     updatedAt: toIso(batch.updatedAt),

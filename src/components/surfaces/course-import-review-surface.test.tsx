@@ -27,6 +27,8 @@ const batch: CourseImportBatchDTO = {
   rowCount: 3,
   summary: { total: 3, readyToCreate: 1, matchedExisting: 1, sameFileConflict: 1, invalid: 0, blocked: 0 },
   applySummary: { created: 0, updated: 0, skipped: 0, failed: 0 },
+  latestAsyncTask: null,
+  asyncTaskSummary: null,
   createdAt: "2026-05-15T00:00:00.000Z",
   updatedAt: "2026-05-15T00:00:00.000Z",
   appliedAt: null,

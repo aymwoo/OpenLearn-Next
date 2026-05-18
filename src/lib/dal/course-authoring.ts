@@ -6,6 +6,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
 import { classMembers, classes, courseClasses, courseEnrollments, courses, lessons, lessonSteps, schools, users } from "@/db/schema";
 import { cacheTags } from "@/lib/cache-policy";
+import { getActorAsyncTaskListDTO } from "@/lib/dal/async-tasks";
 import {
   CourseLifecycleInputSchema,
   CourseDeleteEligibilityDTOSchema,
@@ -19,6 +20,7 @@ import {
   TeacherCourseAvailableClassDTOSchema,
   TeacherCourseCardDTOSchema,
   TeacherCourseCenterDTOSchema,
+  TeacherCourseCenterRecentImportTaskDTOSchema,
   TeacherCourseDetailDTOSchema,
   TeacherCourseEligibleStudentDTOSchema,
   TeacherCourseLessonsEntryDTOSchema,
@@ -126,6 +128,88 @@ function toIso(value: Date | number | null | undefined) {
   }
 
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function normalizeRecentImportStatus(status: string) {
+  switch (status) {
+    case "pending_enqueue":
+    case "dispatching":
+    case "queued":
+    case "stalled_recovery":
+      return { status: "queued", label: "排队中" } as const;
+    case "running":
+      return { status: "running", label: "导入中" } as const;
+    case "retrying":
+      return { status: "retrying", label: "重试中" } as const;
+    case "partially_completed":
+      return { status: "partially_completed", label: "已完成，但有失败项" } as const;
+    case "completed":
+      return { status: "completed", label: "已完成" } as const;
+    case "dispatch_failed":
+      return { status: "dispatch_failed", label: "未入队" } as const;
+    default:
+      return { status: "failed", label: "导入失败" } as const;
+  }
+}
+
+async function buildRecentImportTaskCard(actorId: string) {
+  const recentTask = (await getActorAsyncTaskListDTO({ actorId, limit: 10 })).find(
+    (task) => task.featureArea === "course_import" && task.entityRef.entityType === "course_import_batch",
+  );
+
+  if (!recentTask) {
+    return null;
+  }
+
+  const normalizedStatus = normalizeRecentImportStatus(recentTask.status);
+  const detail = recentTask.result?.detail ?? {};
+  const applySummary = detail.applySummary as Record<string, unknown> | undefined;
+  const counts = applySummary
+    ? {
+        created: Number(applySummary.created ?? 0),
+        updated: Number(applySummary.updated ?? 0),
+        skipped: Number(applySummary.skipped ?? 0),
+        failed: Number(applySummary.failed ?? 0),
+      }
+    : null;
+  const progressCounters = recentTask.progress?.counters;
+  const processedRows = progressCounters
+    ? progressCounters.completed + progressCounters.failed + progressCounters.skipped
+    : null;
+  const totalRows = progressCounters?.total ?? null;
+  const summaryLabel = normalizedStatus.status === "queued" || normalizedStatus.status === "running" || normalizedStatus.status === "retrying"
+    ? processedRows !== null && totalRows !== null
+      ? `已处理 ${processedRows}/${totalRows} 行`
+      : "任务已创建，等待返回批次详情查看进度。"
+    : counts
+      ? `created ${counts.created} · updated ${counts.updated} · skipped ${counts.skipped} · failed ${counts.failed}`
+      : normalizedStatus.status === "dispatch_failed"
+        ? "导入任务还没有成功进入队列。"
+        : null;
+
+  return TeacherCourseCenterRecentImportTaskDTOSchema.parse({
+    taskId: recentTask.id,
+    batchId: recentTask.entityRef.entityId,
+    batchLabel: recentTask.entityRef.entityLabel ?? "最近导入批次",
+    status: normalizedStatus.status,
+    statusLabel: normalizedStatus.label,
+    isActive:
+      normalizedStatus.status === "queued" ||
+      normalizedStatus.status === "running" ||
+      normalizedStatus.status === "retrying",
+    progressLabel: recentTask.progress?.stageLabelKey ?? recentTask.progress?.stage ?? null,
+    progressPercent: recentTask.progress?.percentComplete ?? null,
+    summaryLabel,
+    latestError:
+      normalizedStatus.status === "dispatch_failed"
+        ? "请回到批次详情页检查当前批次是否仍可应用，然后重新触发导入。"
+        : normalizedStatus.status === "failed"
+          ? "请根据失败原因修正 CSV 或处理冲突后重新创建新任务。"
+          : null,
+    counts,
+    href: `/teacher/courses/import/${recentTask.entityRef.entityId}`,
+    updatedAt: recentTask.updatedAt,
+  });
 }
 
 function sortByStatusThenUpdatedAt<T extends { status: string; updatedAt: Date | number | null | undefined }>(items: T[]) {
@@ -362,13 +446,14 @@ async function getCachedTeacherCourseCenterDTO(input: ScopedCourseQueryInput & {
   cacheLife("minutes");
   cacheTag(cacheTags.teacherCourses(input.actorId));
 
-  const [scopedCourses, availableSchoolRows] = await Promise.all([
+  const [scopedCourses, availableSchoolRows, recentImportTask] = await Promise.all([
     getScopedCourses(input),
     input.schoolIds.length
       ? db.query.schools.findMany({
           where: inArray(schools.id, input.schoolIds),
         })
       : Promise.resolve([]),
+    buildRecentImportTaskCard(input.actorId),
   ]);
   const filteredCourses = scopedCourses.filter((course) => input.includeArchived || course.status !== "archived");
   const { lessonCountByCourseId, enrollmentCountByCourseId, classLabelsByCourseId } = await getCourseAggregation(
@@ -385,6 +470,7 @@ async function getCachedTeacherCourseCenterDTO(input: ScopedCourseQueryInput & {
     includeArchived: input.includeArchived,
     defaultSchoolId: input.schoolIds[0] ?? null,
     availableSchools,
+    recentImportTask,
     courses: sortByStatusThenUpdatedAt(filteredCourses).map((course) =>
       TeacherCourseCardDTOSchema.parse({
         ...course,

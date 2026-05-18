@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { CourseImportApplySummarySchema, CourseImportAsyncSurfaceStatusSchema } from "@/lib/dto/course-import";
+
 export const TeacherCourseStatusSchema = z.enum(["draft", "published", "archived"]);
 export const CourseLifecycleActionSchema = z.enum(["publish", "unpublish", "archive"]);
 export const CourseDeleteBlockedReasonCodeSchema = z.enum([
@@ -85,10 +87,29 @@ export const TeacherCourseScopeSchoolDTOSchema = z.object({
   name: z.string(),
 });
 
+export const TeacherCourseCenterRecentImportTaskDTOSchema = z
+  .object({
+    taskId: z.string(),
+    batchId: z.string(),
+    batchLabel: z.string(),
+    status: CourseImportAsyncSurfaceStatusSchema,
+    statusLabel: z.string(),
+    isActive: z.boolean(),
+    progressLabel: z.string().nullable().default(null),
+    progressPercent: z.number().min(0).max(100).nullable().default(null),
+    summaryLabel: z.string().nullable().default(null),
+    latestError: z.string().nullable().default(null),
+    counts: CourseImportApplySummarySchema.nullable().default(null),
+    href: z.string(),
+    updatedAt: z.string().nullable().default(null),
+  })
+  .strict();
+
 export const TeacherCourseCenterDTOSchema = z.object({
   includeArchived: z.boolean().default(false),
   defaultSchoolId: z.string().nullable(),
   availableSchools: z.array(TeacherCourseScopeSchoolDTOSchema).default([]),
+  recentImportTask: TeacherCourseCenterRecentImportTaskDTOSchema.nullable().default(null),
   courses: z.array(TeacherCourseCardDTOSchema),
 });
 
@@ -158,6 +179,7 @@ export const TeacherCourseLessonsEntryDTOSchema = z.object({
 
 export type TeacherCourseCardDTO = z.infer<typeof TeacherCourseCardDTOSchema>;
 export type TeacherCourseScopeSchoolDTO = z.infer<typeof TeacherCourseScopeSchoolDTOSchema>;
+export type TeacherCourseCenterRecentImportTaskDTO = z.infer<typeof TeacherCourseCenterRecentImportTaskDTOSchema>;
 export type TeacherCourseCenterDTO = z.infer<typeof TeacherCourseCenterDTOSchema>;
 export type CourseLessonEntryDTO = z.infer<typeof CourseLessonEntryDTOSchema>;
 export type CourseClassLinkDTO = z.infer<typeof CourseClassLinkDTOSchema>;

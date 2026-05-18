@@ -42,6 +42,7 @@ describe("TeacherCourseCenterSurface create flow", () => {
         data={{
           defaultSchoolId: "school-9",
           availableSchools: [{ id: "school-9", name: "九号校区" }],
+          recentImportTask: null,
           courses: [],
           includeArchived: false,
         }}
@@ -74,6 +75,7 @@ describe("TeacherCourseCenterSurface create flow", () => {
             { id: "school-1", name: "晨曦学校" },
             { id: "school-2", name: "北校区" },
           ],
+          recentImportTask: null,
           courses: [],
           includeArchived: false,
         }}
@@ -108,6 +110,7 @@ describe("TeacherCourseCenterSurface create flow", () => {
         data={{
           defaultSchoolId: "school-9",
           availableSchools: [{ id: "school-9", name: "九号校区" }],
+          recentImportTask: null,
           courses: [],
           includeArchived: false,
         }}
