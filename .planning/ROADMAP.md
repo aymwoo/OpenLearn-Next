@@ -88,7 +88,7 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 41-01-PLAN.md - Integrate batch import onto the async task registry, active-task dedupe, enqueue path, and worker processor model.
+- [x] 41-01-PLAN.md - Integrate batch import onto the async task registry, active-task dedupe, enqueue path, and worker processor model.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 41-02-PLAN.md - Add teacher/staff status surfaces on the batch detail truth page and the course-center recent-task card.
@@ -142,6 +142,6 @@ Phases execute in numeric order: 39 -> 40 -> 41 -> 42 -> 43
 |-------|-----------|----------------|--------|-----------|
 | 39. Async contracts and durable task truth | v2.3 | 3/3 | Complete | 2026-05-18 |
 | 40. BullMQ infra seam and worker reliability posture | v2.3 | 3/3 | Complete   | 2026-05-18 |
-| 41. First real product slice - batch import async workflow | v2.3 | 0/3 | Not started | - |
+| 41. First real product slice - batch import async workflow | v2.3 | 1/3 | In Progress|  |
 | 42. Operator visibility and recovery | v2.3 | 0/3 | Not started | - |
 | 43. Additional validation workloads and milestone proof | v2.3 | 0/3 | Not started | - |

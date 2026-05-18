@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.3
 milestone_name: Async Task Platform
-current_phase: 40
-current_phase_name: bullmq-infra-seam-and-worker-reliability-posture
-current_plan: 1
+current_phase: 41
+current_phase_name: first-real-product-slice-batch-import-async-workflow
+current_plan: 2
 status: executing
-last_updated: "2026-05-18T22:54:41.263Z"
-last_activity: 2026-05-18 -- Phase 41 planning complete
+last_updated: "2026-05-18T23:11:43Z"
+last_activity: 2026-05-18 -- Completed 41-01 batch import async workflow integration
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 9
-  completed_plans: 6
-  percent: 67
+  completed_plans: 7
+  percent: 78
 ---
 
 # Project State
@@ -21,21 +21,21 @@ progress:
 ## Current Position
 
 Milestone: v2.3 Async Task Platform
-Phase: 40 (bullmq-infra-seam-and-worker-reliability-posture) — EXECUTING
-Phase name: BullMQ infra seam and worker reliability posture
-Plan: 1 of 3
+Phase: 41 (first-real-product-slice-batch-import-async-workflow) — EXECUTING
+Phase name: first-real-product-slice-batch-import-async-workflow
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-05-18 -- Phase 41 planning complete
-Progress: [██████████] 100%
-Next queued phase: Phase 40 - BullMQ infra seam and worker reliability posture
+Last activity: 2026-05-18 -- Completed 41-01 batch import async workflow integration
+Progress: [████████░░] 78%
+Next queued phase: Phase 41 - first-real-product-slice-batch-import-async-workflow (Plan 02)
 
 <!--
 GSD compatibility fields for older state parsers.
-Current Phase: 40
-Current Phase Name: bullmq-infra-seam-and-worker-reliability-posture
-Current Plan: 1
+Current Phase: 41
+Current Phase Name: first-real-product-slice-batch-import-async-workflow
+Current Plan: 2
 Total Plans in Phase: 3
-Last Activity Description: Phase 41 planning complete — 3 plans ready
+Last Activity Description: Phase 41 execution started
 -->
 
 ## Project Reference
@@ -43,7 +43,7 @@ Last Activity Description: Phase 41 planning complete — 3 plans ready
 See: `.planning/PROJECT.md` (updated 2026-05-18)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 40 — bullmq-infra-seam-and-worker-reliability-posture
+**Current focus:** Phase 41 — first-real-product-slice-batch-import-async-workflow
 
 ## Milestone Notes
 
@@ -75,9 +75,11 @@ Items acknowledged and deferred at milestone close on 2026-05-18:
 - durable truth 继续停留在 SQLite + DAL + canonical classroom/runtime write path。
 - v2.3 中 BullMQ/Redis 只能承担 orchestration 与 execution substrate，不能变成新的业务真相源。
 - worker 必须是独立进程入口，不能并入 `server.ts` 或 web 请求生命周期。
+- 同一 course import batch 的 active task 通过 entityType/entityId + active status 集合在 DAL 层复用，而不是只依赖 BullMQ job id 去重。
+- worker completed 事件优先解析 typed AsyncTaskResultSummary，partial success 直接投影为 `partially_completed` rich result，而不是 generic done payload。
 
 ## Next Steps
 
-1. 进入 Phase 40，建立 BullMQ connection factory、queue/worker bootstrap 和独立 worker 入口。
-2. 把 QueueEvents projection、attempt history、retry/backoff 与 idempotency 收敛到 durable truth。
-3. 在 Phase 40 完成后再把 batch import 挂到统一 async platform 上验证真实 workload。
+1. 执行 Phase 41 Plan 02，在 batch detail 与 course center surface 暴露 queued/running/partial/completed/failed 语义。
+2. 让课程导入产品面消费当前 rich result summary，而不是继续依赖同步 apply 结果。
+3. 在 Phase 41 Plan 03 补齐 focused verification，锁住 dedupe、partial success 与 cache-safe updates。

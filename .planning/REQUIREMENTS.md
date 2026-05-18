@@ -25,10 +25,10 @@ Requirements for milestone `v2.3 Async Task Platform`. Each maps to exactly one 
 
 ### Async User Experience
 
-- [ ] **ATP-11**: Teacher or staff user can trigger supported long-running operations as asynchronous jobs instead of waiting on one blocking request.
+- [x] **ATP-11**: Teacher or staff user can trigger supported long-running operations as asynchronous jobs instead of waiting on one blocking request.
 - [ ] **ATP-12**: Teacher or staff user can see task status such as queued, running, completed, failed, or retrying from product-facing surfaces.
 - [ ] **ATP-13**: Teacher or staff user can see task result summaries or failure feedback that explain what finished, partially finished, or needs attention.
-- [ ] **ATP-14**: Product surfaces keep user-visible state honest and do not treat "queued" as "done".
+- [x] **ATP-14**: Product surfaces keep user-visible state honest and do not treat "queued" as "done".
 
 ### Operator Visibility and Recovery
 
@@ -39,7 +39,7 @@ Requirements for milestone `v2.3 Async Task Platform`. Each maps to exactly one 
 
 ### Validation Workloads
 
-- [ ] **ATP-19**: System can process at least one batch import workflow on the async platform with durable progress and partial-result reporting.
+- [x] **ATP-19**: System can process at least one batch import workflow on the async platform with durable progress and partial-result reporting.
 - [ ] **ATP-20**: System can run scheduled reminder jobs on the async platform with explicit scheduling and delivery status.
 - [ ] **ATP-21**: System can run event post-processing jobs on the async platform without turning the worker path into a new primary business write path.
 - [ ] **ATP-22**: System can run resource-processing jobs on the async platform with durable status and operator-visible failures.
@@ -87,15 +87,15 @@ Which phases cover which requirements. Each requirement maps to exactly one road
 | ATP-08 | Phase 40 | Planned |
 | ATP-09 | Phase 40 | Planned |
 | ATP-10 | Phase 40 | Planned |
-| ATP-11 | Phase 41 | Planned |
+| ATP-11 | Phase 41 | Complete |
 | ATP-12 | Phase 41 | Planned |
 | ATP-13 | Phase 41 | Planned |
-| ATP-14 | Phase 41 | Planned |
+| ATP-14 | Phase 41 | Complete |
 | ATP-15 | Phase 42 | Planned |
 | ATP-16 | Phase 42 | Planned |
 | ATP-17 | Phase 42 | Planned |
 | ATP-18 | Phase 42 | Planned |
-| ATP-19 | Phase 41 | Planned |
+| ATP-19 | Phase 41 | Complete |
 | ATP-20 | Phase 43 | Planned |
 | ATP-21 | Phase 43 | Planned |
 | ATP-22 | Phase 43 | Planned |
