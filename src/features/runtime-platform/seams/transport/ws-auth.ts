@@ -4,7 +4,7 @@ import type { IncomingMessage } from "node:http";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { classMembers, classroomSessions, memberships } from "@/db/schema";
+import { classMembers, classes, classroomSessions, memberships } from "@/db/schema";
 
 import { ClassroomWebSocketActorScopeSchema } from "./ws-envelope";
 
@@ -29,11 +29,13 @@ export class ClassroomWebSocketHandshakeError extends Error {
   }
 }
 
+const ClassroomWebSocketHandshakeActorScopeSchema = z.enum(["teacher", "student"]);
+
 export const ClassroomWebSocketHandshakeContextSchema = z
   .object({
     userId: z.string().min(1),
     schoolId: z.string().min(1),
-    actorScope: ClassroomWebSocketActorScopeSchema,
+    actorScope: ClassroomWebSocketHandshakeActorScopeSchema,
     workspaceRole: z.string().min(1),
     sessionId: z.string().min(1),
   })
@@ -64,9 +66,30 @@ function assertRequestedScope(
   }
 }
 
+function toTokenRequest(request: IncomingMessage) {
+  const headers = new Headers();
+
+  for (const [key, value] of Object.entries(request.headers)) {
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        headers.append(key, entry);
+      }
+      continue;
+    }
+
+    if (typeof value === "string") {
+      headers.set(key, value);
+    }
+  }
+
+  return {
+    headers,
+  };
+}
+
 export async function authenticateClassroomWebSocket(request: IncomingMessage, sessionId: string) {
   const token = await getToken({
-    req: request,
+    req: toTokenRequest(request),
     secret: process.env.AUTH_SECRET,
   });
 
@@ -87,10 +110,18 @@ export async function authenticateClassroomWebSocket(request: IncomingMessage, s
     throw new ClassroomWebSocketHandshakeError("WEBSOCKET_SESSION_NOT_FOUND", 404);
   }
 
+  const classroom = await db.query.classes.findFirst({
+    where: eq(classes.id, session.classId),
+  });
+
+  if (!classroom) {
+    throw new ClassroomWebSocketHandshakeError("WEBSOCKET_SESSION_NOT_FOUND", 404);
+  }
+
   const membership = await db.query.memberships.findFirst({
     where: and(
       eq(memberships.userId, userId),
-      eq(memberships.schoolId, session.schoolId),
+      eq(memberships.schoolId, classroom.schoolId),
       eq(memberships.status, "active"),
     ),
   });
@@ -102,8 +133,8 @@ export async function authenticateClassroomWebSocket(request: IncomingMessage, s
   if (session.teacherId === userId) {
     const context = {
       userId,
-      schoolId: session.schoolId,
-      actorScope: ClassroomWebSocketActorScopeSchema.parse("teacher"),
+      schoolId: classroom.schoolId,
+      actorScope: ClassroomWebSocketHandshakeActorScopeSchema.parse("teacher"),
       workspaceRole,
       sessionId,
     };
@@ -115,8 +146,8 @@ export async function authenticateClassroomWebSocket(request: IncomingMessage, s
   const classMember = await db.query.classMembers.findFirst({
     where: and(
       eq(classMembers.classId, session.classId),
-      eq(classMembers.studentId, userId),
-      eq(classMembers.status, "active"),
+      eq(classMembers.userId, userId),
+      eq(classMembers.role, "student"),
     ),
   });
 
@@ -126,8 +157,8 @@ export async function authenticateClassroomWebSocket(request: IncomingMessage, s
 
   const context = {
     userId,
-    schoolId: session.schoolId,
-    actorScope: ClassroomWebSocketActorScopeSchema.parse("student"),
+    schoolId: classroom.schoolId,
+    actorScope: ClassroomWebSocketHandshakeActorScopeSchema.parse("student"),
     workspaceRole,
     sessionId,
   };

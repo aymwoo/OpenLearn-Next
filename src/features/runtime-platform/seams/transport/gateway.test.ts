@@ -188,6 +188,36 @@ describe("transport gateway", () => {
     );
   });
 
+  it("records stream_failed trace when supplemental websocket delivery rejects", async () => {
+    websocketDeliverMock.mockRejectedValueOnce(new Error("ws down"));
+
+    const { publishTransportEvent } = await import("./gateway");
+
+    await publishTransportEvent({
+      sessionId: "classroom-session-1",
+      channel: "classroom-events",
+      kind: "active_step_changed",
+      correlationId: "corr-3",
+      truthPersisted: true,
+      truthRef: {
+        type: "classroom-event",
+        id: "event-3",
+        classroomSessionId: "classroom-session-1",
+      },
+      payload: {
+        version: 7,
+      },
+    });
+
+    expect(insertValues).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        adapterId: "transport-websocket-adapter",
+        traceType: "stream_failed",
+        status: "failed",
+      }),
+    );
+  });
+
   it("records consumer-facing traces without creating a new truth source", async () => {
     const { recordTransportConsumerTrace } = await import("./gateway");
 

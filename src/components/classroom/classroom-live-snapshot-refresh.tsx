@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-import { ClassroomSnapshotDTOSchema } from "@/lib/dto/classroom";
+import { subscribeClassroomSocket } from "./classroom-ws-client";
 
 export function ClassroomLiveSnapshotRefresh({
   sessionId,
@@ -20,38 +20,36 @@ export function ClassroomLiveSnapshotRefresh({
   }, [initialVersion]);
 
   useEffect(() => {
-    const source = new EventSource(`/api/classroom/${sessionId}/events`);
-
-    const handleSnapshot = (event: Event) => {
-      if (!(event instanceof MessageEvent)) {
+    const applySnapshot = (version: number, status: "live" | "ended") => {
+      if (version <= latestVersionRef.current) {
         return;
       }
 
-      let data: unknown;
-      try {
-        data = JSON.parse(event.data);
-      } catch {
-        return;
-      }
-
-      const parsed = ClassroomSnapshotDTOSchema.safeParse(data);
-      if (!parsed.success || parsed.data.version <= latestVersionRef.current) {
-        return;
-      }
-
-      latestVersionRef.current = parsed.data.version;
+      latestVersionRef.current = version;
       router.refresh();
 
-      if (parsed.data.status !== "live") {
-        source.close();
+      if (status !== "live") {
+        subscription.close();
       }
     };
 
-    source.addEventListener("snapshot", handleSnapshot);
+    const subscription = subscribeClassroomSocket({
+      sessionId,
+      actorScope: 'teacher',
+      onSnapshot(snapshot, envelope) {
+        if (envelope.kind !== 'classroom.snapshot') {
+          return;
+        }
+
+        applySnapshot(snapshot.version, snapshot.status);
+      },
+      onFallbackSnapshot(snapshot) {
+        applySnapshot(snapshot.version, snapshot.status);
+      },
+    });
 
     return () => {
-      source.removeEventListener("snapshot", handleSnapshot);
-      source.close();
+      subscription.close();
     };
   }, [router, sessionId]);
 

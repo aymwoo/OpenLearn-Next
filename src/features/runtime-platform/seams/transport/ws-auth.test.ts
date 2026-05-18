@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getTokenMock = vi.fn();
 const classroomSessionsFindFirst = vi.fn();
+const classesFindFirst = vi.fn();
 const membershipsFindFirst = vi.fn();
 const classMembersFindFirst = vi.fn();
 
@@ -14,6 +15,9 @@ vi.mock("@/db", () => ({
     query: {
       classroomSessions: {
         findFirst: (...args: unknown[]) => classroomSessionsFindFirst(...args),
+      },
+      classes: {
+        findFirst: (...args: unknown[]) => classesFindFirst(...args),
       },
       memberships: {
         findFirst: (...args: unknown[]) => membershipsFindFirst(...args),
@@ -36,9 +40,13 @@ describe("ws handshake auth", () => {
 
     classroomSessionsFindFirst.mockResolvedValue({
       id: "session-1",
-      schoolId: "school-1",
       teacherId: "teacher-1",
       classId: "class-1",
+    });
+
+    classesFindFirst.mockResolvedValue({
+      id: "class-1",
+      schoolId: "school-1",
     });
 
     membershipsFindFirst.mockResolvedValue({
@@ -81,7 +89,7 @@ describe("ws handshake auth", () => {
     await expect(
       authenticateClassroomWebSocket(request as never, "session-1"),
     ).rejects.toEqual(
-      expect.objectContaining<ClassroomWebSocketHandshakeError>({
+      expect.objectContaining({
         code: "WEBSOCKET_SCOPE_MISMATCH",
         status: 403,
       }),
@@ -102,8 +110,8 @@ describe("ws handshake auth", () => {
 
     classMembersFindFirst.mockResolvedValue({
       classId: "class-1",
-      studentId: "student-1",
-      status: "active",
+      userId: "student-1",
+      role: "student",
     });
 
     const { authenticateClassroomWebSocket } = await import("./ws-auth");

@@ -20,11 +20,26 @@ const ownership: RuntimeTransportOwnership = RuntimeTransportOwnershipSchema.par
 });
 
 export function resolveWebSocketTransportKind(kind: string) {
-  if (kind.startsWith("runtime.")) {
+  if (kind.startsWith("runtime.") || kind.startsWith("governance.")) {
     return "runtime.event" as const;
   }
 
   return "classroom.snapshot" as const;
+}
+
+function resolveEnvelopeActor(input: RuntimeTransportEnvelope) {
+  const isRuntimeEvent = input.kind.startsWith("runtime.") || input.kind.startsWith("governance.");
+  const actorIdFromPayload = typeof input.payload.actorId === "string" ? input.payload.actorId : null;
+
+  return {
+    userId:
+      actorIdFromPayload ??
+      (isRuntimeEvent
+        ? `runtime:${input.truthRef.runtimeSessionId ?? input.truthRef.id}`
+        : `teacher:${input.sessionId}`),
+    scope: isRuntimeEvent ? "runtime" : "teacher",
+    schoolId: input.truthRef.schoolId ?? "unknown-school",
+  } as const;
 }
 
 class WebSocketRuntimeTransportAdapter implements RuntimeTransportAdapter {
@@ -43,17 +58,15 @@ class WebSocketRuntimeTransportAdapter implements RuntimeTransportAdapter {
       parsed.sessionId,
       buildClassroomWebSocketServerEnvelope({
         sessionId: parsed.sessionId,
-        actor: {
-          userId: parsed.truthRef.runtimeSessionId ?? parsed.truthRef.id,
-          scope: parsed.kind.startsWith("runtime.") ? "runtime" : "teacher",
-          schoolId: parsed.truthRef.schoolId ?? "unknown-school",
-        },
+        actor: resolveEnvelopeActor(parsed),
         kind: resolveWebSocketTransportKind(parsed.kind),
         correlationId: parsed.correlationId,
         causationId: parsed.truthRef.id,
         payload: {
           channel: parsed.channel,
           kind: parsed.kind,
+          correlationId: parsed.correlationId,
+          truthRef: parsed.truthRef,
           ...parsed.payload,
         },
         truthPersisted: true,

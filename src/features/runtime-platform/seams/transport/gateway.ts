@@ -114,11 +114,39 @@ export async function publishTransportEvent(input: RuntimeTransportPublishInput)
   try {
     await adapter.deliver(event);
 
-    if (supplementalAdapters.length > 0) {
-      await Promise.allSettled(
-        supplementalAdapters.map((secondaryAdapter) => secondaryAdapter.deliver(event)),
-      );
-    }
+    const supplementalResults =
+      supplementalAdapters.length > 0
+        ? await Promise.allSettled(
+            supplementalAdapters.map((secondaryAdapter) => secondaryAdapter.deliver(event)),
+          )
+        : [];
+
+    await Promise.all(
+      supplementalResults.map((result, index) => {
+        if (result.status !== "rejected") {
+          return Promise.resolve();
+        }
+
+        const secondaryAdapter = supplementalAdapters[index];
+        const failureReason = result.reason instanceof Error ? result.reason.message : "TRANSPORT_DELIVERY_FAILED";
+
+        return recordTransportConsumerTrace({
+          attemptId: attempt.id,
+          sessionId: event.sessionId,
+          correlationId: event.correlationId,
+          adapterId: secondaryAdapter.id,
+          adapterMode: secondaryAdapter.mode,
+          traceType: "stream_failed",
+          status: "failed",
+          detail: {
+            supplemental: true,
+            primaryAdapterId: adapter.id,
+            failureReason,
+            kind: event.kind,
+          },
+        });
+      }),
+    );
 
     await db
       .update(transportDeliveryAttempts)

@@ -918,6 +918,156 @@ async function getTeacherSessionScope(sessionId: string) {
   return { scope, session };
 }
 
+type ClassroomSnapshotActorContext = {
+  actorId: string;
+  actorScope: "teacher" | "student";
+};
+
+async function buildClassroomSnapshotDTOForActor(input: {
+  session: Awaited<ReturnType<typeof getSessionWithLessonSteps>>;
+  actor: ClassroomSnapshotActorContext;
+}) {
+  const { session, actor } = input;
+  const isTeacher = actor.actorScope === "teacher";
+
+  if (isTeacher) {
+    if (session.teacherId !== actor.actorId) {
+      throw new Error("TEACHER_AUTH_REQUIRED");
+    }
+  } else {
+    const classMember = await getStudentClassMember(session.classId, actor.actorId);
+    if (!classMember) {
+      throw new Error("CLASSROOM_PARTICIPANT_REQUIRED");
+    }
+
+    await ensureSessionStudentParticipant(session.id, actor.actorId);
+  }
+
+  const lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, session.lessonId) });
+  const clazz = await db.query.classes.findFirst({ where: eq(classes.id, session.classId) });
+  const published = await db.query.publishedLessonVersions.findFirst({ where: eq(publishedLessonVersions.id, session.publishedVersionId) });
+  const participants = await db.query.classroomParticipants.findMany({ where: eq(classroomParticipants.sessionId, session.id) });
+  const timelineRows = await db.query.classroomTimeline.findMany({ where: eq(classroomTimeline.sessionId, session.id) });
+  const evidenceRows = await db.query.classroomEvidence.findMany({
+    where: and(
+      eq(classroomEvidence.sessionId, session.id),
+      or(
+        eq(classroomEvidence.sourceType, "student-quick-response"),
+        eq(classroomEvidence.sourceType, "student-submission")
+      )
+    ),
+  });
+
+  const snapshot = parseSnapshot(published?.snapshotJson);
+  const steps = parseSnapshotSteps(snapshot, session.lessonId);
+  const stepOrder = new Map(steps.map((step, index) => [step.id, index]));
+  const activeStepIndex = stepOrder.get(session.activeStepId) ?? 0;
+  const activeStep = steps.find((step) => step.id === session.activeStepId);
+
+  const userIds = participants.map((participant) => participant.studentId);
+  const studentUsers = userIds.length > 0 ? await db.query.users.findMany({ where: inArray(users.id, userIds) }) : [];
+  const userMap = new Map(studentUsers.map((user) => [user.id, user.name]));
+  const submissionCountByStudentId = new Map<string, number>();
+  const runtimeProofByStudentId = new Map<string, ReturnType<typeof extractRuntimeProofFromEvidence>>();
+
+  for (const evidence of evidenceRows) {
+    if (!evidence.studentId || evidence.stepId !== session.activeStepId) {
+      continue;
+    }
+
+    submissionCountByStudentId.set(
+      evidence.studentId,
+      (submissionCountByStudentId.get(evidence.studentId) ?? 0) + 1,
+    );
+
+    const runtimeProof = extractRuntimeProofFromEvidence({
+      payload: evidence.payloadJson,
+      createdAt: evidence.createdAt,
+    });
+
+    if (runtimeProof) {
+      runtimeProofByStudentId.set(evidence.studentId, runtimeProof);
+    }
+  }
+
+  const participantDtos = participants.map((participant) => {
+    const participantStepIndex = stepOrder.get(participant.currentStepId) ?? activeStepIndex;
+    const progressLabel = buildParticipantProgressLabel({
+      activeStepIndex,
+      participantStepIndex,
+    });
+    const submissionCount = submissionCountByStudentId.get(participant.studentId) ?? 0;
+    const attentionState = buildParticipantAttention({
+      connectionState: participant.connectionState,
+      progressLabel,
+      submissionCount,
+      activeStepType: activeStep?.type,
+    });
+
+    return {
+      studentId: participant.studentId,
+      studentName: userMap.get(participant.studentId) ?? "学生",
+      connectionState: participant.connectionState,
+      currentStepId: participant.currentStepId,
+      lastSeenAt: toIso(participant.lastSeenAt),
+      progressLabel,
+      submissionCount,
+      needsAttention: attentionState.needsAttention,
+      attentionReasons: attentionState.attentionReasons,
+      runtimeProof: runtimeProofByStudentId.get(participant.studentId) ?? null,
+    };
+  });
+  const monitoringSummary = {
+    connectedCount: participantDtos.filter((participant) => participant.connectionState === "connected").length,
+    reconnectingCount: participantDtos.filter((participant) => participant.connectionState === "reconnecting").length,
+    offlineCount: participantDtos.filter((participant) => participant.connectionState === "offline").length,
+    needsAttentionCount: participantDtos.filter((participant) => participant.needsAttention).length,
+    submittedCount: participantDtos.filter((participant) => participant.submissionCount > 0).length,
+  };
+  const teacherTimeline = isTeacher
+    ? buildTeacherTimeline({
+        timelineRows,
+        participants: participantDtos.map((participant) => ({
+          studentId: participant.studentId,
+          studentName: participant.studentName,
+        })),
+        steps: steps.map((step) => ({ id: step.id, title: step.title })),
+      })
+    : [];
+
+  return ClassroomSnapshotDTOSchema.parse({
+    sessionId: session.id,
+    lessonId: session.lessonId,
+    publishedVersionId: session.publishedVersionId,
+    classId: session.classId,
+    className: clazz?.name ?? "班级",
+    teacherId: session.teacherId,
+    lessonTitle: snapshot.lesson?.title ?? lesson?.title ?? "课堂",
+    activeStepId: session.activeStepId,
+    locked: Boolean(session.locked),
+    status: session.status,
+    version: session.version,
+    updatedAt: toIso(session.updatedAt),
+    participants: participantDtos,
+    monitoringSummary,
+    steps: steps.map((step) => ({
+      id: step.id,
+      title: step.title,
+      rank: step.rank,
+      type: step.type,
+      payload: step.payload,
+    })),
+    slideState: await getLatestSlideState(session.id),
+    teacherTimeline,
+    copy: {
+      staleRefreshRequired: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",
+      pendingAction: "当前控课面板可能不是最新。已为你保留本次操作，请刷新课堂快照后确认。",
+      reconnecting: "正在重新连接课堂，会先显示最近一次课堂状态。",
+      restored: "已恢复课堂状态，你现在看到的是最新步骤。",
+    }
+  });
+}
+
 async function createClassroomTimelineEntry(input: {
   sessionId: string;
   studentId?: string | null;
@@ -1023,6 +1173,28 @@ export async function ensureClassroomParticipant(input: { sessionId: string; stu
     connectionState: "reconnecting",
     currentStepId: session.activeStepId,
   }).onConflictDoNothing();
+}
+
+export async function getClassroomSnapshotForActor(input: {
+  sessionId: string;
+  actorId: string;
+  actorScope: "teacher" | "student";
+  schoolId: string;
+}) {
+  const session = await getSessionWithLessonSteps(input.sessionId);
+  const clazz = await db.query.classes.findFirst({ where: eq(classes.id, session.classId) });
+
+  if (!clazz || clazz.schoolId !== input.schoolId) {
+    throw new Error(input.actorScope === "teacher" ? "TEACHER_AUTH_REQUIRED" : "CLASSROOM_PARTICIPANT_REQUIRED");
+  }
+
+  return buildClassroomSnapshotDTOForActor({
+    session,
+    actor: {
+      actorId: input.actorId,
+      actorScope: input.actorScope,
+    },
+  });
 }
 
 export async function updateClassroomParticipantConnection(input: {
@@ -1698,131 +1870,238 @@ export async function getClassroomSnapshotDTO(input: { sessionId: string }) {
     await ensureClassroomParticipant({ sessionId: session.id, studentId: user.id });
   }
 
-  const lesson = await db.query.lessons.findFirst({ where: eq(lessons.id, session.lessonId) });
-  const clazz = await db.query.classes.findFirst({ where: eq(classes.id, session.classId) });
-  const published = await db.query.publishedLessonVersions.findFirst({ where: eq(publishedLessonVersions.id, session.publishedVersionId) });
-  const participants = await db.query.classroomParticipants.findMany({ where: eq(classroomParticipants.sessionId, session.id) });
-  const timelineRows = await db.query.classroomTimeline.findMany({ where: eq(classroomTimeline.sessionId, session.id) });
-  const evidenceRows = await db.query.classroomEvidence.findMany({
-    where: and(
-      eq(classroomEvidence.sessionId, session.id),
-      or(
-        eq(classroomEvidence.sourceType, "student-quick-response"),
-        eq(classroomEvidence.sourceType, "student-submission")
-      )
-    ),
+  return buildClassroomSnapshotDTOForActor({
+    session,
+    actor: {
+      actorId: user.id,
+      actorScope: isTeacher ? "teacher" : "student",
+    },
   });
+}
 
-  const snapshot = parseSnapshot(published?.snapshotJson);
-  const steps = parseSnapshotSteps(snapshot, session.lessonId);
-  const stepOrder = new Map(steps.map((step, index) => [step.id, index]));
-  const activeStepIndex = stepOrder.get(session.activeStepId) ?? 0;
-  const activeStep = steps.find((step) => step.id === session.activeStepId);
-
-  const userIds = participants.map(p => p.studentId);
-  const studentUsers = userIds.length > 0 ? await db.query.users.findMany({ where: inArray(users.id, userIds) }) : [];
-  const userMap = new Map(studentUsers.map(u => [u.id, u.name]));
-  const submissionCountByStudentId = new Map<string, number>();
-  const runtimeProofByStudentId = new Map<string, ReturnType<typeof extractRuntimeProofFromEvidence>>();
-
-  for (const evidence of evidenceRows) {
-    if (!evidence.studentId || evidence.stepId !== session.activeStepId) {
-      continue;
-    }
-
-    submissionCountByStudentId.set(
-      evidence.studentId,
-      (submissionCountByStudentId.get(evidence.studentId) ?? 0) + 1,
-    );
-
-    const runtimeProof = extractRuntimeProofFromEvidence({
-      payload: evidence.payloadJson,
-      createdAt: evidence.createdAt,
-    });
-
-    if (runtimeProof) {
-      runtimeProofByStudentId.set(evidence.studentId, runtimeProof);
-    }
+export async function applyWebSocketTeacherControlForActor(input: {
+  sessionId: string;
+  actorId: string;
+  schoolId: string;
+  command: "focus-step" | "lock" | "unlock" | "set-slide";
+  expectedVersion: number;
+  targetStepId?: string;
+  slideIndex?: number;
+}) {
+  const session = await db.query.classroomSessions.findFirst({ where: eq(classroomSessions.id, input.sessionId) });
+  if (!session) {
+    throw new Error("CLASSROOM_ENDED");
   }
 
-  const participantDtos = participants.map((p) => {
-    const participantStepIndex = stepOrder.get(p.currentStepId) ?? activeStepIndex;
-    const progressLabel = buildParticipantProgressLabel({
-      activeStepIndex,
-      participantStepIndex,
-    });
-    const submissionCount = submissionCountByStudentId.get(p.studentId) ?? 0;
-    const attentionState = buildParticipantAttention({
-      connectionState: p.connectionState,
-      progressLabel,
-      submissionCount,
-      activeStepType: activeStep?.type,
-    });
+  if (session.teacherId !== input.actorId) {
+    throw new Error("TEACHER_AUTH_REQUIRED");
+  }
 
-    return {
-      studentId: p.studentId,
-      studentName: userMap.get(p.studentId) ?? "学生",
-      connectionState: p.connectionState,
-      currentStepId: p.currentStepId,
-      lastSeenAt: toIso(p.lastSeenAt),
-      progressLabel,
-      submissionCount,
-      needsAttention: attentionState.needsAttention,
-      attentionReasons: attentionState.attentionReasons,
-      runtimeProof: runtimeProofByStudentId.get(p.studentId) ?? null,
-    };
-  });
-  const monitoringSummary = {
-    connectedCount: participantDtos.filter((participant) => participant.connectionState === "connected").length,
-    reconnectingCount: participantDtos.filter((participant) => participant.connectionState === "reconnecting").length,
-    offlineCount: participantDtos.filter((participant) => participant.connectionState === "offline").length,
-    needsAttentionCount: participantDtos.filter((participant) => participant.needsAttention).length,
-    submittedCount: participantDtos.filter((participant) => participant.submissionCount > 0).length,
-  };
-  const teacherTimeline = isTeacher
-    ? buildTeacherTimeline({
-        timelineRows,
-        participants: participantDtos.map((participant) => ({
-          studentId: participant.studentId,
-          studentName: participant.studentName,
-        })),
-        steps: steps.map((step) => ({ id: step.id, title: step.title })),
-      })
-    : [];
+  if (session.status !== "live") {
+    throw new Error("CLASSROOM_ENDED");
+  }
 
-  const dto = {
-    sessionId: session.id,
-    lessonId: session.lessonId,
-    publishedVersionId: session.publishedVersionId,
-    classId: session.classId,
-    className: clazz?.name ?? "班级",
-    teacherId: session.teacherId,
-    lessonTitle: snapshot.lesson?.title ?? lesson?.title ?? "课堂",
-    activeStepId: session.activeStepId,
-    locked: Boolean(session.locked),
-    status: session.status,
-    version: session.version,
-    updatedAt: toIso(session.updatedAt),
-    participants: participantDtos,
-    monitoringSummary,
-    steps: steps.map(s => ({
-      id: s.id,
-      title: s.title,
-      rank: s.rank,
-      type: s.type,
-      payload: s.payload,
-    })),
-    slideState: await getLatestSlideState(session.id),
-    teacherTimeline,
-    copy: {
-      staleRefreshRequired: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",
-      pendingAction: "当前控课面板可能不是最新。已为你保留本次操作，请刷新课堂快照后确认。",
-      reconnecting: "正在重新连接课堂，会先显示最近一次课堂状态。",
-      restored: "已恢复课堂状态，你现在看到的是最新步骤。",
+  if (session.version !== input.expectedVersion) {
+    return ClassroomActionResultDTOSchema.parse({
+      ok: false,
+      sessionId: session.id,
+      error: "VERSION_CONFLICT",
+      code: "conflict",
+      expectedVersion: input.expectedVersion,
+      serverVersion: session.version,
+      snapshot: await getClassroomSnapshotForActor({
+        sessionId: session.id,
+        actorId: input.actorId,
+        actorScope: "teacher",
+        schoolId: input.schoolId,
+      }),
+    });
+  }
+
+  if (input.command === "focus-step") {
+    if (!input.targetStepId) {
+      throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
     }
-  };
 
-  return ClassroomSnapshotDTOSchema.parse(dto);
+    const steps = await getPublishedSessionSteps(session);
+    const targetStep = steps.find((step) => step.id === input.targetStepId);
+    if (!targetStep) {
+      throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
+    }
+
+    const [updated] = await db.update(classroomSessions)
+      .set({
+        activeStepId: input.targetStepId,
+        version: session.version + 1,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(classroomSessions.id, session.id), eq(classroomSessions.version, input.expectedVersion)))
+      .returning();
+
+    if (!updated) {
+      return ClassroomActionResultDTOSchema.parse({
+        ok: false,
+        sessionId: session.id,
+        error: "VERSION_CONFLICT",
+        code: "conflict",
+        expectedVersion: input.expectedVersion,
+        serverVersion: (await db.query.classroomSessions.findFirst({ where: eq(classroomSessions.id, session.id) }))?.version,
+        snapshot: await getClassroomSnapshotForActor({
+          sessionId: session.id,
+          actorId: input.actorId,
+          actorScope: "teacher",
+          schoolId: input.schoolId,
+        }),
+      });
+    }
+
+    const [event] = await db.insert(classroomEvents).values({
+      sessionId: session.id,
+      version: updated.version,
+      type: "active_step_changed",
+      actorId: input.actorId,
+      payloadJson: { activeStepId: input.targetStepId, slideIndex: 0 },
+    }).returning();
+
+    await publishClassroomTransportEvent({
+      sessionId: session.id,
+      schoolId: input.schoolId,
+      eventId: event.id,
+      correlationId: `classroom:${session.id}:active_step_changed:${updated.version}`,
+      kind: "active_step_changed",
+      payload: { activeStepId: input.targetStepId, version: updated.version },
+    });
+
+    return ClassroomActionResultDTOSchema.parse({
+      ok: true,
+      sessionId: session.id,
+      snapshot: await getClassroomSnapshotForActor({
+        sessionId: session.id,
+        actorId: input.actorId,
+        actorScope: "teacher",
+        schoolId: input.schoolId,
+      }),
+    });
+  }
+
+  if (input.command === "lock" || input.command === "unlock") {
+    const locked = input.command === "lock";
+    const [updated] = await db.update(classroomSessions)
+      .set({
+        locked,
+        version: session.version + 1,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(classroomSessions.id, session.id), eq(classroomSessions.version, input.expectedVersion)))
+      .returning();
+
+    if (!updated) {
+      return ClassroomActionResultDTOSchema.parse({
+        ok: false,
+        sessionId: session.id,
+        error: "VERSION_CONFLICT",
+        code: "conflict",
+        expectedVersion: input.expectedVersion,
+        serverVersion: (await db.query.classroomSessions.findFirst({ where: eq(classroomSessions.id, session.id) }))?.version,
+        snapshot: await getClassroomSnapshotForActor({
+          sessionId: session.id,
+          actorId: input.actorId,
+          actorScope: "teacher",
+          schoolId: input.schoolId,
+        }),
+      });
+    }
+
+    const [event] = await db.insert(classroomEvents).values({
+      sessionId: session.id,
+      version: updated.version,
+      type: "lock_mode_changed",
+      actorId: input.actorId,
+      payloadJson: { locked },
+    }).returning();
+
+    await publishClassroomTransportEvent({
+      sessionId: session.id,
+      schoolId: input.schoolId,
+      eventId: event.id,
+      correlationId: `classroom:${session.id}:lock_mode_changed:${updated.version}`,
+      kind: "lock_mode_changed",
+      payload: { locked, version: updated.version },
+    });
+
+    return ClassroomActionResultDTOSchema.parse({
+      ok: true,
+      sessionId: session.id,
+      snapshot: await getClassroomSnapshotForActor({
+        sessionId: session.id,
+        actorId: input.actorId,
+        actorScope: "teacher",
+        schoolId: input.schoolId,
+      }),
+    });
+  }
+
+  if (typeof input.slideIndex !== "number") {
+    throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
+  }
+
+  const stepId = input.targetStepId ?? session.activeStepId;
+  if (session.activeStepId !== stepId) {
+    throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
+  }
+
+  const [updated] = await db.update(classroomSessions)
+    .set({
+      version: session.version + 1,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(classroomSessions.id, session.id), eq(classroomSessions.version, input.expectedVersion)))
+    .returning();
+
+  if (!updated) {
+    return ClassroomActionResultDTOSchema.parse({
+      ok: false,
+      sessionId: session.id,
+      error: "VERSION_CONFLICT",
+      code: "conflict",
+      expectedVersion: input.expectedVersion,
+      serverVersion: (await db.query.classroomSessions.findFirst({ where: eq(classroomSessions.id, session.id) }))?.version,
+      snapshot: await getClassroomSnapshotForActor({
+        sessionId: session.id,
+        actorId: input.actorId,
+        actorScope: "teacher",
+        schoolId: input.schoolId,
+      }),
+    });
+  }
+
+  const [event] = await db.insert(classroomEvents).values({
+    sessionId: session.id,
+    version: updated.version,
+    type: "slide_changed",
+    actorId: input.actorId,
+    payloadJson: { stepId, slideIndex: input.slideIndex },
+  }).returning();
+
+  await publishClassroomTransportEvent({
+    sessionId: session.id,
+    schoolId: input.schoolId,
+    eventId: event.id,
+    correlationId: `classroom:${session.id}:slide_changed:${updated.version}`,
+    kind: "slide_changed",
+    payload: { stepId, slideIndex: input.slideIndex, version: updated.version },
+  });
+
+  return ClassroomActionResultDTOSchema.parse({
+    ok: true,
+    sessionId: session.id,
+    snapshot: await getClassroomSnapshotForActor({
+      sessionId: session.id,
+      actorId: input.actorId,
+      actorScope: "teacher",
+      schoolId: input.schoolId,
+    }),
+  });
 }
 
 export async function getClassroomSessionRecapDTO(rawInput: unknown) {

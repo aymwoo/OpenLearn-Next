@@ -10,23 +10,23 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## Current Milestone: v2.1 Safety Closure and Course Membership Loop
+## Current Milestone: v2.2 WebSocket Classroom Transport Cutover
 
-**Goal:** 在不继续扩 runtime 平台 blast radius 的前提下，优先收口项目级安全、鉴权、持久化和课程成员闭环缺口，把已经跑通的课堂主链路提升到可持续、可授权、可验证的 ship posture。
+**Goal:** 在已完成的 transport boundary、auth/data/durability baseline 之上，把课堂实时链路从单向 SSE 升级为真正双向的 `WebSocket` 通信，并以 `ioredis` 承接 fanout 与多实例分发。
 
 **Target features:**
-- 收口 `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05` 与 `CLASS-05`，让认证、授权、DAL、DTO、Zod 校验、SQLite durability 和课堂真相源重新对齐。
-- 完成 `COURSE-07`，让教师可在课程详情工作流中安全管理课程成员，而不是只停在课程-班级关联。
-- 并行推进 `lint` / `typecheck` 基线修复，至少让本 milestone 触达的 active surfaces 和 canonical verification path 不再被历史噪音长期阻断。
-- 保持 `v2.0` 已落地的 runtime host、governance、transport boundary 和 inspector 能力稳定可用，但本轮不继续扩新 runtime 类型或基础设施 cutover。
+- 用 `ws` 建立课堂与 runtime 的鉴权握手、双向消息信封、连接注册表与 session-scoped channel contract。
+- 用 `ioredis` 把 WebSocket fanout 升级为多实例可工作的 delivery 层，但不让 Redis 取代 SQLite + DAL 的业务真相源地位。
+- 保持 teacher control、student sync、runtime command、snapshot recovery 和 locked/unlocked classroom 语义不回退。
+- 为新的实时链路补齐 canonical verification、fallback posture、local bootstrap 与 observability，而不是只做局部技术替换。
 
 ## Current Planning Posture
 
-- 当前 active milestone 为 `v2.1 Safety Closure and Course Membership Loop`。
-- 先做安全缺口而不是继续扩 runtime 平台，因为 Phase 27-32 已经证明 Runtime Platform foundation、HTML runtime pilot、governance、transport boundary 和 inspector 可运行；当前更大的 ship blocker 已经变成项目级 authz、DTO、DAL、durability 与 course membership 闭环缺口。
-- 如果在 `AUTH` / `DATA` / `CLASS-05` / `COURSE-07` 未收口前继续扩 runtime 类型、事件基础设施或第三方 runtime，会把未完成的权限边界和持久化风险扩散到更多 surface，放大后续回收成本。
-- 本轮继续采用渐进兼容策略：沿现有 DAL + Server Actions + SQLite + SSE 主链路补强真相源、授权和约束，不做新的平台级 big-bang rewrite。
-- `RTPX-01` ~ `RTPX-06` 保持 deferred，直到本轮安全与成员闭环完成后再评估下一轮 runtime/platform expansion。
+- 当前 active milestone 为 `v2.2 WebSocket Classroom Transport Cutover`。
+- 之所以现在开启新的 runtime/platform milestone，是因为 Phase 31 已完成 transport boundary，Phase 33-35 已收口 auth/data/durability 与 baseline；继续把 WebSocket cutover 留在 backlog 已不再是更优路径。
+- 本轮不是重写 runtime platform，而是在现有 `runtime-platform/seams`、transport gateway、classroom durability truth 之上做正式 cutover。
+- 本轮 committed scope 固定为 `ws + ioredis`；不沿用旧的泛化“Redis/Event Bus/WebSocket 一起评估”表述，也不把 sandbox、Pyodide、PostgreSQL 或第二 runtime 一并拉进来。
+- `RTPX-01`、`RTPX-04`、`RTPX-05`、`RTPX-06` 继续 deferred，直到 WebSocket classroom transport 在真实课堂主链路上稳定。
 
 ## Requirements
 
@@ -62,16 +62,16 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ### Active
 
-- [ ] 系统通过 Auth.js v5、`proxy.ts`、DAL 和 Server Actions 真正确认 actor identity、role、school membership、ownership、enrollment 和 DTO sanitation，不再把 `AUTH-01` ~ `AUTH-06` 作为长期悬空 requirement。
-- [ ] 系统对 SQLite-first schema、cascade、server-only DAL、Zod persistence boundary、indexes/unique constraints 和 classroom durability 给出代码与验证双重闭环，收口 `DATA-01` ~ `DATA-05` 与 `CLASS-05`。
-- [ ] 教师可以在课程管理工作流中完成课程成员关联的查看、添加、移除与约束反馈，闭合 `COURSE-07`。
-- [ ] 当前 active milestone 触达的 app/test/scripts surfaces 拥有可持续的 `lint` / `typecheck` 基线，不再长期依赖“已知历史噪音”作为默认解释。
+- [ ] 课堂、学生端和 runtime host 通过统一的 `ws` 双向 channel 收发控制命令、snapshot、runtime event 与 interaction command，而不是继续依赖单向 SSE。
+- [ ] WebSocket 握手、连接持有、消息信封和 route auth 全部保持 actor、school、session scope 校验，不新增 direct DB shortcut。
+- [ ] `ioredis` 承接课堂 transport fanout 和多实例 publish/subscribe，但 Redis 仍只是 delivery 层，不替代 SQLite + DAL 的 durable truth。
+- [ ] 新实时链路具备可重复的 verifier、fallback posture、local bootstrap 与 observability，不把切换风险留给隐式人工排查。
 
 ### Milestone entry gaps
 
-- [ ] `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05` 与 `CLASS-05` 作为本轮第一优先 committed scope 进入新 milestone，而不是继续挂在 backlog 备注里。
-- [ ] `COURSE-07` 作为第二优先 committed scope 进入本轮，前置依赖是先把 auth/data/scope/durability 边界收紧。
-- [ ] repo health 的 `lint` / `typecheck` baseline 修复作为并行工作流推进，并在 milestone close 前收口到诚实可验证状态。
+- [ ] `RTPX-03` 作为本轮第一优先 committed scope 进入 active milestone，并固定技术选型为 `ws`。
+- [ ] `RTPX-02` 作为紧随其后的 committed scope 进入同一 milestone，并固定技术选型为 `ioredis`。
+- [ ] 当前 milestone 必须复用 Phase 31 的 transport gateway 与 Phase 33 的 durability/auth posture，而不是平行再造一套 realtime truth path。
 
 ### Out of Scope
 
@@ -83,7 +83,7 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - 在 v2.0 内正式完成 PostgreSQL 主库切换 — 本轮先建立数据库方言与迁移 seam，再在后续 milestone 切换。
 - 在 v2.0 内以 Redis/Event Bus 或 WebSocket 全面替换当前 SSE/同步写主链路 — 本轮先抽象 transport 和 event boundary，再分阶段迁移。
 - 在 v2.0 内首发多 runtime、plugin marketplace 或完整 AI runtime — 先用一个内置 `HTML courseware` runtime pilot 验证平台内核。
-- 在 v2.1 内继续扩更多 runtime 类型、第三方 runtime package、PostgreSQL primary cutover 或 transport 正式切换 — 这些能力在本轮安全与课程成员闭环前继续保持 deferred。
+- PostgreSQL primary cutover、第二 runtime 类型、第三方 runtime package、sandbox 增强或 AI runtime expansion — 本轮只处理课堂 WebSocket + Redis transport cutover，不并行扩更大基础设施范围。
 
 ## Context
 
@@ -163,4 +163,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-17 after initializing milestone v2.1 Safety Closure and Course Membership Loop*
+*Last updated: 2026-05-17 after opening milestone v2.2 WebSocket Classroom Transport Cutover*

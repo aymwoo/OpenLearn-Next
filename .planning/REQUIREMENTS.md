@@ -332,7 +332,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COURSE-07 | Phase 34 | Complete |
 | RTPX-01 | Deferred | Deferred |
 | RTPX-02 | Phase 37 | Pending |
-| RTPX-03 | Phase 36 | Complete |
+| RTPX-03 | Phase 36 | Pending |
 | RTPX-04 | Deferred | Deferred |
 | RTPX-05 | Deferred | Deferred |
 | RTPX-06 | Deferred | Deferred |

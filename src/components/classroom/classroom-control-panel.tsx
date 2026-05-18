@@ -1,19 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
 
-import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction } from '@/actions/classroom-actions'
+import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction, recordRuntimeTeacherControlAction } from '@/actions/classroom-actions'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { RuntimeDescriptorSchema } from '@/features/runtime-platform/contracts/descriptors'
+import { createRuntimeBridgeMessageId } from '@/features/runtime-platform/host/runtime-host-bridge'
 import { RuntimeHostClient } from '@/features/runtime-platform/host'
+import { RuntimeTeacherControlRequestSchema } from '@/features/runtime-platform/contracts/bridge'
 import { ClassroomConflictPanel } from './classroom-conflict-panel'
 import { ClassroomRosterPanel } from './classroom-roster-panel'
 import { ClassroomSessionHistoryPanel } from './classroom-session-history-panel'
 import { ClassroomStudentDetailPanel } from './classroom-student-detail-panel'
 import { ClassroomTimelinePanel } from './classroom-timeline-panel'
+import { subscribeClassroomSocket } from './classroom-ws-client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -37,10 +40,12 @@ export function ClassroomControlPanel({
   sessionEntries?: ClassroomConsoleSessionEntryDTO[]
 }) {
   const [conflict, setConflict] = useState<ConflictState>(null)
+  const [liveSnapshot, setLiveSnapshot] = useState<ClassroomSnapshotDTO | null>(null)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
+  const socketRef = useRef<ReturnType<typeof subscribeClassroomSocket> | null>(null)
 
-  const currentSnapshot = conflict?.latest || initialSnapshot
+  const currentSnapshot = conflict?.latest || liveSnapshot || initialSnapshot
   const currentStep = currentSnapshot.steps.find((step: ClassroomStepDTO) => step.id === currentSnapshot.activeStepId)
   const currentRuntimeDescriptor = (() => {
     if (!currentStep?.payload || typeof currentStep.payload !== 'object' || !('runtime' in currentStep.payload)) {
@@ -70,10 +75,103 @@ export function ClassroomControlPanel({
     ?? (primaryRuntimeProof?.runtimeSessionId
       ? `/settings/labs/runtime-inspector?runtimeSessionId=${primaryRuntimeProof.runtimeSessionId}`
       : null)
+  const runtimeInstanceId = useMemo(() => `teacher-runtime-${currentSnapshot.sessionId}-${currentStep?.id ?? 'stage'}`, [currentSnapshot.sessionId, currentStep?.id])
+
+  useEffect(() => {
+    const subscription = subscribeClassroomSocket({
+      sessionId: currentSnapshot.sessionId,
+      actorScope: 'teacher',
+      onSnapshot(snapshot) {
+        setLiveSnapshot(snapshot)
+        if (snapshot.status !== 'live') {
+          router.refresh()
+        }
+      },
+      onTransportError() {
+        socketRef.current = null
+      },
+      onClose() {
+        socketRef.current = null
+      },
+    })
+
+    socketRef.current = subscription
+
+    return () => {
+      subscription.close()
+      if (socketRef.current === subscription) {
+        socketRef.current = null
+      }
+    }
+  }, [currentSnapshot.sessionId, router])
+
+  const sendTeacherControl = (payload: { command: 'focus-step' | 'lock' | 'unlock' | 'set-slide'; expectedVersion: number; targetStepId?: string; slideIndex?: number }) => {
+    return socketRef.current?.send({
+      kind: 'teacher.control',
+      payload,
+    }) ?? { ok: false as const, reason: 'socket_unavailable' as const }
+  }
+
+  const sendRuntimeCommand = () => {
+    if (!currentStep) {
+      return { ok: false as const, reason: 'socket_unavailable' as const }
+    }
+
+    const bridge = RuntimeTeacherControlRequestSchema.parse({
+      classroomSessionId: currentSnapshot.sessionId,
+      lessonId: currentSnapshot.lessonId,
+      publishedVersionId: currentSnapshot.publishedVersionId,
+      stepId: currentStep.id,
+      command: 'focus-step',
+      payload: {
+        source: 'classroom-control-panel',
+      },
+    })
+
+    return socketRef.current?.send({
+      kind: 'runtime.command',
+      payload: {
+        requestKind: 'runtime-teacher-control',
+        runtimeInstanceId,
+        bridge,
+      },
+    }) ?? { ok: false as const, reason: 'socket_unavailable' as const }
+  }
+
+  const fallbackRuntimeCommand = async () => {
+    if (!currentStep) return
+
+    const requestId = createRuntimeBridgeMessageId()
+    await recordRuntimeTeacherControlAction({
+      messageId: requestId,
+      correlationId: createRuntimeBridgeMessageId(),
+      runtimeInstanceId,
+      payload: {
+        classroomSessionId: currentSnapshot.sessionId,
+        lessonId: currentSnapshot.lessonId,
+        publishedVersionId: currentSnapshot.publishedVersionId,
+        stepId: currentStep.id,
+        command: 'focus-step',
+        payload: {
+          source: 'classroom-control-panel-fallback',
+        },
+      },
+    })
+  }
 
   const handleChangeStep = (stepId: string) => {
     if (conflict || isPending) return
     startTransition(async () => {
+      const wsResult = sendTeacherControl({
+        command: 'focus-step',
+        expectedVersion: currentSnapshot.version,
+        targetStepId: stepId,
+      })
+
+      if (wsResult.ok) {
+        return
+      }
+
       const formData = new FormData()
       formData.append('sessionId', currentSnapshot.sessionId)
       formData.append('targetStepId', stepId)
@@ -90,6 +188,15 @@ export function ClassroomControlPanel({
   const handleChangeMode = (locked: boolean) => {
     if (conflict || isPending) return
     startTransition(async () => {
+      const wsResult = sendTeacherControl({
+        command: locked ? 'lock' : 'unlock',
+        expectedVersion: currentSnapshot.version,
+      })
+
+      if (wsResult.ok) {
+        return
+      }
+
       const formData = new FormData()
       formData.append('sessionId', currentSnapshot.sessionId)
       formData.append('locked', String(locked))
@@ -106,6 +213,17 @@ export function ClassroomControlPanel({
   const handleChangeSlide = (slideIndex: number) => {
     if (!currentStep || isPending || !!conflict) return
     startTransition(async () => {
+      const wsResult = sendTeacherControl({
+        command: 'set-slide',
+        expectedVersion: currentSnapshot.version,
+        targetStepId: currentStep.id,
+        slideIndex,
+      })
+
+      if (wsResult.ok) {
+        return
+      }
+
       const formData = new FormData()
       formData.append('sessionId', currentSnapshot.sessionId)
       formData.append('stepId', currentStep.id)
@@ -129,6 +247,20 @@ export function ClassroomControlPanel({
       if (result.ok) {
         router.refresh()
       }
+    })
+  }
+
+  const handleRuntimeCommand = () => {
+    if (!currentStep || conflict || isPending) return
+
+    startTransition(async () => {
+      const wsResult = sendRuntimeCommand()
+      if (wsResult.ok) {
+        return
+      }
+
+      await fallbackRuntimeCommand()
+      router.refresh()
     })
   }
 
@@ -290,18 +422,29 @@ export function ClassroomControlPanel({
         ) : null}
 
         {currentStep && currentRuntimeDescriptor ? (
-          <RuntimeHostClient
-            descriptor={currentRuntimeDescriptor}
-            surface="classroom-stage"
-            actorScope="teacher"
-            lessonId={currentSnapshot.lessonId}
-            stepId={currentStep.id}
-            stepTitle={currentStep.title}
-            publishedVersionId={currentSnapshot.publishedVersionId}
-            classroomSessionId={currentSnapshot.sessionId}
-            snapshotPayload={currentStep.payload as Record<string, unknown>}
-            note="课堂主舞台复用共享 runtime host，继续保留现有教师控课动作与 SSE 快照同步。"
-          />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3 rounded-[1.4rem] bg-surface-container-low p-4">
+              <div>
+                <p className="text-sm text-on-surface-variant">runtime command</p>
+                <p className="mt-1 text-sm font-semibold text-on-surface">可重新下发当前 Runtime 指令，优先走 websocket，失败时回退到 canonical action。</p>
+              </div>
+              <Button type="button" variant="secondary" className="min-h-[44px] px-5" disabled={isPending || !!conflict} onClick={handleRuntimeCommand}>
+                重新下发当前 Runtime 指令
+              </Button>
+            </div>
+            <RuntimeHostClient
+              descriptor={currentRuntimeDescriptor}
+              surface="classroom-stage"
+              actorScope="teacher"
+              lessonId={currentSnapshot.lessonId}
+              stepId={currentStep.id}
+              stepTitle={currentStep.title}
+              publishedVersionId={currentSnapshot.publishedVersionId}
+              classroomSessionId={currentSnapshot.sessionId}
+              snapshotPayload={currentStep.payload as Record<string, unknown>}
+              note="课堂主舞台复用共享 runtime host，继续保留现有教师控课动作与 WebSocket 快照同步。"
+            />
+          </div>
         ) : null}
 
         {currentStep && !currentRuntimeDescriptor && currentStep.type === 'content' && currentStep.payload && typeof currentStep.payload === 'object' && 'markdown' in currentStep.payload && currentStep.payload.markdown ? (

@@ -751,7 +751,7 @@ export const transportConsumerTraces = sqliteTable(
     adapterId: text("adapterId").notNull(),
     adapterMode: text("adapterMode", { enum: ["sse", "websocket"] }).notNull(),
     traceType: text("traceType", {
-      enum: ["snapshot", "keepalive", "stream_closed", "stream_failed"],
+      enum: ["snapshot", "keepalive", "stream_closed", "stream_failed", "runtime_event"],
     }).notNull(),
     status: text("status", { enum: ["emitted", "failed", "closed"] }).notNull(),
     snapshotVersion: integer("snapshotVersion"),

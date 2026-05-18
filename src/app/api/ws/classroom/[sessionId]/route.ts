@@ -16,7 +16,7 @@ export async function GET(
       actor,
       rollbackSurface: `/api/classroom/${sessionId}/events`,
       message:
-        "该端点仅接受通过鉴权握手的 WebSocket upgrade 请求；普通 HTTP GET 仅返回说明信息。",
+        "该端点仅接受通过鉴权握手的 WebSocket upgrade 请求；真实握手边界位于 server.ts -> ws-server.ts，普通 HTTP GET 仅返回说明信息。",
     },
     {
       status: 426,

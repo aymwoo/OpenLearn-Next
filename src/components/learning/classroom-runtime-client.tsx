@@ -15,6 +15,7 @@ import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { RuntimeHostClient } from '@/features/runtime-platform/host'
 import { touchClassroomPresenceAction } from '@/actions/classroom-actions'
 import { markStepProgressAction } from '@/actions/learning-actions'
+import { subscribeClassroomSocket } from '@/components/classroom/classroom-ws-client'
 import type {
   LearningStepDTO,
   ProgressState,
@@ -316,6 +317,7 @@ export function ClassroomRuntimeClient({
   const [runtime, setRuntime] = useState(initialRuntime)
   const [snapshotStatusCopy, setSnapshotStatusCopy] = useState<string | null>(initialRuntime.snapshotStatusCopy)
   const [retryCurrentActionRequest, setRetryCurrentActionRequest] = useState(0)
+  const [runtimeEventSummary, setRuntimeEventSummary] = useState<Record<string, unknown> | null>(null)
   const currentRuntimeStepId = runtime.forcedStepId ?? personal.progress.resumeStepId ?? shell.steps[0]?.id ?? null
   const currentStep = shell.steps.find((step) => step.id === currentRuntimeStepId) ?? shell.steps[0] ?? null
 
@@ -411,44 +413,55 @@ export function ClassroomRuntimeClient({
       return
     }
 
-    let source: EventSource | null = null
-
-    const connect = () => {
-      source = new EventSource(`/api/classroom/${sessionId}/events`)
-
-      source.onopen = () => {
-        void touchPresence('connected', currentRuntimeStepId)
-        setRuntime((prev) => ({ ...prev, connectionState: 'connected' }))
-        setSnapshotStatusCopy((prev) => prev === '正在重新连接课堂，会先显示最近一次课堂状态。' ? null : prev)
-      }
-
-      source.addEventListener('snapshot', async (e) => {
-        try {
-          const data = JSON.parse(e.data)
-          const parsed = ClassroomSnapshotDTOSchema.safeParse(data)
-          if (parsed.success) {
-            const durable = await fetchDurableSnapshot(sessionId)
-            if (durable && durable.version >= parsed.data.version) {
-              applySnapshot(durable, 'connected')
-              await touchPresence('connected', durable.activeStepId)
-            }
-          }
-        } catch {
-          // ignore parsing error
-        }
-      })
-
-      source.onerror = () => {
-        void touchPresence('reconnecting', currentRuntimeStepId)
-        setRuntime((prev) => ({ ...prev, connectionState: 'reconnecting' }))
-        setSnapshotStatusCopy('正在重新连接课堂，会先显示最近一次课堂状态。')
+    const handleIncomingSnapshot = async (snapshot: ClassroomSnapshotDTO) => {
+      const durable = await fetchDurableSnapshot(sessionId)
+      if (durable && durable.version >= snapshot.version) {
+        applySnapshot(durable, 'connected')
+        await touchPresence('connected', durable.activeStepId)
       }
     }
 
-    connect()
+    const subscription = subscribeClassroomSocket({
+      sessionId,
+      actorScope: 'student',
+      onOpen() {
+        void touchPresence('connected', currentRuntimeStepId)
+        setRuntime((prev) => ({ ...prev, connectionState: 'connected' }))
+        setSnapshotStatusCopy((prev) => prev === '正在重新连接课堂，会先显示最近一次课堂状态。' ? null : prev)
+      },
+      onReconnect() {
+        void touchPresence('reconnecting', currentRuntimeStepId)
+        setRuntime((prev) => ({ ...prev, connectionState: 'reconnecting' }))
+        setSnapshotStatusCopy('正在重新连接课堂，会先显示最近一次课堂状态。')
+      },
+      onFallbackOpen() {
+        void touchPresence('connected', currentRuntimeStepId)
+        setRuntime((prev) => ({ ...prev, connectionState: 'connected' }))
+        setSnapshotStatusCopy((prev) => prev === '正在重新连接课堂，会先显示最近一次课堂状态。' ? null : prev)
+      },
+      async onSnapshot(snapshot) {
+        await handleIncomingSnapshot(snapshot)
+      },
+      async onFallbackSnapshot(snapshot) {
+        await handleIncomingSnapshot(snapshot)
+      },
+      onRuntimeEvent(envelope) {
+        setRuntimeEventSummary({
+          transportRuntimeEvent: envelope.payload.kind,
+          runtimeInstanceId: envelope.payload.runtimeInstanceId,
+          recordedEventId: envelope.payload.recordedEventId,
+          applied: envelope.payload.applied,
+          correlationId: envelope.correlation.correlationId,
+        })
+      },
+      onTransportError() {
+        setRuntime((prev) => ({ ...prev, connectionState: 'snapshot_fallback' }))
+        setSnapshotStatusCopy('正在重新连接课堂，会先显示最近一次课堂状态。')
+      },
+    })
 
     return () => {
-      source?.close()
+      subscription.close()
     }
   }, [currentRuntimeStepId, sessionId, touchPresence])
 
@@ -460,7 +473,19 @@ export function ClassroomRuntimeClient({
     void touchPresence(runtime.connectionState === 'snapshot_fallback' ? 'reconnecting' : runtime.connectionState, currentRuntimeStepId)
   }, [currentRuntimeStepId, runtime.connectionState, sessionId, touchPresence])
 
-  const player = { shell, ...personal, runtime } satisfies StudentPlayerDTO
+  const player = {
+    shell,
+    ...personal,
+    runtime: {
+      ...runtime,
+      latestRuntimeStateSummary: runtimeEventSummary
+        ? {
+            ...runtime.latestRuntimeStateSummary,
+            ...runtimeEventSummary,
+          }
+        : runtime.latestRuntimeStateSummary,
+    },
+  } satisfies StudentPlayerDTO
   const completedSteps = player.progress.steps.filter((step) => step.state === 'completed' || step.state === 'skipped').length
 
   if (!currentStep) {

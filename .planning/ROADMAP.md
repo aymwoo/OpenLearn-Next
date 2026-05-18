@@ -7,7 +7,7 @@
 
 ### Current milestone phases
 
-- [x] **Phase 36: WebSocket classroom transport cutover** - Replace the current classroom SSE delivery path with authenticated, true bidirectional `ws` channels while preserving existing durable truth ownership in DAL, classroom sessions, and runtime events. (completed 2026-05-17)
+- [ ] **Phase 36: WebSocket classroom transport cutover** - Replace the current classroom SSE delivery path with authenticated, true bidirectional `ws` channels while preserving existing durable truth ownership in DAL, classroom sessions, and runtime events.
 - [ ] **Phase 37: Redis fanout and multi-instance delivery convergence** - Back the new WebSocket transport with `ioredis` fanout, session-scoped topic routing, and multi-instance-safe publish or subscribe semantics.
 - [ ] **Phase 38: Cutover verification, fallback, and operational hardening** - Publish the canonical verifier, rollback or fallback posture, local-dev bootstrap, and observability proof for the new `ws + ioredis` classroom transport.
 
@@ -31,10 +31,11 @@
   2. 教师控制命令、runtime command、snapshot push 与 keepalive 都通过同一 WebSocket channel contract 流动，并保持 actor scope 与 session scope 校验。
   3. WebSocket route handler 不新增 direct DB shortcut；业务真相继续由 DAL、Server Actions、classroom session 与 canonical event path 持有。
   4. 现有 classroom/player/runtime surface 在切换后仍保留锁定/解锁、环节推进、snapshot recovery 与错误反馈语义。
-**Plans**: 3 plans
+**Plans**: 4 plans
 - [x] 36-01-PLAN.md — Define the `ws` handshake, message envelope, connection registry, and session-scoped route cutover boundary.
-- [ ] 36-02-PLAN.md — Wire classroom control, player sync, and runtime command flows onto the bidirectional WebSocket channel without creating a second truth path.
-- [ ] 36-03-PLAN.md — Add focused verification for WebSocket route auth, message validation, and classroom parity against the current SSE behavior.
+- [ ] 36-02-PLAN.md — Repair the backend cutover path: real handshake auth, actor-aware snapshot reads, enum convergence, and canonical routing for inbound websocket commands.
+- [ ] 36-03-PLAN.md — Wire classroom, player, and runtime-host consumers onto the unified websocket contract while preserving SSE rollback and durable snapshot parity.
+- [ ] 36-04-PLAN.md — Add focused verification for websocket route auth, message validation, canonical routing, and classroom parity against the current SSE behavior.
 **UI hint**: yes
 
 ### Phase 37: Redis fanout and multi-instance delivery convergence
