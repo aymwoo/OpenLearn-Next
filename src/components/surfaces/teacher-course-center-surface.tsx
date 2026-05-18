@@ -34,6 +34,18 @@ export function TeacherCourseCenterSurface({
   const archivedHref = data.includeArchived
     ? "/teacher/courses"
     : "/teacher/courses?archived=1";
+  const recentImportSummary = data.recentImportTask
+    ? data.recentImportTask.isActive
+      ? data.recentImportTask.progressLabel ??
+        (data.recentImportTask.progressPercent !== null && data.recentImportTask.progressPercent !== undefined
+          ? `${data.recentImportTask.progressPercent}%`
+          : null) ??
+        data.recentImportTask.latestError ??
+        "返回批次详情页查看当前 durable 状态与结果摘要。"
+      : data.recentImportTask.summaryLabel ??
+        data.recentImportTask.latestError ??
+        "返回批次详情页查看当前 durable 状态与结果摘要。"
+    : null;
 
   return (
     <div className={teacherSurfaceRhythm.stack}>
@@ -99,7 +111,7 @@ export function TeacherCourseCenterSurface({
                 </div>
                 <h2 className="text-xl font-semibold text-on-surface">{data.recentImportTask.batchLabel}</h2>
                 <p className="text-sm leading-7 text-on-surface-variant">
-                  {data.recentImportTask.summaryLabel ?? data.recentImportTask.latestError ?? "返回批次详情页查看当前 durable 状态与结果摘要。"}
+                  {recentImportSummary}
                 </p>
               </div>
               <Button asChild variant="tertiary" className="min-h-11 px-0 text-sm">

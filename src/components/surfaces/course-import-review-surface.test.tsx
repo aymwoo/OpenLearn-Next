@@ -125,9 +125,101 @@ describe("CourseImportReviewSurface", () => {
       />,
     );
 
-    expect(screen.getByText("排队中")).toBeTruthy();
+    expect(screen.getAllByText("排队中").length).toBeGreaterThan(0);
     expect(screen.getByText(/逐行“更新 \/ 跳过”决定已切换为只读/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "应用本批导入" })).toBeNull();
+  });
+
+  it("renders honest labels for queued running retrying dispatch_failed partially_completed and failed states", () => {
+    const scenarios: Array<{
+      status: NonNullable<CourseImportBatchDTO["asyncTaskSummary"]>["status"];
+      label: string;
+      headline: string | null;
+      latestError?: string | null;
+      guidance?: string | null;
+    }> = [
+      { status: "queued", label: "排队中", headline: null },
+      { status: "running", label: "导入中", headline: null },
+      {
+        status: "retrying",
+        label: "重试中",
+        headline: null,
+        latestError: "系统正在根据重试策略继续处理该批次。",
+      },
+      {
+        status: "dispatch_failed",
+        label: "未入队",
+        headline: "未成功进入队列",
+        latestError: "导入任务还没有成功进入队列。请先检查当前批次是否仍可应用，然后重新触发导入。",
+      },
+      {
+        status: "partially_completed",
+        label: "已完成，但有失败项",
+        headline: "已完成，但有失败项",
+        guidance: "请根据失败原因修正 CSV 或处理冲突后，重新创建新的导入任务。",
+      },
+      {
+        status: "failed",
+        label: "导入失败",
+        headline: "导入失败",
+        latestError: "导入任务未能完成，请检查失败原因后重新创建新任务。",
+      },
+    ];
+
+    for (const scenario of scenarios) {
+      const { unmount } = render(
+        <CourseImportReviewSurface
+          batch={{
+            ...batch,
+            status:
+              scenario.status === "partially_completed" || scenario.status === "failed"
+                ? "partially_applied"
+                : batch.status,
+            latestAsyncTask: null,
+            asyncTaskSummary: {
+              taskId: `task-${scenario.status}`,
+              status: scenario.status,
+              statusLabel: scenario.label,
+              isActive: scenario.status === "queued" || scenario.status === "running" || scenario.status === "retrying",
+              isTerminal:
+                scenario.status === "dispatch_failed" ||
+                scenario.status === "partially_completed" ||
+                scenario.status === "failed",
+              shouldFreezeReviewDecisions: true,
+              progressPercent: scenario.status === "running" ? 45 : scenario.status === "queued" ? 12 : null,
+              progressLabel: scenario.status === "running" ? "导入中" : scenario.status === "queued" ? "排队中" : null,
+              progressNote: null,
+              processedRows: scenario.status === "running" ? 1 : null,
+              totalRows: scenario.status === "running" ? 3 : null,
+              latestError: scenario.latestError ?? null,
+              terminalHeadline: scenario.headline,
+              terminalGuidance: scenario.guidance ?? null,
+              counts:
+                scenario.status === "partially_completed"
+                  ? { created: 1, updated: 0, skipped: 1, failed: 1 }
+                  : scenario.status === "failed"
+                    ? { created: 0, updated: 0, skipped: 0, failed: 1 }
+                    : null,
+              batchDetailHref: "/teacher/courses/import/batch-1",
+              lastUpdatedAt: "2026-05-15T00:00:00.000Z",
+            },
+          }}
+        />,
+      );
+
+      expect(screen.getAllByText(scenario.label).length).toBeGreaterThan(0);
+      if (scenario.headline) {
+        expect(screen.getAllByText(scenario.headline).length).toBeGreaterThan(0);
+      }
+      if (scenario.latestError) {
+      expect(screen.getByText(scenario.latestError)).toBeTruthy();
+      }
+      if (scenario.guidance) {
+        expect(screen.getByText(scenario.guidance)).toBeTruthy();
+      }
+
+      unmount();
+    }
   });
 
   it("renders exact partial-success headline and guidance", () => {
@@ -163,5 +255,50 @@ describe("CourseImportReviewSurface", () => {
 
     expect(screen.getAllByText("已完成，但有失败项").length).toBeGreaterThan(0);
     expect(screen.getByText(/重新创建新的导入任务/)).toBeTruthy();
+  });
+
+  it("renders terminal summary before row detail content", () => {
+    render(
+      <CourseImportReviewSurface
+        batch={{
+          ...batch,
+          status: "partially_applied",
+          applySummary: { created: 1, updated: 0, skipped: 1, failed: 1 },
+          rows: batch.rows.map((row, index) => ({
+            ...row,
+            result: index === 0 ? "created" : index === 1 ? "skipped" : "failed",
+            resultReason: index === 2 ? "命中了重复键，导入失败。" : "已处理。",
+          })),
+          latestAsyncTask: null,
+          asyncTaskSummary: {
+            taskId: "task-summary-order",
+            status: "partially_completed",
+            statusLabel: "已完成，但有失败项",
+            isActive: false,
+            isTerminal: true,
+            shouldFreezeReviewDecisions: true,
+            progressPercent: 100,
+            progressLabel: null,
+            progressNote: null,
+            processedRows: 3,
+            totalRows: 3,
+            latestError: null,
+            terminalHeadline: "已完成，但有失败项",
+            terminalGuidance: "请根据失败原因修正 CSV 或处理冲突后，重新创建新的导入任务。",
+            counts: { created: 1, updated: 0, skipped: 1, failed: 1 },
+            batchDetailHref: "/teacher/courses/import/batch-1",
+            lastUpdatedAt: "2026-05-15T00:00:00.000Z",
+          },
+        }}
+      />,
+    );
+
+    const summaryHeading = screen.getByText("结果概览");
+    const rowTitle = screen.getByText("课程 A");
+
+    expect(summaryHeading.compareDocumentPosition(rowTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByText("created").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("failed").length).toBeGreaterThan(0);
+    expect(screen.getByText("命中了重复键，导入失败。")).toBeTruthy();
   });
 });

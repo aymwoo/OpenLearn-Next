@@ -152,6 +152,39 @@ describe("TeacherCourseCenterSurface create flow", () => {
     expect(screen.getByText("已完成，但有失败项")).toBeTruthy();
     expect(screen.getByRole("link", { name: /返回批次详情/ }).getAttribute("href")).toBe("/teacher/courses/import/batch-1");
   });
+
+  it("renders active recent import task progress card and keeps the batch detail link", () => {
+    render(
+      <TeacherCourseCenterSurface
+        data={{
+          defaultSchoolId: "school-9",
+          availableSchools: [{ id: "school-9", name: "九号校区" }],
+          recentImportTask: {
+            taskId: "task-running",
+            batchId: "batch-2",
+            batchLabel: "spring-courses.csv",
+            status: "running",
+            statusLabel: "导入中",
+            isActive: true,
+            progressLabel: "已处理 4/10 行",
+            progressPercent: 40,
+            summaryLabel: null,
+            latestError: null,
+            counts: null,
+            href: "/teacher/courses/import/batch-2",
+            updatedAt: "2026-05-15T00:00:00.000Z",
+          },
+          courses: [],
+          includeArchived: false,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("最近导入任务")).toBeTruthy();
+    expect(screen.getAllByText("导入中").length).toBeGreaterThan(0);
+    expect(screen.getByText("已处理 4/10 行")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /返回批次详情/ }).getAttribute("href")).toBe("/teacher/courses/import/batch-2");
+  });
 });
 
 function openDrawerAndFillBaseFields() {
