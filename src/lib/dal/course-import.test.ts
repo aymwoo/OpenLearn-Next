@@ -27,4 +27,30 @@ describe("course import DAL", () => {
     expect(source).toContain("result: \"updated\"");
     expect(source).toContain("result: \"failed\"");
   });
+
+  it("splits prepare and execute helpers for async batch import application", () => {
+    expect(source).toContain("export async function prepareCourseImportApplyTask");
+    expect(source).toContain("export async function executeCourseImportApplyTask");
+    expect(source).toContain("enqueueAsyncTask({");
+    expect(source).toContain("findActiveCourseImportTask");
+    expect(source).not.toContain("export async function applyCourseImport(");
+  });
+
+  it("reuses only active tasks while terminal reruns create a new task attempt", () => {
+    expect(source).toContain("COURSE_IMPORT_ACTIVE_TASK_STATUSES");
+    expect(source).toContain("if (existingActiveTask)");
+    expect(source).toContain("reusedExistingTask: true");
+    expect(source).toContain("const priorTasks = await db.query.asyncTasks.findMany({");
+    expect(source).toContain("resetResults: priorTasks.length > 0");
+    expect(source).toContain("reusedExistingTask: false");
+  });
+
+  it("re-reads durable row truth and produces partial-success rich summaries", () => {
+    expect(source).toContain("const stagedRows = await readStoredBatchRows(batch.id)");
+    expect(source).toContain("if (\n      row.result &&");
+    expect(source).toContain('const nextStatus = summary.failed > 0 ? "partially_applied" : "applied"');
+    expect(source).toContain('outcome: summary.failed > 0 ? "partially_completed" : "completed"');
+    expect(source).toContain("applySummary: summary");
+    expect(source).toContain("failedRowCount: summary.failed");
+  });
 });

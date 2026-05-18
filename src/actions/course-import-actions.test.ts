@@ -99,4 +99,117 @@ describe("course import actions", () => {
     expect(updateTag).toHaveBeenCalledWith("async-task-list:teacher-1");
     expect(updateTag).toHaveBeenCalledWith("async-task-entity:course_import_batch:batch-1");
   });
+
+  it("reuses an active task and still invalidates batch plus async tags honestly", async () => {
+    prepareCourseImportApplyTask.mockResolvedValue({
+      batchId: "batch-1",
+      schoolId: "school-1",
+      taskId: "task-1",
+      taskStatus: "running",
+      enqueueIntentStatus: "dispatched",
+      reusedExistingTask: true,
+      dispatchFailed: false,
+      message: "这批导入已在处理中，已复用当前任务。",
+      task: {
+        id: "task-1",
+        taskType: "course_import.apply_batch",
+        featureArea: "course_import",
+        status: "running",
+        enqueueIntentStatus: "dispatched",
+        visibilityScope: "actor_owned",
+        entityRef: { entityType: "course_import_batch", entityId: "batch-1", entityLabel: null },
+        metadata: {
+          labelKey: "asyncTasks.courseImport.applyBatch.label",
+          summaryKey: "asyncTasks.courseImport.applyBatch.summary",
+          featureArea: "course_import",
+        },
+        progress: null,
+        result: null,
+        createdAt: new Date(0).toISOString(),
+        updatedAt: new Date(0).toISOString(),
+        completedAt: null,
+        queueJobId: null,
+        latestAttemptNumber: 1,
+        failure: null,
+        recovery: null,
+        attempts: [],
+        history: [],
+      },
+    });
+
+    const { applyCourseImportAction } = await import("./course-import-actions");
+    const result = await applyCourseImportAction({ batchId: "batch-1", matchedRowDecisions: [] });
+
+    expect(result).toEqual({
+      ok: true,
+      data: expect.objectContaining({
+        reusedExistingTask: true,
+        taskStatus: "running",
+        dispatchFailed: false,
+        message: "这批导入已在处理中，已复用当前任务。",
+      }),
+    });
+    expect(updateTag).toHaveBeenCalledWith("course:import-batch:batch-1");
+    expect(updateTag).toHaveBeenCalledWith("async-task:task-1");
+    expect(updateTag).toHaveBeenCalledWith("async-task-entity:course_import_batch:batch-1");
+  });
+
+  it("returns honest dispatch-failed payload without collapsing it into success copy", async () => {
+    prepareCourseImportApplyTask.mockResolvedValue({
+      batchId: "batch-1",
+      schoolId: "school-1",
+      taskId: "task-2",
+      taskStatus: "dispatch_failed",
+      enqueueIntentStatus: "dispatch_failed",
+      reusedExistingTask: false,
+      dispatchFailed: true,
+      message: "导入任务创建成功，但当前未成功入队，请稍后重试。",
+      task: {
+        id: "task-2",
+        taskType: "course_import.apply_batch",
+        featureArea: "course_import",
+        status: "dispatch_failed",
+        enqueueIntentStatus: "dispatch_failed",
+        visibilityScope: "actor_owned",
+        entityRef: { entityType: "course_import_batch", entityId: "batch-1", entityLabel: null },
+        metadata: {
+          labelKey: "asyncTasks.courseImport.applyBatch.label",
+          summaryKey: "asyncTasks.courseImport.applyBatch.summary",
+          featureArea: "course_import",
+        },
+        progress: null,
+        result: null,
+        createdAt: new Date(0).toISOString(),
+        updatedAt: new Date(0).toISOString(),
+        completedAt: null,
+        queueJobId: null,
+        latestAttemptNumber: 0,
+        failure: null,
+        recovery: null,
+        attempts: [],
+        history: [],
+      },
+    });
+
+    const { applyCourseImportAction } = await import("./course-import-actions");
+    const result = await applyCourseImportAction({ batchId: "batch-1", matchedRowDecisions: [] });
+
+    expect(result).toEqual({
+      ok: true,
+      data: expect.objectContaining({
+        taskStatus: "dispatch_failed",
+        enqueueIntentStatus: "dispatch_failed",
+        dispatchFailed: true,
+        message: "导入任务创建成功，但当前未成功入队，请稍后重试。",
+      }),
+    });
+    expect(result).not.toEqual({
+      ok: true,
+      data: expect.objectContaining({
+        message: "导入任务已创建，正在排队处理中。",
+      }),
+    });
+    expect(updateTag).toHaveBeenCalledWith("course:import-batch:batch-1");
+    expect(updateTag).toHaveBeenCalledWith("async-task:task-2");
+  });
 });

@@ -11,7 +11,8 @@ import {
   AsyncTaskResultSummarySchema,
   AsyncTaskStatusSchema,
 } from "@/features/async-tasks/shared/contract";
-import { TeacherCourseStatusSchema } from "@/lib/dto/course-authoring";
+
+export const CourseImportTeacherCourseStatusSchema = z.enum(["draft", "published", "archived"]);
 
 export const CourseImportSourceTypeSchema = z.enum(["csv"]);
 export const CourseImportBatchStatusSchema = z.enum([
@@ -42,7 +43,7 @@ export const CourseImportDraftRowInputSchema = z
     title: z.string().trim().min(1),
     subject: z.string().trim().min(1),
     grade: z.string().trim().min(1),
-    status: TeacherCourseStatusSchema,
+    status: CourseImportTeacherCourseStatusSchema,
   })
   .strict();
 
@@ -61,7 +62,7 @@ export const CourseImportMatchedCourseSchema = z.object({
   title: z.string(),
   subject: z.string(),
   grade: z.string(),
-  status: TeacherCourseStatusSchema,
+  status: CourseImportTeacherCourseStatusSchema,
   canUpdate: z.boolean(),
 });
 
