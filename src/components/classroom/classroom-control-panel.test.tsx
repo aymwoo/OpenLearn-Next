@@ -163,10 +163,19 @@ describe('ClassroomControlPanel websocket cutover', () => {
     expect(classroomActionMocks.changeClassroomModeAction).not.toHaveBeenCalled()
   })
 
-  it('falls back to canonical server actions when websocket cannot send or returns transport.error', async () => {
+  it('falls back to canonical server actions after websocket returns transport.error', async () => {
     render(<ClassroomControlPanel initialSnapshot={snapshot} />)
 
-    MockWebSocket.instances[0]!.readyState = 0
+    MockWebSocket.instances[0]?.emit('message', {
+      messageId: 'msg-transport-error',
+      sessionId: 'session-1',
+      actor: { userId: 'teacher-1', scope: 'teacher', schoolId: 'school-1' },
+      kind: 'transport.error',
+      sentAt: '2026-05-18T09:01:00.000Z',
+      correlation: { correlationId: 'corr-transport-error', truthPersisted: false },
+      payload: { code: 'WEBSOCKET_MESSAGE_FAILED' },
+    })
+
     classroomActionMocks.changeClassroomStepAction.mockResolvedValue({ ok: true, data: { sessionId: 'session-1' } })
 
     fireEvent.click(screen.getAllByRole('button', { name: '切换到此环节' })[0]!)

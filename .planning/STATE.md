@@ -4,16 +4,16 @@ milestone: v2.2
 milestone_name: WebSocket Classroom Transport Cutover
 current_phase: 36
 current_phase_name: websocket-classroom-transport-cutover
-current_plan: 1
-status: verifying
-stopped_at: Completed 36-01-PLAN.md
-last_updated: "2026-05-17T22:38:31.701Z"
-last_activity: 2026-05-17
+current_plan: 4
+status: complete
+stopped_at: Verified and closed Phase 36
+last_updated: "2026-05-18T03:27:36Z"
+last_activity: 2026-05-18
 progress:
   total_phases: 26
   completed_phases: 24
-  total_plans: 93
-  completed_plans: 93
+  total_plans: 96
+  completed_plans: 96
   percent: 100
 ---
 
@@ -22,20 +22,20 @@ progress:
 ## Current Position
 
 Milestone: v2.2 WebSocket Classroom Transport Cutover
-Phase: 36 (websocket-classroom-transport-cutover) — EXECUTING
+Phase: 36 (websocket-classroom-transport-cutover) — COMPLETE
 Phase name: WebSocket classroom transport cutover
-Plan: 1 of 1
-Status: Phase complete — ready for verification
-Last activity: 2026-05-17
+Plan: 4 of 4
+Status: Phase 36 verified and closed; Phase 37 not started
+Last activity: 2026-05-18
 Progress: [██████████] 100%
 
 <!--
 GSD compatibility fields for older state parsers.
 Current Phase: 36
 Current Phase Name: websocket-classroom-transport-cutover
-Current Plan: 1
-Total Plans in Phase: 1
-Last Activity Description: Phase 36 execution started
+Current Plan: 4
+Total Plans in Phase: 4
+Last Activity Description: Phase 36 verified and closeout artifacts updated
 -->
 
 ## Milestone Notes
@@ -43,6 +43,7 @@ Last Activity Description: Phase 36 execution started
 - 当前 active milestone 已切换到 `v2.2 WebSocket Classroom Transport Cutover`。
 - 这不是已有 backlog phase 的续写，而是一个新的 milestone 起点：`v2.1` 已归档，而 WebSocket + Redis cutover 在现有 planning 中一直被明确列为 deferred follow-up。
 - 本轮 committed scope 只激活 `RTPX-02` 与 `RTPX-03`：先把课堂实时链路从单向 SSE 升级为基于 `ws` 的双向 channel，再用 `ioredis` 补齐 fanout 与多实例分发。
+- Phase 36 已于 2026-05-18 通过 `verify:phase36` 关闭：真实 schema 握手、canonical ws routing、WS-first classroom/player consumer 与 SSE rollback posture 已落到代码和 focused suites。
 - Phase 31 已经提供 transport gateway、SSE-first adapter 和 delivery attempt truth，所以当前 phase 不需要重做 transport abstraction，而是要在既有边界上做正式 cutover。
 - `RTPX-01`、`RTPX-04`、`RTPX-05`、`RTPX-06` 继续 deferred；本轮不同时推进 PostgreSQL、第二 runtime、第三方 runtime/package 或 AI runtime expansion。
 
@@ -196,10 +197,10 @@ Last Activity Description: Phase 36 execution started
 
 ## Next Steps
 
-1. 执行 `.planning/phases/36-websocket-classroom-transport-cutover/36-01-PLAN.md`，先锁定 `ws` 握手、双向消息信封、连接注册表和课堂 route cutover 边界。
-2. 完成 Phase 36 后进入 Phase 37，把 `ioredis` fanout、topic routing 和 multi-instance delivery 收口到正式 adapter，而不是继续停留在单机内存分发。
-3. 在 Phase 38 做 cutover verification、rollback/fallback posture、开发环境 bootstrap 与运维可观测性收口。
-4. 继续保留 `v2.1` 的 archived close posture，不把 repo-wide lint backlog 与本轮 transport cutover 混成同一个完成条件。
+1. 进入 Phase 37，把 `ioredis` fanout、topic routing 和 multi-instance delivery 收口到正式 adapter，而不是继续停留在单机内存分发。
+2. 在 Phase 37 中保持 Redis 只是 delivery 层，不反向变成 classroom 或 runtime 的 durable truth source。
+3. 在 Phase 38 完成 `ws + ioredis` 的 canonical closeout，包括 fallback posture、local bootstrap、observability 与最终 milestone 文档。
+4. 继续保留 `v2.1` 的 archived close posture，不把 repo-wide lint backlog、PostgreSQL cutover 或第二 runtime 扩张混入本轮 transport milestone。
 
 ## Performance Metrics
 
@@ -247,8 +248,8 @@ Last Activity Description: Phase 36 execution started
 
 ## Session Tracking
 
-Last session: 2026-05-17T22:38:31.695Z
-Stopped At: Completed 36-01-PLAN.md
+Last session: 2026-05-18T03:27:36Z
+Stopped At: Verified and closed Phase 36
 Resume File: None
 
 ### Quick Tasks Completed

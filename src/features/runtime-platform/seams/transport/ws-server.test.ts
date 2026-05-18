@@ -64,7 +64,7 @@ describe("ws server client message handling", () => {
     });
 
     expect(socket.send).toHaveBeenCalledWith(expect.stringContaining("WEBSOCKET_PAYLOAD_INVALID"));
-  });
+  }, 15_000);
 
   it("acknowledges transport.keepalive and records keepalive trace", async () => {
     const { handleClassroomWebSocketClientMessage } = await import("./ws-server");

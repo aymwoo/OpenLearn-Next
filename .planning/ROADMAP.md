@@ -7,7 +7,7 @@
 
 ### Current milestone phases
 
-- [ ] **Phase 36: WebSocket classroom transport cutover** - Replace the current classroom SSE delivery path with authenticated, true bidirectional `ws` channels while preserving existing durable truth ownership in DAL, classroom sessions, and runtime events.
+- [x] **Phase 36: WebSocket classroom transport cutover** - Replace the current classroom SSE delivery path with authenticated, true bidirectional `ws` channels while preserving existing durable truth ownership in DAL, classroom sessions, and runtime events. (completed 2026-05-18)
 - [ ] **Phase 37: Redis fanout and multi-instance delivery convergence** - Back the new WebSocket transport with `ioredis` fanout, session-scoped topic routing, and multi-instance-safe publish or subscribe semantics.
 - [ ] **Phase 38: Cutover verification, fallback, and operational hardening** - Publish the canonical verifier, rollback or fallback posture, local-dev bootstrap, and observability proof for the new `ws + ioredis` classroom transport.
 
@@ -16,6 +16,7 @@
 - 当前 active milestone 为 `v2.2 WebSocket Classroom Transport Cutover`，从 Phase 36 开始继续编号。
 - 这是新的 milestone，不是已有 backlog phase：`v2.1` 已归档，而 `RTPX-02` / `RTPX-03` 在前一轮一直被明确 deferred。
 - 当前成功线是把课堂实时链路从 `Edge Runtime SSE` 升级为真正双向 `WebSocket`，并用 `ioredis` 承接 fanout 与多实例 delivery，而不是继续扩 sandbox、PostgreSQL 或多 runtime。
+- Phase 36 已在 2026-05-18 通过 `verify:phase36` 关闭；当前剩余 active scope 为 Phase 37 的 Redis fanout 和 Phase 38 的 cutover closeout。
 - Phase 27 与 Phase 31 已经提供 seam 和 transport gateway，Phase 33-35 已经收口权限、DTO、durability 与 baseline；因此本轮可以把 blast radius 聚焦在 transport cutover 本身，而不是再次回头补基础边界。
 - 本轮保持 classroom/runtime durable truth 在 SQLite + DAL + canonical event path，不让 Redis 或 WebSocket 反客为主成为新的业务真相源。
 - `RTPX-01`、`RTPX-04`、`RTPX-05`、`RTPX-06` 继续 deferred，直到 `ws + ioredis` cutover 被验证为稳定。
@@ -33,9 +34,9 @@
   4. 现有 classroom/player/runtime surface 在切换后仍保留锁定/解锁、环节推进、snapshot recovery 与错误反馈语义。
 **Plans**: 4 plans
 - [x] 36-01-PLAN.md — Define the `ws` handshake, message envelope, connection registry, and session-scoped route cutover boundary.
-- [ ] 36-02-PLAN.md — Repair the backend cutover path: real handshake auth, actor-aware snapshot reads, enum convergence, and canonical routing for inbound websocket commands.
-- [ ] 36-03-PLAN.md — Wire classroom, player, and runtime-host consumers onto the unified websocket contract while preserving SSE rollback and durable snapshot parity.
-- [ ] 36-04-PLAN.md — Add focused verification for websocket route auth, message validation, canonical routing, and classroom parity against the current SSE behavior.
+- [x] 36-02-PLAN.md — Repair the backend cutover path: real handshake auth, actor-aware snapshot reads, enum convergence, and canonical routing for inbound websocket commands.
+- [x] 36-03-PLAN.md — Wire classroom, player, and runtime-host consumers onto the unified websocket contract while preserving SSE rollback and durable snapshot parity.
+- [x] 36-04-PLAN.md — Add focused verification for websocket route auth, message validation, canonical routing, and classroom parity against the current SSE behavior.
 **UI hint**: yes
 
 ### Phase 37: Redis fanout and multi-instance delivery convergence
@@ -499,6 +500,7 @@ Current milestone phases plus historical snapshot retained for planning referenc
 | 33. Project-level auth, data, and classroom durability closure | 4/4 | Complete | 2026-05-17 |
 | 34. Course membership management loop | 3/3 | Complete | 2026-05-17 |
 | 35. Verification baseline convergence and milestone close | 3/3 | Complete | 2026-05-17 |
+| 36. WebSocket classroom transport cutover | 4/4 | Complete | 2026-05-18 |
 | 27. Compatibility baseline and V2 boundary scaffolding | 4/4 | Complete   | 2026-05-15 |
 | 28. Runtime bridge contracts and session persistence | 4/4 | Complete    | 2026-05-16 |
 | 29. Runtime Host and HTML courseware pilot | 4/4 | Complete | 2026-05-16 |

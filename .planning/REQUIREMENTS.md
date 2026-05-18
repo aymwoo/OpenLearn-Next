@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - 当前 active milestone 为 `v2.2 WebSocket Classroom Transport Cutover`。
 - 本文件继续保留完整 requirement truth，同时新增本轮 committed scope、deferred scope 与 traceability 映射。
-- `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05`、`CLASS-05`、`COURSE-07`、`QUAL-01`、`QUAL-02` 已在前一 milestone 关闭；本轮 committed scope 改为 `RTPX-02` 与 `RTPX-03`。
+- `AUTH-01` ~ `AUTH-06`、`DATA-01` ~ `DATA-05`、`CLASS-05`、`COURSE-07`、`QUAL-01`、`QUAL-02` 已在前一 milestone 关闭；本轮 committed scope 现为已完成的 `RTPX-03` 与接续中的 `RTPX-02`。
 - 当前目标不是泛化 runtime/platform 扩张，而是把课堂实时链路的正式 cutover 限定在 `ws + ioredis`，并复用已完成的 transport boundary、auth/data baseline 与 classroom durability truth。
 - `RTPX-01`、`RTPX-04`、`RTPX-05`、`RTPX-06` 继续 deferred，不把 PostgreSQL、第二 runtime、第三方 runtime 或 AI runtime expansion 绑进本轮完成条件。
 
@@ -195,7 +195,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ## v2 Requirements
 
-Tracked for runtime-platform follow-up. Current roadmap activates `RTPX-02` and `RTPX-03`; the rest remain deferred.
+Tracked for runtime-platform follow-up. `RTPX-03` closed in Phase 36, `RTPX-02` remains active for Phase 37, and the rest remain deferred.
 
 ### Runtime platform expansion
 
@@ -332,7 +332,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COURSE-07 | Phase 34 | Complete |
 | RTPX-01 | Deferred | Deferred |
 | RTPX-02 | Phase 37 | Pending |
-| RTPX-03 | Phase 36 | Pending |
+| RTPX-03 | Phase 36 | Complete |
 | RTPX-04 | Deferred | Deferred |
 | RTPX-05 | Deferred | Deferred |
 | RTPX-06 | Deferred | Deferred |
@@ -395,4 +395,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-04*  
-*Last updated: 2026-05-17 after opening milestone v2.2 WebSocket Classroom Transport Cutover*
+*Last updated: 2026-05-18 after closing Phase 36 WebSocket classroom transport cutover*

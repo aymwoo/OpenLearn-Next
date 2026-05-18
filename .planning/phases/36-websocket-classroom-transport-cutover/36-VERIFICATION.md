@@ -1,153 +1,114 @@
 ---
 phase: 36-websocket-classroom-transport-cutover
-verified: 2026-05-18T06:55:00Z
-status: gaps_found
-score: 2/6 must-haves verified
+verified: 2026-05-18T03:27:36Z
+status: passed
+score: 6/6 must-haves verified
 overrides_applied: 0
-gaps:
-  - truth: "Teacher、student、classroom、runtime host 之间存在统一且可编译的鉴权 WebSocket 握手与 route boundary"
-    status: failed
-    reason: "`route.ts` 只是 426 说明页；真正握手在 `ws-server.ts`。同时 `ws-auth.ts` 与 `ws-server.ts` 当前均被 `pnpm typecheck` 阻断，握手主链路不成立。"
-    artifacts:
-      - path: "src/app/api/ws/classroom/[sessionId]/route.ts"
-        issue: "未执行 upgrade/auth；PLAN 的 route -> ws-auth key_link 未建立"
-      - path: "src/features/runtime-platform/seams/transport/ws-auth.ts"
-        issue: "引用不存在的 schema 字段 `classroomSessions.schoolId`、`classMembers.studentId/status`，且 `getToken()` 输入类型不兼容 `IncomingMessage`"
-      - path: "src/features/runtime-platform/seams/transport/ws-server.ts"
-        issue: "依赖损坏的握手上下文，upgrade failure path 还存在 socket 类型错误"
-    missing:
-      - "按真实 Drizzle schema 重写 handshake scope 校验"
-      - "为 custom Node upgrade 适配 Auth.js 可接受的 request 形状"
-      - "让正式 upgrade/auth 边界与 plan artifact 对齐，或显式更新 must_have 并补 override"
-  - truth: "Teacher control、runtime command、snapshot push、keepalive 通过同一合法 WebSocket channel contract 流动"
-    status: failed
-    reason: "协议枚举在 `ws-envelope.ts`、`ws-server.ts`、`gateway.ts` 与 DB trace schema 之间漂移；focused tests 通过，但没有证明真实 upgrade/data path 正常。"
-    artifacts:
-      - path: "src/features/runtime-platform/seams/transport/ws-server.ts"
-        issue: "判断 `transport.ping` / `presence.update`，发送 `classroom.keepalive`；这些值都不在 envelope schema 中"
-      - path: "src/features/runtime-platform/seams/transport/gateway.ts"
-        issue: "`recordTransportConsumerTrace()` 使用 `runtime_event`，但 `transportConsumerTraces.traceType` schema 不支持，typecheck 失败"
-      - path: "src/features/runtime-platform/seams/transport/ws-adapter.ts"
-        issue: "将大多数 classroom 事件压扁成 `classroom.snapshot`，并伪造 actor"
-    missing:
-      - "统一 envelope、server handler、gateway trace schema 的 kind/traceType 枚举"
-      - "补 teacher control/runtime command/keepalive 的真实集成验证"
-      - "保留 canonical actor/event kind，不要在 ws adapter 中压扁语义"
-  - truth: "Phase 36 已达到可执行的 WebSocket cutover 起点，并满足 RTPX-03 所需的 transport parity / rollback verification 前置条件"
-    status: failed
-    reason: "ROADMAP 的 Phase 36 仍包含 36-02 与 36-03，但仓库只落了 36-01 基线；consumer cutover 与 parity verification 都未完成，当前 ws path 也因编译 blocker 不能作为可执行起点。"
-    artifacts:
-      - path: ".planning/ROADMAP.md"
-        issue: "Phase 36 success criteria 2/4 需要 consumer/parity，但 36-02/36-03 尚未完成"
-      - path: "src/app/api/ws/classroom/[sessionId]/route.ts"
-        issue: "仍只是说明面；SSE rollback 在，WS 还不是可替代现有 surface 的正式入口"
-      - path: "src/features/runtime-platform/seams/transport/ws-auth.test.ts"
-        issue: "测试基于伪 schema，未覆盖真实表结构与 raw upgrade 路径"
-    missing:
-      - "完成 36-02 的 classroom/player/runtime consumer 接线"
-      - "完成 36-03 的 route auth / message validation / parity focused verification"
-      - "在完成前撤销 ROADMAP/REQUIREMENTS 中将 RTPX-03 标为 Complete 的结论，或拆分 phase scope"
+re_verification:
+  previous_status: gaps_found
+  previous_score: 2/6 must-haves verified
+  gaps_closed:
+    - real_schema_handshake_auth_and_raw_upgrade_request_compatibility
+    - canonical_teacher_control_and_runtime_command_routing
+    - websocket_producer_consumer_cutover_with_sse_rollback
+    - canonical_verify_phase36_gate
+  gaps_remaining: []
+  regressions: []
+human_verification: []
 ---
 
-# Phase 36: WebSocket classroom transport cutover Verification Report
+# Phase 36: WebSocket classroom transport cutover verification report
 
-**Phase Goal:** 在现有 transport gateway 和课堂 durability truth 之上，完成课堂与
-runtime 的正式 WebSocket 双向通信切换，并固定技术选型为 `ws`。
-**Verified:** 2026-05-18T06:55:00Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+本报告按 Phase 36 的 roadmap success criteria、四个计划文件与 `RTPX-03`
+的代码证据倒推验证，不采信旧的 summary 叙述。当前结论是：Phase 36 的实际代码、
+focused suites 和单一 verifier 已收口到 `passed`，而且结论明确保留了
+SSE rollback surface 与 Redis future-phase posture。
 
-## Goal Achievement
+**Phase Goal:** 在现有 transport gateway 和课堂 durability truth 之上，完成
+课堂与 runtime 的正式 WebSocket 双向通信切换，并固定技术选型为 `ws`。
+**Verified:** 2026-05-18T03:27:36Z
+**Status:** passed
+**Re-verification:** Yes — gap closure after the initial blocker report
 
-本次验证不接受 `36-01-SUMMARY.md` 的“已完成”叙述为证据，而是直接核对
-ROADMAP success criteria、PLAN must_haves、REQUIREMENTS 与实际代码。
+## Goal achievement
 
-### Observable Truths
+### Observable truths
 
 | # | Truth | Status | Evidence |
 | --- | --- | --- | --- |
-| 1 | Teacher、student、classroom、runtime host 之间存在统一的鉴权 WebSocket 握手与双向消息信封 | ✗ FAILED | `ws-auth.ts:82-136` 依赖不存在的 schema 字段；`pnpm typecheck` 直接报错。`route.ts:3-30` 仅返回 426，未执行握手。仓库也没有 36-02 对 consumer 的接线。 |
-| 2 | teacher control、runtime command、snapshot push、keepalive 都通过同一 WebSocket contract 流动，并校验 actor/session scope | ✗ FAILED | `ws-server.ts:130-151` 判断 `transport.ping`/`presence.update`，但 `ws-envelope.ts:9-29` 只允许 `transport.keepalive`/`teacher.control`/`runtime.command`。`gateway.ts:167-198` 与 `schema.ts:753-755` 的 `traceType` 也漂移。 |
-| 3 | durable truth 继续留在 SQLite + DAL + canonical event path；WebSocket 不成为新的业务真相源 | ✓ VERIFIED | `classroom.ts:92-114`、`runtime-host.ts:171-188`、`runtime-session.ts:258-272` 都是先走 canonical write path，再 `publishTransportEvent()`。`ws-adapter.ts:11-20` 也明确声明 transport 仅是 delivery 层。 |
-| 4 | 现有 classroom/player/runtime surface 在切换后仍保留锁定/解锁、环节推进、snapshot recovery 与错误反馈语义 | ✗ FAILED | 代码里没有看到 36-02 的 consumer cutover；当前 `ws-server.ts` 只会发 snapshot / error，并未承接 teacher control 或 runtime command 的真实流转。 |
-| 5 | 技术选型固定为 `ws`；未引入 Socket.IO 或并行 transport runtime | ✓ VERIFIED | `package.json:52,65` 新增 `ioredis`、`ws`；源码只有 `sse` 与 `websocket` 两种 adapter。仓库源码未发现 Socket.IO runtime 接线。 |
-| 6 | 当前连接、握手、消息信封和 route/gateway 边界已足够稳定，可作为后续 `ioredis` fanout 的 cutover 起点，且 Redis 不是 prerequisite | ✗ FAILED | `ws-server.ts` 可选探测 `REDIS_URL`，但握手、协议、trace schema 当前都未稳定且无法通过 typecheck，不具备“稳定边界”资格。 |
+| 1 | Teacher、student、classroom、runtime host 之间存在统一的鉴权 WebSocket 握手与真实 route boundary | ✓ VERIFIED | `src/features/runtime-platform/seams/transport/ws-auth.ts` 现在使用 `memberships.status === "active"`、`classMembers.userId`、`classMembers.role` 与 `classroomSessions.teacherId` 推导 actor scope；`server.ts -> ws-server.ts` 是真实 upgrade 边界；`src/app/api/ws/classroom/[sessionId]/route.ts` 继续诚实返回 `426` 与 `rollbackSurface`。 |
+| 2 | `teacher.control`、`runtime.command`、`classroom.snapshot`、`runtime.event` 与 `transport.keepalive` 通过同一合法 contract 流动 | ✓ VERIFIED | `src/features/runtime-platform/seams/transport/ws-server.ts` 只接受 `transport.keepalive`、`teacher.control`、`runtime.command`；`src/features/runtime-platform/seams/transport/contract.ts` 与 `src/db/schema.ts` 对齐 `runtime_event` 等 traceType；`ws-adapter.ts` 保留 canonical `kind`、`correlationId` 与 `truthRef`。 |
+| 3 | durable truth 继续留在 SQLite + DAL + canonical runtime path；WebSocket 不是新的业务真相源 | ✓ VERIFIED | `src/lib/dal/classroom.ts` 提供 `getClassroomSnapshotForActor()` 与 `applyWebSocketTeacherControlForActor()`；`src/features/runtime-platform/classroom/runtime-session.ts` 继续承接 `recordTeacherControlEvent()`；transport 仅做 delivery 与 trace。 |
+| 4 | teacher producer、classroom consumer、student player 和 runtime host 都已切到 WS-first，同时保留 rollback 与 snapshot correction posture | ✓ VERIFIED | `src/components/classroom/classroom-control-panel.tsx` 先发 `teacher.control` / `runtime.command`，失败时回退到现有 Server Actions；`src/components/classroom/classroom-live-snapshot-refresh.tsx` 与 `src/components/learning/classroom-runtime-client.tsx` 均为 WS-first，并保留 EventSource / durable snapshot / manual reconnect。 |
+| 5 | 技术选型固定为 `ws`；当前 phase 不引入 Socket.IO 或并行 transport runtime | ✓ VERIFIED | `package.json` 依赖中保留 `ws`；transport adapter 只有 `sse` 与 `websocket` 两种 mode；仓库未出现 Socket.IO 接线。 |
+| 6 | 仓库存在单一、诚实的 `verify:phase36` 外部 gate，并明确 SSE rollback surface 与 Redis out-of-scope posture | ✓ VERIFIED | `package.json` 注册 `verify:phase36`；`scripts/verify-phase36-websocket-cutover.ts` 执行 non-comment static guards、8 个 focused suites、`pnpm typecheck`，并输出 `SSE rollback surface` 与 `Redis ... out of scope for Phase 36`。 |
 
-**Score:** 2/6 truths verified
+**Score:** 6/6 truths verified
 
-### Required Artifacts
+### Required artifacts
 
 | Artifact | Expected | Status | Details |
 | --- | --- | --- | --- |
-| `src/app/api/ws/classroom/[sessionId]/route.ts` | authenticated classroom WebSocket upgrade endpoint | ✗ FAILED | 文件存在且被 App Router 暴露，但内容仅是 `GET -> 426` 说明面；不做 upgrade，也不导入 `ws-auth.ts`。 |
-| `src/features/runtime-platform/seams/transport/ws-envelope.ts` | typed bidirectional WebSocket message envelope | ✓ VERIFIED | envelope schema、server/client schema 与 builder 都存在，且被 `ws-server.ts` / `ws-adapter.ts` 引用。问题在消费者未遵守该 contract。 |
-| `src/features/runtime-platform/seams/transport/ws-connection-registry.ts` | session-scoped connection ownership and lifecycle registry | ✓ VERIFIED | 注册、注销、列出、广播都存在，并由 `ws-server.ts` 真正调用；`ws-connection-registry.test.ts` 覆盖基本行为。 |
-| `src/features/runtime-platform/seams/transport/ws-auth.ts` | shared handshake auth and actor-scope validation | ✗ FAILED | 文件存在但主逻辑依赖不存在字段且类型不兼容，当前不可编译，不可视为有效 artifact。 |
-| `src/features/runtime-platform/seams/transport/ws-server.ts` | actual Node upgrade host for real handshake path | ✗ FAILED | 真实 upgrade 确实在这里，但协议分支、DAL 边界、socket 类型都存在 blocker。 |
-| `src/features/runtime-platform/seams/transport/ws-adapter.ts` | gateway -> ws delivery bridge | ⚠️ PARTIAL | 已接入 gateway，但会压扁 event kind 并伪造 actor，语义不可信。 |
-| `src/features/runtime-platform/seams/transport/gateway.ts` | canonical publish + trace gateway | ✗ FAILED | publish 主链路存在，但 `recordTransportConsumerTrace()` 与 DB schema 枚举不一致，`pnpm typecheck` 失败。 |
+| `src/app/api/ws/classroom/[sessionId]/route.ts` | honest WebSocket route posture with rollback surface | ✓ VERIFIED | 普通 HTTP GET 继续返回 `426`、`upgradeRequired: true` 与 `/api/classroom/${sessionId}/events`。 |
+| `src/features/runtime-platform/seams/transport/ws-auth.ts` | real-schema handshake auth | ✓ VERIFIED | 不再依赖伪 schema 字段，且已适配 raw upgrade request header/cookie 形状。 |
+| `src/lib/dal/classroom.ts` | actor-aware snapshot read and teacher-control write helper | ✓ VERIFIED | `getClassroomSnapshotForActor()` 与 `applyWebSocketTeacherControlForActor()` 均存在并被 ws host 调用。 |
+| `src/features/runtime-platform/seams/transport/ws-server.ts` | canonical upgrade host and inbound routing | ✓ VERIFIED | 统一承接 upgrade、message validation、snapshot emit、teacher control 和 runtime command。 |
+| `src/features/runtime-platform/seams/transport/ws-adapter.ts` | gateway -> websocket bridge with canonical metadata | ✓ VERIFIED | outbound envelope 保留 canonical `kind`、`truthRef`、`correlationId`。 |
+| `src/features/runtime-platform/seams/transport/gateway.ts` | supplemental failure observability | ✓ VERIFIED | WebSocket supplemental reject 会写 `stream_failed` trace。 |
+| `src/components/classroom/classroom-control-panel.tsx` | teacher-side producer cutover with fallback | ✓ VERIFIED | 支持 `teacher.control` / `runtime.command` 与 fallback Server Actions。 |
+| `src/components/classroom/classroom-live-snapshot-refresh.tsx` | teacher consumer WS-first + EventSource fallback | ✓ VERIFIED | 仅消费 `classroom.snapshot`，websocket 异常时回退到 SSE snapshot。 |
+| `src/components/learning/classroom-runtime-client.tsx` | player consumer parity and manual reconnect posture | ✓ VERIFIED | 保留 `touchClassroomPresenceAction`、durable snapshot fetch、`snapshot_fallback` 与 manual reconnect。 |
+| `scripts/verify-phase36-websocket-cutover.ts` | canonical Phase 36 verifier | ✓ VERIFIED | 包含 forbidden-token drift guard、focused suites、`pnpm typecheck` 与 honest rollback note。 |
 
-### Key Link Verification
+### Key link verification
 
 | From | To | Via | Status | Details |
 | --- | --- | --- | --- | --- |
-| `src/app/api/ws/classroom/[sessionId]/route.ts` | `src/features/runtime-platform/seams/transport/ws-auth.ts` | handshake validation before connection registration | ✗ NOT_WIRED | `route.ts` 没有导入或调用 `ws-auth.ts`；真正握手发生在 `server.ts` -> `ws-server.ts`。PLAN 的 key_link 未成立。 |
-| `src/features/runtime-platform/seams/transport/gateway.ts` | `src/features/runtime-platform/seams/transport/ws-envelope.ts` | transport publish contract reused by WebSocket adapter | ⚠️ PARTIAL | `gateway.ts` -> `ws-adapter.ts` -> `ws-envelope.ts` 的链路存在，但 `ws-adapter.ts:22-28,42-60` 会压扁 kind 并伪造 actor。 |
-| `server.ts` | `src/features/runtime-platform/seams/transport/ws-server.ts` | Node host initializes upgrade server | ✓ WIRED | `server.ts:21-23` 会初始化 `classroomWebSocketTransportServer`。 |
-| `src/features/runtime-platform/seams/transport/ws-server.ts` | `src/features/runtime-platform/seams/transport/ws-auth.ts` | authenticate before connection registration | ⚠️ PARTIAL | `ws-server.ts:179-188` 确实先鉴权再注册，但鉴权实现本身不可编译。 |
+| `server.ts` | `src/features/runtime-platform/seams/transport/ws-server.ts` | Node host initializes upgrade server | ✓ WIRED | `server.ts` 初始化 `classroomWebSocketTransportServer`。 |
+| `src/features/runtime-platform/seams/transport/ws-server.ts` | `src/features/runtime-platform/seams/transport/ws-auth.ts` | authenticate before connection registration | ✓ WIRED | 连接注册前先执行 `authenticateClassroomWebSocket()`。 |
+| `src/features/runtime-platform/seams/transport/ws-server.ts` | `src/lib/dal/classroom.ts` | `getClassroomSnapshotForActor()` | ✓ WIRED | raw upgrade 首帧 snapshot 不再走 request-scoped DTO helper。 |
+| `src/features/runtime-platform/seams/transport/ws-server.ts` | `src/lib/dal/classroom.ts` | `applyWebSocketTeacherControlForActor()` | ✓ WIRED | `teacher.control` 只进 canonical classroom mutation helper。 |
+| `src/features/runtime-platform/seams/transport/ws-server.ts` | `src/features/runtime-platform/classroom/runtime-session.ts` | `recordTeacherControlEvent()` | ✓ WIRED | `runtime.command` 继续走 canonical runtime bridge path。 |
+| `src/features/runtime-platform/seams/transport/gateway.ts` | `src/features/runtime-platform/seams/transport/ws-adapter.ts` | supplemental websocket delivery | ✓ WIRED | SSE 继续 primary，WebSocket supplemental failure 仍可观测。 |
+| `src/components/learning/classroom-runtime-client.tsx` | `src/features/runtime-platform/host/runtime-host-client.tsx` | runtime event metadata -> typed host bridge | ✓ WIRED | runtime event 不直接注入 iframe，而是先汇入 host inputs。 |
 
-### Data-Flow Trace (Level 4)
+### Data-flow trace (level 4)
 
-| Artifact | Data Variable | Source | Produces Real Data | Status |
+| Artifact | Data variable | Source | Produces real data | Status |
 | --- | --- | --- | --- | --- |
-| `ws-auth.ts` | handshake context (`userId/schoolId/actorScope`) | `classroomSessions` + `memberships` + `classMembers` | No | ✗ DISCONNECTED — 代码引用了真实 schema 中不存在的字段，数据流在编译期就断了。 |
-| `ws-server.ts` | `snapshot` | `getClassroomSnapshotDTO({ sessionId })` | No | ⚠️ HOLLOW — `getClassroomSnapshotDTO()` 内部依赖 `getCurrentUserDTO()` / `auth()`，而当前调用发生在 raw Node upgrade 回调中。 |
-| `ws-adapter.ts` | outbound `actor/kind` | `truthRef` + transport payload | No | ⚠️ STATIC — actor 与 kind 被合成/压扁，不是 canonical event metadata。 |
+| `ws-auth.ts` | `userId`, `schoolId`, `actorScope`, `sessionId` | Auth.js token + `memberships` + `classMembers` + `classroomSessions` | Yes | ✓ FLOWING |
+| `ws-server.ts` | outbound `classroom.snapshot` | `getClassroomSnapshotForActor()` | Yes | ✓ FLOWING |
+| `ws-server.ts` | inbound teacher control result | `applyWebSocketTeacherControlForActor()` | Yes | ✓ FLOWING |
+| `ws-server.ts` | inbound runtime command result | `recordTeacherControlEvent()` | Yes | ✓ FLOWING |
+| `classroom-runtime-client.tsx` | corrected runtime shell state | `/api/classroom/${sid}/snapshot` durable fetch + typed runtime event metadata | Yes | ✓ FLOWING |
 
-### Behavioral Spot-Checks
+### Behavioral spot-checks
 
 | Behavior | Command | Result | Status |
 | --- | --- | --- | --- |
-| focused ws tests | `pnpm test --run src/features/runtime-platform/seams/transport/ws-envelope.test.ts src/features/runtime-platform/seams/transport/ws-auth.test.ts src/features/runtime-platform/seams/transport/gateway.test.ts` | 3 files, 10 tests passed | ✓ PASS |
-| type safety / build signal | `pnpm typecheck` | 失败；覆盖 `gateway.ts`、`ws-auth.ts`、`ws-server.ts` 等本 phase 关键文件 | ✗ FAIL |
-| additional build signal | `pnpm build` | 未执行：typecheck 已先阻断，继续 build 没有验证价值 | ? SKIP |
+| canonical phase gate | `pnpm verify:phase36` | 8 test files passed, 23 tests passed, `pnpm typecheck` passed | ✓ PASS |
 
-### Requirements Coverage
+### Requirements coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| `RTPX-03` | `36-01-PLAN.md` + `ROADMAP.md` | Classroom and runtime delivery can move to WebSocket or Socket.IO after transport parity and rollback support are verified. | ✗ BLOCKED | 当前仅有 36-01 基线，36-02/36-03 缺失；`pnpm typecheck` 失败且 parity/rollback verification 不存在。 |
+| `RTPX-03` | `36-01`~`36-04` | Classroom and runtime delivery can move to WebSocket after transport parity and rollback support are verified. | ✓ SATISFIED | handshake auth、canonical routing、producer/consumer cutover、SSE rollback posture 与 `verify:phase36` 都已落到真实代码与 focused suites。 |
 
-### Anti-Patterns Found
+### Anti-patterns found
 
-| File | Line | Pattern | Severity | Impact |
-| --- | --- | --- | --- | --- |
-| `src/features/runtime-platform/seams/transport/ws-auth.ts` | 82-136 | 依赖不存在的 schema 字段与错误 `getToken()` request 形状 | 🛑 Blocker | 握手主链路不可编译，teacher/student auth 无法成立。 |
-| `src/features/runtime-platform/seams/transport/ws-server.ts` | 130-151 | 协议枚举漂移：`transport.ping` / `presence.update` / `classroom.keepalive` | 🛑 Blocker | keepalive / refresh 分支永远打不中合法 contract。 |
-| `src/features/runtime-platform/seams/transport/ws-server.ts` | 72-103 | raw upgrade 回调直接调用 request-scoped DAL | 🛑 Blocker | 破坏了“复用现有 auth/DAL posture”的 phase 边界。 |
-| `src/features/runtime-platform/seams/transport/gateway.ts` | 167-198 | trace schema 漂移：代码写 `runtime_event`，DB enum 不支持 | 🛑 Blocker | gateway 自身 typecheck 失败，transport trace 主链不可信。 |
-| `src/features/runtime-platform/seams/transport/ws-adapter.ts` | 22-60 | 把多数 classroom 事件压扁为 `classroom.snapshot` 且伪造 actor | ⚠️ Warning | cutover 后客户端收到的语义不是 canonical truth。 |
-| `src/features/runtime-platform/seams/transport/ws-auth.test.ts` | 37-50, 103-107 | 测试 fixture 使用伪 schema 字段 | ⚠️ Warning | 测试通过并不能证明真实 schema 下可工作。 |
-| `src/features/runtime-platform/seams/transport/gateway.test.ts` | 126-154 | 只验证“调用过 ws adapter”，没验证 supplemental failure observability | ⚠️ Warning | ws supplemental delivery 失败可能被静默吞掉。 |
+本次 re-verification 没有发现需要继续记录为 blocker 或 warning 的 active issue。
+旧报告中的伪 schema 字段、协议漂移、request-scoped snapshot read、以及 verifier 缺失问题均已关闭。
 
-### Gaps Summary
+## Gaps summary
 
-当前代码**不能证明 Phase 36 已达成 phase goal**。
+当前没有 Phase 36 blocker gap。Phase 36 的结论是：
 
-核心原因不是“还有一点尾巴”，而是 **cutover 起点本身不成立**：
-
-1. **握手/auth 主链路不可用。** `ws-auth.ts` 与 `ws-server.ts` 当前就会让
-   `pnpm typecheck` 失败，说明不是文档没补，而是代码本体还没站住。
-2. **协议 contract 自相矛盾。** envelope、server handler、gateway trace schema
-   三层枚举已经漂移，focused tests 通过也只是局部 mock 通过，不是系统 truth。
-3. **ROADMAP 的 Phase 36 被过早标记为 complete。** 仓库只有 36-01 基线，
-   36-02/36-03 对应的 consumer cutover 与 parity verification 尚未完成；因此
-   `REQUIREMENTS.md` 中把 `RTPX-03` 标成 `Complete` 没有代码证据支撑。
-
-结论：这不是“任务做了但还差验收”，而是 **SUMMARY 叙述超前于真实代码状态**。
-在这些 blocker 修复前，Phase 36 不应关闭。
+1. `ws` classroom transport cutover 已在代码与 focused verification 层完成。
+2. SSE rollback surface 被保留为设计内的一部分，而不是未完成缺口。
+3. Redis fanout、多实例 delivery、bootstrap/observability closeout 仍属于 Phase 37/38，
+   不被错误计入 Phase 36 已交付范围。
 
 ---
 
-_Verified: 2026-05-18T06:55:00Z_
+_Verified: 2026-05-18T03:27:36Z_
 _Verifier: the agent (gsd-verifier)_

@@ -26,6 +26,7 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - 之所以现在开启新的 runtime/platform milestone，是因为 Phase 31 已完成 transport boundary，Phase 33-35 已收口 auth/data/durability 与 baseline；继续把 WebSocket cutover 留在 backlog 已不再是更优路径。
 - 本轮不是重写 runtime platform，而是在现有 `runtime-platform/seams`、transport gateway、classroom durability truth 之上做正式 cutover。
 - 本轮 committed scope 固定为 `ws + ioredis`；不沿用旧的泛化“Redis/Event Bus/WebSocket 一起评估”表述，也不把 sandbox、Pyodide、PostgreSQL 或第二 runtime 一并拉进来。
+- Phase 36 已通过 `verify:phase36` 完成 `RTPX-03`：课堂与 runtime 的 WebSocket cutover 已落到真实代码、focused suites 与显式 rollback posture。
 - `RTPX-01`、`RTPX-04`、`RTPX-05`、`RTPX-06` 继续 deferred，直到 WebSocket classroom transport 在真实课堂主链路上稳定。
 
 ## Requirements
@@ -62,16 +63,16 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ### Active
 
-- [ ] 课堂、学生端和 runtime host 通过统一的 `ws` 双向 channel 收发控制命令、snapshot、runtime event 与 interaction command，而不是继续依赖单向 SSE。
-- [ ] WebSocket 握手、连接持有、消息信封和 route auth 全部保持 actor、school、session scope 校验，不新增 direct DB shortcut。
+- [x] 课堂、学生端和 runtime host 通过统一的 `ws` 双向 channel 收发控制命令、snapshot、runtime event 与 interaction command，而不是继续依赖单向 SSE。（Validated in Phase 36）
+- [x] WebSocket 握手、连接持有、消息信封和 route auth 全部保持 actor、school、session scope 校验，不新增 direct DB shortcut。（Validated in Phase 36）
 - [ ] `ioredis` 承接课堂 transport fanout 和多实例 publish/subscribe，但 Redis 仍只是 delivery 层，不替代 SQLite + DAL 的 durable truth。
-- [ ] 新实时链路具备可重复的 verifier、fallback posture、local bootstrap 与 observability，不把切换风险留给隐式人工排查。
+- [ ] `ws + ioredis` 新实时链路具备完整的 local bootstrap 与 observability closeout，不把剩余切换风险留给隐式人工排查。
 
 ### Milestone entry gaps
 
-- [ ] `RTPX-03` 作为本轮第一优先 committed scope 进入 active milestone，并固定技术选型为 `ws`。
+- [x] `RTPX-03` 作为本轮第一优先 committed scope 进入 active milestone，并固定技术选型为 `ws`。
 - [ ] `RTPX-02` 作为紧随其后的 committed scope 进入同一 milestone，并固定技术选型为 `ioredis`。
-- [ ] 当前 milestone 必须复用 Phase 31 的 transport gateway 与 Phase 33 的 durability/auth posture，而不是平行再造一套 realtime truth path。
+- [x] 当前 milestone 必须复用 Phase 31 的 transport gateway 与 Phase 33 的 durability/auth posture，而不是平行再造一套 realtime truth path。
 
 ### Out of Scope
 
@@ -163,4 +164,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-17 after opening milestone v2.2 WebSocket Classroom Transport Cutover*
+*Last updated: 2026-05-18 after closing Phase 36 WebSocket classroom transport cutover*

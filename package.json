@@ -36,6 +36,7 @@
     "verify:phase33": "tsx scripts/verify-phase33-auth-data-durability.ts",
     "verify:phase34": "tsx scripts/verify-phase34-course-membership.ts",
     "verify:phase35": "tsx scripts/verify-phase35-milestone-close.ts",
+    "verify:phase36": "node --import tsx scripts/verify-phase36-websocket-cutover.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "db:migrate": "tsx scripts/prepare-dev-db.ts",
