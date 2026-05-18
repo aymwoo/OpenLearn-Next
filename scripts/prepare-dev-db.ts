@@ -57,6 +57,14 @@ async function columnExists(tableName: string, columnName: string) {
 }
 
 async function detectExistingSchemaTag() {
+  const hasRedisFanoutSchema =
+    await tableExists("systemTransportSetting")
+    && await columnExists("classroomSession", "transportModeSnapshot");
+
+  if (hasRedisFanoutSchema) {
+    return "0003_phase37_redis_fanout";
+  }
+
   const hasTransportSchema =
     await tableExists("transportDeliveryAttempt")
     && await tableExists("transportConsumerTrace")

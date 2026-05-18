@@ -14,12 +14,14 @@ import {
   listPluginsAction,
   setPluginEnabledAction,
 } from "@/actions/plugin-actions";
+import { setSystemTransportModeAction } from "@/actions/system-transport-settings-actions";
 import { setActiveThemeAction } from "@/actions/theme-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import { surfaceWidths } from "@/components/surfaces/surface-widths";
 import { getCurrentUserSchoolIds } from "@/lib/dal/auth";
+import { getSystemTransportSettings } from "@/lib/dal/system-transport-settings";
 import { getValidThemesForSchool } from "@/lib/dal/themes";
 import { getActiveThemeId } from "@/lib/theme-cookie";
 import { cn } from "@/lib/utils";
@@ -77,10 +79,16 @@ async function GeneralSettingsSurface({
 }) {
   const themes = schoolId ? await getValidThemesForSchool(schoolId) : [];
   const activeThemeId = await getActiveThemeId();
+  const transportSettings = await getSystemTransportSettings();
   const resetTheme = async (formData: FormData) => {
     "use server";
 
     await setActiveThemeAction(formData);
+  };
+  const updateTransportMode = async (formData: FormData) => {
+    "use server";
+
+    await setSystemTransportModeAction(formData);
   };
 
   return (
@@ -299,7 +307,47 @@ async function GeneralSettingsSurface({
             </section>
 
             <section className="rounded-[var(--radius-shell)] bg-surface-container-lowest p-5 shadow-ambient sm:p-6">
-              <p className="text-sm text-on-surface-variant">快捷入口</p>
+              <p className="text-sm text-on-surface-variant">Transport</p>
+              <div className="mt-4 rounded-[1.5rem] bg-surface-container-low p-4 text-sm leading-6 text-on-surface">
+                <p className="font-semibold">全局课堂传输模式</p>
+                <p className="mt-2 text-on-surface-variant">
+                  部署状态：{transportSettings.deployStatus} · 当前 effective mode：{transportSettings.effectiveMode}
+                </p>
+                <p className="mt-2 text-on-surface-variant">
+                  {transportSettings.degraded
+                    ? `Redis degraded：${transportSettings.degradedReason ?? "当前仅保证本实例 fanout。"}`
+                    : transportSettings.deployAllowsRedis
+                      ? transportSettings.classroomTransportMode === "redis_fanout"
+                        ? "Redis fanout 已显式启用，仅影响新 classroom session。"
+                        : "部署允许 Redis，但产品层当前保持 local_only。"
+                      : "当前部署未提供 Redis capability，默认保持 local_only。"}
+                </p>
+                {transportSettings.canManage ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <form action={updateTransportMode}>
+                      <input type="hidden" name="classroomTransportMode" value="local_only" />
+                      <Button variant="secondary" className="min-h-10 w-full text-sm shadow-none">
+                        切回 local_only
+                      </Button>
+                    </form>
+                    <form action={updateTransportMode}>
+                      <input type="hidden" name="classroomTransportMode" value="redis_fanout" />
+                      <Button
+                        className="min-h-10 w-full text-sm"
+                        disabled={!transportSettings.deployAllowsRedis}
+                      >
+                        启用 redis_fanout
+                      </Button>
+                    </form>
+                  </div>
+                ) : (
+                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-on-surface-variant">
+                    仅 developer / super_admin 可修改该全局设置
+                  </p>
+                )}
+              </div>
+
+              <p className="mt-6 text-sm text-on-surface-variant">快捷入口</p>
               <div className="mt-4 grid gap-3">
                 <QuickLink
                   href="/settings/plugins"
@@ -310,6 +358,11 @@ async function GeneralSettingsSurface({
                   href="/settings/labs"
                   title="实验室布局管理"
                   description="配置 204 机房座位、设备和在线状态。"
+                />
+                <QuickLink
+                  href="/settings/labs/runtime-inspector"
+                  title="Runtime Inspector"
+                  description="查看 transport timeline、degraded fallback 与当前 fanout topology。"
                 />
                 <QuickLink
                   href="/teacher/students"

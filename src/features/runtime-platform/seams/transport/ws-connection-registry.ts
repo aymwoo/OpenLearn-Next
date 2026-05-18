@@ -59,19 +59,28 @@ class ClassroomWebSocketConnectionRegistry {
       this.bySession.get(parsed.sessionId) ?? new Map<string, ConnectionRecord>();
     sessionBucket.set(id, record);
     this.bySession.set(parsed.sessionId, sessionBucket);
-    return record;
+    return {
+      ...record,
+      connectionCount: sessionBucket.size,
+    };
   }
 
   unregister(sessionId: string, connectionId: string) {
     const sessionBucket = this.bySession.get(sessionId);
     if (!sessionBucket) {
-      return;
+      return {
+        remainingConnectionCount: 0,
+      };
     }
 
     sessionBucket.delete(connectionId);
     if (sessionBucket.size === 0) {
       this.bySession.delete(sessionId);
     }
+
+    return {
+      remainingConnectionCount: sessionBucket.size,
+    };
   }
 
   listBySession(sessionId: string) {
@@ -94,6 +103,7 @@ class ClassroomWebSocketConnectionRegistry {
 
   broadcast(sessionId: string, envelope: ClassroomWebSocketServerEnvelope) {
     const payload = JSON.stringify(envelope);
+    let deliveredCount = 0;
 
     for (const connection of this.listBySession(sessionId)) {
       if (connection.socket.readyState !== connection.socket.OPEN) {
@@ -102,7 +112,12 @@ class ClassroomWebSocketConnectionRegistry {
       }
 
       connection.socket.send(payload);
+      deliveredCount += 1;
     }
+
+    return {
+      deliveredCount,
+    };
   }
 }
 

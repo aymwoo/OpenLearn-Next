@@ -83,6 +83,21 @@ export const memberships = sqliteTable(
   ]
 );
 
+export const systemTransportSettings = sqliteTable("systemTransportSetting", {
+  id: text("id").primaryKey(),
+  classroomTransportMode: text("classroomTransportMode", {
+    enum: ["local_only", "redis_fanout"],
+  })
+    .notNull()
+    .default("local_only"),
+  updatedById: text("updatedById").references(() => users.id, {
+    onDelete: "cascade",
+  }),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(
+    () => new Date(),
+  ),
+});
+
 export const classes = sqliteTable("class", {
   id: text("id")
     .primaryKey()
@@ -472,6 +487,11 @@ export const classroomSessions = sqliteTable(
       .notNull()
       .references(() => lessonSteps.id, { onDelete: "cascade" }),
     locked: integer("locked", { mode: "boolean" }).notNull().default(false),
+    transportModeSnapshot: text("transportModeSnapshot", {
+      enum: ["local_only", "redis_fanout"],
+    })
+      .notNull()
+      .default("local_only"),
     status: text("status", { enum: ["live", "ended"] }).notNull().default("live"),
     version: integer("version").notNull().default(1),
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),

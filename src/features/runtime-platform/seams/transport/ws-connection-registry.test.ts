@@ -23,6 +23,7 @@ describe("ws connection registry", () => {
       schoolId: "school-1",
       socket: teacherSocket as never,
     });
+    expect(teacher.connectionCount).toBe(1);
 
     const student = classroomWebSocketConnectionRegistry.register({
       sessionId,
@@ -31,6 +32,7 @@ describe("ws connection registry", () => {
       schoolId: "school-1",
       socket: studentSocket as never,
     });
+    expect(student.connectionCount).toBe(2);
 
     expect(classroomWebSocketConnectionRegistry.describeSession(sessionId)).toMatchObject({
       sessionId,
@@ -51,8 +53,17 @@ describe("ws connection registry", () => {
       ]),
     });
 
-    classroomWebSocketConnectionRegistry.unregister(sessionId, teacher.id);
-    classroomWebSocketConnectionRegistry.unregister(sessionId, student.id);
+    const afterTeacherClose = classroomWebSocketConnectionRegistry.unregister(
+      sessionId,
+      teacher.id,
+    );
+    const afterStudentClose = classroomWebSocketConnectionRegistry.unregister(
+      sessionId,
+      student.id,
+    );
+
+    expect(afterTeacherClose.remainingConnectionCount).toBe(1);
+    expect(afterStudentClose.remainingConnectionCount).toBe(0);
 
     expect(classroomWebSocketConnectionRegistry.describeSession(sessionId)).toMatchObject({
       sessionId,

@@ -26,6 +26,8 @@ describe("runtime inspector surface", () => {
     expect(source).toContain("Governance");
     expect(source).toContain("Transport");
     expect(source).toContain("Consumer");
+    expect(source).toContain("transportTopology");
+    expect(source).toContain("receivedVia");
   });
 
   it("reframes the hero as the current proof session and review path", () => {

@@ -15,6 +15,7 @@ import {
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
+import { classroomRedisFanoutManager } from "@/features/runtime-platform/seams/transport/redis-fanout-manager";
 import {
   RuntimeInspectorDTOSchema,
   RuntimeInspectorInputSchema,
@@ -92,6 +93,14 @@ function toTimelineItem(input: RuntimeInspectorTimelineItemDTO) {
   return input;
 }
 
+function readTransportDetail(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return {} as Record<string, unknown>;
+  }
+
+  return value as Record<string, unknown>;
+}
+
 export async function getRuntimeInspectorDTO(rawInput: RuntimeInspectorInput = {}): Promise<RuntimeInspectorDTO> {
   const input = RuntimeInspectorInputSchema.parse(rawInput);
   const scope = await resolveInspectorScope();
@@ -158,6 +167,7 @@ export async function getRuntimeInspectorDTO(rawInput: RuntimeInspectorInput = {
     ]);
 
   const timeline: RuntimeInspectorTimelineItemDTO[] = [];
+  const fanoutHealth = classroomRedisFanoutManager.getSnapshot();
 
   for (const row of lifecycleRows) {
     timeline.push(
@@ -211,6 +221,13 @@ export async function getRuntimeInspectorDTO(rawInput: RuntimeInspectorInput = {
   }
 
   for (const row of transportRows) {
+    const detail = readTransportDetail(row.payloadSummaryJson);
+    const transportTopology =
+      typeof detail.degradedReason === "string"
+        ? "degraded_local_fallback"
+        : typeof detail.fanoutMode === "string"
+          ? detail.fanoutMode
+          : null;
     timeline.push(
       toTimelineItem({
         id: `transport-${row.id}`,
@@ -221,6 +238,8 @@ export async function getRuntimeInspectorDTO(rawInput: RuntimeInspectorInput = {
         runtimeSessionId: row.runtimeSessionId,
         classroomSessionId: row.classroomSessionId,
         correlationId: row.correlationId,
+        transportTopology,
+        receivedVia: null,
         status: row.attemptStatus,
         decision: null,
       }),
@@ -228,6 +247,7 @@ export async function getRuntimeInspectorDTO(rawInput: RuntimeInspectorInput = {
   }
 
   for (const row of consumerRows) {
+    const detail = readTransportDetail(row.detailJson);
     timeline.push(
       toTimelineItem({
         id: `consumer-${row.id}`,
@@ -238,6 +258,14 @@ export async function getRuntimeInspectorDTO(rawInput: RuntimeInspectorInput = {
         runtimeSessionId: row.runtimeSessionId,
         classroomSessionId: row.classroomSessionId,
         correlationId: row.correlationId,
+        transportTopology:
+          typeof detail.degradedReason === "string"
+            ? "degraded_local_fallback"
+            : typeof detail.fanoutMode === "string"
+              ? String(detail.fanoutMode)
+              : null,
+        receivedVia:
+          typeof detail.receivedVia === "string" ? detail.receivedVia : null,
         status: row.status,
         decision: null,
       }),
@@ -267,6 +295,8 @@ export async function getRuntimeInspectorDTO(rawInput: RuntimeInspectorInput = {
   const latestGovernance = governanceRows.sort((a, b) => Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0))[0] ?? null;
   const latestTransport = transportRows.sort((a, b) => Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0))[0] ?? null;
   const latestConsumer = consumerRows.sort((a, b) => Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0))[0] ?? null;
+  const latestTransportDetail = readTransportDetail(latestTransport?.payloadSummaryJson);
+  const latestConsumerDetail = readTransportDetail(latestConsumer?.detailJson);
 
   return RuntimeInspectorDTOSchema.parse({
     scopeRole: scope.role,
@@ -278,6 +308,25 @@ export async function getRuntimeInspectorDTO(rawInput: RuntimeInspectorInput = {
       governanceDecision: latestGovernance?.decision ?? "unknown",
       transportAttemptStatus: latestTransport?.attemptStatus ?? "unknown",
       consumerTraceStatus: latestConsumer?.status ?? "unknown",
+      transportTopology:
+        typeof latestTransportDetail.degradedReason === "string"
+          ? "degraded_local_fallback"
+          : typeof latestTransportDetail.fanoutMode === "string"
+            ? latestTransportDetail.fanoutMode
+            : fanoutHealth.degraded
+              ? "degraded_local_fallback"
+              : "unknown",
+      degraded:
+        typeof latestTransportDetail.degradedReason === "string" ||
+        typeof latestConsumerDetail.degradedReason === "string" ||
+        fanoutHealth.degraded,
+      degradedReason:
+        typeof latestTransportDetail.degradedReason === "string"
+          ? latestTransportDetail.degradedReason
+          : typeof latestConsumerDetail.degradedReason === "string"
+            ? latestConsumerDetail.degradedReason
+            : fanoutHealth.degradedReason,
+      lastHealthyAt: fanoutHealth.lastHealthyAt,
       allowedCount: governanceRows.filter((row) => row.decision === "allowed").length,
       deniedCount: governanceRows.filter((row) => row.decision === "denied").length,
       deliveredCount: transportRows.filter((row) => row.attemptStatus === "delivered").length,

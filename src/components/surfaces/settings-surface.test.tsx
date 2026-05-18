@@ -133,6 +133,37 @@ vi.mock("@/actions/theme-actions", () => ({
   setActiveThemeAction: vi.fn(),
 }));
 
+vi.mock("@/lib/dal/system-transport-settings", () => ({
+  getSystemTransportSettings: vi.fn(async () => ({
+    classroomTransportMode: "local_only",
+    effectiveMode: "local_only",
+    deployStatus: "deploy_disallowed",
+    canManage: true,
+    deployAllowsRedis: false,
+    redisConfigured: false,
+    redisReachable: false,
+    degraded: false,
+    degradedReason: null,
+    updatedById: null,
+    updatedAt: null,
+    health: {
+      deployAllowsRedis: false,
+      redisConfigured: false,
+      redisReachable: false,
+      connectionState: "disabled",
+      desiredTopicCount: 0,
+      subscribedTopicCount: 0,
+      lastError: null,
+      lastHealthyAt: null,
+      instanceId: "instance-test",
+    },
+  })),
+}));
+
+vi.mock("@/actions/system-transport-settings-actions", () => ({
+  setSystemTransportModeAction: vi.fn(),
+}));
+
 describe("settings and plugin entry surfaces", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -189,6 +220,14 @@ describe("settings and plugin entry surfaces", () => {
     expect(source).toContain("setPluginEnabledAction");
     expect(source).toContain("总开关");
     expect(source).toContain("/settings/labs");
+  });
+
+  it("renders system transport controls on /settings with deploy authority copy", () => {
+    expect(source).toContain("全局课堂传输模式");
+    expect(source).toContain("effective mode");
+    expect(source).toContain("deployAllowsRedis");
+    expect(source).toContain("切回 local_only");
+    expect(source).toContain("启用 redis_fanout");
   });
 
   it("links settings to the dedicated plugin marketplace route", () => {

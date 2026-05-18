@@ -4,6 +4,8 @@ const getClassroomSnapshotForActor = vi.fn();
 const applyWebSocketTeacherControlForActor = vi.fn();
 const recordTeacherControlEvent = vi.fn();
 const recordTransportConsumerTrace = vi.fn();
+const ensureSubscribed = vi.fn();
+const releaseSubscription = vi.fn();
 
 vi.mock("@/lib/dal/classroom", () => ({
   getClassroomSnapshotForActor,
@@ -16,6 +18,13 @@ vi.mock("@/features/runtime-platform/classroom/runtime-session", () => ({
 
 vi.mock("./gateway", () => ({
   recordTransportConsumerTrace,
+}));
+
+vi.mock("./redis-fanout-manager", () => ({
+  classroomRedisFanoutManager: {
+    ensureSubscribed,
+    releaseSubscription,
+  },
 }));
 
 function createSocket() {

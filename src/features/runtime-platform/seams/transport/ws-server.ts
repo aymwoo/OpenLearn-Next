@@ -17,6 +17,7 @@ import {
   ClassroomWebSocketHandshakeError,
   authenticateClassroomWebSocket,
 } from "./ws-auth";
+import { classroomRedisFanoutManager } from "./redis-fanout-manager";
 import { classroomWebSocketConnectionRegistry } from "./ws-connection-registry";
 import {
   ClassroomWebSocketClientEnvelopeSchema,
@@ -378,6 +379,17 @@ class ClassroomWebSocketTransportServer {
           socket: ws,
         });
 
+        if (connection.connectionCount === 1) {
+          await classroomRedisFanoutManager.ensureSubscribed(
+            context.sessionId,
+            "classroom",
+          );
+          await classroomRedisFanoutManager.ensureSubscribed(
+            context.sessionId,
+            "runtime",
+          );
+        }
+
         await sendClassroomSnapshot(ws, context, crypto.randomUUID());
 
         ws.on("message", async (payload) => {
@@ -391,7 +403,20 @@ class ClassroomWebSocketTransportServer {
         });
 
         ws.on("close", async () => {
-          classroomWebSocketConnectionRegistry.unregister(context.sessionId, connection.id);
+          const registryState = classroomWebSocketConnectionRegistry.unregister(
+            context.sessionId,
+            connection.id,
+          );
+          if (registryState.remainingConnectionCount === 0) {
+            await classroomRedisFanoutManager.releaseSubscription(
+              context.sessionId,
+              "classroom",
+            );
+            await classroomRedisFanoutManager.releaseSubscription(
+              context.sessionId,
+              "runtime",
+            );
+          }
           await recordTransportConsumerTrace({
             sessionId: context.sessionId,
             correlationId: `classroom:${context.sessionId}:connection:${connection.id}:closed`,

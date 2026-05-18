@@ -132,6 +132,11 @@ const snapshot: ClassroomSnapshotDTO = {
     },
   ],
   slideState: { stepId: 'step-1', slideIndex: 0 },
+  transportStatus: {
+    fanoutMode: 'local_only',
+    degraded: false,
+    degradedReason: null,
+  },
   teacherTimeline: [],
   copy: {
     staleRefreshRequired: 'stale',
@@ -210,5 +215,23 @@ describe('ClassroomControlPanel websocket cutover', () => {
     await waitFor(() => {
       expect(classroomActionMocks.recordRuntimeTeacherControlAction).toHaveBeenCalled()
     })
+  })
+
+  it('shows teacher-only degraded banner when transport falls back to local instance only', async () => {
+    render(
+      <ClassroomControlPanel
+        initialSnapshot={{
+          ...snapshot,
+          transportStatus: {
+            fanoutMode: 'redis_fanout',
+            degraded: true,
+            degradedReason: 'REDIS_SUBSCRIBER_CLOSED',
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('当前仅保证本实例课堂同步')).toBeTruthy()
+    expect(screen.getByText(/REDIS_SUBSCRIBER_CLOSED/)).toBeTruthy()
   })
 })

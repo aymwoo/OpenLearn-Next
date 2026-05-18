@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
+  classroomSessions,
   transportConsumerTraces,
   transportDeliveryAttempts,
 } from "@/db/schema";
@@ -17,6 +18,7 @@ import {
   type RuntimeTransportPublishInput,
   type RuntimeTransportPublishResult,
 } from "./contract";
+import { resolveRedisFanoutTopic } from "./redis-fanout-topics";
 import { sseRuntimeTransportAdapter } from "./sse-adapter";
 import { wsRuntimeTransportAdapter } from "./ws-adapter";
 
@@ -50,6 +52,48 @@ function summarizePayload(payload: RuntimeTransportPublishInput["payload"]) {
   };
 }
 
+async function buildAttemptPayloadSummary(
+  event: RuntimeTransportPublishInput,
+  adapter: RuntimeTransportAdapter | null,
+) {
+  const summary = summarizePayload(event.payload);
+
+  if (adapter?.mode !== "websocket") {
+    return summary;
+  }
+
+  const classroomSessionId = event.truthRef.classroomSessionId ?? event.sessionId;
+  const session = await db.query.classroomSessions.findFirst({
+    where: eq(classroomSessions.id, classroomSessionId),
+  });
+  const { subchannel, topic } = resolveRedisFanoutTopic({
+    ...event,
+    sessionId: classroomSessionId,
+  });
+
+  return {
+    ...summary,
+    fanoutMode: session?.transportModeSnapshot ?? "local_only",
+    redisTopic:
+      (session?.transportModeSnapshot ?? "local_only") === "redis_fanout"
+        ? topic
+        : null,
+    subchannel,
+  };
+}
+
+function getTransportFailureDetail(error: unknown) {
+  if (
+    error instanceof Error &&
+    "transportDetail" in error &&
+    typeof (error as { transportDetail?: unknown }).transportDetail === "object"
+  ) {
+    return (error as { transportDetail: Record<string, unknown> }).transportDetail;
+  }
+
+  return null;
+}
+
 function resolveTransportAdapter(input: RuntimeTransportPublishInput) {
   const candidates = transportAdapters.filter((candidate) =>
     adapterSupportsEvent(candidate, input),
@@ -76,6 +120,7 @@ export async function publishTransportEvent(input: RuntimeTransportPublishInput)
   const event = RuntimeTransportPublishInputSchema.parse(input);
   const adapter = resolveTransportAdapter(event);
   const supplementalAdapters = resolveSupplementalTransportAdapters(event, adapter);
+  const payloadSummary = await buildAttemptPayloadSummary(event, adapter);
 
   const [attempt] = await db
     .insert(transportDeliveryAttempts)
@@ -94,7 +139,7 @@ export async function publishTransportEvent(input: RuntimeTransportPublishInput)
       truthPersisted: event.truthPersisted,
       deliveryAttempted: Boolean(adapter),
       attemptStatus: adapter ? "pending" : "skipped",
-      payloadSummaryJson: summarizePayload(event.payload),
+      payloadSummaryJson: payloadSummary,
       attemptedAt: new Date(),
     })
     .returning();
@@ -111,43 +156,52 @@ export async function publishTransportEvent(input: RuntimeTransportPublishInput)
     });
   }
 
+  let primaryError: unknown = null;
+
   try {
     await adapter.deliver(event);
+  } catch (error) {
+    primaryError = error;
+  }
 
-    const supplementalResults =
-      supplementalAdapters.length > 0
-        ? await Promise.allSettled(
-            supplementalAdapters.map((secondaryAdapter) => secondaryAdapter.deliver(event)),
-          )
-        : [];
+  const supplementalResults =
+    supplementalAdapters.length > 0
+      ? await Promise.allSettled(
+          supplementalAdapters.map((secondaryAdapter) => secondaryAdapter.deliver(event)),
+        )
+      : [];
 
-    await Promise.all(
-      supplementalResults.map((result, index) => {
-        if (result.status !== "rejected") {
-          return Promise.resolve();
-        }
+  await Promise.all(
+    supplementalResults.map((result, index) => {
+      if (result.status !== "rejected") {
+        return Promise.resolve();
+      }
 
-        const secondaryAdapter = supplementalAdapters[index];
-        const failureReason = result.reason instanceof Error ? result.reason.message : "TRANSPORT_DELIVERY_FAILED";
+      const secondaryAdapter = supplementalAdapters[index];
+      const failureReason =
+        result.reason instanceof Error
+          ? result.reason.message
+          : "TRANSPORT_DELIVERY_FAILED";
 
-        return recordTransportConsumerTrace({
-          attemptId: attempt.id,
-          sessionId: event.sessionId,
-          correlationId: event.correlationId,
-          adapterId: secondaryAdapter.id,
-          adapterMode: secondaryAdapter.mode,
-          traceType: "stream_failed",
-          status: "failed",
-          detail: {
-            supplemental: true,
-            primaryAdapterId: adapter.id,
-            failureReason,
-            kind: event.kind,
-          },
-        });
-      }),
-    );
+      return recordTransportConsumerTrace({
+        attemptId: attempt.id,
+        sessionId: event.truthRef.classroomSessionId ?? event.sessionId,
+        correlationId: event.correlationId,
+        adapterId: secondaryAdapter.id,
+        adapterMode: secondaryAdapter.mode,
+        traceType: "stream_failed",
+        status: "failed",
+        detail: {
+          supplemental: true,
+          primaryAdapterId: adapter.id,
+          failureReason,
+          kind: event.kind,
+        },
+      });
+    }),
+  );
 
+  if (!primaryError) {
     await db
       .update(transportDeliveryAttempts)
       .set({
@@ -167,29 +221,36 @@ export async function publishTransportEvent(input: RuntimeTransportPublishInput)
       attemptStatus: "delivered",
       failureReason: null,
     });
-  } catch (error) {
-    const failureReason = error instanceof Error ? error.message : "TRANSPORT_DELIVERY_FAILED";
+  }
 
-    await db
-      .update(transportDeliveryAttempts)
-      .set({
-        deliveryAttempted: true,
-        attemptStatus: "failed",
-        failureReason,
-        failedAt: new Date(),
-      })
-      .where(eq(transportDeliveryAttempts.id, attempt.id));
+  const failureReason =
+    primaryError instanceof Error
+      ? primaryError.message
+      : "TRANSPORT_DELIVERY_FAILED";
+  const failureDetail = getTransportFailureDetail(primaryError);
 
-    return RuntimeTransportPublishResultSchema.parse({
-      attemptId: attempt.id,
-      adapterId: adapter.id,
-      adapterMode: adapter.mode,
-      truthPersisted: event.truthPersisted,
+  await db
+    .update(transportDeliveryAttempts)
+    .set({
       deliveryAttempted: true,
       attemptStatus: "failed",
       failureReason,
-    });
-  }
+      failedAt: new Date(),
+      payloadSummaryJson: failureDetail
+        ? { ...payloadSummary, ...failureDetail }
+        : payloadSummary,
+    })
+    .where(eq(transportDeliveryAttempts.id, attempt.id));
+
+  return RuntimeTransportPublishResultSchema.parse({
+    attemptId: attempt.id,
+    adapterId: adapter.id,
+    adapterMode: adapter.mode,
+    truthPersisted: event.truthPersisted,
+    deliveryAttempted: true,
+    attemptStatus: "failed",
+    failureReason,
+  });
 }
 
 export async function recordTransportConsumerTrace(input: RuntimeTransportConsumerTraceInput) {

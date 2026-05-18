@@ -95,6 +95,11 @@ const snapshot: ClassroomSnapshotDTO = {
     { id: "step-2", title: "随堂测验", rank: "b0", type: "quiz", payload: { type: "quiz", question: "问题", options: [{ id: "a", text: "A" }], correctOptionId: "a" } },
   ],
   slideState: null,
+  transportStatus: {
+    fanoutMode: "local_only",
+    degraded: false,
+    degradedReason: null,
+  },
   teacherTimeline: [],
   copy: {
     staleRefreshRequired: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",

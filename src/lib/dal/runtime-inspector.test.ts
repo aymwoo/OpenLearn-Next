@@ -34,6 +34,9 @@ describe("runtime inspector dal", () => {
     expect(source).not.toContain("anomaly");
     expect(source).not.toContain("prediction");
     expect(source).not.toContain("alert");
+    expect(source).toContain("transportTopology");
+    expect(source).toContain("degradedReason");
+    expect(source).toContain("receivedVia");
   });
 
   it("keeps runtimeSessionId review focus on the selected proof session timeline", () => {

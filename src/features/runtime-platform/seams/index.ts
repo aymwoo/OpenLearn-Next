@@ -7,6 +7,7 @@ export * from "./transport/ws-auth";
 
 export { sqliteRuntimeDatabaseAdapter } from "./database/sqlite-adapter";
 export { defaultRuntimeEventBusAdapter } from "./event-bus/default-adapter";
+export { classroomRedisFanoutManager } from "./transport/redis-fanout-manager";
 export { sseRuntimeTransportAdapter } from "./transport/sse-adapter";
 export { wsRuntimeTransportAdapter } from "./transport/ws-adapter";
 export { classroomWebSocketTransportServer } from "./transport/ws-server";

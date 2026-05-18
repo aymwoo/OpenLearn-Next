@@ -16,6 +16,7 @@ export const cacheTags = {
   mcpServer: (id: string) => `mcp:server:${id}`,
   pluginRegistry: 'plugin:registry',
   plugin: (id: string) => `plugin:${id}`,
+  systemTransport: 'transport:system',
   themeRegistry: 'theme:registry',
   theme: (id: string) => `theme:${id}`,
   scheduleImportBatch: (batchId: string) => `schedule:import-batch:${batchId}`,

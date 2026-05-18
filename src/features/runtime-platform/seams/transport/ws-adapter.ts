@@ -5,7 +5,7 @@ import {
   type RuntimeTransportEnvelope,
   type RuntimeTransportOwnership,
 } from "./contract";
-import { classroomWebSocketConnectionRegistry } from "./ws-connection-registry";
+import { classroomRedisFanoutManager } from "./redis-fanout-manager";
 import { buildClassroomWebSocketServerEnvelope } from "./ws-envelope";
 
 const ownership: RuntimeTransportOwnership = RuntimeTransportOwnershipSchema.parse({
@@ -53,25 +53,27 @@ class WebSocketRuntimeTransportAdapter implements RuntimeTransportAdapter {
 
   async deliver(envelope: RuntimeTransportEnvelope): Promise<void> {
     const parsed = RuntimeTransportEnvelopeSchema.parse(envelope);
-
-    classroomWebSocketConnectionRegistry.broadcast(
-      parsed.sessionId,
-      buildClassroomWebSocketServerEnvelope({
-        sessionId: parsed.sessionId,
-        actor: resolveEnvelopeActor(parsed),
-        kind: resolveWebSocketTransportKind(parsed.kind),
+    const sessionId = parsed.truthRef.classroomSessionId ?? parsed.sessionId;
+    const serverEnvelope = buildClassroomWebSocketServerEnvelope({
+      sessionId,
+      actor: resolveEnvelopeActor(parsed),
+      kind: resolveWebSocketTransportKind(parsed.kind),
+      correlationId: parsed.correlationId,
+      causationId: parsed.truthRef.id,
+      payload: {
+        channel: parsed.channel,
+        kind: parsed.kind,
         correlationId: parsed.correlationId,
-        causationId: parsed.truthRef.id,
-        payload: {
-          channel: parsed.channel,
-          kind: parsed.kind,
-          correlationId: parsed.correlationId,
-          truthRef: parsed.truthRef,
-          ...parsed.payload,
-        },
-        truthPersisted: true,
-      }),
-    );
+        truthRef: parsed.truthRef,
+        ...parsed.payload,
+      },
+      truthPersisted: true,
+    });
+
+    await classroomRedisFanoutManager.deliver({
+      envelope: parsed,
+      serverEnvelope,
+    });
   }
 }
 

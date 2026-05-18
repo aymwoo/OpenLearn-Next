@@ -421,6 +421,34 @@ export function ClassroomControlPanel({
           </Card>
         ) : null}
 
+        {currentSnapshot.transportStatus.degraded ? (
+          <Card className="bg-[#fff7ed] p-5 text-[#9a3412] sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-sm uppercase tracking-[0.18em]">transport degraded</p>
+                <h3 className="mt-2 text-2xl font-semibold">
+                  当前仅保证本实例课堂同步
+                </h3>
+                <p className="mt-3 text-sm leading-7">
+                  当前 classroom session 目标模式为 {currentSnapshot.transportStatus.fanoutMode}。
+                  {currentSnapshot.transportStatus.degradedReason
+                    ? ` Redis fanout 失效原因：${currentSnapshot.transportStatus.degradedReason}`
+                    : " 跨实例 fanout 暂不可用，请优先按本实例继续控课。"}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button asChild variant="secondary" className="min-h-[44px] px-5">
+                  <Link href="/settings">查看全局 transport 设置</Link>
+                </Button>
+                <Button asChild variant="secondary" className="min-h-[44px] px-5">
+                  <Link href={runtimeInspectorHref ?? "/settings/labs/runtime-inspector"}>进入 runtime inspector</Link>
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ) : null}
+
         {currentStep && currentRuntimeDescriptor ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-3 rounded-[1.4rem] bg-surface-container-low p-4">

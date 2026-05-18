@@ -24,6 +24,8 @@ import {
 } from "@/db/schema";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
+import { classroomRedisFanoutManager } from "@/features/runtime-platform/seams/transport/redis-fanout-manager";
+import { resolveSystemTransportModeForNewSessions } from "@/lib/dal/system-transport-settings";
 import {
   ClassroomConsoleDTOSchema,
   ClassroomConsoleSessionEntryDTOSchema,
@@ -963,6 +965,9 @@ async function buildClassroomSnapshotDTOForActor(input: {
   const stepOrder = new Map(steps.map((step, index) => [step.id, index]));
   const activeStepIndex = stepOrder.get(session.activeStepId) ?? 0;
   const activeStep = steps.find((step) => step.id === session.activeStepId);
+  const transportDegradedReason = await classroomRedisFanoutManager.getLatestDegradedReason(
+    session.id,
+  );
 
   const userIds = participants.map((participant) => participant.studentId);
   const studentUsers = userIds.length > 0 ? await db.query.users.findMany({ where: inArray(users.id, userIds) }) : [];
@@ -1058,6 +1063,11 @@ async function buildClassroomSnapshotDTOForActor(input: {
       payload: step.payload,
     })),
     slideState: await getLatestSlideState(session.id),
+    transportStatus: {
+      fanoutMode: session.transportModeSnapshot ?? "local_only",
+      degraded: Boolean(transportDegradedReason),
+      degradedReason: transportDegradedReason,
+    },
     teacherTimeline,
     copy: {
       staleRefreshRequired: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",
@@ -2939,6 +2949,7 @@ export async function launchClassroomSession(input: unknown) {
   const firstStep = steps[0];
 
   const { session, launchEventId } = await db.transaction(async (tx) => {
+    const transportSettings = await resolveSystemTransportModeForNewSessions();
     const [newSession] = await tx.insert(classroomSessions).values({
       lessonId: payload.lessonId,
       publishedVersionId: payload.publishedVersionId,
@@ -2946,6 +2957,7 @@ export async function launchClassroomSession(input: unknown) {
       teacherId: scope.userId,
       activeStepId: firstStep.id,
       locked: false,
+      transportModeSnapshot: transportSettings.effectiveMode,
       status: "live",
       version: 1,
     }).returning();

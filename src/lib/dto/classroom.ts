@@ -477,6 +477,17 @@ export const ClassroomSnapshotDTOSchema = z.object({
   monitoringSummary: ClassroomRosterSummaryDTOSchema,
   steps: z.array(ClassroomStepDTOSchema),
   slideState: ClassroomSlideStateDTOSchema.nullable().default(null),
+  transportStatus: z
+    .object({
+      fanoutMode: z.enum(["local_only", "redis_fanout"]),
+      degraded: z.boolean(),
+      degradedReason: z.string().nullable(),
+    })
+    .default({
+      fanoutMode: "local_only",
+      degraded: false,
+      degradedReason: null,
+    }),
   teacherTimeline: z.array(ClassroomTeacherTimelineEntryDTOSchema).default([]),
   copy: z.object({
     staleRefreshRequired: z.string().default("课堂状态已经被更新。请先恢复最新状态，再继续操作。"),

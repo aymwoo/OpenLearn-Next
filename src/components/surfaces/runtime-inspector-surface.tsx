@@ -61,6 +61,17 @@ export function RuntimeInspectorSurface({ inspector }: { inspector: RuntimeInspe
             <MetricCard icon={<TimerReset className="size-4" />} label="Consumer" value={inspector.health.consumerTraceStatus} />
           </div>
         ) : null}
+
+        {inspector.health?.degraded ? (
+          <Card className="mt-6 bg-[#fff7ed] p-5 text-[#9a3412] sm:p-6">
+            <p className="text-xs uppercase tracking-[0.2em]">Redis degraded</p>
+            <h2 className="mt-2 text-[1.15rem] font-semibold">跨实例 fanout 当前未完全健康</h2>
+            <p className="mt-2 text-sm leading-6">
+              当前 transport topology：{inspector.health.transportTopology}。
+              {inspector.health.degradedReason ? ` 原因：${inspector.health.degradedReason}` : " 当前仅能确认本实例 fallback 仍在工作。"}
+            </p>
+          </Card>
+        ) : null}
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
@@ -111,6 +122,8 @@ export function RuntimeInspectorSurface({ inspector }: { inspector: RuntimeInspe
                       <Badge className="bg-surface-container-lowest text-on-surface-variant">{item.lane}</Badge>
                       {item.status ? <Badge className="bg-surface-container-lowest text-on-surface-variant">{item.status}</Badge> : null}
                       {item.decision ? <Badge className="bg-surface-container-lowest text-on-surface-variant">{item.decision}</Badge> : null}
+                      {item.transportTopology ? <Badge className="bg-surface-container-lowest text-on-surface-variant">{item.transportTopology}</Badge> : null}
+                      {item.receivedVia ? <Badge className="bg-surface-container-lowest text-on-surface-variant">{item.receivedVia}</Badge> : null}
                     </div>
                     <h3 className="mt-3 text-base font-semibold text-on-surface">{item.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-on-surface-variant">{item.detail}</p>

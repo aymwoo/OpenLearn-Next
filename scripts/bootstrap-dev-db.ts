@@ -13,6 +13,7 @@ import {
   lessons,
   pluginRegistrations,
   publishedLessonVersions,
+  systemTransportSettings,
   themeTokenRegistries,
 } from "@/db/schema";
 import {
@@ -554,6 +555,31 @@ async function upsertDevThemePlugin(
   );
 }
 
+async function seedDefaultSystemTransportMode(teacherId: string) {
+  const existing = await db.query.systemTransportSettings.findFirst({
+    where: eq(systemTransportSettings.id, "default"),
+  });
+
+  if (existing) {
+    await db
+      .update(systemTransportSettings)
+      .set({
+        classroomTransportMode: "local_only",
+        updatedById: teacherId,
+        updatedAt: new Date(),
+      })
+      .where(eq(systemTransportSettings.id, existing.id));
+    return;
+  }
+
+  await db.insert(systemTransportSettings).values({
+    id: "default",
+    classroomTransportMode: "local_only",
+    updatedById: teacherId,
+    updatedAt: new Date(),
+  });
+}
+
 export async function bootstrapDevDb() {
   const seeded = await seedTestAccounts();
   const devClass = await getOrCreateClass(seeded.school.id);
@@ -576,6 +602,7 @@ export async function bootstrapDevDb() {
     steps,
   });
   await upsertBuiltInPlugins(seeded.school.id);
+  await seedDefaultSystemTransportMode(seeded.teacher.id);
   for (const definition of DEV_THEME_PLUGIN_DEFINITIONS) {
     await upsertDevThemePlugin(seeded.school.id, seeded.teacher.id, definition);
   }
@@ -591,6 +618,8 @@ export async function bootstrapDevDb() {
   console.log(`- 发布版本：v${published.version}`);
   console.log(`- 内置教学环节：${BUILT_IN_PLUGIN_DEFINITIONS.map((plugin) => plugin.name).join("、")}`);
   console.log(`- 可用主题：${validThemeRows.map((theme) => theme.name).join("、")}`);
+  console.log("- 全局 transport 默认：local_only（未提供 Redis 时默认保持单实例 local fanout）");
+  console.log("- 如需验证 Redis fanout，请显式设置 REDIS_FANOUT_ENABLED=true 与 REDIS_URL 后运行 pnpm verify:phase37");
   console.log(`- 教师账号：${seeded.teacher.email} / password`);
   console.log(`- 学生账号：${seeded.student.email} / password`);
 }
