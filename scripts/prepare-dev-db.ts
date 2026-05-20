@@ -85,6 +85,19 @@ async function detectExistingSchemaTag() {
     && await columnExists("scheduleReminderDispatch", "dispatchClaimedAt")
     && await columnExists("scheduleReminderDispatch", "dispatchClaimedBy");
 
+  const hasPhase43ValidationWorkloadsSchema =
+    hasPhase43ReminderDispatchClaimSchema
+    && await tableExists("classroomSessionSummary")
+    && await columnExists("classroomSessionSummary", "sessionId")
+    && await columnExists("classroomSessionSummary", "lastEventVersion")
+    && await columnExists("classroomSessionSummary", "summaryJson")
+    && await columnExists("classroomSessionSummary", "status")
+    && await columnExists("classroomSessionSummary", "finalizedAt");
+
+  if (hasPhase43ValidationWorkloadsSchema) {
+    return "0008_phase43_validation_workloads";
+  }
+
   if (hasPhase43ReminderDispatchClaimSchema) {
     return "0007_phase43_scheduled_reminder_dispatch_claim";
   }
