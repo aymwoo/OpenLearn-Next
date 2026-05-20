@@ -37,7 +37,13 @@
   1. 平台维护者可以在正式插件安装记录中直接看到稳定的 `pluginKey`、`dbNamespace` 与来源类型，而不必依赖展示名或解析 `manifestJson`。
   2. 同一学校内若安装记录的 `pluginKey` 或 `dbNamespace` 重复/冲突，系统会拒绝该安装或 reconcile 结果。
   3. 系统默认插件会通过正式插件安装模型完成注册或 reconcile，而不是继续依赖单独的 built-in 特例路径。
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 44-01-PLAN.md — 固化 plugin identity / namespace SQL contract、migration 与 schema push 闸门。
+- [ ] 44-02-PLAN.md — 建立统一 install/reconcile DAL seam 与 school-scoped conflict 语义。
+- [ ] 44-03-PLAN.md — 让默认插件 bootstrap / built-in registry 改走正式身份 contract。
+- [ ] 44-04-PLAN.md — 暴露正式运维元数据并建立 `verify:phase44` close gate。
 
 ### Phase 45: Extension & Plugin-Owned Schema Patterns
 **Goal**: 插件可以用受治理的结构化表扩展 lesson、lesson step、resource，并为自身业务对象持久化数据，而不会污染核心表或把业务真相塞回 JSON。
