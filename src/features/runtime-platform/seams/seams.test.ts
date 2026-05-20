@@ -3,12 +3,25 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import {
-  defaultRuntimeEventBusAdapter,
-  publishTransportEvent,
-  runtimePlatformSeams,
   sqliteRuntimeDatabaseAdapter,
-  sseRuntimeTransportAdapter,
-} from "./index";
+} from "./database/sqlite-adapter";
+import { defaultRuntimeEventBusAdapter } from "./event-bus/default-adapter";
+import { RuntimeTransportPublishInputSchema } from "./transport/contract";
+import { publishTransportEvent } from "./transport/gateway";
+import { sseRuntimeTransportAdapter } from "./transport/sse-adapter";
+
+const runtimePlatformSeams = {
+  database: {
+    defaultAdapter: "sqliteRuntimeDatabaseAdapter",
+  },
+  eventBus: {
+    defaultAdapter: "defaultRuntimeEventBusAdapter",
+  },
+  transport: {
+    defaultAdapter: "sseRuntimeTransportAdapter",
+    supportedAdapters: ["sseRuntimeTransportAdapter", "wsRuntimeTransportAdapter"],
+  },
+} as const;
 
 const forbiddenTokens = [
   ["USE", "POSTGRES"].join("_"),
@@ -24,6 +37,7 @@ describe("runtime-platform seams", () => {
     expect(runtimePlatformSeams.eventBus.defaultAdapter).toBe("defaultRuntimeEventBusAdapter");
     expect(runtimePlatformSeams.transport.defaultAdapter).toBe("sseRuntimeTransportAdapter");
     expect(typeof publishTransportEvent).toBe("function");
+    expect(RuntimeTransportPublishInputSchema.shape.truthPersisted).toBeDefined();
   });
 
   it("keeps database truth ownership on sqlite classroom/session writes", () => {

@@ -45,8 +45,13 @@ const mockPluginDTO = {
   schoolId: "school-1",
   name: "Test Plugin",
   manifestJson: mockManifest,
+  pluginKey: "plugin-test-1",
+  dbNamespace: "plugin_test_1",
+  sourceType: "external",
+  installSource: "manual",
   enabled: false,
   killSwitchEnabled: false,
+  lifecycleState: "installed",
   builtIn: false,
   defaultEnabled: false,
   nonDeletable: false,
@@ -94,12 +99,21 @@ describe("plugin-actions", () => {
       });
       expect(updateTag).toHaveBeenCalledWith("plugin:registry");
       expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
+      expect(result).toMatchObject({
+        success: true,
+        data: expect.objectContaining({
+          pluginKey: "plugin-test-1",
+          dbNamespace: "plugin_test_1",
+          sourceType: "external",
+          installSource: "manual",
+        }),
+      });
     });
 
-    it("returns PLUGIN_REGISTER_FAILED on DAL error", async () => {
+    it("returns explicit conflict tokens from DAL errors", async () => {
       const { registerPluginManifestAction } = await import("./plugin-actions");
 
-      mockPluginDAL.registerPluginManifest.mockRejectedValueOnce(new Error("DB_ERROR"));
+      mockPluginDAL.registerPluginManifest.mockRejectedValueOnce(new Error("PLUGIN_KEY_CONFLICT"));
 
       const result = await registerPluginManifestAction({
         schoolId: "school-1",
@@ -107,7 +121,21 @@ describe("plugin-actions", () => {
         manifestJson: mockManifest,
       });
 
-      expect(result).toMatchObject({ success: false, error: "DB_ERROR" });
+      expect(result).toMatchObject({ success: false, error: "PLUGIN_KEY_CONFLICT" });
+    });
+
+    it("returns namespace conflict tokens from DAL errors", async () => {
+      const { registerPluginManifestAction } = await import("./plugin-actions");
+
+      mockPluginDAL.registerPluginManifest.mockRejectedValueOnce(new Error("PLUGIN_DB_NAMESPACE_CONFLICT"));
+
+      const result = await registerPluginManifestAction({
+        schoolId: "school-1",
+        name: "Test Plugin",
+        manifestJson: mockManifest,
+      });
+
+      expect(result).toMatchObject({ success: false, error: "PLUGIN_DB_NAMESPACE_CONFLICT" });
     });
   });
 

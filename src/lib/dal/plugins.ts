@@ -17,7 +17,11 @@ import { PluginActionInput, PluginActionResult, PluginManifest, PluginManifestSc
 import { dispatchPluginAction, PLUGIN_ACTION_PERMISSION_REQUIREMENTS } from "@/server/plugins/registry";
 import { registerThemeTokens } from "@/lib/dal/themes";
 
-function deriveDbNamespace(pluginKey: string) {
+export const PLUGIN_KEY_CONFLICT = "PLUGIN_KEY_CONFLICT";
+export const PLUGIN_DB_NAMESPACE_CONFLICT = "PLUGIN_DB_NAMESPACE_CONFLICT";
+export const PLUGIN_DB_NAMESPACE_FROZEN = "PLUGIN_DB_NAMESPACE_FROZEN";
+
+export function deriveDbNamespace(pluginKey: string) {
   const normalized = pluginKey
     .toLowerCase()
     .replace(/[-.:/@\s]+/g, "_")
@@ -41,6 +45,18 @@ type PluginManagerScopeInput = {
 type RegisterPluginManifestInput = PluginManagerScopeInput & {
   name: string;
   manifestJson: PluginManifest;
+};
+
+type InstallOrReconcilePluginInput = PluginManagerScopeInput & {
+  pluginId?: string;
+  name: string;
+  manifestJson: PluginManifest;
+  installSource: "manual" | "bootstrap" | "repair" | "seed";
+  forceDefaultEnabledSnapshot?: boolean;
+  enabled?: boolean;
+  killSwitchEnabled?: boolean;
+  lifecycleState?: PluginLifecycleState;
+  dbNamespace?: string;
 };
 
 type SetPluginEnabledInput = PluginManagerScopeInput & {
@@ -205,6 +221,124 @@ async function createHookRun(pluginId: string, hookAnchor: string, status: "succ
   return record;
 }
 
+function resolveInitialPluginLifecycleState(enabled: boolean, lifecycleState?: PluginLifecycleState) {
+  if (lifecycleState) {
+    return lifecycleState;
+  }
+
+  return enabled ? "enabled" : "installed";
+}
+
+export async function installOrReconcilePlugin(input: InstallOrReconcilePluginInput) {
+  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
+
+  const parsedManifest = PluginManifestSchema.parse(input.manifestJson);
+  const pluginKey = parsedManifest.id;
+  const derivedNamespace = deriveDbNamespace(pluginKey);
+  const requestedNamespace = input.dbNamespace?.trim() || null;
+  const sourceType = parsedManifest.builtIn ? "default" : "external";
+  const shouldReconcileExisting = input.installSource !== "manual" || Boolean(input.pluginId);
+  const scopedPlugins = await db.query.pluginRegistrations.findMany({
+    where: eq(pluginRegistrations.schoolId, input.schoolId),
+  });
+
+  let targetRecord = input.pluginId
+    ? scopedPlugins.find((plugin) => plugin.id === input.pluginId) ?? null
+    : null;
+
+  if (input.pluginId && !targetRecord) {
+    throw new Error("PLUGIN_NOT_FOUND");
+  }
+
+  if (targetRecord && targetRecord.pluginKey !== pluginKey) {
+    throw new Error(PLUGIN_KEY_CONFLICT);
+  }
+
+  const pluginKeyConflict = scopedPlugins.find(
+    (plugin) => plugin.pluginKey === pluginKey && plugin.id !== targetRecord?.id,
+  ) ?? null;
+
+  if (!targetRecord && shouldReconcileExisting && pluginKeyConflict) {
+    targetRecord = pluginKeyConflict;
+  } else if (pluginKeyConflict) {
+    throw new Error(PLUGIN_KEY_CONFLICT);
+  }
+
+  const namespaceConflict = scopedPlugins.find(
+    (plugin) => plugin.dbNamespace === derivedNamespace && plugin.id !== targetRecord?.id,
+  );
+
+  if (namespaceConflict) {
+    throw new Error(PLUGIN_DB_NAMESPACE_CONFLICT);
+  }
+
+  if (requestedNamespace && requestedNamespace !== (targetRecord?.dbNamespace ?? derivedNamespace)) {
+    throw new Error(PLUGIN_DB_NAMESPACE_FROZEN);
+  }
+
+  if (!targetRecord) {
+    const enabled = input.enabled ?? input.forceDefaultEnabledSnapshot ?? parsedManifest.defaultEnabled;
+    const killSwitchEnabled = input.killSwitchEnabled ?? false;
+    const lifecycleState = resolveInitialPluginLifecycleState(enabled, input.lifecycleState);
+    const [record] = await db
+      .insert(pluginRegistrations)
+      .values({
+        schoolId: input.schoolId,
+        name: input.name,
+        manifestJson: parsedManifest,
+        pluginKey,
+        dbNamespace: derivedNamespace,
+        sourceType,
+        installSource: input.installSource,
+        enabled,
+        killSwitchEnabled,
+        lifecycleState,
+      })
+      .returning();
+
+    await appendPluginLifecycleTransition({
+      pluginId: record.id,
+      actorId: input.actorId,
+      fromState: null,
+      toState: record.lifecycleState,
+      reason: "registered",
+    });
+
+    return toPluginDTO(record);
+  }
+
+  const [record] = await db
+    .update(pluginRegistrations)
+    .set({
+      name: input.name,
+      manifestJson: parsedManifest,
+      pluginKey,
+      dbNamespace: targetRecord.dbNamespace,
+      sourceType,
+      installSource: targetRecord.installSource,
+      enabled: input.enabled ?? targetRecord.enabled,
+      killSwitchEnabled: input.killSwitchEnabled ?? targetRecord.killSwitchEnabled,
+      lifecycleState: input.lifecycleState ?? targetRecord.lifecycleState,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(pluginRegistrations.id, targetRecord.id), eq(pluginRegistrations.schoolId, input.schoolId)))
+    .returning();
+
+  if (!record) {
+    throw new Error("PLUGIN_NOT_FOUND");
+  }
+
+  await appendPluginLifecycleTransition({
+    pluginId: record.id,
+    actorId: input.actorId,
+    fromState: targetRecord.lifecycleState,
+    toState: record.lifecycleState,
+    reason: "reconciled",
+  });
+
+  return toPluginDTO(record);
+}
+
 async function denyHook(input: {
   pluginId: string;
   schoolId: string;
@@ -258,35 +392,10 @@ async function denyHook(input: {
 }
 
 export async function registerPluginManifest(input: RegisterPluginManifestInput) {
-  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
-
-  const parsedManifest = PluginManifestSchema.parse(input.manifestJson);
-
-  const [record] = await db
-    .insert(pluginRegistrations)
-    .values({
-      schoolId: input.schoolId,
-      name: input.name,
-      manifestJson: parsedManifest,
-      pluginKey: parsedManifest.id,
-      dbNamespace: deriveDbNamespace(parsedManifest.id),
-      sourceType: parsedManifest.builtIn ? "default" : "external",
-      installSource: "manual",
-      enabled: parsedManifest.defaultEnabled,
-      killSwitchEnabled: false,
-      lifecycleState: parsedManifest.defaultEnabled ? "enabled" : "installed",
-    })
-    .returning();
-
-  await appendPluginLifecycleTransition({
-    pluginId: record.id,
-    actorId: input.actorId,
-    fromState: null,
-    toState: record.lifecycleState,
-    reason: "registered",
+  return installOrReconcilePlugin({
+    ...input,
+    installSource: "manual",
   });
-
-  return toPluginDTO(record);
 }
 
 export async function setPluginEnabled(input: SetPluginEnabledInput) {

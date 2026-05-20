@@ -8,12 +8,30 @@ import { afterEach } from "vitest";
 import { LessonStepEditor } from "./lesson-step-editor";
 import type { LessonStepDTO } from "@/lib/dto/lesson-authoring";
 
+const { RevealMock } = vi.hoisted(() => {
+  const RevealMock = vi.fn().mockImplementation(function RevealMock() {
+    return {
+      initialize: vi.fn().mockResolvedValue(undefined),
+      slide: vi.fn(),
+      on: vi.fn(),
+      destroy: vi.fn(),
+      getIndices: vi.fn(() => ({ h: 0 })),
+    };
+  });
+
+  return { RevealMock };
+});
+
 const autosaveLessonStepAction = vi.fn();
 const uploadLessonMarkdownAssetAction = vi.fn();
 
 vi.mock("@/actions/lesson-authoring-actions", () => ({
   autosaveLessonStepAction: (...args: unknown[]) => autosaveLessonStepAction(...args),
   uploadLessonMarkdownAssetAction: (...args: unknown[]) => uploadLessonMarkdownAssetAction(...args),
+}));
+
+vi.mock("reveal.js", () => ({
+  default: RevealMock,
 }));
 
 type LessonStepFixture = Omit<

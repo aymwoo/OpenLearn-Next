@@ -197,7 +197,9 @@ describe('ClassroomControlPanel websocket cutover', () => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0)
     })
 
-    fireEvent.click(screen.getAllByRole('button', { name: /重新下发当前 Runtime 指令/ }).at(-1)!)
+    const runtimeCommandButton = screen.getAllByRole('button', { name: /重新下发当前 Runtime 指令/ }).at(-1)!
+
+    fireEvent.click(runtimeCommandButton)
 
     await waitFor(() => {
       const sentEntries = MockWebSocket.instances.flatMap((instance) => instance.sent)
@@ -205,12 +207,16 @@ describe('ClassroomControlPanel websocket cutover', () => {
       expect(sentEntries.some((entry) => entry.includes('runtime-teacher-control'))).toBe(true)
     })
 
+    await waitFor(() => {
+      expect(runtimeCommandButton.hasAttribute('disabled')).toBe(false)
+    })
+
     for (const instance of MockWebSocket.instances) {
       instance.readyState = 0
     }
     classroomActionMocks.recordRuntimeTeacherControlAction.mockResolvedValue({ ok: true, data: { sessionId: 'runtime-session-1' } })
 
-    fireEvent.click(screen.getAllByRole('button', { name: /重新下发当前 Runtime 指令/ }).at(-1)!)
+    fireEvent.click(runtimeCommandButton)
 
     await waitFor(() => {
       expect(classroomActionMocks.recordRuntimeTeacherControlAction).toHaveBeenCalled()

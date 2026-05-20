@@ -22,6 +22,7 @@ const deleteWhere = vi.fn();
 const insertValues = vi.fn();
 const dbInsert = vi.fn(() => ({ values: insertValues }));
 const dbDelete = vi.fn(() => ({ where: deleteWhere }));
+const getActorAsyncTaskListDTO = vi.fn();
 
 vi.mock("server-only", () => ({}));
 
@@ -52,6 +53,10 @@ vi.mock("@/lib/dal/lesson-authoring", () => ({
   assertActiveTeacher,
 }));
 
+vi.mock("@/lib/dal/async-tasks", () => ({
+  getActorAsyncTaskListDTO,
+}));
+
 describe("course authoring DAL", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -70,6 +75,7 @@ describe("course authoring DAL", () => {
       findManyUsers,
       findManySchools,
       assertActiveTeacher,
+      getActorAsyncTaskListDTO,
       cacheLife,
       cacheTag,
       deleteWhere,
@@ -88,6 +94,7 @@ describe("course authoring DAL", () => {
     insertValues.mockResolvedValue(undefined);
     findFirstCourseClasses.mockResolvedValue(null);
     findFirstCourseEnrollments.mockResolvedValue(null);
+    getActorAsyncTaskListDTO.mockResolvedValue([]);
 
     findManyCourses.mockResolvedValue([
       {

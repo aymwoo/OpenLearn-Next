@@ -23,7 +23,9 @@ describe("StudentPlayerPage", () => {
 
   it("preserves locked or unlocked runtime copy and resume priority in the classroom client", () => {
     expect(runtimeClientSource).toContain("runtime.forcedStepId ?? personal.progress.resumeStepId ?? shell.steps[0]?.id ?? null");
-    expect(runtimeClientSource).toContain("const player = { shell, ...personal, runtime } satisfies StudentPlayerDTO");
+    expect(runtimeClientSource).toContain("const player = {");
+    expect(runtimeClientSource).toContain("...personal,");
+    expect(runtimeClientSource).toContain("latestRuntimeStateSummary: runtimeEventSummary");
     expect(runtimeClientSource).toContain("老师已开启锁定跟随，你将停留在当前步骤。");
     expect(runtimeClientSource).toContain("老师已开放自由浏览，你可以回看已开放步骤。");
     expect(runtimeClientSource).toContain("前往老师推荐步骤");

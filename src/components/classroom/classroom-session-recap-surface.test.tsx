@@ -1,16 +1,25 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ClassroomSessionRecapSurface } from './classroom-session-recap-surface'
 import type { ClassroomSessionRecapDTO } from '@/lib/dto/classroom'
+
+vi.mock('next/link', () => ({
+  default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
+}))
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
   usePathname: () => '/classroom',
   useSearchParams: () => new URLSearchParams('sessionId=session-1'),
 }))
+
+afterEach(() => {
+  cleanup()
+})
 
 const recap: ClassroomSessionRecapDTO = {
   session: {

@@ -58,11 +58,13 @@ describe("Phase 04 student DTO surfaces", () => {
   });
 
   it("keeps classroom EventSource auto reconnect active after transient errors", () => {
-    expect(runtimeSource).toContain("source.onerror = () => {");
+    expect(runtimeSource).toContain("subscribeClassroomSocket({");
+    expect(runtimeSource).toContain("onReconnect() {");
     expect(runtimeSource).toContain("connectionState: 'reconnecting'");
     expect(runtimeSource).toContain("正在重新连接课堂，会先显示最近一次课堂状态。");
-    expect(runtimeSource).toMatch(/return \(\) => \{\s*source\?\.close\(\)/);
-    expect(runtimeSource).not.toMatch(/source\.onerror = \(\) => \{\s*source\?\.close\(\)/);
+    expect(runtimeSource).toContain("onFallbackOpen() {");
+    expect(runtimeSource).toContain("async onFallbackSnapshot(snapshot) {");
+    expect(runtimeSource).not.toContain("source.onerror = () => {");
   });
 
   it("keeps runtime failure recovery on the same learning surface with retry CTA", () => {
