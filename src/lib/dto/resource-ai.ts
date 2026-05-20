@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AsyncTaskOutcomeCountsSchema, AsyncTaskOutcomeStatusSchema, AsyncTaskResultSummarySchema } from "@/features/async-tasks/shared/contract";
 
 import { PluginManifestGovernanceV2Schema } from "@/features/runtime-platform/contracts/descriptors";
 import { PluginPermissionSchema, PluginLifecycleStateSchema } from "@/features/runtime-platform/contracts/permissions";
@@ -26,6 +27,10 @@ export const ResourceCardDTOSchema = z.object({
   classification: z.string(),
   ragEligible: z.boolean(),
   url: z.string().nullable(),
+  knowledgeSourceStatus: z.enum(["pending", "processing", "completed", "failed"]).nullable().default(null),
+  knowledgeSourceError: z.string().nullable().default(null),
+  indexedChunkCount: z.number().int().nonnegative().default(0),
+  failedChunkCount: z.number().int().nonnegative().default(0),
   createdAt: z.number(),
   updatedAt: z.number(),
 });
@@ -68,6 +73,27 @@ export const KnowledgeChunkDTOSchema = z.object({
   createdAt: z.number(),
 });
 export type KnowledgeChunkDTO = z.infer<typeof KnowledgeChunkDTOSchema>;
+
+export const ResourceKnowledgeSourceTaskPayloadSchema = z.object({
+  knowledgeSourceId: z.string().min(1),
+  resourceId: z.string().min(1),
+  schoolId: z.string().min(1),
+  actorId: z.string().min(1),
+}).strict();
+export type ResourceKnowledgeSourceTaskPayload = z.infer<typeof ResourceKnowledgeSourceTaskPayloadSchema>;
+
+export const ResourceKnowledgeSourceTaskResultSchema = AsyncTaskResultSummarySchema.extend({
+  knowledgeSourceId: z.string().min(1),
+  resourceId: z.string().min(1),
+  schoolId: z.string().min(1),
+  actorId: z.string().min(1),
+  knowledgeSourceStatus: z.enum(["completed", "failed"]),
+  indexedChunkCount: z.number().int().nonnegative(),
+  failedChunkCount: z.number().int().nonnegative(),
+  counts: AsyncTaskOutcomeCountsSchema,
+  outcome: AsyncTaskOutcomeStatusSchema,
+}).strict();
+export type ResourceKnowledgeSourceTaskResult = z.infer<typeof ResourceKnowledgeSourceTaskResultSchema>;
 
 export const RetrievalFilterDTOSchema = z.object({
   schoolId: z.string(),

@@ -68,6 +68,7 @@ export async function registerKnowledgeSourceAction(input: z.infer<typeof Regist
 
   try {
     const source = await registerKnowledgeSourceForResource(parsed.data);
+    updateTag(cacheTags.resource(parsed.data.resourceId));
     return { ok: true, data: source };
   } catch (error) {
     console.error("registerKnowledgeSourceAction error:", error);

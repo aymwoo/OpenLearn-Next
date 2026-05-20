@@ -7,6 +7,24 @@ import { courseCards } from "@/lib/demo-data";
 import { ResourceCardDTO } from "@/lib/dto/resource-ai";
 import { cn } from "@/lib/utils";
 
+const KNOWLEDGE_SOURCE_STATUS_LABELS: Record<NonNullable<ResourceCardDTO["knowledgeSourceStatus"]>, string> = {
+  pending: "RAG 待处理",
+  processing: "RAG 处理中",
+  completed: "RAG 已完成",
+  failed: "RAG 处理失败",
+};
+
+function getKnowledgeStatusTone(status: ResourceCardDTO["knowledgeSourceStatus"]) {
+  switch (status) {
+    case "completed":
+      return "success" as const;
+    case "failed":
+      return "accent" as const;
+    default:
+      return "default" as const;
+  }
+}
+
 type LibrarySurfaceProps = {
   mode: "courses" | "resources";
   resources?: ResourceCardDTO[];
@@ -113,11 +131,16 @@ export function LibrarySurface({ mode, resources = [] }: LibrarySurfaceProps) {
                   className="min-h-56 bg-surface-container-lowest p-5"
                 >
                   <div className="mb-2 flex flex-wrap gap-2">
-                    <Badge variant="default">{item.classification}</Badge>
-                    <Badge variant={item.ragEligible ? "success" : "default"}>
-                      {item.ragEligible ? "可进入 RAG" : "RAG 未启用"}
-                    </Badge>
-                  </div>
+                     <Badge variant="default">{item.classification}</Badge>
+                     <Badge variant={item.ragEligible ? "success" : "default"}>
+                       {item.ragEligible ? "可进入 RAG" : "RAG 未启用"}
+                     </Badge>
+                     {item.ragEligible && item.knowledgeSourceStatus ? (
+                       <Badge variant={getKnowledgeStatusTone(item.knowledgeSourceStatus)}>
+                         {KNOWLEDGE_SOURCE_STATUS_LABELS[item.knowledgeSourceStatus]}
+                       </Badge>
+                     ) : null}
+                   </div>
                   <h3 className="mt-3 text-2xl font-semibold">{item.title}</h3>
                   <p className="mt-2 text-sm text-on-surface-variant">
                     可见性: {item.visibility} | 所有者: {item.ownerId}
@@ -133,15 +156,29 @@ export function LibrarySurface({ mode, resources = [] }: LibrarySurfaceProps) {
                       </a>
                     </p>
                   )}
-                  <div
-                    className={cn(
-                      teacherSurfaceRhythm.card,
+                   <div
+                     className={cn(
+                       teacherSurfaceRhythm.card,
                       "mt-4 bg-surface-container-low p-4 text-sm text-on-surface-variant",
-                    )}
-                  >
-                    <p>年级/学科: (暂无数据)</p>
-                    <p>教材/版本: (暂无数据)</p>
-                    <p>册/章/节: (暂无数据)</p>
+                     )}
+                   >
+                     {item.ragEligible ? (
+                       <>
+                         <p>
+                           知识源状态: {item.knowledgeSourceStatus ? KNOWLEDGE_SOURCE_STATUS_LABELS[item.knowledgeSourceStatus] : "尚未登记"}
+                         </p>
+                         <p>已索引分块: {item.indexedChunkCount}</p>
+                         <p>失败分块: {item.failedChunkCount}</p>
+                         {item.knowledgeSourceStatus === "failed" ? (
+                           <p>失败说明: {item.knowledgeSourceError ?? "请前往 operator 面查看恢复详情"}</p>
+                         ) : (
+                           <p>处理说明: {item.knowledgeSourceStatus === "completed" ? "教师页展示业务状态，恢复动作统一收口到 operator 面。" : "处理中与失败恢复由系统/ operator 面统一处理。"}</p>
+                         )}
+                       </>
+                     ) : null}
+                     <p>年级/学科: (暂无数据)</p>
+                     <p>教材/版本: (暂无数据)</p>
+                     <p>册/章/节: (暂无数据)</p>
                     <p>知识标签: (暂无数据)</p>
                   </div>
                   <Button

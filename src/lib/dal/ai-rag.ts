@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { 
   agentRegistry, 
@@ -10,6 +10,7 @@ import {
   knowledgeChunks, 
   resources 
 } from "@/db/schema";
+import { enqueueAsyncTask } from "@/features/async-tasks/server/enqueue";
 import { assertActiveTeacher } from "./lesson-authoring";
 import { agentRegistrySeed } from "@/server/ai/agents/registry";
 import { buildSafeRetrievalFilter } from "@/server/rag/retrieval-boundary";
@@ -21,6 +22,10 @@ import {
   AgentRegistryDTO,
   AgentProposalDTO,
   KnowledgeSourceDTO,
+  ResourceKnowledgeSourceTaskPayload,
+  ResourceKnowledgeSourceTaskPayloadSchema,
+  ResourceKnowledgeSourceTaskResult,
+  ResourceKnowledgeSourceTaskResultSchema,
 } from "@/lib/dto/resource-ai";
 
 type JsonRecord = Record<string, unknown>;
@@ -77,10 +82,235 @@ export async function registerKnowledgeSourceForResource(input: { resourceId: st
     })
     .returning();
 
+  await enqueueAsyncTask({
+    actorId: scope.userId,
+    schoolId: resource.schoolId,
+    taskType: "resource.knowledge_source_ingest",
+    entityRef: {
+      entityType: "knowledge_source",
+      entityId: source.id,
+      entityLabel: resource.title,
+    },
+    payload: ResourceKnowledgeSourceTaskPayloadSchema.parse({
+      knowledgeSourceId: source.id,
+      resourceId: resource.id,
+      schoolId: resource.schoolId,
+      actorId: scope.userId,
+    } satisfies ResourceKnowledgeSourceTaskPayload),
+    dispatchRequested: true,
+  });
+
   return KnowledgeSourceDTOSchema.parse({
     ...source,
     error: source.error ?? null,
+    createdAt: source.createdAt?.getTime?.() ?? Date.now(),
+    updatedAt: source.updatedAt?.getTime?.() ?? Date.now(),
   });
+}
+
+function estimateTokenCount(text: string) {
+  return Math.max(1, Math.ceil(text.length / 4));
+}
+
+function buildKnowledgeSourceChunks(resource: { id: string; title: string; url: string | null; content: string | null }) {
+  const raw = [resource.url ?? null, resource.content ?? null]
+    .filter((value): value is string => Boolean(value && value.trim()))
+    .join("\n\n")
+    .trim();
+
+  if (!raw) {
+    throw new Error("RESOURCE_SOURCE_EMPTY");
+  }
+
+  const chunkSize = 500;
+  const chunks: Array<{
+    chunkIndex: number;
+    text: string;
+    textHash: string;
+    tokenEstimate: number;
+    payloadJson: JsonRecord;
+    metadataJson: JsonRecord;
+  }> = [];
+
+  for (let index = 0; index < raw.length; index += chunkSize) {
+    const text = raw.slice(index, index + chunkSize).trim();
+    if (!text) {
+      continue;
+    }
+
+    const chunkIndex = chunks.length;
+    chunks.push({
+      chunkIndex,
+      text,
+      textHash: `${resource.id}:${chunkIndex}:${text.length}`,
+      tokenEstimate: estimateTokenCount(text),
+      payloadJson: {
+        text,
+      },
+      metadataJson: {
+        resourceId: resource.id,
+        sourceType: resource.content ? "content" : "url",
+        title: resource.title,
+        url: resource.url,
+      },
+    });
+  }
+
+  if (!chunks.length) {
+    throw new Error("RESOURCE_SOURCE_EMPTY");
+  }
+
+  return chunks;
+}
+
+export async function executeResourceKnowledgeSourceTask(
+  rawPayload: unknown,
+): Promise<ResourceKnowledgeSourceTaskResult> {
+  const payload = ResourceKnowledgeSourceTaskPayloadSchema.parse(rawPayload);
+
+  const source = await db.query.knowledgeSources.findFirst({
+    where: eq(knowledgeSources.id, payload.knowledgeSourceId),
+  });
+
+  if (!source) {
+    throw new Error("KNOWLEDGE_SOURCE_NOT_FOUND");
+  }
+
+  const resource = await db.query.resources.findFirst({
+    where: eq(resources.id, payload.resourceId),
+  });
+
+  if (!resource || resource.schoolId !== payload.schoolId || !resource.ragEligible) {
+    throw new Error("RESOURCE_NOT_RAG_ELIGIBLE");
+  }
+
+  await db
+    .update(knowledgeSources)
+    .set({
+      status: "processing",
+      error: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(knowledgeSources.id, payload.knowledgeSourceId));
+
+  try {
+    const chunks = buildKnowledgeSourceChunks(resource);
+
+    const existingChunks = await db.query.knowledgeChunks.findMany({
+      where: eq(knowledgeChunks.sourceId, payload.knowledgeSourceId),
+    });
+
+    const existingByIndex = new Map(existingChunks.map((chunk) => [chunk.chunkIndex, chunk]));
+
+    for (const chunk of chunks) {
+      const existing = existingByIndex.get(chunk.chunkIndex);
+
+      if (existing) {
+        await db
+          .update(knowledgeChunks)
+          .set({
+            textHash: chunk.textHash,
+            tokenEstimate: chunk.tokenEstimate,
+            payloadJson: chunk.payloadJson,
+            metadataJson: chunk.metadataJson,
+            indexingStatus: "indexed",
+          })
+          .where(eq(knowledgeChunks.id, existing.id));
+      } else {
+        await db.insert(knowledgeChunks).values({
+          sourceId: payload.knowledgeSourceId,
+          chunkIndex: chunk.chunkIndex,
+          textHash: chunk.textHash,
+          tokenEstimate: chunk.tokenEstimate,
+          payloadJson: chunk.payloadJson,
+          metadataJson: chunk.metadataJson,
+          indexingStatus: "indexed",
+        });
+      }
+    }
+
+    await db
+      .update(knowledgeSources)
+      .set({
+        status: "completed",
+        error: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(knowledgeSources.id, payload.knowledgeSourceId));
+
+    return ResourceKnowledgeSourceTaskResultSchema.parse({
+      knowledgeSourceId: payload.knowledgeSourceId,
+      resourceId: payload.resourceId,
+      schoolId: payload.schoolId,
+      actorId: payload.actorId,
+      knowledgeSourceStatus: "completed",
+      indexedChunkCount: chunks.length,
+      failedChunkCount: 0,
+      outcome: "completed",
+      titleKey: "asyncTasks.resource.knowledgeSourceIngest.result.completed",
+      summaryKey: "asyncTasks.resource.knowledgeSourceIngest.result.completedSummary",
+      counts: {
+        total: chunks.length,
+        succeeded: chunks.length,
+        partiallySucceeded: 0,
+        failed: 0,
+        skipped: 0,
+      },
+      detail: {
+        knowledgeSourceId: payload.knowledgeSourceId,
+        resourceId: payload.resourceId,
+        schoolId: payload.schoolId,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "KNOWLEDGE_SOURCE_PROCESSING_FAILED";
+
+    await db
+      .update(knowledgeSources)
+      .set({
+        status: "failed",
+        error: message,
+        updatedAt: new Date(),
+      })
+      .where(eq(knowledgeSources.id, payload.knowledgeSourceId));
+
+    const existingChunks = await db.query.knowledgeChunks.findMany({
+      where: eq(knowledgeChunks.sourceId, payload.knowledgeSourceId),
+    });
+
+    if (existingChunks.length) {
+      await db
+        .update(knowledgeChunks)
+        .set({ indexingStatus: "failed" })
+        .where(inArray(knowledgeChunks.id, existingChunks.map((chunk) => chunk.id)));
+    }
+
+    return ResourceKnowledgeSourceTaskResultSchema.parse({
+      knowledgeSourceId: payload.knowledgeSourceId,
+      resourceId: payload.resourceId,
+      schoolId: payload.schoolId,
+      actorId: payload.actorId,
+      knowledgeSourceStatus: "failed",
+      indexedChunkCount: 0,
+      failedChunkCount: existingChunks.length,
+      outcome: "failed",
+      titleKey: "asyncTasks.resource.knowledgeSourceIngest.result.failed",
+      summaryKey: "asyncTasks.resource.knowledgeSourceIngest.result.failedSummary",
+      counts: {
+        total: Math.max(existingChunks.length, 1),
+        succeeded: 0,
+        partiallySucceeded: 0,
+        failed: Math.max(existingChunks.length, 1),
+        skipped: 0,
+      },
+      detail: {
+        knowledgeSourceId: payload.knowledgeSourceId,
+        resourceId: payload.resourceId,
+        schoolId: payload.schoolId,
+        error: message,
+      },
+    });
+  }
 }
 
 export async function recordKnowledgeChunkMetadata(input: {

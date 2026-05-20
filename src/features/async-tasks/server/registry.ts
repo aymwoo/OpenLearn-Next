@@ -12,6 +12,10 @@ import {
   ClassroomSessionSummaryTaskPayloadSchema,
   ClassroomSessionSummaryTaskResultSchema,
 } from "@/lib/dto/classroom";
+import {
+  ResourceKnowledgeSourceTaskPayloadSchema,
+  ResourceKnowledgeSourceTaskResultSchema,
+} from "@/lib/dto/resource-ai";
 
 import {
   AsyncTaskDefinitionMetadataSchema,
@@ -218,11 +222,44 @@ export const classroomSessionSummaryTaskDefinition = createAsyncTaskDefinition({
   },
 });
 
+export const resourceKnowledgeSourceIngestTaskDefinition = createAsyncTaskDefinition({
+  taskType: "resource.knowledge_source_ingest",
+  featureArea: "resource_processing",
+  visibilityScope: "school_operator",
+  entityRefKind: "knowledge_source",
+  labelKey: "asyncTasks.resource.knowledgeSourceIngest.label",
+  summaryKey: "asyncTasks.resource.knowledgeSourceIngest.summary",
+  payloadSchema: ResourceKnowledgeSourceTaskPayloadSchema,
+  progressSchema: AsyncTaskProgressSnapshotSchema,
+  resultSchema: ResourceKnowledgeSourceTaskResultSchema,
+  operatorRecovery: {
+    enabled: true,
+    mode: "same_task_new_attempt",
+    terminalStatuses: ["failed"],
+  },
+  reliability: {
+    queueName: "resource-processing",
+    attempts: 3,
+    backoff: {
+      type: "exponential",
+      delay: 2_000,
+    },
+    deadLetter: {
+      terminalStatus: "failed",
+      eventType: "task.failed",
+    },
+    idempotency: {
+      strategy: "task_id",
+    },
+  },
+});
+
 export const asyncTaskRegistry = {
   [platformHealthCheckTaskDefinition.taskType]: platformHealthCheckTaskDefinition,
   [courseImportApplyBatchTaskDefinition.taskType]: courseImportApplyBatchTaskDefinition,
   [scheduleReminderDeliveryTaskDefinition.taskType]: scheduleReminderDeliveryTaskDefinition,
   [classroomSessionSummaryTaskDefinition.taskType]: classroomSessionSummaryTaskDefinition,
+  [resourceKnowledgeSourceIngestTaskDefinition.taskType]: resourceKnowledgeSourceIngestTaskDefinition,
 } satisfies Record<string, AsyncTaskDefinition>;
 
 export type AsyncTaskRegistry = typeof asyncTaskRegistry;

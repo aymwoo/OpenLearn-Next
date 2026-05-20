@@ -1,7 +1,7 @@
 import "server-only";
-import { inArray, eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { resources, courses } from "@/db/schema";
+import { courses, knowledgeChunks, knowledgeSources, resources } from "@/db/schema";
 import { assertActiveTeacher } from "./lesson-authoring";
 import {
   ResourceCardDTOSchema,
@@ -20,20 +20,65 @@ export async function getTeacherResourceLibraryDTO(): Promise<ResourceCardDTO[]>
     orderBy: (resource, { desc }) => [desc(resource.createdAt)],
   });
 
+  const sourceRows = resourceRows.length
+    ? await db.query.knowledgeSources.findMany({
+        where: inArray(
+          knowledgeSources.resourceId,
+          resourceRows.map((row) => row.id),
+        ),
+        orderBy: (source, { desc }) => [desc(source.updatedAt), desc(source.createdAt)],
+      })
+    : [];
+
+  const latestSourceByResourceId = new Map<string, (typeof sourceRows)[number]>();
+  for (const source of sourceRows) {
+    if (!latestSourceByResourceId.has(source.resourceId)) {
+      latestSourceByResourceId.set(source.resourceId, source);
+    }
+  }
+
+  const latestSourceIds = Array.from(latestSourceByResourceId.values()).map((source) => source.id);
+  const chunkRows = latestSourceIds.length
+    ? await db.query.knowledgeChunks.findMany({
+        where: inArray(knowledgeChunks.sourceId, latestSourceIds),
+      })
+    : [];
+
+  const chunkStatsBySourceId = new Map<string, { indexed: number; failed: number }>();
+  for (const chunk of chunkRows) {
+    const current = chunkStatsBySourceId.get(chunk.sourceId) ?? { indexed: 0, failed: 0 };
+    if (chunk.indexingStatus === "indexed") {
+      current.indexed += 1;
+    }
+    if (chunk.indexingStatus === "failed") {
+      current.failed += 1;
+    }
+    chunkStatsBySourceId.set(chunk.sourceId, current);
+  }
+
   return resourceRows.map((row) =>
-    ResourceCardDTOSchema.parse({
-      id: row.id,
-      schoolId: row.schoolId,
-      ownerId: row.ownerId,
-      courseId: row.courseId,
-      title: row.title,
-      visibility: row.visibility,
-      classification: row.classification,
-      ragEligible: row.ragEligible ?? false,
-      url: row.url,
-      createdAt: row.createdAt?.getTime() ?? 0,
-      updatedAt: row.updatedAt?.getTime() ?? 0,
-    })
+    {
+      const source = latestSourceByResourceId.get(row.id) ?? null;
+      const chunkStats = source ? chunkStatsBySourceId.get(source.id) : null;
+
+      return ResourceCardDTOSchema.parse({
+        id: row.id,
+        schoolId: row.schoolId,
+        ownerId: row.ownerId,
+        courseId: row.courseId,
+        title: row.title,
+        visibility: row.visibility,
+        classification: row.classification,
+        ragEligible: row.ragEligible ?? false,
+        url: row.url,
+        knowledgeSourceStatus: source?.status ?? null,
+        knowledgeSourceError: source?.error ?? null,
+        indexedChunkCount: chunkStats?.indexed ?? 0,
+        failedChunkCount: chunkStats?.failed ?? 0,
+        createdAt: row.createdAt?.getTime() ?? 0,
+        updatedAt: row.updatedAt?.getTime() ?? 0,
+      });
+    }
   );
 }
 
@@ -78,6 +123,10 @@ export async function createTeacherResource(input: CreateResourceInput): Promise
     classification: row.classification,
     ragEligible: row.ragEligible ?? false,
     url: row.url,
+    knowledgeSourceStatus: null,
+    knowledgeSourceError: null,
+    indexedChunkCount: 0,
+    failedChunkCount: 0,
     createdAt: row.createdAt?.getTime() ?? 0,
     updatedAt: row.updatedAt?.getTime() ?? 0,
   });
@@ -137,6 +186,10 @@ export async function updateTeacherResource(
     classification: row.classification,
     ragEligible: row.ragEligible ?? false,
     url: row.url,
+    knowledgeSourceStatus: null,
+    knowledgeSourceError: null,
+    indexedChunkCount: 0,
+    failedChunkCount: 0,
     createdAt: row.createdAt?.getTime() ?? 0,
     updatedAt: row.updatedAt?.getTime() ?? 0,
   });
@@ -172,6 +225,10 @@ export async function setResourceRagEligibility(input: {
     classification: row.classification,
     ragEligible: row.ragEligible ?? false,
     url: row.url,
+    knowledgeSourceStatus: null,
+    knowledgeSourceError: null,
+    indexedChunkCount: 0,
+    failedChunkCount: 0,
     createdAt: row.createdAt?.getTime() ?? 0,
     updatedAt: row.updatedAt?.getTime() ?? 0,
   });
