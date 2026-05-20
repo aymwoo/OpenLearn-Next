@@ -17,6 +17,22 @@ import { PluginActionInput, PluginActionResult, PluginManifest, PluginManifestSc
 import { dispatchPluginAction, PLUGIN_ACTION_PERMISSION_REQUIREMENTS } from "@/server/plugins/registry";
 import { registerThemeTokens } from "@/lib/dal/themes";
 
+function deriveDbNamespace(pluginKey: string) {
+  const normalized = pluginKey
+    .toLowerCase()
+    .replace(/[-.:/@\s]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  const prefixed = normalized.length === 0
+    ? "p_plugin"
+    : /^[a-z]/.test(normalized)
+      ? normalized
+      : `p_${normalized}`;
+
+  return prefixed.slice(0, 48);
+}
+
 type PluginManagerScopeInput = {
   actorId: string;
   schoolId: string;
@@ -80,6 +96,10 @@ function toPluginDTO(record: typeof pluginRegistrations.$inferSelect): PluginReg
     schoolId: record.schoolId,
     name: record.name,
     manifestJson: manifest,
+    pluginKey: record.pluginKey,
+    dbNamespace: record.dbNamespace,
+    sourceType: record.sourceType,
+    installSource: record.installSource,
     enabled: record.enabled,
     killSwitchEnabled: record.killSwitchEnabled,
     lifecycleState: record.lifecycleState,
@@ -248,6 +268,10 @@ export async function registerPluginManifest(input: RegisterPluginManifestInput)
       schoolId: input.schoolId,
       name: input.name,
       manifestJson: parsedManifest,
+      pluginKey: parsedManifest.id,
+      dbNamespace: deriveDbNamespace(parsedManifest.id),
+      sourceType: parsedManifest.builtIn ? "default" : "external",
+      installSource: "manual",
       enabled: parsedManifest.defaultEnabled,
       killSwitchEnabled: false,
       lifecycleState: parsedManifest.defaultEnabled ? "enabled" : "installed",

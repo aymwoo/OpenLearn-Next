@@ -34,6 +34,22 @@ const DEV_LESSON_OBJECTIVE = "帮助开发环境快速验证教师备课、学�
 
 const CANONICAL_RUNTIME_PROOF_STEP_RANK = "b5";
 
+function derivePluginDbNamespace(pluginKey: string) {
+  const normalized = pluginKey
+    .toLowerCase()
+    .replace(/[-.:/@\s]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  const prefixed = normalized.length === 0
+    ? "p_plugin"
+    : /^[a-z]/.test(normalized)
+      ? normalized
+      : `p_${normalized}`;
+
+  return prefixed.slice(0, 48);
+}
+
 function getHtmlCoursewareBuiltInDefinition(): BuiltInTeachingStepDefinition {
   const definition = BUILT_IN_TEACHING_STEP_DEFINITIONS.find((item) => item.builtInKey === "htmlCourseware");
 
@@ -489,6 +505,8 @@ async function publishLessonVersion(input: {
 async function upsertBuiltInPlugins(schoolId: string) {
   for (const definition of BUILT_IN_PLUGIN_DEFINITIONS) {
     const manifest = PluginManifestSchema.parse(definition.manifest);
+    const pluginKey = manifest.id;
+    const dbNamespace = derivePluginDbNamespace(pluginKey);
     const existing = await db.query.pluginRegistrations.findFirst({
       where: and(eq(pluginRegistrations.schoolId, schoolId), eq(pluginRegistrations.name, definition.name)),
     });
@@ -498,6 +516,10 @@ async function upsertBuiltInPlugins(schoolId: string) {
         .update(pluginRegistrations)
         .set({
           manifestJson: manifest,
+          pluginKey,
+          dbNamespace,
+          sourceType: "default",
+          installSource: "bootstrap",
           enabled: true,
           killSwitchEnabled: false,
           updatedAt: new Date(),
@@ -511,6 +533,10 @@ async function upsertBuiltInPlugins(schoolId: string) {
       schoolId,
       name: definition.name,
       manifestJson: manifest,
+      pluginKey,
+      dbNamespace,
+      sourceType: "default",
+      installSource: "bootstrap",
       enabled: true,
       killSwitchEnabled: false,
     });
@@ -523,6 +549,8 @@ async function upsertDevThemePlugin(
   definition: (typeof DEV_THEME_PLUGIN_DEFINITIONS)[number],
 ) {
   const manifest = PluginManifestSchema.parse(definition.manifest);
+  const pluginKey = manifest.id;
+  const dbNamespace = derivePluginDbNamespace(pluginKey);
   const existing = await db.query.pluginRegistrations.findFirst({
     where: and(eq(pluginRegistrations.schoolId, schoolId), eq(pluginRegistrations.name, definition.name)),
   });
@@ -530,11 +558,15 @@ async function upsertDevThemePlugin(
   if (existing) {
     await db
       .update(pluginRegistrations)
-      .set({
-        manifestJson: manifest,
-        enabled: true,
-        killSwitchEnabled: false,
-        updatedAt: new Date(),
+        .set({
+          manifestJson: manifest,
+          pluginKey,
+          dbNamespace,
+          sourceType: "external",
+          installSource: "seed",
+          enabled: true,
+          killSwitchEnabled: false,
+          updatedAt: new Date(),
       })
       .where(eq(pluginRegistrations.id, existing.id));
   } else {
@@ -542,6 +574,10 @@ async function upsertDevThemePlugin(
       schoolId,
       name: definition.name,
       manifestJson: manifest,
+      pluginKey,
+      dbNamespace,
+      sourceType: "external",
+      installSource: "seed",
       enabled: true,
       killSwitchEnabled: false,
     });
