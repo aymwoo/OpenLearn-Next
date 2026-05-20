@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  classroomSessionSummaryTaskDefinition,
   courseImportApplyBatchTaskDefinition,
   platformHealthCheckTaskDefinition,
   scheduleReminderDeliveryTaskDefinition,
@@ -50,6 +51,31 @@ describe("async task registry reliability metadata", () => {
       },
       reliability: {
         queueName: "schedule-reminders",
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 2_000,
+        },
+        idempotency: {
+          strategy: "task_id",
+        },
+      },
+    });
+  });
+
+  it("declares classroom session summary as derived runtime workload metadata", () => {
+    expect(classroomSessionSummaryTaskDefinition).toMatchObject({
+      taskType: "classroom.session_summary",
+      featureArea: "runtime",
+      visibilityScope: "school_operator",
+      entityRefKind: "classroom_session",
+      operatorRecovery: {
+        enabled: true,
+        mode: "same_task_new_attempt",
+        terminalStatuses: ["failed"],
+      },
+      reliability: {
+        queueName: "classroom-summary",
         attempts: 3,
         backoff: {
           type: "exponential",

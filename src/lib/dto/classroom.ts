@@ -21,6 +21,11 @@ import {
   RuntimeTeacherControlRequestEnvelopeSchema,
   TeachingBridgeResultEnvelopeSchema,
 } from "@/features/runtime-platform/contracts/bridge";
+import {
+  AsyncTaskOutcomeCountsSchema,
+  AsyncTaskOutcomeStatusSchema,
+  AsyncTaskResultSummarySchema,
+} from "@/features/async-tasks/shared/contract";
 export {
   CreateOrResumeRuntimeSessionInputSchema,
   RuntimeBootstrapDTOSchema,
@@ -319,6 +324,65 @@ export const ClassroomSessionRecapDTOSchema = z.object({
   stepSummaries: z.array(ClassroomSessionRecapStepSummaryDTOSchema),
   selectedStepId: z.string().nullable(),
 });
+
+export const ClassroomSessionSummaryTriggerModeSchema = z.enum(["incremental", "finalize"]);
+
+export const ClassroomSessionSummaryTaskPayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  schoolId: z.string().min(1),
+  triggerMode: ClassroomSessionSummaryTriggerModeSchema,
+  eventType: z.enum(["active_step_changed", "lock_mode_changed", "slide_changed", "ended"]),
+  eventVersion: z.number().int().positive(),
+}).strict();
+
+export const ClassroomSessionSummaryArtifactSchema = z.object({
+  sessionId: z.string(),
+  lessonId: z.string(),
+  classId: z.string(),
+  lessonTitle: z.string(),
+  className: z.string(),
+  startedAt: z.string(),
+  endedAt: z.string().nullable(),
+  completionLabel: z.string(),
+  completionCount: z.number().int().nonnegative(),
+  totalStudents: z.number().int().nonnegative(),
+  submissionCount: z.number().int().nonnegative(),
+  evidenceCount: z.number().int().nonnegative(),
+  participationBuckets: z.object({
+    active: z.number().int().nonnegative(),
+    normal: z.number().int().nonnegative(),
+    attention: z.number().int().nonnegative(),
+    unevaluated: z.number().int().nonnegative(),
+  }),
+  workload: ClassroomSessionWorkloadDTOSchema,
+  studentSummaries: z.array(ClassroomSessionRecapStudentSummaryDTOSchema),
+  stepSummaries: z.array(ClassroomSessionRecapStepSummaryDTOSchema),
+}).strict();
+
+export const ClassroomSessionSummaryTaskResultSchema = AsyncTaskResultSummarySchema.extend({
+  sessionId: z.string().min(1),
+  schoolId: z.string().min(1),
+  triggerMode: ClassroomSessionSummaryTriggerModeSchema,
+  eventType: ClassroomSessionSummaryTaskPayloadSchema.shape.eventType,
+  eventVersion: z.number().int().positive(),
+  artifactStatus: z.enum(["completed", "failed"]),
+  counts: AsyncTaskOutcomeCountsSchema,
+  outcome: AsyncTaskOutcomeStatusSchema,
+  detail: z.object({
+    sessionId: z.string().min(1),
+    schoolId: z.string().min(1),
+    triggerMode: ClassroomSessionSummaryTriggerModeSchema,
+    eventType: ClassroomSessionSummaryTaskPayloadSchema.shape.eventType,
+    eventVersion: z.number().int().positive(),
+    lessonTitle: z.string().min(1),
+    className: z.string().min(1),
+    completionCount: z.number().int().nonnegative(),
+    totalStudents: z.number().int().nonnegative(),
+    submissionCount: z.number().int().nonnegative(),
+    evidenceCount: z.number().int().nonnegative(),
+    participationBuckets: ClassroomSessionSummaryArtifactSchema.shape.participationBuckets,
+  }),
+}).strict();
 
 export const GetTeacherRecentSessionTrendInputSchema = z.object({
   classId: z.string().min(1),
@@ -708,6 +772,10 @@ export type ClassroomSessionWorkloadDTO = z.infer<typeof ClassroomSessionWorkloa
 export type ClassroomSessionRecapStudentSummaryDTO = z.infer<typeof ClassroomSessionRecapStudentSummaryDTOSchema>;
 export type ClassroomSessionRecapStudentDetailDTO = z.infer<typeof ClassroomSessionRecapStudentDetailDTOSchema>;
 export type ClassroomSessionRecapStepSummaryDTO = z.infer<typeof ClassroomSessionRecapStepSummaryDTOSchema>;
+export type ClassroomSessionSummaryTriggerMode = z.infer<typeof ClassroomSessionSummaryTriggerModeSchema>;
+export type ClassroomSessionSummaryTaskPayload = z.infer<typeof ClassroomSessionSummaryTaskPayloadSchema>;
+export type ClassroomSessionSummaryArtifact = z.infer<typeof ClassroomSessionSummaryArtifactSchema>;
+export type ClassroomSessionSummaryTaskResult = z.infer<typeof ClassroomSessionSummaryTaskResultSchema>;
 export type GetClassroomSessionRecapInput = z.infer<typeof GetClassroomSessionRecapInputSchema>;
 export type ClassroomSessionRecapDTO = z.infer<typeof ClassroomSessionRecapDTOSchema>;
 export type GetTeacherRecentSessionTrendInput = z.infer<typeof GetTeacherRecentSessionTrendInputSchema>;

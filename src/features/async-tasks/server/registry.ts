@@ -8,6 +8,10 @@ import {
   ScheduleReminderDeliveryTaskPayloadSchema,
   ScheduleReminderDeliveryTaskResultSchema,
 } from "@/features/schedule/shared/dto/reminders";
+import {
+  ClassroomSessionSummaryTaskPayloadSchema,
+  ClassroomSessionSummaryTaskResultSchema,
+} from "@/lib/dto/classroom";
 
 import {
   AsyncTaskDefinitionMetadataSchema,
@@ -182,10 +186,43 @@ export const scheduleReminderDeliveryTaskDefinition = createAsyncTaskDefinition(
   },
 });
 
+export const classroomSessionSummaryTaskDefinition = createAsyncTaskDefinition({
+  taskType: "classroom.session_summary",
+  featureArea: "runtime",
+  visibilityScope: "school_operator",
+  entityRefKind: "classroom_session",
+  labelKey: "asyncTasks.classroom.sessionSummary.label",
+  summaryKey: "asyncTasks.classroom.sessionSummary.summary",
+  payloadSchema: ClassroomSessionSummaryTaskPayloadSchema,
+  progressSchema: AsyncTaskProgressSnapshotSchema,
+  resultSchema: ClassroomSessionSummaryTaskResultSchema,
+  operatorRecovery: {
+    enabled: true,
+    mode: "same_task_new_attempt",
+    terminalStatuses: ["failed"],
+  },
+  reliability: {
+    queueName: "classroom-summary",
+    attempts: 3,
+    backoff: {
+      type: "exponential",
+      delay: 2_000,
+    },
+    deadLetter: {
+      terminalStatus: "failed",
+      eventType: "task.failed",
+    },
+    idempotency: {
+      strategy: "task_id",
+    },
+  },
+});
+
 export const asyncTaskRegistry = {
   [platformHealthCheckTaskDefinition.taskType]: platformHealthCheckTaskDefinition,
   [courseImportApplyBatchTaskDefinition.taskType]: courseImportApplyBatchTaskDefinition,
   [scheduleReminderDeliveryTaskDefinition.taskType]: scheduleReminderDeliveryTaskDefinition,
+  [classroomSessionSummaryTaskDefinition.taskType]: classroomSessionSummaryTaskDefinition,
 } satisfies Record<string, AsyncTaskDefinition>;
 
 export type AsyncTaskRegistry = typeof asyncTaskRegistry;

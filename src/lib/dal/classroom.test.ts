@@ -14,6 +14,7 @@ const findManyPublishedLessonVersions = vi.fn();
 const findFirstPublishedLessonVersions = vi.fn();
 const findManyClassroomParticipants = vi.fn();
 const findFirstClassroomParticipants = vi.fn();
+const findFirstClassroomSessionSummary = vi.fn();
 const findManyUsers = vi.fn();
 const findFirstUsers = vi.fn();
 const findManyClassroomEvents = vi.fn();
@@ -28,8 +29,10 @@ const findManyAttemptFeedback = vi.fn();
 const findManyCourseEnrollments = vi.fn();
 const insertValues = vi.fn();
 const insertMock = vi.fn();
+const insertOnConflictDoUpdate = vi.fn();
 const assertActiveTeacher = vi.fn();
 const getCurrentUserDTO = vi.fn();
+const enqueueAsyncTask = vi.fn();
 
 vi.mock("server-only", () => ({}));
 
@@ -43,6 +46,7 @@ vi.mock("@/db", () => ({
       courseClasses: { findMany: findManyCourseClasses },
       publishedLessonVersions: { findMany: findManyPublishedLessonVersions, findFirst: findFirstPublishedLessonVersions },
       classroomParticipants: { findMany: findManyClassroomParticipants, findFirst: findFirstClassroomParticipants },
+      classroomSessionSummary: { findFirst: findFirstClassroomSessionSummary },
       users: { findMany: findManyUsers, findFirst: findFirstUsers },
       classroomEvents: { findMany: findManyClassroomEvents },
       classroomTimeline: { findMany: findManyClassroomTimeline },
@@ -66,6 +70,10 @@ vi.mock("@/lib/dal/auth", () => ({
   getCurrentUserDTO,
 }));
 
+vi.mock("@/features/async-tasks/server/enqueue", () => ({
+  enqueueAsyncTask,
+}));
+
 describe("getClassroomConsoleDTO", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -73,6 +81,7 @@ describe("getClassroomConsoleDTO", () => {
 
     insertValues.mockReturnValue({
       onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+      onConflictDoUpdate: insertOnConflictDoUpdate,
       returning: vi.fn(),
     });
     insertMock.mockReturnValue({
@@ -206,6 +215,7 @@ describe("getClassroomConsoleDTO", () => {
     findManyUsers.mockResolvedValue([
       { id: "student-1", name: "李雷" },
     ]);
+    findFirstClassroomSessionSummary.mockResolvedValue(null);
     findFirstUsers.mockResolvedValue({ id: "student-1", name: "李雷" });
     findManyClassroomEvents.mockResolvedValue([]);
     findManyClassroomTimeline.mockResolvedValue([]);
@@ -231,6 +241,7 @@ describe("getClassroomConsoleDTO", () => {
     getCurrentUserDTO.mockResolvedValue({
       id: "teacher-1",
     });
+    enqueueAsyncTask.mockResolvedValue({ id: "task-summary-1", status: "queued" });
   });
 
   it("only returns launchable lessons and classes inside the active teacher school scope", async () => {
@@ -1324,6 +1335,340 @@ describe("phase 25 session recap contracts", () => {
     );
     expect(recap.selectedStudent?.studentId).toBe('student-2');
     expect(recap.selectedStudent?.pendingFeedbackCount).toBe(1);
+  });
+
+  it("keeps classroom summary task hooks on canonical event writes with incremental and finalize triggers", async () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain('taskType: "classroom.session_summary"');
+    expect(source).toContain('triggerMode: "incremental"');
+    expect(source).toContain('triggerMode: "finalize"');
+    expect(source).toContain('eventType: "active_step_changed"');
+    expect(source).toContain('eventType: "lock_mode_changed"');
+    expect(source).toContain('eventType: "slide_changed"');
+    expect(source).toContain('eventType: "ended"');
+  });
+
+  it("builds classroom session summary artifacts from derived facts only and keeps recap vocabulary aligned", async () => {
+    findFirstClassroomSessions.mockResolvedValueOnce({
+      id: "session-ended",
+      lessonId: "lesson-in-scope",
+      publishedVersionId: "pub-1",
+      classId: "class-in-scope",
+      teacherId: "teacher-1",
+      activeStepId: "step-2",
+      locked: true,
+      status: "ended",
+      version: 4,
+      updatedAt: new Date("2026-05-14T09:40:00Z"),
+      createdAt: new Date("2026-05-14T09:00:00Z"),
+      endedAt: new Date("2026-05-14T09:40:00Z"),
+    });
+    findFirstLessons.mockResolvedValueOnce({
+      id: "lesson-in-scope",
+      title: "古诗导读",
+      courseId: "course-in-scope",
+    });
+    findFirstClasses.mockResolvedValueOnce({
+      id: "class-in-scope",
+      name: "一班",
+      schoolId: "school-1",
+    });
+    findFirstPublishedLessonVersions.mockResolvedValueOnce({
+      id: "pub-1",
+      snapshotJson: {
+        lesson: { title: "古诗导读" },
+        steps: [
+          {
+            id: "step-1",
+            lessonId: "lesson-in-scope",
+            type: "content",
+            title: "导入",
+            rank: "a0",
+            payload: { type: "content", title: "导入", body: "导入内容", teacherNotes: "提示", materialRefs: [] },
+          },
+          {
+            id: "step-2",
+            lessonId: "lesson-in-scope",
+            type: "quiz",
+            title: "随堂测验",
+            rank: "b0",
+            payload: {
+              type: "quiz",
+              question: "问题",
+              options: ["春天", "秋天"],
+              correctOptionIndex: 0,
+              explanation: "解释",
+            },
+          },
+        ],
+        materials: [],
+      },
+    });
+    findManyClassroomParticipants.mockResolvedValueOnce([
+      {
+        sessionId: "session-ended",
+        studentId: "student-1",
+        connectionState: "connected",
+        currentStepId: "step-2",
+        lastSeenAt: new Date("2026-05-14T09:35:00Z"),
+      },
+      {
+        sessionId: "session-ended",
+        studentId: "student-2",
+        connectionState: "offline",
+        currentStepId: "step-1",
+        lastSeenAt: new Date("2026-05-14T09:20:00Z"),
+      },
+    ]);
+    findManyUsers.mockResolvedValueOnce([
+      { id: "student-1", name: "李雷" },
+      { id: "student-2", name: "韩梅梅" },
+    ]);
+    findManyClassroomEvidence.mockResolvedValueOnce([
+      {
+        id: "evidence-1",
+        sessionId: "session-ended",
+        studentId: "student-1",
+        stepId: "step-2",
+        sourceType: "teacher-observation",
+        evidenceType: "observation",
+        payloadJson: {
+          kind: "formative-evaluation",
+          participationLevel: "active",
+          tags: ["主动发言"],
+          observationNote: "积极参与课堂讨论。",
+        },
+        capturedById: "teacher-1",
+        createdAt: new Date("2026-05-14T09:30:00Z"),
+      },
+      {
+        id: "evidence-2",
+        sessionId: "session-ended",
+        studentId: "student-2",
+        stepId: "step-2",
+        sourceType: "student-quick-response",
+        evidenceType: "response",
+        payloadJson: { body: "我觉得这首诗写的是春天。" },
+        capturedById: "student-2",
+        createdAt: new Date("2026-05-14T09:28:00Z"),
+      },
+    ]);
+    findManyClassroomTimeline.mockResolvedValueOnce([
+      {
+        id: "timeline-1",
+        sessionId: "session-ended",
+        studentId: "student-2",
+        stepId: "step-2",
+        entryType: "intervention_noted",
+        actorId: "teacher-1",
+        payloadJson: { title: "课堂提醒", body: "请继续补充观点。", targetScope: "student", visibility: "teacher-only" },
+        createdAt: new Date("2026-05-14T09:29:00Z"),
+      },
+    ]);
+    findManyLessonStepProgress.mockResolvedValueOnce([
+      {
+        id: "progress-1",
+        publishedVersionId: "pub-1",
+        lessonId: "lesson-in-scope",
+        stepId: "step-1",
+        studentId: "student-1",
+        state: "completed",
+        completedAt: new Date("2026-05-14T09:10:00Z"),
+        updatedAt: new Date("2026-05-14T09:10:00Z"),
+      },
+      {
+        id: "progress-2",
+        publishedVersionId: "pub-1",
+        lessonId: "lesson-in-scope",
+        stepId: "step-2",
+        studentId: "student-1",
+        state: "completed",
+        completedAt: new Date("2026-05-14T09:20:00Z"),
+        updatedAt: new Date("2026-05-14T09:20:00Z"),
+      },
+      {
+        id: "progress-3",
+        publishedVersionId: "pub-1",
+        lessonId: "lesson-in-scope",
+        stepId: "step-1",
+        studentId: "student-2",
+        state: "completed",
+        completedAt: new Date("2026-05-14T09:12:00Z"),
+        updatedAt: new Date("2026-05-14T09:12:00Z"),
+      },
+    ]);
+    findManyTaskSubmissions.mockResolvedValueOnce([]);
+    findManyQuizAttempts.mockResolvedValueOnce([
+      {
+        id: "quiz-1",
+        publishedVersionId: "pub-1",
+        lessonId: "lesson-in-scope",
+        stepId: "step-2",
+        studentId: "student-2",
+        attemptNo: 1,
+        answerJson: { optionId: "a" },
+        outcomeJson: { correct: false },
+        isLatest: true,
+        createdAt: new Date("2026-05-14T09:27:00Z"),
+      },
+    ]);
+    findManyAttemptFeedback.mockResolvedValueOnce([]);
+    findManyCourseEnrollments.mockResolvedValueOnce([
+      {
+        id: "enrollment-1",
+        courseId: "course-in-scope",
+        studentId: "student-1",
+        status: "active",
+        createdAt: new Date("2026-05-01T00:00:00Z"),
+      },
+      {
+        id: "enrollment-2",
+        courseId: "course-in-scope",
+        studentId: "student-2",
+        status: "active",
+        createdAt: new Date("2026-05-01T00:00:00Z"),
+      },
+    ]);
+
+    const { executeClassroomSessionSummaryTask } = await import("./classroom");
+    const result = await executeClassroomSessionSummaryTask({
+      sessionId: "session-ended",
+      schoolId: "school-1",
+      triggerMode: "finalize",
+      eventType: "ended",
+      eventVersion: 4,
+    });
+
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-ended",
+        schoolId: "school-1",
+        triggerMode: "finalize",
+        lastEventVersion: 4,
+        status: "completed",
+        summaryJson: expect.objectContaining({
+          lessonTitle: "古诗导读",
+          className: "一班",
+          workload: {
+            followUpSignalsCount: 2,
+            pendingFeedbackCount: 1,
+          },
+        }),
+      }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        sessionId: "session-ended",
+        schoolId: "school-1",
+        triggerMode: "finalize",
+        eventType: "ended",
+        eventVersion: 4,
+        artifactStatus: "completed",
+        outcome: "completed",
+        detail: expect.objectContaining({
+          lessonTitle: "古诗导读",
+          className: "一班",
+          completionCount: 1,
+          totalStudents: 2,
+          submissionCount: 1,
+          evidenceCount: 2,
+          participationBuckets: {
+            active: 1,
+            normal: 0,
+            attention: 0,
+            unevaluated: 1,
+          },
+        }),
+      }),
+    );
+  });
+
+  it("locks classroom session summary execution to derived-only writes and avoids canonical mutations", async () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+    const start = source.indexOf("async function persistClassroomSessionSummaryArtifact");
+    const end = source.indexOf("type TrendSessionStudentSummary = {");
+    const summarySource = source.slice(start, end);
+
+    expect(summarySource).toContain("computeClassroomSessionRecap");
+    expect(summarySource).toContain("classroomSessionSummary");
+    expect(summarySource).not.toContain("update(classroomSessions)");
+    expect(summarySource).not.toContain("insert(classroomEvents)");
+  });
+
+  it("reads persisted classroom session summary artifacts with recap-aligned vocabulary", async () => {
+    findFirstClassroomSessionSummary.mockResolvedValueOnce({
+      id: "summary-1",
+      sessionId: "session-ended",
+      schoolId: "school-1",
+      status: "completed",
+      triggerMode: "finalize",
+      lastEventVersion: 4,
+      failureReason: null,
+      createdAt: new Date("2026-05-14T09:40:00Z"),
+      updatedAt: new Date("2026-05-14T09:41:00Z"),
+      finalizedAt: new Date("2026-05-14T09:41:00Z"),
+      summaryJson: {
+        sessionId: "session-ended",
+        lessonId: "lesson-in-scope",
+        classId: "class-in-scope",
+        lessonTitle: "古诗导读",
+        className: "一班",
+        startedAt: "2026-05-14T09:00:00.000Z",
+        endedAt: "2026-05-14T09:40:00.000Z",
+        completionLabel: "已完成 1/2",
+        completionCount: 1,
+        totalStudents: 2,
+        submissionCount: 1,
+        evidenceCount: 2,
+        participationBuckets: {
+          active: 1,
+          normal: 0,
+          attention: 0,
+          unevaluated: 1,
+        },
+        workload: {
+          followUpSignalsCount: 2,
+          pendingFeedbackCount: 1,
+        },
+        studentSummaries: [
+          {
+            studentId: "student-2",
+            studentName: "韩梅梅",
+            completionLabel: "完成 1/2 个环节",
+            participationLabel: "未评价",
+            evidenceCount: 1,
+            needsFollowUp: true,
+            pendingFeedbackCount: 1,
+          },
+        ],
+        stepSummaries: [
+          {
+            stepId: "step-2",
+            stepTitle: "随堂测验",
+            completionCount: 1,
+            submissionCount: 1,
+            attentionCount: 1,
+            totalStudents: 2,
+          },
+        ],
+      },
+    });
+
+    const { getClassroomSessionSummaryArtifact } = await import("./classroom");
+    const artifact = await getClassroomSessionSummaryArtifact("session-ended");
+
+    expect(artifact?.summaryJson.workload).toEqual({
+      followUpSignalsCount: 2,
+      pendingFeedbackCount: 1,
+    });
+    expect(artifact?.summaryJson.studentSummaries[0]).toEqual(
+      expect.objectContaining({
+        studentId: "student-2",
+        participationLabel: "未评价",
+        needsFollowUp: true,
+      }),
+    );
   });
 });
 

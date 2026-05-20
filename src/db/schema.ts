@@ -757,6 +757,37 @@ export const classroomTimeline = sqliteTable(
   ]
 );
 
+export const classroomSessionSummary = sqliteTable(
+  "classroomSessionSummary",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sessionId: text("sessionId")
+      .notNull()
+      .references(() => classroomSessions.id, { onDelete: "cascade" }),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    status: text("status", { enum: ["processing", "completed", "failed"] })
+      .notNull()
+      .default("processing"),
+    triggerMode: text("triggerMode", { enum: ["incremental", "finalize"] })
+      .notNull(),
+    lastEventVersion: integer("lastEventVersion").notNull().default(0),
+    summaryJson: text("summaryJson", { mode: "json" }).notNull(),
+    failureReason: text("failureReason"),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    finalizedAt: integer("finalizedAt", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    uniqueIndex("classroomSessionSummary_sessionId_unique").on(table.sessionId),
+    index("classroomSessionSummary_school_status_idx").on(table.schoolId, table.status),
+    index("classroomSessionSummary_school_trigger_idx").on(table.schoolId, table.triggerMode),
+  ],
+);
+
 export const runtimeStepSessions = sqliteTable(
   "runtimeStepSession",
   {

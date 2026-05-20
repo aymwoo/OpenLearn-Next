@@ -10,6 +10,7 @@ import {
   classroomEvents,
   classroomEvidence,
   classroomParticipants,
+  classroomSessionSummary,
   classroomSessions,
   classroomTimeline,
   courses,
@@ -38,6 +39,9 @@ import {
   ClassroomStudentDetailDTOSchema,
   ClassroomSnapshotDTOSchema,
   ClassroomFormativeEvaluationPayloadSchema,
+  ClassroomSessionSummaryArtifactSchema,
+  ClassroomSessionSummaryTaskPayloadSchema,
+  ClassroomSessionSummaryTaskResultSchema,
   GetClassroomSessionRecapInputSchema,
   GetClassroomStudentDetailInputSchema,
   ListStudentFormativeEvaluationEntriesInputSchema,
@@ -75,8 +79,11 @@ import {
 } from "@/features/runtime-platform/contracts/bridge";
 import { invokeRuntimeHostAction } from "@/features/runtime-platform/host-actions/runtime-host";
 import { publishTransportEvent } from "@/features/runtime-platform/seams";
+import { enqueueAsyncTask } from "@/features/async-tasks/server/enqueue";
 import type {
   BootstrapRuntimeSessionInput,
+  ClassroomSessionSummaryArtifact,
+  ClassroomSessionSummaryTaskPayload,
   RecordRuntimeReadyInput,
   RecordRuntimeInteractionInput,
   RecordRuntimeTeacherControlInput,
@@ -332,6 +339,25 @@ function buildRepresentativeFollowUpCopy(input: {
 function buildClassroomSignalWorkload(studentSignals: Array<{ studentId: string; needsFollowUp: boolean }>) {
   return studentSignals.filter((item) => item.needsFollowUp).length;
 }
+
+type ClassroomSessionRecapComputation = {
+  artifact: ClassroomSessionSummaryArtifact;
+  detailTab: "students" | "steps";
+  selectedStudent: {
+    studentId: string;
+    studentName: string;
+    completionLabel: string;
+    participationLabel: "积极参与" | "正常参与" | "需要关注" | "未评价";
+    evidenceCount: number;
+    needsFollowUp: boolean;
+    pendingFeedbackCount: number;
+    completionItems: Array<{ id: string; title: string; detail: string; createdAt?: string }>;
+    submissionItems: Array<{ id: string; title: string; detail: string; createdAt?: string }>;
+    evaluationItems: Array<{ id: string; title: string; detail: string; createdAt?: string }>;
+    timelineItems: Array<{ id: string; title: string; detail: string; createdAt?: string }>;
+  } | null;
+  selectedStepId: string | null;
+};
 
 function buildTrendPrimaryRecapHref(sessionId: string, studentId?: string) {
   const params = new URLSearchParams({
@@ -918,6 +944,14 @@ async function getTeacherSessionScope(sessionId: string) {
   }
 
   return { scope, session };
+}
+
+async function getClassroomSessionSchoolId(sessionClassId: string) {
+  const clazz = await db.query.classes.findFirst({
+    where: eq(classes.id, sessionClassId),
+  });
+
+  return clazz?.schoolId ?? null;
 }
 
 type ClassroomSnapshotActorContext = {
@@ -2114,13 +2148,13 @@ export async function applyWebSocketTeacherControlForActor(input: {
   });
 }
 
-export async function getClassroomSessionRecapDTO(rawInput: unknown) {
-  const input = GetClassroomSessionRecapInputSchema.parse(rawInput);
-  const { session } = await getTeacherSessionScope(input.sessionId);
-
-  if (session.status !== "ended") {
-    throw new Error("CLASSROOM_RECAP_NOT_AVAILABLE");
-  }
+async function computeClassroomSessionRecap(input: {
+  session: Awaited<ReturnType<typeof getSessionWithLessonSteps>>;
+  preferredStudentId?: string;
+  preferredStepId?: string;
+  preferredDetailTab?: "students" | "steps";
+}): Promise<ClassroomSessionRecapComputation> {
+  const { session } = input;
 
   const [lesson, clazz, published, participants, evidenceRows, timelineRows] = await Promise.all([
     db.query.lessons.findFirst({ where: eq(lessons.id, session.lessonId) }),
@@ -2328,8 +2362,8 @@ export async function getClassroomSessionRecapDTO(rawInput: unknown) {
     };
   });
 
-  const selectedStudentId = input.studentId && studentSummaries.some((student) => student.studentId === input.studentId)
-    ? input.studentId
+  const selectedStudentId = input.preferredStudentId && studentSummaries.some((student) => student.studentId === input.preferredStudentId)
+    ? input.preferredStudentId
     : studentSummaries.find((student) => student.needsFollowUp)?.studentId ?? studentSummaries[0]?.studentId ?? null;
   const selectedStudent = selectedStudentId
     ? studentSummaries.find((student) => student.studentId === selectedStudentId) ?? null
@@ -2373,32 +2407,25 @@ export async function getClassroomSessionRecapDTO(rawInput: unknown) {
     };
   });
 
-  const detailTab = ClassroomSessionRecapDetailTabSchema.parse(input.detailTab ?? "students");
-
-  return ClassroomSessionRecapDTOSchema.parse({
-    session: {
-      id: session.id,
-      status: "ended",
-      lessonId: session.lessonId,
-      classId: session.classId,
-      lessonTitle: snapshot.lesson?.title ?? lesson?.title ?? "课堂",
-      className: clazz?.name ?? "班级",
-      startedAt: toIso(session.createdAt),
-      endedAt: toIso(session.endedAt),
-    },
-    summary: {
-      completionLabel: buildCompletionLabel(completedStudentCount, participants.length),
-      completionCount: completedStudentCount,
-      totalStudents: participants.length,
-      submissionCount: latestTaskRows.length + latestQuizRows.length,
-      evidenceCount: evidenceRows.length,
-      participationBuckets,
-    },
+  const detailTab = ClassroomSessionRecapDetailTabSchema.parse(input.preferredDetailTab ?? "students");
+  const artifact = ClassroomSessionSummaryArtifactSchema.parse({
+    sessionId: session.id,
+    lessonId: session.lessonId,
+    classId: session.classId,
+    lessonTitle: snapshot.lesson?.title ?? lesson?.title ?? "课堂",
+    className: clazz?.name ?? "班级",
+    startedAt: toIso(session.createdAt),
+    endedAt: session.endedAt ? toIso(session.endedAt) : null,
+    completionLabel: buildCompletionLabel(completedStudentCount, participants.length),
+    completionCount: completedStudentCount,
+    totalStudents: participants.length,
+    submissionCount: latestTaskRows.length + latestQuizRows.length,
+    evidenceCount: evidenceRows.length,
+    participationBuckets,
     workload: {
       followUpSignalsCount: buildClassroomSignalWorkload(studentSummaries),
       pendingFeedbackCount: feedbackWorkload.pendingFeedbackCount,
     },
-    detailTab,
     studentSummaries: studentSummaries.map((student) => ({
       studentId: student.studentId,
       studentName: student.studentName,
@@ -2408,6 +2435,15 @@ export async function getClassroomSessionRecapDTO(rawInput: unknown) {
       needsFollowUp: student.needsFollowUp,
       pendingFeedbackCount: student.pendingFeedbackCount,
     })),
+    stepSummaries,
+  });
+  const selectedStepId = input.preferredStepId && stepSummaries.some((step) => step.stepId === input.preferredStepId)
+    ? input.preferredStepId
+    : stepSummaries[0]?.stepId ?? null;
+
+  return {
+    artifact,
+    detailTab,
     selectedStudent: selectedStudent
       ? {
           studentId: selectedStudent.studentId,
@@ -2423,11 +2459,263 @@ export async function getClassroomSessionRecapDTO(rawInput: unknown) {
           timelineItems: selectedStudent.timelineItems,
         }
       : null,
-    stepSummaries,
-    selectedStepId: input.stepId && stepSummaries.some((step) => step.stepId === input.stepId)
-      ? input.stepId
-      : stepSummaries[0]?.stepId ?? null,
+    selectedStepId,
+  };
+}
+
+function buildClassroomSessionSummaryResult(input: {
+  payload: ClassroomSessionSummaryTaskPayload;
+  artifact: ClassroomSessionSummaryArtifact;
+  artifactStatus: "completed" | "failed";
+}) {
+  return ClassroomSessionSummaryTaskResultSchema.parse({
+    sessionId: input.payload.sessionId,
+    schoolId: input.payload.schoolId,
+    triggerMode: input.payload.triggerMode,
+    eventType: input.payload.eventType,
+    eventVersion: input.payload.eventVersion,
+    artifactStatus: input.artifactStatus,
+    outcome: input.artifactStatus === "completed" ? "completed" : "failed",
+    titleKey:
+      input.payload.triggerMode === "finalize"
+        ? "asyncTasks.classroom.sessionSummary.result.finalized"
+        : "asyncTasks.classroom.sessionSummary.result.updated",
+    summaryKey:
+      input.payload.triggerMode === "finalize"
+        ? "asyncTasks.classroom.sessionSummary.result.finalizedSummary"
+        : "asyncTasks.classroom.sessionSummary.result.updatedSummary",
+    counts: {
+      total: 1,
+      succeeded: input.artifactStatus === "completed" ? 1 : 0,
+      partiallySucceeded: 0,
+      failed: input.artifactStatus === "failed" ? 1 : 0,
+      skipped: 0,
+    },
+    detail: {
+      sessionId: input.payload.sessionId,
+      schoolId: input.payload.schoolId,
+      triggerMode: input.payload.triggerMode,
+      eventType: input.payload.eventType,
+      eventVersion: input.payload.eventVersion,
+      lessonTitle: input.artifact.lessonTitle,
+      className: input.artifact.className,
+      completionCount: input.artifact.completionCount,
+      totalStudents: input.artifact.totalStudents,
+      submissionCount: input.artifact.submissionCount,
+      evidenceCount: input.artifact.evidenceCount,
+      participationBuckets: input.artifact.participationBuckets,
+    },
   });
+}
+
+async function persistClassroomSessionSummaryArtifact(input: {
+  payload: ClassroomSessionSummaryTaskPayload;
+  artifact: ClassroomSessionSummaryArtifact;
+}) {
+  const now = new Date();
+
+  await db
+    .insert(classroomSessionSummary)
+    .values({
+      sessionId: input.payload.sessionId,
+      schoolId: input.payload.schoolId,
+      status: "completed",
+      triggerMode: input.payload.triggerMode,
+      lastEventVersion: input.payload.eventVersion,
+      summaryJson: input.artifact,
+      failureReason: null,
+      finalizedAt: input.payload.triggerMode === "finalize" ? now : null,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: classroomSessionSummary.sessionId,
+      set: {
+        schoolId: input.payload.schoolId,
+        status: "completed",
+        triggerMode: input.payload.triggerMode,
+        lastEventVersion: input.payload.eventVersion,
+        summaryJson: input.artifact,
+        failureReason: null,
+        finalizedAt: input.payload.triggerMode === "finalize" ? now : classroomSessionSummary.finalizedAt,
+        updatedAt: now,
+      },
+    });
+}
+
+async function markClassroomSessionSummaryFailure(input: {
+  payload: ClassroomSessionSummaryTaskPayload;
+  failureReason: string;
+}) {
+  const now = new Date();
+
+  await db
+    .insert(classroomSessionSummary)
+    .values({
+      sessionId: input.payload.sessionId,
+      schoolId: input.payload.schoolId,
+      status: "failed",
+      triggerMode: input.payload.triggerMode,
+      lastEventVersion: input.payload.eventVersion,
+      summaryJson: {
+        sessionId: input.payload.sessionId,
+        lessonId: "unknown",
+        classId: "unknown",
+        lessonTitle: "课堂",
+        className: "班级",
+        startedAt: now.toISOString(),
+        endedAt: null,
+        completionLabel: "已完成 0/0",
+        completionCount: 0,
+        totalStudents: 0,
+        submissionCount: 0,
+        evidenceCount: 0,
+        participationBuckets: {
+          active: 0,
+          normal: 0,
+          attention: 0,
+          unevaluated: 0,
+        },
+        workload: {
+          followUpSignalsCount: 0,
+          pendingFeedbackCount: 0,
+        },
+        studentSummaries: [],
+        stepSummaries: [],
+      },
+      failureReason: input.failureReason,
+      finalizedAt: null,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: classroomSessionSummary.sessionId,
+      set: {
+        schoolId: input.payload.schoolId,
+        status: "failed",
+        triggerMode: input.payload.triggerMode,
+        lastEventVersion: input.payload.eventVersion,
+        failureReason: input.failureReason,
+        updatedAt: now,
+      },
+    });
+}
+
+async function enqueueClassroomSessionSummaryTask(input: {
+  sessionId: string;
+  schoolId: string | null;
+  actorId: string;
+  triggerMode: "incremental" | "finalize";
+  eventType: "active_step_changed" | "lock_mode_changed" | "slide_changed" | "ended";
+  eventVersion: number;
+}) {
+  if (!input.schoolId) {
+    return null;
+  }
+
+  return enqueueAsyncTask({
+    actorId: input.actorId,
+    schoolId: input.schoolId,
+    taskType: "classroom.session_summary",
+    entityRef: {
+      entityType: "classroom_session",
+      entityId: input.sessionId,
+      entityLabel: input.sessionId,
+    },
+    payload: {
+      sessionId: input.sessionId,
+      schoolId: input.schoolId,
+      triggerMode: input.triggerMode,
+      eventType: input.eventType,
+      eventVersion: input.eventVersion,
+    } satisfies ClassroomSessionSummaryTaskPayload,
+    dispatchRequested: true,
+  });
+}
+
+export async function executeClassroomSessionSummaryTask(rawPayload: unknown) {
+  const payload = ClassroomSessionSummaryTaskPayloadSchema.parse(rawPayload);
+  const session = await db.query.classroomSessions.findFirst({
+    where: eq(classroomSessions.id, payload.sessionId),
+  });
+
+  if (!session) {
+    throw new Error("CLASSROOM_ENDED");
+  }
+
+  try {
+    const recap = await computeClassroomSessionRecap({
+      session,
+      preferredDetailTab: "students",
+    });
+    await persistClassroomSessionSummaryArtifact({ payload, artifact: recap.artifact });
+
+    return buildClassroomSessionSummaryResult({
+      payload,
+      artifact: recap.artifact,
+      artifactStatus: "completed",
+    });
+  } catch (error) {
+    const failureReason = error instanceof Error ? error.message : "CLASSROOM_SESSION_SUMMARY_FAILED";
+    await markClassroomSessionSummaryFailure({ payload, failureReason });
+    throw error;
+  }
+}
+
+export async function getClassroomSessionRecapDTO(rawInput: unknown) {
+  const input = GetClassroomSessionRecapInputSchema.parse(rawInput);
+  const { session } = await getTeacherSessionScope(input.sessionId);
+
+  if (session.status !== "ended") {
+    throw new Error("CLASSROOM_RECAP_NOT_AVAILABLE");
+  }
+
+  const recap = await computeClassroomSessionRecap({
+    session,
+    preferredStudentId: input.studentId,
+    preferredStepId: input.stepId,
+    preferredDetailTab: input.detailTab,
+  });
+
+  return ClassroomSessionRecapDTOSchema.parse({
+    session: {
+      id: recap.artifact.sessionId,
+      status: "ended",
+      lessonId: recap.artifact.lessonId,
+      classId: recap.artifact.classId,
+      lessonTitle: recap.artifact.lessonTitle,
+      className: recap.artifact.className,
+      startedAt: recap.artifact.startedAt,
+      endedAt: recap.artifact.endedAt ?? toIso(session.endedAt),
+    },
+    summary: {
+      completionLabel: recap.artifact.completionLabel,
+      completionCount: recap.artifact.completionCount,
+      totalStudents: recap.artifact.totalStudents,
+      submissionCount: recap.artifact.submissionCount,
+      evidenceCount: recap.artifact.evidenceCount,
+      participationBuckets: recap.artifact.participationBuckets,
+    },
+    workload: recap.artifact.workload,
+    detailTab: recap.detailTab,
+    studentSummaries: recap.artifact.studentSummaries,
+    selectedStudent: recap.selectedStudent,
+    stepSummaries: recap.artifact.stepSummaries,
+    selectedStepId: recap.selectedStepId,
+  });
+}
+
+export async function getClassroomSessionSummaryArtifact(sessionId: string) {
+  const row = await db.query.classroomSessionSummary.findFirst({
+    where: eq(classroomSessionSummary.sessionId, sessionId),
+  });
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    summaryJson: ClassroomSessionSummaryArtifactSchema.parse(row.summaryJson),
+  };
 }
 
 type TrendSessionStudentSummary = {
@@ -3060,6 +3348,15 @@ export async function changeClassroomActiveStep(input: unknown) {
     payload: { activeStepId: payload.targetStepId, version: updated.version },
   });
 
+  await enqueueClassroomSessionSummaryTask({
+    sessionId: session.id,
+    schoolId: await getClassroomSessionSchoolId(session.classId),
+    actorId: scope.userId,
+    triggerMode: "incremental",
+    eventType: "active_step_changed",
+    eventVersion: updated.version,
+  });
+
   return ClassroomActionResultDTOSchema.parse({
     ok: true,
     sessionId: session.id,
@@ -3124,6 +3421,15 @@ export async function changeClassroomMode(input: unknown) {
     correlationId: `classroom:${session.id}:lock_mode_changed:${updated.version}`,
     kind: "lock_mode_changed",
     payload: { locked: payload.locked, version: updated.version },
+  });
+
+  await enqueueClassroomSessionSummaryTask({
+    sessionId: session.id,
+    schoolId: await getClassroomSessionSchoolId(session.classId),
+    actorId: scope.userId,
+    triggerMode: "incremental",
+    eventType: "lock_mode_changed",
+    eventVersion: updated.version,
   });
 
   return ClassroomActionResultDTOSchema.parse({
@@ -3192,6 +3498,15 @@ export async function changeClassroomSlide(input: unknown) {
     payload: { stepId: payload.stepId, slideIndex: payload.slideIndex, version: updated.version },
   });
 
+  await enqueueClassroomSessionSummaryTask({
+    sessionId: session.id,
+    schoolId: await getClassroomSessionSchoolId(session.classId),
+    actorId: scope.userId,
+    triggerMode: "incremental",
+    eventType: "slide_changed",
+    eventVersion: updated.version,
+  });
+
   return ClassroomActionResultDTOSchema.parse({
     ok: true,
     sessionId: session.id,
@@ -3248,6 +3563,15 @@ export async function endClassroomSession(input: unknown) {
     correlationId: `classroom:${session.id}:ended:${updated.version}`,
     kind: "ended",
     payload: { version: updated.version, status: "ended" },
+  });
+
+  await enqueueClassroomSessionSummaryTask({
+    sessionId: session.id,
+    schoolId: await getClassroomSessionSchoolId(session.classId),
+    actorId: scope.userId,
+    triggerMode: "finalize",
+    eventType: "ended",
+    eventVersion: updated.version,
   });
 
   return ClassroomActionResultDTOSchema.parse({
