@@ -2,6 +2,7 @@ import "server-only";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { courses, knowledgeChunks, knowledgeSources, resources } from "@/db/schema";
+import { registerKnowledgeSourceForResource } from "./ai-rag";
 import { assertActiveTeacher } from "./lesson-authoring";
 import {
   ResourceCardDTOSchema,
@@ -215,6 +216,19 @@ export async function setResourceRagEligibility(input: {
     .where(eq(resources.id, input.resourceId))
     .returning();
 
+  let knowledgeSource = null;
+  try {
+    knowledgeSource = row.ragEligible
+      ? await registerKnowledgeSourceForResource({ resourceId: row.id })
+      : null;
+  } catch (error) {
+    await db
+      .update(resources)
+      .set({ ragEligible: existing.ragEligible ?? false, updatedAt: new Date() })
+      .where(eq(resources.id, row.id));
+    throw error;
+  }
+
   return ResourceCardDTOSchema.parse({
     id: row.id,
     schoolId: row.schoolId,
@@ -225,8 +239,8 @@ export async function setResourceRagEligibility(input: {
     classification: row.classification,
     ragEligible: row.ragEligible ?? false,
     url: row.url,
-    knowledgeSourceStatus: null,
-    knowledgeSourceError: null,
+    knowledgeSourceStatus: knowledgeSource?.status ?? null,
+    knowledgeSourceError: knowledgeSource?.error ?? null,
     indexedChunkCount: 0,
     failedChunkCount: 0,
     createdAt: row.createdAt?.getTime() ?? 0,

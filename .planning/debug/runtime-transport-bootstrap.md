@@ -1,8 +1,8 @@
 ---
-status: fixed_pending_live_repro
+status: resolved
 trigger: "Phase 32 canonical proof live-browser chain still fails at runtime bootstrap transport delivery; student runtime falls back before reaching stable ready/submit success."
 created: 2026-05-17T00:00:00Z
-updated: 2026-05-17T04:18:30Z
+updated: 2026-05-20T13:43:20+08:00
 ---
 
 ## Current Focus
@@ -10,7 +10,7 @@ updated: 2026-05-17T04:18:30Z
 hypothesis: runtime bootstrap result is being published with mismatched session identifiers, causing `transportDeliveryAttempt` writes or downstream delivery lookup to fail and host to fall back.
 test: trace `runtime.host-result.runtime-bootstrap` from host action result creation through transport gateway persistence and compare `sessionId`, `truthRef.classroomSessionId`, and `truthRef.runtimeSessionId` semantics.
 expecting: find one concrete identifier mismatch or persistence contract violation that explains why production-like teacher/student flow never reaches stable ready state.
-next_action: rerun seeded `npm run start` browser flow to confirm student `/player` now reaches stable ready/submit without bootstrap fallback or iframe/host handshake stall.
+next_action: none
 
 ## Symptoms
 

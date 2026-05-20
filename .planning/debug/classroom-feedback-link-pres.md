@@ -1,8 +1,8 @@
 ---
-status: investigating
+status: resolved
 trigger: "Phase 32 UAT: /classroom 缺少 proof feedback 深链/入口，且学生进入 live 后在线人数仍显示 0"
 created: 2026-05-17T14:41:52+08:00
-updated: 2026-05-17T14:55:38+08:00
+updated: 2026-05-20T13:43:20+08:00
 ---
 
 ## Current Focus
@@ -10,7 +10,7 @@ updated: 2026-05-17T14:55:38+08:00
 hypothesis: 教师 `/classroom` 页面本身没有任何 live 订阅或自动刷新，因此学生进入和提交后的变化不会反映到教师 UI；同时 proof 区块又被 runtime-step 条件错误 gating，导致即便手动刷新后也可能无入口。
 test: 对照 teacher page / teacher panel / student runtime EventSource / DAL write paths
 expecting: 形成最终诊断输出
-next_action: return root cause only report
+next_action: none
 
 ## Symptoms
 
@@ -77,6 +77,9 @@ started: Discovered during UAT
 ## Resolution
 
 root_cause: 教师 `/classroom` 页面没有 live 更新机制：`src/app/(classroom)/classroom/page.tsx` 只在首屏读取一次 `getClassroomSnapshotDTO()`，`src/components/classroom/classroom-control-panel.tsx` 只消费这个静态 `initialSnapshot`。学生进入课堂后的 presence 更新和 runtime submit 后写入的 runtime proof 虽然会落库，但教师端不会自动刷新，所以 UAT 中在线人数持续显示 0、teacher-first proof feedback/深链也看不到。另有次级缺陷：proof first-feedback 卡片被 `currentRuntimeDescriptor` 条件包裹，当前步骤不是 runtime step 时，即使刷新后已有 `runtimeProof` 也仍可能没有入口。
-fix:
-verification:
-files_changed: []
+fix: Phase 32-06 已为教师 `/classroom` 新增 `ClassroomLiveSnapshotRefresh`，通过 SSE snapshot version 变化触发 `router.refresh()`；同时把 proof first-feedback 从 runtime-step gating 解耦，只要 snapshot 中已有 `runtimeProof` 或 attention 即继续显示课堂内反馈与 inspector 深链。
+verification: `32-06-SUMMARY.md`、`32-VERIFICATION.md` 和 `32-HUMAN-UAT.md` 已记录该 gap closure；Phase 32 最终验证明确指出 `/classroom` 会先显示 proof feedback，在线人数也会随 live session 更新。
+files_changed:
+  - src/components/classroom/classroom-live-snapshot-refresh.tsx
+  - src/app/(classroom)/classroom/page.tsx
+  - src/components/classroom/classroom-control-panel.tsx

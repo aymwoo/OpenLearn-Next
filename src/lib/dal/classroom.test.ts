@@ -30,6 +30,8 @@ const findManyCourseEnrollments = vi.fn();
 const insertValues = vi.fn();
 const insertMock = vi.fn();
 const insertOnConflictDoUpdate = vi.fn();
+const updateSet = vi.fn();
+const updateWhere = vi.fn();
 const assertActiveTeacher = vi.fn();
 const getCurrentUserDTO = vi.fn();
 const enqueueAsyncTask = vi.fn();
@@ -59,6 +61,7 @@ vi.mock("@/db", () => ({
       courseEnrollments: { findMany: findManyCourseEnrollments },
     },
     insert: insertMock,
+    update: vi.fn(() => ({ set: updateSet })),
   },
 }));
 
@@ -86,6 +89,12 @@ describe("getClassroomConsoleDTO", () => {
     });
     insertMock.mockReturnValue({
       values: insertValues,
+    });
+    updateWhere.mockResolvedValue([]);
+    const updateReturning = vi.fn().mockResolvedValue([]);
+    updateSet.mockReturnValue({
+      where: vi.fn().mockReturnValue({ returning: updateReturning }),
+      returning: updateReturning,
     });
 
     assertActiveTeacher.mockResolvedValue({
@@ -1124,6 +1133,10 @@ describe("same-route classroom student detail contracts", () => {
 });
 
 describe("phase 25 session recap contracts", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("extends classroom dto/contracts with recap and session history shapes", async () => {
     const classroomDto = await import("@/lib/dto/classroom");
 
@@ -1594,6 +1607,84 @@ describe("phase 25 session recap contracts", () => {
     expect(summarySource).toContain("classroomSessionSummary");
     expect(summarySource).not.toContain("update(classroomSessions)");
     expect(summarySource).not.toContain("insert(classroomEvents)");
+  });
+
+  it("does not overwrite a newer classroom session summary artifact with an older event version", async () => {
+    findFirstClassroomSessions.mockResolvedValueOnce({
+      id: "session-ended",
+      lessonId: "lesson-in-scope",
+      publishedVersionId: "pub-1",
+      classId: "class-in-scope",
+      teacherId: "teacher-1",
+      activeStepId: "step-2",
+      locked: false,
+      status: "ended",
+      version: 5,
+      createdAt: new Date("2026-05-14T09:00:00Z"),
+      updatedAt: new Date("2026-05-14T09:40:00Z"),
+      endedAt: new Date("2026-05-14T09:40:00Z"),
+    });
+    findFirstLessons.mockResolvedValueOnce({
+      id: "lesson-in-scope",
+      title: "古诗导读",
+      courseId: "course-in-scope",
+    });
+    findFirstClasses.mockResolvedValueOnce({
+      id: "class-in-scope",
+      name: "一班",
+    });
+    findFirstPublishedLessonVersions.mockResolvedValueOnce({
+      id: "pub-1",
+      snapshotJson: {
+        lesson: { title: "古诗导读" },
+        steps: [
+          {
+            id: "step-1",
+            lessonId: "lesson-in-scope",
+            type: "content",
+            title: "开场导入",
+            rank: "a0",
+            payload: {
+              type: "content",
+              title: "开场导入",
+              body: "老师先带学生整体感知文本。",
+              teacherNotes: "提示",
+              materialRefs: [],
+            },
+          },
+        ],
+        materials: [],
+      },
+    });
+    findManyClassroomParticipants.mockResolvedValueOnce([]);
+    findManyUsers.mockResolvedValueOnce([]);
+    findManyClassroomEvents.mockResolvedValueOnce([]);
+    findManyClassroomTimeline.mockResolvedValueOnce([]);
+    findManyClassroomEvidence.mockResolvedValueOnce([]);
+    findManyLessonStepProgress.mockResolvedValueOnce([]);
+    findManyTaskSubmissions.mockResolvedValueOnce([]);
+    findManyQuizAttempts.mockResolvedValueOnce([]);
+    findManyAttemptFeedback.mockResolvedValueOnce([]);
+    findManyCourseEnrollments.mockResolvedValueOnce([]);
+
+    const { executeClassroomSessionSummaryTask } = await import("./classroom");
+    await executeClassroomSessionSummaryTask({
+      sessionId: "session-ended",
+      schoolId: "school-1",
+      triggerMode: "incremental",
+      eventType: "slide_changed",
+      eventVersion: 4,
+    });
+
+    expect(
+      insertMock.mock.calls.some(
+        ([table]) =>
+          typeof table === "object" &&
+          table !== null &&
+          "_" in table === false &&
+          String(table).includes("classroomSessionSummary"),
+      ),
+    ).toBe(false);
   });
 
   it("reads persisted classroom session summary artifacts with recap-aligned vocabulary", async () => {

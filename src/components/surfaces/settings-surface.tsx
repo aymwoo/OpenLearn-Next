@@ -365,6 +365,11 @@ async function GeneralSettingsSurface({
                   description="查看 transport timeline、degraded fallback 与当前 fanout topology。"
                 />
                 <QuickLink
+                  href="/settings/labs/async-tasks"
+                  title="Async Operator"
+                  description="查看 worker、queue、backlog、问题任务，并继续下钻到单任务恢复详情。"
+                />
+                <QuickLink
                   href="/teacher/students"
                   title="学生管理"
                   description="进入学生名册，继续批量导入与状态核对。"
@@ -547,6 +552,22 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
                 <button className="rounded-[1.5rem] bg-[#fff1f2] px-4 py-4 text-left font-medium text-[#b31b25] shadow-ambient">
                   一键关机全实验室
                 </button>
+              </div>
+            </section>
+
+            <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
+              <p className="text-sm text-on-surface-variant">运行排查</p>
+              <div className="mt-4 grid gap-3">
+                <QuickLink
+                  href="/settings/labs/runtime-inspector"
+                  title="Runtime Inspector"
+                  description="查看 transport timeline、degraded fallback 与当前 fanout topology。"
+                />
+                <QuickLink
+                  href="/settings/labs/async-tasks"
+                  title="Async Operator"
+                  description="查看 worker、queue、backlog、问题任务，并继续下钻到单任务恢复详情。"
+                />
               </div>
             </section>
 

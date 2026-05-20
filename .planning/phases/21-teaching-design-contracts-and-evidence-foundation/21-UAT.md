@@ -3,7 +3,7 @@ status: complete
 phase: 21-teaching-design-contracts-and-evidence-foundation
 source: [21-01-SUMMARY.md, 21-02-SUMMARY.md, 21-03-SUMMARY.md, 21-04-SUMMARY.md, 21-05-SUMMARY.md]
 started: 2026-05-13T02:45:59Z
-updated: 2026-05-13T02:50:00Z
+updated: 2026-05-20T13:43:20+08:00
 ---
 
 ## Current Test
@@ -14,13 +14,13 @@ updated: 2026-05-13T02:50:00Z
 
 ### 1. 冷启动冒烟测试
 expected: 停掉当前服务后，从干净状态重新启动应用。启动过程中不应出现 migration、seed 或启动报错；启动完成后，首页或主入口页面应能正常打开，而不是空白页、500 页面或卡死。
-result: [pending]
+result: skipped
+reason: "历史 UAT 遗留项，未在 Phase 21 会话内实际执行；不再作为开放测试保留。后续如需验证冷启动，应在当前 milestone 环境下重新发起新的 UAT。"
 
 ### 2. 编辑器能编辑教学设计字段
 expected: 教师打开 `/teacher/editor`，编辑一个 content、task 或 quiz 步骤时，编辑区能看到 teaching design 相关字段，至少包括活动意图、预计时长、活动方式和证据期待，而不是只有旧版步骤字段。
-result: blocked
-blocked_by: server
-reason: "Failed query: select "id" from "user" where "user"."email" = teacher@example.com — 数据库缺少种子用户数据"
+result: skipped
+reason: "历史 UAT 受当时开发库缺少种子用户数据影响而未能执行；该环境阻塞不再作为当前 planning 开放项保留。若需复核，应在当前数据库基线下重新发起新的 UAT。"
 
 ### 3. 开课预览显示结构化教学意图
 expected: 教师打开 `/teacher/launch` 并选择一个已发布课时后，开课预览中的每个步骤都能看到结构化教学信息，如活动意图、活动方式、预计时长和证据摘要，而不是只显示旧的泛化步骤说明。
@@ -49,11 +49,11 @@ result: pass
 ## Summary
 
 total: 8
-passed: 7
+passed: 6
 issues: 0
 pending: 0
-skipped: 0
-blocked: 1
+skipped: 2
+blocked: 0
 
 ## Gaps
 

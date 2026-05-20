@@ -21,6 +21,8 @@ describe("async task queue events projector", () => {
     expect(queueEventsSource).toContain("latestAttemptNumber");
     expect(queueEventsSource).toContain("latestFailureReason");
     expect(queueEventsSource).toContain("latestRecoveryJson");
+    expect(queueEventsSource).toContain("readSeededAttemptNumber");
+    expect(queueEventsSource).toContain("seededAttemptNumber");
     expect(queueEventsSource).toContain('status: "stalled_recovery"');
     expect(queueEventsSource).toContain('eventType: "task.stalled"');
     expect(queueEventsSource).toContain('task.status === "stalled_recovery" ? "task.recovered" : "task.started"');

@@ -1,8 +1,8 @@
 ---
-status: investigating
+status: resolved
 trigger: "Phase 32 diagnose-only: runtime still waits for iframe ready with 403"
 created: 2026-05-17T00:00:00Z
-updated: 2026-05-17T00:38:00Z
+updated: 2026-05-20T13:43:20+08:00
 ---
 
 ## Current Focus
@@ -10,7 +10,7 @@ updated: 2026-05-17T00:38:00Z
 hypothesis: confirmed — the current blocker is no longer the host handshake logic; the sandboxed iframe itself is booting in an opaque origin without `allow-same-origin`, which matches the browser same-origin error and prevents the Next/Turbopack runtime page from loading its CSS/app shell cleanly, so `runtime-frame-ready` never reaches the host
 test: completed by comparing the already-fixed host handshake code with the iframe sandbox flags, app layout CSS dependency, and the reported browser errors
 expecting: n/a
-next_action: return diagnose-only root cause summary
+next_action: none
 
 ## Symptoms
 
@@ -62,6 +62,9 @@ started: Discovered during post-fix UAT re-test
 ## Resolution
 
 root_cause: The runtime host still embeds `/runtime/html-courseware/pilot` inside an iframe sandboxed as `allow-scripts allow-forms` without `allow-same-origin`. That makes the iframe document run under an opaque origin even though the URL is same-site, which directly matches the browser error `Unsafe attempt to load URL ... Domains, protocols and ports must match.` Because the pilot page is a normal Next.js app route under `src/app/layout.tsx` and depends on the app CSS/runtime shell, the sandbox/origin mismatch breaks its page boot path in live browser mode (surfacing as the `%5Broot-of-the-server%5D__0b-dwpu._.css` 403). The host-side `runtime-frame-ready` deadlock had already been fixed; the remaining wait state happens because the iframe page itself never becomes healthy enough to complete the ready handshake.
-fix:
-verification: diagnose-only
-files_changed: []
+fix: Phase 32-07 已在 `RuntimeHostFrame` 的 iframe sandbox 中补上 `allow-same-origin`，让当前 same-origin Next.js pilot route 能正常启动，同时保持禁止 top navigation、popups、downloads 等更宽权限。
+verification: `32-07-SUMMARY.md` 记录了修复与验证，`32-UAT.md` 的 final re-test 已通过“runtime startup after sandbox fix”，`32-VERIFICATION.md` 也已将该 live-browser gap 标记为 closed。
+files_changed:
+  - src/features/runtime-platform/host/runtime-host-frame.tsx
+  - src/features/runtime-platform/host/runtime-host.test.tsx
+  - scripts/verify-phase32-end-to-end.ts

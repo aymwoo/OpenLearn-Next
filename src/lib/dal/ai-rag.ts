@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { 
   agentRegistry, 
@@ -74,31 +74,102 @@ export async function registerKnowledgeSourceForResource(input: { resourceId: st
     throw new Error("RESOURCE_NOT_RAG_ELIGIBLE");
   }
 
-  const [source] = await db
-    .insert(knowledgeSources)
-    .values({
-      resourceId: input.resourceId,
-      status: "pending",
-    })
-    .returning();
+  const { source, shouldEnqueue } = await db.transaction(async (tx) => {
+    const existingSource = await tx.query.knowledgeSources.findFirst({
+      where: eq(knowledgeSources.resourceId, input.resourceId),
+    });
 
-  await enqueueAsyncTask({
-    actorId: scope.userId,
-    schoolId: resource.schoolId,
-    taskType: "resource.knowledge_source_ingest",
-    entityRef: {
-      entityType: "knowledge_source",
-      entityId: source.id,
-      entityLabel: resource.title,
-    },
-    payload: ResourceKnowledgeSourceTaskPayloadSchema.parse({
-      knowledgeSourceId: source.id,
-      resourceId: resource.id,
-      schoolId: resource.schoolId,
-      actorId: scope.userId,
-    } satisfies ResourceKnowledgeSourceTaskPayload),
-    dispatchRequested: true,
+    if (existingSource) {
+      if (existingSource.status === "failed") {
+        const [resetSource] = await tx
+          .update(knowledgeSources)
+          .set({
+            status: "pending",
+            error: null,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(knowledgeSources.id, existingSource.id),
+              eq(knowledgeSources.status, "failed"),
+            ),
+          )
+          .returning();
+
+        return {
+          source: resetSource ?? existingSource,
+          shouldEnqueue: Boolean(resetSource),
+        };
+      }
+
+      return {
+        source: existingSource,
+        shouldEnqueue: false,
+      };
+    }
+
+    const insertedSources = await tx
+      .insert(knowledgeSources)
+      .values({
+        resourceId: input.resourceId,
+        status: "pending",
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    const source = insertedSources[0]
+      ?? await tx.query.knowledgeSources.findFirst({
+        where: eq(knowledgeSources.resourceId, input.resourceId),
+      });
+
+    if (!source) {
+      throw new Error("KNOWLEDGE_SOURCE_CREATE_FAILED");
+    }
+
+    return {
+      source,
+      shouldEnqueue: insertedSources.length > 0,
+    };
   });
+
+  if (shouldEnqueue) {
+    try {
+      const task = await enqueueAsyncTask({
+        actorId: scope.userId,
+        schoolId: resource.schoolId,
+        taskType: "resource.knowledge_source_ingest",
+        entityRef: {
+          entityType: "knowledge_source",
+          entityId: source.id,
+          entityLabel: resource.title,
+        },
+        payload: ResourceKnowledgeSourceTaskPayloadSchema.parse({
+          knowledgeSourceId: source.id,
+          resourceId: resource.id,
+          schoolId: resource.schoolId,
+          actorId: scope.userId,
+        } satisfies ResourceKnowledgeSourceTaskPayload),
+        dispatchRequested: true,
+      });
+
+      if (task.status === "dispatch_failed" || task.enqueueIntentStatus === "dispatch_failed") {
+        throw new Error(task.failure?.reason ?? "ASYNC_TASK_DISPATCH_FAILED");
+      }
+    } catch (error) {
+      const failureReason = error instanceof Error ? error.message : "ASYNC_TASK_DISPATCH_FAILED";
+
+      await db
+        .update(knowledgeSources)
+        .set({
+          status: "failed",
+          error: failureReason,
+          updatedAt: new Date(),
+        })
+        .where(eq(knowledgeSources.id, source.id));
+
+      throw new Error(failureReason);
+    }
+  }
 
   return KnowledgeSourceDTOSchema.parse({
     ...source,
@@ -201,6 +272,7 @@ export async function executeResourceKnowledgeSourceTask(
     });
 
     const existingByIndex = new Map(existingChunks.map((chunk) => [chunk.chunkIndex, chunk]));
+    const nextChunkIndexes = new Set(chunks.map((chunk) => chunk.chunkIndex));
 
     for (const chunk of chunks) {
       const existing = existingByIndex.get(chunk.chunkIndex);
@@ -217,16 +289,36 @@ export async function executeResourceKnowledgeSourceTask(
           })
           .where(eq(knowledgeChunks.id, existing.id));
       } else {
-        await db.insert(knowledgeChunks).values({
-          sourceId: payload.knowledgeSourceId,
-          chunkIndex: chunk.chunkIndex,
-          textHash: chunk.textHash,
-          tokenEstimate: chunk.tokenEstimate,
-          payloadJson: chunk.payloadJson,
-          metadataJson: chunk.metadataJson,
-          indexingStatus: "indexed",
-        });
+        await db
+          .insert(knowledgeChunks)
+          .values({
+            sourceId: payload.knowledgeSourceId,
+            chunkIndex: chunk.chunkIndex,
+            textHash: chunk.textHash,
+            tokenEstimate: chunk.tokenEstimate,
+            payloadJson: chunk.payloadJson,
+            metadataJson: chunk.metadataJson,
+            indexingStatus: "indexed",
+          })
+          .onConflictDoUpdate({
+            target: [knowledgeChunks.sourceId, knowledgeChunks.chunkIndex],
+            set: {
+              textHash: chunk.textHash,
+              tokenEstimate: chunk.tokenEstimate,
+              payloadJson: chunk.payloadJson,
+              metadataJson: chunk.metadataJson,
+              indexingStatus: "indexed",
+            },
+          });
       }
+    }
+
+    const staleChunkIds = existingChunks
+      .filter((chunk) => !nextChunkIndexes.has(chunk.chunkIndex))
+      .map((chunk) => chunk.id);
+
+    if (staleChunkIds.length > 0) {
+      await db.delete(knowledgeChunks).where(inArray(knowledgeChunks.id, staleChunkIds));
     }
 
     await db
@@ -322,18 +414,27 @@ export async function recordKnowledgeChunkMetadata(input: {
   metadataJson: JsonRecord;
 }) {
   await assertActiveTeacher();
-  // We trust the teacher scope, but in a real system we'd verify the source's resource is in scope.
-  // For the metadata contract, we just insert the chunk.
-  
-  await db.insert(knowledgeChunks).values({
-    sourceId: input.sourceId,
-    chunkIndex: input.chunkIndex,
-    textHash: input.textHash,
-    tokenEstimate: input.tokenEstimate,
-    payloadJson: input.payloadJson,
-    metadataJson: input.metadataJson,
-    indexingStatus: "pending",
-  });
+  await db
+    .insert(knowledgeChunks)
+    .values({
+      sourceId: input.sourceId,
+      chunkIndex: input.chunkIndex,
+      textHash: input.textHash,
+      tokenEstimate: input.tokenEstimate,
+      payloadJson: input.payloadJson,
+      metadataJson: input.metadataJson,
+      indexingStatus: "pending",
+    })
+    .onConflictDoUpdate({
+      target: [knowledgeChunks.sourceId, knowledgeChunks.chunkIndex],
+      set: {
+        textHash: input.textHash,
+        tokenEstimate: input.tokenEstimate,
+        payloadJson: input.payloadJson,
+        metadataJson: input.metadataJson,
+        indexingStatus: "pending",
+      },
+    });
 }
 
 export async function previewSafeRetrievalFilter(input: RetrievalFilterDTO) {

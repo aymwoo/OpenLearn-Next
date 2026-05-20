@@ -990,7 +990,9 @@ export const knowledgeSources = sqliteTable("knowledgeSource", {
   error: text("error"),
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
-});
+}, (table) => [
+  uniqueIndex("knowledgeSources_resourceId_unique").on(table.resourceId),
+]);
 
 export const knowledgeChunks = sqliteTable("knowledgeChunk", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -1002,7 +1004,9 @@ export const knowledgeChunks = sqliteTable("knowledgeChunk", {
   metadataJson: text("metadataJson", { mode: "json" }).notNull(),
   indexingStatus: text("indexingStatus", { enum: ["pending", "indexed", "failed"] }).notNull().default("pending"),
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
-});
+}, (table) => [
+  uniqueIndex("knowledgeChunks_source_chunk_unique").on(table.sourceId, table.chunkIndex),
+]);
 
 export const agentRegistry = sqliteTable("agentRegistry", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

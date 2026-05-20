@@ -7,8 +7,11 @@ const insertValues = vi.fn();
 const insertReturning = vi.fn();
 const updateSet = vi.fn();
 const updateWhere = vi.fn();
+const deleteWhere = vi.fn();
+const transactionMock = vi.fn();
 const assertActiveTeacher = vi.fn();
 const enqueueAsyncTask = vi.fn();
+const deleteMock = vi.fn();
 
 vi.mock("server-only", () => ({}));
 
@@ -23,6 +26,8 @@ vi.mock("@/db", () => ({
     },
     insert: vi.fn(() => ({ values: insertValues })),
     update: vi.fn(() => ({ set: updateSet })),
+    delete: deleteMock,
+    transaction: transactionMock,
   },
 }));
 
@@ -39,12 +44,43 @@ describe("ai-rag dal", () => {
     vi.resetModules();
     vi.clearAllMocks();
 
+    findFirstResources.mockReset();
+    findFirstKnowledgeSources.mockReset();
+    findManyKnowledgeChunks.mockReset();
+    insertValues.mockReset();
+    insertReturning.mockReset();
+    updateSet.mockReset();
+    updateWhere.mockReset();
+    deleteWhere.mockReset();
+    transactionMock.mockReset();
+    assertActiveTeacher.mockReset();
+    enqueueAsyncTask.mockReset();
+    deleteMock.mockReset();
+
     insertReturning.mockResolvedValue([]);
-    insertValues.mockReturnValue({ returning: insertReturning });
+    insertValues.mockReturnValue({
+      onConflictDoNothing: vi.fn().mockReturnValue({ returning: insertReturning }),
+      onConflictDoUpdate: vi.fn().mockResolvedValue([]),
+      returning: insertReturning,
+    });
     updateWhere.mockResolvedValue([]);
-    updateSet.mockReturnValue({ where: updateWhere });
+    const updateReturning = vi.fn().mockResolvedValue([]);
+    updateSet.mockReturnValue({
+      where: vi.fn().mockReturnValue({ returning: updateReturning }),
+      returning: updateReturning,
+    });
+    deleteWhere.mockResolvedValue([]);
+    deleteMock.mockReturnValue({ where: deleteWhere });
+    transactionMock.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => callback({
+      query: {
+        knowledgeSources: { findFirst: findFirstKnowledgeSources },
+      },
+      insert: vi.fn(() => ({ values: insertValues })),
+      update: vi.fn(() => ({ set: updateSet })),
+    } as never));
 
     assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
+    enqueueAsyncTask.mockResolvedValue({ id: "task-1", status: "queued", enqueueIntentStatus: "dispatched" });
   });
 
   it("only allows ragEligible resources and enqueues knowledge source tasks by knowledge source identity", async () => {
@@ -103,6 +139,112 @@ describe("ai-rag dal", () => {
     expect(enqueueAsyncTask).not.toHaveBeenCalled();
   });
 
+  it("reuses existing knowledge source instead of creating duplicate rows", async () => {
+    findFirstResources.mockResolvedValue({
+      id: "resource-1",
+      schoolId: "school-1",
+      title: "变量小抄",
+      ragEligible: true,
+      url: "https://example.com/resource",
+      content: "第一段\n\n第二段",
+    });
+    findFirstKnowledgeSources.mockResolvedValue({
+      id: "source-existing",
+      resourceId: "resource-1",
+      status: "processing",
+      error: null,
+      createdAt: new Date("2026-05-20T02:00:00Z"),
+      updatedAt: new Date("2026-05-20T02:05:00Z"),
+    });
+
+    const { registerKnowledgeSourceForResource } = await import("./ai-rag");
+    const result = await registerKnowledgeSourceForResource({ resourceId: "resource-1" });
+
+    expect(result).toMatchObject({ id: "source-existing", status: "processing" });
+    expect(enqueueAsyncTask).not.toHaveBeenCalled();
+    expect(insertReturning).not.toHaveBeenCalled();
+  });
+
+  it("marks source failed and throws when enqueue dispatch fails", async () => {
+    const source = {
+      id: "source-1",
+      resourceId: "resource-1",
+      status: "pending",
+      error: null,
+      createdAt: new Date("2026-05-20T02:00:00Z"),
+      updatedAt: new Date("2026-05-20T02:00:00Z"),
+    };
+    findFirstResources.mockResolvedValue({
+      id: "resource-1",
+      schoolId: "school-1",
+      title: "变量小抄",
+      ragEligible: true,
+      url: "https://example.com/resource",
+      content: "第一段\n\n第二段",
+    });
+    insertReturning.mockResolvedValueOnce([source]);
+    enqueueAsyncTask.mockResolvedValueOnce({
+      status: "dispatch_failed",
+      enqueueIntentStatus: "dispatch_failed",
+      failure: { reason: "QUEUE_DOWN", attemptNumber: null, occurredAt: null },
+    });
+
+    const { registerKnowledgeSourceForResource } = await import("./ai-rag");
+
+    await expect(registerKnowledgeSourceForResource({ resourceId: "resource-1" })).rejects.toThrow(
+      "QUEUE_DOWN",
+    );
+    expect(updateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "failed", error: "QUEUE_DOWN" }));
+  });
+
+  it("resets failed knowledge sources and re-enqueues ingest", async () => {
+    findFirstResources.mockResolvedValue({
+      id: "resource-1",
+      schoolId: "school-1",
+      title: "变量小抄",
+      ragEligible: true,
+      url: "https://example.com/resource",
+      content: "第一段\n\n第二段",
+    });
+    findFirstKnowledgeSources.mockResolvedValue({
+      id: "source-failed",
+      resourceId: "resource-1",
+      status: "failed",
+      error: "RESOURCE_SOURCE_EMPTY",
+      createdAt: new Date("2026-05-20T02:00:00Z"),
+      updatedAt: new Date("2026-05-20T02:05:00Z"),
+    });
+    updateSet.mockReturnValueOnce({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([
+          {
+            id: "source-failed",
+            resourceId: "resource-1",
+            status: "pending",
+            error: null,
+            createdAt: new Date("2026-05-20T02:00:00Z"),
+            updatedAt: new Date("2026-05-20T02:10:00Z"),
+          },
+        ]),
+      }),
+      returning: vi.fn().mockResolvedValue([]),
+    });
+
+    const { registerKnowledgeSourceForResource } = await import("./ai-rag");
+    const result = await registerKnowledgeSourceForResource({ resourceId: "resource-1" });
+
+    expect(result).toMatchObject({ id: "source-failed", status: "pending", error: null });
+    expect(updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "pending", error: null }),
+    );
+    expect(enqueueAsyncTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskType: "resource.knowledge_source_ingest",
+        entityRef: expect.objectContaining({ entityId: "source-failed" }),
+      }),
+    );
+  });
+
   it("progresses knowledge source and chunk business status through processing to completed", async () => {
     findFirstKnowledgeSources.mockResolvedValue({
       id: "source-1",
@@ -145,6 +287,44 @@ describe("ai-rag dal", () => {
     );
   });
 
+  it("upserts chunk rows when the same source chunk index already exists concurrently", async () => {
+    const onConflictDoUpdate = vi.fn().mockResolvedValue([]);
+    insertValues
+      .mockReturnValueOnce({
+        onConflictDoUpdate,
+      });
+    findFirstKnowledgeSources.mockResolvedValue({
+      id: "source-1",
+      resourceId: "resource-1",
+      status: "pending",
+      error: null,
+    });
+    findFirstResources.mockResolvedValue({
+      id: "resource-1",
+      schoolId: "school-1",
+      title: "变量小抄",
+      ragEligible: true,
+      url: null,
+      content: "这是一个足够长的资源内容，用于切分 knowledge chunks。",
+    });
+    findManyKnowledgeChunks.mockResolvedValue([]);
+
+    const { executeResourceKnowledgeSourceTask } = await import("./ai-rag");
+    await executeResourceKnowledgeSourceTask({
+      knowledgeSourceId: "source-1",
+      resourceId: "resource-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+    });
+
+    expect(onConflictDoUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: expect.any(Array),
+        set: expect.objectContaining({ indexingStatus: "indexed" }),
+      }),
+    );
+  });
+
   it("marks knowledge source failed when source text cannot be built", async () => {
     findFirstKnowledgeSources.mockResolvedValue({
       id: "source-2",
@@ -175,5 +355,37 @@ describe("ai-rag dal", () => {
       outcome: "failed",
     });
     expect(updateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
+  });
+
+  it("deletes stale chunks when updated resource content becomes shorter", async () => {
+    findFirstKnowledgeSources.mockResolvedValue({
+      id: "source-1",
+      resourceId: "resource-1",
+      status: "pending",
+      error: null,
+    });
+    findFirstResources.mockResolvedValue({
+      id: "resource-1",
+      schoolId: "school-1",
+      title: "变量小抄",
+      ragEligible: true,
+      url: null,
+      content: "简短内容",
+    });
+    findManyKnowledgeChunks.mockResolvedValue([
+      { id: "chunk-0", chunkIndex: 0 },
+      { id: "chunk-1", chunkIndex: 1 },
+    ]);
+
+    const { executeResourceKnowledgeSourceTask } = await import("./ai-rag");
+    await executeResourceKnowledgeSourceTask({
+      knowledgeSourceId: "source-1",
+      resourceId: "resource-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+    });
+
+    expect(deleteMock).toHaveBeenCalled();
+    expect(deleteWhere).toHaveBeenCalled();
   });
 });

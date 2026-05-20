@@ -27,6 +27,14 @@ async function tableExists(tableName: string) {
   return result.length > 0;
 }
 
+async function indexExists(indexName: string) {
+  const result = await db.values(
+    sql`select name from sqlite_master where type = 'index' and name = ${indexName} limit 1`,
+  );
+
+  return result.length > 0;
+}
+
 function readMigrationJournal() {
   return JSON.parse(
     readFileSync(`${MIGRATIONS_FOLDER}/meta/_journal.json`, "utf8"),
@@ -93,6 +101,22 @@ async function detectExistingSchemaTag() {
     && await columnExists("classroomSessionSummary", "summaryJson")
     && await columnExists("classroomSessionSummary", "status")
     && await columnExists("classroomSessionSummary", "finalizedAt");
+
+  const hasPhase43KnowledgeSourceUniquenessSchema =
+    hasPhase43ValidationWorkloadsSchema
+    && await indexExists("knowledgeSources_resourceId_unique");
+
+  const hasPhase43KnowledgeChunkUniquenessSchema =
+    hasPhase43KnowledgeSourceUniquenessSchema
+    && await indexExists("knowledgeChunks_source_chunk_unique");
+
+  if (hasPhase43KnowledgeChunkUniquenessSchema) {
+    return "0010_wandering_angel";
+  }
+
+  if (hasPhase43KnowledgeSourceUniquenessSchema) {
+    return "0009_phase43_knowledge_source_uniqueness";
+  }
 
   if (hasPhase43ValidationWorkloadsSchema) {
     return "0008_phase43_validation_workloads";

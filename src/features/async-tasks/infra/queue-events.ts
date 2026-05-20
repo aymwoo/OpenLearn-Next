@@ -66,6 +66,28 @@ type PersistedProjection = {
   eventPayload: Record<string, unknown>;
 };
 
+function readJsonRecord(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return {} as Record<string, unknown>;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function readSeededAttemptNumber(task: AsyncTaskRow) {
+  const recovery = readJsonRecord(task.latestRecoveryJson);
+  const progress = readJsonRecord(task.latestProgressJson);
+  const progressDetail = readJsonRecord(progress.detail);
+  const candidate =
+    typeof recovery.seededAttemptNumber === "number"
+      ? recovery.seededAttemptNumber
+      : typeof progressDetail.seededAttemptNumber === "number"
+        ? progressDetail.seededAttemptNumber
+        : null;
+
+  return candidate && candidate > 0 ? candidate : null;
+}
+
 function toIso(value: Date) {
   return value.toISOString();
 }
@@ -183,7 +205,9 @@ function resolveProjection(task: AsyncTaskRow, input: QueueProjectionInput): Per
 
   switch (input.eventName) {
     case "waiting": {
-      const status = task.latestAttemptNumber > 0 ? "retrying" : "queued";
+      const seededAttemptNumber = readSeededAttemptNumber(task);
+      const attemptNumber = seededAttemptNumber ?? task.latestAttemptNumber;
+      const status = task.status === "retrying" || attemptNumber > 0 ? "retrying" : "queued";
       return {
         status,
         enqueueIntentStatus: "dispatched",
@@ -195,7 +219,8 @@ function resolveProjection(task: AsyncTaskRow, input: QueueProjectionInput): Per
               : "asyncTasks.progress.queued",
           detail: {
             ...baseDetail,
-            attemptNumber: task.latestAttemptNumber,
+            attemptNumber,
+            seededAttemptNumber: seededAttemptNumber ?? null,
           },
         }),
         latestRecoveryJson:
@@ -209,12 +234,19 @@ function resolveProjection(task: AsyncTaskRow, input: QueueProjectionInput): Per
         eventType: status === "retrying" ? "task.retrying" : "task.queued",
         eventPayload: {
           ...baseDetail,
-          attemptNumber: task.latestAttemptNumber,
+          attemptNumber,
+          seededAttemptNumber: seededAttemptNumber ?? null,
         },
       };
     }
     case "active": {
-      const nextAttemptNumber = Math.max(task.latestAttemptNumber, 0) + 1;
+      const seededAttemptNumber = readSeededAttemptNumber(task);
+      const nextAttemptNumber =
+        task.status === "retrying"
+        && seededAttemptNumber != null
+        && task.latestAttemptNumber === seededAttemptNumber
+          ? seededAttemptNumber
+          : Math.max(task.latestAttemptNumber, 0) + 1;
       const recoveryPosture = task.status === "stalled_recovery"
         ? buildRecoveryPosture({
             posture: "recovered",
@@ -235,6 +267,7 @@ function resolveProjection(task: AsyncTaskRow, input: QueueProjectionInput): Per
           detail: {
             ...baseDetail,
             attemptNumber: nextAttemptNumber,
+            seededAttemptNumber: seededAttemptNumber ?? null,
             recoveredFrom: recoveryPosture?.recoveredFrom ?? null,
             prev: input.payload.prev ?? null,
           },
@@ -244,6 +277,7 @@ function resolveProjection(task: AsyncTaskRow, input: QueueProjectionInput): Per
         eventPayload: {
           ...baseDetail,
           attemptNumber: nextAttemptNumber,
+          seededAttemptNumber: seededAttemptNumber ?? null,
           recoveredFrom: recoveryPosture?.recoveredFrom ?? null,
           prev: input.payload.prev ?? null,
         },

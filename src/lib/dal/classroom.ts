@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -2513,6 +2513,34 @@ async function persistClassroomSessionSummaryArtifact(input: {
   artifact: ClassroomSessionSummaryArtifact;
 }) {
   const now = new Date();
+  const setValues = {
+    schoolId: input.payload.schoolId,
+    status: "completed" as const,
+    triggerMode: input.payload.triggerMode,
+    lastEventVersion: input.payload.eventVersion,
+    summaryJson: input.artifact,
+    failureReason: null,
+    finalizedAt:
+      input.payload.triggerMode === "finalize"
+        ? now
+        : classroomSessionSummary.finalizedAt,
+    updatedAt: now,
+  };
+
+  const [updated] = await db
+    .update(classroomSessionSummary)
+    .set(setValues)
+    .where(
+      and(
+        eq(classroomSessionSummary.sessionId, input.payload.sessionId),
+        lte(classroomSessionSummary.lastEventVersion, input.payload.eventVersion),
+      ),
+    )
+    .returning({ id: classroomSessionSummary.id });
+
+  if (updated) {
+    return;
+  }
 
   await db
     .insert(classroomSessionSummary)
@@ -2523,23 +2551,21 @@ async function persistClassroomSessionSummaryArtifact(input: {
       triggerMode: input.payload.triggerMode,
       lastEventVersion: input.payload.eventVersion,
       summaryJson: input.artifact,
-      failureReason: null,
-      finalizedAt: input.payload.triggerMode === "finalize" ? now : null,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: classroomSessionSummary.sessionId,
-      set: {
-        schoolId: input.payload.schoolId,
-        status: "completed",
-        triggerMode: input.payload.triggerMode,
-        lastEventVersion: input.payload.eventVersion,
-        summaryJson: input.artifact,
         failureReason: null,
-        finalizedAt: input.payload.triggerMode === "finalize" ? now : classroomSessionSummary.finalizedAt,
+        finalizedAt: input.payload.triggerMode === "finalize" ? now : null,
         updatedAt: now,
-      },
-    });
+      })
+    .onConflictDoNothing();
+
+  await db
+    .update(classroomSessionSummary)
+    .set(setValues)
+    .where(
+      and(
+        eq(classroomSessionSummary.sessionId, input.payload.sessionId),
+        lte(classroomSessionSummary.lastEventVersion, input.payload.eventVersion),
+      ),
+    );
 }
 
 async function markClassroomSessionSummaryFailure(input: {
@@ -2547,6 +2573,29 @@ async function markClassroomSessionSummaryFailure(input: {
   failureReason: string;
 }) {
   const now = new Date();
+  const setValues = {
+    schoolId: input.payload.schoolId,
+    status: "failed" as const,
+    triggerMode: input.payload.triggerMode,
+    lastEventVersion: input.payload.eventVersion,
+    failureReason: input.failureReason,
+    updatedAt: now,
+  };
+
+  const [updated] = await db
+    .update(classroomSessionSummary)
+    .set(setValues)
+    .where(
+      and(
+        eq(classroomSessionSummary.sessionId, input.payload.sessionId),
+        lte(classroomSessionSummary.lastEventVersion, input.payload.eventVersion),
+      ),
+    )
+    .returning({ id: classroomSessionSummary.id });
+
+  if (updated) {
+    return;
+  }
 
   await db
     .insert(classroomSessionSummary)
@@ -2581,22 +2630,22 @@ async function markClassroomSessionSummaryFailure(input: {
         },
         studentSummaries: [],
         stepSummaries: [],
-      },
-      failureReason: input.failureReason,
-      finalizedAt: null,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: classroomSessionSummary.sessionId,
-      set: {
-        schoolId: input.payload.schoolId,
-        status: "failed",
-        triggerMode: input.payload.triggerMode,
-        lastEventVersion: input.payload.eventVersion,
+        },
         failureReason: input.failureReason,
+        finalizedAt: null,
         updatedAt: now,
-      },
-    });
+      })
+    .onConflictDoNothing();
+
+  await db
+    .update(classroomSessionSummary)
+    .set(setValues)
+    .where(
+      and(
+        eq(classroomSessionSummary.sessionId, input.payload.sessionId),
+        lte(classroomSessionSummary.lastEventVersion, input.payload.eventVersion),
+      ),
+    );
 }
 
 async function enqueueClassroomSessionSummaryTask(input: {

@@ -234,6 +234,10 @@ describe("setResourceRagEligibilityAction", () => {
       classification: "other",
       ragEligible: true,
       url: null,
+      knowledgeSourceStatus: "pending",
+      knowledgeSourceError: null,
+      indexedChunkCount: 0,
+      failedChunkCount: 0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -248,9 +252,42 @@ describe("setResourceRagEligibilityAction", () => {
     expect(result.data).toMatchObject({
       id: "resource-1",
       ragEligible: true,
+      knowledgeSourceStatus: "pending",
     });
     expect(updateTag).toHaveBeenCalledWith("resources:school-1");
     expect(updateTag).toHaveBeenCalledWith("resource:resource-1");
+  });
+
+  it("returns knowledgeSourceError when DAL surfaces a failed source", async () => {
+    mockSetResourceRagEligibility.mockResolvedValueOnce({
+      id: "resource-1",
+      schoolId: "school-1",
+      ownerId: "teacher-1",
+      courseId: null,
+      title: "测试资源",
+      visibility: "private",
+      classification: "other",
+      ragEligible: true,
+      url: null,
+      knowledgeSourceStatus: "failed",
+      knowledgeSourceError: "RESOURCE_SOURCE_EMPTY",
+      indexedChunkCount: 0,
+      failedChunkCount: 1,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    const { setResourceRagEligibilityAction } = await import("./resource-actions");
+    const result = await setResourceRagEligibilityAction({
+      resourceId: "resource-1",
+      ragEligible: true,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toMatchObject({
+      knowledgeSourceStatus: "failed",
+      knowledgeSourceError: "RESOURCE_SOURCE_EMPTY",
+    });
   });
 
   it("handles ragEligible as string 'false'", async () => {

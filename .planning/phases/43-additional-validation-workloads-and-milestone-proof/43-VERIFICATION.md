@@ -1,8 +1,8 @@
 ---
 phase: 43-additional-validation-workloads-and-milestone-proof
-verified: 2026-05-20T03:29:41Z
-status: human_needed
-score: 11/11 must-haves verified
+verified: 2026-05-20T12:57:13+08:00
+status: complete
+score: 11/11 must-haves verified + 3/3 human UAT passed
 overrides_applied: 0
 human_verification:
   - test: "教师打开 /teacher/schedule/reminders，保存一条提醒规则并观察最近 deliveries 状态变化"
@@ -19,8 +19,8 @@ human_verification:
 # Phase 43: additional-validation-workloads-and-milestone-proof Verification Report
 
 **Phase Goal:** 用剩余三类真实 workload 证明这是一套通用平台，而不是只为 batch import 定制的单任务通道，并完成 milestone 级 proof。
-**Verified:** 2026-05-20T03:29:41Z
-**Status:** human_needed
+**Verified:** 2026-05-20T12:57:13+08:00
+**Status:** complete
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -106,33 +106,36 @@ human_verification:
 | `scripts/verify-phase43-validation-workloads.ts` | 194-216 | canonical close gate 未直接运行 `src/lib/dal/classroom.test.ts`、`src/components/surfaces/library-surface.test.tsx`、`src/components/surfaces/schedule-reminder-surface.test.tsx` | ⚠️ Warning | close gate 覆盖面比 43-02/43-03 计划描述更窄；本次验证已额外补跑并通过，因此不构成 blocker |
 | `src/lib/dal/classroom.ts` | 2551-2599 | failed artifact 使用 `lessonId: "unknown"` / `classId: "unknown"` 占位值 | ℹ️ Info | 只影响 failure audit 的细节完整度，不影响 Phase 43 completed path |
 
-### Human Verification Required
+### Human Verification
 
 ### 1. Teacher reminder surface honest delivery flow
 
 **Test:** 打开 `/teacher/schedule/reminders`，保存一条提醒规则，等待 worker 接管并观察 delivery 状态变化。  
 **Expected:** 页面仍以 rules + deliveries 为主；状态会从排队/投递/恢复映射到业务文案；失败时只提示去 operator 面，不出现教师本地重试。  
-**Why human:** 需要真实页面渲染、路由刷新、worker/queue 运行态和 copy 体验确认。
+**Why human:** 需要真实页面渲染、路由刷新、worker/queue 运行态和 copy 体验确认。  
+**Human UAT result:** Passed on 2026-05-20.
 
 ### 2. Resource library business-truth rendering
 
 **Test:** 对一个 `ragEligible=true` 的资源触发 knowledge source 注册，并在 `/resources` 观察状态与 chunk 统计。  
 **Expected:** 看到 `RAG 待处理 / 处理中 / 已完成 / 处理失败` 等业务状态与统计，不暴露 task 内部字段。  
-**Why human:** 需要真实页面与后台任务联动验证，静态测试无法证明最终 UX。
+**Why human:** 需要真实页面与后台任务联动验证，静态测试无法证明最终 UX。  
+**Human UAT result:** Passed on 2026-05-20.
 
 ### 3. Operator visibility and recovery UI for new workloads
 
 **Test:** 以 operator 身份访问 `/settings/labs/async-tasks` 与某个 task detail 页面，查看三类新 workload 的详情与恢复 CTA。  
 **Expected:** 新 workload family 能被统一 operator 页面消费；detail 中有正确 label/summary/retry eligibility；只有 operator 可发起 recovery。  
-**Why human:** 需要真实权限、页面导航与 recovery 交互确认。
+**Why human:** 需要真实权限、页面导航与 recovery 交互确认。  
+**Human UAT result:** Passed on 2026-05-20.
 
 ### Gaps Summary
 
 未发现阻断 Phase 43 目标达成的代码级 gaps：四类 workload 的 registry、enqueue、worker、durable truth、operator visibility、recovery/result semantics 在代码中都已存在并连通，相关自动化验证也通过。
 
-当前未标记为 `passed` 的原因不是代码缺失，而是仍有页面级与真实运行态行为需要人工确认；因此状态为 `human_needed`。
+人工验证已全部通过：Phase 43 的页面级行为、真实运行态联动与 operator recovery 入口均已得到确认，因此该 phase 已达到完成态。
 
 ---
 
-_Verified: 2026-05-20T03:29:41Z_  
+_Verified: 2026-05-20T12:57:13+08:00_  
 _Verifier: the agent (gsd-verifier)_
