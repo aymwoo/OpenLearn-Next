@@ -7,6 +7,7 @@ const findFirstPluginRegistrations = vi.fn();
 const assertActiveTeacher = vi.fn();
 const getUserMembershipsDTO = vi.fn();
 const dispatchPluginAction = vi.fn();
+const registerThemeTokensMock = vi.hoisted(() => vi.fn());
 const insertReturning = vi.fn();
 const insertValues = vi.fn();
 const dbInsert = vi.fn(() => ({ values: insertValues }));
@@ -49,12 +50,14 @@ vi.mock("@/lib/dal/membership", () => ({
 }));
 
 vi.mock("@/lib/dal/themes", () => ({
-  registerThemeTokens: vi.fn(),
+  registerThemeTokens: registerThemeTokensMock,
 }));
 
 vi.mock("@/server/plugins/registry", () => ({
   dispatchPluginAction,
-  PLUGIN_ACTION_PERMISSION_REQUIREMENTS: {},
+  PLUGIN_ACTION_PERMISSION_REQUIREMENTS: {
+    addStepSuggestion: "lesson:write:suggestion",
+  },
 }));
 
 const source = readFileSync("src/lib/dal/plugins.ts", "utf8");
@@ -117,6 +120,7 @@ describe("plugin DAL security boundary", () => {
     insertReturning.mockResolvedValue([createPluginRecord()]);
     updateReturning.mockResolvedValue([createPluginRecord()]);
     deleteReturning.mockResolvedValue([createPluginRecord()]);
+    registerThemeTokensMock.mockResolvedValue({ id: "theme-1" });
   });
 
   it("is server-only and exposes school-scoped lifecycle APIs", () => {
@@ -137,14 +141,42 @@ describe("plugin DAL security boundary", () => {
     expect(source).not.toContain("actorId?: string | null");
   });
 
-  it("filters enabled plugins by school membership and declared hook anchors", () => {
-    expect(source).toContain("hasActiveSchoolMembership");
-    expect(source).toContain('membership.status === "active"');
-    expect(source).toContain("eq(pluginRegistrations.schoolId, input.schoolId)");
-    expect(source).toContain("eq(pluginRegistrations.enabled, true)");
-    expect(source).toContain("eq(pluginRegistrations.killSwitchEnabled, false)");
-    expect(source).toContain("eq(pluginRegistrations.lifecycleState, \"enabled\")");
-    expect(source).toContain("plugin.manifestJson.anchors.includes");
+  it("filters runnable plugins by school membership and declared hook anchors", async () => {
+    const { getEnabledPluginsForAnchor } = await import("./plugins");
+
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      createPluginRecord({ id: "plugin-enabled", enabled: true, lifecycleState: "enabled" }),
+      createPluginRecord({
+        id: "plugin-mounted",
+        enabled: true,
+        lifecycleState: "mounted",
+        manifestJson: createManifest({ anchors: ["dashboard.widget"] }),
+      }),
+      createPluginRecord({
+        id: "plugin-ready",
+        enabled: true,
+        lifecycleState: "ready",
+        manifestJson: createManifest({ anchors: ["dashboard.widget"] }),
+      }),
+      createPluginRecord({
+        id: "plugin-disabled",
+        enabled: false,
+        lifecycleState: "disabled",
+        manifestJson: createManifest({ anchors: ["lesson.sidebar"] }),
+      }),
+    ]);
+
+    const result = await getEnabledPluginsForAnchor({
+      actorId: "teacher-1",
+      schoolId: "school-1",
+      hookAnchor: "dashboard.widget",
+    });
+
+    expect(result.map((plugin) => plugin.id)).toEqual([
+      "plugin-enabled",
+      "plugin-mounted",
+      "plugin-ready",
+    ]);
   });
 
   it("denies and audits school mismatch, permission denial, disabled, and kill switch cases", () => {
@@ -429,6 +461,183 @@ describe("plugin DAL security boundary", () => {
         reason: "manual",
       }),
     ).rejects.toThrow("LIFECYCLE_ILLEGAL_TRANSITION");
+  });
+
+  it("treats enabled, mounted, and ready as runnable lifecycle states", async () => {
+    const { isRunnablePluginState } = await import("./plugins");
+
+    expect(isRunnablePluginState("enabled")).toBe(true);
+    expect(isRunnablePluginState("mounted")).toBe(true);
+    expect(isRunnablePluginState("ready")).toBe(true);
+    expect(isRunnablePluginState("disabled")).toBe(false);
+    expect(isRunnablePluginState("suspended")).toBe(false);
+    expect(isRunnablePluginState("failed")).toBe(false);
+  });
+
+  it("persists mounted and ready as active enabled posture", async () => {
+    const { transitionPluginLifecycle } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValue(createPluginRecord({
+      enabled: true,
+      lifecycleState: "enabled",
+    }));
+    updateReturning.mockResolvedValueOnce([
+      createPluginRecord({ lifecycleState: "mounted", enabled: true }),
+    ]);
+
+    await transitionPluginLifecycle({
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+      targetState: "mounted",
+      reason: "mounted",
+    });
+
+    expect(updateSet).toHaveBeenCalledWith(expect.objectContaining({
+      lifecycleState: "mounted",
+      enabled: true,
+    }));
+
+    updateSet.mockClear();
+    updateReturning.mockResolvedValueOnce([
+      createPluginRecord({ lifecycleState: "ready", enabled: true }),
+    ]);
+
+    await transitionPluginLifecycle({
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+      targetState: "ready",
+      reason: "ready",
+    });
+
+    expect(updateSet).toHaveBeenCalledWith(expect.objectContaining({
+      lifecycleState: "ready",
+      enabled: true,
+    }));
+  });
+
+  it("runs hooks for mounted and ready plugins without lifecycle rejection", async () => {
+    const { runPluginHook } = await import("./plugins");
+
+    dispatchPluginAction.mockReturnValueOnce({
+      proposalType: "stepSuggestion",
+      payload: { id: "suggestion-1" },
+    });
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({
+      enabled: true,
+      lifecycleState: "mounted",
+      manifestJson: createManifest({
+        permissions: ["lesson:write:suggestion"],
+      }),
+    }));
+
+    const mountedResult = await runPluginHook({
+      actorId: "teacher-1",
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      hookAnchor: "dashboard.widget",
+      input: {
+        pluginId: "plugin-1",
+        action: "addStepSuggestion",
+        payload: {},
+      },
+    });
+
+    expect(mountedResult).toMatchObject({
+      proposalType: "stepSuggestion",
+      payload: { id: "suggestion-1" },
+    });
+
+    dispatchPluginAction.mockReturnValueOnce({
+      proposalType: "stepSuggestion",
+      payload: { id: "suggestion-2" },
+    });
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({
+      enabled: true,
+      lifecycleState: "ready",
+      manifestJson: createManifest({
+        permissions: ["lesson:write:suggestion"],
+      }),
+    }));
+
+    const readyResult = await runPluginHook({
+      actorId: "teacher-1",
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      hookAnchor: "dashboard.widget",
+      input: {
+        pluginId: "plugin-1",
+        action: "addStepSuggestion",
+        payload: {},
+      },
+    });
+
+    expect(readyResult).toMatchObject({
+      proposalType: "stepSuggestion",
+      payload: { id: "suggestion-2" },
+    });
+  });
+
+  it("does not register theme tokens when lifecycle transition fails", async () => {
+    const { setPluginEnabled } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({
+      lifecycleState: "installed",
+      manifestJson: createManifest({
+        theme: {
+          id: "theme.plugin",
+          name: "Plugin Theme",
+          tokens: {},
+        },
+      }),
+    }));
+    transactionMock.mockRejectedValueOnce(new Error("DB_WRITE_FAILED"));
+
+    await expect(
+      setPluginEnabled({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        actorId: "teacher-1",
+        enabled: true,
+      }),
+    ).rejects.toThrow("DB_WRITE_FAILED");
+
+    expect(registerThemeTokensMock).not.toHaveBeenCalled();
+
+    transactionMock.mockImplementation(async (callback) => callback({
+      insert: dbInsert,
+      update: dbUpdate,
+      delete: dbDelete,
+    }));
+  });
+
+  it("blocks non-deletable plugins consistently in preflight and uninstall", async () => {
+    const { preflightUninstallPlugin, uninstallPlugin } = await import("./plugins");
+
+    const nonDeletablePlugin = createPluginRecord({
+      sourceType: "external",
+      manifestJson: createManifest({ nonDeletable: true }),
+    });
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(nonDeletablePlugin);
+    const preflight = await preflightUninstallPlugin({
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+    });
+
+    expect(preflight).toMatchObject({
+      blocked: true,
+      reason: "PLUGIN_BUILT_IN_NOT_DELETABLE",
+    });
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(nonDeletablePlugin);
+    await expect(
+      uninstallPlugin({ pluginId: "plugin-1", schoolId: "school-1", actorId: "teacher-1" }),
+    ).rejects.toThrow("PLUGIN_BUILT_IN_NOT_DELETABLE");
   });
 
   it("transitions lifecycle inside db.transaction and writes lifecycle + audit rows", async () => {
