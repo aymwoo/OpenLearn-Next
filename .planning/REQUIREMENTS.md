@@ -8,9 +8,9 @@
 
 ### Plugin Identity & Namespace
 
-- [ ] **PLUG-01**: 平台维护者可以为每个插件登记稳定的 `pluginKey`，且该身份不依赖展示名或仅存于 `manifestJson`。
-- [ ] **PLUG-02**: 平台维护者可以为每个插件登记稳定的 `dbNamespace`，并用它作为插件数据库对象统一前缀的来源。
-- [ ] **PLUG-03**: 系统可以在学校范围内拒绝重复或冲突的插件身份 / namespace 安装记录。
+- [x] **PLUG-01**: 平台维护者可以为每个插件登记稳定的 `pluginKey`，且该身份不依赖展示名或仅存于 `manifestJson`。
+- [x] **PLUG-02**: 平台维护者可以为每个插件登记稳定的 `dbNamespace`，并用它作为插件数据库对象统一前缀的来源。
+- [x] **PLUG-03**: 系统可以在学校范围内拒绝重复或冲突的插件身份 / namespace 安装记录。
 - [ ] **PLUG-04**: 系统默认插件也通过正式的插件安装模型注册，而不是继续依赖 built-in 特例路径。
 
 ### Core Entity Extension Tables
@@ -85,9 +85,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLUG-01 | Phase 44 | Pending |
-| PLUG-02 | Phase 44 | Pending |
-| PLUG-03 | Phase 44 | Pending |
+| PLUG-01 | Phase 44 | Complete |
+| PLUG-02 | Phase 44 | Complete |
+| PLUG-03 | Phase 44 | Complete |
 | PLUG-04 | Phase 44 | Pending |
 | EXT-01 | Phase 45 | Pending |
 | EXT-02 | Phase 45 | Pending |

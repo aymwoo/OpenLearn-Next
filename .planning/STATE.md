@@ -2,18 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.4
 milestone_name: Plugin Data Architecture & Default Plugins
-current_phase: 44
-current_phase_name: Plugin Identity & Namespace Contract
-current_plan: 0
-status: ready_to_plan
-last_updated: "2026-05-20T15:05:00+08:00"
-last_activity: 2026-05-20 -- Roadmap created for milestone v2.4
+status: executing
+stopped_at: Completed 44-01-PLAN.md
+last_updated: "2026-05-20T10:29:25.279Z"
+last_activity: 2026-05-20 -- Completed 44-01 plan execution
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 4
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -23,22 +21,23 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-20)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** 为 v2.4 先收口插件稳定身份、`dbNamespace` contract 与默认插件正式安装入口。
+**Current focus:** Phase 44 — plugin-identity-and-namespace-contract
 
 ## Current Position
 
 Milestone: v2.4 -- Plugin Data Architecture & Default Plugins
-Phase: 44 of 49 (Plugin Identity & Namespace Contract)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-05-20 -- v2.4 roadmap written to ROADMAP.md and traceability mapped
-Progress: [----------] 0%
+Phase: 44 (plugin-identity-and-namespace-contract) — EXECUTING
+Plan: 2 of 4
+Status: Executing Phase 44
+Last activity: 2026-05-20 -- Completed 44-01 plan execution
+Progress: [███░░░░░░░] 25%
 Next queued phase: 44 -- Plugin Identity & Namespace Contract
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
+
+- Total plans completed: 1
 - Average duration: -
 - Total execution time: 0.0 hours
 
@@ -46,11 +45,14 @@ Next queued phase: 44 -- Plugin Identity & Namespace Contract
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 44 | 1 | 14 min | 14 min |
 
 **Recent Trend:**
+
 - Last 5 plans: none yet
 - Trend: Stable
+
+| Phase 44 P01 | 14 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -62,6 +64,8 @@ Recent decisions affecting current work:
 - [Milestone v2.4]: 采用 44-49 六阶段顺序，严格跟随 research summary 的低 blast radius 主线。
 - [Milestone v2.4]: 默认插件样板只补最小 dependency closure，不重开全部 `v2.3` accepted gaps。
 - [Milestone v2.4]: 每个 v2.4 requirement 已唯一映射到一个 phase，无 orphan、无重复。
+- [Phase 44]: 把 pluginKey、dbNamespace、sourceType、installSource 固化为 pluginRegistration SQL truth，而不是继续依赖 manifestJson 解析。
+- [Phase 44]: Phase 44 migration 采用 SQLite rebuild + backfill + unique index 的单次升级路径，不留下运行时补写窗口。
 
 ### Pending Todos
 
@@ -84,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-20 15:05
-Stopped at: v2.4 roadmap creation complete; Phase 44 is ready for `/gsd-plan-phase 44`
+Last session: 2026-05-20T10:29:25.279Z
+Stopped at: Completed 44-01-PLAN.md
 Resume file: None

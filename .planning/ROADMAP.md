@@ -40,7 +40,7 @@
 **Plans**: 4 plans
 
 Plans:
-- [ ] 44-01-PLAN.md — 固化 plugin identity / namespace SQL contract、migration 与 schema push 闸门。
+- [x] 44-01-PLAN.md — 固化 plugin identity / namespace SQL contract、migration 与 schema push 闸门。
 - [ ] 44-02-PLAN.md — 建立统一 install/reconcile DAL seam 与 school-scoped conflict 语义。
 - [ ] 44-03-PLAN.md — 让默认插件 bootstrap / built-in registry 改走正式身份 contract。
 - [ ] 44-04-PLAN.md — 暴露正式运维元数据并建立 `verify:phase44` close gate。
@@ -104,7 +104,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 44. Plugin Identity & Namespace Contract | 0/TBD | Not started | - |
+| 44. Plugin Identity & Namespace Contract | 1/4 | In Progress|  |
 | 45. Extension & Plugin-Owned Schema Patterns | 0/TBD | Not started | - |
 | 46. Migration Governance & Backfill Safety | 0/TBD | Not started | - |
 | 47. DAL/Authz/Cache/Audit Integration | 0/TBD | Not started | - |
