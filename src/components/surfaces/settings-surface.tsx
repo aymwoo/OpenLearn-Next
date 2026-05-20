@@ -18,6 +18,7 @@ import { setSystemTransportModeAction } from "@/actions/system-transport-setting
 import { setActiveThemeAction } from "@/actions/theme-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PluginLifecycleOperatorSurface } from "@/components/surfaces/plugin-lifecycle-operator-surface";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import { surfaceWidths } from "@/components/surfaces/surface-widths";
 import { getCurrentUserSchoolIds } from "@/lib/dal/auth";
@@ -407,16 +408,6 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
     ? await listPluginsAction({ schoolId })
     : { success: true as const, data: [] };
   const plugins = pluginResult.success ? (pluginResult.data ?? []) : [];
-  const submitPluginToggle = async (formData: FormData) => {
-    "use server";
-
-    await setPluginEnabledAction({
-      pluginId: String(formData.get("pluginId") ?? ""),
-      schoolId: String(formData.get("schoolId") ?? ""),
-      enabled: String(formData.get("enabled") ?? "") === "true",
-    });
-  };
-
   return (
     <main className="min-h-screen bg-surface px-4 py-6 text-on-surface sm:px-6 lg:px-8">
       <div className={cn(surfaceWidths.workspace, teacherSurfaceRhythm.stack, "flex flex-col")}>
@@ -585,89 +576,7 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
               </div>
 
               <div className="mt-4 grid gap-3">
-                {plugins.map((plugin) => (
-                  <div
-                    key={plugin.id}
-                    className={cn(teacherSurfaceRhythm.cardInset, "p-4")}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-on-surface">
-                          {plugin.name}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {plugin.builtIn ? (
-                            <Badge className="bg-primary/10 text-primary">
-                              系统内置
-                            </Badge>
-                          ) : null}
-                          {plugin.defaultEnabled ? (
-                            <Badge className="bg-surface-container-low text-on-surface">
-                              默认开启
-                            </Badge>
-                          ) : null}
-                          <Badge className="bg-surface-container-low text-on-surface-variant">
-                            {plugin.manifestJson.id}
-                          </Badge>
-                        </div>
-                        <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                          {plugin.enabled ? "已启用" : "未启用"} ·{" "}
-                          {plugin.killSwitchEnabled
-                            ? "总开关已开启"
-                            : "总开关已关闭"}
-                        </p>
-                        {plugin.builtIn ? (
-                          <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                            该教学环节由系统提供，可停用但不可删除。
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      <form action={submitPluginToggle}>
-                        <input
-                          type="hidden"
-                          name="pluginId"
-                          value={plugin.id}
-                        />
-                        <input
-                          type="hidden"
-                          name="schoolId"
-                          value={plugin.schoolId}
-                        />
-                        <input
-                          type="hidden"
-                          name="enabled"
-                          value={plugin.enabled ? "false" : "true"}
-                        />
-                        <Button
-                          variant="secondary"
-                          className="min-h-10 px-4 text-sm shadow-none"
-                        >
-                          {plugin.builtIn
-                            ? plugin.enabled
-                              ? "停用环节"
-                              : "重新启用"
-                            : plugin.enabled
-                              ? "停用插件"
-                              : "启用插件"}
-                        </Button>
-                      </form>
-                    </div>
-                  </div>
-                ))}
-
-                {plugins.length === 0 ? (
-                  <div
-                    className={cn(
-                      teacherSurfaceRhythm.cardInset,
-                      "p-4 text-sm leading-6 text-on-surface-variant",
-                    )}
-                  >
-                    当前学校尚未注册插件。完成插件注册后，这里会显示启用状态与总开关状态。
-                  </div>
-                ) : null}
+                <PluginLifecycleOperatorSurface schoolId={schoolId} plugins={plugins} />
               </div>
             </section>
           </aside>

@@ -76,7 +76,9 @@ export async function PluginMarketplaceSurface() {
                         {plugin.defaultEnabled ? (
                           <Badge className="bg-surface-container-low text-on-surface">默认开启</Badge>
                         ) : null}
-                        <Badge className="bg-surface-container-low text-on-surface-variant">{plugin.manifestJson.id}</Badge>
+                        <Badge className="bg-surface-container-low text-on-surface-variant">Key: {plugin.pluginKey}</Badge>
+                        <Badge className="bg-surface-container-low text-on-surface-variant">NS: {plugin.dbNamespace}</Badge>
+                        <Badge className="bg-surface-container-low text-on-surface-variant">Type: {plugin.sourceType}</Badge>
                       </div>
                     </div>
 
@@ -153,6 +155,7 @@ export async function PluginMarketplaceSurface() {
               <div className="mt-4 grid gap-3">
                 <MarketplaceLink href="/settings" title="系统设置首页" description="回到主题、通知与快捷入口总览。" />
                 <MarketplaceLink href="/settings/labs" title="实验室布局管理" description="继续处理机房座位、设备与插件运行面。" />
+                <MarketplaceLink href="/settings/labs" title="生命周期管理" description="返回 Labs 查看运行管理、紧急挂起与卸载前检查。" />
               </div>
             </section>
           </aside>
