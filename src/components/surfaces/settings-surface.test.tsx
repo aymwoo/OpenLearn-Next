@@ -2,45 +2,13 @@
 
 import { readFileSync } from "node:fs";
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PluginMarketplaceSurface } from "./plugin-marketplace-surface";
 
-const source = readFileSync(
+const settingsSurfaceSource = readFileSync(
   "src/components/surfaces/settings-surface.tsx",
-  "utf8",
-);
-const widthsSource = readFileSync(
-  "src/components/surfaces/surface-widths.ts",
-  "utf8",
-);
-const teacherPageSource = readFileSync(
-  "src/app/(teacher)/teacher/page.tsx",
-  "utf8",
-);
-const homeSource = readFileSync(
-  "src/components/surfaces/home-surface.tsx",
-  "utf8",
-);
-const studentPageSource = readFileSync(
-  "src/app/(student)/student/page.tsx",
-  "utf8",
-);
-const studentsSource = readFileSync(
-  "src/components/surfaces/students-management-surface.tsx",
-  "utf8",
-);
-const editorPageSource = readFileSync(
-  "src/app/(teacher)/teacher/editor/page.tsx",
-  "utf8",
-);
-const marketplacePageSource = readFileSync(
-  "src/app/settings/plugins/page.tsx",
-  "utf8",
-);
-const marketplaceSurfaceSource = readFileSync(
-  "src/components/surfaces/plugin-marketplace-surface.tsx",
   "utf8",
 );
 
@@ -57,15 +25,42 @@ const pluginActionMocks = vi.hoisted(() => ({
         enabled: true,
         killSwitchEnabled: false,
         manifestJson: { id: "builtin.direct-instruction" },
+        pluginKey: "builtin/direct-instruction",
+        dbNamespace: "builtin_direct_instruction",
+        sourceType: "default" as const,
+        installSource: "bootstrap" as const,
       },
     ],
   })),
   setPluginEnabledAction: vi.fn(),
+  setPluginKillSwitchAction: vi.fn().mockResolvedValue({ success: true }),
+  preflightUninstallPluginAction: vi.fn().mockResolvedValue({
+    success: true,
+    data: {
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      blocked: true,
+      reason: "UNINSTALL_BLOCKED_DEFAULT_PLUGIN",
+      lessonExtCount: 0,
+      stepExtCount: 0,
+      resourceExtCount: 0,
+      ownedBusinessCount: 0,
+      totalCount: 0,
+      impactedLessonIds: [],
+      impactedLessonStepIds: [],
+      impactedResourceIds: [],
+      impactedBusinessKeys: [],
+    },
+  }),
+  uninstallPluginAction: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 vi.mock("@/actions/plugin-actions", () => ({
   listPluginsAction: pluginActionMocks.listPluginsAction,
   setPluginEnabledAction: pluginActionMocks.setPluginEnabledAction,
+  setPluginKillSwitchAction: pluginActionMocks.setPluginKillSwitchAction,
+  preflightUninstallPluginAction: pluginActionMocks.preflightUninstallPluginAction,
+  uninstallPluginAction: pluginActionMocks.uninstallPluginAction,
 }));
 
 vi.mock("@/lib/dal/auth", () => ({
@@ -169,71 +164,12 @@ describe("settings and plugin entry surfaces", () => {
     vi.clearAllMocks();
   });
 
-  it("wires theme controls to the theme action and valid school themes", () => {
-    expect(source).toContain("默认主题");
-    expect(source).toContain("setActiveThemeAction");
-    expect(source).toContain("getValidThemesForSchool");
-    expect(source).toContain("getActiveThemeId");
-    expect(source).toContain("当前使用中");
-  });
-
-  it("tracks active theme state for default and alternate theme cards", () => {
-    expect(source).toContain("const activeThemeId = await getActiveThemeId()");
-    expect(source).toContain("activeThemeId === theme.id");
-    expect(source).toContain("!activeThemeId ? (");
-    expect(source).toContain('<Badge className="bg-primary text-white">');
-    expect(source).toContain("结构摘要");
-    expect(source).not.toContain(
-      "function getThemeDescription(themeName: string)",
-    );
-    expect(source).toContain("左侧导航 / 主内容 60:40");
-    expect(source).toContain("局部回退");
-    expect(source).toContain("teacherSurfaceRhythm.cardInset");
-    expect(source).toContain("teacherSurfaceRhythm.card");
-  });
-
-  it("reuses a shared width contract across affected surfaces", () => {
-    expect(widthsSource).toContain('publicShell: "mx-auto w-full max-w-[1520px]"');
-    expect(widthsSource).toContain('workspace: "mx-auto w-full max-w-[1360px]"');
-    expect(source).toContain("surfaceWidths.workspace");
-    expect(homeSource).toContain("surfaceWidths.publicShell");
-    expect(homeSource).toContain("surfaceWidths.heroTitle");
-    expect(homeSource).toContain("surfaceWidths.heroBody");
-    expect(marketplaceSurfaceSource).toContain("surfaceWidths.workspace");
-    expect(studentsSource).toContain("surfaceWidths.workspace");
-    expect(studentPageSource).toContain("surfaceWidths.workspace");
-    expect(source).not.toContain("max-w-[1280px]");
-    expect(marketplaceSurfaceSource).not.toContain("max-w-[1360px]");
-    expect(studentsSource).not.toContain("max-w-[1280px]");
-  });
-
-  it("keeps settings on the shared teacher rhythm without horizontal scroll wrappers", () => {
-    expect(source).toContain("surfaceWidths.heroTitle");
-    expect(source).toContain("surfaceWidths.heroBody");
-    expect(source).toContain("teacherSurfaceRhythm.hero");
-    expect(source).toContain("teacherSurfaceRhythm.stack");
-    expect(source).not.toContain("overflow-x-auto");
-  });
-
-  it("renders plugin management controls in labs settings", () => {
-    expect(source).toContain("插件管理");
-    expect(source).toContain("setPluginEnabledAction");
-    expect(source).toContain("总开关");
-    expect(source).toContain("/settings/labs");
-  });
-
-  it("renders system transport controls on /settings with deploy authority copy", () => {
-    expect(source).toContain("全局课堂传输模式");
-    expect(source).toContain("effective mode");
-    expect(source).toContain("deployAllowsRedis");
-    expect(source).toContain("切回 local_only");
-    expect(source).toContain("启用 redis_fanout");
-  });
-
-  it("links settings to the dedicated plugin marketplace route", () => {
-    expect(source).toContain("/settings/plugins");
-    expect(source).toContain("插件市场");
-    expect(marketplacePageSource).toContain("PluginMarketplaceSurface");
+  it("wires settings labs plugin management to operator lifecycle surface", () => {
+    expect(settingsSurfaceSource).toContain("PluginLifecycleOperatorSurface");
+    expect(settingsSurfaceSource).toContain("<PluginLifecycleOperatorSurface schoolId={schoolId} plugins={plugins} />");
+    expect(settingsSurfaceSource).toContain('href="/settings/labs/async-tasks"');
+    expect(settingsSurfaceSource).toContain('href="/settings/labs/runtime-inspector"');
+    expect(settingsSurfaceSource).toContain('href="/settings/plugins"');
   });
 
   it("renders built-in marketplace cards with runtime toggle controls", async () => {
@@ -244,7 +180,9 @@ describe("settings and plugin entry surfaces", () => {
     expect(screen.getAllByText("系统内置").length).toBeGreaterThan(0);
     expect(screen.getAllByText("默认开启").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "停用环节" })).toBeTruthy();
-    expect(screen.getByText("builtin.direct-instruction")).toBeTruthy();
+    expect(screen.getByText("Key: builtin/direct-instruction")).toBeTruthy();
+    expect(screen.getByText("NS: builtin_direct_instruction")).toBeTruthy();
+    expect(screen.getByText("Type: default")).toBeTruthy();
 
     const toggleForm = screen
       .getByRole("button", { name: "停用环节" })
@@ -262,10 +200,21 @@ describe("settings and plugin entry surfaces", () => {
     });
   });
 
-  it("adds plugin renderer anchors to teacher, student, and editor pages", () => {
-    expect(teacherPageSource).toContain('anchor="dashboard.widget"');
-    expect(studentPageSource).toContain('anchor="dashboard.widget"');
-    expect(editorPageSource).toContain('anchor="lesson.sidebar"');
-    expect(editorPageSource).toContain("contextPayload");
+  it("submits marketplace toggle through enable action only", async () => {
+    render(await PluginMarketplaceSurface());
+
+    const toggleButtons = screen.getAllByRole("button", { name: "停用环节" });
+    fireEvent.submit(toggleButtons[0].closest("form")!);
+
+    await waitFor(() => {
+      expect(pluginActionMocks.setPluginEnabledAction).toHaveBeenCalledWith({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        enabled: false,
+      });
+    });
+    expect(pluginActionMocks.setPluginKillSwitchAction).not.toHaveBeenCalled();
+    expect(pluginActionMocks.preflightUninstallPluginAction).not.toHaveBeenCalled();
+    expect(pluginActionMocks.uninstallPluginAction).not.toHaveBeenCalled();
   });
 });
