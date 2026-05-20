@@ -1091,6 +1091,10 @@ export const pluginRegistrations = sqliteTable("pluginRegistration", {
   schoolId: text("schoolId").notNull().references(() => schools.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   manifestJson: text("manifestJson", { mode: "json" }).notNull(),
+  pluginKey: text("pluginKey").notNull(),
+  dbNamespace: text("dbNamespace").notNull(),
+  sourceType: text("sourceType", { enum: ["default", "external"] }).notNull(),
+  installSource: text("installSource", { enum: ["manual", "bootstrap", "repair", "seed"] }).notNull(),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
   killSwitchEnabled: integer("killSwitchEnabled", { mode: "boolean" }).notNull().default(false),
   lifecycleState: text("lifecycleState", {
@@ -1098,7 +1102,10 @@ export const pluginRegistrations = sqliteTable("pluginRegistration", {
   }).notNull().default("installed"),
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
-});
+}, (table) => [
+  uniqueIndex("pluginRegistration_school_pluginKey_unique").on(table.schoolId, table.pluginKey),
+  uniqueIndex("pluginRegistration_school_dbNamespace_unique").on(table.schoolId, table.dbNamespace),
+]);
 
 export const pluginLifecycleTransitions = sqliteTable("pluginLifecycleTransition", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

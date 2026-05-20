@@ -78,6 +78,13 @@
       "when": 1779252440603,
       "tag": "0010_wandering_angel",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1779272108905,
+      "tag": "0011_phase44_plugin_identity_namespace",
+      "breakpoints": true
     }
   ]
 }

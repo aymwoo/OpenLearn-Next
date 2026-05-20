@@ -110,6 +110,19 @@ async function detectExistingSchemaTag() {
     hasPhase43KnowledgeSourceUniquenessSchema
     && await indexExists("knowledgeChunks_source_chunk_unique");
 
+  const hasPhase44PluginIdentityNamespaceSchema =
+    hasPhase43KnowledgeChunkUniquenessSchema
+    && await columnExists("pluginRegistration", "pluginKey")
+    && await columnExists("pluginRegistration", "dbNamespace")
+    && await columnExists("pluginRegistration", "sourceType")
+    && await columnExists("pluginRegistration", "installSource")
+    && await indexExists("pluginRegistration_school_pluginKey_unique")
+    && await indexExists("pluginRegistration_school_dbNamespace_unique");
+
+  if (hasPhase44PluginIdentityNamespaceSchema) {
+    return "0011_phase44_plugin_identity_namespace";
+  }
+
   if (hasPhase43KnowledgeChunkUniquenessSchema) {
     return "0010_wandering_angel";
   }
