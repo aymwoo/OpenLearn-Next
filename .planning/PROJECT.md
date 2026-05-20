@@ -18,7 +18,7 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - durable truth 继续由 SQLite + DAL + canonical classroom/runtime write path 持有，Redis、BullMQ 与 WebSocket 都不成为新的业务真相源。
 - `v2.3 Async Task Platform` 已于 2026-05-20 归档；typed task registry、统一 enqueue boundary、SQLite task ledger、dedicated worker、operator visibility 与 safe retry posture 已落地。
 - batch import、scheduled reminders 与 classroom event post-processing 已形成真实产品闭环；resource processing 的平台层 wiring 已交付，但 `/resources` 产品触发入口和部分 milestone proof artifact 仍作为 accepted gaps 保留。
-- 当前没有 active milestone；下一轮需要先决定是补 `v2.3` closure gaps，还是启动新的 frontier milestone。
+- `v2.4 Plugin Data Architecture & Default Plugins` 已启动；当前 planning 主问题从 async platform closeout 转向“插件如何安全拥有结构化数据并扩展系统能力”。
 
 ## Most Recently Archived Milestone: v2.3 Async Task Platform
 
@@ -35,11 +35,22 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - `ATP-23`: 第 4 类 workload 因产品触发闭环缺失，只能算 partial proof。
 - Phase 39 / 40 / 41 仍缺 `VERIFICATION.md` proof artifacts；Phase 40 还缺 `verify:phase40` npm entry。
 
+## Current Milestone: v2.4 Plugin Data Architecture & Default Plugins
+
+**Goal:** 建立可让插件安全拥有结构化数据的数据库与治理架构，使插件既能扩展核心实体，也能拥有独立业务表，并在统一前缀约束下落地一批系统默认插件样板。
+
+**Target features:**
+- 梳理当前插件系统在 manifest、registry、DAL、hook/action、built-in plugin、marketplace 和 schema 层的真实实现与边界。
+- 设计并落地插件数据模型，支持插件以 extension table 扩展核心实体，而不是继续把结构化数据挤进 JSON payload。
+- 允许插件拥有独立业务表，但必须通过稳定的 `dbNamespace` / 前缀规范统一命名，并受主仓库 migration governance 管理。
+- 收口插件架构的关键约束：插件身份显式化、权限模型、生命周期状态、默认启用语义，以及插件与附属数据的一致性。
+- 先落地 2-3 类默认插件样板，验证“系统基础模块默认插件化”不是特例，而是这套数据模型的第一批使用者。
+
 ## Next Milestone Goals
 
-- 先决定是否开一个小 closure slice 收口 `v2.3` accepted gaps；如果要收口，范围应只限于 resource-ingest product trigger 与 proof-chain artifacts。
-- 若不继续补 `v2.3`，则通过 `/gsd-new-milestone` 重新定义新的 `.planning/REQUIREMENTS.md`，避免在没有明确 milestone 的情况下继续堆实现。
-- 无论选择哪条路，都继续沿用“单体内平台化”路线：SQLite + DAL 持有 durable truth，Redis/BullMQ/WebSocket 只承担 orchestration 与 delivery 角色。
+- 先把插件数据边界做对：明确哪些场景使用 extension table、哪些场景使用 plugin-owned table，以及插件如何稳定声明自己的数据库命名空间。
+- 保持 `v2.3` accepted gaps 为已知债务，但不把本 milestone 重新拉回 async platform closeout；只有当默认插件样板直接依赖这些入口时，才在 roadmap 中纳入最小必要闭环。
+- 继续沿用“单体内平台化”路线：SQLite + DAL 持有 durable truth；插件可以拥有表，但不能绕过主应用的 migration、authz、DTO 和 cache discipline。
 
 <details>
 <summary>Archived v2.2 milestone context</summary>
@@ -81,10 +92,11 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ### Active
 
-- [ ] 补齐 `ATP-22`：给 teacher `/resources` / `LibrarySurface` 接上 knowledge source ingest 真实触发入口，闭合 resource-processing 产品主链路。
-- [ ] 补齐 `ATP-23` 的第 4 类 workload product proof，并重新跑 milestone audit 把 accepted gap 收口。
-- [ ] 为 Phase 39 / 40 / 41 补 `39-VERIFICATION.md`、`40-VERIFICATION.md`、`41-VERIFICATION.md`，并注册 `verify:phase40`，把 async platform proof chain 变成可重复 close gate。
-- [ ] 选定下一 milestone frontier，避免同时重开 PostgreSQL、AI runtime、third-party runtime governance 等多个 deferred frontiers。
+- [ ] 插件可以通过受治理的 extension table 为核心实体新增结构化数据，而不是继续依赖零散 JSON 字段。
+- [ ] 插件可以拥有独立业务表，但所有插件自有数据库对象都必须使用统一、稳定、可审计的前缀 / namespace。
+- [ ] 插件注册信息必须显式表达稳定身份与数据库命名空间，不能把关键治理字段仅埋在 `manifestJson` 内。
+- [ ] 默认插件必须复用同一套数据治理模型，而不是继续依赖 hard-coded built-in 特例。
+- [ ] 插件数据访问继续强制经过 DAL + Server Actions + cache/tag discipline，不开放 runtime DDL、插件直连 DB 或 manifest 自带 SQL migration。
 
 ### Out of Scope
 
@@ -98,6 +110,9 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - AI runtime expansion — 后台任务平台先用 deterministic product jobs 证明价值，不在本轮扩成 AI 执行平台。
 - 第三方 runtime/package governance — 这属于独立 trust boundary 问题，不和内部 async platform 一起推进。
 - PostgreSQL primary cutover、第二 runtime 类型、第三方 runtime package、sandbox 增强或 AI runtime expansion，不因 `v2.3` 归档而自动进入执行状态。
+- runtime manifest 驱动的动态建表、动态执行 SQL migration，或插件绕过主仓库迁移体系直接修改数据库结构。
+- 为单个插件需求在核心表上持续堆叠插件专属 nullable 列，导致 core schema 被插件污染。
+- 按 school / plugin installation 动态创建物理表或引入多数据库 / PostgreSQL schema-per-plugin 模型。
 
 ## Context
 
@@ -105,9 +120,11 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 
 当前代码已经具备 `courses`、`courseClasses`、`courseEnrollments`、`lessons`、`publishedLessonVersions`、`lessonStepProgress`、`taskSubmissions`、`quizAttempts`、`classroomSessions`、`classroomParticipants`、`classroomEvents` 等核心 schema，也已经支持教师端编排、预览、发布，学生端学习与提交，课堂运行与评价闭环，以及 runtime-platform foundation、sandboxed HTML runtime、transport boundary、WebSocket cutover、optional Redis fanout 与 async task platform。
 
-这意味着“可运行的课堂闭环基础”、`Runtime Platform` 第一轮核心边界、以及通用后台任务平台都已经成立。当前真正的规划问题不再是“BullMQ/worker 能不能接进来”，而是应该先收口 `v2.3` accepted gaps，还是优先推进下一个 deferred frontier，并避免重新把多个基础设施迁移绑成一个大而散的 milestone。
+这意味着“可运行的课堂闭环基础”、`Runtime Platform` 第一轮核心边界、以及通用后台任务平台都已经成立。当前真正的规划问题不再是“BullMQ/worker 能不能接进来”，而是插件能否从“受控动作与 built-in 模板”演进为“可安全拥有结构化数据、可扩展核心模型、可承载默认系统模块”的长期架构。
 
-当前主工程仍以 `src/app` 为中心，但已经落地 `src/features/runtime-platform/*`、shared contracts、runtime host、typed event truth、plugin lifecycle、transport boundary、WebSocket-first classroom transport、optional Redis fanout、`src/features/async-tasks/*` 和 canonical milestone close gates。后续应该继续沿用“单体内平台化”的渐进路线，而不是回退成 big-bang infra rewrite。
+当前主工程仍以 `src/app` 为中心，但已经落地 `src/features/runtime-platform/*`、shared contracts、runtime host、typed event truth、plugin lifecycle、transport boundary、WebSocket-first classroom transport、optional Redis fanout、`src/features/async-tasks/*` 和 canonical milestone close gates。插件侧已有 `pluginRegistration`、lifecycle / hook / governance audit、built-in teaching step definitions、plugin marketplace 与受控 dispatch，但数据模型仍停留在“核心表 + 插件注册表 + JSON payload”为主的阶段，尚未形成插件可持续演进的数据边界。
+
+本 milestone 的核心，不是做一个抽象插件平台 demo，而是把数据库与治理边界补齐：插件既可以通过 extension table 扩展核心实体，也可以拥有独立业务表；默认插件也必须走同一模型；同时保持 SQLite-first、DAL-only、migration-centralized 的项目约束不被破坏。
 
 ## Constraints
 
@@ -116,6 +133,7 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 - **Runtime**: Node.js 20.9+ 为主，WebSocket upgrade 与 transport host 由 Node runtime 承接，SSE 只保留为 rollback surface。
 - **Caching**: Next.js 16 必须显式缓存，写入后必须更新或失效 tag。
 - **Database**: 首发只针对 SQLite，所有关联必须 cascade delete。
+- **Plugin data**: 插件允许拥有独立表，但表名、索引名和其他数据库对象必须遵循统一前缀 / namespace 规范，并由主仓库迁移统一管理。
 - **Realtime**: 课堂实时链路现为 WebSocket-first，并保留 SSE rollback surface，支持 locked/unlocked。
 - **Security**: 插件禁止 `eval()`、动态执行第三方代码、直接访问 DB 或核心 API。
 - **Design**: 页面实现必须参考 Stitch 项目 `5322129002350954765` 与 `DESIGN.md`。
@@ -137,6 +155,8 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 | v2.3 Async Task Platform 采用 BullMQ + 独立 worker 进程 + SQLite task ledger | 让 Redis/BullMQ 只承担 orchestration 与 execution 角色，同时保持现有 DAL/DTO/cache discipline 不被绕过 | ✓ Good |
 | teacher-facing async UX 保持 business-entity-first posture，而不是把产品面重构成独立 task center | 让教师继续从 batch/reminder/resource 语义理解系统，而不是暴露平台内部中心化术语 | ✓ Good |
 | milestone audit 必须区分“真实产品闭环缺口”和“proof artifact 缺口” | 避免把代码 blocker 与文档/verification debt 混成一个模糊结论 | ✓ Good |
+| 插件数据模型优先采用 extension table + plugin-owned table，而不是 core table 污染或 runtime DDL | 在 SQLite-first 单体里兼顾灵活扩展、可迁移性和治理边界 | — Pending |
+| 默认插件必须复用正式插件数据治理模型，而不是继续依赖 built-in 特例 | 只有系统模块自己走通这套模型，插件架构才算真实成立 | — Pending |
 
 ## Evolution
 
@@ -156,4 +176,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-20 after archiving milestone v2.3 Async Task Platform*
+*Last updated: 2026-05-20 after starting milestone v2.4 Plugin Data Architecture & Default Plugins*
