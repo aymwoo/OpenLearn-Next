@@ -888,14 +888,14 @@ export const config = {
         title: "reminders DAL",
         stateLabel: "当前可用",
         paragraphs: [
-          "`src/features/schedule/reminders/actions.ts` 提供提醒规则的保存、重试和刷新：`saveScheduleReminderRuleAction`、`retryScheduleReminderDispatchAction`、`refreshScheduleReminderCenterAction`。",
+          "`src/features/schedule/reminders/actions.ts` 提供提醒规则的保存和刷新：`saveScheduleReminderRuleAction`、`refreshScheduleReminderCenterAction`。",
           "提醒规则保存在 `scheduleReminderRule` 表，与 school scope 关联。当前首发允许的提醒类型、对象和渠道有限制，超出范围的写入会触发 `SCHEDULE_REMINDER_BLOCKED` 错误。",
-          "`retryScheduleReminderDispatch()` 用于重新触发一个失败的 dispatch 记录，保持幂等性。",
+          "提醒失败后的恢复动作已收口到 operator async task 面，教师页只消费诚实的 delivery 状态。",
         ],
         bullets: [
           "提醒规则写入后通过 `invalidateScheduleReminderTags()` 清除相关缓存。",
           "当前首发只支持受限的提醒类型/对象/渠道，具体范围由 `ScheduleReminderRuleInputSchema` 约束。",
-          "dispatch retry 不会无限重试，受调度策略控制。",
+          "dispatch recovery 不会在 feature 页本地执行，统一受 operator recovery posture 控制。",
         ],
       },
       {

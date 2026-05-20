@@ -10,7 +10,10 @@ export const ScheduleReminderTypeSchema = z.enum(["pre_class", "schedule_change"
 
 export const ScheduleReminderStatusSchema = z.enum([
   "planned",
+  "queued",
   "dispatching",
+  "running",
+  "retrying",
   "sent",
   "failed",
   "retry_required",

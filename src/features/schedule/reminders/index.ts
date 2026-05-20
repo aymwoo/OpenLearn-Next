@@ -1,12 +1,10 @@
 export {
   refreshScheduleReminderCenterAction,
-  retryScheduleReminderDispatchAction,
   saveScheduleReminderRuleAction,
 } from "./actions";
 export { ScheduleReminderSurface } from "@/components/surfaces/schedule-reminder-surface";
 export {
   getScheduleReminderCenterDTO,
-  retryScheduleReminderDispatch,
   saveScheduleReminderRule,
 } from "./server";
 export {

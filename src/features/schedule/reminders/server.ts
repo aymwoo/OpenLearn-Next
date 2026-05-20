@@ -5,6 +5,7 @@ import { and, eq, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { scheduleReminderDispatch, scheduleReminderRule } from "@/db/schema";
 import { enqueueAsyncTask } from "@/features/async-tasks/server/enqueue";
+import { getAsyncTaskDetailDTO } from "@/lib/dal/async-tasks";
 import { assertScheduleSchoolScope, assertScheduleTeacherScope } from "@/features/schedule/shared/auth";
 import { appendScheduleAudit } from "@/features/schedule/shared/audit";
 import {
@@ -25,6 +26,19 @@ function toIso(value: Date | number | null | undefined) {
   }
 
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function toTeacherVisibleReminderStatus(status: string) {
+  switch (status) {
+    case "queued":
+    case "running":
+    case "retrying":
+      return status;
+    case "dispatching":
+      return "queued" as const;
+    default:
+      return status;
+  }
 }
 
 async function planScheduleReminderDispatch(
@@ -66,6 +80,20 @@ export async function getScheduleReminderCenterDTO(input?: { schoolId?: string }
     db.query.scheduleReminderDispatch.findMany({ where: eq(scheduleReminderDispatch.schoolId, schoolId) }),
   ]);
 
+  const taskStatusById = new Map<string, string>();
+  for (const delivery of deliveries) {
+    if (!delivery.deliveryTaskId) {
+      continue;
+    }
+
+    try {
+      const task = await getAsyncTaskDetailDTO({ taskId: delivery.deliveryTaskId });
+      taskStatusById.set(delivery.deliveryTaskId, task.status);
+    } catch {
+      // Ignore stale task refs and fall back to business status.
+    }
+  }
+
   const latestStatusByType = new Map<string, (typeof deliveries)[number]>();
   for (const delivery of [...deliveries].sort((left, right) => Number(right.updatedAt ?? 0) - Number(left.updatedAt ?? 0))) {
     if (!latestStatusByType.has(delivery.type)) {
@@ -83,8 +111,12 @@ export async function getScheduleReminderCenterDTO(input?: { schoolId?: string }
       recipientScope: rule.recipientScope,
       offsetMinutes: rule.offsetMinutes,
       enabled: Boolean(rule.enabled),
-      latestStatus: latestStatusByType.get(rule.type)?.status ?? null,
-    })),
+       latestStatus: latestStatusByType.get(rule.type)
+         ? toTeacherVisibleReminderStatus(
+             taskStatusById.get(latestStatusByType.get(rule.type)!.deliveryTaskId ?? "") ?? latestStatusByType.get(rule.type)!.status,
+           )
+         : null,
+     })),
     deliveries: [...deliveries]
       .sort((left, right) => Number(right.scheduledFor ?? 0) - Number(left.scheduledFor ?? 0))
       .slice(0, 12)
@@ -93,7 +125,7 @@ export async function getScheduleReminderCenterDTO(input?: { schoolId?: string }
         ruleId: delivery.ruleId ?? null,
         type: delivery.type,
         channel: delivery.channel,
-        status: delivery.status,
+        status: toTeacherVisibleReminderStatus(taskStatusById.get(delivery.deliveryTaskId ?? "") ?? delivery.status),
         targetLabel: delivery.targetLabel,
         scheduledFor: toIso(delivery.scheduledFor) ?? new Date(0).toISOString(),
         deliveryTaskId: delivery.deliveryTaskId ?? null,

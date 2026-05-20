@@ -3,7 +3,7 @@
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
-import { getScheduleReminderCenterDTO, retryScheduleReminderDispatch, saveScheduleReminderRule } from "@/features/schedule/reminders/server";
+import { getScheduleReminderCenterDTO, saveScheduleReminderRule } from "@/features/schedule/reminders/server";
 import { invalidateScheduleReminderTags } from "@/features/schedule/shared/cache";
 import { ScheduleReminderRuleInputSchema } from "@/features/schedule/shared/dto/reminders";
 
@@ -43,15 +43,6 @@ export async function saveScheduleReminderRuleAction(input: FormData | Record<st
     const dto = await saveScheduleReminderRule(parsed.data);
     invalidateScheduleReminderTags(updateTag, parsed.data.schoolId);
     return { ok: true, data: dto };
-  } catch (error) {
-    return handleError(error);
-  }
-}
-
-export async function retryScheduleReminderDispatchAction(input: { dispatchId: string }): Promise<ActionResult<unknown>> {
-  try {
-    await retryScheduleReminderDispatch(input);
-    return { ok: true, data: null };
   } catch (error) {
     return handleError(error);
   }

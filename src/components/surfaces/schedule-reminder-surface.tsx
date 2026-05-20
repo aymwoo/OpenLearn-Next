@@ -12,10 +12,13 @@ import { cn } from "@/lib/utils";
 
 const STATUS_LABEL: Record<string, string> = {
   planned: "已计划",
-  dispatching: "系统接管中",
+  queued: "排队中",
+  dispatching: "排队中",
+  running: "正在投递",
+  retrying: "正在恢复",
   sent: "发送成功",
-  failed: "发送失败",
-  retry_required: "需 operator 恢复",
+  failed: "投递失败，需 operator 处理",
+  retry_required: "投递失败，需 operator 处理",
 };
 
 export function ScheduleReminderSurface({ data }: { data: ScheduleReminderCenterDTO }) {
@@ -49,7 +52,7 @@ export function ScheduleReminderSurface({ data }: { data: ScheduleReminderCenter
         <Badge variant="accent">提醒中心</Badge>
         <h1 className="mt-3 text-[2.35rem] font-semibold tracking-[-0.03em] text-on-surface">只做开课前提醒与调课变更提醒</h1>
         <p className="mt-3 max-w-4xl text-sm leading-7 text-on-surface-variant sm:text-base">
-          首发只保留最关键的两类提醒，并诚实展示计划、成功、失败和需重试状态。
+          首发只保留最关键的两类提醒，并诚实展示排队、投递、恢复与 operator-only 处理状态。
         </p>
       </section>
 
@@ -85,12 +88,12 @@ export function ScheduleReminderSurface({ data }: { data: ScheduleReminderCenter
                 <p className="mt-1 text-sm text-on-surface-variant">{delivery.channel} · {delivery.scheduledFor}</p>
               </div>
               <div className="flex items-center gap-3">
-                <Badge>{STATUS_LABEL[delivery.status]}</Badge>
-                {delivery.status === "retry_required" ? (
-                  <span className="text-xs text-on-surface-variant">失败恢复仅在 operator async tasks 面执行</span>
-                ) : null}
-              </div>
-            </div>
+                 <Badge>{STATUS_LABEL[delivery.status] ?? delivery.status}</Badge>
+                 {delivery.status === "retry_required" || delivery.status === "failed" ? (
+                   <span className="text-xs text-on-surface-variant">需 operator 处理；教师页仅展示最近状态，不提供本地恢复入口。</span>
+                 ) : null}
+               </div>
+             </div>
           ))}
         </div>
       </section>
