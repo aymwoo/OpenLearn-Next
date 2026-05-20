@@ -9,6 +9,7 @@ const updateSet = vi.fn(() => ({ where: updateWhere }));
 const insertValues = vi.fn();
 const insertReturning = vi.fn();
 const enqueueAsyncTask = vi.fn();
+const getAsyncTaskDetailDTO = vi.fn();
 
 updateWhere.mockImplementation(() => ({
   returning: updateValues,
@@ -29,6 +30,10 @@ vi.mock("@/db", () => ({
 
 vi.mock("@/features/async-tasks/server/enqueue", () => ({
   enqueueAsyncTask,
+}));
+
+vi.mock("@/lib/dal/async-tasks", () => ({
+  getAsyncTaskDetailDTO,
 }));
 
 vi.mock("@/features/schedule/shared/auth", () => ({

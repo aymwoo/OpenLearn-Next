@@ -4,6 +4,7 @@ import {
   classroomSessionSummaryTaskDefinition,
   courseImportApplyBatchTaskDefinition,
   platformHealthCheckTaskDefinition,
+  resourceKnowledgeSourceIngestTaskDefinition,
   scheduleReminderDeliveryTaskDefinition,
 } from "./registry";
 
@@ -76,6 +77,31 @@ describe("async task registry reliability metadata", () => {
       },
       reliability: {
         queueName: "classroom-summary",
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 2_000,
+        },
+        idempotency: {
+          strategy: "task_id",
+        },
+      },
+    });
+  });
+
+  it("declares resource knowledge source ingest as operator-visible workload metadata", () => {
+    expect(resourceKnowledgeSourceIngestTaskDefinition).toMatchObject({
+      taskType: "resource.knowledge_source_ingest",
+      featureArea: "resource_processing",
+      visibilityScope: "school_operator",
+      entityRefKind: "knowledge_source",
+      operatorRecovery: {
+        enabled: true,
+        mode: "same_task_new_attempt",
+        terminalStatuses: ["failed"],
+      },
+      reliability: {
+        queueName: "resource-processing",
         attempts: 3,
         backoff: {
           type: "exponential",
