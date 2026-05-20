@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -92,6 +92,12 @@ export type PreflightUninstallPluginResult = {
   impactedResourceIds: string[];
   impactedBusinessKeys: string[];
 };
+
+export const ACTIVE_PLUGIN_STATES = ["enabled", "mounted", "ready"] as const satisfies readonly PluginLifecycleState[];
+
+export function isRunnablePluginState(state: PluginLifecycleState) {
+  return (ACTIVE_PLUGIN_STATES as readonly PluginLifecycleState[]).includes(state);
+}
 
 type EnabledPluginsForAnchorInput = PluginManagerScopeInput & {
   hookAnchor: "dashboard.widget" | "lesson.sidebar" | "schedule.assistant";
@@ -277,6 +283,19 @@ function resolveInitialPluginLifecycleState(enabled: boolean, lifecycleState?: P
   return enabled ? "enabled" : "installed";
 }
 
+function getPluginUninstallBlockReason(plugin: Pick<typeof pluginRegistrations.$inferSelect, "sourceType" | "manifestJson">) {
+  if (plugin.sourceType === "default") {
+    return "UNINSTALL_BLOCKED_DEFAULT_PLUGIN";
+  }
+
+  const manifest = PluginManifestSchema.parse(plugin.manifestJson);
+  if (manifest.nonDeletable) {
+    return "PLUGIN_BUILT_IN_NOT_DELETABLE";
+  }
+
+  return null;
+}
+
 export async function installOrReconcilePlugin(input: InstallOrReconcilePluginInput) {
   await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
 
@@ -459,6 +478,14 @@ export async function setPluginEnabled(input: SetPluginEnabledInput) {
     throw new Error("PLUGIN_NOT_FOUND");
   }
 
+  const result = await transitionPluginLifecycle({
+    actorId: input.actorId,
+    schoolId: input.schoolId,
+    pluginId: input.pluginId,
+    targetState: input.enabled ? "enabled" : "disabled",
+    reason: input.enabled ? "enabled" : "disabled",
+  });
+
   let registeredThemeId: string | null = null;
 
   if (input.enabled) {
@@ -469,14 +496,6 @@ export async function setPluginEnabled(input: SetPluginEnabledInput) {
       registeredThemeId = themeRecord.id;
     }
   }
-
-  const result = await transitionPluginLifecycle({
-    actorId: input.actorId,
-    schoolId: input.schoolId,
-    pluginId: input.pluginId,
-    targetState: input.enabled ? "enabled" : "disabled",
-    reason: input.enabled ? "enabled" : "disabled",
-  });
 
   return {
     ...result,
@@ -576,7 +595,7 @@ export async function transitionPluginLifecycle(input: TransitionPluginLifecycle
       .update(pluginRegistrations)
       .set({
         lifecycleState: input.targetState,
-        enabled: input.targetState === "enabled",
+        enabled: isRunnablePluginState(input.targetState),
         updatedAt: new Date(),
       })
       .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
@@ -652,12 +671,14 @@ export async function preflightUninstallPlugin(input: PluginBySchoolInput): Prom
     return null;
   }
 
-  if (plugin.sourceType === "default") {
+  const blockedReason = getPluginUninstallBlockReason(plugin);
+
+  if (blockedReason) {
     return {
       pluginId: plugin.id,
       schoolId: plugin.schoolId,
       blocked: true,
-      reason: "UNINSTALL_BLOCKED_DEFAULT_PLUGIN",
+      reason: blockedReason,
       lessonExtCount: 0,
       stepExtCount: 0,
       resourceExtCount: 0,
@@ -722,15 +743,12 @@ export async function uninstallPlugin(input: PluginBySchoolInput) {
     return null;
   }
 
-  if (plugin.sourceType === "default") {
-    throw new Error("UNINSTALL_BLOCKED_DEFAULT_PLUGIN");
+  const blockedReason = getPluginUninstallBlockReason(plugin);
+  if (blockedReason) {
+    throw new Error(blockedReason);
   }
 
   const manifest = PluginManifestSchema.parse(plugin.manifestJson);
-  if (manifest.nonDeletable) {
-    throw new Error("PLUGIN_BUILT_IN_NOT_DELETABLE");
-  }
-
   const correlationId = `${plugin.id}:uninstall:${Date.now()}`;
   const [record] = await db.transaction(async (tx) => {
     await tx.insert(governanceAudits).values({
@@ -785,7 +803,7 @@ export async function getEnabledPluginsForAnchor(input: EnabledPluginsForAnchorI
       eq(pluginRegistrations.schoolId, input.schoolId),
       eq(pluginRegistrations.enabled, true),
       eq(pluginRegistrations.killSwitchEnabled, false),
-      eq(pluginRegistrations.lifecycleState, "enabled"),
+      inArray(pluginRegistrations.lifecycleState, [...ACTIVE_PLUGIN_STATES]),
     ),
   });
 
@@ -806,7 +824,7 @@ export async function runPluginHook(input: RunPluginHookInput) {
     return null;
   }
 
-  if (!plugin.enabled) {
+  if (!plugin.enabled || !isRunnablePluginState(plugin.lifecycleState)) {
     return denyHook({
       pluginId: plugin.id,
       schoolId: plugin.schoolId,
@@ -873,7 +891,7 @@ export async function runPluginHook(input: RunPluginHookInput) {
 
   const manifest = PluginManifestSchema.parse(plugin.manifestJson);
 
-  if (plugin.lifecycleState === "suspended" || plugin.lifecycleState === "disabled" || plugin.lifecycleState === "failed") {
+  if (!isRunnablePluginState(plugin.lifecycleState)) {
     return denyHook({
       pluginId: plugin.id,
       schoolId: plugin.schoolId,
