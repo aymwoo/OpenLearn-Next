@@ -367,6 +367,39 @@ export const asyncTaskEvents = sqliteTable(
   ]
 );
 
+export const asyncWorkerHeartbeats = sqliteTable(
+  "asyncWorkerHeartbeat",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    instanceId: text("instanceId").notNull(),
+    status: text("status", {
+      enum: ["ready", "stopping", "stopped"],
+    })
+      .notNull()
+      .default("ready"),
+    queueNamesJson: text("queueNamesJson", { mode: "json" }).notNull(),
+    lastSeenAt: integer("lastSeenAt", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    startedAt: integer("startedAt", { mode: "timestamp_ms" }),
+    stoppedAt: integer("stoppedAt", { mode: "timestamp_ms" }),
+    lastSignal: text("lastSignal"),
+    detailJson: text("detailJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(
+      () => new Date(),
+    ),
+  },
+  (table) => [
+    uniqueIndex("asyncWorkerHeartbeat_instanceId_unique").on(table.instanceId),
+    index("asyncWorkerHeartbeat_status_seen_idx").on(table.status, table.lastSeenAt),
+  ],
+);
+
 export const lessons = sqliteTable(
   "lesson",
   {
@@ -1488,16 +1521,21 @@ export const scheduleReminderDispatch = sqliteTable(
     schoolId: text("schoolId")
       .notNull()
       .references(() => schools.id, { onDelete: "cascade" }),
+    actorId: text("actorId")
+      .references(() => users.id, { onDelete: "cascade" }),
     ruleId: text("ruleId").references(() => scheduleReminderRule.id, { onDelete: "cascade" }),
     type: text("type", { enum: ["pre_class", "schedule_change"] }).notNull(),
     channel: text("channel").notNull(),
     targetType: text("targetType").notNull(),
     targetId: text("targetId").notNull(),
     targetLabel: text("targetLabel").notNull(),
-    status: text("status", { enum: ["planned", "sent", "failed", "retry_required"] })
+    status: text("status", { enum: ["planned", "dispatching", "sent", "failed", "retry_required"] })
       .notNull()
       .default("planned"),
     scheduledFor: integer("scheduledFor", { mode: "timestamp_ms" }).notNull(),
+    deliveryTaskId: text("deliveryTaskId"),
+    dispatchClaimedAt: integer("dispatchClaimedAt", { mode: "timestamp_ms" }),
+    dispatchClaimedBy: text("dispatchClaimedBy"),
     lastAttemptAt: integer("lastAttemptAt", { mode: "timestamp_ms" }),
     sentAt: integer("sentAt", { mode: "timestamp_ms" }),
     failureReason: text("failureReason"),
@@ -1508,6 +1546,7 @@ export const scheduleReminderDispatch = sqliteTable(
   (table) => [
     index("scheduleReminderDispatch_school_status_idx").on(table.schoolId, table.status),
     index("scheduleReminderDispatch_school_scheduled_idx").on(table.schoolId, table.scheduledFor),
+    uniqueIndex("scheduleReminderDispatch_deliveryTaskId_unique").on(table.deliveryTaskId),
   ]
 );
 

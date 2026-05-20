@@ -2,7 +2,11 @@ import "server-only";
 
 import type { QueueEvents, Worker } from "bullmq";
 
-import { closeBullmqConnections, getBullmqEnvironmentCapability } from "@/features/async-tasks/infra/connection";
+import {
+  closeBullmqConnections,
+  getBullmqEnvironmentCapability,
+  getBullmqInstanceId,
+} from "@/features/async-tasks/infra/connection";
 import {
   closeAsyncTaskQueues,
   createAsyncTaskQueueEvents,
@@ -13,6 +17,12 @@ import {
   createAsyncTaskQueueEventsProjector,
   recordAsyncTaskWorkerShutdownRequested,
 } from "@/features/async-tasks/infra/queue-events";
+import {
+  markAsyncWorkerHeartbeatStopped,
+  markAsyncWorkerHeartbeatStopping,
+  upsertAsyncWorkerHeartbeat,
+} from "@/features/async-tasks/infra/heartbeat";
+import { enqueueDueScheduleReminderDispatches } from "@/features/schedule/reminders/server";
 
 import { buildAsyncTaskQueueProcessor } from "./registry";
 
@@ -32,6 +42,89 @@ class AsyncTaskWorkerRuntime {
   private started = false;
   private shutdownHandlersAttached = false;
   private activeSignal: string | null = null;
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+  private dueDispatchSweepInterval: ReturnType<typeof setInterval> | null = null;
+
+  private getQueueNamesSnapshot() {
+    return [...this.workers.keys()];
+  }
+
+  private clearHeartbeatInterval() {
+    if (!this.heartbeatInterval) {
+      return;
+    }
+
+    clearInterval(this.heartbeatInterval);
+    this.heartbeatInterval = null;
+  }
+
+  private clearDueDispatchSweepInterval() {
+    if (!this.dueDispatchSweepInterval) {
+      return;
+    }
+
+    clearInterval(this.dueDispatchSweepInterval);
+    this.dueDispatchSweepInterval = null;
+  }
+
+  private async writeHeartbeat(status: "ready" | "stopping" | "stopped", signal?: string) {
+    const queueNames = this.getQueueNamesSnapshot();
+
+    if (status === "ready") {
+      await upsertAsyncWorkerHeartbeat({
+        instanceId: getBullmqInstanceId(),
+        status,
+        queueNames,
+        detail: {
+          started: this.started,
+        },
+      });
+      return;
+    }
+
+    if (status === "stopping") {
+      await markAsyncWorkerHeartbeatStopping({
+        instanceId: getBullmqInstanceId(),
+        queueNames,
+        signal: signal ?? "manual",
+        detail: {
+          started: this.started,
+        },
+      });
+      return;
+    }
+
+    await markAsyncWorkerHeartbeatStopped({
+      instanceId: getBullmqInstanceId(),
+      queueNames,
+      signal: signal ?? "manual",
+      detail: {
+        started: this.started,
+      },
+    });
+  }
+
+  private startHeartbeatInterval() {
+    this.clearHeartbeatInterval();
+    this.heartbeatInterval = setInterval(() => {
+      void this.writeHeartbeat("ready");
+    }, 15_000);
+    this.heartbeatInterval.unref?.();
+  }
+
+  private startDueDispatchSweepLoop() {
+    this.clearDueDispatchSweepInterval();
+
+    const runSweep = () => {
+      void enqueueDueScheduleReminderDispatches().catch(() => {
+        // Sweep errors are reflected through durable task truth once dispatch rows bind to tasks.
+      });
+    };
+
+    runSweep();
+    this.dueDispatchSweepInterval = setInterval(runSweep, 5_000);
+    this.dueDispatchSweepInterval.unref?.();
+  }
 
   private attachShutdownHandlers() {
     if (this.shutdownHandlersAttached) {
@@ -86,6 +179,9 @@ class AsyncTaskWorkerRuntime {
     }
 
     this.started = true;
+    await this.writeHeartbeat("ready");
+    this.startHeartbeatInterval();
+    this.startDueDispatchSweepLoop();
 
     return this.getSnapshot();
   }
@@ -96,6 +192,9 @@ class AsyncTaskWorkerRuntime {
     }
 
     this.activeSignal = signal;
+    this.clearHeartbeatInterval();
+    this.clearDueDispatchSweepInterval();
+    await this.writeHeartbeat("stopping", signal);
 
     await recordAsyncTaskWorkerShutdownRequested({
       queueNames: [...this.workers.keys()],
@@ -110,6 +209,7 @@ class AsyncTaskWorkerRuntime {
     this.projectors.clear();
     this.started = false;
     this.activeSignal = null;
+    await this.writeHeartbeat("stopped", signal);
 
     await closeAsyncTaskQueues();
     await closeBullmqConnections();

@@ -8,12 +8,14 @@ import {
 
 import { processCourseImportApplyBatchJob } from "./processors/course-import";
 import { processPlatformHealthcheckJob } from "./processors/platform-healthcheck";
+import { processScheduleReminderDeliveryJob } from "./processors/schedule-reminder";
 
 type AsyncTaskProcessor = Processor;
 
 const asyncTaskWorkerProcessors: Record<string, AsyncTaskProcessor> = {
   "course_import.apply_batch": async (job: Job) => processCourseImportApplyBatchJob(job),
   "platform.healthcheck": async (job: Job) => processPlatformHealthcheckJob(job),
+  "schedule.reminder_delivery": async (job: Job) => processScheduleReminderDeliveryJob(job),
 };
 
 export function getAsyncTaskWorkerProcessor(taskType: string) {

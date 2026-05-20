@@ -71,6 +71,28 @@ async function detectExistingSchemaTag() {
     && await columnExists("asyncTask", "latestRecoveryJson")
     && await columnExists("asyncTaskEvent", "attemptNumber");
 
+  const hasPhase42OperatorSchema =
+    hasPhase40RuntimeProjectionSchema
+    && await tableExists("asyncWorkerHeartbeat")
+    && await columnExists("asyncWorkerHeartbeat", "instanceId")
+    && await columnExists("asyncWorkerHeartbeat", "queueNamesJson")
+    && await columnExists("asyncWorkerHeartbeat", "lastSeenAt");
+
+  const hasPhase43ReminderDispatchClaimSchema =
+    hasPhase42OperatorSchema
+    && await columnExists("scheduleReminderDispatch", "actorId")
+    && await columnExists("scheduleReminderDispatch", "deliveryTaskId")
+    && await columnExists("scheduleReminderDispatch", "dispatchClaimedAt")
+    && await columnExists("scheduleReminderDispatch", "dispatchClaimedBy");
+
+  if (hasPhase43ReminderDispatchClaimSchema) {
+    return "0007_phase43_scheduled_reminder_dispatch_claim";
+  }
+
+  if (hasPhase42OperatorSchema) {
+    return "0006_phase42_async_operator";
+  }
+
   if (hasPhase40RuntimeProjectionSchema) {
     return "0005_phase40_async_task_runtime_projection";
   }

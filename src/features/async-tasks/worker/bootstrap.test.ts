@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 
 const closeWorker = vi.fn(async () => undefined);
 const closeQueueEvents = vi.fn(async () => undefined);
@@ -11,9 +12,14 @@ const createAsyncTaskQueueEventsProjector = vi.fn(() => ({
   close: projectorClose,
 }));
 const recordAsyncTaskWorkerShutdownRequested = vi.fn(async () => []);
+const upsertAsyncWorkerHeartbeat = vi.fn(async () => undefined);
+const markAsyncWorkerHeartbeatStopping = vi.fn(async () => undefined);
+const markAsyncWorkerHeartbeatStopped = vi.fn(async () => undefined);
 const closeAsyncTaskQueues = vi.fn(async () => undefined);
 const closeBullmqConnections = vi.fn(async () => undefined);
 const getAsyncTaskQueueNames = vi.fn(() => ["platform-health"]);
+const buildAsyncTaskQueueProcessor = vi.fn((queueName: string) => async () => ({ queueName }));
+const enqueueDueScheduleReminderDispatches = vi.fn(async () => []);
 
 vi.mock("server-only", () => ({}));
 
@@ -23,7 +29,9 @@ vi.mock("@/features/async-tasks/infra/connection", () => ({
     redisConfigured: true,
     redisUrl: "redis://127.0.0.1:6379/9",
     prefix: "openlearn:test",
+    instanceId: "worker-test",
   })),
+  getBullmqInstanceId: vi.fn(() => "worker-test"),
   closeBullmqConnections,
 }));
 
@@ -39,10 +47,53 @@ vi.mock("@/features/async-tasks/infra/queue-events", () => ({
   recordAsyncTaskWorkerShutdownRequested,
 }));
 
+vi.mock("@/features/async-tasks/infra/heartbeat", () => ({
+  upsertAsyncWorkerHeartbeat,
+  markAsyncWorkerHeartbeatStopping,
+  markAsyncWorkerHeartbeatStopped,
+}));
+
+vi.mock("./registry", () => ({
+  buildAsyncTaskQueueProcessor,
+}));
+
+vi.mock("@/features/schedule/reminders/server", () => ({
+  enqueueDueScheduleReminderDispatches,
+}));
+
+const bootstrapSource = readFileSync("src/features/async-tasks/worker/bootstrap.ts", "utf8");
+
 describe("async task worker bootstrap", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
+
+  it("writes a durable heartbeat on start and refreshes it every 15 seconds", async () => {
+    const { startAsyncTaskWorker, stopAsyncTaskWorker } = await import("./bootstrap");
+
+    await startAsyncTaskWorker();
+    expect(upsertAsyncWorkerHeartbeat).toHaveBeenCalledWith({
+      instanceId: "worker-test",
+      status: "ready",
+      queueNames: ["platform-health"],
+      detail: {
+        started: true,
+      },
+    });
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(upsertAsyncWorkerHeartbeat).toHaveBeenCalledTimes(2);
+    expect(enqueueDueScheduleReminderDispatches).toHaveBeenCalledTimes(4);
+
+    await stopAsyncTaskWorker();
+    vi.useRealTimers();
+  });
+
+  it("keeps due reminder dispatch orchestration in an unref'd worker sweep loop", () => {
+    expect(bootstrapSource).toContain("enqueueDueScheduleReminderDispatches()");
+    expect(bootstrapSource).toContain("this.dueDispatchSweepInterval.unref?.()");
   });
 
   it("starts one worker runtime per registered queue and memoizes repeated starts", async () => {
@@ -84,7 +135,23 @@ describe("async task worker bootstrap", () => {
 
     expect(recordAsyncTaskWorkerShutdownRequested).toHaveBeenCalledWith({
       queueNames: ["platform-health"],
+        signal: "SIGTERM",
+      });
+    expect(markAsyncWorkerHeartbeatStopping).toHaveBeenCalledWith({
+      instanceId: "worker-test",
+      queueNames: ["platform-health"],
       signal: "SIGTERM",
+      detail: {
+        started: true,
+      },
+    });
+    expect(markAsyncWorkerHeartbeatStopped).toHaveBeenCalledWith({
+      instanceId: "worker-test",
+      queueNames: [],
+      signal: "SIGTERM",
+      detail: {
+        started: false,
+      },
     });
   });
 

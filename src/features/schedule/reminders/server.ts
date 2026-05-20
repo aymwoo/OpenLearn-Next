@@ -1,15 +1,20 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lte } from "drizzle-orm";
 
 import { db } from "@/db";
 import { scheduleReminderDispatch, scheduleReminderRule } from "@/db/schema";
+import { enqueueAsyncTask } from "@/features/async-tasks/server/enqueue";
 import { assertScheduleSchoolScope, assertScheduleTeacherScope } from "@/features/schedule/shared/auth";
 import { appendScheduleAudit } from "@/features/schedule/shared/audit";
 import {
   ScheduleReminderCenterDTOSchema,
+  ScheduleReminderDeliveryTaskPayloadSchema,
+  ScheduleReminderPayloadSchema,
+  ScheduleReminderDeliveryTaskResultSchema,
   ScheduleReminderRuleInputSchema,
   type ScheduleReminderCenterDTO,
+  type ScheduleReminderDeliveryTaskPayload,
   type ScheduleReminderRuleInput,
 } from "@/features/schedule/shared/dto/reminders";
 import { dispatchScheduleReminder, isSupportedScheduleReminderChannel } from "@/server/schedule/reminder-dispatch";
@@ -25,6 +30,7 @@ function toIso(value: Date | number | null | undefined) {
 async function planScheduleReminderDispatch(
   executor: Pick<typeof db, "insert">,
   input: {
+    actorId: string;
     schoolId: string;
     ruleId: string;
     type: "pre_class" | "schedule_change";
@@ -35,6 +41,7 @@ async function planScheduleReminderDispatch(
 ) {
   await executor.insert(scheduleReminderDispatch).values({
     schoolId: input.schoolId,
+    actorId: input.actorId,
     ruleId: input.ruleId,
     type: input.type,
     channel: input.channel,
@@ -89,6 +96,8 @@ export async function getScheduleReminderCenterDTO(input?: { schoolId?: string }
         status: delivery.status,
         targetLabel: delivery.targetLabel,
         scheduledFor: toIso(delivery.scheduledFor) ?? new Date(0).toISOString(),
+        deliveryTaskId: delivery.deliveryTaskId ?? null,
+        dispatchClaimedAt: toIso(delivery.dispatchClaimedAt),
         lastAttemptAt: toIso(delivery.lastAttemptAt),
         failureReason: delivery.failureReason ?? null,
       })),
@@ -136,6 +145,7 @@ export async function saveScheduleReminderRule(input: ScheduleReminderRuleInput)
           .returning();
 
     await planScheduleReminderDispatch(tx, {
+      actorId: scope.userId,
       schoolId: parsed.schoolId,
       ruleId: row.id,
       type: row.type,
@@ -157,50 +167,178 @@ export async function saveScheduleReminderRule(input: ScheduleReminderRuleInput)
   return getScheduleReminderCenterDTO({ schoolId: parsed.schoolId });
 }
 
-export async function retryScheduleReminderDispatch(input: { dispatchId: string }) {
-  const scope = await assertScheduleTeacherScope();
-  const delivery = await db.query.scheduleReminderDispatch.findFirst({
-    where: eq(scheduleReminderDispatch.id, input.dispatchId),
+function buildReminderDeliveryResult(input: {
+  dispatchId: string;
+  schoolId: string;
+  ruleId: string | null;
+  channel: string;
+  deliveryStatus: "sent" | "retry_required";
+  failureReason: string | null;
+}) {
+  const outcome = input.deliveryStatus === "sent" ? "completed" : "failed";
+
+  return ScheduleReminderDeliveryTaskResultSchema.parse({
+    dispatchId: input.dispatchId,
+    schoolId: input.schoolId,
+    ruleId: input.ruleId,
+    channel: input.channel,
+    deliveryStatus: input.deliveryStatus,
+    failureReason: input.failureReason,
+    outcome,
+    titleKey:
+      input.deliveryStatus === "sent"
+        ? "asyncTasks.schedule.reminderDelivery.result.sent"
+        : "asyncTasks.schedule.reminderDelivery.result.failed",
+    summaryKey:
+      input.deliveryStatus === "sent"
+        ? "asyncTasks.schedule.reminderDelivery.result.sentSummary"
+        : "asyncTasks.schedule.reminderDelivery.result.failedSummary",
+    counts: {
+      total: 1,
+      succeeded: input.deliveryStatus === "sent" ? 1 : 0,
+      partiallySucceeded: 0,
+      failed: input.deliveryStatus === "sent" ? 0 : 1,
+      skipped: 0,
+    },
+    detail: {
+      dispatchId: input.dispatchId,
+      schoolId: input.schoolId,
+      ruleId: input.ruleId,
+      channel: input.channel,
+      deliveryStatus: input.deliveryStatus,
+      failureReason: input.failureReason,
+    },
   });
-  if (!delivery || !scope.schoolIds.includes(delivery.schoolId)) {
-    throw new Error("TEACHER_AUTH_REQUIRED");
-  }
+}
+
+export async function completeScheduleReminderDeliveryAttempt(
+  rawPayload: unknown,
+  delivery: { status: "sent" | "failed"; failureReason: string | null },
+) {
+  const payload = ScheduleReminderDeliveryTaskPayloadSchema.parse(rawPayload);
+  const attemptedAt = new Date();
+  const projectedStatus = delivery.status === "sent" ? "sent" : "retry_required";
 
   await db
     .update(scheduleReminderDispatch)
     .set({
-      status: "planned",
-      failureReason: null,
-      updatedAt: new Date(),
+      status: projectedStatus,
+      lastAttemptAt: attemptedAt,
+      sentAt: delivery.status === "sent" ? attemptedAt : null,
+      failureReason: delivery.failureReason ?? null,
+      updatedAt: attemptedAt,
     })
-    .where(eq(scheduleReminderDispatch.id, delivery.id));
+    .where(eq(scheduleReminderDispatch.id, payload.dispatchId));
 
-  const result = await dispatchScheduleReminder({
-    channel: delivery.channel,
-    payload: delivery.payloadJson as Record<string, unknown>,
+  return buildReminderDeliveryResult({
+    dispatchId: payload.dispatchId,
+    schoolId: payload.schoolId,
+    ruleId: payload.ruleId,
+    channel: payload.channel,
+    deliveryStatus: projectedStatus,
+    failureReason: delivery.failureReason ?? null,
+  });
+}
+
+async function claimScheduleReminderDispatch(input: {
+  dispatchId: string;
+  now: Date;
+}) {
+  const [claimed] = await db
+    .update(scheduleReminderDispatch)
+    .set({
+      status: "dispatching",
+      dispatchClaimedAt: input.now,
+      dispatchClaimedBy: "due-sweep",
+      failureReason: null,
+      updatedAt: input.now,
+    })
+    .where(
+      and(
+        eq(scheduleReminderDispatch.id, input.dispatchId),
+        eq(scheduleReminderDispatch.status, "planned"),
+        isNull(scheduleReminderDispatch.deliveryTaskId),
+        lte(scheduleReminderDispatch.scheduledFor, input.now),
+      ),
+    )
+    .returning();
+
+  return claimed ?? null;
+}
+
+export async function enqueueDueScheduleReminderDispatches(input?: { now?: Date }) {
+  const now = input?.now ?? new Date();
+  const dueDispatches = await db.query.scheduleReminderDispatch.findMany({
+    where: and(
+      eq(scheduleReminderDispatch.status, "planned"),
+      isNull(scheduleReminderDispatch.deliveryTaskId),
+      lte(scheduleReminderDispatch.scheduledFor, now),
+    ),
   });
 
-  await db.transaction(async (tx) => {
-    await tx
+  const enqueued: Array<{ dispatchId: string; taskId: string; taskStatus: string }> = [];
+
+  for (const dispatch of dueDispatches) {
+    const claimed = await claimScheduleReminderDispatch({ dispatchId: dispatch.id, now });
+
+    if (!claimed) {
+      continue;
+    }
+
+    if (!claimed.actorId) {
+      await db
+        .update(scheduleReminderDispatch)
+        .set({
+          status: "retry_required",
+          failureReason: "REMINDER_DISPATCH_MISSING_ACTOR",
+          updatedAt: new Date(),
+        })
+        .where(eq(scheduleReminderDispatch.id, claimed.id));
+      continue;
+    }
+
+    const task = await enqueueAsyncTask({
+      actorId: claimed.actorId,
+      schoolId: claimed.schoolId,
+      taskType: "schedule.reminder_delivery",
+      entityRef: {
+        entityType: "schedule_reminder_dispatch",
+        entityId: claimed.id,
+        entityLabel: claimed.targetLabel,
+      },
+      payload: {
+        dispatchId: claimed.id,
+        schoolId: claimed.schoolId,
+        ruleId: claimed.ruleId ?? null,
+        actorId: claimed.actorId,
+        channel: claimed.channel,
+        scheduledFor: toIso(claimed.scheduledFor) ?? now.toISOString(),
+        payload: ScheduleReminderPayloadSchema.parse(claimed.payloadJson),
+      } satisfies ScheduleReminderDeliveryTaskPayload,
+      dispatchRequested: true,
+    });
+
+    await db
       .update(scheduleReminderDispatch)
       .set({
-        status: result.status,
-        failureReason: result.failureReason ?? null,
-        lastAttemptAt: new Date(),
-        sentAt: result.status === "sent" ? new Date() : delivery.sentAt,
+        deliveryTaskId: task.id,
+        status: task.status === "dispatch_failed" ? "retry_required" : "dispatching",
+        failureReason: task.failure?.reason ?? null,
         updatedAt: new Date(),
       })
-      .where(eq(scheduleReminderDispatch.id, delivery.id));
+      .where(eq(scheduleReminderDispatch.id, claimed.id));
 
-    await appendScheduleAudit(tx, {
-      schoolId: delivery.schoolId,
-      entityType: "scheduleReminder",
-      entityId: delivery.id,
-      actionType: "retry_dispatch",
-      actorId: scope.userId,
-      payloadJson: { dispatchId: delivery.id, status: result.status },
+    enqueued.push({
+      dispatchId: claimed.id,
+      taskId: task.id,
+      taskStatus: task.status,
     });
-  });
+  }
 
-  return getScheduleReminderCenterDTO({ schoolId: delivery.schoolId });
+  return enqueued;
+}
+
+export async function retryScheduleReminderDispatch(input: { dispatchId: string }) {
+  void input;
+  throw new Error("SCHEDULE_REMINDER_OPERATOR_RECOVERY_ONLY");
 }

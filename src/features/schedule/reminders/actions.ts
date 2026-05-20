@@ -21,6 +21,14 @@ function handleError(error: unknown) {
     };
   }
 
+  if (error instanceof Error && error.message === "SCHEDULE_REMINDER_OPERATOR_RECOVERY_ONLY") {
+    return {
+      ok: false as const,
+      error: "SCHEDULE_REMINDER_OPERATOR_RECOVERY_ONLY",
+      message: "提醒失败后的恢复已收口到 operator 面，请前往异步任务恢复面处理。",
+    };
+  }
+
   return { ok: false as const, error: "ACTION_FAILED", message: "提醒配置暂时没有保存成功。" };
 }
 
@@ -42,9 +50,8 @@ export async function saveScheduleReminderRuleAction(input: FormData | Record<st
 
 export async function retryScheduleReminderDispatchAction(input: { dispatchId: string }): Promise<ActionResult<unknown>> {
   try {
-    const dto = await retryScheduleReminderDispatch(input);
-    invalidateScheduleReminderTags(updateTag, dto.schoolId);
-    return { ok: true, data: dto };
+    await retryScheduleReminderDispatch(input);
+    return { ok: true, data: null };
   } catch (error) {
     return handleError(error);
   }

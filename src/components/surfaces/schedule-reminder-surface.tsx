@@ -6,15 +6,16 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
-import { retryScheduleReminderDispatchAction, saveScheduleReminderRuleAction } from "@/features/schedule/reminders/actions";
+import { saveScheduleReminderRuleAction } from "@/features/schedule/reminders/actions";
 import type { ScheduleReminderCenterDTO } from "@/features/schedule/shared/dto/reminders";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABEL: Record<string, string> = {
   planned: "已计划",
+  dispatching: "系统接管中",
   sent: "发送成功",
   failed: "发送失败",
-  retry_required: "需重试",
+  retry_required: "需 operator 恢复",
 };
 
 export function ScheduleReminderSurface({ data }: { data: ScheduleReminderCenterDTO }) {
@@ -38,19 +39,6 @@ export function ScheduleReminderSurface({ data }: { data: ScheduleReminderCenter
       }
 
       setFeedback({ tone: "success", message: "提醒规则已保存，并已刷新最近执行状态。" });
-      router.refresh();
-    });
-  }
-
-  function retryDelivery(dispatchId: string) {
-    startTransition(async () => {
-      const result = await retryScheduleReminderDispatchAction({ dispatchId });
-      if (!result.ok) {
-        setFeedback({ tone: "error", message: result.message });
-        return;
-      }
-
-      setFeedback({ tone: "success", message: "提醒投递状态已更新。" });
       router.refresh();
     });
   }
@@ -98,10 +86,8 @@ export function ScheduleReminderSurface({ data }: { data: ScheduleReminderCenter
               </div>
               <div className="flex items-center gap-3">
                 <Badge>{STATUS_LABEL[delivery.status]}</Badge>
-                {delivery.status !== "sent" ? (
-                  <Button disabled={isPending} variant="secondary" onClick={() => retryDelivery(delivery.id)}>
-                    重试
-                  </Button>
+                {delivery.status === "retry_required" ? (
+                  <span className="text-xs text-on-surface-variant">失败恢复仅在 operator async tasks 面执行</span>
                 ) : null}
               </div>
             </div>
