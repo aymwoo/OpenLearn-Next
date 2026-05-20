@@ -9,10 +9,12 @@ const getCurrentUserDTOMock = vi.fn();
 const mockPluginDAL = vi.hoisted(() => ({
   registerPluginManifest: vi.fn(),
   setPluginEnabled: vi.fn(),
+  transitionPluginLifecycle: vi.fn(),
   setPluginKillSwitch: vi.fn(),
   listPluginsForSchool: vi.fn(),
   getPluginForSchool: vi.fn(),
-  deletePluginForSchool: vi.fn(),
+  preflightUninstallPlugin: vi.fn(),
+  uninstallPlugin: vi.fn(),
   runPluginHook: vi.fn(),
 }));
 
@@ -191,6 +193,36 @@ describe("plugin-actions", () => {
     });
   });
 
+  describe("transitionPluginLifecycleAction", () => {
+    it("transitions plugin lifecycle and invalidates cache", async () => {
+      const { transitionPluginLifecycleAction } = await import("./plugin-actions");
+
+      mockPluginDAL.transitionPluginLifecycle.mockResolvedValueOnce({
+        ...mockPluginDTO,
+        lifecycleState: "disabled",
+        enabled: false,
+      });
+
+      const result = await transitionPluginLifecycleAction({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        targetState: "disabled",
+        reason: "manual-disable",
+      });
+
+      expect(result).toMatchObject({ success: true, data: expect.objectContaining({ lifecycleState: "disabled" }) });
+      expect(mockPluginDAL.transitionPluginLifecycle).toHaveBeenCalledWith({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        targetState: "disabled",
+        reason: "manual-disable",
+        actorId: "user-1",
+      });
+      expect(updateTag).toHaveBeenCalledWith("plugin:registry");
+      expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
+    });
+  });
+
   describe("setPluginKillSwitchAction", () => {
     it("returns AUTH_REQUIRED when user is not logged in", async () => {
       const { setPluginKillSwitchAction } = await import("./plugin-actions");
@@ -304,7 +336,7 @@ describe("plugin-actions", () => {
     it("deletes plugin and invalidates cache", async () => {
       const { deletePluginAction } = await import("./plugin-actions");
 
-      mockPluginDAL.deletePluginForSchool.mockResolvedValueOnce({ ...mockPluginDTO });
+      mockPluginDAL.uninstallPlugin.mockResolvedValueOnce({ ...mockPluginDTO });
 
       const result = await deletePluginAction({ pluginId: "plugin-1", schoolId: "school-1" });
 
@@ -316,11 +348,45 @@ describe("plugin-actions", () => {
     it("returns PLUGIN_DELETE_FAILED on DAL error", async () => {
       const { deletePluginAction } = await import("./plugin-actions");
 
-      mockPluginDAL.deletePluginForSchool.mockRejectedValueOnce(new Error("PLUGIN_BUILT_IN_NOT_DELETABLE"));
+      mockPluginDAL.uninstallPlugin.mockRejectedValueOnce(new Error("UNINSTALL_BLOCKED_DEFAULT_PLUGIN"));
 
       const result = await deletePluginAction({ pluginId: "plugin-1", schoolId: "school-1" });
 
-      expect(result).toMatchObject({ success: false, error: "PLUGIN_BUILT_IN_NOT_DELETABLE" });
+      expect(result).toMatchObject({ success: false, error: "UNINSTALL_BLOCKED_DEFAULT_PLUGIN" });
+    });
+  });
+
+  describe("preflightUninstallPluginAction", () => {
+    it("returns preflight uninstall summary", async () => {
+      const { preflightUninstallPluginAction } = await import("./plugin-actions");
+
+      mockPluginDAL.preflightUninstallPlugin.mockResolvedValueOnce({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        blocked: false,
+        reason: null,
+        lessonExtCount: 1,
+        stepExtCount: 2,
+        resourceExtCount: 3,
+        ownedBusinessCount: 4,
+        totalCount: 10,
+        impactedLessonIds: ["lesson-1"],
+        impactedLessonStepIds: ["step-1", "step-2"],
+        impactedResourceIds: ["resource-1", "resource-2", "resource-3"],
+        impactedBusinessKeys: ["dashboard", "settings", "gradebook", "metrics"],
+      });
+
+      const result = await preflightUninstallPluginAction({ pluginId: "plugin-1", schoolId: "school-1" });
+
+      expect(result).toMatchObject({
+        success: true,
+        data: expect.objectContaining({ blocked: false, totalCount: 10 }),
+      });
+      expect(mockPluginDAL.preflightUninstallPlugin).toHaveBeenCalledWith({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        actorId: "user-1",
+      });
     });
   });
 

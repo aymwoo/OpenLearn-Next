@@ -7,8 +7,12 @@ import {
   governanceAudits,
   pluginActionAudits,
   pluginHookRuns,
+  pluginLessonExtensions,
   pluginLifecycleTransitions,
+  pluginLessonStepExtensions,
+  pluginOwnedBusinessData,
   pluginRegistrations,
+  pluginResourceExtensions,
 } from "@/db/schema";
 import type { PluginLifecycleState, RuntimeActorScope } from "@/features/runtime-platform/contracts/permissions";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
@@ -64,8 +68,29 @@ type SetPluginEnabledInput = PluginManagerScopeInput & {
   enabled: boolean;
 };
 
+type TransitionPluginLifecycleInput = PluginBySchoolInput & {
+  targetState: PluginLifecycleState;
+  reason: string;
+};
+
 type PluginBySchoolInput = PluginManagerScopeInput & {
   pluginId: string;
+};
+
+export type PreflightUninstallPluginResult = {
+  pluginId: string;
+  schoolId: string;
+  blocked: boolean;
+  reason: string | null;
+  lessonExtCount: number;
+  stepExtCount: number;
+  resourceExtCount: number;
+  ownedBusinessCount: number;
+  totalCount: number;
+  impactedLessonIds: string[];
+  impactedLessonStepIds: string[];
+  impactedResourceIds: string[];
+  impactedBusinessKeys: string[];
 };
 
 type EnabledPluginsForAnchorInput = PluginManagerScopeInput & {
@@ -221,6 +246,29 @@ async function createHookRun(pluginId: string, hookAnchor: string, status: "succ
   return record;
 }
 
+const PLUGIN_LIFECYCLE_TRANSITION_MATRIX: Record<PluginLifecycleState, readonly PluginLifecycleState[]> = {
+  installed: ["enabled", "disabled"],
+  enabled: ["mounted", "ready", "suspended", "disabled", "failed"],
+  mounted: ["ready", "suspended", "disabled", "failed"],
+  ready: ["suspended", "disabled", "failed"],
+  suspended: ["enabled", "disabled", "failed"],
+  disabled: ["enabled"],
+  failed: ["installed", "disabled"],
+};
+
+export function assertPluginLifecycleTransition(
+  fromState: PluginLifecycleState,
+  toState: PluginLifecycleState,
+) {
+  if (fromState === toState) {
+    return;
+  }
+
+  if (!PLUGIN_LIFECYCLE_TRANSITION_MATRIX[fromState].includes(toState)) {
+    throw new Error("LIFECYCLE_ILLEGAL_TRANSITION");
+  }
+}
+
 function resolveInitialPluginLifecycleState(enabled: boolean, lifecycleState?: PluginLifecycleState) {
   if (lifecycleState) {
     return lifecycleState;
@@ -307,6 +355,9 @@ export async function installOrReconcilePlugin(input: InstallOrReconcilePluginIn
     return toPluginDTO(record);
   }
 
+  const nextLifecycleState = input.lifecycleState ?? targetRecord.lifecycleState;
+  assertPluginLifecycleTransition(targetRecord.lifecycleState, nextLifecycleState);
+
   const [record] = await db
     .update(pluginRegistrations)
     .set({
@@ -318,7 +369,7 @@ export async function installOrReconcilePlugin(input: InstallOrReconcilePluginIn
       installSource: targetRecord.installSource,
       enabled: input.enabled ?? targetRecord.enabled,
       killSwitchEnabled: input.killSwitchEnabled ?? targetRecord.killSwitchEnabled,
-      lifecycleState: input.lifecycleState ?? targetRecord.lifecycleState,
+      lifecycleState: nextLifecycleState,
       updatedAt: new Date(),
     })
     .where(and(eq(pluginRegistrations.id, targetRecord.id), eq(pluginRegistrations.schoolId, input.schoolId)))
@@ -327,7 +378,6 @@ export async function installOrReconcilePlugin(input: InstallOrReconcilePluginIn
   if (!record) {
     throw new Error("PLUGIN_NOT_FOUND");
   }
-
   await appendPluginLifecycleTransition({
     pluginId: record.id,
     actorId: input.actorId,
@@ -420,30 +470,16 @@ export async function setPluginEnabled(input: SetPluginEnabledInput) {
     }
   }
 
-  const [record] = await db
-    .update(pluginRegistrations)
-    .set({
-      enabled: input.enabled,
-      lifecycleState: input.enabled ? "enabled" : "disabled",
-      updatedAt: new Date(),
-    })
-    .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
-    .returning();
-
-  if (!record) {
-    throw new Error("PLUGIN_NOT_FOUND");
-  }
-
-  await appendPluginLifecycleTransition({
-    pluginId: record.id,
+  const result = await transitionPluginLifecycle({
     actorId: input.actorId,
-    fromState: plugin.lifecycleState,
-    toState: record.lifecycleState,
+    schoolId: input.schoolId,
+    pluginId: input.pluginId,
+    targetState: input.enabled ? "enabled" : "disabled",
     reason: input.enabled ? "enabled" : "disabled",
   });
 
   return {
-    ...toPluginDTO(record),
+    ...result,
     registeredThemeId,
   };
 }
@@ -461,11 +497,22 @@ export async function setPluginKillSwitch(input: { pluginId: string; actorId: st
 
   await assertTeacherManagerScope({ actorId: input.actorId, schoolId: plugin.schoolId });
 
+  const targetState = input.killSwitchEnabled
+    ? "suspended"
+    : plugin.lifecycleState === "suspended"
+      ? "enabled"
+      : plugin.lifecycleState;
+
+  if (targetState !== plugin.lifecycleState) {
+    assertPluginLifecycleTransition(plugin.lifecycleState, targetState);
+  }
+
   const [record] = await db
     .update(pluginRegistrations)
     .set({
       killSwitchEnabled: input.killSwitchEnabled,
-      lifecycleState: input.killSwitchEnabled ? "suspended" : plugin.lifecycleState === "suspended" ? "enabled" : plugin.lifecycleState,
+      enabled: targetState === "enabled",
+      lifecycleState: targetState,
       updatedAt: new Date(),
     })
     .where(eq(pluginRegistrations.id, input.pluginId))
@@ -475,13 +522,15 @@ export async function setPluginKillSwitch(input: { pluginId: string; actorId: st
     throw new Error("PLUGIN_NOT_FOUND");
   }
 
-  await appendPluginLifecycleTransition({
-    pluginId: record.id,
-    actorId: input.actorId,
-    fromState: plugin.lifecycleState,
-    toState: record.lifecycleState,
-    reason: input.killSwitchEnabled ? "kill-switch-enabled" : "kill-switch-disabled",
-  });
+  if (record.lifecycleState !== plugin.lifecycleState) {
+    await appendPluginLifecycleTransition({
+      pluginId: record.id,
+      actorId: input.actorId,
+      fromState: plugin.lifecycleState,
+      toState: record.lifecycleState,
+      reason: input.killSwitchEnabled ? "kill-switch-enabled" : "kill-switch-disabled",
+    });
+  }
 
   return toPluginDTO(record);
 }
@@ -506,7 +555,93 @@ export async function getPluginForSchool(input: PluginBySchoolInput) {
   return row ? toPluginDTO(row) : null;
 }
 
-export async function deletePluginForSchool(input: PluginBySchoolInput) {
+export async function transitionPluginLifecycle(input: TransitionPluginLifecycleInput) {
+  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
+
+  const plugin = await db.query.pluginRegistrations.findFirst({
+    where: and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)),
+  });
+
+  if (!plugin) {
+    throw new Error("PLUGIN_NOT_FOUND");
+  }
+
+  assertPluginLifecycleTransition(plugin.lifecycleState, input.targetState);
+
+  const manifest = PluginManifestSchema.parse(plugin.manifestJson);
+  const correlationId = `${plugin.id}:lifecycle:${input.targetState}:${Date.now()}`;
+
+  const [record] = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(pluginRegistrations)
+      .set({
+        lifecycleState: input.targetState,
+        enabled: input.targetState === "enabled",
+        updatedAt: new Date(),
+      })
+      .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
+      .returning();
+
+    if (!updated) {
+      throw new Error("PLUGIN_NOT_FOUND");
+    }
+
+    await tx.insert(pluginLifecycleTransitions).values({
+      pluginId: plugin.id,
+      actorId: input.actorId,
+      fromState: plugin.lifecycleState,
+      toState: input.targetState,
+      reason: input.reason,
+    });
+
+    await tx.insert(pluginActionAudits).values({
+      pluginId: plugin.id,
+      action: "plugin.lifecycle.transition",
+      decision: "allowed",
+      reasonCode: null,
+      schoolId: plugin.schoolId,
+      actorScope: "teacher",
+      lifecycleState: input.targetState,
+      correlationId,
+      payloadJson: {
+        fromState: plugin.lifecycleState,
+        toState: input.targetState,
+        reason: input.reason,
+        sourceType: plugin.sourceType,
+      },
+      actorId: input.actorId,
+    });
+
+    await tx.insert(governanceAudits).values({
+      targetType: "plugin",
+      targetId: plugin.id,
+      pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      action: "plugin.lifecycle.transition",
+      decision: "allowed",
+      reasonCode: null,
+      actorId: input.actorId,
+      actorScope: "teacher",
+      lifecycleState: input.targetState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
+      requestedCapabilitiesJson: [...(manifest.governance?.requestedCapabilities ?? [])],
+      grantedCapabilitiesJson: [],
+      requiredPermission: null,
+      correlationId,
+      payloadJson: {
+        fromState: plugin.lifecycleState,
+        toState: input.targetState,
+        reason: input.reason,
+      },
+    });
+
+    return [updated] as const;
+  });
+
+  return toPluginDTO(record);
+}
+
+export async function preflightUninstallPlugin(input: PluginBySchoolInput): Promise<PreflightUninstallPluginResult | null> {
   await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
 
   const plugin = await db.query.pluginRegistrations.findFirst({
@@ -517,17 +652,124 @@ export async function deletePluginForSchool(input: PluginBySchoolInput) {
     return null;
   }
 
+  if (plugin.sourceType === "default") {
+    return {
+      pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      blocked: true,
+      reason: "UNINSTALL_BLOCKED_DEFAULT_PLUGIN",
+      lessonExtCount: 0,
+      stepExtCount: 0,
+      resourceExtCount: 0,
+      ownedBusinessCount: 0,
+      totalCount: 0,
+      impactedLessonIds: [],
+      impactedLessonStepIds: [],
+      impactedResourceIds: [],
+      impactedBusinessKeys: [],
+    };
+  }
+
+  const [lessonExtensions, stepExtensions, resourceExtensions, ownedBusiness] = await Promise.all([
+    db
+      .select({ lessonId: pluginLessonExtensions.lessonId })
+      .from(pluginLessonExtensions)
+      .where(and(eq(pluginLessonExtensions.schoolId, input.schoolId), eq(pluginLessonExtensions.pluginId, input.pluginId))),
+    db
+      .select({ lessonStepId: pluginLessonStepExtensions.lessonStepId })
+      .from(pluginLessonStepExtensions)
+      .where(and(eq(pluginLessonStepExtensions.schoolId, input.schoolId), eq(pluginLessonStepExtensions.pluginId, input.pluginId))),
+    db
+      .select({ resourceId: pluginResourceExtensions.resourceId })
+      .from(pluginResourceExtensions)
+      .where(and(eq(pluginResourceExtensions.schoolId, input.schoolId), eq(pluginResourceExtensions.pluginId, input.pluginId))),
+    db
+      .select({ key: pluginOwnedBusinessData.key })
+      .from(pluginOwnedBusinessData)
+      .where(and(eq(pluginOwnedBusinessData.schoolId, input.schoolId), eq(pluginOwnedBusinessData.pluginId, input.pluginId))),
+  ]);
+
+  const lessonExtCount = lessonExtensions.length;
+  const stepExtCount = stepExtensions.length;
+  const resourceExtCount = resourceExtensions.length;
+  const ownedBusinessCount = ownedBusiness.length;
+
+  return {
+    pluginId: plugin.id,
+    schoolId: plugin.schoolId,
+    blocked: false,
+    reason: null,
+    lessonExtCount,
+    stepExtCount,
+    resourceExtCount,
+    ownedBusinessCount,
+    totalCount: lessonExtCount + stepExtCount + resourceExtCount + ownedBusinessCount,
+    impactedLessonIds: lessonExtensions.map((row) => row.lessonId),
+    impactedLessonStepIds: stepExtensions.map((row) => row.lessonStepId),
+    impactedResourceIds: resourceExtensions.map((row) => row.resourceId),
+    impactedBusinessKeys: ownedBusiness.map((row) => row.key),
+  };
+}
+
+export async function uninstallPlugin(input: PluginBySchoolInput) {
+  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
+
+  const plugin = await db.query.pluginRegistrations.findFirst({
+    where: and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)),
+  });
+
+  if (!plugin) {
+    return null;
+  }
+
+  if (plugin.sourceType === "default") {
+    throw new Error("UNINSTALL_BLOCKED_DEFAULT_PLUGIN");
+  }
+
   const manifest = PluginManifestSchema.parse(plugin.manifestJson);
-  if (manifest.builtIn || manifest.nonDeletable) {
+  if (manifest.nonDeletable) {
     throw new Error("PLUGIN_BUILT_IN_NOT_DELETABLE");
   }
 
-  const [record] = await db
-    .delete(pluginRegistrations)
-    .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
-    .returning();
+  const correlationId = `${plugin.id}:uninstall:${Date.now()}`;
+  const [record] = await db.transaction(async (tx) => {
+    await tx.insert(governanceAudits).values({
+      targetType: "plugin",
+      targetId: plugin.id,
+      pluginId: null,
+      schoolId: plugin.schoolId,
+      action: "plugin.uninstall",
+      decision: "allowed",
+      reasonCode: null,
+      actorId: input.actorId,
+      actorScope: "teacher",
+      lifecycleState: plugin.lifecycleState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
+      requestedCapabilitiesJson: [...(manifest.governance?.requestedCapabilities ?? [])],
+      grantedCapabilitiesJson: [],
+      requiredPermission: null,
+      correlationId,
+      payloadJson: {
+        pluginKey: plugin.pluginKey,
+        sourceType: plugin.sourceType,
+        dbNamespace: plugin.dbNamespace,
+        lifecycleState: plugin.lifecycleState,
+      },
+    });
+
+    const [deleted] = await tx
+      .delete(pluginRegistrations)
+      .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
+      .returning();
+
+    return [deleted ?? null] as const;
+  });
 
   return record ? toPluginDTO(record) : null;
+}
+
+export async function deletePluginForSchool(input: PluginBySchoolInput) {
+  return uninstallPlugin(input);
 }
 
 export async function getEnabledPluginsForAnchor(input: EnabledPluginsForAnchorInput) {
@@ -690,6 +932,7 @@ export async function runPluginHook(input: RunPluginHookInput) {
         payload: {
           ...input.input.payload,
           pluginName: plugin.name,
+          pluginKey: plugin.pluginKey,
         },
       }
     : input.input;
@@ -812,3 +1055,52 @@ export async function listBuiltInTeachingStepSuggestions(input: PluginManagerSco
 export type BuiltInTeachingStepTemplateResult = Awaited<ReturnType<typeof getBuiltInTeachingStepTemplateForSchool>>;
 export type BuiltInTeachingStepSuggestionResult = Awaited<ReturnType<typeof listBuiltInTeachingStepSuggestions>>[number];
 export type PluginHookResult = PluginActionResult;
+
+/**
+ * Plugin identity metadata schema for operations and administration audits.
+ */
+export type PluginIdentityMetadata = {
+  id: string;
+  schoolId: string;
+  name: string;
+  pluginKey: string;
+  dbNamespace: string;
+  sourceType: "default" | "external";
+  installSource: "manual" | "bootstrap" | "repair" | "seed";
+  enabled: boolean;
+  killSwitchEnabled: boolean;
+  lifecycleState: PluginLifecycleState;
+};
+
+/**
+ * Lists all registered plugins for a school with complete identity and namespace metadata,
+ * protected by standard teacher manager scope authorization check.
+ *
+ * Args:
+ *   input: The scope identification including actorId and schoolId.
+ *
+ * Returns:
+ *   A promise that resolves to an array of plugin identity metadata objects.
+ */
+export async function getPluginIdentityMetadataForSchool(
+  input: PluginManagerScopeInput
+): Promise<PluginIdentityMetadata[]> {
+  await assertTeacherManagerScope(input);
+
+  const rows = await db.query.pluginRegistrations.findMany({
+    where: eq(pluginRegistrations.schoolId, input.schoolId),
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    schoolId: row.schoolId,
+    name: row.name,
+    pluginKey: row.pluginKey,
+    dbNamespace: row.dbNamespace,
+    sourceType: row.sourceType as "default" | "external",
+    installSource: row.installSource as "manual" | "bootstrap" | "repair" | "seed",
+    enabled: row.enabled,
+    killSwitchEnabled: row.killSwitchEnabled,
+    lifecycleState: row.lifecycleState,
+  }));
+}

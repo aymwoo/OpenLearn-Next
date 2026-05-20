@@ -5,13 +5,15 @@ import { z } from "zod";
 
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import {
-  deletePluginForSchool,
   getPluginForSchool,
   listPluginsForSchool,
+  preflightUninstallPlugin,
   registerPluginManifest,
   runPluginHook,
   setPluginEnabled,
   setPluginKillSwitch,
+  transitionPluginLifecycle,
+  uninstallPlugin,
 } from "@/lib/dal/plugins";
 import { cacheTags } from "@/lib/cache-policy";
 import { PluginActionInputSchema, PluginManifestSchema } from "@/lib/dto/resource-ai";
@@ -26,6 +28,13 @@ const SetEnabledSchema = z.object({
   pluginId: z.string().min(1),
   schoolId: z.string().min(1),
   enabled: z.boolean(),
+});
+
+const TransitionPluginLifecycleSchema = z.object({
+  pluginId: z.string().min(1),
+  schoolId: z.string().min(1),
+  targetState: z.enum(["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"]),
+  reason: z.string().min(1),
 });
 
 const KillSwitchSchema = z.object({
@@ -102,6 +111,21 @@ export async function setPluginEnabledAction(data: z.infer<typeof SetEnabledSche
   }
 }
 
+export async function transitionPluginLifecycleAction(data: z.infer<typeof TransitionPluginLifecycleSchema>) {
+  const parsed = TransitionPluginLifecycleSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const result = await transitionPluginLifecycle({ ...parsed.data, actorId });
+    updateTag(cacheTags.pluginRegistry);
+    updateTag(cacheTags.plugin(parsed.data.pluginId));
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_LIFECYCLE_TRANSITION_FAILED") };
+  }
+}
+
 export async function setPluginKillSwitchAction(data: z.infer<typeof KillSwitchSchema>) {
   const parsed = KillSwitchSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.message };
@@ -149,13 +173,30 @@ export async function deletePluginAction(data: z.infer<typeof PluginBySchoolSche
 
   try {
     const actorId = await requireCurrentActorId();
-    const result = await deletePluginForSchool({ ...parsed.data, actorId });
+    const result = await uninstallPlugin({ ...parsed.data, actorId });
     updateTag(cacheTags.pluginRegistry);
     updateTag(cacheTags.plugin(parsed.data.pluginId));
     return { success: true, data: result };
   } catch (error) {
     return { success: false, error: getPluginActionError(error, "PLUGIN_DELETE_FAILED") };
   }
+}
+
+export async function preflightUninstallPluginAction(data: z.infer<typeof PluginBySchoolSchema>) {
+  const parsed = PluginBySchoolSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const result = await preflightUninstallPlugin({ ...parsed.data, actorId });
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_UNINSTALL_PREFLIGHT_FAILED") };
+  }
+}
+
+export async function uninstallPluginAction(data: z.infer<typeof PluginBySchoolSchema>) {
+  return deletePluginAction(data);
 }
 
 export async function runPluginHookAction(data: z.infer<typeof RunHookSchema>) {

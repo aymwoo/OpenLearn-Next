@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findManyPluginRegistrations = vi.fn();
+const findFirstPluginRegistrations = vi.fn();
 const assertActiveTeacher = vi.fn();
 const getUserMembershipsDTO = vi.fn();
 const dispatchPluginAction = vi.fn();
@@ -13,6 +14,13 @@ const updateReturning = vi.fn();
 const updateWhere = vi.fn(() => ({ returning: updateReturning }));
 const updateSet = vi.fn(() => ({ where: updateWhere }));
 const dbUpdate = vi.fn(() => ({ set: updateSet }));
+const deleteReturning = vi.fn();
+const deleteWhere = vi.fn(() => ({ returning: deleteReturning }));
+const dbDelete = vi.fn(() => ({ where: deleteWhere }));
+const selectWhere = vi.fn();
+const selectFrom = vi.fn(() => ({ where: selectWhere }));
+const dbSelect = vi.fn(() => ({ from: selectFrom }));
+const transactionMock = vi.fn();
 
 vi.mock("server-only", () => ({}));
 
@@ -20,9 +28,13 @@ vi.mock("@/db", () => ({
   db: {
     insert: dbInsert,
     update: dbUpdate,
+    delete: dbDelete,
+    select: dbSelect,
+    transaction: transactionMock,
     query: {
       pluginRegistrations: {
         findMany: findManyPluginRegistrations,
+        findFirst: findFirstPluginRegistrations,
       },
     },
   },
@@ -90,12 +102,21 @@ describe("plugin DAL security boundary", () => {
     insertValues.mockReturnValue({ returning: insertReturning });
     updateSet.mockReturnValue({ where: updateWhere });
     updateWhere.mockReturnValue({ returning: updateReturning });
+    deleteWhere.mockReturnValue({ returning: deleteReturning });
+    selectWhere.mockResolvedValue([]);
+    transactionMock.mockImplementation(async (callback) => callback({
+      insert: dbInsert,
+      update: dbUpdate,
+      delete: dbDelete,
+    }));
 
     assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
     getUserMembershipsDTO.mockResolvedValue([{ schoolId: "school-1", status: "active" }]);
     findManyPluginRegistrations.mockResolvedValue([]);
+    findFirstPluginRegistrations.mockResolvedValue(createPluginRecord());
     insertReturning.mockResolvedValue([createPluginRecord()]);
     updateReturning.mockResolvedValue([createPluginRecord()]);
+    deleteReturning.mockResolvedValue([createPluginRecord()]);
   });
 
   it("is server-only and exposes school-scoped lifecycle APIs", () => {
@@ -145,6 +166,18 @@ describe("plugin DAL security boundary", () => {
     expect(source).toContain("governanceAudits");
     expect(source).toContain("lifecycleState");
     expect(source).toContain("correlationId");
+  });
+
+  it("declares lifecycle transition matrix and illegal transition guard", () => {
+    expect(source).toContain("PLUGIN_LIFECYCLE_TRANSITION_MATRIX");
+    expect(source).toContain("export function assertPluginLifecycleTransition");
+    expect(source).toContain('throw new Error("LIFECYCLE_ILLEGAL_TRANSITION")');
+  });
+
+  it("exports lifecycle transition and uninstall preflight APIs", () => {
+    expect(source).toContain("export async function transitionPluginLifecycle");
+    expect(source).toContain("export async function preflightUninstallPlugin");
+    expect(source).toContain("export async function uninstallPlugin");
   });
 
   it("registers validated theme tokens when enabling theme plugins", () => {
@@ -342,5 +375,136 @@ describe("plugin DAL security boundary", () => {
     expect(registrySource).toContain('addStepSuggestion: "lesson:write:suggestion"');
     expect(registrySource).toContain('annotateLesson: "lesson:write:annotation"');
     expect(registrySource).toContain('createNotificationStub: "notification:create:stub"');
+  });
+
+  it("exposes getPluginIdentityMetadataForSchool with correct authentication and DTO fields", async () => {
+    const { getPluginIdentityMetadataForSchool } = await import("./plugins");
+
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      createPluginRecord({
+        id: "plugin-opt",
+        pluginKey: "vendor/op-plugin",
+        dbNamespace: "vendor_op_plugin",
+        sourceType: "external",
+        installSource: "manual",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "enabled",
+      }),
+    ]);
+
+    const result = await getPluginIdentityMetadataForSchool({
+      schoolId: "school-1",
+      actorId: "teacher-1",
+    });
+
+    expect(assertActiveTeacher).toHaveBeenCalled();
+    expect(findManyPluginRegistrations).toHaveBeenCalled();
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: "plugin-opt",
+      schoolId: "school-1",
+      name: "Plugin One",
+      pluginKey: "vendor/op-plugin",
+      dbNamespace: "vendor_op_plugin",
+      sourceType: "external",
+      installSource: "manual",
+      enabled: true,
+      killSwitchEnabled: false,
+      lifecycleState: "enabled",
+    });
+  });
+
+  it("blocks illegal lifecycle transitions from installed to suspended", async () => {
+    const { transitionPluginLifecycle } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({ lifecycleState: "installed" }));
+
+    await expect(
+      transitionPluginLifecycle({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        actorId: "teacher-1",
+        targetState: "suspended",
+        reason: "manual",
+      }),
+    ).rejects.toThrow("LIFECYCLE_ILLEGAL_TRANSITION");
+  });
+
+  it("transitions lifecycle inside db.transaction and writes lifecycle + audit rows", async () => {
+    const { transitionPluginLifecycle } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({ lifecycleState: "installed", enabled: false }));
+    updateReturning.mockResolvedValueOnce([
+      createPluginRecord({ lifecycleState: "enabled", enabled: true }),
+    ]);
+
+    const result = await transitionPluginLifecycle({
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+      targetState: "enabled",
+      reason: "enabled",
+    });
+
+    expect(transactionMock).toHaveBeenCalled();
+    expect(dbInsert).toHaveBeenCalledTimes(2 + 1);
+    expect(result).toMatchObject({ lifecycleState: "enabled", enabled: true });
+  });
+
+  it("preflights uninstall counts across all plugin-owned physical tables", async () => {
+    const { preflightUninstallPlugin } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({ sourceType: "external" }));
+    selectWhere
+      .mockResolvedValueOnce([{ lessonId: "lesson-1" }])
+      .mockResolvedValueOnce([{ lessonStepId: "step-1" }, { lessonStepId: "step-2" }])
+      .mockResolvedValueOnce([{ resourceId: "resource-1" }])
+      .mockResolvedValueOnce([{ key: "key-1" }, { key: "key-2" }]);
+
+    const result = await preflightUninstallPlugin({
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+    });
+
+    expect(result).toMatchObject({
+      blocked: false,
+      lessonExtCount: 1,
+      stepExtCount: 2,
+      resourceExtCount: 1,
+      ownedBusinessCount: 2,
+      totalCount: 6,
+    });
+  });
+
+  it("blocks default plugin uninstall in preflight and operation", async () => {
+    const { preflightUninstallPlugin, uninstallPlugin } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({ sourceType: "default" }));
+    const preflight = await preflightUninstallPlugin({
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+    });
+    expect(preflight).toMatchObject({ blocked: true, reason: "UNINSTALL_BLOCKED_DEFAULT_PLUGIN" });
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({ sourceType: "default" }));
+    await expect(
+      uninstallPlugin({ pluginId: "plugin-1", schoolId: "school-1", actorId: "teacher-1" }),
+    ).rejects.toThrow("UNINSTALL_BLOCKED_DEFAULT_PLUGIN");
+  });
+
+  it("uninstalls external plugin in transaction and relies on cascade delete", async () => {
+    const { uninstallPlugin } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({ sourceType: "external" }));
+    deleteReturning.mockResolvedValueOnce([createPluginRecord({ sourceType: "external" })]);
+
+    const result = await uninstallPlugin({ pluginId: "plugin-1", schoolId: "school-1", actorId: "teacher-1" });
+
+    expect(transactionMock).toHaveBeenCalled();
+    expect(dbDelete).toHaveBeenCalled();
+    expect(result).toMatchObject({ id: "plugin-1" });
   });
 });
