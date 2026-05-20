@@ -12,27 +12,34 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ## Current State
 
-- `v2.2 WebSocket Classroom Transport Cutover` 已于 2026-05-18 完成并归档。
-- 课堂实时链路现已进入 WebSocket-first posture：teacher control、student sync、runtime command、snapshot push 与 transport trace 共享统一 `ws` contract。
+- `v2.2 WebSocket Classroom Transport Cutover` 已于 2026-05-18 归档，课堂实时链路现已进入 WebSocket-first posture。
 - `ioredis` fanout 已作为 optional、deploy-authoritative 的 delivery capability 落地；Redis degraded posture 会在 `/settings`、runtime inspector 与 teacher `/classroom` 中显式暴露。
-- `verify:phase38` 已成为当前唯一外部 milestone close gate；SSE rollback surface 仍保留并被文档化。
-- durable truth 继续由 SQLite + DAL + canonical classroom/runtime write path 持有，Redis 与 WebSocket 都不成为新的业务真相源。
+- `verify:phase38` 已成为当前可重复 rerun 的 transport close gate；SSE rollback surface 仍保留并被文档化。
+- durable truth 继续由 SQLite + DAL + canonical classroom/runtime write path 持有，Redis、BullMQ 与 WebSocket 都不成为新的业务真相源。
+- `v2.3 Async Task Platform` 已于 2026-05-20 归档；typed task registry、统一 enqueue boundary、SQLite task ledger、dedicated worker、operator visibility 与 safe retry posture 已落地。
+- batch import、scheduled reminders 与 classroom event post-processing 已形成真实产品闭环；resource processing 的平台层 wiring 已交付，但 `/resources` 产品触发入口和部分 milestone proof artifact 仍作为 accepted gaps 保留。
+- 当前没有 active milestone；下一轮需要先决定是补 `v2.3` closure gaps，还是启动新的 frontier milestone。
 
-## Current Milestone: v2.3 Async Task Platform
+## Most Recently Archived Milestone: v2.3 Async Task Platform
 
-**Goal:** 在现有 Next.js 单体、SQLite durable truth、DAL/Server Actions 边界和已交付的 WebSocket/Redis delivery posture 之上，建立一个可复用、可观测、可重试的 Async Task Platform，并用真实后台任务验证它成立。
+**Archive status:** Archived 2026-05-20 with accepted gaps from the milestone audit.
 
-**Target features:**
-- 建立 typed task registry、统一 enqueue boundary、SQLite task ledger 与 BullMQ worker bootstrap。
-- 建立 retry/backoff、dead-letter、幂等、graceful shutdown、QueueEvents projection 与 operator-visible recovery posture。
-- 让教师或 staff 能看到任务进度与结果，并让 operator 能查看 queue health、run detail、error 与 retry history。
-- 用四类真实任务验证平台通用性：batch import、scheduled reminders、event post-processing、resource processing。
+**Delivered scope:**
+- Phase 39-43, 16 plans
+- typed task registry + unified enqueue seam + SQLite durable task ledger
+- BullMQ worker posture + QueueEvents projection + retry/idempotency/recovery model
+- teacher/staff-visible async UX, operator visibility/retry, and multiple real workloads
+
+**Accepted gaps at close:**
+- `ATP-22`: teacher `/resources` 与 `LibrarySurface` 仍缺 knowledge source ingest 真实触发入口。
+- `ATP-23`: 第 4 类 workload 因产品触发闭环缺失，只能算 partial proof。
+- Phase 39 / 40 / 41 仍缺 `VERIFICATION.md` proof artifacts；Phase 40 还缺 `verify:phase40` npm entry。
 
 ## Next Milestone Goals
 
-- 继续沿用“单体内平台化”路线，引入 BullMQ/worker 能力，但不把本轮做成新的 infra rewrite。
-- 把 broader `RTPX-02` 收口为“通用后台任务平台 + 真实任务验证”，而不是一次性扩张到 AI runtime、第三方 runtime 或数据库迁移。
-- 保持 SQLite + DAL 为业务真相源，让 Redis/BullMQ 只承担 orchestration 与 execution substrate 角色。
+- 先决定是否开一个小 closure slice 收口 `v2.3` accepted gaps；如果要收口，范围应只限于 resource-ingest product trigger 与 proof-chain artifacts。
+- 若不继续补 `v2.3`，则通过 `/gsd-new-milestone` 重新定义新的 `.planning/REQUIREMENTS.md`，避免在没有明确 milestone 的情况下继续堆实现。
+- 无论选择哪条路，都继续沿用“单体内平台化”路线：SQLite + DAL 持有 durable truth，Redis/BullMQ/WebSocket 只承担 orchestration 与 delivery 角色。
 
 <details>
 <summary>Archived v2.2 milestone context</summary>
@@ -68,13 +75,16 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - [x] 已完成课堂与 runtime 的 WebSocket-first transport cutover，并保留 SSE rollback surface 作为 documented fallback posture。（Validated in Phase 36）
 - [x] 已完成 optional `ioredis` fanout、session transport snapshot、local-only default posture 与 degraded operator visibility。（Validated in Phase 37）
 - [x] 已建立 `verify:phase38`、route-by-route parity proof、fallback matrix、demo runbook 与 closeout artifact，v2.2 close 结论不再依赖人工解释。（Validated in Phase 38）
+- [x] 已建立可复用的 Async Task Platform，包括 typed task registry、统一 enqueue boundary、BullMQ worker bootstrap 与 SQLite task ledger。（Validated in Phases 39-43；Phase 39 proof artifact 仍是 accepted gap）
+- [x] 已让后台任务具备 retry/backoff、dead-letter、幂等、graceful shutdown 与 operator-visible failure posture。（Validated in Phases 40-43；Phase 40 proof artifact 仍是 accepted gap）
+- [x] 已让教师或 staff 能看到任务排队、运行、完成、失败与结果摘要，而不是只得到同步请求超时或模糊反馈。（Validated in Phases 41-43；Phase 41 proof artifact 仍是 accepted gap）
 
 ### Active
 
-- [ ] 建立可复用的 Async Task Platform，包括 typed task registry、统一 enqueue boundary、BullMQ worker bootstrap 与 SQLite task ledger。
-- [ ] 让后台任务具备 retry/backoff、dead-letter、幂等、graceful shutdown 与 operator-visible failure posture。
-- [ ] 让教师或 staff 能看到任务排队、运行、完成、失败与结果摘要，而不是只得到同步请求超时或模糊反馈。
-- [ ] 用 batch import、scheduled reminders、event post-processing 与 resource processing 四类真实任务验证同一平台 contract。
+- [ ] 补齐 `ATP-22`：给 teacher `/resources` / `LibrarySurface` 接上 knowledge source ingest 真实触发入口，闭合 resource-processing 产品主链路。
+- [ ] 补齐 `ATP-23` 的第 4 类 workload product proof，并重新跑 milestone audit 把 accepted gap 收口。
+- [ ] 为 Phase 39 / 40 / 41 补 `39-VERIFICATION.md`、`40-VERIFICATION.md`、`41-VERIFICATION.md`，并注册 `verify:phase40`，把 async platform proof chain 变成可重复 close gate。
+- [ ] 选定下一 milestone frontier，避免同时重开 PostgreSQL、AI runtime、third-party runtime governance 等多个 deferred frontiers。
 
 ### Out of Scope
 
@@ -83,23 +93,21 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - 任意第三方插件代码执行。
 - 插件直接访问数据库或核心 API。
 - 完整 LMS 替代能力。
-- PostgreSQL cutover in v2.3 — 这轮要先证明 async platform 模式成立，而不是把它和主库迁移绑在一起。
-- Classroom realtime 主链路重写 — `v2.2` 刚完成 transport cutover，本轮不重开课堂实时主链路 blast radius。
+- PostgreSQL cutover in v2.3 — 这轮先证明 async platform 模式成立，而不是把它和主库迁移绑在一起。
+- Classroom realtime 主链路重写 — `v2.2` 刚完成 transport cutover，不重开课堂实时主链路 blast radius。
 - AI runtime expansion — 后台任务平台先用 deterministic product jobs 证明价值，不在本轮扩成 AI 执行平台。
 - 第三方 runtime/package governance — 这属于独立 trust boundary 问题，不和内部 async platform 一起推进。
-- PostgreSQL primary cutover、broader BullMQ/async worker rollout、Redis Streams、第二 runtime 类型、第三方 runtime package、sandbox 增强或 AI runtime expansion，不属于已归档的 `v2.2` close scope，后续必须单独立 milestone。
+- PostgreSQL primary cutover、第二 runtime 类型、第三方 runtime package、sandbox 增强或 AI runtime expansion，不因 `v2.3` 归档而自动进入执行状态。
 
 ## Context
 
 OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应变成可计算流程。核心业务围绕教师编排课堂、学生按步骤参与、系统记录学习进度和提交、AI Agent 辅助生成与分析展开。
 
-当前代码已经具备 `courses`、`courseClasses`、`courseEnrollments`、`lessons`、`publishedLessonVersions`、`lessonStepProgress`、`taskSubmissions`、`quizAttempts`、`classroomSessions`、`classroomParticipants`、`classroomEvents` 等核心 schema，也已经支持教师端编排、预览、发布，学生端学习与提交，课堂运行与评价闭环，以及 runtime-platform foundation、sandboxed HTML runtime、transport boundary、WebSocket cutover 和 optional Redis fanout。
+当前代码已经具备 `courses`、`courseClasses`、`courseEnrollments`、`lessons`、`publishedLessonVersions`、`lessonStepProgress`、`taskSubmissions`、`quizAttempts`、`classroomSessions`、`classroomParticipants`、`classroomEvents` 等核心 schema，也已经支持教师端编排、预览、发布，学生端学习与提交，课堂运行与评价闭环，以及 runtime-platform foundation、sandboxed HTML runtime、transport boundary、WebSocket cutover、optional Redis fanout 与 async task platform。
 
-这意味着“可运行的课堂闭环基础”与 `Runtime Platform` 的第一轮核心边界都已经成立。当前真正的规划问题不再是“WebSocket cutover 能否做”，而是下一轮到底优先推进哪一个 deferred frontier，并避免重新把多个基础设施迁移绑成一个大而散的 milestone。
+这意味着“可运行的课堂闭环基础”、`Runtime Platform` 第一轮核心边界、以及通用后台任务平台都已经成立。当前真正的规划问题不再是“BullMQ/worker 能不能接进来”，而是应该先收口 `v2.3` accepted gaps，还是优先推进下一个 deferred frontier，并避免重新把多个基础设施迁移绑成一个大而散的 milestone。
 
-当前主工程仍以 `src/app` 为中心，但已经落地 `src/features/runtime-platform/*`、shared contracts、runtime host、typed event truth、plugin lifecycle、transport boundary、WebSocket-first classroom transport、optional Redis fanout 和 canonical milestone close gates。后续应该继续沿用“单体内平台化”的渐进路线，而不是回退成 big-bang infra rewrite。
-
-v2.3 的研究结论已经比较一致：BullMQ 适合作为后台任务 orchestration substrate，但不能成为新的业务真相源。最安全的路线是新增独立 worker 进程、BullMQ 专用 Redis 连接工厂、SQLite task ledger/read model、QueueEvents projector，以及一个统一 `src/features/async-tasks/*` feature root；业务仍先通过 DAL / domain service 写入 SQLite，再经统一 enqueue boundary 入队，由 worker 回写结果与进度。
+当前主工程仍以 `src/app` 为中心，但已经落地 `src/features/runtime-platform/*`、shared contracts、runtime host、typed event truth、plugin lifecycle、transport boundary、WebSocket-first classroom transport、optional Redis fanout、`src/features/async-tasks/*` 和 canonical milestone close gates。后续应该继续沿用“单体内平台化”的渐进路线，而不是回退成 big-bang infra rewrite。
 
 ## Constraints
 
@@ -126,8 +134,9 @@ v2.3 的研究结论已经比较一致：BullMQ 适合作为后台任务 orchest
 | WebSocket cutover 在 v2.2 作为独立 milestone 落地，而不是继续停留在 seam-only 状态 | 复用 Phase 31 transport gateway 与 Phase 33-35 baseline，把 blast radius 限定在 delivery 层 | ✓ Good |
 | Redis fanout 在 v2.2 保持 optional、deploy-authoritative、delivery-only posture | 让 Redis 提供多实例 delivery 能力，但不取代 SQLite + DAL 的 durable truth 地位 | ✓ Good |
 | `verify:phase38` 作为唯一外部 milestone close gate | milestone close 不应继续依赖人工组合 verifier、fallback doc 和 demo 口径 | ✓ Good |
-| v2.3 Async Task Platform 采用 BullMQ + 独立 worker 进程 + SQLite task ledger | 让 Redis/BullMQ 只承担 orchestration 与 execution 角色，同时保持现有 DAL/DTO/cache discipline 不被绕过 | — Pending |
-| v2.3 首批真实任务同时覆盖 batch import、scheduled reminders、event post-processing、resource processing | 用多类真实任务验证平台通用性，而不是只交一个 demo job | — Pending |
+| v2.3 Async Task Platform 采用 BullMQ + 独立 worker 进程 + SQLite task ledger | 让 Redis/BullMQ 只承担 orchestration 与 execution 角色，同时保持现有 DAL/DTO/cache discipline 不被绕过 | ✓ Good |
+| teacher-facing async UX 保持 business-entity-first posture，而不是把产品面重构成独立 task center | 让教师继续从 batch/reminder/resource 语义理解系统，而不是暴露平台内部中心化术语 | ✓ Good |
+| milestone audit 必须区分“真实产品闭环缺口”和“proof artifact 缺口” | 避免把代码 blocker 与文档/verification debt 混成一个模糊结论 | ✓ Good |
 
 ## Evolution
 
@@ -147,4 +156,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-18 after defining roadmap for milestone v2.3 Async Task Platform*
+*Last updated: 2026-05-20 after archiving milestone v2.3 Async Task Platform*

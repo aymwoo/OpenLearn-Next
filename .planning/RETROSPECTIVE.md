@@ -2,6 +2,40 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v2.3 — Async Task Platform
+
+**Shipped:** 2026-05-20
+**Phases:** 5 | **Plans:** 16 | **Sessions:** not tracked in repo artifacts
+
+### What Was Built
+- Typed async task registry, unified enqueue boundary, SQLite durable task ledger, BullMQ worker bootstrap, QueueEvents projection, and retry or recovery posture.
+- Teacher/staff-visible async UX for batch import plus operator health, run detail, attempt history, and safe retry surfaces.
+- Additional real workloads for scheduled reminders, classroom summary derivation, and resource-processing platform wiring.
+
+### What Worked
+- Keeping durable truth in SQLite + DAL made BullMQ integration additive instead of a new business-truth migration.
+- Forcing multiple real workloads onto one platform contract exposed abstraction quality earlier than another infra-only phase would have.
+- Operator surfaces and recovery posture reduced the risk that async execution would become "logs only" infrastructure.
+
+### What Was Inefficient
+- Phase 39-41 verification artifacts lagged behind shipped code, so milestone audit had to distinguish proof-chain debt from product gaps after the fact.
+- The resource-processing workload reached platform wiring before teacher product trigger wiring, which made the close claim look stronger than the actual product path.
+- Expected `gsd-sdk query ...` commands were still unavailable in the installed CLI, so audit and archive steps required manual fallback.
+
+### Patterns Established
+- Treat platform wiring and product-trigger proof as separate acceptance gates; one cannot stand in for the other.
+- Keep teacher-facing async UX tied to business entities instead of exposing queue internals directly.
+- Run milestone audit before writing close prose so code gaps and proof gaps are partitioned honestly.
+
+### Key Lessons
+1. A shared platform is not fully proven until every claimed workload has a real user or operator trigger path, not just registry and worker wiring.
+2. Verification artifacts need to ship with the phase, or later milestone close work turns into forensic reconstruction.
+
+### Cost Observations
+- Model mix: not tracked in repo artifacts
+- Sessions: not tracked in repo artifacts
+- Notable: multi-workload validation surfaced real product gaps without reopening the underlying platform architecture.
+
 ## Milestone: v2.2 — WebSocket Classroom Transport Cutover
 
 **Shipped:** 2026-05-18
@@ -43,6 +77,7 @@
 
 | Milestone | Sessions | Phases | Key Change |
 |-----------|----------|--------|------------|
+| v2.3 | not tracked | 5 | Established a reusable async task platform and exposed the difference between platform wiring and real product-trigger proof. |
 | v2.0 | not tracked | 6 | Established runtime-platform foundations inside the main repo without a big-bang rewrite. |
 | v2.1 | not tracked | 3 | Reframed milestone close around safety gates and honest backlog partition. |
 | v2.2 | not tracked | 3 | Unified transport cutover, optional Redis fanout, and a single external close gate. |
@@ -51,6 +86,7 @@
 
 | Milestone | Tests | Coverage | Zero-Dep Additions |
 |-----------|-------|----------|-------------------|
+| v2.3 | focused suites + `42/43-VERIFICATION` + milestone audit | not tracked | not tracked |
 | v2.0 | focused suites + phase verifiers | not tracked | not tracked |
 | v2.1 | focused suites + `verify:phase35` | not tracked | not tracked |
 | v2.2 | focused suites + `verify:phase36/37/38` | not tracked | not tracked |
@@ -59,3 +95,4 @@
 
 1. Keep milestone claims executable through canonical verifiers rather than prose-only close notes.
 2. Separate durable truth from delivery transport even during infrastructure migrations.
+3. Distinguish real product-closure gaps from proof-artifact debt before marking a milestone shipped.

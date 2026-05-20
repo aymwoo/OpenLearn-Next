@@ -1,5 +1,26 @@
 # Milestones
 
+## v2.3 Async Task Platform (Archived: 2026-05-20)
+
+**Closure scope:** Phase 39-43 only
+**Delivered scope:** 5 phases, 16 plans
+**Archive status:** Milestone archived with accepted known gaps; async platform shipped, but milestone audit remained `gaps_found`.
+
+### Delivered in scope
+
+- Phase 39: typed task registry、统一 enqueue boundary、SQLite task ledger 与 async task DTO/read model 已落地。
+- Phase 40: dedicated worker、QueueEvents durable projection、retry/backoff、idempotency 与 recovery posture 已落地。
+- Phase 41: batch import 已成为第一个真实 async product workflow，并具备 teacher/staff-visible status 与 result summary。
+- Phase 42: operator health、run detail、attempt history 与 safe retry posture 已落地。
+- Phase 43: scheduled reminders、classroom summary derived workload、resource-processing wiring 与 milestone proof artifact 已落地。
+
+### Known gaps kept outside this milestone close
+
+- `ATP-22`: teacher `/resources` 与 `LibrarySurface` 仍缺 knowledge source ingest 产品触发入口。
+- `ATP-23`: 第 4 类 workload 因产品触发闭环未完成，只能算 partial proof。
+- Phase 39 / 40 / 41 仍缺 `VERIFICATION.md` proof artifacts；Phase 40 还缺 `verify:phase40` npm entry。
+- `classroom.session_summary` artifact 已落库，但 `/classroom` 页面仍未消费该 read path。
+
 ## v2.2 WebSocket Classroom Transport Cutover (Archived: 2026-05-18)
 
 **Closure scope:** Phase 36-38 only
