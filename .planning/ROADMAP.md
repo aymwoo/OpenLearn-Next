@@ -23,7 +23,7 @@
 
 - [x] **Phase 50: Boundary Freeze & Platform Vocabulary** - 冻结第一阶段平台术语、authoritative ownership 与 deferred boundary。
 - [x] **Phase 51: Command Bus Foundation** - 建立统一 command envelope、execution pipeline 与 durable command ledger。 (completed 2026-05-21)
-- [x] **Phase 52: Action Registry & Plugin Lifecycle Governance** - 让 action catalog 与 plugin lifecycle 进入同一受治理模型。 (completed 2026-05-21)
+- [x] **Phase 52: Action Registry & Plugin Lifecycle Governance** - 让 action catalog 与 plugin lifecycle 进入同一受治理模型，并关闭 verification gaps。 (completed 2026-05-21)
 - [ ] **Phase 53: Platform Event Bus & Execution Observability** - 为 command 结果建立 typed events、outbox truth 与 operator-visible execution summary。
 - [ ] **Phase 54: AI-Native Contract Exposure** - 暴露 machine-readable commands/actions/capabilities 与 delegated actor contract。
 
@@ -72,7 +72,7 @@ Plans:
   3. 学校操作员可以区分 `installed`、`enabled`、`active`、`suspended`、`uninstalled` 状态，且 built-in / default plugins 复用同一 lifecycle model。
   4. 插件会按依赖顺序激活；缺依赖、循环依赖或激活失败时，系统会阻止半启动状态并归因到具体插件或模块。
   5. `disable`、`suspend` 与 `uninstall` 会体现不同治理语义：前两者停止运行能力但默认保留数据，卸载前会明确 retention / cleanup 影响。
-**Plans**: 3 plans
+**Plans**: 8 plans
 **UI hint**: yes
 
 Plans:
@@ -81,6 +81,15 @@ Plans:
   - [x] 52-02-PLAN.md — Add external lifecycle governance projection, dependency ordering, failure attribution, and retain/cleanup semantics.
 - **Wave 2** *(blocked on Wave 1 completion)*
   - [x] 52-03-PLAN.md — Wire executable catalog and governance diagnostics into host/server/UI surfaces, then add `verify:phase52`.
+- **Wave 3** *(gap closure)*
+  - [ ] 52-04-PLAN.md — Make retain/cleanup uninstall semantics, dependency ordering, and host recovery commands real on the mutation path.
+- **Wave 4** *(blocked on Wave 3 completion)*
+  - [ ] 52-05-PLAN.md — Rewire settings/operator UI to the unified governance read model and harden `verify:phase52` against UI drift.
+- **Wave 5** *(gap closure, parallel)*
+  - [ ] 52-06-PLAN.md — Project retain uninstall metadata into the governance read model so `uninstalled` becomes a real external lifecycle state.
+  - [ ] 52-07-PLAN.md — Add executable `plugin.reconcile` recovery wiring across command bus, server actions, and host governance adapters.
+- **Wave 6** *(blocked on Wave 5 completion)*
+  - [ ] 52-08-PLAN.md — Wire operator diagnostics to explicit recovery commands and harden `verify:phase52` against `uninstalled` / `reconcile` drift.
 
 Cross-cutting constraints:
 - 主 action catalog 只暴露当前可执行 actions；blocked actions 只能在 operator/governance diagnostics 中可见。
@@ -118,7 +127,7 @@ Cross-cutting constraints:
 |-------|----------------|--------|-----------|
 | 50. Boundary Freeze & Platform Vocabulary | 3/3 | Completed | 2026-05-21 |
 | 51. Command Bus Foundation | 3/3 | Complete   | 2026-05-21 |
-| 52. Action Registry & Plugin Lifecycle Governance | 3/3 | Complete   | 2026-05-21 |
+| 52. Action Registry & Plugin Lifecycle Governance | 6/8 | In Progress|  |
 | 53. Platform Event Bus & Execution Observability | 0/TBD | Not started | - |
 | 54. AI-Native Contract Exposure | 0/TBD | Not started | - |
 
