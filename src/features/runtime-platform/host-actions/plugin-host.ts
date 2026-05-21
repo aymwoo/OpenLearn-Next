@@ -19,6 +19,7 @@ const PluginHostRequestSchema = z.object({
     "read-lifecycle",
     "plugin.enable",
     "plugin.disable",
+    "plugin.reconcile",
     "plugin.suspend",
     "plugin.resume",
     "plugin.retry",
@@ -57,7 +58,7 @@ function isReasonMatchedRecoveryAction(
       return action === "plugin.retry";
     case "dependency_missing":
     case "dependency_cycle":
-      return false;
+      return action === "plugin.reconcile";
     default:
       return false;
   }
@@ -89,6 +90,20 @@ async function dispatchGovernanceFromHost(input: {
         ...base,
         type: "plugin.disable",
         payload: { schoolId: input.schoolId, pluginId: input.pluginId, disabledBy: input.actorId },
+      });
+    case "plugin.reconcile":
+      return dispatchPluginGovernanceCommand({
+        ...base,
+        type: "plugin.reconcile",
+        payload: {
+          schoolId: input.schoolId,
+          pluginId: input.pluginId,
+          reason: typeof input.payload.reason === "string" ? input.payload.reason : "host governance reconcile",
+          targetState:
+            input.payload.targetState === "mounted" || input.payload.targetState === "ready"
+              ? input.payload.targetState
+              : "enabled",
+        },
       });
     case "plugin.suspend":
       return dispatchPluginGovernanceCommand({
@@ -372,6 +387,7 @@ export const invokePluginHostAction = createGuardedHostAction({
     switch (input.action) {
       case "plugin.enable":
       case "plugin.disable":
+      case "plugin.reconcile":
       case "plugin.suspend":
       case "plugin.resume":
       case "plugin.retry":

@@ -39,6 +39,13 @@ const TransitionPluginLifecycleSchema = z.object({
   reason: z.string().min(1),
 });
 
+const ReconcilePluginSchema = z.object({
+  pluginId: z.string().min(1),
+  schoolId: z.string().min(1),
+  reason: z.string().min(1),
+  targetState: z.enum(["enabled", "mounted", "ready"]).optional(),
+});
+
 const KillSwitchSchema = z.object({
   pluginId: z.string().min(1),
   killSwitchEnabled: z.boolean(),
@@ -242,6 +249,34 @@ export async function transitionPluginLifecycleAction(data: z.infer<typeof Trans
     return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: getPluginActionError(error, "PLUGIN_LIFECYCLE_TRANSITION_FAILED") };
+  }
+}
+
+export async function reconcilePluginAction(data: z.infer<typeof ReconcilePluginSchema>) {
+  const parsed = ReconcilePluginSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.reconcile",
+      actor: { actorId, actorScope: "teacher" },
+      scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
+      payload: {
+        schoolId: parsed.data.schoolId,
+        pluginId: parsed.data.pluginId,
+        reason: parsed.data.reason,
+        targetState: parsed.data.targetState,
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.reconcile" },
+    });
+    updateTag(cacheTags.pluginRegistry);
+    updateTag(cacheTags.plugin(parsed.data.pluginId));
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId)));
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_RECONCILE_FAILED") };
   }
 }
 

@@ -54,6 +54,12 @@ type DispatchPluginGovernanceCommandInput =
       pluginId: string;
       disabledBy: string;
     }>
+  | BaseProducerInput<"plugin.reconcile", {
+      schoolId: string;
+      pluginId: string;
+      reason: string;
+      targetState?: "enabled" | "mounted" | "ready";
+    }>
   | BaseProducerInput<"plugin.retry", {
       schoolId: string;
       pluginId: string;
@@ -79,6 +85,7 @@ type DispatchPluginGovernanceCommandInput =
       schoolId: string;
       pluginId: string;
       retentionMode: "retain" | "cleanup";
+      confirmationToken?: string;
     }>
   | BaseProducerInput<"plugin.kill_switch.set", {
       schoolId: string;
@@ -260,6 +267,10 @@ export async function producePluginEnableCommand(input: Omit<Extract<DispatchPlu
 
 export async function producePluginDisableCommand(input: Omit<Extract<DispatchPluginGovernanceCommandInput, { type: "plugin.disable" }>, "type">) {
   return dispatchPluginGovernanceCommand({ ...input, type: "plugin.disable" });
+}
+
+export async function producePluginReconcileCommand(input: Omit<Extract<DispatchPluginGovernanceCommandInput, { type: "plugin.reconcile" }>, "type">) {
+  return dispatchPluginGovernanceCommand({ ...input, type: "plugin.reconcile" });
 }
 
 export async function producePluginRetryCommand(input: Omit<Extract<DispatchPluginGovernanceCommandInput, { type: "plugin.retry" }>, "type">) {
