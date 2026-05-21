@@ -127,7 +127,7 @@ Cross-cutting constraints:
 |-------|----------------|--------|-----------|
 | 50. Boundary Freeze & Platform Vocabulary | 3/3 | Completed | 2026-05-21 |
 | 51. Command Bus Foundation | 3/3 | Complete   | 2026-05-21 |
-| 52. Action Registry & Plugin Lifecycle Governance | 6/8 | In Progress|  |
+| 52. Action Registry & Plugin Lifecycle Governance | 7/8 | In Progress|  |
 | 53. Platform Event Bus & Execution Observability | 0/TBD | Not started | - |
 | 54. AI-Native Contract Exposure | 0/TBD | Not started | - |
 
