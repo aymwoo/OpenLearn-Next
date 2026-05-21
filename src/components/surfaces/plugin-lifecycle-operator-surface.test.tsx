@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const baseManifest = {
@@ -45,6 +45,7 @@ vi.mock("next/navigation", () => ({
 
 describe("plugin lifecycle operator surface", () => {
   beforeEach(() => {
+    cleanup();
     vi.clearAllMocks();
     HTMLDialogElement.prototype.showModal = vi.fn(function showModal(this: HTMLDialogElement) {
       this.setAttribute("open", "true");
@@ -54,7 +55,7 @@ describe("plugin lifecycle operator surface", () => {
     });
   });
 
-  it("renders active copy for mounted and ready instead of disabled posture", async () => {
+  it("defaults to executable catalog and hides internal mounted ready lifecycle labels", async () => {
     const { PluginLifecycleOperatorSurface } = await import("./plugin-lifecycle-operator-surface");
 
     render(
@@ -97,12 +98,13 @@ describe("plugin lifecycle operator surface", () => {
       />,
     );
 
-    expect(screen.getByText("已挂载（活跃态)")).toBeTruthy();
-    expect(screen.getByText("已就绪（活跃态)")).toBeTruthy();
-    expect(screen.queryByText("已停用，数据仍保留")).toBeNull();
+    expect(screen.getAllByText("运行中").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "查看治理诊断" })).toBeTruthy();
+    expect(screen.queryByText("已挂载（活跃态)")).toBeNull();
+    expect(screen.queryByText("已就绪（活跃态)")).toBeNull();
   });
 
-  it("shows preflight summary before uninstall confirm and blocks default plugin destructive CTA", async () => {
+  it("shows governance diagnostics and requires explicit cleanup confirmation", async () => {
     const { PluginLifecycleOperatorSurface } = await import("./plugin-lifecycle-operator-surface");
 
     render(
@@ -145,8 +147,11 @@ describe("plugin lifecycle operator surface", () => {
       />,
     );
 
+    fireEvent.click(screen.getAllByRole("button", { name: "查看治理诊断" })[0]);
+
     expect(screen.getByText("该插件由系统提供，可启用或停用，但不会作为可删除扩展处理。")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "确认卸载插件" })).toBeNull();
+    expect(screen.getAllByText(/reason code:/).length).toBeGreaterThan(0);
 
     const externalPluginCard = screen.getByText("外部插件").closest("article");
     expect(externalPluginCard).toBeTruthy();
@@ -168,6 +173,34 @@ describe("plugin lifecycle operator surface", () => {
 
     fireEvent.click(within(externalPluginCard!).getByRole("button", { name: "打开卸载确认" }));
     expect(screen.getByRole("button", { name: "确认卸载插件" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "确认卸载插件" }));
+
+    await waitFor(() => {
+      expect(pluginActionMocks.uninstallPluginAction).toHaveBeenCalledWith({
+        pluginId: "plugin-ext",
+        schoolId: "school-1",
+        retentionMode: "retain",
+      });
+    });
+
+    fireEvent.click(within(externalPluginCard!).getByRole("button", { name: "打开卸载确认" }));
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "改为 cleanup 卸载" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认卸载插件" }));
+
+    expect(pluginActionMocks.uninstallPluginAction).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "我已确认 cleanup" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认卸载插件" }));
+
+    await waitFor(() => {
+      expect(pluginActionMocks.uninstallPluginAction).toHaveBeenLastCalledWith({
+        pluginId: "plugin-ext",
+        schoolId: "school-1",
+        retentionMode: "cleanup",
+      });
+    });
   });
 
   it("dispatches the plugin kill switch action from the targeted plugin card", async () => {
@@ -187,7 +220,7 @@ describe("plugin lifecycle operator surface", () => {
             sourceType: "external",
             installSource: "manual",
             enabled: true,
-            killSwitchEnabled: false,
+            killSwitchEnabled: true,
             lifecycleState: "enabled",
             builtIn: false,
             defaultEnabled: false,
@@ -197,7 +230,9 @@ describe("plugin lifecycle operator surface", () => {
       />,
     );
 
-    const pluginCard = screen.getByText("运行中插件").closest("article");
+    fireEvent.click(screen.getByRole("button", { name: "查看治理诊断" }));
+
+    const pluginCard = screen.getByText("运行中插件", { selector: "p" }).closest("article");
     expect(pluginCard).toBeTruthy();
 
     fireEvent.click(within(pluginCard!).getByRole("button", { name: "紧急挂起" }));

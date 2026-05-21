@@ -527,7 +527,7 @@ describe("plugin-actions", () => {
 
       getCurrentUserDTOMock.mockResolvedValueOnce(null);
 
-      const result = await deletePluginAction({ pluginId: "plugin-1", schoolId: "school-1" });
+      const result = await deletePluginAction({ pluginId: "plugin-1", schoolId: "school-1", retentionMode: "retain" });
 
       expect(result).toMatchObject({ success: false, error: "AUTH_REQUIRED" });
     });
@@ -543,14 +543,14 @@ describe("plugin-actions", () => {
         data: { ...mockPluginDTO },
       });
 
-      const result = await deletePluginAction({ pluginId: "plugin-1", schoolId: "school-1" });
+      const result = await deletePluginAction({ pluginId: "plugin-1", schoolId: "school-1", retentionMode: "retain" });
 
       expect(result).toMatchObject({ success: true, data: expect.objectContaining({ id: "plugin-1" }) });
       expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
         type: "plugin.uninstall",
         actor: { actorId: "user-1", actorScope: "teacher" },
         scope: { schoolId: "school-1", pluginId: "plugin-1" },
-        payload: { schoolId: "school-1", pluginId: "plugin-1", retentionMode: "cleanup" },
+        payload: { schoolId: "school-1", pluginId: "plugin-1", retentionMode: "retain" },
         source: "server-action",
         correlation: { producer: "plugin-actions.uninstall" },
       });
@@ -563,7 +563,7 @@ describe("plugin-actions", () => {
 
       mockGovernanceProducer.dispatchPluginGovernanceCommand.mockRejectedValueOnce(new Error("UNINSTALL_BLOCKED_DEFAULT_PLUGIN"));
 
-      const result = await deletePluginAction({ pluginId: "plugin-1", schoolId: "school-1" });
+      const result = await deletePluginAction({ pluginId: "plugin-1", schoolId: "school-1", retentionMode: "retain" });
 
       expect(result).toMatchObject({ success: false, error: "UNINSTALL_BLOCKED_DEFAULT_PLUGIN" });
     });

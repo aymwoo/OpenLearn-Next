@@ -49,6 +49,10 @@ const PluginBySchoolSchema = z.object({
   schoolId: z.string().min(1),
 });
 
+const UninstallPluginSchema = PluginBySchoolSchema.extend({
+  retentionMode: z.enum(["retain", "cleanup"]).default("retain"),
+});
+
 const PluginListSchema = z.object({
   schoolId: z.string().min(1),
 });
@@ -344,8 +348,8 @@ export async function getPluginAction(data: z.infer<typeof PluginBySchoolSchema>
   }
 }
 
-export async function deletePluginAction(data: z.infer<typeof PluginBySchoolSchema>) {
-  const parsed = PluginBySchoolSchema.safeParse(data);
+export async function deletePluginAction(data: z.infer<typeof UninstallPluginSchema>) {
+  const parsed = UninstallPluginSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.message };
 
   try {
@@ -354,11 +358,11 @@ export async function deletePluginAction(data: z.infer<typeof PluginBySchoolSche
       type: "plugin.uninstall",
       actor: { actorId, actorScope: "teacher" },
       scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
-      payload: {
-        schoolId: parsed.data.schoolId,
-        pluginId: parsed.data.pluginId,
-        retentionMode: "cleanup",
-      },
+        payload: {
+          schoolId: parsed.data.schoolId,
+          pluginId: parsed.data.pluginId,
+          retentionMode: parsed.data.retentionMode,
+        },
       source: "server-action",
       correlation: { producer: "plugin-actions.uninstall" },
     });
@@ -391,7 +395,7 @@ export async function preflightUninstallPluginAction(data: z.infer<typeof Plugin
   }
 }
 
-export async function uninstallPluginAction(data: z.infer<typeof PluginBySchoolSchema>) {
+export async function uninstallPluginAction(data: z.infer<typeof UninstallPluginSchema>) {
   return deletePluginAction(data);
 }
 
