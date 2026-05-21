@@ -178,6 +178,7 @@ describe("runtime-platform contracts", () => {
   it("exposes governance contracts for reason codes and lifecycle state", () => {
     expect(contracts.GovernanceDeniedReasonSchema.parse("not_allowlisted")).toBe("not_allowlisted");
     expect(contracts.PluginLifecycleStateSchema.parse("failed")).toBe("failed");
+    expect(contracts.GovernanceLifecycleStateSchema.parse("active")).toBe("active");
     expect(
       contracts.GovernanceDecisionEnvelopeSchema.parse({
         decision: "denied",
@@ -196,9 +197,12 @@ describe("runtime-platform contracts", () => {
           requiredPermission: "host:classroom:read",
         },
         lifecycle: {
-          state: "failed",
+          state: "enabled",
           blocked: true,
           killSwitchEnabled: false,
+          internalSubstate: "failed",
+          reasonCode: "activation_failed",
+          recommendedRecoveryAction: "retry",
         },
         targetSchoolId: "school-1",
       }),

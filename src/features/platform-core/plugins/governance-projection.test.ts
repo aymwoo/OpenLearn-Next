@@ -59,4 +59,210 @@ describe("plugin governance lifecycle contracts", () => {
       recommendedRecoveryAction: "retry",
     });
   });
+
+  it("orders dependencies, detects cycles, and only blocks affected plugin chains", async () => {
+    const dependencyGraph = await import("./dependency-graph");
+
+    expect(
+      dependencyGraph.orderPluginDependencies([
+        { pluginId: "plugin-a", dependencies: [] },
+        { pluginId: "plugin-b", dependencies: ["plugin-a"] },
+        { pluginId: "plugin-c", dependencies: ["plugin-b"] },
+      ]),
+    ).toEqual(["plugin-a", "plugin-b", "plugin-c"]);
+
+    expect(
+      dependencyGraph.detectPluginDependencyCycles([
+        { pluginId: "plugin-a", dependencies: ["plugin-b"] },
+        { pluginId: "plugin-b", dependencies: ["plugin-a"] },
+        { pluginId: "plugin-c", dependencies: [] },
+      ]),
+    ).toEqual([["plugin-a", "plugin-b", "plugin-a"]]);
+  });
+
+  it("projects plugin governance diagnostics, executable gating, and explicit uninstall posture", async () => {
+    const projection = await import("./governance-projection");
+
+    const result = projection.projectPluginGovernance([
+      {
+        pluginId: "plugin-a",
+        pluginKey: "vendor/a",
+        name: "Plugin A",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "ready",
+        sourceType: "external",
+        dependencies: [],
+        activationStatus: "active",
+        failureDetail: null,
+        uninstall: {
+          blocked: false,
+          reason: null,
+          lessonExtCount: 0,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 0,
+          totalCount: 0,
+          impactedLessonIds: [],
+          impactedLessonStepIds: [],
+          impactedResourceIds: [],
+          impactedBusinessKeys: [],
+        },
+      },
+      {
+        pluginId: "plugin-b",
+        pluginKey: "vendor/b",
+        name: "Plugin B",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "enabled",
+        sourceType: "external",
+        dependencies: ["vendor/a"],
+        activationStatus: "failed",
+        failureDetail: "secret stack must not leak",
+        uninstall: {
+          blocked: false,
+          reason: null,
+          lessonExtCount: 1,
+          stepExtCount: 2,
+          resourceExtCount: 3,
+          ownedBusinessCount: 4,
+          totalCount: 10,
+          impactedLessonIds: ["lesson-1"],
+          impactedLessonStepIds: ["step-1", "step-2"],
+          impactedResourceIds: ["resource-1", "resource-2", "resource-3"],
+          impactedBusinessKeys: ["biz-1", "biz-2", "biz-3", "biz-4"],
+        },
+      },
+      {
+        pluginId: "plugin-c",
+        pluginKey: "vendor/c",
+        name: "Plugin C",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "enabled",
+        sourceType: "external",
+        dependencies: ["vendor/b"],
+        activationStatus: "idle",
+        failureDetail: null,
+        uninstall: {
+          blocked: false,
+          reason: null,
+          lessonExtCount: 0,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 0,
+          totalCount: 0,
+          impactedLessonIds: [],
+          impactedLessonStepIds: [],
+          impactedResourceIds: [],
+          impactedBusinessKeys: [],
+        },
+      },
+      {
+        pluginId: "plugin-d",
+        pluginKey: "vendor/d",
+        name: "Plugin D",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "ready",
+        sourceType: "external",
+        dependencies: [],
+        activationStatus: "active",
+        failureDetail: null,
+        uninstall: {
+          blocked: true,
+          reason: "UNINSTALL_BLOCKED_DEFAULT_PLUGIN",
+          lessonExtCount: 0,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 0,
+          totalCount: 0,
+          impactedLessonIds: [],
+          impactedLessonStepIds: [],
+          impactedResourceIds: [],
+          impactedBusinessKeys: [],
+        },
+      },
+    ]);
+
+    expect(result.executablePluginIds).toEqual(["plugin-a", "plugin-d"]);
+    expect(result.plugins.find((plugin: (typeof result.plugins)[number]) => plugin.pluginId === "plugin-b")).toMatchObject({
+      lifecycle: {
+        state: "enabled",
+        internalSubstate: "failed",
+        blocked: true,
+        reasonCode: "activation_failed",
+        recommendedRecoveryAction: "retry",
+      },
+      executable: false,
+      failureAttribution: {
+        scope: "plugin",
+        pluginId: "plugin-b",
+        reasonCode: "activation_failed",
+        recommendedRecoveryAction: "retry",
+      },
+      uninstall: {
+        posture: "retain",
+        cleanupRequested: false,
+      },
+    });
+    expect(result.plugins.find((plugin: (typeof result.plugins)[number]) => plugin.pluginId === "plugin-c")).toMatchObject({
+      lifecycle: {
+        state: "enabled",
+        blocked: true,
+        reasonCode: "dependency_missing",
+        recommendedRecoveryAction: "reconcile",
+      },
+      executable: false,
+    });
+    expect(result.plugins.find((plugin: (typeof result.plugins)[number]) => plugin.pluginId === "plugin-b")?.failureAttribution?.detail).toBeUndefined();
+
+    const cleanupPreview = projection.projectPluginGovernance([
+      {
+        pluginId: "plugin-clean",
+        pluginKey: "vendor/clean",
+        name: "Plugin Clean",
+        enabled: false,
+        killSwitchEnabled: false,
+        lifecycleState: "disabled",
+        sourceType: "external",
+        dependencies: [],
+        activationStatus: "idle",
+        failureDetail: null,
+        uninstall: {
+          blocked: false,
+          reason: null,
+          lessonExtCount: 2,
+          stepExtCount: 0,
+          resourceExtCount: 1,
+          ownedBusinessCount: 3,
+          totalCount: 6,
+          impactedLessonIds: ["lesson-1", "lesson-2"],
+          impactedLessonStepIds: [],
+          impactedResourceIds: ["resource-1"],
+          impactedBusinessKeys: ["biz-1", "biz-2", "biz-3"],
+        },
+        uninstallRequest: {
+          mode: "cleanup",
+          confirmationToken: null,
+        },
+      },
+    ]);
+
+    expect(cleanupPreview.plugins[0]).toMatchObject({
+      uninstall: {
+        posture: "cleanup",
+        blocked: true,
+        reasonCode: "cleanup_confirmation_required",
+        recommendedRecoveryAction: "confirm_cleanup",
+        preflightSummary: {
+          totalCount: 6,
+          lessonExtCount: 2,
+          resourceExtCount: 1,
+          ownedBusinessCount: 3,
+        },
+      },
+    });
+  });
 });

@@ -759,6 +759,50 @@ describe("plugin DAL security boundary", () => {
     });
   });
 
+  it("projects governance snapshot inputs with manifest dependencies and retain posture defaults", async () => {
+    const { listPluginGovernanceSnapshotRecords } = await import("./plugins");
+
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      createPluginRecord({
+        enabled: true,
+        lifecycleState: "ready",
+        manifestJson: createManifest({
+          manifestVersion: 2,
+          governance: {
+            manifestVersion: 2,
+            dependencies: ["vendor/dependency"],
+            requestedCapabilities: [],
+            permissions: [],
+            lifecycle: {
+              ownerType: "host",
+              installScope: "school",
+              initialState: "installed",
+              mountMode: "manual",
+            },
+          },
+        }),
+      }),
+    ]);
+    selectWhere.mockResolvedValue([]);
+
+    const records = await listPluginGovernanceSnapshotRecords({
+      schoolId: "school-1",
+      actorId: "teacher-1",
+    });
+
+    expect(records).toMatchObject([
+      {
+        pluginKey: "vendor/plugin-name",
+        dependencies: ["vendor/dependency"],
+        activationStatus: "active",
+        uninstall: {
+          blocked: false,
+          totalCount: 0,
+        },
+      },
+    ]);
+  });
+
   it("blocks default plugin uninstall in preflight and operation", async () => {
     const { preflightUninstallPlugin, uninstallPlugin } = await import("./plugins");
 
