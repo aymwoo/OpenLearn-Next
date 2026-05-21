@@ -6,6 +6,9 @@ import type { GovernanceDashboardBundle } from "@/features/platform-core/actions
 
 const pluginActionMocks = vi.hoisted(() => ({
   setPluginEnabledAction: vi.fn().mockResolvedValue({ success: true }),
+  retryPluginAction: vi.fn().mockResolvedValue({ success: true }),
+  transitionPluginLifecycleAction: vi.fn().mockResolvedValue({ success: true }),
+  reconcilePluginAction: vi.fn().mockResolvedValue({ success: true }),
   setPluginKillSwitchAction: vi.fn().mockResolvedValue({ success: true }),
   preflightUninstallPluginAction: vi.fn().mockResolvedValue({
     success: true,
@@ -298,6 +301,153 @@ const dashboardBundle: GovernanceDashboardBundle = {
       ],
     },
     {
+      pluginId: "plugin-kill-switch",
+      pluginKey: "vendor/kill-switch",
+      name: "挂起插件",
+      sourceType: "external",
+      lifecycleState: "suspended",
+      internalLifecycleSubstate: "ready",
+      reasonCode: "kill_switch",
+      recommendedRecoveryAction: "resume",
+      builtIn: false,
+      defaultEnabled: false,
+      nonDeletable: false,
+      killSwitchEnabled: true,
+      blocked: true,
+      uninstall: {
+        posture: "retain",
+        cleanupRequested: false,
+        blocked: false,
+        reasonCode: null,
+        recommendedRecoveryAction: null,
+        cleanupConfirmationToken: "cleanup:plugin-kill-switch:0:0:0:0:0",
+        preflightSummary: {
+          lessonExtCount: 0,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 0,
+          totalCount: 0,
+        },
+      },
+      executableActionCatalog: [],
+      blockedActionDiagnostics: [
+        {
+          actionKey: "createNotificationStub",
+          ownerType: "external-plugin",
+          ownerPluginKey: "vendor/kill-switch",
+          inputSchemaKey: "plugin-action.payload.generic",
+          requiredPermission: null,
+          sideEffectClass: "notification-stub",
+          implementationSource: "main-repo-static-implementation",
+          ownerPluginId: "plugin-kill-switch",
+          ownerDisplayName: "挂起插件",
+          lifecycleState: "suspended",
+          catalogView: "blocked-diagnostic",
+          internalLifecycleSubstate: "ready",
+          reasonCode: "plugin_suspended",
+          recommendedRecoveryAction: "resume",
+        },
+      ],
+    },
+    {
+      pluginId: "plugin-dependency-blocked",
+      pluginKey: "vendor/dependency-blocked",
+      name: "依赖阻塞插件",
+      sourceType: "external",
+      lifecycleState: "enabled",
+      internalLifecycleSubstate: "enabled",
+      reasonCode: "dependency_missing",
+      recommendedRecoveryAction: "reconcile",
+      builtIn: false,
+      defaultEnabled: false,
+      nonDeletable: false,
+      killSwitchEnabled: false,
+      blocked: true,
+      uninstall: {
+        posture: "retain",
+        cleanupRequested: false,
+        blocked: false,
+        reasonCode: null,
+        recommendedRecoveryAction: null,
+        cleanupConfirmationToken: "cleanup:plugin-dependency-blocked:0:0:0:0:0",
+        preflightSummary: {
+          lessonExtCount: 0,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 0,
+          totalCount: 0,
+        },
+      },
+      executableActionCatalog: [],
+      blockedActionDiagnostics: [
+        {
+          actionKey: "createNotificationStub",
+          ownerType: "external-plugin",
+          ownerPluginKey: "vendor/dependency-blocked",
+          inputSchemaKey: "plugin-action.payload.generic",
+          requiredPermission: null,
+          sideEffectClass: "notification-stub",
+          implementationSource: "main-repo-static-implementation",
+          ownerPluginId: "plugin-dependency-blocked",
+          ownerDisplayName: "依赖阻塞插件",
+          lifecycleState: "enabled",
+          catalogView: "blocked-diagnostic",
+          internalLifecycleSubstate: "enabled",
+          reasonCode: "dependency_not_satisfied",
+          recommendedRecoveryAction: "reconcile",
+        },
+      ],
+    },
+    {
+      pluginId: "plugin-activation-failed",
+      pluginKey: "vendor/activation-failed",
+      name: "激活失败插件",
+      sourceType: "external",
+      lifecycleState: "enabled",
+      internalLifecycleSubstate: "failed",
+      reasonCode: "activation_failed",
+      recommendedRecoveryAction: "retry",
+      builtIn: false,
+      defaultEnabled: false,
+      nonDeletable: false,
+      killSwitchEnabled: false,
+      blocked: true,
+      uninstall: {
+        posture: "retain",
+        cleanupRequested: false,
+        blocked: false,
+        reasonCode: null,
+        recommendedRecoveryAction: null,
+        cleanupConfirmationToken: "cleanup:plugin-activation-failed:0:0:0:0:0",
+        preflightSummary: {
+          lessonExtCount: 0,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 0,
+          totalCount: 0,
+        },
+      },
+      executableActionCatalog: [],
+      blockedActionDiagnostics: [
+        {
+          actionKey: "createNotificationStub",
+          ownerType: "external-plugin",
+          ownerPluginKey: "vendor/activation-failed",
+          inputSchemaKey: "plugin-action.payload.generic",
+          requiredPermission: null,
+          sideEffectClass: "notification-stub",
+          implementationSource: "main-repo-static-implementation",
+          ownerPluginId: "plugin-activation-failed",
+          ownerDisplayName: "激活失败插件",
+          lifecycleState: "enabled",
+          catalogView: "blocked-diagnostic",
+          internalLifecycleSubstate: "failed",
+          reasonCode: "activation_failed",
+          recommendedRecoveryAction: "retry",
+        },
+      ],
+    },
+    {
       pluginId: "plugin-uninstalled",
       pluginKey: "vendor/uninstalled",
       name: "审计卸载插件",
@@ -468,6 +618,93 @@ describe("plugin lifecycle operator surface", () => {
         killSwitchEnabled: true,
       });
     });
+  });
+
+  it("dispatches reconcile from dependency-blocked diagnostics rows", async () => {
+    const { PluginLifecycleOperatorSurface } = await import("./plugin-lifecycle-operator-surface");
+
+    render(
+      <PluginLifecycleOperatorSurface
+        schoolId="school-1"
+        dashboard={dashboardBundle}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "查看治理诊断" }));
+
+    const pluginCard = screen.getByText("依赖阻塞插件", { selector: "p" }).closest("article");
+    expect(pluginCard).toBeTruthy();
+
+    fireEvent.click(within(pluginCard!).getByRole("button", { name: "运行 reconcile" }));
+
+    await waitFor(() => {
+      expect(pluginActionMocks.reconcilePluginAction).toHaveBeenCalledWith({
+        pluginId: "plugin-dependency-blocked",
+        schoolId: "school-1",
+        reason: "dependency_missing",
+        targetState: "enabled",
+      });
+    });
+    expect(pluginActionMocks.setPluginEnabledAction).not.toHaveBeenCalledWith(
+      expect.objectContaining({ pluginId: "plugin-dependency-blocked" }),
+    );
+  });
+
+  it("dispatches retry from activation-failed diagnostics rows", async () => {
+    const { PluginLifecycleOperatorSurface } = await import("./plugin-lifecycle-operator-surface");
+
+    render(
+      <PluginLifecycleOperatorSurface
+        schoolId="school-1"
+        dashboard={dashboardBundle}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "查看治理诊断" }));
+
+    const pluginCard = screen.getByText("激活失败插件", { selector: "p" }).closest("article");
+    expect(pluginCard).toBeTruthy();
+
+    fireEvent.click(within(pluginCard!).getByRole("button", { name: "重试恢复" }));
+
+    await waitFor(() => {
+      expect(pluginActionMocks.retryPluginAction).toHaveBeenCalledWith({
+        pluginId: "plugin-activation-failed",
+        schoolId: "school-1",
+        commandId: "plugin.retry:plugin-activation-failed",
+        reason: "activation_failed",
+      });
+    });
+  });
+
+  it("dispatches explicit resume path from kill-switch diagnostics rows", async () => {
+    const { PluginLifecycleOperatorSurface } = await import("./plugin-lifecycle-operator-surface");
+
+    render(
+      <PluginLifecycleOperatorSurface
+        schoolId="school-1"
+        dashboard={dashboardBundle}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "查看治理诊断" }));
+
+    const pluginCard = screen.getByText("挂起插件", { selector: "p" }).closest("article");
+    expect(pluginCard).toBeTruthy();
+
+    fireEvent.click(within(pluginCard!).getByRole("button", { name: "解除挂起" }));
+
+    await waitFor(() => {
+      expect(pluginActionMocks.transitionPluginLifecycleAction).toHaveBeenCalledWith({
+        pluginId: "plugin-kill-switch",
+        schoolId: "school-1",
+        targetState: "enabled",
+        reason: "kill_switch",
+      });
+    });
+    expect(pluginActionMocks.setPluginEnabledAction).not.toHaveBeenCalledWith(
+      expect.objectContaining({ pluginId: "plugin-kill-switch" }),
+    );
   });
 
   it("renders uninstalled plugins as audit-only diagnostics without primary lifecycle action", async () => {

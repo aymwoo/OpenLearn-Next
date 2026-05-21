@@ -426,6 +426,44 @@ describe("plugin-actions", () => {
     });
   });
 
+  describe("retryPluginAction", () => {
+    it("dispatches explicit plugin.retry and invalidates plugin governance tags", async () => {
+      const { retryPluginAction } = await import("./plugin-actions");
+
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-retry",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+        data: { ...mockPluginDTO, lifecycleState: "enabled" },
+      });
+
+      const result = await retryPluginAction({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        commandId: "command-original",
+        reason: "activation_failed",
+      });
+
+      expect(result).toMatchObject({ success: true, data: expect.objectContaining({ lifecycleState: "enabled" }) });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.retry",
+        actor: { actorId: "user-1", actorScope: "teacher" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          commandId: "command-original",
+          reason: "activation_failed",
+        },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.retry" },
+      });
+      expect(updateTag).toHaveBeenCalledWith("plugin:registry");
+      expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
+    });
+  });
+
   describe("setPluginKillSwitchAction", () => {
     it("returns AUTH_REQUIRED when user is not logged in", async () => {
       const { setPluginKillSwitchAction } = await import("./plugin-actions");
