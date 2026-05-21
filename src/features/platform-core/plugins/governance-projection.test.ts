@@ -110,6 +110,8 @@ describe("plugin governance lifecycle contracts", () => {
         dependencies: [],
         activationStatus: "active",
         failureDetail: null,
+        uninstalledAt: null,
+        uninstallRetentionMode: null,
         uninstall: {
           pluginId: "plugin-a",
           schoolId: "school-1",
@@ -137,6 +139,8 @@ describe("plugin governance lifecycle contracts", () => {
         dependencies: ["vendor/a"],
         activationStatus: "failed",
         failureDetail: "secret stack must not leak",
+        uninstalledAt: null,
+        uninstallRetentionMode: null,
         uninstall: {
           pluginId: "plugin-b",
           schoolId: "school-1",
@@ -164,6 +168,8 @@ describe("plugin governance lifecycle contracts", () => {
         dependencies: ["vendor/b"],
         activationStatus: "idle",
         failureDetail: null,
+        uninstalledAt: null,
+        uninstallRetentionMode: null,
         uninstall: {
           pluginId: "plugin-c",
           schoolId: "school-1",
@@ -191,6 +197,8 @@ describe("plugin governance lifecycle contracts", () => {
         dependencies: [],
         activationStatus: "active",
         failureDetail: null,
+        uninstalledAt: null,
+        uninstallRetentionMode: null,
         uninstall: {
           pluginId: "plugin-d",
           schoolId: "school-1",
@@ -253,6 +261,8 @@ describe("plugin governance lifecycle contracts", () => {
         dependencies: [],
         activationStatus: "idle",
         failureDetail: null,
+        uninstalledAt: null,
+        uninstallRetentionMode: null,
         uninstall: {
           pluginId: "plugin-clean",
           schoolId: "school-1",
@@ -289,5 +299,53 @@ describe("plugin governance lifecycle contracts", () => {
         },
       },
     });
+  });
+
+  it("maps retained uninstall rows to uninstalled audit state", async () => {
+    const projection = await import("./governance-projection");
+
+    const result = projection.projectPluginGovernance([
+      {
+        pluginId: "plugin-uninstalled",
+        pluginKey: "vendor/uninstalled",
+        name: "已卸载插件",
+        enabled: false,
+        killSwitchEnabled: false,
+        lifecycleState: "disabled",
+        sourceType: "external",
+        dependencies: [],
+        activationStatus: "idle",
+        failureDetail: null,
+        uninstalledAt: new Date("2026-05-22T00:00:00Z"),
+        uninstallRetentionMode: "retain",
+        uninstall: {
+          pluginId: "plugin-uninstalled",
+          schoolId: "school-1",
+          blocked: false,
+          reason: null,
+          lessonExtCount: 1,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 2,
+          totalCount: 3,
+          impactedLessonIds: ["lesson-1"],
+          impactedLessonStepIds: [],
+          impactedResourceIds: [],
+          impactedBusinessKeys: ["biz-1", "biz-2"],
+        },
+      },
+    ]);
+
+    expect(result.executablePluginIds).toEqual([]);
+    expect(result.plugins[0]).toMatchObject({
+      executable: false,
+      lifecycle: {
+        state: "uninstalled",
+        blocked: true,
+        reasonCode: "not_installed",
+        recommendedRecoveryAction: null,
+      },
+    });
+    expect(result.plugins[0]?.failureAttribution).toBeNull();
   });
 });

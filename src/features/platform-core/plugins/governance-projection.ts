@@ -15,6 +15,8 @@ export type PluginGovernanceProjectionInput = {
   enabled: boolean;
   killSwitchEnabled: boolean;
   lifecycleState: PluginLifecycleState;
+  uninstalledAt: Date | null;
+  uninstallRetentionMode: "retain" | "cleanup" | null;
   sourceType: "default" | "external";
   dependencies: readonly string[];
   activationStatus: "idle" | "active" | "failed";
@@ -66,6 +68,10 @@ export type PluginGovernanceProjection = {
 };
 
 function mapLifecycleState(input: PluginGovernanceProjectionInput): GovernanceLifecycleState {
+  if (input.uninstallRetentionMode === "retain" && input.uninstalledAt !== null) {
+    return "uninstalled";
+  }
+
   if (!input.enabled && input.lifecycleState === "disabled") {
     return "installed";
   }
@@ -148,7 +154,12 @@ export function projectPluginGovernance(
 
     const missingDependency = plugin.dependencies.find((dependency) => !byKey.has(dependency));
 
-    if (plugin.killSwitchEnabled || plugin.lifecycleState === "suspended") {
+    if (plugin.uninstallRetentionMode === "retain" && plugin.uninstalledAt !== null) {
+      blocked = true;
+      reasonCode = "not_installed";
+      recoveryAction = null;
+      internalSubstate = plugin.lifecycleState;
+    } else if (plugin.killSwitchEnabled || plugin.lifecycleState === "suspended") {
       blocked = true;
       reasonCode = "kill_switch";
       recoveryAction = "resume";

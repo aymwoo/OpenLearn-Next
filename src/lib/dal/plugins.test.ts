@@ -91,6 +91,8 @@ function createPluginRecord(overrides: Record<string, unknown> = {}) {
     enabled: false,
     killSwitchEnabled: false,
     lifecycleState: "installed",
+    uninstalledAt: null,
+    uninstallRetentionMode: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -795,11 +797,41 @@ describe("plugin DAL security boundary", () => {
         pluginKey: "vendor/plugin-name",
         dependencies: ["vendor/dependency"],
         activationStatus: "active",
+        uninstalledAt: null,
+        uninstallRetentionMode: null,
         uninstall: {
           blocked: false,
           totalCount: 0,
           cleanupConfirmationToken: "cleanup:plugin-1:0:0:0:0:0",
         },
+      },
+    ]);
+  });
+
+  it("keeps retained uninstall metadata in governance snapshot rows", async () => {
+    const { listPluginGovernanceSnapshotRecords } = await import("./plugins");
+
+    const uninstalledAt = new Date("2026-05-22T00:00:00Z");
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      createPluginRecord({
+        enabled: false,
+        lifecycleState: "disabled",
+        uninstalledAt,
+        uninstallRetentionMode: "retain",
+      }),
+    ]);
+    selectWhere.mockResolvedValue([]);
+
+    const records = await listPluginGovernanceSnapshotRecords({
+      schoolId: "school-1",
+      actorId: "teacher-1",
+    });
+
+    expect(records).toMatchObject([
+      {
+        pluginId: "plugin-1",
+        uninstalledAt,
+        uninstallRetentionMode: "retain",
       },
     ]);
   });

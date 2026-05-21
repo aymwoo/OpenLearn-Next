@@ -432,6 +432,8 @@ export async function listPluginGovernanceSnapshotRecords(
     enabled: row.enabled,
     killSwitchEnabled: row.killSwitchEnabled,
     lifecycleState: row.lifecycleState,
+    uninstalledAt: row.uninstalledAt,
+    uninstallRetentionMode: row.uninstallRetentionMode,
     sourceType: row.sourceType as "default" | "external",
     dependencies: getGovernanceDependencies(row),
     activationStatus: getActivationStatus(row),
