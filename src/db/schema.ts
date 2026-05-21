@@ -367,6 +367,70 @@ export const asyncTaskEvents = sqliteTable(
   ]
 );
 
+export const platformCommands = sqliteTable(
+  "platformCommand",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    actorId: text("actorId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    commandType: text("commandType").notNull(),
+    status: text("status", {
+      enum: ["pending", "running", "succeeded", "failed"],
+    })
+      .notNull()
+      .default("pending"),
+    dedupeKey: text("dedupeKey").notNull(),
+    actorScope: text("actorScope", {
+      enum: ["host", "teacher", "student", "plugin", "system"],
+    }).notNull(),
+    scopeJson: text("scopeJson", { mode: "json" }).notNull(),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    correlationJson: text("correlationJson", { mode: "json" }).notNull(),
+    resultSummaryJson: text("resultSummaryJson", { mode: "json" }),
+    failureDetailJson: text("failureDetailJson", { mode: "json" }),
+    latestAttemptNumber: integer("latestAttemptNumber").notNull().default(0),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    completedAt: integer("completedAt", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    uniqueIndex("platformCommands_dedupeKey_unique").on(table.dedupeKey),
+    index("platformCommands_type_created_idx").on(table.commandType, table.createdAt),
+    index("platformCommands_school_status_created_idx").on(table.schoolId, table.status, table.createdAt),
+  ]
+);
+
+export const platformCommandAttempts = sqliteTable(
+  "platformCommandAttempt",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    commandId: text("commandId")
+      .notNull()
+      .references(() => platformCommands.id, { onDelete: "cascade" }),
+    attemptNumber: integer("attemptNumber").notNull(),
+    status: text("status", {
+      enum: ["pending", "running", "succeeded", "failed"],
+    }).notNull(),
+    resultSummaryJson: text("resultSummaryJson", { mode: "json" }),
+    failureDetailJson: text("failureDetailJson", { mode: "json" }),
+    startedAt: integer("startedAt", { mode: "timestamp_ms" }),
+    completedAt: integer("completedAt", { mode: "timestamp_ms" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("platformCommandAttempts_command_attempt_unique").on(table.commandId, table.attemptNumber),
+    index("platformCommandAttempts_command_attempt_idx").on(table.commandId, table.attemptNumber),
+  ]
+);
+
 export const asyncWorkerHeartbeats = sqliteTable(
   "asyncWorkerHeartbeat",
   {
@@ -1133,6 +1197,7 @@ export const pluginHookRuns = sqliteTable("pluginHookRun", {
 export const pluginActionAudits = sqliteTable("pluginActionAudit", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   pluginId: text("pluginId").notNull().references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+  commandId: text("commandId").references(() => platformCommands.id, { onDelete: "cascade" }),
   action: text("action").notNull(),
   decision: text("decision", { enum: ["allowed", "denied"] }).notNull().default("allowed"),
   reasonCode: text("reasonCode"),
@@ -1168,6 +1233,7 @@ export const governanceAudits = sqliteTable("governanceAudit", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   targetType: text("targetType", { enum: ["plugin", "runtime"] }).notNull(),
   targetId: text("targetId").notNull(),
+  commandId: text("commandId").references(() => platformCommands.id, { onDelete: "cascade" }),
   runtimeSessionId: text("runtimeSessionId").references(() => runtimeStepSessions.id, { onDelete: "cascade" }),
   classroomSessionId: text("classroomSessionId").references(() => classroomSessions.id, { onDelete: "cascade" }),
   pluginId: text("pluginId").references(() => pluginRegistrations.id, { onDelete: "cascade" }),

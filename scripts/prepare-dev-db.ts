@@ -119,6 +119,22 @@ async function detectExistingSchemaTag() {
     && await indexExists("pluginRegistration_school_pluginKey_unique")
     && await indexExists("pluginRegistration_school_dbNamespace_unique");
 
+  const hasPhase51CommandBusFoundationSchema =
+    hasPhase44PluginIdentityNamespaceSchema
+    && await tableExists("platformCommand")
+    && await tableExists("platformCommandAttempt")
+    && await columnExists("platformCommand", "dedupeKey")
+    && await columnExists("platformCommand", "latestAttemptNumber")
+    && await columnExists("platformCommandAttempt", "attemptNumber")
+    && await columnExists("pluginActionAudit", "commandId")
+    && await columnExists("governanceAudit", "commandId")
+    && await indexExists("platformCommands_dedupeKey_unique")
+    && await indexExists("platformCommandAttempts_command_attempt_unique");
+
+  if (hasPhase51CommandBusFoundationSchema) {
+    return "0013_phase51_command_bus_foundation";
+  }
+
   if (hasPhase44PluginIdentityNamespaceSchema) {
     return "0011_phase44_plugin_identity_namespace";
   }
