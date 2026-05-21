@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 
 import {
   preflightUninstallPluginAction,
+  reconcilePluginAction,
+  retryPluginAction,
   setPluginEnabledAction,
   setPluginKillSwitchAction,
+  transitionPluginLifecycleAction,
   uninstallPluginAction,
 } from "@/actions/plugin-actions";
 import type { GovernanceDashboardBundle } from "@/features/platform-core/actions/registry";
@@ -59,6 +62,10 @@ const preflightTileLabels = [
 function getPrimaryActionLabel(
   row: GovernanceDashboardBundle["pluginLifecycleRows"][number],
 ) {
+  if (row.recommendedRecoveryAction) {
+    return recoveryActionLabel[row.recommendedRecoveryAction];
+  }
+
   if (row.reasonCode === "not_enabled" || row.reasonCode === "not_installed") {
     return "启用插件";
   }
@@ -84,6 +91,12 @@ function shouldEnablePlugin(
   row: GovernanceDashboardBundle["pluginLifecycleRows"][number],
 ) {
   return row.lifecycleState !== "active";
+}
+
+function getRecoveryReason(
+  row: GovernanceDashboardBundle["pluginLifecycleRows"][number],
+) {
+  return row.reasonCode ?? row.recommendedRecoveryAction ?? "operator_recovery";
 }
 
 export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
@@ -137,6 +150,55 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
         setInlineError((current) => ({
           ...current,
           [plugin.pluginId]: result.error ?? "PLUGIN_SET_ENABLED_FAILED",
+        }));
+      } else {
+        router.refresh();
+      }
+    });
+  };
+
+  const submitRecoveryAction = (
+    plugin: GovernanceDashboardBundle["pluginLifecycleRows"][number],
+  ) => {
+    if (!schoolId || !plugin.recommendedRecoveryAction) return;
+
+    setInlineError((current) => ({ ...current, [plugin.pluginId]: null }));
+    startTransition(async () => {
+      const reason = getRecoveryReason(plugin);
+
+      const result = plugin.recommendedRecoveryAction === "enable"
+        ? await setPluginEnabledAction({
+            pluginId: plugin.pluginId,
+            schoolId,
+            enabled: true,
+          })
+        : plugin.recommendedRecoveryAction === "resume"
+          ? await transitionPluginLifecycleAction({
+              pluginId: plugin.pluginId,
+              schoolId,
+              targetState: "enabled",
+              reason,
+            })
+          : plugin.recommendedRecoveryAction === "retry"
+            ? await retryPluginAction({
+                pluginId: plugin.pluginId,
+                schoolId,
+                commandId: `plugin.retry:${plugin.pluginId}`,
+                reason,
+              })
+            : plugin.recommendedRecoveryAction === "reconcile"
+              ? await reconcilePluginAction({
+                  pluginId: plugin.pluginId,
+                  schoolId,
+                  reason,
+                  targetState: "enabled",
+                })
+              : { success: false, error: "PLUGIN_RECOVERY_ACTION_UNSUPPORTED" };
+
+      if (!result.success) {
+        setInlineError((current) => ({
+          ...current,
+          [plugin.pluginId]: result.error ?? "PLUGIN_RECOVERY_ACTION_FAILED",
         }));
       } else {
         router.refresh();
@@ -400,7 +462,11 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
                       type="button"
                       variant="secondary"
                       className="min-h-10 px-4 text-sm shadow-none"
-                      onClick={() => submitToggle(plugin)}
+                      onClick={() =>
+                        plugin.recommendedRecoveryAction
+                          ? submitRecoveryAction(plugin)
+                          : submitToggle(plugin)
+                      }
                       disabled={isPending || !schoolId}
                     >
                       {getPrimaryActionLabel(plugin)}

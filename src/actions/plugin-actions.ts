@@ -32,6 +32,13 @@ const SetEnabledSchema = z.object({
   enabled: z.boolean(),
 });
 
+const RetryPluginSchema = z.object({
+  pluginId: z.string().min(1),
+  schoolId: z.string().min(1),
+  commandId: z.string().min(1),
+  reason: z.string().min(1),
+});
+
 const TransitionPluginLifecycleSchema = z.object({
   pluginId: z.string().min(1),
   schoolId: z.string().min(1),
@@ -277,6 +284,34 @@ export async function reconcilePluginAction(data: z.infer<typeof ReconcilePlugin
     return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: getPluginActionError(error, "PLUGIN_RECONCILE_FAILED") };
+  }
+}
+
+export async function retryPluginAction(data: z.infer<typeof RetryPluginSchema>) {
+  const parsed = RetryPluginSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.retry",
+      actor: { actorId, actorScope: "teacher" },
+      scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
+      payload: {
+        schoolId: parsed.data.schoolId,
+        pluginId: parsed.data.pluginId,
+        commandId: parsed.data.commandId,
+        reason: parsed.data.reason,
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.retry" },
+    });
+    updateTag(cacheTags.pluginRegistry);
+    updateTag(cacheTags.plugin(parsed.data.pluginId));
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId)));
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_RETRY_FAILED") };
   }
 }
 
