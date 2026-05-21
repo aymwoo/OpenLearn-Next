@@ -221,10 +221,23 @@ describe("plugin DAL security boundary", () => {
 
   it("centralizes plugin install and reconcile truth in one DAL seam", () => {
     expect(source).toContain("export async function installOrReconcilePlugin");
+    expect(source).toContain("export async function installOrReconcilePluginWithTx");
+    expect(source).toContain("export async function transitionPluginLifecycleWithTx");
+    expect(source).toContain("export async function setPluginKillSwitchWithTx");
+    expect(source).toContain("export async function preflightUninstallPluginWithTx");
+    expect(source).toContain("export async function uninstallPluginWithTx");
+    expect(source).toContain("commandContext");
     expect(source).toContain("return installOrReconcilePlugin({");
     expect(source).toContain('installSource: "manual"');
     expect(source).toContain("reason: \"registered\"");
     expect(source).toContain("reason: \"reconciled\"");
+  });
+
+  it("keeps legacy public DAL wrappers as thin compatibility adapters over the tx-aware seam", () => {
+    expect(source).toContain("return db.transaction(async (tx) => installOrReconcilePluginWithTx({");
+    expect(source).toContain("return db.transaction(async (tx) => transitionPluginLifecycleWithTx({");
+    expect(source).toContain("const record = await db.transaction(async (tx) => uninstallPluginWithTx({");
+    expect(source).toContain("return db.transaction(async (tx) => preflightUninstallPluginWithTx({");
   });
 
   it("stores and guards canonical plugin identity and namespace fields", () => {
@@ -659,6 +672,43 @@ describe("plugin DAL security boundary", () => {
     expect(transactionMock).toHaveBeenCalled();
     expect(dbInsert).toHaveBeenCalledTimes(2 + 1);
     expect(result).toMatchObject({ lifecycleState: "enabled", enabled: true });
+  });
+
+  it("writes command-aware audit linkage when tx helpers receive command context", async () => {
+    const { transitionPluginLifecycleWithTx } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({ lifecycleState: "installed", enabled: false }));
+    updateReturning.mockResolvedValueOnce([
+      createPluginRecord({ lifecycleState: "enabled", enabled: true }),
+    ]);
+
+    await transitionPluginLifecycleWithTx({
+      tx: {
+        insert: dbInsert,
+        update: dbUpdate,
+      } as never,
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+      targetState: "enabled",
+      reason: "enabled",
+      commandContext: {
+        commandId: "command-1",
+        correlationId: "corr-1",
+        attemptNumber: 2,
+      },
+    });
+
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({
+      action: "plugin.lifecycle.transition",
+      commandId: "command-1",
+      correlationId: "corr-1",
+    }));
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({
+      targetType: "plugin",
+      commandId: "command-1",
+      correlationId: "corr-1",
+    }));
   });
 
   it("preflights uninstall counts across all plugin-owned physical tables", async () => {
