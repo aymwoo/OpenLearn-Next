@@ -66,6 +66,7 @@ function createCommand(type: "plugin.install", payload: {
 };
 function createCommand(type: "plugin.enable", payload: { schoolId: string; pluginId: string; enabledBy: string }): any;
 function createCommand(type: "plugin.resume", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): any;
+function createCommand(type: "plugin.reconcile", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): any;
 function createCommand(type: "plugin.retry", payload: { schoolId: string; pluginId: string; commandId: string; reason: string }): any;
 function createCommand(type: "plugin.uninstall.preflight", payload: { schoolId: string; pluginId: string }): any;
 function createCommand(type: string, payload: Record<string, unknown>) {
@@ -149,16 +150,24 @@ describe("platform plugin command registry", () => {
       {
         id: "plugin-1",
         pluginKey: "vendor/plugin-1",
+        name: "Plugin One",
+        installSource: "manual",
+        lifecycleState: "enabled",
+        killSwitchEnabled: false,
         enabled: true,
         manifestJson: {
           governance: {
-            dependencies: [],
+            dependencies: ["vendor/plugin-dep"],
           },
         },
       },
       {
         id: "plugin-dep",
         pluginKey: "vendor/plugin-dep",
+        name: "Plugin Dependency",
+        installSource: "bootstrap",
+        lifecycleState: "ready",
+        killSwitchEnabled: false,
         enabled: true,
         manifestJson: {
           governance: {
@@ -397,11 +406,88 @@ describe("platform plugin command registry", () => {
     }));
   });
 
+  it("reconciles current registration and replays dependency activation chain toward the requested target state", async () => {
+    const command = createCommand("plugin.reconcile", {
+      schoolId: "school-1",
+      pluginId: "plugin-1",
+      reason: "dependency recovery",
+      targetState: "mounted",
+    });
+
+    mocks.readRegistryProjectionBundleForSchool.mockReturnValueOnce({
+      orderedPluginIds: ["plugin-dep", "plugin-1"],
+      missingDependencies: [],
+      cycles: [],
+    });
+
+    const result = await platformCommandRegistry["plugin.reconcile"].execute({ command, attemptNumber: 1 });
+
+    expect(mocks.installOrReconcilePluginWithTx).toHaveBeenCalledWith(expect.objectContaining({
+      schoolId: "school-1",
+      pluginId: "plugin-1",
+      name: "Plugin One",
+      installSource: "manual",
+      manifestJson: expect.objectContaining({
+        governance: expect.objectContaining({
+          dependencies: ["vendor/plugin-dep"],
+        }),
+      }),
+      enabled: true,
+      killSwitchEnabled: false,
+      lifecycleState: "enabled",
+      commandContext: {
+        commandId: command.id,
+        correlationId: command.correlation.correlationId,
+        attemptNumber: 1,
+      },
+    }));
+    expect(mocks.transitionPluginLifecycleWithTx).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      pluginId: "plugin-dep",
+      targetState: "mounted",
+      reason: "dependency:plugin-1",
+    }));
+    expect(mocks.transitionPluginLifecycleWithTx).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      pluginId: "plugin-1",
+      targetState: "mounted",
+      reason: "dependency recovery",
+    }));
+    expect(result).toMatchObject({
+      resultSummary: expect.objectContaining({
+        commandType: "plugin.reconcile",
+        pluginId: "plugin-1",
+        targetState: "mounted",
+      }),
+      invalidation: { tags: ["plugin:registry", "plugin:plugin-1"] },
+    });
+  });
+
+  it("fails reconcile with explicit blocked error when dependencies remain unresolved", async () => {
+    const command = createCommand("plugin.reconcile", {
+      schoolId: "school-1",
+      pluginId: "plugin-1",
+      reason: "dependency recovery",
+    });
+
+    mocks.readRegistryProjectionBundleForSchool.mockReturnValueOnce({
+      orderedPluginIds: ["plugin-1"],
+      missingDependencies: ["vendor/missing"],
+      cycles: [],
+    });
+
+    await expect(
+      platformCommandRegistry["plugin.reconcile"].execute({ command, attemptNumber: 1 }),
+    ).rejects.toThrow("PLUGIN_RECONCILE_BLOCKED:missing:vendor/missing");
+
+    expect(mocks.installOrReconcilePluginWithTx).toHaveBeenCalledTimes(1);
+    expect(mocks.transitionPluginLifecycleWithTx).not.toHaveBeenCalled();
+  });
+
   it("exposes all explicit governance commands and no plugin.transition primary contract", () => {
     expect(Object.keys(platformCommandRegistry)).toEqual([
       "plugin.install",
       "plugin.enable",
       "plugin.disable",
+      "plugin.reconcile",
       "plugin.retry",
       "plugin.suspend",
       "plugin.resume",
