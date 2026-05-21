@@ -38,11 +38,13 @@ describe("phase 52 action contracts", () => {
       contracts.BlockedActionDiagnosticRowSchema.parse({
         ...descriptor,
         catalogView: "blocked-diagnostic",
+        lifecycleState: "enabled",
         reasonCode: "plugin_not_enabled",
       }),
     ).toMatchObject({
       actionKey: "addStepSuggestion",
       catalogView: "blocked-diagnostic",
+      lifecycleState: "enabled",
       reasonCode: "plugin_not_enabled",
     });
   });
@@ -74,6 +76,7 @@ describe("phase 52 action contracts", () => {
         sideEffectClass: "notification-stub",
         implementationSource: "main-repo-static-implementation",
         catalogView: "blocked-diagnostic",
+        lifecycleState: "enabled",
         reasonCode: "plugin_not_enabled",
       },
     ]);

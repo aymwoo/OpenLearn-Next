@@ -51,6 +51,7 @@
     "verify:phase43": "node --import tsx scripts/verify-phase43-validation-workloads.ts",
     "verify:phase48": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase48-lifecycle-and-uninstall.ts",
     "verify:phase51": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase51-command-bus.ts",
+    "verify:phase52": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase52-action-registry-and-lifecycle.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "db:migrate": "tsx scripts/prepare-dev-db.ts",
