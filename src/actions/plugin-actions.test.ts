@@ -7,15 +7,13 @@ const updateTag = vi.fn();
 
 const getCurrentUserDTOMock = vi.fn();
 
+const mockGovernanceProducer = vi.hoisted(() => ({
+  dispatchPluginGovernanceCommand: vi.fn(),
+}));
+
 const mockPluginDAL = vi.hoisted(() => ({
-  registerPluginManifest: vi.fn(),
-  setPluginEnabled: vi.fn(),
-  transitionPluginLifecycle: vi.fn(),
-  setPluginKillSwitch: vi.fn(),
   listPluginsForSchool: vi.fn(),
   getPluginForSchool: vi.fn(),
-  preflightUninstallPlugin: vi.fn(),
-  uninstallPlugin: vi.fn(),
   runPluginHook: vi.fn(),
 }));
 
@@ -28,6 +26,12 @@ vi.mock("next/cache", () => ({
 vi.mock("@/lib/dal/auth", () => ({
   getCurrentUserDTO: (...args: unknown[]) => getCurrentUserDTOMock(...args),
 }));
+
+vi.mock("@/lib/dal/membership", () => ({
+  getUserMembershipsDTO: vi.fn(async () => [{ schoolId: "school-1", status: "active", role: "teacher" }]),
+}));
+
+vi.mock("@/features/platform-core/commands/producers/plugin-governance", () => mockGovernanceProducer);
 
 vi.mock("@/lib/dal/plugins", () => mockPluginDAL);
 
@@ -64,7 +68,19 @@ describe("plugin-actions", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    mockGovernanceProducer.dispatchPluginGovernanceCommand.mockReset();
+    mockPluginDAL.listPluginsForSchool.mockReset();
+    mockPluginDAL.getPluginForSchool.mockReset();
+    mockPluginDAL.runPluginHook.mockReset();
     getCurrentUserDTOMock.mockResolvedValue({ id: "user-1", name: "Teacher" });
+    mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValue({
+      success: true,
+      data: mockPluginDTO,
+      commandId: "command-1",
+      attemptNumber: 1,
+      invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+    });
+    mockPluginDAL.getPluginForSchool.mockResolvedValue(mockPluginDTO);
   });
 
   it("routes mutation actions through a shared plugin governance producer seam", async () => {
@@ -98,8 +114,6 @@ describe("plugin-actions", () => {
     it("registers plugin and invalidates cache on success", async () => {
       const { registerPluginManifestAction } = await import("./plugin-actions");
 
-      mockPluginDAL.registerPluginManifest.mockResolvedValueOnce(mockPluginDTO);
-
       const result = await registerPluginManifestAction({
         schoolId: "school-1",
         name: "Test Plugin",
@@ -107,11 +121,19 @@ describe("plugin-actions", () => {
       });
 
       expect(result).toMatchObject({ success: true, data: mockPluginDTO });
-      expect(mockPluginDAL.registerPluginManifest).toHaveBeenCalledWith({
-        schoolId: "school-1",
-        name: "Test Plugin",
-        manifestJson: mockManifest,
-        actorId: "user-1",
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.install",
+        actor: { actorId: "user-1", actorScope: "teacher" },
+        scope: { schoolId: "school-1", pluginId: mockManifest.id },
+        payload: {
+          schoolId: "school-1",
+          pluginId: mockManifest.id,
+          name: "Test Plugin",
+          installSource: "manual",
+          manifestJson: mockManifest,
+        },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.register" },
       });
       expect(updateTag).toHaveBeenCalledWith("plugin:registry");
       expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
@@ -129,7 +151,7 @@ describe("plugin-actions", () => {
     it("returns explicit conflict tokens from DAL errors", async () => {
       const { registerPluginManifestAction } = await import("./plugin-actions");
 
-      mockPluginDAL.registerPluginManifest.mockRejectedValueOnce(new Error("PLUGIN_KEY_CONFLICT"));
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockRejectedValueOnce(new Error("PLUGIN_KEY_CONFLICT"));
 
       const result = await registerPluginManifestAction({
         schoolId: "school-1",
@@ -143,7 +165,7 @@ describe("plugin-actions", () => {
     it("returns namespace conflict tokens from DAL errors", async () => {
       const { registerPluginManifestAction } = await import("./plugin-actions");
 
-      mockPluginDAL.registerPluginManifest.mockRejectedValueOnce(new Error("PLUGIN_DB_NAMESPACE_CONFLICT"));
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockRejectedValueOnce(new Error("PLUGIN_DB_NAMESPACE_CONFLICT"));
 
       const result = await registerPluginManifestAction({
         schoolId: "school-1",
@@ -169,15 +191,29 @@ describe("plugin-actions", () => {
     it("enables plugin and updates cache including registered theme", async () => {
       const { setPluginEnabledAction } = await import("./plugin-actions");
 
-      mockPluginDAL.setPluginEnabled.mockResolvedValueOnce({
-        ...mockPluginDTO,
-        enabled: true,
-        registeredThemeId: "theme-1",
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-2",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1", "theme:registry", "theme:theme-1"],
+        data: {
+          ...mockPluginDTO,
+          enabled: true,
+          registeredThemeId: "theme-1",
+        },
       });
 
       const result = await setPluginEnabledAction({ pluginId: "plugin-1", schoolId: "school-1", enabled: true });
 
       expect(result).toMatchObject({ success: true, data: expect.objectContaining({ enabled: true }) });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.enable",
+        actor: { actorId: "user-1", actorScope: "teacher" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: { schoolId: "school-1", pluginId: "plugin-1", enabledBy: "user-1" },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.toggle" },
+      });
       expect(updateTag).toHaveBeenCalledWith("plugin:registry");
       expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
       expect(updateTag).toHaveBeenCalledWith("theme:registry");
@@ -187,7 +223,13 @@ describe("plugin-actions", () => {
     it("updates cache without theme tags when no theme is registered", async () => {
       const { setPluginEnabledAction } = await import("./plugin-actions");
 
-      mockPluginDAL.setPluginEnabled.mockResolvedValueOnce({ ...mockPluginDTO, enabled: true });
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-3",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+        data: { ...mockPluginDTO, enabled: true },
+      });
 
       await setPluginEnabledAction({ pluginId: "plugin-1", schoolId: "school-1", enabled: true });
 
@@ -199,7 +241,7 @@ describe("plugin-actions", () => {
     it("returns PLUGIN_SET_ENABLED_FAILED on DAL error", async () => {
       const { setPluginEnabledAction } = await import("./plugin-actions");
 
-      mockPluginDAL.setPluginEnabled.mockRejectedValueOnce(new Error("PLUGIN_NOT_FOUND"));
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockRejectedValueOnce(new Error("PLUGIN_NOT_FOUND"));
 
       const result = await setPluginEnabledAction({ pluginId: "plugin-1", schoolId: "school-1", enabled: true });
 
@@ -211,10 +253,16 @@ describe("plugin-actions", () => {
     it("transitions plugin lifecycle and invalidates cache", async () => {
       const { transitionPluginLifecycleAction } = await import("./plugin-actions");
 
-      mockPluginDAL.transitionPluginLifecycle.mockResolvedValueOnce({
-        ...mockPluginDTO,
-        lifecycleState: "disabled",
-        enabled: false,
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-4",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+        data: {
+          ...mockPluginDTO,
+          lifecycleState: "disabled",
+          enabled: false,
+        },
       });
 
       const result = await transitionPluginLifecycleAction({
@@ -225,12 +273,13 @@ describe("plugin-actions", () => {
       });
 
       expect(result).toMatchObject({ success: true, data: expect.objectContaining({ lifecycleState: "disabled" }) });
-      expect(mockPluginDAL.transitionPluginLifecycle).toHaveBeenCalledWith({
-        pluginId: "plugin-1",
-        schoolId: "school-1",
-        targetState: "disabled",
-        reason: "manual-disable",
-        actorId: "user-1",
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.disable",
+        actor: { actorId: "user-1", actorScope: "teacher" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: { schoolId: "school-1", pluginId: "plugin-1", disabledBy: "user-1" },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.transition" },
       });
       expect(updateTag).toHaveBeenCalledWith("plugin:registry");
       expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
@@ -251,11 +300,30 @@ describe("plugin-actions", () => {
     it("sets kill switch and invalidates plugin cache", async () => {
       const { setPluginKillSwitchAction } = await import("./plugin-actions");
 
-      mockPluginDAL.setPluginKillSwitch.mockResolvedValueOnce({ ...mockPluginDTO, killSwitchEnabled: true });
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-5",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+        data: { ...mockPluginDTO, killSwitchEnabled: true },
+      });
 
       const result = await setPluginKillSwitchAction({ pluginId: "plugin-1", killSwitchEnabled: true });
 
       expect(result).toMatchObject({ success: true, data: expect.objectContaining({ killSwitchEnabled: true }) });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.kill_switch.set",
+        actor: { actorId: "user-1", actorScope: "teacher" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          enabled: true,
+          reason: "kill-switch-enabled",
+        },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.kill-switch" },
+      });
       expect(updateTag).toHaveBeenCalledWith("plugin:registry");
       expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
     });
@@ -263,7 +331,7 @@ describe("plugin-actions", () => {
     it("returns PLUGIN_KILL_SWITCH_FAILED on DAL error", async () => {
       const { setPluginKillSwitchAction } = await import("./plugin-actions");
 
-      mockPluginDAL.setPluginKillSwitch.mockRejectedValueOnce(new Error("PLUGIN_NOT_FOUND"));
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockRejectedValueOnce(new Error("PLUGIN_NOT_FOUND"));
 
       const result = await setPluginKillSwitchAction({ pluginId: "plugin-1", killSwitchEnabled: true });
 
@@ -350,11 +418,25 @@ describe("plugin-actions", () => {
     it("deletes plugin and invalidates cache", async () => {
       const { deletePluginAction } = await import("./plugin-actions");
 
-      mockPluginDAL.uninstallPlugin.mockResolvedValueOnce({ ...mockPluginDTO });
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-6",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+        data: { ...mockPluginDTO },
+      });
 
       const result = await deletePluginAction({ pluginId: "plugin-1", schoolId: "school-1" });
 
       expect(result).toMatchObject({ success: true, data: expect.objectContaining({ id: "plugin-1" }) });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.uninstall",
+        actor: { actorId: "user-1", actorScope: "teacher" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: { schoolId: "school-1", pluginId: "plugin-1", retentionMode: "cleanup" },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.uninstall" },
+      });
       expect(updateTag).toHaveBeenCalledWith("plugin:registry");
       expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
     });
@@ -362,7 +444,7 @@ describe("plugin-actions", () => {
     it("returns PLUGIN_DELETE_FAILED on DAL error", async () => {
       const { deletePluginAction } = await import("./plugin-actions");
 
-      mockPluginDAL.uninstallPlugin.mockRejectedValueOnce(new Error("UNINSTALL_BLOCKED_DEFAULT_PLUGIN"));
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockRejectedValueOnce(new Error("UNINSTALL_BLOCKED_DEFAULT_PLUGIN"));
 
       const result = await deletePluginAction({ pluginId: "plugin-1", schoolId: "school-1" });
 
@@ -374,20 +456,26 @@ describe("plugin-actions", () => {
     it("returns preflight uninstall summary", async () => {
       const { preflightUninstallPluginAction } = await import("./plugin-actions");
 
-      mockPluginDAL.preflightUninstallPlugin.mockResolvedValueOnce({
-        pluginId: "plugin-1",
-        schoolId: "school-1",
-        blocked: false,
-        reason: null,
-        lessonExtCount: 1,
-        stepExtCount: 2,
-        resourceExtCount: 3,
-        ownedBusinessCount: 4,
-        totalCount: 10,
-        impactedLessonIds: ["lesson-1"],
-        impactedLessonStepIds: ["step-1", "step-2"],
-        impactedResourceIds: ["resource-1", "resource-2", "resource-3"],
-        impactedBusinessKeys: ["dashboard", "settings", "gradebook", "metrics"],
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-7",
+        attemptNumber: 1,
+        invalidationTags: [],
+        data: {
+          pluginId: "plugin-1",
+          schoolId: "school-1",
+          blocked: false,
+          reason: null,
+          lessonExtCount: 1,
+          stepExtCount: 2,
+          resourceExtCount: 3,
+          ownedBusinessCount: 4,
+          totalCount: 10,
+          impactedLessonIds: ["lesson-1"],
+          impactedLessonStepIds: ["step-1", "step-2"],
+          impactedResourceIds: ["resource-1", "resource-2", "resource-3"],
+          impactedBusinessKeys: ["dashboard", "settings", "gradebook", "metrics"],
+        },
       });
 
       const result = await preflightUninstallPluginAction({ pluginId: "plugin-1", schoolId: "school-1" });
@@ -396,10 +484,13 @@ describe("plugin-actions", () => {
         success: true,
         data: expect.objectContaining({ blocked: false, totalCount: 10 }),
       });
-      expect(mockPluginDAL.preflightUninstallPlugin).toHaveBeenCalledWith({
-        pluginId: "plugin-1",
-        schoolId: "school-1",
-        actorId: "user-1",
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.uninstall.preflight",
+        actor: { actorId: "user-1", actorScope: "teacher" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: { pluginId: "plugin-1", schoolId: "school-1" },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.uninstall-preflight" },
       });
     });
   });

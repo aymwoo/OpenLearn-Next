@@ -3,18 +3,14 @@
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
+import { dispatchPluginGovernanceCommand } from "@/features/platform-core/commands/producers/plugin-governance";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import {
   getPluginForSchool,
   listPluginsForSchool,
-  preflightUninstallPlugin,
-  registerPluginManifest,
   runPluginHook,
-  setPluginEnabled,
-  setPluginKillSwitch,
-  transitionPluginLifecycle,
-  uninstallPlugin,
 } from "@/lib/dal/plugins";
+import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { cacheTags } from "@/lib/cache-policy";
 import { PluginActionInputSchema, PluginManifestSchema } from "@/lib/dto/resource-ai";
 
@@ -76,16 +72,62 @@ async function requireCurrentActorId() {
   return user.id;
 }
 
+async function resolvePluginSchoolId(actorId: string, pluginId: string) {
+  const memberships = await getUserMembershipsDTO(actorId);
+
+  for (const membership of memberships) {
+    if (membership.status !== "active") {
+      continue;
+    }
+
+    const plugin = await getPluginForSchool({
+      actorId,
+      schoolId: membership.schoolId,
+      pluginId,
+    });
+
+    if (plugin) {
+      return membership.schoolId;
+    }
+  }
+
+  throw new Error("PLUGIN_NOT_FOUND");
+}
+
+function updateInferredTags(tags: string[]) {
+  for (const tag of tags) {
+    updateTag(tag);
+  }
+}
+
 export async function registerPluginManifestAction(data: z.infer<typeof RegisterPluginSchema>) {
   const parsed = RegisterPluginSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.message };
 
   try {
     const actorId = await requireCurrentActorId();
-    const result = await registerPluginManifest({ ...parsed.data, actorId });
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.install",
+      actor: { actorId, actorScope: "teacher" },
+      scope: {
+        schoolId: parsed.data.schoolId,
+        pluginId: parsed.data.manifestJson.id,
+      },
+      payload: {
+        schoolId: parsed.data.schoolId,
+        pluginId: parsed.data.manifestJson.id,
+        name: parsed.data.name,
+        installSource: "manual",
+        manifestJson: parsed.data.manifestJson,
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.register" },
+    });
     updateTag(cacheTags.pluginRegistry);
-    updateTag(cacheTags.plugin(result.id));
-    return { success: true, data: result };
+    const pluginId = String((result.data as { pluginId?: string; id?: string } | null)?.pluginId ?? (result.data as { id?: string } | null)?.id ?? parsed.data.manifestJson.id);
+    updateTag(cacheTags.plugin(pluginId));
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(pluginId)));
+    return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: getPluginActionError(error, "PLUGIN_REGISTER_FAILED") };
   }
@@ -97,16 +139,40 @@ export async function setPluginEnabledAction(data: z.infer<typeof SetEnabledSche
 
   try {
     const actorId = await requireCurrentActorId();
-    const result = await setPluginEnabled({ ...parsed.data, actorId });
+    const result = parsed.data.enabled
+      ? await dispatchPluginGovernanceCommand({
+          type: "plugin.enable",
+          actor: { actorId, actorScope: "teacher" },
+          scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
+          payload: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId, enabledBy: actorId },
+          source: "server-action",
+          correlation: { producer: "plugin-actions.toggle" },
+        })
+      : await dispatchPluginGovernanceCommand({
+          type: "plugin.disable",
+          actor: { actorId, actorScope: "teacher" },
+          scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
+          payload: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId, disabledBy: actorId },
+          source: "server-action",
+          correlation: { producer: "plugin-actions.toggle" },
+        });
     updateTag(cacheTags.pluginRegistry);
     updateTag(cacheTags.plugin(parsed.data.pluginId));
 
-    if (result.registeredThemeId) {
+    const registeredThemeId = (result.data as { registeredThemeId?: string | null } | null)?.registeredThemeId;
+
+    if (registeredThemeId) {
       updateTag(cacheTags.themeRegistry);
-      updateTag(cacheTags.theme(result.registeredThemeId));
+      updateTag(cacheTags.theme(registeredThemeId));
     }
 
-    return { success: true, data: result };
+    updateInferredTags(result.invalidationTags.filter((tag) => {
+      if (tag === cacheTags.pluginRegistry || tag === cacheTags.plugin(parsed.data.pluginId)) return false;
+      if (registeredThemeId && (tag === cacheTags.themeRegistry || tag === cacheTags.theme(registeredThemeId))) return false;
+      return true;
+    }));
+
+    return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: getPluginActionError(error, "PLUGIN_SET_ENABLED_FAILED") };
   }
@@ -118,10 +184,41 @@ export async function transitionPluginLifecycleAction(data: z.infer<typeof Trans
 
   try {
     const actorId = await requireCurrentActorId();
-    const result = await transitionPluginLifecycle({ ...parsed.data, actorId });
+    const commandType = parsed.data.targetState === "suspended"
+      ? "plugin.suspend"
+      : parsed.data.targetState === "enabled" || parsed.data.targetState === "mounted" || parsed.data.targetState === "ready"
+        ? "plugin.resume"
+        : "plugin.disable";
+    const result = commandType === "plugin.disable"
+      ? await dispatchPluginGovernanceCommand({
+          type: "plugin.disable",
+          actor: { actorId, actorScope: "teacher" },
+          scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
+          payload: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId, disabledBy: actorId },
+          source: "server-action",
+          correlation: { producer: "plugin-actions.transition" },
+        })
+      : commandType === "plugin.suspend"
+        ? await dispatchPluginGovernanceCommand({
+            type: "plugin.suspend",
+            actor: { actorId, actorScope: "teacher" },
+            scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
+            payload: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId, reason: parsed.data.reason },
+            source: "server-action",
+            correlation: { producer: "plugin-actions.transition" },
+          })
+        : await dispatchPluginGovernanceCommand({
+            type: "plugin.resume",
+            actor: { actorId, actorScope: "teacher" },
+            scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
+            payload: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId, reason: parsed.data.reason },
+            source: "server-action",
+            correlation: { producer: "plugin-actions.transition" },
+          });
     updateTag(cacheTags.pluginRegistry);
     updateTag(cacheTags.plugin(parsed.data.pluginId));
-    return { success: true, data: result };
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId)));
+    return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: getPluginActionError(error, "PLUGIN_LIFECYCLE_TRANSITION_FAILED") };
   }
@@ -133,10 +230,24 @@ export async function setPluginKillSwitchAction(data: z.infer<typeof KillSwitchS
 
   try {
     const actorId = await requireCurrentActorId();
-    const result = await setPluginKillSwitch({ ...parsed.data, actorId });
+    const schoolId = await resolvePluginSchoolId(actorId, parsed.data.pluginId);
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.kill_switch.set",
+      actor: { actorId, actorScope: "teacher" },
+      scope: { schoolId, pluginId: parsed.data.pluginId },
+      payload: {
+        schoolId,
+        pluginId: parsed.data.pluginId,
+        enabled: parsed.data.killSwitchEnabled,
+        reason: parsed.data.killSwitchEnabled ? "kill-switch-enabled" : "kill-switch-disabled",
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.kill-switch" },
+    });
     updateTag(cacheTags.pluginRegistry);
     updateTag(cacheTags.plugin(parsed.data.pluginId));
-    return { success: true, data: result };
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId)));
+    return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: getPluginActionError(error, "PLUGIN_KILL_SWITCH_FAILED") };
   }
@@ -174,10 +285,22 @@ export async function deletePluginAction(data: z.infer<typeof PluginBySchoolSche
 
   try {
     const actorId = await requireCurrentActorId();
-    const result = await uninstallPlugin({ ...parsed.data, actorId });
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.uninstall",
+      actor: { actorId, actorScope: "teacher" },
+      scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
+      payload: {
+        schoolId: parsed.data.schoolId,
+        pluginId: parsed.data.pluginId,
+        retentionMode: "cleanup",
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.uninstall" },
+    });
     updateTag(cacheTags.pluginRegistry);
     updateTag(cacheTags.plugin(parsed.data.pluginId));
-    return { success: true, data: result };
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId)));
+    return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: getPluginActionError(error, "PLUGIN_DELETE_FAILED") };
   }
@@ -189,8 +312,15 @@ export async function preflightUninstallPluginAction(data: z.infer<typeof Plugin
 
   try {
     const actorId = await requireCurrentActorId();
-    const result = await preflightUninstallPlugin({ ...parsed.data, actorId });
-    return { success: true, data: result };
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.uninstall.preflight",
+      actor: { actorId, actorScope: "teacher" },
+      scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
+      payload: parsed.data,
+      source: "server-action",
+      correlation: { producer: "plugin-actions.uninstall-preflight" },
+    });
+    return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: getPluginActionError(error, "PLUGIN_UNINSTALL_PREFLIGHT_FAILED") };
   }

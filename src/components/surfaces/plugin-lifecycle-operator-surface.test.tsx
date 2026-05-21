@@ -3,6 +3,14 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const baseManifest = {
+  version: "1.0.0",
+  manifestVersion: 1 as const,
+  permissions: [] as Array<"lesson:write:suggestion" | "lesson:write:annotation" | "notification:create:stub" | "schedule:write:proposal">,
+  anchors: ["dashboard.widget"] as Array<"dashboard.widget" | "lesson.sidebar" | "schedule.assistant">,
+  actions: ["createNotificationStub"] as Array<"createNotificationStub">,
+};
+
 const pluginActionMocks = vi.hoisted(() => ({
   setPluginEnabledAction: vi.fn().mockResolvedValue({ success: true }),
   setPluginKillSwitchAction: vi.fn().mockResolvedValue({ success: true }),
@@ -57,7 +65,7 @@ describe("plugin lifecycle operator surface", () => {
             id: "plugin-mounted",
             schoolId: "school-1",
             name: "挂载插件",
-            manifestJson: { id: "plugin.mounted", builtIn: false, defaultEnabled: false, nonDeletable: false },
+            manifestJson: { ...baseManifest, id: "plugin.mounted", builtIn: false, defaultEnabled: false, nonDeletable: false },
             pluginKey: "vendor/mounted",
             dbNamespace: "vendor_mounted",
             sourceType: "external",
@@ -73,7 +81,7 @@ describe("plugin lifecycle operator surface", () => {
             id: "plugin-ready",
             schoolId: "school-1",
             name: "就绪插件",
-            manifestJson: { id: "plugin.ready", builtIn: false, defaultEnabled: false, nonDeletable: false },
+            manifestJson: { ...baseManifest, id: "plugin.ready", builtIn: false, defaultEnabled: false, nonDeletable: false },
             pluginKey: "vendor/ready",
             dbNamespace: "vendor_ready",
             sourceType: "external",
@@ -105,7 +113,7 @@ describe("plugin lifecycle operator surface", () => {
             id: "plugin-default",
             schoolId: "school-1",
             name: "默认插件",
-            manifestJson: { id: "builtin.default", builtIn: true, defaultEnabled: true, nonDeletable: true },
+            manifestJson: { ...baseManifest, id: "builtin.default", builtIn: true, defaultEnabled: true, nonDeletable: true },
             pluginKey: "builtin/default",
             dbNamespace: "builtin_default",
             sourceType: "default",
@@ -121,7 +129,7 @@ describe("plugin lifecycle operator surface", () => {
             id: "plugin-ext",
             schoolId: "school-1",
             name: "外部插件",
-            manifestJson: { id: "vendor.ext", builtIn: false, defaultEnabled: false, nonDeletable: false },
+            manifestJson: { ...baseManifest, id: "vendor.ext", builtIn: false, defaultEnabled: false, nonDeletable: false },
             pluginKey: "vendor/ext",
             dbNamespace: "vendor_ext",
             sourceType: "external",
@@ -160,5 +168,45 @@ describe("plugin lifecycle operator surface", () => {
 
     fireEvent.click(within(externalPluginCard!).getByRole("button", { name: "打开卸载确认" }));
     expect(screen.getByRole("button", { name: "确认卸载插件" })).toBeTruthy();
+  });
+
+  it("dispatches the plugin kill switch action from the targeted plugin card", async () => {
+    const { PluginLifecycleOperatorSurface } = await import("./plugin-lifecycle-operator-surface");
+
+    render(
+      <PluginLifecycleOperatorSurface
+        schoolId="school-1"
+        plugins={[
+          {
+            id: "plugin-enabled",
+            schoolId: "school-1",
+            name: "运行中插件",
+            manifestJson: { ...baseManifest, id: "vendor.enabled", builtIn: false, defaultEnabled: false, nonDeletable: false },
+            pluginKey: "vendor/enabled",
+            dbNamespace: "vendor_enabled",
+            sourceType: "external",
+            installSource: "manual",
+            enabled: true,
+            killSwitchEnabled: false,
+            lifecycleState: "enabled",
+            builtIn: false,
+            defaultEnabled: false,
+            nonDeletable: false,
+          },
+        ]}
+      />,
+    );
+
+    const pluginCard = screen.getByText("运行中插件").closest("article");
+    expect(pluginCard).toBeTruthy();
+
+    fireEvent.click(within(pluginCard!).getByRole("button", { name: "紧急挂起" }));
+
+    await waitFor(() => {
+      expect(pluginActionMocks.setPluginKillSwitchAction).toHaveBeenCalledWith({
+        pluginId: "plugin-enabled",
+        killSwitchEnabled: true,
+      });
+    });
   });
 });
