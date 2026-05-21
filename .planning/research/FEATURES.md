@@ -1,158 +1,238 @@
-# Feature Landscape — v2.4 Plugin Data Architecture & Default Plugins
+# Feature Landscape — v3.0 AI Native Educational OS Upgrade
 
-**Milestone:** v2.4 Plugin Data Architecture & Default Plugins  
-**Domain:** Brownfield education product plugin data model  
-**Researched:** 2026-05-20  
+**Milestone:** v3.0 first-stage platform core upgrade  
+**Domain:** Brownfield AI-native platform kernel for an existing education app  
+**Researched:** 2026-05-21  
 **Confidence:** HIGH
 
 ## Scope Framing
 
-这个 milestone 不应被定义成“做更多插件”，而应被定义成：**让插件第一次成为可安全拥有结构化数据的正式系统边界，并让默认插件先走通这套模型。**
+这一轮不是“把 Agent Runtime 做出来”，而是把现有系统升级成一个**可被 Agent、插件、工作流共同调用的正式平台内核**。
 
-它必须尊重三件事：
+成熟系统里的共同模式很明确：
 
-1. **durable truth 仍在 SQLite + DAL + canonical write path**，插件拥有表不等于插件绕过主系统。  
-2. **默认插件不能继续走 built-in 特例**，而应成为正式插件数据模型的第一批使用者。  
-3. **灵活扩展不等于动态建表平台**，本 milestone 要的是 repo-governed schema，不是 runtime DDL。  
+- **VS Code**：command 是统一动作入口，activation/lifecycle 明确，避免扩展到处直接互调。
+- **JupyterLab**：plugin 通过 token/service 和 activation ordering 协作，先注册扩展点，再初始化宿主。
+- **Backstage**：extension point / module 明确区分“平台提供什么能力”和“扩展如何接入”，并要求先完成模块注册再启动插件。
 
-## Feature Categories
+对 OpenLearn Next 来说，第一阶段最有价值的不是新 runtime，而是先把下面五类 contract 做实：
 
-建议把 v2.4 feature scope 组织成 7 组，后续可直接映射 requirement：
+1. Command Bus
+2. Dynamic Action Registry
+3. Formal Plugin Lifecycle
+4. Event Bus（与 command 分离）
+5. Agent / Skill / Observability future-proof platform contracts
 
-| Category | Why it belongs in v2.4 | Requirement question |
-|---------|-------------------------|----------------------|
-| Plugin identity & installation | 插件要拥有数据，必须先有稳定身份、namespace 与 school-scoped installation | 系统如何稳定识别“这是哪个插件、属于哪个学校、拥有哪些数据对象”？ |
-| Core entity extension | 插件需要安全扩展 lesson/resource/step 等核心实体 | 哪些扩展必须结构化落表，而不是继续塞 JSON？ |
-| Plugin-owned business data | 插件需要独立业务对象，不能都挂在核心实体上 | 哪些场景应使用 plugin-owned table？ |
-| Namespace & migration governance | 插件表一多，命名与迁移马上会失控 | 如何强制前缀、避免冲突、保持 migration centralization？ |
-| Lifecycle semantics | 安装/启用/停用/挂起/卸载语义会直接影响插件数据安全 | 停用是否删数据？默认插件能不能删？ |
-| Default plugin exemplars | 需要用系统默认插件证明模型不是理论架构 | 哪 2-3 类默认插件足以验证 extension 与 plugin-owned 两种模式？ |
-| DAL/auth/cache/audit consistency | 插件拥有表后，现有 DAL/cache/authz discipline 不能破 | 插件数据如何继续受统一的权限、缓存与审计治理？ |
+---
 
-## Table Stakes
+## Category 1 — Command Bus
 
-### 1. Plugin identity & installation
+### 1. Table stakes
 
-- 插件稳定身份必须显式化：`pluginKey`、`dbNamespace`、source type、installed version。  
-- 安装单元必须是 school-scoped。  
-- 默认插件必须也走同一 installation model。  
+- 所有系统级可变更动作都必须有统一 command envelope：`id`、`type`、`actor`、`target scope`、`payload`、`causation/correlation`、`timestamp`。
+- 执行链路固定为：**validate → authorize → execute → emit events → audit/result**。
+- command handler 必须是**唯一 authoritative write boundary**；插件、workflow、未来 agent 都不能绕过它直写核心服务。
+- command result 必须是 typed outcome，而不是散落的 boolean / throw-only 语义。
+- 至少覆盖第一批高价值 command families：`plugin.*`、`lesson.*` 中真正需要平台化的动作、以及 future-safe 的 `ai.*`/`workflow.*` 命名位。
 
-### 2. Core entity extension
+### 2. Differentiators worth doing now
 
-- 插件可通过 extension table 扩展 lesson / lessonStep / resource / course 等核心实体。  
-- 核心表扩展应有强唯一性、school scope 和 cascade 约束。  
-- 不允许持续向 core tables 追加插件专属 nullable columns。  
+- **Command metadata 可发现**：让未来 agent 能 `listCommands()`、看到描述、输入 schema、所需 capability、是否产生 side effects。
+- **Idempotency / dedupe key**：对 install/enable/disable/retry 这类平台动作很值钱。
+- **Audit-ready causation chain**：能把“教师触发 / 插件触发 / agent delegated”串起来。
 
-### 3. Plugin-owned business data
+### 3. Anti-features / defer
 
-- 插件可以拥有自己的独立业务实体。  
-- 这些实体仍然必须：school-scoped、typed、DAL-only、migration-governed。  
-- 适合场景包括：模板、规则、建议稿、批注、插件配置。  
+- 不做完整 event sourcing。
+- 不做通用 undo/replay 引擎，只保留 command log / replay-ready metadata。
+- 不把所有现有 service 一次性强行迁移；优先收口平台级动作和新增动作。
+- 不引入跨进程命令总线或分布式 saga；当前单体内平台化足够。
 
-### 4. Namespace & migration governance
+### 4. Complexity / dependency notes
 
-- 所有插件数据库对象都必须遵循统一前缀规范。  
-- 命名治理必须覆盖 table、index、unique constraint。  
-- 所有插件 schema 变更都进入主仓库 migration。  
+- 这是本 milestone 的 **P0**，其他几类都依赖它。
+- 依赖 Zod/DTO、capability check、DAL write path、audit schema。
+- 最大风险是“双轨执行”：新 command bus 和旧 ad-hoc action 同时长期存在。必须明确迁移名单。
 
-### 5. Lifecycle semantics
+---
 
-- `install`、`enable`、`disable`、`suspend/kill switch`、`uninstall` 必须是不同语义。  
-- `disable` 默认停功能但保留数据。  
-- built-in/default plugins 保持“可停用、不可删除”的产品语义。  
+## Category 2 — Dynamic Action Registry
 
-### 6. Default plugin exemplars
+### 1. Table stakes
 
-- 至少挑 2-3 个默认插件样板。  
-- 样板必须覆盖：
-  - 一个 extension-table plugin
-  - 一个 plugin-owned-table plugin
-  - 一个 built-in/default plugin bootstrap path
+- action registry 必须从 hard-coded built-ins 升级为**运行时可注册的 typed registry**。
+- 每个 action 必须声明：`actionKey`、owner plugin、输入 schema、输出 schema、capability requirement、side-effect class、stability/version。
+- registry 必须支持冲突检测，禁止相同 key 被静默覆盖。
+- action 只能作为 **command handler 内部可调用能力** 或 command-dispatch target，不能变成新的绕过边界入口。
 
-### 7. DAL/auth/cache/audit consistency
+### 2. Differentiators worth doing now
 
-- 插件数据仍必须走 DAL + Server Actions。  
-- 插件写入必须继续受 school scope、actor capability、cache tag、audit trail 约束。  
-- 插件数据不是“新数据库特权通道”。  
+- **Discoverability for planning**：支持列出 action catalog，给 future agent/tool router 用。
+- **Scoped availability**：按 plugin enabled state、school install state、feature flag 暴露 action。
+- **Built-in actions 与 plugin actions 同模型**：先消灭 built-in 特权通道。
 
-## Useful Differentiators
+### 3. Anti-features / defer
 
-- **默认插件先 dogfood**：系统模块自己走这套模型，比单纯画平台图更有价值。  
-- **插件拥有的数据边界可审计**：能回答“这个插件拥有了哪些表、哪些扩展、哪些默认 seed 数据”。  
-- **插件扩展不污染核心表**：长期对 schema 可维护性价值很高。  
+- 不做任意第三方远程 action 下载。
+- 不做“用户自定义脚本即 action”。
+- 不做过度通用的 low-code action composer；先保证 typed registry 清晰可靠。
+- 不把 registry 直接做成 workflow engine。
 
-## Anti-Features
+### 4. Complexity / dependency notes
 
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|--------------------|
-| Runtime DDL / manifest 自带 SQL | 破坏安全边界与 migration truth | 由主仓库 Drizzle migration 统一管理 |
-| Generic plugin EAV / mega JSON store | 看似灵活，长期不可治理 | 使用 extension table 与 plugin-owned table 两种明确模式 |
-| Schema-per-plugin / database-per-plugin | 与 SQLite-first 项目现实不符 | 保持单体共享物理 schema + stable namespace |
-| Core table plugin column creep | 会让默认插件变成核心特权通道 | 用旁路扩展表 |
-| 插件数量导向的 milestone | 会把本轮从数据架构做成“插件市场 demo” | 先做 2-3 个高价值样板 |
+- 依赖 plugin identity、plugin enabled/install state、command bus dispatch contract。
+- 与 capability security 强耦合；否则 action catalog 会变成安全漏洞目录。
+- 首批只需要支持**注册、解析、校验、执行前鉴权、冲突报错、列举**。
 
-## Recommended default plugin validation set
+---
 
-### Recommended exemplars
+## Category 3 — Formal Plugin Lifecycle
 
-1. **Built-in teaching step library plugin**  
-   - 证明默认教学环节不再只是硬编码常量。  
-   - 适合承载模板元数据或 lesson/step 扩展。  
+### 1. Table stakes
 
-2. **Schedule / reminder assistant plugin**  
-   - 证明插件可以拥有独立业务实体，如建议稿、提醒规则、冲突批注。  
-   - 与现有 schedule assistant action 方向自然衔接。  
+- lifecycle 至少要区分：`register`、`resolve dependencies`、`activate`、`running`、`deactivate`、`dispose`。
+- install state 与 runtime state 必须分开：**installed ≠ enabled ≠ active**。
+- lifecycle 必须有 dependency ordering；缺依赖插件不能半启动。
+- 插件停用默认保留数据，卸载才进入数据清理/保留策略。
+- 启动失败必须可归因到具体 plugin/module，而不是只表现为平台整体失败。
 
-3. **Resource processing / enrichment plugin**  
-   - 证明插件既可扩展 resource 核心实体，也可拥有附属业务数据。  
-   - 只在本 milestone 范围内做最小必要闭环，不顺手重开 v2.3 async closure。  
+### 2. Differentiators worth doing now
 
-## Requirement-Oriented Cut Lines
+- **Startup failure attribution**：参考 Backstage factory-style extension point 思路，把失败归因到模块/插件。
+- **Kill switch / suspend posture**：出问题时可全局停用某插件但不伤主系统。
+- **Built-in plugin 也走正式 lifecycle**：这是平台是否真实成立的试金石。
 
-### Must ship in v2.4
+### 3. Anti-features / defer
 
-| Requirement Area | Must-have outcome |
-|------------------|-------------------|
-| Identity | 插件身份、namespace、installation state 进入正式模型 |
-| Schema pattern | extension table 与 plugin-owned table 有明确决策边界 |
-| Governance | 插件对象命名与 migration 规则成文且落地 |
-| Consistency | DAL/auth/cache/audit 对插件数据继续成立 |
-| Default plugins | 至少 2-3 个样板走通正式模型 |
+- 不做 hot reload / live reload plugin runtime。
+- 不做独立 extension host / multi-process isolation。
+- 不做 sandbox execution；这属于后续阶段。
+- 不做复杂 marketplace distribution protocol。
 
-### Good to ship if scope allows
+### 4. Complexity / dependency notes
 
-| Requirement Area | Nice-to-have outcome |
-|------------------|----------------------|
-| Ownership registry | 能列出插件拥有的表/扩展/seed artifacts |
-| Uninstall preflight | 卸载前能说明保留/阻断/清理策略 |
-| Better product UX | settings/marketplace 更清晰展示 built-in/default plugin lifecycle |
+- 依赖 plugin manifest contract、dependency graph、registry bootstrap。
+- 需要和现有 plugin marketplace / governance audit 语义对齐，避免产品语义倒退。
+- 生命周期设计过大最容易失控；v1 先保证**deterministic startup/stop semantics**。
+
+---
+
+## Category 4 — Event Bus (distinct from command execution)
+
+### 1. Table stakes
+
+- 明确区分：**command = 请求动作**，**event = 已发生事实**。
+- event envelope 至少包含：`id`、`type`、`source`、`subject`、`payload`、`timestamp`、`causation/correlation`。
+- command 成功后才能发 domain event；禁止把 event bus 当 command bus 用。
+- 支持最小可用订阅模型：平台内插件监听、审计/分析监听、未来 workflow/agent 监听。
+- 事件命名必须事实化：如 `plugin.enabled`、`plugin.disabled`、`command.failed`、`lesson.published`。
+
+### 2. Differentiators worth doing now
+
+- **Outbox-friendly contract**：即使现在先做进程内 event bus，也保留未来接 Redis/BullMQ/analytics pipeline 的演进位。
+- **Typed event catalog**：给 observability、workflow、agent subscription 做统一入口。
+- **Policy hooks on events**：允许后续 approval / notification / analytics 直接接入。
+
+### 3. Anti-features / defer
+
+- 不做全量 event sourcing 存储模型。
+- 不做跨实例强一致事件系统。
+- 不做实时协作总线重写；课堂 WebSocket 主链路不在本轮 blast radius。
+- 不把 UI local events 和 platform domain events 混在一起。
+
+### 4. Complexity / dependency notes
+
+- 强依赖 command bus 的 causation metadata。
+- 需要和现有 async task platform 对接，但不应被 BullMQ 反向绑架成“队列即事件总线”。
+- 最容易犯的错是事件过细、过噪，导致后续 agent/workflow 难以消费。
+
+---
+
+## Category 5 — Future-proof Platform Contracts (Agent / Skill / Observability)
+
+### 1. Table stakes
+
+- 平台 contract 必须让未来能力**可发现、可校验、可授权、可审计**。
+- 至少定义这些基础描述对象：
+  - command descriptor
+  - action descriptor
+  - event descriptor
+  - plugin capability / permission descriptor
+- actor model 必须预留：human actor、system actor、plugin actor、delegated agent actor。
+- 所有 contract 都必须仍然走 SQLite + DAL + centralized migrations，不引入旁路 truth source。
+
+### 2. Differentiators worth doing now
+
+- **Agent-callable but not agent-dependent**：现在先做 machine-readable contracts，不急着落完整 agent runtime。
+- **Observability-ready metadata**：trace/span ids、latency class、side-effect class、failure reason taxonomy 现在就预留。
+- **Capability delegation seam**：为未来“teacher approve → agent execute”留接口。
+
+### 3. Anti-features / defer
+
+- 不做完整 planner/memory/skill runtime。
+- 不做 QuickJS / Docker / remote sandbox matrix。
+- 不做全面 OTel 平台与 tracing UI，只先埋 contract 和最小 audit/metrics 位。
+- 不做 Temporal / full workflow runtime。
+
+### 4. Complexity / dependency notes
+
+- 这是架构边界项，不该演变成第二个大平台项目。
+- 关键是 descriptor schema 和 actor/capability semantics 要稳定，否则后续 Agent Runtime 会返工。
+- 该类 feature 的成功标准不是“能跑 AI”，而是“后续 AI 不必重写平台内核”。
+
+---
+
+## Recommended First-Milestone Scope Boundary
+
+### Must ship
+
+1. **Command Bus v1**
+   - 统一 envelope、handler registry、validation/auth/audit pipeline
+   - 覆盖 plugin lifecycle 相关命令 + 少量平台级核心命令
+2. **Action Registry v1**
+   - typed registration、conflict detection、discoverability、enabled-state gating
+3. **Plugin Lifecycle v1**
+   - register/activate/deactivate/dispose semantics
+   - dependency ordering
+   - startup failure attribution
+4. **Event Bus v1**
+   - command-success emits fact events
+   - typed subscription for internal platform consumers
+5. **Platform descriptors v1**
+   - commands/actions/events/capabilities 可列举、可审计、可被 future agent 调用
+
+### Worth doing now if it stays small
+
+- command idempotency key
+- minimal command/event explorer for operators
+- plugin kill switch posture
+- actor delegation metadata
 
 ### Explicitly defer
 
-| Defer | Reason |
-|------|--------|
-| Third-party plugin runtime governance expansion | 与本 milestone 的数据边界主问题不同 |
-| PostgreSQL-first advanced schema strategy | 当前项目明确 SQLite-first |
-| Generic low-code entity engine | 会严重放大 scope |
-| Full marketplace / billing / distribution platform | 不是本 milestone 的成功标准 |
+- Agent Runtime
+- Skill Runtime
+- Workflow Engine
+- QuickJS / Extension Host / sandbox isolation
+- PostgreSQL / pgvector cutover
+- classroom realtime rewrite
+- event sourcing / undo engine / distributed bus
+
+---
 
 ## MVP Recommendation
 
-优先级建议如下：
+如果只保一条最小闭环，应该保：
 
-1. 插件身份与 `dbNamespace` contract
-2. extension table / plugin-owned table 决策与样板 schema
-3. DAL + auth + cache + audit 对插件数据的统一约束
-4. 默认插件安装/启停/bootstrap 正式化
-5. 2-3 个默认插件样板落地
+**“插件和未来 Agent 的动作都能通过同一 command boundary 进入系统；系统能基于 registry 找到可执行能力；执行后产出事实事件与审计记录；插件生命周期不再是隐式约定。”**
 
-如果只能保住一条最小闭环，应该保：
-
-**“默认插件不再是特例；插件可以拥有结构化数据；并且所有数据仍然受主系统治理。”**
+这才是把现有 app 升级成 AI-native platform core 的第一性门槛。
 
 ## Sources
 
-- `.planning/PROJECT.md` — milestone framing and constraints. Confidence: HIGH.
-- `src/lib/dal/plugins.ts` — current plugin lifecycle and built-in resolution baseline. Confidence: HIGH.
-- `src/server/plugins/registry.ts` — action allowlist and current built-in dispatch posture. Confidence: HIGH.
-- `src/components/surfaces/plugin-marketplace-surface.tsx` — current built-in marketplace UX and lifecycle semantics. Confidence: HIGH.
+- `.planning/PROJECT.md` — milestone goals, constraints, out-of-scope. Confidence: HIGH.
+- `openlearn_next_upgrade_plan.md` — target platform direction and staged priorities. Confidence: HIGH.
+- VS Code official docs, Commands — commands as discoverable execution surface and activation model. https://code.visualstudio.com/api/extension-guides/command Confidence: HIGH.
+- VS Code official docs, Activation Events — explicit activation/deactivation expectations for extensions. https://code.visualstudio.com/api/references/activation-events Confidence: HIGH.
+- JupyterLab official docs, Develop Extensions — plugin/service/token model, activation ordering, provider-consumer pattern. https://jupyterlab.readthedocs.io/en/stable/extension/extension_dev.html Confidence: HIGH.
+- Backstage official docs, Backend System Architecture / Extension Points / Modules — plugin/module boundary, extension point API design, module-before-plugin initialization. https://backstage.io/docs/backend-system/architecture/index/ https://backstage.io/docs/backend-system/architecture/extension-points https://backstage.io/docs/backend-system/architecture/modules Confidence: HIGH.

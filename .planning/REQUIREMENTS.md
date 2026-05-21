@@ -1,83 +1,89 @@
 # Requirements: OpenLearn Next
 
-**Defined:** 2026-05-20
-**Milestone:** v2.4 Plugin Data Architecture & Default Plugins
+**Defined:** 2026-05-21
+**Milestone:** v3.0 AI Native Educational OS Upgrade
 **Core Value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## v2.4 Requirements
+## v3.0 Requirements
 
-### Plugin Identity & Namespace
+### Platform Boundary & Vocabulary
 
-- [x] **PLUG-01**: 平台维护者可以为每个插件登记稳定的 `pluginKey`，且该身份不依赖展示名或仅存于 `manifestJson`。
-- [x] **PLUG-02**: 平台维护者可以为每个插件登记稳定的 `dbNamespace`，并用它作为插件数据库对象统一前缀的来源。
-- [x] **PLUG-03**: 系统可以在学校范围内拒绝重复或冲突的插件身份 / namespace 安装记录。
-- [ ] **PLUG-04**: 系统默认插件也通过正式的插件安装模型注册，而不是继续依赖 built-in 特例路径。
+- [ ] **BOUND-01**: 平台维护者可以在文档与代码中用统一 vocabulary 区分 `command`、`action`、`event`、`task`、`runtime transport`。
+- [ ] **BOUND-02**: 平台维护者可以在 `platform-core` 层找到命令执行、action 注册、lifecycle orchestration、event outbox 的 authoritative ownership，而不是继续散落在 ad-hoc 文件中。
+- [ ] **BOUND-03**: 系统继续把 SQLite + DAL 作为 canonical truth，并显式限制 Redis、BullMQ、WebSocket 只承担 delivery / orchestration。
+- [ ] **BOUND-04**: 平台维护者可以依赖正式的 deferred 清单，防止 QuickJS、Extension Host、PostgreSQL、Workflow Engine 等高风险能力被偷偷纳入 `v3.0` committed scope。
 
-### Core Entity Extension Tables
+### Command Bus Foundation
 
-- [ ] **EXT-01**: 插件可以通过受治理的 extension table 为 lesson 保存结构化扩展数据，而不是继续依赖零散 JSON 字段。
-- [ ] **EXT-02**: 插件可以通过受治理的 extension table 为 lesson step 保存结构化扩展数据，而不是向核心表追加插件专属列。
-- [ ] **EXT-03**: 插件可以通过受治理的 extension table 为 resource 保存结构化扩展数据，以承载资源处理或知识入库相关元数据。
-- [ ] **EXT-04**: 插件扩展表必须强制记录学校范围、插件归属和核心实体关联，并对单插件-单实体扩展场景提供唯一性约束。
+- [ ] **CMD-01**: 平台调用方可以提交带有 `id`、`type`、`actor`、`scope`、`payload`、`correlation metadata` 的 `PlatformCommand`。
+- [ ] **CMD-02**: 系统会对每个 command 统一执行 `validate -> authorize -> execute -> record result` 的 pipeline。
+- [ ] **CMD-03**: 插件生命周期核心动作通过 Command Bus v1 执行，而不是继续直连旧 plugin action / service seam。
+- [ ] **CMD-04**: Command Bus 会把每次执行写入 durable command ledger，并保留 success / failure summary。
+- [ ] **CMD-05**: `install`、`enable`、`disable`、`retry` 等重复敏感命令支持 idempotency / dedupe key。
 
-### Plugin-Owned Business Tables
+### Dynamic Action Registry
 
-- [ ] **OWN-01**: 插件可以拥有独立业务表来保存自身模板、规则、建议稿、批注或配置，而不是把所有业务数据挂在插件注册表上。
-- [ ] **OWN-02**: 插件自有业务数据必须按学校范围隔离，并能追溯到具体插件安装记录。
-- [ ] **OWN-03**: 插件自有业务表可以在受控外键关系下引用核心实体，但不会反向让删除插件破坏核心业务真相。
+- [ ] **ACTN-01**: 平台维护者可以为 built-in 与 plugin action 统一注册 typed descriptor，包括 owner、schema、capability、side-effect metadata。
+- [ ] **ACTN-02**: 系统会拒绝冲突或重复 action key 注册，而不是静默覆盖。
+- [ ] **ACTN-03**: 系统只在 plugin install / enabled / lifecycle 条件满足时暴露 action。
+- [ ] **ACTN-04**: 平台调用方可以用 machine-readable 方式列出当前可用 action catalog。
+- [ ] **ACTN-05**: Action registry 只解析主仓库受控实现，不执行远程脚本或插件自带代码。
 
-### Migration & Governance
+### Formal Plugin Lifecycle
 
-- [ ] **GOV-01**: 平台维护者可以通过主仓库统一的 Drizzle migration 流程演进插件 schema，而不是依赖运行时动态建表或插件自带 SQL。
-- [ ] **GOV-02**: 系统可以强制插件表、索引和唯一约束遵循统一的前缀 / namespace 命名规则。
-- [ ] **GOV-03**: 平台维护者可以为 JSON -> 结构化插件数据迁移定义可审查的 backfill 与 cutover 流程。
-- [ ] **GOV-04**: 插件启用、停用或安装流程不会在运行时执行未审查的 DDL 或任意 SQL migration。
+- [ ] **LIFE-01**: 学校操作员可以区分 `installed`、`enabled`、`active`、`suspended`、`uninstalled` 语义。
+- [ ] **LIFE-02**: 系统会按依赖顺序激活插件，并在缺依赖或循环依赖时阻止半启动状态。
+- [ ] **LIFE-03**: 插件激活失败可以归因到具体插件或模块，而不是只暴露平台整体失败。
+- [ ] **LIFE-04**: `disable` / `suspend` 会停止插件运行能力，但默认保留数据和历史记录。
+- [ ] **LIFE-05**: `uninstall` 前会执行 preflight，并明确 retention / cleanup 影响。
+- [ ] **LIFE-06**: built-in / default plugins 复用同一 lifecycle model，而不是保留特权路径。
 
-### DAL, Auth, Cache & Audit Consistency
+### Platform Event Bus & Observability Hooks
 
-- [ ] **SAFE-01**: 插件数据读写继续强制通过 DAL + Server Actions，而不是开放插件直连数据库。
-- [ ] **SAFE-02**: 插件数据写入在执行时同时校验插件声明权限与当前 actor 的真实能力，而不是只校验 manifest 自声明权限。
-- [ ] **SAFE-03**: 插件数据读写默认带学校范围约束，防止跨学校读取或写入污染。
-- [ ] **SAFE-04**: 插件数据 mutation 会同时失效插件自身 cache tag 与受影响核心实体的 cache tag。
-- [ ] **SAFE-05**: 插件安装、生命周期切换和关键数据写入会进入统一审计 / governance 轨迹。
+- [ ] **EVNT-01**: command 成功后会产生 typed platform event，与 command envelope 明确分离。
+- [ ] **EVNT-02**: 平台事件会写入 durable event outbox / ledger，并关联 `commandId`、`correlationId`、`causationId`。
+- [ ] **EVNT-03**: 插件、审计、分析和 future workflow / agent 订阅者可以消费 platform events，而不依赖 classroom runtime transport bus。
+- [ ] **EVNT-04**: 系统可以把 platform events 桥接到 in-process、Redis、WebSocket delivery adapters，但不改变 SQLite truth ownership。
+- [ ] **EVNT-05**: command、event、task、audit 共享统一 correlation metadata。
+- [ ] **EVNT-06**: command handlers 返回 invalidation intent，使入口层能统一 `updateTag()` / `revalidateTag()`。
+- [ ] **EVNT-07**: 平台维护者可以在最小 operator surface 查看 command / event execution summary 与 failure attribution。
 
-### Lifecycle & Uninstall Semantics
+### AI-Native Contract Exposure
 
-- [ ] **LIFE-01**: 学校操作员可以区分 install、enable、disable、suspend / kill switch 与 uninstall 五种插件生命周期语义。
-- [ ] **LIFE-02**: 停用插件会停止其运行时能力，但默认保留该插件已拥有的数据。
-- [ ] **LIFE-03**: 系统可以在卸载插件前执行 preflight 检查，明确该插件是否仍被核心实体、已发布内容或历史记录依赖。
-- [ ] **LIFE-04**: 默认插件保持“可启用 / 停用、不可删除”的产品语义，同时仍复用正式生命周期模型。
-
-### Default Plugin Exemplars
-
-- [ ] **DFLT-01**: 教学步骤 built-ins 通过正式默认插件模型提供，而不是继续仅依赖硬编码 built-in 定义。
-- [ ] **DFLT-02**: 课表 / 提醒助手默认插件可以通过正式的插件自有业务表保存规则、建议稿或冲突批注等数据。
-- [ ] **DFLT-03**: 资源处理 / 知识入库默认插件可以通过正式的 extension 或 plugin-owned table 保存其业务所需的结构化数据。
-- [ ] **DFLT-04**: 默认插件安装 / reconcile / bootstrap 过程具备幂等性，重复执行不会生成重复数据或重复附属对象。
-- [ ] **DFLT-05**: 如果默认插件样板依赖 `v2.3` 的 accepted gap，则本 milestone 只补齐样板直接依赖的最小产品闭环，而不是重开整轮 `v2.3` closeout。
+- [ ] **AINT-01**: 平台调用方可以列出 commands、actions、capabilities 的 machine-readable descriptors。
+- [ ] **AINT-02**: 每个 descriptor 都声明 input schema、required capability、side-effect class、stability / version metadata。
+- [ ] **AINT-03**: command、event、audit metadata 支持 human actor、system actor、plugin actor、delegated agent actor。
+- [ ] **AINT-04**: delegated agent action 可以携带 delegation / approval metadata，而不是默认高权限执行。
+- [ ] **AINT-05**: `v3.0` 交付 agent-callable contracts，而不要求完整 Agent Runtime / Skill Runtime 落地。
 
 ## Future Requirements
 
-### Additional Plugin Samples
+### Advanced Runtime Isolation
 
-- **FUT-01**: 课堂侧辅助模块成为下一批默认插件样板，验证课堂运行面也能复用同一插件数据模型。
-- **FUT-02**: 更多系统模块逐步迁入默认插件模型，减少 built-in hard-coded 特例。
+- **FUT-01**: 插件可以在 Extension Host 或其他独立宿主中运行，以降低 UI/主进程耦合。
+- **FUT-02**: 平台可以为受信或第三方扩展提供更强隔离级别的 sandbox runtime。
 
-### Governance Expansion
+### Workflow & AI Runtime Expansion
 
-- **FUT-03**: 插件 ownership registry 提供更完整的对象清单、导出与报表能力。
-- **FUT-04**: 更自动化的 uninstall cleanup / archive policy 覆盖所有插件家族，而不仅是 preflight 与最小策略。
+- **FUT-03**: 平台可以在 command / event contracts 之上接入正式 Workflow Engine。
+- **FUT-04**: 平台可以在 machine-readable contracts 之上接入完整 Agent Runtime、Skill Runtime 与 approval workflow。
+
+### Infrastructure Evolution
+
+- **FUT-05**: 当 SQLite-first 不再满足规模需求时，平台可平滑演进到 PostgreSQL / pgvector 等更重型存储拓扑。
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Runtime DDL / manifest 自带 SQL migration | 破坏主仓库 migration truth 与插件安全边界 |
-| PostgreSQL schema-per-plugin 或 database-per-plugin | 当前项目明确 SQLite-first，本 milestone 不偷跑未来多数据库架构 |
-| 通用 low-code entity engine / arbitrary plugin schema builder | 会把本轮从插件数据治理做成范围失控的平台项目 |
-| 持续向核心表追加插件专属 nullable columns | 会污染 core schema，并让默认插件变成特权通道 |
-| 把全部 `v2.3` accepted gaps 一起纳入 | 本 milestone 只补样板插件直接依赖的最小闭环，避免 scope 扩散 |
-| 把课堂侧辅助模块也纳入首批 committed 样板 | 本轮先聚焦教学步骤、课表/提醒、资源处理三类，控制样板数量 |
+| QuickJS / arbitrary JS plugin execution | 与当前安全边界冲突，且会把本阶段从 contract 收口拖向 sandbox 工程 |
+| Extension Host / 多进程插件宿主 | 属于后续高隔离阶段，不是第一阶段平台内核必需项 |
+| PostgreSQL / pgvector cutover | 当前仍坚持 SQLite-first，本 milestone 不偷跑存储拓扑迁移 |
+| Workflow Engine / Temporal | 这轮先建立 command / event 平台 contract，而不是直接引入 workflow runtime |
+| Full Agent Runtime / Skill Runtime | 本轮只交付 agent-callable contracts，不交付完整 AI runtime |
+| 分布式 Event Bus / Kafka / Redis Streams truth source | Redis 与队列只能做 delivery/orchestration，不能取代 SQLite canonical truth |
+| classroom realtime rewrite | `v2.2` 已完成 transport cutover，本轮不重开课堂实时主链路 |
+| 把未完成 `v2.4` scope 全部自动并入 | `v2.4` 作为冻结上下文保留，但不自动成为 `v3.0` committed scope |
 
 ## Traceability
 
@@ -85,41 +91,44 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLUG-01 | Phase 44 | Complete |
-| PLUG-02 | Phase 44 | Complete |
-| PLUG-03 | Phase 44 | Complete |
-| PLUG-04 | Phase 44 | Pending |
-| EXT-01 | Phase 45 | Pending |
-| EXT-02 | Phase 45 | Pending |
-| EXT-03 | Phase 45 | Pending |
-| EXT-04 | Phase 45 | Pending |
-| OWN-01 | Phase 45 | Pending |
-| OWN-02 | Phase 45 | Pending |
-| OWN-03 | Phase 45 | Pending |
-| GOV-01 | Phase 46 | Pending |
-| GOV-02 | Phase 46 | Pending |
-| GOV-03 | Phase 46 | Pending |
-| GOV-04 | Phase 46 | Pending |
-| SAFE-01 | Phase 47 | Pending |
-| SAFE-02 | Phase 47 | Pending |
-| SAFE-03 | Phase 47 | Pending |
-| SAFE-04 | Phase 47 | Pending |
-| SAFE-05 | Phase 47 | Pending |
-| LIFE-01 | Phase 48 | Pending |
-| LIFE-02 | Phase 48 | Pending |
-| LIFE-03 | Phase 48 | Pending |
-| LIFE-04 | Phase 48 | Pending |
-| DFLT-01 | Phase 49 | Pending |
-| DFLT-02 | Phase 49 | Pending |
-| DFLT-03 | Phase 49 | Pending |
-| DFLT-04 | Phase 49 | Pending |
-| DFLT-05 | Phase 49 | Pending |
+| BOUND-01 | Phase 50 | Pending |
+| BOUND-02 | Phase 50 | Pending |
+| BOUND-03 | Phase 50 | Pending |
+| BOUND-04 | Phase 50 | Pending |
+| CMD-01 | Phase 51 | Pending |
+| CMD-02 | Phase 51 | Pending |
+| CMD-03 | Phase 51 | Pending |
+| CMD-04 | Phase 51 | Pending |
+| CMD-05 | Phase 51 | Pending |
+| ACTN-01 | Phase 52 | Pending |
+| ACTN-02 | Phase 52 | Pending |
+| ACTN-03 | Phase 52 | Pending |
+| ACTN-04 | Phase 52 | Pending |
+| ACTN-05 | Phase 52 | Pending |
+| LIFE-01 | Phase 52 | Pending |
+| LIFE-02 | Phase 52 | Pending |
+| LIFE-03 | Phase 52 | Pending |
+| LIFE-04 | Phase 52 | Pending |
+| LIFE-05 | Phase 52 | Pending |
+| LIFE-06 | Phase 52 | Pending |
+| EVNT-01 | Phase 53 | Pending |
+| EVNT-02 | Phase 53 | Pending |
+| EVNT-03 | Phase 53 | Pending |
+| EVNT-04 | Phase 53 | Pending |
+| EVNT-05 | Phase 53 | Pending |
+| EVNT-06 | Phase 53 | Pending |
+| EVNT-07 | Phase 53 | Pending |
+| AINT-01 | Phase 54 | Pending |
+| AINT-02 | Phase 54 | Pending |
+| AINT-03 | Phase 54 | Pending |
+| AINT-04 | Phase 54 | Pending |
+| AINT-05 | Phase 54 | Pending |
 
 **Coverage:**
-- v2.4 requirements: 29 total
-- Mapped to phases: 29
+- v3.0 requirements: 32 total
+- Mapped to phases: 32
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-05-20*  
-*Last updated: 2026-05-20 after roadmap creation for milestone v2.4*
+*Requirements defined: 2026-05-21*  
+*Last updated: 2026-05-21 after roadmap mapping for phases 50-54*

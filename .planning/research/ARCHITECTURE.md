@@ -1,164 +1,262 @@
-# Architecture Patterns — v2.4 Plugin Data Architecture & Default Plugins
+# Architecture Report — v3.0 AI Native Educational OS Upgrade
 
-**Domain:** Plugin-owned data inside the existing OpenLearn Next monolith  
-**Researched:** 2026-05-20  
+**Scope:** 仅覆盖本 milestone 新增内核能力如何接入现有架构  
+**Researched:** 2026-05-21  
 **Confidence:** HIGH
 
-## Recommended Architecture
+## 1. New components/modules to add
 
-结论先说：**把插件数据做成单体内受治理的扩展层，不是新的动态数据库平台。**
+### A. Platform Core feature root
+建议新增一个**单体内平台内核根目录**，不要现在就拆成 monorepo packages：
 
-OpenLearn Next 当前正确姿势已经很清晰：
+`src/features/platform-core/`
 
-- Next.js monolith 继续承载 UI、Route Handlers、Server Actions
-- SQLite + DAL 继续承载 durable truth
-- Plugin registration/lifecycle/governance 已经建立受控入口
-- Built-in/default plugin 只在产品语义上特殊，不应在数据治理上特权化
+建议包含：
 
-因此 v2.4 不应该做成：
+- `commands/contracts.ts`
+  - `PlatformCommand`、metadata、result、error taxonomy
+- `commands/bus.ts`
+  - 统一 `dispatch()` 入口
+- `commands/registry.ts`
+  - command type -> handler 映射
+- `commands/handlers/*`
+  - `plugin.install`、`plugin.enable`、`plugin.disable`、`plugin.transition`、后续 `lesson.*`/`workflow.*`
+- `actions/registry.ts`
+  - **Dynamic Action Registry**；按 school/plugin/lifecycle/capability 解析“此时可调用什么 action”
+- `events/contracts.ts`
+  - `PlatformEvent` 定义；与 command 明确分离
+- `events/bus.ts`
+  - 平台级 publish/subscribe 接口
+- `events/outbox.ts`
+  - 事实事件的 durable outbox / projector seam
+- `plugins/lifecycle-orchestrator.ts`
+  - register → resolveDependencies → activate → running → deactivate → dispose
+- `plugins/dependency-graph.ts`
+  - 插件依赖排序、循环检测、禁用传播
+- `capabilities/authorizer.ts`
+  - command/action 级 capability 判定入口（先做薄层）
+- `observability/trace.ts`
+  - commandId / correlationId / causationId 生成与传播
 
-`plugin manifest -> runtime create table -> plugin SQL -> UI`
+### B. Persistence additions
+在现有 SQLite durable truth 上新增最小必要账本：
 
-而应该做成：
+- `platformCommandExecutions`
+  - 记录 command 输入、actor、status、result summary、correlationId
+- `platformEventOutbox`
+  - 记录 command 成功后产生的 domain events
+- `pluginActivationState` 或 `pluginRuntimeBindings`
+  - 记录当前已注册 action / subscription / activation snapshot
 
-`UI / settings / product action -> Server Action -> plugin/core DAL -> plugin-owned or extension table -> DTO / cache invalidation / audit`
+原则：**先加 ledger/outbox，不做 event sourcing rewrite。**
 
-## Integration Points
+## 2. Existing components likely to change
 
-### 1. Split plugin definition data from plugin business data
+### 必改模块
 
-- **Plugin definition data**：插件是谁、稳定标识、版本、namespace、默认启用、是否内置。  
-- **Plugin installation data**：某学校是否安装、是否启用、kill switch、lifecycle。  
-- **Plugin business data**：插件真正拥有或扩展的结构化业务数据。  
+- `src/actions/plugin-actions.ts`
+  - 现状：Server Actions 直调 `lib/dal/plugins`
+  - 目标：改成 **Server Action -> Command Bus**，保留 `updateTag()` 但不把它塞进 bus 内核
 
-这三层不能继续都塞在 `manifestJson` 里。
+- `src/lib/dal/plugins.ts`
+  - 现状：同时做 lifecycle、governance、hook run、dispatch orchestration
+  - 目标：收敛为**插件领域 DAL + transaction helpers**；不要继续承担“总调度器”角色
 
-### 2. Keep `pluginRegistration` as installation/governance row
+- `src/server/plugins/registry.ts`
+  - 现状：`PLUGIN_ACTION_ALLOWLIST + switch dispatchPluginAction()`
+  - 目标：改为**静态实现 + 动态注册元数据**；保留代码受控实现，去掉硬编码总表
 
-`pluginRegistration` 继续承接：
+- `src/features/runtime-platform/seams/event-bus/*`
+  - 现状：这是 runtime/session 级 event bus，默认 in-process
+  - 目标：继续保留为**runtime transport/event seam**，但**不要冒充平台级 Event Bus**
 
-- school scope
-- install / enable / disable / suspend
-- governance audit join key
+- `src/features/runtime-platform/host-actions/plugin-host.ts`
+  - 现状：可直接 publish runtime event
+  - 目标：改成通过 platform contracts 发 command / emit platform event，避免 host action 成为旁路
 
-但它不应成为插件业务真相源。插件业务真相应进入 extension/plugin-owned tables。
+- `src/features/async-tasks/server/registry.ts`
+  - 现状：typed task registry 已存在
+  - 目标：后续让 task processor 也能 dispatch command；不要各 processor 自造 mutation seam
 
-### 3. Two allowed persistence patterns only
+- `src/db/schema.ts`
+  - 需要增加 command/event ledger 表，并给 `governanceAudits` 增加 command/event 关联键
 
-#### Extension table
+- `src/lib/cache-policy.ts`
+  - 需要新增 command/event 影响的 cache tag map，避免继续在各入口分散维护
 
-用于扩展核心实体：
+### 很可能受影响的现有表/审计面
 
-- `plg_<ns>_lesson_step_ext`
-- `plg_<ns>_resource_ext`
-- `plg_<ns>_course_ext`
+- `pluginRegistrations`
+- `pluginLifecycleTransitions`
+- `pluginActionAudits`
+- `governanceAudits`
+- `runtimeEventOutbox`
 
-#### Plugin-owned table
+## 3. Data flow / control flow changes
 
-用于插件自己的业务实体：
+## 新主路径
 
-- `plg_<ns>_template`
-- `plg_<ns>_rule`
-- `plg_<ns>_proposal`
-- `plg_<ns>_annotation`
+```text
+UI / Plugin host / Async task / Future Agent
+  -> Server Action / Node entrypoint
+  -> Command Bus
+  -> validate command schema
+  -> capability + lifecycle + school-scope checks
+  -> command handler
+  -> DAL transaction against SQLite
+  -> write governance/audit/command ledger
+  -> append PlatformEvent outbox records
+  -> return invalidation intent + result
+  -> edge/app layer calls updateTag()
+```
 
-## New / Modified Parts
+## Command vs Event boundary
 
-### New parts
+- **Command** = 请求系统做事；只能走 unified execution boundary
+- **Event** = 已经发生的事实；只能在 command 成功提交后发出
+- **Rule:** event handler 若要改 durable truth，必须再 dispatch command，不能直接写库
 
-1. **Plugin catalog**
-   - Suggested path: `src/server/plugins/catalog.ts`
-   - Holds stable code-owned plugin definitions: `pluginKey`, `dbNamespace`, source type, uninstall policy, manifest factory, data ownership metadata.
+## 与现有 runtime transport 的关系
 
-2. **Plugin data DAL modules**
-   - Suggested path: `src/lib/dal/plugin-data/*`
-   - Each plugin gets typed DAL instead of using a generic CRUD gateway.
+应拆成三层，不要混：
 
-3. **Plugin schema modules**
-   - Suggested path: `src/db/plugins/<namespace>.ts`
-   - Re-export from central schema barrel so Drizzle still sees one governed schema graph.
+1. **Platform Event Bus**
+   - 面向插件、工作流、未来 Agent、analytics
+2. **Runtime Event/Transport Bus**
+   - 面向课堂 session、WebSocket/SSE delivery
+3. **Async Task Queue**
+   - 面向长任务执行，不是事实广播总线
 
-4. **Plugin uninstall/bootstrap orchestration**
-   - Install bootstrap for default plugins
-   - Preflight checks for uninstall/cleanup
+现有 `runtimeEventOutbox + publishTransportEvent()` 保持课堂实时语义；
+新的 `platformEventOutbox` 只承接平台领域事实，如：
 
-### Modified parts
+- `plugin.installed`
+- `plugin.enabled`
+- `plugin.lifecycle.transitioned`
+- `action.registered`
+- `action.unregistered`
+- `command.failed`
 
-1. **`src/db/schema.ts` / schema organization**
-   - Add explicit plugin identity columns to `pluginRegistration`
-   - Prefer splitting plugin schema out of the monolithic schema file while keeping one central export
+## Dynamic Action Registry boundary
 
-2. **`src/lib/dal/plugins.ts`**
-   - Keep registration/lifecycle/governance here
-   - Add reconcile/install/bootstrap/uninstall-preflight orchestration
-   - Do not turn it into the DAL for all plugin business data
+建议采用：
 
-3. **`src/actions/plugin-actions.ts`**
-   - Add install/bootstrap/reconcile/uninstall-preflight actions as needed
-   - Upgrade cache invalidation to school/plugin/entity-scoped tags
+- **动态的是可发现元数据**：action id、capability、plugin owner、lifecycle requirement、input schema key
+- **静态的是真实实现**：handler 仍由主仓库代码提供
 
-4. **`src/server/plugins/registry.ts`**
-   - Stop resolving built-ins by display name
-   - Prefer stable `pluginKey`
+即：
 
-## Build Order
+```text
+plugin manifest / built-in definition
+  -> Action Registry projection
+  -> command/action discoverability
+  -> implementation resolved to code-owned handler
+```
 
-### Phase 1 — Stable plugin identity and namespace contract
+这样能支持 Agent/Workflow discoverability，同时不突破“禁止任意第三方代码执行”的约束。
 
-- Add `pluginKey`, `dbNamespace`, `sourceType`, version/install snapshot fields
-- Backfill current built-ins
-- Establish naming helper and uniqueness rules
+## 4. Recommended build order
 
-### Phase 2 — Extension/plugin-owned schema patterns
+### Step 1 — Command contracts + ledger first
+- 加 `PlatformCommand` contract、`dispatch()`、command execution ledger
+- 先只接入**插件生命周期命令**，不重写 lesson/runtime 主链路
 
-- Land the first extension table
-- Land the first plugin-owned table
-- Document the cut line between the two patterns
+### Step 2 — Wrap existing plugin operations behind handlers
+- 把 `plugin-actions.ts` 的 install/enable/disable/transition 改成 command handlers
+- `lib/dal/plugins.ts` 退回领域服务角色
 
-### Phase 3 — DAL/auth/cache/audit integration
+### Step 3 — Add Dynamic Action Registry
+- 从当前 `server/plugins/registry.ts` 抽出 action metadata registry
+- 先兼容旧 allowlist，再逐步替换 `switch` 型分发
 
-- Add plugin data DAL modules
-- Define cache tag matrix
-- Ensure actor capability and school scope are enforced on plugin data writes
+### Step 4 — Add Platform Event Bus + outbox
+- command 成功后写 `platformEventOutbox`
+- 先做 in-process subscribers；不要一开始就上 Redis Streams
 
-### Phase 4 — Default plugin bootstrap and lifecycle alignment
+### Step 5 — Formal Plugin Lifecycle orchestration
+- 在 enable/disable 之外补 `activate/deactivate/dispose`
+- 增加 dependency ordering / cycle detection / activation snapshot
 
-- Reconcile built-in/default plugins into the formal installation model
-- Ensure `defaultEnabled` triggers idempotent bootstrap, not just enabled=true
+### Step 6 — Migrate secondary producers
+- `plugin-host.ts`
+- async task processors
+- 后续 agent/tool entrypoints
 
-### Phase 5 — Default plugin exemplars
+### Step 7 — Only then expose discovery surfaces
+- `listCommands()`
+- `listActions()`
+- `listCapabilities()`
 
-- Pick 2-3 default plugins
-- Verify they use the new model rather than hard-coded special paths
+这个顺序最安全，因为它先统一执行边界，再开放更多调用者。
 
-## Migration Risks
+## 5. Specific integration cautions for this repo
 
-1. **Current built-ins depend too much on display names**  
-   `pluginName`-based resolution is fragile once plugin identity becomes stable and data-owned.
+### A. 不要让 Command Bus 绕过 DAL
+这个仓库的硬约束是 **DAL-only data access**。
+正确姿势是：
 
-2. **Manifest snapshot vs DB governance drift**  
-   If `builtIn/defaultEnabled/nonDeletable/dbNamespace` stay JSON-only, DB truth and code truth will drift.
+`command handler -> DAL/domain service -> db`
 
-3. **Schema file size and change blast radius**  
-   `src/db/schema.ts` is already large; plugin schema work should be additive and modularized.
+不要在 bus handler 里直接散落 Drizzle 写入。
 
-4. **Uninstall semantics are dangerous**  
-   Wrong cascade direction could delete core truth instead of plugin-owned rows.
+### B. 不要把 `next/cache` 带进平台内核
+当前 `updateTag()` 在 Server Action 很合理；
+但 command bus 未来还要被 worker / agent / host action 调用。
 
-## Explicit Recommendation
+建议：**bus 返回 invalidation intents，入口层再执行 `updateTag()`**。
 
-For v2.4:
+### C. 不要把现有 runtime event seam 误当成平台 Event Bus
+当前 runtime event bus 明确绑定 `classroom-session-write-path`，而且 transport 已有 WebSocket-first 语义。
+v3.0 新 Event Bus 必须是**平台事实层**，不要复用成课堂广播总线。
 
-1. **Make plugin identity explicit in SQL**
-2. **Allow only extension table and plugin-owned table patterns**
-3. **Keep all schema changes repo-governed through Drizzle**
-4. **Let default plugins be the first real adopters**
-5. **Keep DAL/auth/cache/audit discipline unchanged in spirit, only extended in scope**
+### D. 不要把 Dynamic Action Registry 做成动态代码执行
+这个 repo 明确禁止 `eval()`、插件直接访问核心 API/DB。
+所以 action registry 只能是：
+
+- 动态发现
+- 动态授权
+- 动态装配
+
+不能是“插件上传 JS 后直接执行”。
+
+### E. 不要让 async task processor 成为旁路 mutation 面
+`v2.3` 已经有 typed task registry。后续 task 完成业务写入时，也应通过 command handler 或共享 domain service；否则统一 execution boundary 会被 worker 绕开。
+
+### F. 审计键要统一
+现有已有：
+
+- `pluginActionAudits`
+- `governanceAudits`
+- `runtimeEventOutbox`
+
+v3.0 需要新增并贯通：
+
+- `commandId`
+- `correlationId`
+- `causationId`
+
+否则后续 Observability / Replay / Agent trace 很难补。
+
+### G. 生命周期不要直接复用当前 plugin state 名字做未来 runtime 总状态机
+当前 `installed/enabled/mounted/ready/suspended/disabled/failed` 已落库。可以兼容，但建议新增**activation orchestration layer**，而不是马上重写表枚举，避免 blast radius 过大。
+
+## Bottom line
+
+这次 v3.0 第一阶段最稳的接法是：
+
+**在现有 Next.js 单体里新增 platform-core 层，用 Command Bus 收口所有系统动作；让 Dynamic Action Registry 只负责发现与授权，不负责执行任意代码；让 Event Bus 成为 command 提交后的事实广播层，并与现有 runtime transport bus 保持严格分层。**
+
+这样既能承接后续 Agent Runtime / Skill Runtime / Capability / Observability，又不会破坏当前 SQLite、DAL、WebSocket transport、async task platform 已经建立的稳定边界。
 
 ## Sources
 
-- `.planning/PROJECT.md` — current milestone framing and constraints. Confidence: HIGH.
-- `src/db/schema.ts` — shared SQLite schema and current plugin tables. Confidence: HIGH.
-- `src/lib/dal/plugins.ts` — lifecycle/governance and built-in helper behavior. Confidence: HIGH.
-- `src/actions/plugin-actions.ts` — current plugin server action boundary. Confidence: HIGH.
-- `src/lib/dto/resource-ai.ts` — plugin manifest and built-in plugin contracts. Confidence: HIGH.
+- `.planning/PROJECT.md` — v3.0 目标、约束、现有平台边界。Confidence: HIGH.
+- `.planning/ROADMAP.md` — v2.4 已完成插件数据治理与 lifecycle 输入。Confidence: HIGH.
+- `openlearn_next_upgrade_plan.md` — v3.x 升级方向与优先级。Confidence: HIGH.
+- `src/actions/plugin-actions.ts` — 当前 plugin Server Action 入口。Confidence: HIGH.
+- `src/lib/dal/plugins.ts` — 当前插件 lifecycle / governance / hook orchestration 聚合点。Confidence: HIGH.
+- `src/server/plugins/registry.ts` — 当前硬编码 action allowlist 与分发实现。Confidence: HIGH.
+- `src/features/runtime-platform/seams/event-bus/*` — 当前 runtime event seam 仍是 in-process/default-only。Confidence: HIGH.
+- `src/features/runtime-platform/classroom/runtime-session.ts` — runtime transport 事件在 durable write 后发布。Confidence: HIGH.
+- `src/features/async-tasks/server/registry.ts` + `worker/registry.ts` — 现有 typed async task registry 与 processor map。Confidence: HIGH.
+- `src/db/schema.ts` — `pluginRegistrations`、`pluginLifecycleTransitions`、`pluginActionAudits`、`governanceAudits`、`runtimeEventOutbox` 现状。Confidence: HIGH.
