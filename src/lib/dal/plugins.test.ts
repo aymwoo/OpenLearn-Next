@@ -798,6 +798,7 @@ describe("plugin DAL security boundary", () => {
         uninstall: {
           blocked: false,
           totalCount: 0,
+          cleanupConfirmationToken: "cleanup:plugin-1:0:0:0:0:0",
         },
       },
     ]);
@@ -820,16 +821,129 @@ describe("plugin DAL security boundary", () => {
     ).rejects.toThrow("UNINSTALL_BLOCKED_DEFAULT_PLUGIN");
   });
 
-  it("uninstalls external plugin in transaction and relies on cascade delete", async () => {
-    const { uninstallPlugin } = await import("./plugins");
+  it("uninstalls external plugin in cleanup mode and relies on cascade delete", async () => {
+    const { uninstallPluginWithTx } = await import("./plugins");
 
     findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({ sourceType: "external" }));
+    selectWhere
+      .mockResolvedValueOnce([{ lessonId: "lesson-1" }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
     deleteReturning.mockResolvedValueOnce([createPluginRecord({ sourceType: "external" })]);
 
-    const result = await uninstallPlugin({ pluginId: "plugin-1", schoolId: "school-1", actorId: "teacher-1" });
+    const result = await uninstallPluginWithTx({
+      tx: {
+        insert: dbInsert,
+        update: dbUpdate,
+        delete: dbDelete,
+      } as never,
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+      retentionMode: "cleanup",
+      confirmationToken: "cleanup:plugin-1:1:0:0:0:1",
+    } as never);
 
-    expect(transactionMock).toHaveBeenCalled();
     expect(dbDelete).toHaveBeenCalled();
     expect(result).toMatchObject({ id: "plugin-1" });
+  });
+
+  it("generates deterministic cleanup confirmation tokens during uninstall preflight", async () => {
+    const { preflightUninstallPlugin } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({ sourceType: "external" }));
+    selectWhere
+      .mockResolvedValueOnce([{ lessonId: "lesson-1" }])
+      .mockResolvedValueOnce([{ lessonStepId: "step-1" }, { lessonStepId: "step-2" }])
+      .mockResolvedValueOnce([{ resourceId: "resource-1" }, { resourceId: "resource-2" }])
+      .mockResolvedValueOnce([{ key: "biz-1" }]);
+
+    const result = await preflightUninstallPlugin({
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+    });
+
+    expect(result).toMatchObject({
+      cleanupConfirmationToken: "cleanup:plugin-1:1:2:2:1:6",
+    });
+  });
+
+  it("retains plugin registrations with uninstall metadata instead of hard deleting on retain", async () => {
+    const { uninstallPluginWithTx } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({
+      sourceType: "external",
+      enabled: true,
+      killSwitchEnabled: true,
+      lifecycleState: "ready",
+    }));
+    updateReturning.mockResolvedValueOnce([
+      createPluginRecord({
+        sourceType: "external",
+        enabled: false,
+        killSwitchEnabled: false,
+        lifecycleState: "disabled",
+        uninstalledAt: new Date("2026-05-22T00:00:00Z"),
+        uninstallRetentionMode: "retain",
+      }),
+    ]);
+
+    const result = await uninstallPluginWithTx({
+      tx: {
+        insert: dbInsert,
+        update: dbUpdate,
+        delete: dbDelete,
+      } as never,
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      actorId: "teacher-1",
+      retentionMode: "retain",
+      commandContext: {
+        commandId: "command-retain",
+        correlationId: "corr-retain",
+        attemptNumber: 1,
+      },
+    } as never);
+
+    expect(dbDelete).not.toHaveBeenCalled();
+    expect(updateSet).toHaveBeenCalledWith(expect.objectContaining({
+      enabled: false,
+      killSwitchEnabled: false,
+      lifecycleState: "disabled",
+      uninstallRetentionMode: "retain",
+    }));
+    expect(result).toMatchObject({
+      lifecycleState: "disabled",
+      enabled: false,
+      killSwitchEnabled: false,
+    });
+  });
+
+  it("rejects cleanup uninstall without matching confirmation token", async () => {
+    const { uninstallPluginWithTx } = await import("./plugins");
+
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({ sourceType: "external" }));
+    selectWhere
+      .mockResolvedValueOnce([{ lessonId: "lesson-1" }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
+    await expect(
+      uninstallPluginWithTx({
+        tx: {
+          insert: dbInsert,
+          update: dbUpdate,
+          delete: dbDelete,
+        } as never,
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        actorId: "teacher-1",
+        retentionMode: "cleanup",
+        confirmationToken: "cleanup:plugin-1:0:0:0:0:0",
+      } as never),
+    ).rejects.toThrow("PLUGIN_CLEANUP_CONFIRMATION_REQUIRED");
   });
 });

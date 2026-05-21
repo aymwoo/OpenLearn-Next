@@ -18,6 +18,12 @@ const mockPluginDAL = vi.hoisted(() => ({
   runPluginHook: vi.fn(),
 }));
 
+const mockRegistryReads = vi.hoisted(() => ({
+  readExecutableActionCatalog: vi.fn(),
+  readBlockedActionDiagnostics: vi.fn(),
+  readPluginGovernanceLifecycle: vi.fn(),
+}));
+
 vi.mock("server-only", () => ({}));
 
 vi.mock("next/cache", () => ({
@@ -33,6 +39,8 @@ vi.mock("@/lib/dal/membership", () => ({
 }));
 
 vi.mock("@/features/platform-core/commands/producers/plugin-governance", () => mockGovernanceProducer);
+
+vi.mock("@/features/platform-core/actions/registry", () => mockRegistryReads);
 
 vi.mock("@/lib/dal/plugins", () => mockPluginDAL);
 
@@ -73,6 +81,9 @@ describe("plugin-actions", () => {
     mockPluginDAL.listPluginsForSchool.mockReset();
     mockPluginDAL.getPluginForSchool.mockReset();
     mockPluginDAL.runPluginHook.mockReset();
+    mockRegistryReads.readExecutableActionCatalog.mockReset();
+    mockRegistryReads.readBlockedActionDiagnostics.mockReset();
+    mockRegistryReads.readPluginGovernanceLifecycle.mockReset();
     getCurrentUserDTOMock.mockResolvedValue({ id: "user-1", name: "Teacher" });
     getUserMembershipsDTOMock.mockResolvedValue([{ schoolId: "school-1", status: "active", role: "teacher" }]);
     mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValue({
@@ -83,6 +94,9 @@ describe("plugin-actions", () => {
       invalidationTags: ["plugin:registry", "plugin:plugin-1"],
     });
     mockPluginDAL.getPluginForSchool.mockResolvedValue(mockPluginDTO);
+    mockRegistryReads.readExecutableActionCatalog.mockResolvedValue([]);
+    mockRegistryReads.readBlockedActionDiagnostics.mockResolvedValue([]);
+    mockRegistryReads.readPluginGovernanceLifecycle.mockResolvedValue(null);
   });
 
   it("routes mutation actions through a shared plugin governance producer seam", async () => {
@@ -550,12 +564,39 @@ describe("plugin-actions", () => {
         type: "plugin.uninstall",
         actor: { actorId: "user-1", actorScope: "teacher" },
         scope: { schoolId: "school-1", pluginId: "plugin-1" },
-        payload: { schoolId: "school-1", pluginId: "plugin-1", retentionMode: "retain" },
+        payload: {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          retentionMode: "retain",
+          confirmationToken: undefined,
+        },
         source: "server-action",
         correlation: { producer: "plugin-actions.uninstall" },
       });
       expect(updateTag).toHaveBeenCalledWith("plugin:registry");
       expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
+    });
+
+    it("forwards cleanup confirmation tokens to plugin.uninstall payloads", async () => {
+      const { deletePluginAction } = await import("./plugin-actions");
+
+      await deletePluginAction({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        retentionMode: "cleanup",
+        confirmationToken: "cleanup:plugin-1:1:2:3:4:10",
+      } as never);
+
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          payload: {
+            schoolId: "school-1",
+            pluginId: "plugin-1",
+            retentionMode: "cleanup",
+            confirmationToken: "cleanup:plugin-1:1:2:3:4:10",
+          },
+        }),
+      );
     });
 
     it("returns PLUGIN_DELETE_FAILED on DAL error", async () => {
