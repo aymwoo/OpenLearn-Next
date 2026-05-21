@@ -72,6 +72,7 @@ async function main() {
   const hostSource = read("src/features/runtime-platform/host-actions/plugin-host.ts");
   const handlerSource = read("src/features/platform-core/commands/handlers/plugins.ts");
   const dependencyGraphSource = read("src/features/platform-core/plugins/dependency-graph.ts");
+  const settingsSurfaceSource = read("src/components/surfaces/settings-surface.tsx");
   const surfaceSource = read("src/components/surfaces/plugin-lifecycle-operator-surface.tsx");
   const dalSource = read("src/lib/dal/plugins.ts");
 
@@ -116,11 +117,26 @@ async function main() {
     {
       label: "operator surface keeps governance diagnostics behind explicit entry and cleanup opt-in",
       passed: includesAll(surfaceSource, [
+        "dashboard: GovernanceDashboardBundle",
         "查看治理诊断",
-        "系统不会自动恢复",
         "retain 为默认姿态；cleanup 需要显式 opt-in 与确认。",
         "我已确认 cleanup 会删除以上分类数据，并且这是显式的破坏性操作。",
         "该插件由系统提供，可启用或停用，但不会作为可删除扩展处理。",
+      ]) && !includesAll(surfaceSource, [
+        "PluginRegistrationDTO",
+        "lifecycleCopyMap",
+        "isExecutablePlugin",
+        "getDiagnosticReason",
+      ]),
+    },
+    {
+      label: "settings surface consumes governance dashboard bundle instead of raw plugin DTO wiring",
+      passed: includesAll(settingsSurfaceSource, [
+        "readGovernanceDashboardBundle",
+        "<PluginLifecycleOperatorSurface schoolId={schoolId} dashboard={dashboard} />",
+      ]) && !includesAll(settingsSurfaceSource, [
+        "listPluginsAction",
+        "plugins={plugins}",
       ]),
     },
     {
@@ -179,6 +195,7 @@ async function main() {
     "src/features/platform-core/plugins/governance-projection.test.ts",
     "src/features/runtime-platform/host-actions/plugin-host.phase52.test.ts",
     "src/components/surfaces/plugin-lifecycle-operator-surface.test.tsx",
+    "src/components/surfaces/settings-surface.test.tsx",
     "src/lib/dal/plugins.test.ts",
   ], "Phase 52 registry and lifecycle focused suites");
   console.log("  ✓ Phase 52 behavior verified.");
