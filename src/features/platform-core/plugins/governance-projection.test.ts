@@ -96,6 +96,8 @@ describe("plugin governance lifecycle contracts", () => {
         activationStatus: "active",
         failureDetail: null,
         uninstall: {
+          pluginId: "plugin-a",
+          schoolId: "school-1",
           blocked: false,
           reason: null,
           lessonExtCount: 0,
@@ -121,6 +123,8 @@ describe("plugin governance lifecycle contracts", () => {
         activationStatus: "failed",
         failureDetail: "secret stack must not leak",
         uninstall: {
+          pluginId: "plugin-b",
+          schoolId: "school-1",
           blocked: false,
           reason: null,
           lessonExtCount: 1,
@@ -146,6 +150,8 @@ describe("plugin governance lifecycle contracts", () => {
         activationStatus: "idle",
         failureDetail: null,
         uninstall: {
+          pluginId: "plugin-c",
+          schoolId: "school-1",
           blocked: false,
           reason: null,
           lessonExtCount: 0,
@@ -171,6 +177,8 @@ describe("plugin governance lifecycle contracts", () => {
         activationStatus: "active",
         failureDetail: null,
         uninstall: {
+          pluginId: "plugin-d",
+          schoolId: "school-1",
           blocked: true,
           reason: "UNINSTALL_BLOCKED_DEFAULT_PLUGIN",
           lessonExtCount: 0,
@@ -216,7 +224,7 @@ describe("plugin governance lifecycle contracts", () => {
       },
       executable: false,
     });
-    expect(result.plugins.find((plugin: (typeof result.plugins)[number]) => plugin.pluginId === "plugin-b")?.failureAttribution?.detail).toBeUndefined();
+    expect(result.plugins.find((plugin: (typeof result.plugins)[number]) => plugin.pluginId === "plugin-b")?.failureAttribution).not.toHaveProperty("detail");
 
     const cleanupPreview = projection.projectPluginGovernance([
       {
@@ -231,6 +239,8 @@ describe("plugin governance lifecycle contracts", () => {
         activationStatus: "idle",
         failureDetail: null,
         uninstall: {
+          pluginId: "plugin-clean",
+          schoolId: "school-1",
           blocked: false,
           reason: null,
           lessonExtCount: 2,

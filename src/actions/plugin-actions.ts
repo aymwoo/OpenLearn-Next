@@ -3,6 +3,11 @@
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
+import {
+  readBlockedActionDiagnostics,
+  readExecutableActionCatalog,
+  readPluginGovernanceLifecycle,
+} from "@/features/platform-core/actions/registry";
 import { dispatchPluginGovernanceCommand } from "@/features/platform-core/commands/producers/plugin-governance";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import {
@@ -46,6 +51,11 @@ const PluginBySchoolSchema = z.object({
 
 const PluginListSchema = z.object({
   schoolId: z.string().min(1),
+});
+
+const PluginGovernanceReadSchema = z.object({
+  schoolId: z.string().min(1),
+  pluginId: z.string().min(1),
 });
 
 const RunHookSchema = z.object({
@@ -269,6 +279,55 @@ export async function listPluginsAction(data: z.infer<typeof PluginListSchema>) 
     return { success: true, data: result };
   } catch (error) {
     return { success: false, error: getPluginActionError(error, "PLUGIN_LIST_FAILED") };
+  }
+}
+
+export async function listExecutableActionCatalogAction(data: z.infer<typeof PluginListSchema>) {
+  const parsed = PluginListSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const result = await readExecutableActionCatalog({
+      actorId,
+      schoolId: parsed.data.schoolId,
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_ACTION_CATALOG_FAILED") };
+  }
+}
+
+export async function listBlockedActionDiagnosticsAction(data: z.infer<typeof PluginListSchema>) {
+  const parsed = PluginListSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const result = await readBlockedActionDiagnostics({
+      actorId,
+      schoolId: parsed.data.schoolId,
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_ACTION_DIAGNOSTICS_FAILED") };
+  }
+}
+
+export async function getPluginGovernanceReadAction(data: z.infer<typeof PluginGovernanceReadSchema>) {
+  const parsed = PluginGovernanceReadSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const result = await readPluginGovernanceLifecycle({
+      actorId,
+      schoolId: parsed.data.schoolId,
+      pluginId: parsed.data.pluginId,
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_GOVERNANCE_READ_FAILED") };
   }
 }
 

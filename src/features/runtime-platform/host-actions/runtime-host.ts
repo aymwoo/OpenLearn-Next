@@ -30,6 +30,10 @@ import {
 } from "./guards";
 import type { HostActionPermission, RuntimeCapability } from "../contracts/permissions";
 
+function mapRuntimeLifecycleState(kind: "ready" | "mounted") {
+  return kind === "ready" ? "active" : "enabled" as const;
+}
+
 const RuntimeHostRequestSchema = z.object({
   messageId: z.string().min(1),
   correlationId: z.string().min(1).optional(),
@@ -69,7 +73,8 @@ async function resolveRuntimeGovernance({
   });
   const requestedCapabilities = bootstrap.stepSummary.runtime.requestedCapabilities;
   const requiredCapability = runtimeActionCapabilityMap[input.action];
-  const lifecycleState = bootstrap.latestStateSummary?.kind === "ready" ? "ready" : "mounted";
+  const internalLifecycleState = bootstrap.latestStateSummary?.kind === "ready" ? "ready" : "mounted";
+  const lifecycleState = mapRuntimeLifecycleState(internalLifecycleState);
 
   if (requiredCapability && !hasRequiredCapability(actor, requiredCapability)) {
     await createRuntimeGovernanceAudit({
@@ -82,7 +87,7 @@ async function resolveRuntimeGovernance({
       reasonCode: "capability_missing",
       actorId: actor.actorId,
       actorScope: actor.actorScope,
-      lifecycleState,
+      lifecycleState: internalLifecycleState,
       requestedCapabilities,
       grantedCapabilities: actor.capabilities,
       requiredPermission: requiredPermission ?? null,
@@ -98,11 +103,11 @@ async function resolveRuntimeGovernance({
       requestedCapabilities,
       grantedCapabilities: actor.capabilities,
       requiredPermission: requiredPermission ?? null,
-      lifecycle: { state: lifecycleState },
+      lifecycle: { state: lifecycleState, internalSubstate: internalLifecycleState },
     });
   }
 
-  if (isLifecycleBlocked(lifecycleState)) {
+  if (isLifecycleBlocked(internalLifecycleState)) {
     await createRuntimeGovernanceAudit({
       targetId: bootstrap.stepSummary.runtime.runtimeId,
       runtimeSessionId: bootstrap.sessionId,
@@ -113,7 +118,7 @@ async function resolveRuntimeGovernance({
       reasonCode: "lifecycle_blocked",
       actorId: actor.actorId,
       actorScope: actor.actorScope,
-      lifecycleState,
+      lifecycleState: internalLifecycleState,
       requestedCapabilities,
       grantedCapabilities: actor.capabilities,
       requiredPermission: requiredPermission ?? null,
@@ -129,7 +134,7 @@ async function resolveRuntimeGovernance({
       requestedCapabilities,
       grantedCapabilities: actor.capabilities,
       requiredPermission: requiredPermission ?? null,
-      lifecycle: { state: lifecycleState, blocked: true },
+      lifecycle: { state: lifecycleState, blocked: true, internalSubstate: internalLifecycleState },
     });
   }
 
@@ -140,7 +145,7 @@ async function resolveRuntimeGovernance({
     requestedCapabilities,
     grantedCapabilities: actor.capabilities,
     requiredPermission: requiredPermission ?? null,
-    lifecycle: { state: lifecycleState },
+    lifecycle: { state: lifecycleState, internalSubstate: internalLifecycleState },
   });
 }
 

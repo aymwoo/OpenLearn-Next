@@ -1,14 +1,13 @@
 import { z } from "zod";
 
+import { readPluginGovernanceLifecycle } from "@/features/platform-core/actions/registry";
 import { dispatchPluginGovernanceCommand } from "@/features/platform-core/commands/producers/plugin-governance";
-import { getPluginForSchool } from "@/lib/dal/plugins";
 
 import { defaultRuntimeEventBusAdapter } from "../seams";
 import {
   createAllowedGovernanceDecision,
   createDeniedGovernanceDecision,
   createGuardedHostAction,
-  isLifecycleBlocked,
   resolveTeacherHostActor,
 } from "./guards";
 
@@ -32,6 +31,10 @@ const PluginHostRequestSchema = z.object({
 
 function isGovernanceAction(action: PluginHostRequest["action"]) {
   return action !== "publish-event" && action !== "read-lifecycle";
+}
+
+function isGovernanceWriteAction(action: PluginHostRequest["action"]) {
+  return isGovernanceAction(action);
 }
 
 function getRequiredHostPermission(action: PluginHostRequest["action"]) {
@@ -155,8 +158,8 @@ export const invokePluginHostAction = createGuardedHostAction({
       });
     }
 
-    if (isGovernanceAction(input.action)) {
-      const plugin = await getPluginForSchool({
+    if (isGovernanceWriteAction(input.action)) {
+      const plugin = await readPluginGovernanceLifecycle({
         actorId: actor.actorId,
         schoolId: actor.schoolId,
         pluginId: input.pluginId,
@@ -174,46 +177,74 @@ export const invokePluginHostAction = createGuardedHostAction({
 
       if (input.action === "plugin.kill_switch.set") {
         return createAllowedGovernanceDecision({
-          action: input.action,
-          actor,
-          targetSchoolId: plugin.schoolId,
-          requiredPermission: resolvedPermission,
-          lifecycle: { state: plugin.lifecycleState, blocked: false, killSwitchEnabled: plugin.killSwitchEnabled },
-        });
-      }
+            action: input.action,
+            actor,
+            targetSchoolId: plugin.schoolId,
+            requiredPermission: resolvedPermission,
+            lifecycle: {
+              state: plugin.lifecycleState,
+              blocked: false,
+              killSwitchEnabled: plugin.killSwitchEnabled,
+              internalSubstate: plugin.internalLifecycleSubstate,
+              reasonCode: plugin.reasonCode,
+              recommendedRecoveryAction: plugin.recommendedRecoveryAction,
+            },
+          });
+        }
 
       if (plugin.killSwitchEnabled) {
         return createDeniedGovernanceDecision({
           action: input.action,
-          actor,
-          targetSchoolId: plugin.schoolId,
-          reason: "kill_switch",
-          requiredPermission: resolvedPermission,
-          lifecycle: { state: plugin.lifecycleState, blocked: true, killSwitchEnabled: true },
-        });
-      }
+            actor,
+            targetSchoolId: plugin.schoolId,
+            reason: "kill_switch",
+            requiredPermission: resolvedPermission,
+            lifecycle: {
+              state: plugin.lifecycleState,
+              blocked: true,
+              killSwitchEnabled: true,
+              internalSubstate: plugin.internalLifecycleSubstate,
+              reasonCode: plugin.reasonCode,
+              recommendedRecoveryAction: plugin.recommendedRecoveryAction,
+            },
+          });
+        }
 
-      if (isLifecycleBlocked(plugin.lifecycleState)) {
-        return createDeniedGovernanceDecision({
-          action: input.action,
-          actor,
-          targetSchoolId: plugin.schoolId,
-          reason: "lifecycle_blocked",
-          requiredPermission: resolvedPermission,
-          lifecycle: { state: plugin.lifecycleState, blocked: true, killSwitchEnabled: plugin.killSwitchEnabled },
-        });
-      }
+        if (plugin.blocked) {
+          return createDeniedGovernanceDecision({
+            action: input.action,
+            actor,
+            targetSchoolId: plugin.schoolId,
+            reason: "lifecycle_blocked",
+            requiredPermission: resolvedPermission,
+            lifecycle: {
+              state: plugin.lifecycleState,
+              blocked: true,
+              killSwitchEnabled: plugin.killSwitchEnabled,
+              internalSubstate: plugin.internalLifecycleSubstate,
+              reasonCode: plugin.reasonCode,
+              recommendedRecoveryAction: plugin.recommendedRecoveryAction,
+            },
+          });
+        }
 
       return createAllowedGovernanceDecision({
         action: input.action,
-        actor,
-        targetSchoolId: plugin.schoolId,
-        requiredPermission: resolvedPermission,
-        lifecycle: { state: plugin.lifecycleState, blocked: false, killSwitchEnabled: plugin.killSwitchEnabled },
-      });
-    }
+          actor,
+          targetSchoolId: plugin.schoolId,
+          requiredPermission: resolvedPermission,
+          lifecycle: {
+            state: plugin.lifecycleState,
+            blocked: false,
+            killSwitchEnabled: plugin.killSwitchEnabled,
+            internalSubstate: plugin.internalLifecycleSubstate,
+            reasonCode: plugin.reasonCode,
+            recommendedRecoveryAction: plugin.recommendedRecoveryAction,
+          },
+        });
+      }
 
-    const plugin = await getPluginForSchool({
+    const plugin = await readPluginGovernanceLifecycle({
       actorId: actor.actorId,
       schoolId: actor.schoolId,
       pluginId: input.pluginId,
@@ -230,24 +261,72 @@ export const invokePluginHostAction = createGuardedHostAction({
     }
 
     if (plugin.killSwitchEnabled) {
+      if (input.action === "read-lifecycle") {
+        return createAllowedGovernanceDecision({
+          action: input.action,
+          actor,
+          targetSchoolId: plugin.schoolId,
+          requiredPermission: resolvedPermission,
+          lifecycle: {
+            state: plugin.lifecycleState,
+            blocked: true,
+            killSwitchEnabled: true,
+            internalSubstate: plugin.internalLifecycleSubstate,
+            reasonCode: plugin.reasonCode,
+            recommendedRecoveryAction: plugin.recommendedRecoveryAction,
+          },
+        });
+      }
+
       return createDeniedGovernanceDecision({
         action: input.action,
         actor,
         targetSchoolId: plugin.schoolId,
         reason: "kill_switch",
         requiredPermission: resolvedPermission,
-        lifecycle: { state: plugin.lifecycleState, blocked: true, killSwitchEnabled: true },
+        lifecycle: {
+          state: plugin.lifecycleState,
+          blocked: true,
+          killSwitchEnabled: true,
+          internalSubstate: plugin.internalLifecycleSubstate,
+          reasonCode: plugin.reasonCode,
+          recommendedRecoveryAction: plugin.recommendedRecoveryAction,
+        },
       });
     }
 
-    if (isLifecycleBlocked(plugin.lifecycleState)) {
+    if (plugin.blocked) {
+      if (input.action === "read-lifecycle") {
+        return createAllowedGovernanceDecision({
+          action: input.action,
+          actor,
+          targetSchoolId: plugin.schoolId,
+          requiredPermission: resolvedPermission,
+          lifecycle: {
+            state: plugin.lifecycleState,
+            blocked: true,
+            killSwitchEnabled: plugin.killSwitchEnabled,
+            internalSubstate: plugin.internalLifecycleSubstate,
+            reasonCode: plugin.reasonCode,
+            recommendedRecoveryAction: plugin.recommendedRecoveryAction,
+          },
+        });
+      }
+
       return createDeniedGovernanceDecision({
         action: input.action,
         actor,
         targetSchoolId: plugin.schoolId,
         reason: "lifecycle_blocked",
         requiredPermission: resolvedPermission,
-        lifecycle: { state: plugin.lifecycleState, blocked: true, killSwitchEnabled: plugin.killSwitchEnabled },
+        lifecycle: {
+          state: plugin.lifecycleState,
+          blocked: true,
+          killSwitchEnabled: plugin.killSwitchEnabled,
+          internalSubstate: plugin.internalLifecycleSubstate,
+          reasonCode: plugin.reasonCode,
+          recommendedRecoveryAction: plugin.recommendedRecoveryAction,
+        },
       });
     }
     return createAllowedGovernanceDecision({
@@ -255,7 +334,14 @@ export const invokePluginHostAction = createGuardedHostAction({
       actor,
       targetSchoolId: plugin.schoolId,
       requiredPermission: resolvedPermission,
-      lifecycle: { state: plugin.lifecycleState, blocked: false, killSwitchEnabled: plugin.killSwitchEnabled },
+      lifecycle: {
+        state: plugin.lifecycleState,
+        blocked: false,
+        killSwitchEnabled: plugin.killSwitchEnabled,
+        internalSubstate: plugin.internalLifecycleSubstate,
+        reasonCode: plugin.reasonCode,
+        recommendedRecoveryAction: plugin.recommendedRecoveryAction,
+      },
     });
   },
   execute: async ({ actor, input }) => {
@@ -299,7 +385,7 @@ export const invokePluginHostAction = createGuardedHostAction({
         break;
       }
       case "read-lifecycle": {
-        const plugin = await getPluginForSchool({
+        const plugin = await readPluginGovernanceLifecycle({
           actorId: actor.actorId,
           schoolId: actor.schoolId,
           pluginId: input.pluginId,
@@ -316,8 +402,18 @@ export const invokePluginHostAction = createGuardedHostAction({
           plugin: {
             id: plugin.id,
             schoolId: plugin.schoolId,
+            name: plugin.name,
+            pluginKey: plugin.pluginKey,
+            sourceType: plugin.sourceType,
             lifecycleState: plugin.lifecycleState,
+            internalLifecycleSubstate: plugin.internalLifecycleSubstate,
+            blocked: plugin.blocked,
+            reasonCode: plugin.reasonCode,
+            recommendedRecoveryAction: plugin.recommendedRecoveryAction,
             killSwitchEnabled: plugin.killSwitchEnabled,
+            uninstall: plugin.uninstall,
+            executableActionCatalog: plugin.executableActionCatalog,
+            blockedActionDiagnostics: plugin.blockedActionDiagnostics,
           },
           eventBusOwnership: defaultRuntimeEventBusAdapter.describeOwnership(),
         } as const;

@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  GovernanceLifecycleInternalSubstateSchema,
+  GovernanceLifecycleStateSchema,
+  PluginRecoveryActionSchema,
+} from "@/features/platform-core/plugins/lifecycle-contracts";
 import { PluginPermissionSchema } from "@/features/runtime-platform/contracts/permissions";
 
 // D-52-04 + ACTN-05: descriptor truth stays on main-repo static implementations only.
@@ -45,11 +50,19 @@ export type ActionDescriptor = z.infer<typeof ActionDescriptorSchema>;
 
 export const ExecutableActionCatalogRowSchema = ActionDescriptorSchema.extend({
   catalogView: z.literal("executable"),
+  ownerPluginId: z.string().min(1).nullable().default(null),
+  ownerDisplayName: z.string().min(1).nullable().default(null),
+  lifecycleState: GovernanceLifecycleStateSchema.default("active"),
 });
 export type ExecutableActionCatalogRow = z.infer<typeof ExecutableActionCatalogRowSchema>;
 
 export const BlockedActionDiagnosticRowSchema = ActionDescriptorSchema.extend({
   catalogView: z.literal("blocked-diagnostic"),
+  ownerPluginId: z.string().min(1).nullable().default(null),
+  ownerDisplayName: z.string().min(1).nullable().default(null),
+  lifecycleState: GovernanceLifecycleStateSchema,
+  internalLifecycleSubstate: GovernanceLifecycleInternalSubstateSchema.nullable().default(null),
   reasonCode: ActionBlockedReasonCodeSchema,
+  recommendedRecoveryAction: PluginRecoveryActionSchema.nullable().default(null),
 });
 export type BlockedActionDiagnosticRow = z.infer<typeof BlockedActionDiagnosticRowSchema>;

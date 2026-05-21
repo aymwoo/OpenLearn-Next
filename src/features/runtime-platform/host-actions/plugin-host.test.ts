@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   getCurrentUserDTO: vi.fn(),
   getUserMembershipsDTO: vi.fn(),
   getPluginForSchool: vi.fn(),
+  listPluginsForSchool: vi.fn(),
+  listPluginGovernanceSnapshotRecords: vi.fn(),
   publish: vi.fn(),
   describeOwnership: vi.fn(() => "runtime-event-bus"),
   dispatchPluginGovernanceCommand: vi.fn(),
@@ -20,6 +22,8 @@ vi.mock("@/lib/dal/membership", () => ({
 }));
 vi.mock("@/lib/dal/plugins", () => ({
   getPluginForSchool: mocks.getPluginForSchool,
+  listPluginsForSchool: mocks.listPluginsForSchool,
+  listPluginGovernanceSnapshotRecords: mocks.listPluginGovernanceSnapshotRecords,
 }));
 vi.mock("../seams", () => ({
   defaultRuntimeEventBusAdapter: {
@@ -43,6 +47,75 @@ describe("plugin host governance seam", () => {
       lifecycleState: "enabled",
       killSwitchEnabled: false,
     });
+    mocks.listPluginsForSchool.mockResolvedValue([
+      {
+        id: "plugin-1",
+        schoolId: "school-1",
+        name: "Plugin One",
+        pluginKey: "vendor/plugin-one",
+        dbNamespace: "vendor_plugin_one",
+        sourceType: "external",
+        installSource: "manual",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "enabled",
+        builtIn: false,
+        defaultEnabled: false,
+        nonDeletable: false,
+        manifestJson: {
+          id: "vendor.plugin-one",
+          version: "1.0.0",
+          manifestVersion: 2,
+          permissions: [],
+          anchors: ["dashboard.widget"],
+          actions: ["addStepSuggestion"],
+          builtIn: false,
+          defaultEnabled: false,
+          nonDeletable: false,
+          governance: {
+            manifestVersion: 2,
+            dependencies: [],
+            requestedCapabilities: [],
+            permissions: [],
+            lifecycle: {
+              ownerType: "host",
+              installScope: "school",
+              initialState: "installed",
+              mountMode: "manual",
+            },
+          },
+        },
+      },
+    ]);
+    mocks.listPluginGovernanceSnapshotRecords.mockResolvedValue([
+      {
+        pluginId: "plugin-1",
+        pluginKey: "vendor/plugin-one",
+        name: "Plugin One",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "enabled",
+        sourceType: "external",
+        dependencies: [],
+        activationStatus: "idle",
+        failureDetail: null,
+        uninstall: {
+          pluginId: "plugin-1",
+          schoolId: "school-1",
+          blocked: false,
+          reason: null,
+          lessonExtCount: 0,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 0,
+          totalCount: 0,
+          impactedLessonIds: [],
+          impactedLessonStepIds: [],
+          impactedResourceIds: [],
+          impactedBusinessKeys: [],
+        },
+      },
+    ]);
     mocks.dispatchPluginGovernanceCommand.mockResolvedValue({
       success: true,
       data: { pluginId: "plugin-1", lifecycleState: "enabled" },
@@ -84,6 +157,9 @@ describe("plugin host governance seam", () => {
         id: "plugin-1",
         schoolId: "school-1",
         lifecycleState: "enabled",
+        blocked: false,
+        reasonCode: null,
+        recommendedRecoveryAction: null,
         killSwitchEnabled: false,
       },
     });
