@@ -449,4 +449,36 @@ describe("phase 52 plugin registry and host governance wiring", () => {
       }),
     ).rejects.toThrow("HOST_ACTION_DENIED:lifecycle_blocked");
   });
+
+  it("allows dependency-blocked plugins to recover only through plugin.reconcile", async () => {
+    const { invokePluginHostAction } = await import("./plugin-host");
+
+    await invokePluginHostAction({
+      sessionId: "session-1",
+      pluginId: "plugin-blocked",
+      action: "plugin.reconcile",
+      payload: { reason: "dependency repaired", targetState: "enabled" },
+    });
+
+    expect(mocks.dispatchPluginGovernanceCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "plugin.reconcile",
+        payload: expect.objectContaining({
+          schoolId: "school-1",
+          pluginId: "plugin-blocked",
+          reason: "dependency repaired",
+          targetState: "enabled",
+        }),
+      }),
+    );
+
+    await expect(
+      invokePluginHostAction({
+        sessionId: "session-1",
+        pluginId: "plugin-blocked",
+        action: "plugin.resume",
+        payload: { reason: "dependency repaired" },
+      }),
+    ).rejects.toThrow("HOST_ACTION_DENIED:lifecycle_blocked");
+  });
 });

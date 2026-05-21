@@ -388,6 +388,44 @@ describe("plugin-actions", () => {
     });
   });
 
+  describe("reconcilePluginAction", () => {
+    it("dispatches explicit plugin.reconcile and invalidates plugin governance tags", async () => {
+      const { reconcilePluginAction } = await import("./plugin-actions");
+
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-reconcile",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+        data: { ...mockPluginDTO, lifecycleState: "ready" },
+      });
+
+      const result = await reconcilePluginAction({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        reason: "dependency recovery",
+        targetState: "ready",
+      });
+
+      expect(result).toMatchObject({ success: true, data: expect.objectContaining({ lifecycleState: "ready" }) });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.reconcile",
+        actor: { actorId: "user-1", actorScope: "teacher" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          reason: "dependency recovery",
+          targetState: "ready",
+        },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.reconcile" },
+      });
+      expect(updateTag).toHaveBeenCalledWith("plugin:registry");
+      expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
+    });
+  });
+
   describe("setPluginKillSwitchAction", () => {
     it("returns AUTH_REQUIRED when user is not logged in", async () => {
       const { setPluginKillSwitchAction } = await import("./plugin-actions");
