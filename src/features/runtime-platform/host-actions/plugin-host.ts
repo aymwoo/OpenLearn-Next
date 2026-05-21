@@ -34,6 +34,12 @@ function isGovernanceAction(action: PluginHostRequest["action"]) {
   return action !== "publish-event" && action !== "read-lifecycle";
 }
 
+function getRequiredHostPermission(action: PluginHostRequest["action"]) {
+  return isGovernanceAction(action)
+    ? "host:plugin:lifecycle:write"
+    : "host:plugin:lifecycle:read";
+}
+
 async function dispatchGovernanceFromHost(input: {
   action: Exclude<PluginHostRequest["action"], "publish-event" | "read-lifecycle">;
   actorId: string;
@@ -79,6 +85,10 @@ async function dispatchGovernanceFromHost(input: {
           schoolId: input.schoolId,
           pluginId: input.pluginId,
           reason: typeof input.payload.reason === "string" ? input.payload.reason : "host governance request",
+          targetState:
+            input.payload.targetState === "mounted" || input.payload.targetState === "ready"
+              ? input.payload.targetState
+              : "enabled",
         },
       });
     case "plugin.retry":
@@ -128,9 +138,23 @@ async function dispatchGovernanceFromHost(input: {
 export const invokePluginHostAction = createGuardedHostAction({
   inputSchema: PluginHostRequestSchema,
   actorScopes: ["plugin", "host", "system", "teacher"],
-  requiredPermission: "host:plugin:lifecycle:read",
-  resolveActor: () => resolveTeacherHostActor(["host:plugin:lifecycle:read"]),
-  resolveGovernance: async ({ actor, input, requiredPermission }) => {
+  resolveActor: () => resolveTeacherHostActor([
+    "host:plugin:lifecycle:read",
+    "host:plugin:lifecycle:write",
+  ]),
+  resolveGovernance: async ({ actor, input }) => {
+    const resolvedPermission = getRequiredHostPermission(input.action);
+
+    if (!actor.hostPermissions.includes(resolvedPermission)) {
+      return createDeniedGovernanceDecision({
+        action: input.action,
+        actor,
+        targetSchoolId: actor.schoolId,
+        reason: "permission_denied",
+        requiredPermission: resolvedPermission,
+      });
+    }
+
     if (isGovernanceAction(input.action)) {
       const plugin = await getPluginForSchool({
         actorId: actor.actorId,
@@ -144,7 +168,7 @@ export const invokePluginHostAction = createGuardedHostAction({
           actor,
           targetSchoolId: actor.schoolId,
           reason: "school_mismatch",
-          requiredPermission: requiredPermission ?? null,
+          requiredPermission: resolvedPermission,
         });
       }
 
@@ -153,7 +177,7 @@ export const invokePluginHostAction = createGuardedHostAction({
           action: input.action,
           actor,
           targetSchoolId: plugin.schoolId,
-          requiredPermission: requiredPermission ?? null,
+          requiredPermission: resolvedPermission,
           lifecycle: { state: plugin.lifecycleState, blocked: false, killSwitchEnabled: plugin.killSwitchEnabled },
         });
       }
@@ -164,7 +188,7 @@ export const invokePluginHostAction = createGuardedHostAction({
           actor,
           targetSchoolId: plugin.schoolId,
           reason: "kill_switch",
-          requiredPermission: requiredPermission ?? null,
+          requiredPermission: resolvedPermission,
           lifecycle: { state: plugin.lifecycleState, blocked: true, killSwitchEnabled: true },
         });
       }
@@ -175,7 +199,7 @@ export const invokePluginHostAction = createGuardedHostAction({
           actor,
           targetSchoolId: plugin.schoolId,
           reason: "lifecycle_blocked",
-          requiredPermission: requiredPermission ?? null,
+          requiredPermission: resolvedPermission,
           lifecycle: { state: plugin.lifecycleState, blocked: true, killSwitchEnabled: plugin.killSwitchEnabled },
         });
       }
@@ -184,18 +208,8 @@ export const invokePluginHostAction = createGuardedHostAction({
         action: input.action,
         actor,
         targetSchoolId: plugin.schoolId,
-        requiredPermission: requiredPermission ?? null,
+        requiredPermission: resolvedPermission,
         lifecycle: { state: plugin.lifecycleState, blocked: false, killSwitchEnabled: plugin.killSwitchEnabled },
-      });
-    }
-
-    if (input.action === "read-lifecycle") {
-      return createDeniedGovernanceDecision({
-        action: input.action,
-        actor,
-        targetSchoolId: actor.schoolId,
-        reason: "unsupported_action",
-        requiredPermission: requiredPermission ?? null,
       });
     }
 
@@ -211,7 +225,7 @@ export const invokePluginHostAction = createGuardedHostAction({
         actor,
         targetSchoolId: actor.schoolId,
         reason: "school_mismatch",
-        requiredPermission: requiredPermission ?? null,
+        requiredPermission: resolvedPermission,
       });
     }
 
@@ -221,7 +235,7 @@ export const invokePluginHostAction = createGuardedHostAction({
         actor,
         targetSchoolId: plugin.schoolId,
         reason: "kill_switch",
-        requiredPermission: requiredPermission ?? null,
+        requiredPermission: resolvedPermission,
         lifecycle: { state: plugin.lifecycleState, blocked: true, killSwitchEnabled: true },
       });
     }
@@ -232,7 +246,7 @@ export const invokePluginHostAction = createGuardedHostAction({
         actor,
         targetSchoolId: plugin.schoolId,
         reason: "lifecycle_blocked",
-        requiredPermission: requiredPermission ?? null,
+        requiredPermission: resolvedPermission,
         lifecycle: { state: plugin.lifecycleState, blocked: true, killSwitchEnabled: plugin.killSwitchEnabled },
       });
     }
@@ -240,7 +254,7 @@ export const invokePluginHostAction = createGuardedHostAction({
       action: input.action,
       actor,
       targetSchoolId: plugin.schoolId,
-      requiredPermission: requiredPermission ?? null,
+      requiredPermission: resolvedPermission,
       lifecycle: { state: plugin.lifecycleState, blocked: false, killSwitchEnabled: plugin.killSwitchEnabled },
     });
   },
@@ -285,7 +299,28 @@ export const invokePluginHostAction = createGuardedHostAction({
         break;
       }
       case "read-lifecycle": {
-        throw new Error("HOST_ACTION_UNSUPPORTED");
+        const plugin = await getPluginForSchool({
+          actorId: actor.actorId,
+          schoolId: actor.schoolId,
+          pluginId: input.pluginId,
+        });
+
+        if (!plugin) {
+          throw new Error("PLUGIN_NOT_FOUND");
+        }
+
+        return {
+          ok: true,
+          actorId: actor.actorId,
+          schoolId: actor.schoolId,
+          plugin: {
+            id: plugin.id,
+            schoolId: plugin.schoolId,
+            lifecycleState: plugin.lifecycleState,
+            killSwitchEnabled: plugin.killSwitchEnabled,
+          },
+          eventBusOwnership: defaultRuntimeEventBusAdapter.describeOwnership(),
+        } as const;
       }
       default: {
         input.action satisfies never;

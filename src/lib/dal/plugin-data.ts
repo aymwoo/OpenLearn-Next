@@ -323,7 +323,7 @@ export async function upsertPluginExtension(input: UpsertExtensionInput): Promis
 
   // 5. 级联重置 Next.js 16 缓存标记
   // 失效插件本身的扩展数据缓存
-  revalidateTag(cacheTags.pluginExtension(schoolId, pluginId, entityId));
+  revalidateTag(cacheTags.pluginExtension(schoolId, pluginId, entityId), "max");
 
   // 回溯并失效父级核心实体缓存
   if (entityType === "lesson") {
@@ -334,9 +334,9 @@ export async function upsertPluginExtension(input: UpsertExtensionInput): Promis
       .limit(1);
     const lesson = lessonResults?.[0];
 
-    revalidateTag(cacheTags.lesson(entityId));
+    revalidateTag(cacheTags.lesson(entityId), "max");
     if (lesson) {
-      revalidateTag(cacheTags.course(lesson.courseId));
+      revalidateTag(cacheTags.course(lesson.courseId), "max");
     }
   } else if (entityType === "step") {
     const stepResults = await db
@@ -354,15 +354,15 @@ export async function upsertPluginExtension(input: UpsertExtensionInput): Promis
         .limit(1);
       const lesson = lessonResults?.[0];
 
-      revalidateTag(cacheTags.steps(step.lessonId));
-      revalidateTag(cacheTags.lesson(step.lessonId));
+      revalidateTag(cacheTags.steps(step.lessonId), "max");
+      revalidateTag(cacheTags.lesson(step.lessonId), "max");
       if (lesson) {
-        revalidateTag(cacheTags.course(lesson.courseId));
+        revalidateTag(cacheTags.course(lesson.courseId), "max");
       }
     }
   } else if (entityType === "resource") {
-    revalidateTag(cacheTags.resource(entityId));
-    revalidateTag(cacheTags.resources(schoolId));
+    revalidateTag(cacheTags.resource(entityId), "max");
+    revalidateTag(cacheTags.resources(schoolId), "max");
   }
 }
 
@@ -540,7 +540,7 @@ export async function upsertPluginOwnedBusinessData(input: UpsertOwnedBusinessDa
   });
 
   // 5. 级联重置 Next.js 16 缓存标记
-  revalidateTag(cacheTags.pluginOwned(schoolId, pluginId, key));
+  revalidateTag(cacheTags.pluginOwned(schoolId, pluginId, key), "max");
 }
 
 /**

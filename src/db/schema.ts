@@ -601,12 +601,6 @@ export const taskSubmissions = sqliteTable(
   },
   (table) => [
     uniqueIndex("taskSubmissions_attempt_unique").on(table.publishedVersionId, table.stepId, table.studentId, table.attemptNo),
-    uniqueIndex("taskSubmissions_latest_unique").on(
-      table.publishedVersionId,
-      table.stepId,
-      table.studentId,
-      table.isLatest
-    ),
     index("taskSubmissions_latest_idx").on(
       table.publishedVersionId,
       table.stepId,
@@ -643,7 +637,6 @@ export const quizAttempts = sqliteTable(
   },
   (table) => [
     uniqueIndex("quizAttempts_attempt_unique").on(table.publishedVersionId, table.stepId, table.studentId, table.attemptNo),
-    uniqueIndex("quizAttempts_latest_unique").on(table.publishedVersionId, table.stepId, table.studentId, table.isLatest),
     index("quizAttempts_latest_idx").on(table.publishedVersionId, table.stepId, table.studentId, table.isLatest),
     index("quizAttempts_history_idx").on(table.publishedVersionId, table.stepId, table.studentId, table.attemptNo),
   ]
@@ -884,7 +877,7 @@ export const runtimeStepSessions = sqliteTable(
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
   (table) => [
-    uniqueIndex("runtimeStepSessions_latest_identity_unique").on(
+    index("runtimeStepSessions_latest_identity_idx").on(
       table.classroomSessionId,
       table.stepId,
       table.actorId,
@@ -915,7 +908,7 @@ export const runtimeStepStates = sqliteTable(
   },
   (table) => [
     uniqueIndex("runtimeStepStates_session_version_unique").on(table.runtimeSessionId, table.stateVersion),
-    uniqueIndex("runtimeStepStates_session_latest_unique").on(table.runtimeSessionId, table.isLatest),
+    index("runtimeStepStates_session_latest_idx").on(table.runtimeSessionId, table.isLatest),
     index("runtimeStepStates_session_history_idx").on(table.runtimeSessionId, table.stateVersion),
   ],
 );

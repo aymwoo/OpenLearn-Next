@@ -42,6 +42,10 @@ type ExecutionInput<TCommand extends PlatformCommand = PlatformCommand> = {
 type ExecutionResult = Awaited<ReturnType<PlatformCommandDefinition["execute"]>>;
 
 async function authorizePluginGovernanceCommand(command: PlatformCommand) {
+  if (command.actor.actorScope === "system") {
+    return;
+  }
+
   const scope = await assertActiveTeacher();
 
   if (scope.userId !== command.actor.actorId || !scope.schoolIds.includes(command.scope.schoolId)) {
@@ -76,11 +80,12 @@ async function executeInstall(input: ExecutionInput<InstallCommand>): Promise<Ex
   const manifestJson = command.payload.manifestJson as PluginManifest;
   const record = await db.transaction(async (tx) => installOrReconcilePluginWithTx({
     schoolId: command.payload.schoolId,
-    pluginId: command.payload.pluginId,
+    pluginId: command.payload.existingRegistrationId,
     name: command.payload.name,
     installSource: command.payload.installSource,
     manifestJson,
     actorId: command.actor.actorId,
+    actorScope: command.actor.actorScope,
     tx,
     commandContext: createCommandContext(input),
   }));
@@ -108,6 +113,7 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
     pluginId: command.scope.pluginId,
     targetState,
     reason,
+    actorScope: command.actor.actorScope,
     tx,
     commandContext: createCommandContext(input),
   }));
@@ -141,6 +147,7 @@ async function executeKillSwitchSet(input: ExecutionInput<KillSwitchCommand>): P
     pluginId: command.scope.pluginId,
     actorId: command.actor.actorId,
     killSwitchEnabled: command.payload.enabled,
+    actorScope: command.actor.actorScope,
     tx,
     commandContext: createCommandContext(input),
   }));
@@ -163,6 +170,7 @@ async function executeUninstallPreflight(input: ExecutionInput<UninstallPrefligh
     actorId: command.actor.actorId,
     schoolId: command.scope.schoolId,
     pluginId: command.scope.pluginId,
+    actorScope: command.actor.actorScope,
     tx,
     commandContext: createCommandContext(input),
   }));
@@ -187,6 +195,7 @@ async function executeUninstall(input: ExecutionInput<UninstallCommand>): Promis
     actorId: command.actor.actorId,
     schoolId: command.scope.schoolId,
     pluginId: command.scope.pluginId,
+    actorScope: command.actor.actorScope,
     tx,
     commandContext: createCommandContext(input),
   }));
@@ -244,6 +253,7 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         manifestJson: retriedPayload.manifestJson as PluginManifest,
         installSource: retriedPayload.installSource as "manual" | "bootstrap" | "repair" | "seed",
         actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
         tx,
         commandContext,
       }));
@@ -265,7 +275,9 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
     case "plugin.suspend":
     case "plugin.resume": {
       const targetState = existing.commandType === "plugin.enable" || existing.commandType === "plugin.resume"
-        ? "enabled"
+        ? (retriedPayload.targetState === "mounted" || retriedPayload.targetState === "ready"
+            ? retriedPayload.targetState
+            : "enabled")
         : existing.commandType === "plugin.disable"
           ? "disabled"
           : "suspended";
@@ -282,6 +294,7 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         pluginId,
         targetState,
         reason,
+        actorScope: command.actor.actorScope,
         tx,
         commandContext,
       }));
@@ -303,6 +316,7 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         actorId: command.actor.actorId,
         schoolId: command.scope.schoolId,
         pluginId,
+        actorScope: command.actor.actorScope,
         tx,
         commandContext,
       }));
@@ -324,6 +338,7 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         actorId: command.actor.actorId,
         pluginId,
         killSwitchEnabled: Boolean(retriedPayload.enabled),
+        actorScope: command.actor.actorScope,
         tx,
         commandContext,
       }));
@@ -369,7 +384,15 @@ export const pluginCommandHandlers = {
   },
   "plugin.resume": {
     authorize: ({ command }) => authorizePluginGovernanceCommand(command),
-    execute: (input) => executeLifecycleTransition(input as ExecutionInput<ResumeCommand>, "enabled", (input.command as ResumeCommand).payload.reason, "plugin.resume"),
+    execute: (input) => {
+      const command = input.command as ResumeCommand;
+      return executeLifecycleTransition(
+        input as ExecutionInput<ResumeCommand>,
+        command.payload.targetState ?? "enabled",
+        command.payload.reason,
+        "plugin.resume",
+      );
+    },
   },
   "plugin.uninstall.preflight": {
     authorize: ({ command }) => authorizePluginGovernanceCommand(command),

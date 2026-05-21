@@ -154,7 +154,7 @@ const checks: Array<{ label: GuardLabel; passed: boolean; message: string }> = [
     passed: includesAll(schemaSource, [
       'references(() => users.id, { onDelete: "cascade" })',
       'uniqueIndex("lessonStepProgress_identity_unique")',
-      'uniqueIndex("taskSubmissions_latest_unique")',
+      'index("taskSubmissions_latest_idx")',
       'index("classroomSessions_lesson_class_status_idx")',
       'index("classroomEvents_session_version_idx")',
       'index("classroomEvidence_session_created_idx")',

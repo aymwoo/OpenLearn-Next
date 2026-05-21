@@ -59,6 +59,10 @@ export type PlatformCommandBusDependencies = {
   store: PlatformCommandStore;
 };
 
+type DedupeResolution = {
+  dedupeKey: string;
+};
+
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableStringify(item)).join(",")}]`;
@@ -80,6 +84,18 @@ export function buildPlatformCommandDedupeKey(command: PlatformCommand): string 
   }
 
   return `${command.type}:${stableStringify(command.scope)}:${stableStringify(command.payload)}`;
+}
+
+function resolvePlatformCommandDedupe(command: PlatformCommand, definition: PlatformCommandDefinition): DedupeResolution {
+  if (definition.dedupe === "required") {
+    return { dedupeKey: buildPlatformCommandDedupeKey(command) };
+  }
+
+  if (command.dedupeKey) {
+    return { dedupeKey: command.dedupeKey };
+  }
+
+  return { dedupeKey: `${buildPlatformCommandDedupeKey(command)}:dispatch:${command.id}` };
 }
 
 function readDefinition(
@@ -126,7 +142,7 @@ export async function dispatchPlatformCommand(
   const definition = readDefinition(preview.data.type, dependencies.definitions);
   const parsedCommand = validate(commandInput, definition);
   const command = { ...parsedCommand } as PlatformCommand;
-  const dedupeKey = buildPlatformCommandDedupeKey(command);
+  const { dedupeKey } = resolvePlatformCommandDedupe(command, definition);
 
   const persisted = await dependencies.store.insertCommand({
     command,
@@ -135,22 +151,34 @@ export async function dispatchPlatformCommand(
     latestAttemptNumber: 0,
   });
 
+  if (!persisted.created) {
+    const existing = await dependencies.store.getCommand(persisted.command.id);
+
+    if (existing && existing.status !== "pending") {
+      return PlatformCommandDispatchResultSchema.parse({
+        commandId: existing.command.id,
+        attemptNumber: existing.latestAttemptNumber,
+        status: existing.status,
+        resultSummary: existing.resultSummary,
+        invalidation: { tags: [] },
+      });
+    }
+  }
+
   const activeCommandId = persisted.command.id;
   command.id = activeCommandId;
   const existingRecord = await dependencies.store.getCommand(activeCommandId);
   const attemptNumber = (existingRecord?.latestAttemptNumber ?? 0) + 1;
 
-  // record running summary before handler execution
-  await dependencies.store.updateCommandSummary({
-    commandId: activeCommandId,
-    status: "running",
-    latestAttemptNumber: attemptNumber,
-  });
-
-  // authorize
-  await definition.authorize({ command });
-
   try {
+    await definition.authorize({ command });
+
+    await dependencies.store.updateCommandSummary({
+      commandId: activeCommandId,
+      status: "running",
+      latestAttemptNumber: attemptNumber,
+    });
+
     // execute
     const execution = await definition.execute({ command, attemptNumber });
     const invalidation: PlatformCommandInvalidation = execution.invalidation ?? { tags: [] };

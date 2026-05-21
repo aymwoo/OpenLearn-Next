@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   getCanonicalRuntimeProofStepDefinition,
   getCanonicalRuntimeProofSnapshotStep,
-} from "../../../../scripts/bootstrap-dev-db";
+} from "./runtime-proof";
 
 const source = readFileSync("src/features/runtime-platform/classroom/runtime-session.ts", "utf8");
 

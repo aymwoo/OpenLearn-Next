@@ -312,7 +312,7 @@ describe("lesson authoring DAL boundary", () => {
   });
 
   it("freezes the canonical html courseware pilot descriptor into the published snapshot chain", async () => {
-    const { getCanonicalRuntimeProofSnapshotStep } = await import("../../../scripts/bootstrap-dev-db");
+    const { getCanonicalRuntimeProofSnapshotStep } = await import("@/features/runtime-platform/classroom/runtime-proof");
     const snapshotStep = getCanonicalRuntimeProofSnapshotStep("lesson-owned");
 
     expect(snapshotStep).toMatchObject({
@@ -335,7 +335,7 @@ describe("lesson authoring DAL boundary", () => {
   });
 
   it("keeps editor/publish continuity tied to the canonical proof runtime title", async () => {
-    const { getCanonicalRuntimeProofStepDefinition } = await import("../../../scripts/bootstrap-dev-db");
+    const { getCanonicalRuntimeProofStepDefinition } = await import("@/features/runtime-platform/classroom/runtime-proof");
     const definition = getCanonicalRuntimeProofStepDefinition();
 
     expect(definition.title).toBe("互动证明：HTML 课件实验");

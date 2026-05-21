@@ -39,6 +39,7 @@ type DispatchPluginGovernanceCommandInput =
   | BaseProducerInput<"plugin.install", {
       schoolId: string;
       pluginId: string;
+      existingRegistrationId?: string;
       name: string;
       installSource: "manual" | "bootstrap" | "repair" | "seed";
       manifestJson: Record<string, unknown>;
@@ -68,6 +69,7 @@ type DispatchPluginGovernanceCommandInput =
       schoolId: string;
       pluginId: string;
       reason: string;
+      targetState?: "enabled" | "mounted" | "ready";
     }>
   | BaseProducerInput<"plugin.uninstall.preflight", {
       schoolId: string;

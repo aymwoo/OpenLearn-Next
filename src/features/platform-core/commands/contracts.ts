@@ -35,6 +35,7 @@ export const PlatformCommandCorrelationSchema = z.object({
 const PluginInstallPayloadSchema = z.object({
   schoolId: z.string().min(1),
   pluginId: z.string().min(1),
+  existingRegistrationId: z.string().min(1).optional(),
   name: z.string().min(1),
   installSource: z.enum(["manual", "bootstrap", "repair", "seed"]),
   manifestJson: z.record(z.string(), z.unknown()),
@@ -65,10 +66,13 @@ const PluginSuspendPayloadSchema = z.object({
   reason: z.string().min(1),
 });
 
+const PluginResumeTargetStateSchema = z.enum(["enabled", "mounted", "ready"]);
+
 const PluginResumePayloadSchema = z.object({
   schoolId: z.string().min(1),
   pluginId: z.string().min(1),
   reason: z.string().min(1),
+  targetState: PluginResumeTargetStateSchema.optional(),
 });
 
 const PluginUninstallPreflightPayloadSchema = z.object({

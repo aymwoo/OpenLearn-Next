@@ -6,6 +6,7 @@ import type { PluginManifest } from "@/lib/dto/resource-ai";
 const updateTag = vi.fn();
 
 const getCurrentUserDTOMock = vi.fn();
+const getUserMembershipsDTOMock = vi.fn();
 
 const mockGovernanceProducer = vi.hoisted(() => ({
   dispatchPluginGovernanceCommand: vi.fn(),
@@ -28,7 +29,7 @@ vi.mock("@/lib/dal/auth", () => ({
 }));
 
 vi.mock("@/lib/dal/membership", () => ({
-  getUserMembershipsDTO: vi.fn(async () => [{ schoolId: "school-1", status: "active", role: "teacher" }]),
+  getUserMembershipsDTO: (...args: unknown[]) => getUserMembershipsDTOMock(...args),
 }));
 
 vi.mock("@/features/platform-core/commands/producers/plugin-governance", () => mockGovernanceProducer);
@@ -73,6 +74,7 @@ describe("plugin-actions", () => {
     mockPluginDAL.getPluginForSchool.mockReset();
     mockPluginDAL.runPluginHook.mockReset();
     getCurrentUserDTOMock.mockResolvedValue({ id: "user-1", name: "Teacher" });
+    getUserMembershipsDTOMock.mockResolvedValue([{ schoolId: "school-1", status: "active", role: "teacher" }]);
     mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValue({
       success: true,
       data: mockPluginDTO,
@@ -128,6 +130,7 @@ describe("plugin-actions", () => {
         payload: {
           schoolId: "school-1",
           pluginId: mockManifest.id,
+          existingRegistrationId: undefined,
           name: "Test Plugin",
           installSource: "manual",
           manifestJson: mockManifest,
@@ -146,6 +149,25 @@ describe("plugin-actions", () => {
           installSource: "manual",
         }),
       });
+    });
+
+    it("sends manifest id as plugin key and leaves existingRegistrationId unset on first install", async () => {
+      const { registerPluginManifestAction } = await import("./plugin-actions");
+
+      await registerPluginManifestAction({
+        schoolId: "school-1",
+        name: "Test Plugin",
+        manifestJson: mockManifest,
+      });
+
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            pluginId: mockManifest.id,
+            existingRegistrationId: undefined,
+          }),
+        }),
+      );
     });
 
     it("returns explicit conflict tokens from DAL errors", async () => {
@@ -284,6 +306,72 @@ describe("plugin-actions", () => {
       expect(updateTag).toHaveBeenCalledWith("plugin:registry");
       expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
     });
+
+    it("preserves mounted and ready lifecycle targets when dispatching plugin.resume", async () => {
+      const { transitionPluginLifecycleAction } = await import("./plugin-actions");
+
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-mounted",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+        data: { ...mockPluginDTO, lifecycleState: "mounted", enabled: true },
+      });
+
+      await transitionPluginLifecycleAction({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        targetState: "mounted",
+        reason: "mounted",
+      });
+
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenLastCalledWith({
+        type: "plugin.resume",
+        actor: { actorId: "user-1", actorScope: "teacher" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: { schoolId: "school-1", pluginId: "plugin-1", reason: "mounted", targetState: "mounted" },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.transition" },
+      });
+
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-ready",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+        data: { ...mockPluginDTO, lifecycleState: "ready", enabled: true },
+      });
+
+      await transitionPluginLifecycleAction({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        targetState: "ready",
+        reason: "ready",
+      });
+
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenLastCalledWith({
+        type: "plugin.resume",
+        actor: { actorId: "user-1", actorScope: "teacher" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: { schoolId: "school-1", pluginId: "plugin-1", reason: "ready", targetState: "ready" },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.transition" },
+      });
+    });
+
+    it("rejects unsupported lifecycle targets at the server-action boundary", async () => {
+      const { transitionPluginLifecycleAction } = await import("./plugin-actions");
+
+      const result = await transitionPluginLifecycleAction({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        targetState: "installed",
+        reason: "unsupported",
+      } as never);
+
+      expect(result).toMatchObject({ success: false });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).not.toHaveBeenCalled();
+    });
   });
 
   describe("setPluginKillSwitchAction", () => {
@@ -326,6 +414,35 @@ describe("plugin-actions", () => {
       });
       expect(updateTag).toHaveBeenCalledWith("plugin:registry");
       expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
+    });
+
+    it("ignores non-teacher active memberships while resolving plugin school scope", async () => {
+      const { setPluginKillSwitchAction } = await import("./plugin-actions");
+
+      getUserMembershipsDTOMock.mockResolvedValueOnce([
+        { schoolId: "school-student", role: "student", status: "active" },
+        { schoolId: "school-parent", role: "parent", status: "active" },
+        { schoolId: "school-1", role: "teacher", status: "active" },
+      ]);
+      mockPluginDAL.getPluginForSchool
+        .mockResolvedValueOnce({ ...mockPluginDTO, schoolId: "school-1" });
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-5b",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+        data: { ...mockPluginDTO, killSwitchEnabled: true },
+      });
+
+      const result = await setPluginKillSwitchAction({ pluginId: "plugin-1", killSwitchEnabled: true });
+
+      expect(result).toMatchObject({ success: true });
+      expect(mockPluginDAL.getPluginForSchool).toHaveBeenCalledTimes(1);
+      expect(mockPluginDAL.getPluginForSchool).toHaveBeenCalledWith({
+        actorId: "user-1",
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+      });
     });
 
     it("returns PLUGIN_KILL_SWITCH_FAILED on DAL error", async () => {

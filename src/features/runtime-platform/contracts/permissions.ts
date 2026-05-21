@@ -14,6 +14,7 @@ export const HostActionPermissionValues = [
   "host:lesson:read",
   "host:submission:write",
   "host:plugin:lifecycle:read",
+  "host:plugin:lifecycle:write",
 ] as const;
 
 export const RuntimeActorScopeValues = ["host", "teacher", "student", "plugin", "system"] as const;

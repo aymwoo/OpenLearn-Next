@@ -486,6 +486,7 @@ async function upsertBuiltInPlugins(schoolId: string, actorId: string) {
       payload: {
         schoolId,
         pluginId: manifest.id,
+        existingRegistrationId: undefined,
         name: definition.name,
         manifestJson: manifest,
         installSource: "bootstrap",
@@ -508,6 +509,7 @@ async function upsertDevThemePlugin(
     payload: {
       schoolId,
       pluginId: manifest.id,
+      existingRegistrationId: undefined,
       name: definition.name,
       manifestJson: manifest,
       installSource: "seed",

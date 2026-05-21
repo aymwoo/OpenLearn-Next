@@ -12,6 +12,7 @@ import {
   pluginOwnedBusinessData,
   pluginRegistrations,
   pluginResourceExtensions,
+  publishedLessonVersions,
   resources,
 } from "@/db/schema";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
@@ -57,6 +58,35 @@ function deepEquals(a: any, b: any): boolean {
   return true;
 }
 
+function extractLessonPluginPayload(snapshotJson: unknown, pluginKey: string) {
+  const snapshot = snapshotJson as { lesson?: Record<string, unknown> } | null;
+  const lessonPayload = snapshot?.lesson?.payloadJson as Record<string, unknown> | undefined;
+
+  if (!lessonPayload || typeof lessonPayload !== "object" || !(pluginKey in lessonPayload)) {
+    return null;
+  }
+
+  return lessonPayload;
+}
+
+function extractResourcePluginPayload(content: string | null, pluginKey: string) {
+  if (!content) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(content) as Record<string, unknown> | null;
+
+    if (!parsed || typeof parsed !== "object" || !(pluginKey in parsed)) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 1. Backfill 阶段：智能提取核心表 JSON 属性中的插件特征数据，并幂等写入至 plugin_ext_ 物理扩展表中。
  */
@@ -86,13 +116,14 @@ export async function backfillPluginJsonToSchema(
   // 3. 根据 entityType 路由
   if (entityType === "lesson") {
     const list = await db
-      .select({ id: lessons.id, payloadJson: lessons.payloadJson })
+      .select({ id: lessons.id, snapshotJson: publishedLessonVersions.snapshotJson })
       .from(lessons)
+      .innerJoin(publishedLessonVersions, eq(lessons.publishedVersionId, publishedLessonVersions.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
       .where(eq(courses.schoolId, schoolId));
 
     for (const item of list) {
-      const payload = item.payloadJson as Record<string, any>;
+      const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey) as Record<string, any> | null;
       if (payload && typeof payload === "object" && pluginKey in payload) {
         result.processed++;
         try {
@@ -184,12 +215,12 @@ export async function backfillPluginJsonToSchema(
     }
   } else if (entityType === "resource") {
     const list = await db
-      .select({ id: resources.id, payloadJson: resources.payloadJson })
+      .select({ id: resources.id, content: resources.content })
       .from(resources)
       .where(eq(resources.schoolId, schoolId));
 
     for (const item of list) {
-      const payload = item.payloadJson as Record<string, any>;
+      const payload = extractResourcePluginPayload(item.content, pluginKey) as Record<string, any> | null;
       if (payload && typeof payload === "object" && pluginKey in payload) {
         result.processed++;
         try {
@@ -261,13 +292,14 @@ export async function verifyBackfillData(
 
   if (entityType === "lesson") {
     const list = await db
-      .select({ id: lessons.id, payloadJson: lessons.payloadJson })
+      .select({ id: lessons.id, snapshotJson: publishedLessonVersions.snapshotJson })
       .from(lessons)
+      .innerJoin(publishedLessonVersions, eq(lessons.publishedVersionId, publishedLessonVersions.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
       .where(eq(courses.schoolId, schoolId));
 
     for (const item of list) {
-      const payload = item.payloadJson as Record<string, any>;
+      const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey) as Record<string, any> | null;
       if (payload && typeof payload === "object" && pluginKey in payload) {
         const legacyVal = payload[pluginKey];
         const [physicalRow] = await db
@@ -318,12 +350,12 @@ export async function verifyBackfillData(
     }
   } else if (entityType === "resource") {
     const list = await db
-      .select({ id: resources.id, payloadJson: resources.payloadJson })
+      .select({ id: resources.id, content: resources.content })
       .from(resources)
       .where(eq(resources.schoolId, schoolId));
 
     for (const item of list) {
-      const payload = item.payloadJson as Record<string, any>;
+      const payload = extractResourcePluginPayload(item.content, pluginKey) as Record<string, any> | null;
       if (payload && typeof payload === "object" && pluginKey in payload) {
         const legacyVal = payload[pluginKey];
         const [physicalRow] = await db
@@ -389,27 +421,38 @@ export async function cutoverPluginJsonToSchema(
   await db.transaction(async (tx) => {
     if (entityType === "lesson") {
       const list = await tx
-        .select({ id: lessons.id, payloadJson: lessons.payloadJson })
+        .select({ id: lessons.id, publishedVersionId: publishedLessonVersions.id, snapshotJson: publishedLessonVersions.snapshotJson })
         .from(lessons)
+        .innerJoin(publishedLessonVersions, eq(lessons.publishedVersionId, publishedLessonVersions.id))
         .innerJoin(courses, eq(lessons.courseId, courses.id))
         .where(eq(courses.schoolId, schoolId));
 
       for (const item of list) {
-        const payload = item.payloadJson as Record<string, any>;
+        const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey) as Record<string, any> | null;
         if (payload && typeof payload === "object" && pluginKey in payload) {
           result.processed++;
           try {
-            // 深克隆剥离
-            const newPayload = { ...payload };
+            const snapshot = structuredClone(item.snapshotJson as {
+              lesson?: { payloadJson?: Record<string, any> };
+            });
+            const lessonPayload = snapshot.lesson?.payloadJson;
+            if (!lessonPayload || typeof lessonPayload !== "object") {
+              throw new Error("LESSON_PLUGIN_PAYLOAD_MISSING");
+            }
+
+            const newPayload = { ...lessonPayload };
             delete newPayload[pluginKey];
+            snapshot.lesson = {
+              ...(snapshot.lesson ?? {}),
+              payloadJson: newPayload,
+            };
 
             await tx
-              .update(lessons)
+              .update(publishedLessonVersions)
               .set({
-                payloadJson: newPayload,
-                updatedAt: new Date(),
+                snapshotJson: snapshot,
               })
-              .where(eq(lessons.id, item.id));
+              .where(eq(publishedLessonVersions.id, item.publishedVersionId));
 
             result.succeeded++;
           } catch (err: any) {
@@ -453,12 +496,12 @@ export async function cutoverPluginJsonToSchema(
       }
     } else if (entityType === "resource") {
       const list = await tx
-        .select({ id: resources.id, payloadJson: resources.payloadJson })
+        .select({ id: resources.id, content: resources.content })
         .from(resources)
         .where(eq(resources.schoolId, schoolId));
 
       for (const item of list) {
-        const payload = item.payloadJson as Record<string, any>;
+        const payload = extractResourcePluginPayload(item.content, pluginKey) as Record<string, any> | null;
         if (payload && typeof payload === "object" && pluginKey in payload) {
           result.processed++;
           try {
@@ -468,7 +511,7 @@ export async function cutoverPluginJsonToSchema(
             await tx
               .update(resources)
               .set({
-                payloadJson: newPayload,
+                content: JSON.stringify(newPayload),
                 updatedAt: new Date(),
               })
               .where(eq(resources.id, item.id));

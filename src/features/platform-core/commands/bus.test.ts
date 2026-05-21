@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+vi.mock("./registry", () => ({
+  platformCommandRegistry: {},
+}));
 
 import {
   buildPlatformCommandDedupeKey,
@@ -103,8 +106,8 @@ describe("dispatchPlatformCommand", () => {
       commandType: "plugin.enable",
       payloadSchema: PlatformCommandPayloadSchemas["plugin.enable"],
       dedupe: "required",
-      authorize,
-      execute,
+      authorize: authorize as PlatformCommandDefinition<"plugin.enable">["authorize"],
+      execute: execute as PlatformCommandDefinition<"plugin.enable">["execute"],
     };
 
     dependencies = {
@@ -173,10 +176,11 @@ describe("dispatchPlatformCommand", () => {
 
     expect(first.commandId).toBe(command.id);
     expect(duplicate.commandId).toBe(command.id);
-    expect(duplicate.attemptNumber).toBe(2);
+    expect(duplicate.attemptNumber).toBe(1);
 
     const attempts = await dependencies.store.listAttempts(command.id);
-    expect(attempts).toHaveLength(2);
+    expect(attempts).toHaveLength(1);
+    expect(execute).toHaveBeenCalledTimes(1);
   });
 
   it("records a successful dispatch result summary and invalidation intent", async () => {
@@ -196,6 +200,70 @@ describe("dispatchPlatformCommand", () => {
     const stored = await dependencies.store.getCommand(command.id);
     expect(stored?.status).toBe("succeeded");
     expect(stored?.latestAttemptNumber).toBe(1);
+  });
+
+  it("records authorization failures as failed instead of leaving the command running", async () => {
+    authorize.mockRejectedValueOnce(new Error("TEACHER_AUTH_REQUIRED"));
+
+    await expect(dispatchPlatformCommand(command, dependencies)).rejects.toThrow("TEACHER_AUTH_REQUIRED");
+
+    const stored = await dependencies.store.getCommand(command.id);
+    const attempts = await dependencies.store.listAttempts(command.id);
+
+    expect(stored?.status).toBe("failed");
+    expect(stored?.latestAttemptNumber).toBe(1);
+    expect(attempts).toEqual([
+      expect.objectContaining({
+        commandId: command.id,
+        attemptNumber: 1,
+        status: "failed",
+        failureDetail: { message: "TEACHER_AUTH_REQUIRED" },
+      }),
+    ]);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("uses a per-dispatch unique dedupe key for optional dedupe commands without an explicit dedupe key", async () => {
+    const optionalDefinition: PlatformCommandDefinition<"plugin.uninstall.preflight"> = {
+      commandType: "plugin.uninstall.preflight",
+      payloadSchema: PlatformCommandPayloadSchemas["plugin.uninstall.preflight"],
+      dedupe: "optional",
+      authorize: authorize as PlatformCommandDefinition<"plugin.uninstall.preflight">["authorize"],
+      execute: execute as PlatformCommandDefinition<"plugin.uninstall.preflight">["execute"],
+    };
+
+    const optionalDependencies: PlatformCommandBusDependencies = {
+      definitions: {
+        "plugin.uninstall.preflight": optionalDefinition,
+      },
+      store: createStore(),
+    };
+
+    const preflightCommand: PlatformCommand = {
+      id: "preflight-1",
+      type: "plugin.uninstall.preflight",
+      actor: command.actor,
+      scope: command.scope,
+      payload: {
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+      },
+      correlation: command.correlation,
+    };
+
+    const first = await dispatchPlatformCommand(preflightCommand, optionalDependencies);
+    const second = await dispatchPlatformCommand({
+      ...preflightCommand,
+      id: "preflight-2",
+      correlation: {
+        correlationId: "corr-2",
+        causationId: null,
+        producer: "duplicate-producer",
+      },
+    }, optionalDependencies);
+
+    expect(first.commandId).toBe("preflight-1");
+    expect(second.commandId).toBe("preflight-2");
   });
 });
 

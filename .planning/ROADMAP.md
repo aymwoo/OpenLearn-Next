@@ -1,7 +1,7 @@
 # ROADMAP
 
 **Current milestone:** `v3.0 AI Native Educational OS Upgrade`
-**Status:** 📋 Planned
+**Status:** 🚧 In progress
 **Latest archive:** `.planning/milestones/v2.3-ROADMAP.md`
 **Current requirements file:** `.planning/REQUIREMENTS.md`
 
@@ -21,8 +21,8 @@
 
 ## Phases
 
-- [ ] **Phase 50: Boundary Freeze & Platform Vocabulary** - 冻结第一阶段平台术语、authoritative ownership 与 deferred boundary。
-- [ ] **Phase 51: Command Bus Foundation** - 建立统一 command envelope、execution pipeline 与 durable command ledger。
+- [x] **Phase 50: Boundary Freeze & Platform Vocabulary** - 冻结第一阶段平台术语、authoritative ownership 与 deferred boundary。
+- [x] **Phase 51: Command Bus Foundation** - 建立统一 command envelope、execution pipeline 与 durable command ledger。 (completed 2026-05-21)
 - [ ] **Phase 52: Action Registry & Plugin Lifecycle Governance** - 让 action catalog 与 plugin lifecycle 进入同一受治理模型。
 - [ ] **Phase 53: Platform Event Bus & Execution Observability** - 为 command 结果建立 typed events、outbox truth 与 operator-visible execution summary。
 - [ ] **Phase 54: AI-Native Contract Exposure** - 暴露 machine-readable commands/actions/capabilities 与 delegated actor contract。
@@ -38,7 +38,12 @@
   2. 平台维护者可以在 `platform-core` authoritative ownership 中直接定位命令执行、action 注册、lifecycle orchestration 与 event outbox 的归属。
   3. 系统边界会明确保留 SQLite + DAL 作为 canonical truth，并把 Redis、BullMQ、WebSocket 标记为 delivery / orchestration-only。
   4. QuickJS、Extension Host、PostgreSQL、Workflow Engine 等高风险能力会出现在正式 deferred 清单中，而不是被隐性带入 `v3.0` committed scope。
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [x] 50-01-PLAN.md — Freeze vocabulary, canonical truth posture, and authoritative ownership map
+- [x] 50-02-PLAN.md — Add minimal platform-core contract anchor and legacy seam posture notes
+- [x] 50-03-PLAN.md — Publish named deferred wall and downstream handoff guardrails
 
 ### Phase 51: Command Bus Foundation
 **Goal**: 平台调用方可以通过统一 Command Bus 提交和执行系统级 mutation，并获得可审计、可重试、可归因的结果记录。
@@ -50,7 +55,12 @@
   3. 插件 lifecycle 核心动作如 `install`、`enable`、`disable`、`retry` 会通过 Command Bus v1 执行，而不是继续直连旧 action / service 路径。
   4. 每次 command 执行都会写入 durable command ledger，并保留 success / failure summary。
   5. 重复敏感 command 在提供 idempotency / dedupe key 时不会产生重复副作用。
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [x] 51-01-PLAN.md — Add explicit command contracts, dual ledger schema, and pipeline shell for Command Bus v1
+- [x] 51-02-PLAN.md — Implement explicit plugin governance handlers and tx-aware DAL integration on the command path
+- [x] 51-03-PLAN.md — Migrate Server Actions, plugin host, and current non-UI producer seam to unified command producers
 
 ### Phase 52: Action Registry & Plugin Lifecycle Governance
 **Goal**: 平台可以在同一治理模型下注册、发现、启停 built-in 与 plugin actions，并让插件生命周期状态、依赖和失败归因都可控。
@@ -94,8 +104,8 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 50. Boundary Freeze & Platform Vocabulary | 0/TBD | Not started | - |
-| 51. Command Bus Foundation | 0/TBD | Not started | - |
+| 50. Boundary Freeze & Platform Vocabulary | 3/3 | Completed | 2026-05-21 |
+| 51. Command Bus Foundation | 3/3 | Complete   | 2026-05-21 |
 | 52. Action Registry & Plugin Lifecycle Governance | 0/TBD | Not started | - |
 | 53. Platform Event Bus & Execution Observability | 0/TBD | Not started | - |
 | 54. AI-Native Contract Exposure | 0/TBD | Not started | - |

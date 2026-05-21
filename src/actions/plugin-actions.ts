@@ -30,7 +30,7 @@ const SetEnabledSchema = z.object({
 const TransitionPluginLifecycleSchema = z.object({
   pluginId: z.string().min(1),
   schoolId: z.string().min(1),
-  targetState: z.enum(["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"]),
+  targetState: z.enum(["enabled", "mounted", "ready", "suspended", "disabled"]),
   reason: z.string().min(1),
 });
 
@@ -73,13 +73,11 @@ async function requireCurrentActorId() {
 }
 
 async function resolvePluginSchoolId(actorId: string, pluginId: string) {
-  const memberships = await getUserMembershipsDTO(actorId);
+  const memberships = (await getUserMembershipsDTO(actorId)).filter(
+    (membership) => membership.status === "active" && membership.role === "teacher",
+  );
 
   for (const membership of memberships) {
-    if (membership.status !== "active") {
-      continue;
-    }
-
     const plugin = await getPluginForSchool({
       actorId,
       schoolId: membership.schoolId,
@@ -116,6 +114,7 @@ export async function registerPluginManifestAction(data: z.infer<typeof Register
       payload: {
         schoolId: parsed.data.schoolId,
         pluginId: parsed.data.manifestJson.id,
+        existingRegistrationId: undefined,
         name: parsed.data.name,
         installSource: "manual",
         manifestJson: parsed.data.manifestJson,
@@ -211,7 +210,14 @@ export async function transitionPluginLifecycleAction(data: z.infer<typeof Trans
             type: "plugin.resume",
             actor: { actorId, actorScope: "teacher" },
             scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
-            payload: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId, reason: parsed.data.reason },
+            payload: {
+              schoolId: parsed.data.schoolId,
+              pluginId: parsed.data.pluginId,
+              reason: parsed.data.reason,
+              targetState: parsed.data.targetState === "mounted" || parsed.data.targetState === "ready"
+                ? parsed.data.targetState
+                : "enabled",
+            },
             source: "server-action",
             correlation: { producer: "plugin-actions.transition" },
           });

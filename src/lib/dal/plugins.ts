@@ -93,11 +93,13 @@ type PluginDalTx = {
 type InstallOrReconcilePluginWithTxInput = InstallOrReconcilePluginInput & {
   tx: PluginDalTx;
   commandContext?: PluginCommandContext;
+  actorScope?: RuntimeActorScope;
 };
 
 type TransitionPluginLifecycleWithTxInput = TransitionPluginLifecycleInput & {
   tx: PluginDalTx;
   commandContext?: PluginCommandContext;
+  actorScope?: RuntimeActorScope;
 };
 
 type SetPluginKillSwitchWithTxInput = {
@@ -106,16 +108,19 @@ type SetPluginKillSwitchWithTxInput = {
   actorId: string;
   killSwitchEnabled: boolean;
   commandContext?: PluginCommandContext;
+  actorScope?: RuntimeActorScope;
 };
 
 type PreflightUninstallPluginWithTxInput = PluginBySchoolInput & {
   tx: PluginDalTx;
   commandContext?: PluginCommandContext;
+  actorScope?: RuntimeActorScope;
 };
 
 type UninstallPluginWithTxInput = PluginBySchoolInput & {
   tx: PluginDalTx;
   commandContext?: PluginCommandContext;
+  actorScope?: RuntimeActorScope;
 };
 
 export type PreflightUninstallPluginResult = {
@@ -158,8 +163,15 @@ function assertActorId(actorId: string) {
   }
 }
 
-async function assertTeacherManagerScope(input: PluginManagerScopeInput) {
+async function assertTeacherManagerScope(input: PluginManagerScopeInput, actorScope?: RuntimeActorScope) {
   assertActorId(input.actorId);
+
+  if (actorScope === "system") {
+    return {
+      userId: input.actorId,
+      schoolIds: [input.schoolId],
+    };
+  }
 
   const scope = await assertActiveTeacher();
   if (scope.userId !== input.actorId || !scope.schoolIds.includes(input.schoolId)) {
@@ -348,14 +360,15 @@ function getPluginUninstallBlockReason(plugin: Pick<typeof pluginRegistrations.$
 }
 
 export async function installOrReconcilePluginWithTx(input: InstallOrReconcilePluginWithTxInput) {
-  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
+  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
 
   const parsedManifest = PluginManifestSchema.parse(input.manifestJson);
   const pluginKey = parsedManifest.id;
   const derivedNamespace = deriveDbNamespace(pluginKey);
   const requestedNamespace = input.dbNamespace?.trim() || null;
   const sourceType = parsedManifest.builtIn ? "default" : "external";
-  const shouldReconcileExisting = input.installSource !== "manual" || Boolean(input.pluginId);
+  const hasExplicitRegistrationId = Boolean(input.pluginId);
+  const shouldReconcileExisting = input.installSource !== "manual" || hasExplicitRegistrationId;
   const scopedPlugins = await db.query.pluginRegistrations.findMany({
     where: eq(pluginRegistrations.schoolId, input.schoolId),
   });
@@ -364,7 +377,7 @@ export async function installOrReconcilePluginWithTx(input: InstallOrReconcilePl
     ? scopedPlugins.find((plugin) => plugin.id === input.pluginId) ?? null
     : null;
 
-  if (input.pluginId && !targetRecord) {
+  if (hasExplicitRegistrationId && !targetRecord) {
     throw new Error("PLUGIN_NOT_FOUND");
   }
 
@@ -581,7 +594,7 @@ export async function setPluginKillSwitchWithTx(input: SetPluginKillSwitchWithTx
     throw new Error("PLUGIN_NOT_FOUND");
   }
 
-  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: plugin.schoolId });
+  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: plugin.schoolId }, input.actorScope);
 
   let targetState: PluginLifecycleState = plugin.lifecycleState;
 
@@ -657,7 +670,7 @@ export async function getPluginForSchool(input: PluginBySchoolInput) {
 }
 
 export async function transitionPluginLifecycleWithTx(input: TransitionPluginLifecycleWithTxInput) {
-  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
+  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
 
   const plugin = await db.query.pluginRegistrations.findFirst({
     where: and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)),
@@ -755,7 +768,7 @@ export async function transitionPluginLifecycle(input: TransitionPluginLifecycle
 }
 
 export async function preflightUninstallPluginWithTx(input: PreflightUninstallPluginWithTxInput): Promise<PreflightUninstallPluginResult | null> {
-  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
+  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
 
   const plugin = await db.query.pluginRegistrations.findFirst({
     where: and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)),
@@ -834,7 +847,7 @@ export async function preflightUninstallPlugin(input: PluginBySchoolInput): Prom
 }
 
 export async function uninstallPluginWithTx(input: UninstallPluginWithTxInput) {
-  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
+  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
 
   const plugin = await db.query.pluginRegistrations.findFirst({
     where: and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)),

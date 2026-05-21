@@ -45,6 +45,7 @@ import { platformCommandRegistry } from "../registry";
 function createCommand(type: "plugin.install", payload: {
   schoolId: string;
   pluginId: string;
+  existingRegistrationId?: string;
   name: string;
   installSource: "manual" | "bootstrap" | "repair" | "seed";
   manifestJson: Record<string, unknown>;
@@ -57,6 +58,7 @@ function createCommand(type: "plugin.install", payload: {
   correlation: { correlationId: string; causationId: null; producer: string };
 };
 function createCommand(type: "plugin.enable", payload: { schoolId: string; pluginId: string; enabledBy: string }): any;
+function createCommand(type: "plugin.resume", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): any;
 function createCommand(type: "plugin.retry", payload: { schoolId: string; pluginId: string; commandId: string; reason: string }): any;
 function createCommand(type: "plugin.uninstall.preflight", payload: { schoolId: string; pluginId: string }): any;
 function createCommand(type: string, payload: Record<string, unknown>) {
@@ -150,6 +152,7 @@ describe("platform plugin command registry", () => {
     const result = await platformCommandRegistry["plugin.install"].execute({ command, attemptNumber: 1 });
 
     expect(mocks.installOrReconcilePluginWithTx).toHaveBeenCalledWith(expect.objectContaining({
+      pluginId: undefined,
       tx: { token: "tx" },
       commandContext: {
         commandId: command.id,
@@ -163,6 +166,23 @@ describe("platform plugin command registry", () => {
     });
   });
 
+  it("passes existingRegistrationId through plugin.install for reconcile paths", async () => {
+    const command = createCommand("plugin.install", {
+      schoolId: "school-1",
+      pluginId: "plugin.one",
+      existingRegistrationId: "plugin-1",
+      name: "Plugin One",
+      installSource: "repair",
+      manifestJson: { id: "plugin.one" },
+    });
+
+    await platformCommandRegistry["plugin.install"].execute({ command, attemptNumber: 1 });
+
+    expect(mocks.installOrReconcilePluginWithTx).toHaveBeenCalledWith(expect.objectContaining({
+      pluginId: "plugin-1",
+    }));
+  });
+
   it("authorizes explicit governance commands through teacher-manager scope before execute", async () => {
     const command = createCommand("plugin.enable", {
       schoolId: "school-1",
@@ -173,6 +193,30 @@ describe("platform plugin command registry", () => {
     await expect(platformCommandRegistry["plugin.enable"].authorize({ command })).resolves.toBeUndefined();
 
     expect(mocks.assertActiveTeacher).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows trusted system producers to bypass interactive teacher session checks", async () => {
+    const command = {
+      ...createCommand("plugin.install", {
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        name: "Plugin One",
+        installSource: "bootstrap",
+        manifestJson: { id: "plugin.one" },
+      }),
+      actor: {
+        actorId: "teacher-1",
+        actorScope: "system" as const,
+      },
+    };
+
+    await expect(platformCommandRegistry["plugin.install"].authorize({ command })).resolves.toBeUndefined();
+    await platformCommandRegistry["plugin.install"].execute({ command, attemptNumber: 1 });
+
+    expect(mocks.assertActiveTeacher).not.toHaveBeenCalled();
+    expect(mocks.installOrReconcilePluginWithTx).toHaveBeenCalledWith(expect.objectContaining({
+      actorScope: "system",
+    }));
   });
 
   it("retries against the same failed command identity instead of creating a fresh business command", async () => {
@@ -235,6 +279,42 @@ describe("platform plugin command registry", () => {
       resultSummary: expect.objectContaining({ commandType: "plugin.uninstall.preflight", blocked: false }),
       invalidation: { tags: [] },
     });
+  });
+
+  it("preserves mounted and ready when resuming lifecycle through explicit command payload", async () => {
+    const mountedCommand = {
+      ...createCommand("plugin.resume", {
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        reason: "mounted",
+        targetState: "mounted",
+      }),
+    };
+
+    await platformCommandRegistry["plugin.resume"].execute({ command: mountedCommand, attemptNumber: 1 });
+
+    expect(mocks.transitionPluginLifecycleWithTx).toHaveBeenCalledWith(expect.objectContaining({
+      targetState: "mounted",
+      actorScope: "teacher",
+    }));
+
+    mocks.transitionPluginLifecycleWithTx.mockClear();
+
+    const readyCommand = {
+      ...createCommand("plugin.resume", {
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        reason: "ready",
+        targetState: "ready",
+      }),
+    };
+
+    await platformCommandRegistry["plugin.resume"].execute({ command: readyCommand, attemptNumber: 2 });
+
+    expect(mocks.transitionPluginLifecycleWithTx).toHaveBeenCalledWith(expect.objectContaining({
+      targetState: "ready",
+      actorScope: "teacher",
+    }));
   });
 
   it("exposes all explicit governance commands and no plugin.transition primary contract", () => {

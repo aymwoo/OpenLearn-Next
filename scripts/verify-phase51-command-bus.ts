@@ -101,6 +101,7 @@ async function main() {
   const hostSource = read("src/features/runtime-platform/host-actions/plugin-host.ts");
   const bootstrapSource = read("scripts/bootstrap-dev-db.ts");
   const patternsSource = read(".planning/phases/51-command-bus-foundation/51-PATTERNS.md");
+  const schemaSource = read("src/db/schema.ts");
 
   const staticChecks: StaticCheck[] = [
     {
@@ -131,10 +132,19 @@ async function main() {
       label: "bootstrap producer migrates to plugin.install and avoids legacy installOrReconcilePlugin seam",
       passed:
         bootstrapSource.includes("producePluginInstallCommand") &&
+        bootstrapSource.includes("existingRegistrationId: undefined") &&
         bootstrapSource.includes('installSource: "bootstrap"') &&
         bootstrapSource.includes('installSource: "seed"') &&
         !bootstrapSource.includes("installOrReconcilePlugin(") &&
         !bootstrapSource.includes("plugin.transition"),
+    },
+    {
+      label: "append-only latest indexes no longer use boolean unique constraints",
+      passed:
+        !schemaSource.includes("taskSubmissions_latest_unique") &&
+        !schemaSource.includes("quizAttempts_latest_unique") &&
+        !schemaSource.includes("runtimeStepStates_session_latest_unique") &&
+        schemaSource.includes("runtimeStepStates_session_latest_idx"),
     },
     {
       label: "pattern map records absence of worker/async plugin governance producers",
@@ -156,8 +166,13 @@ async function main() {
   console.log("  ✓ Static producer seam checks passed.");
 
   console.log("\n[2/2] Running focused behavior tests...");
-  runVitest(["src/features/runtime-platform/host-actions/plugin-host.test.ts"], "Phase 51 host behavior tests");
-  console.log("  ✓ Host governance seam behavior verified.");
+  runVitest([
+    "src/features/runtime-platform/host-actions/plugin-host.test.ts",
+    "src/features/platform-core/commands/bus.test.ts",
+    "src/features/platform-core/commands/handlers/plugins.test.ts",
+    "src/actions/plugin-actions.test.ts",
+  ], "Phase 51 command bus behavior tests");
+  console.log("  ✓ Command bus behavior verified.");
 
   console.log("\nPhase 51 verification complete.");
   console.log("==================================================");

@@ -12,6 +12,7 @@ import {
   pluginOwnedBusinessData,
   pluginRegistrations,
   pluginResourceExtensions,
+  publishedLessonVersions,
   resources,
 } from "@/db/schema";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
@@ -42,6 +43,7 @@ vi.mock("@/db", () => ({
 // 定义全局的测试行变量
 let mockPluginRegRows: any[] = [];
 let mockLessonRows: any[] = [];
+let mockPublishedLessonVersionRows: any[] = [];
 let mockStepRows: any[] = [];
 let mockResourceRows: any[] = [];
 let mockLessonExtRows: any[] = [];
@@ -63,7 +65,22 @@ const updateWhere = vi.fn();
 class MockChain {
   constructor(public rows: any[] = []) {}
   from() { return this; }
-  innerJoin() { return this; }
+  innerJoin(table: any) {
+    if (table === publishedLessonVersions) {
+      this.rows = this.rows.map((row) => {
+        const published = mockPublishedLessonVersionRows.find((item) => item.id === row.publishedVersionId);
+
+        return published
+          ? {
+              ...row,
+              snapshotJson: published.snapshotJson,
+            }
+          : row;
+      });
+    }
+
+    return this;
+  }
   where(...args: any[]) { updateWhere(...args); return this; }
   limit() { return this; }
   values(val: any) { insertValues(val); return this; }
@@ -89,6 +106,8 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
             rows = mockPluginRegRows;
           } else if (table === lessons) {
             rows = mockLessonRows;
+          } else if (table === publishedLessonVersions) {
+            rows = mockPublishedLessonVersionRows;
           } else if (table === lessonSteps) {
             rows = mockStepRows;
           } else if (table === resources) {
@@ -105,8 +124,8 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       } as any;
     });
 
-    mockTransaction.mockImplementation(async (cb) => {
-      return cb(db);
+    mockTransaction.mockImplementation(async (cb: any) => {
+      return cb(db as any);
     });
 
     // 默认教师角色与学校范围断言通过
@@ -118,6 +137,7 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
     // 默认重置 Mock 数据数据行
     mockPluginRegRows = [{ pluginKey: "vendor/plugin-1", schoolId: "school-1" }];
     mockLessonRows = [];
+    mockPublishedLessonVersionRows = [];
     mockStepRows = [];
     mockResourceRows = [];
     mockLessonExtRows = [];
@@ -159,11 +179,21 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       mockLessonRows = [
         {
           id: "lesson-1",
-          payloadJson: {
-            someCoreConfig: true,
-            "vendor/plugin-1": {
-              reminderRule: "daily",
-              alertTime: "08:00",
+          publishedVersionId: "pub-1",
+        },
+      ];
+      mockPublishedLessonVersionRows = [
+        {
+          id: "pub-1",
+          snapshotJson: {
+            lesson: {
+              payloadJson: {
+                someCoreConfig: true,
+                "vendor/plugin-1": {
+                  reminderRule: "daily",
+                  alertTime: "08:00",
+                },
+              },
             },
           },
         },
@@ -200,11 +230,10 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       mockLessonRows = [
         {
           id: "lesson-1",
-          payloadJson: {
-            "vendor/plugin-1": { reminderRule: "weekly" },
-          },
+          publishedVersionId: "pub-1",
         },
       ];
+      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { "vendor/plugin-1": { reminderRule: "weekly" } } } } }];
 
       // 已有扩展记录，触发 update
       mockLessonExtRows = [{ id: "ext-1", schoolId: "school-1", lessonId: "lesson-1" }];
@@ -249,9 +278,9 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       mockResourceRows = [
         {
           id: "res-1",
-          payloadJson: {
+          content: JSON.stringify({
             "vendor/plugin-1": { downloadLimit: 5 },
-          },
+          }),
         },
       ];
       mockResourceExtRows = [];
@@ -269,6 +298,25 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
         })
       );
     });
+
+    it("should skip resource rows whose content is not legacy plugin JSON", async () => {
+      mockResourceRows = [
+        {
+          id: "res-1",
+          content: "plain text resource body",
+        },
+      ];
+
+      const result = await backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "resource");
+
+      expect(result).toEqual({
+        processed: 0,
+        succeeded: 0,
+        failed: 0,
+        errors: [],
+      });
+      expect(mockInsert).not.toHaveBeenCalledWith(pluginResourceExtensions);
+    });
   });
 
   describe("C. Phase 46-01: Deep Verification (verifyBackfillData)", () => {
@@ -276,11 +324,10 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       mockLessonRows = [
         {
           id: "lesson-1",
-          payloadJson: {
-            "vendor/plugin-1": { nested: { a: 1, b: [1, 2] } },
-          },
+          publishedVersionId: "pub-1",
         },
       ];
+      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { "vendor/plugin-1": { nested: { a: 1, b: [1, 2] } } } } } }];
 
       // 物理表存储的内容跟旧 JSON 完全一致
       mockLessonExtRows = [
@@ -298,11 +345,10 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       mockLessonRows = [
         {
           id: "lesson-1",
-          payloadJson: {
-            "vendor/plugin-1": { nested: { a: 1, b: [1, 2] } },
-          },
+          publishedVersionId: "pub-1",
         },
       ];
+      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { "vendor/plugin-1": { nested: { a: 1, b: [1, 2] } } } } } }];
 
       // 物理表内容被篡改/不同
       mockLessonExtRows = [
@@ -322,11 +368,10 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       mockLessonRows = [
         {
           id: "lesson-1",
-          payloadJson: {
-            "vendor/plugin-1": { nested: { a: 1 } },
-          },
+          publishedVersionId: "pub-1",
         },
       ];
+      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { "vendor/plugin-1": { nested: { a: 1 } } } } } }];
       // Mismatched
       mockLessonExtRows = [
         {
@@ -345,12 +390,10 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       mockLessonRows = [
         {
           id: "lesson-1",
-          payloadJson: {
-            coreConfig: "keep-me",
-            "vendor/plugin-1": { reminderRule: "daily" },
-          },
+          publishedVersionId: "pub-1",
         },
       ];
+      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { coreConfig: "keep-me", "vendor/plugin-1": { reminderRule: "daily" } } } } }];
       
       // Matching physical extension row
       mockLessonExtRows = [
@@ -364,10 +407,14 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       expect(result.succeeded).toBe(1);
 
       // 验证在 transaction 中发起了 update 并擦除了 "vendor/plugin-1" 键
-      expect(mockUpdate).toHaveBeenCalledWith(lessons);
+      expect(mockUpdate).toHaveBeenCalledWith(publishedLessonVersions);
       expect(updateSet).toHaveBeenCalledWith(
         expect.objectContaining({
-          payloadJson: { coreConfig: "keep-me" },
+          snapshotJson: {
+            lesson: {
+              payloadJson: { coreConfig: "keep-me" },
+            },
+          },
         })
       );
     });
@@ -376,11 +423,10 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       mockLessonRows = [
         {
           id: "lesson-1",
-          payloadJson: {
-            "vendor/plugin-1": { reminderRule: "daily" },
-          },
+          publishedVersionId: "pub-1",
         },
       ];
+      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { "vendor/plugin-1": { reminderRule: "daily" } } } } }];
       mockLessonExtRows = [
         {
           payloadJson: { reminderRule: "daily" },

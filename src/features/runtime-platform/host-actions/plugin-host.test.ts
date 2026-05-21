@@ -66,6 +66,38 @@ describe("plugin host governance seam", () => {
     expect(source).not.toContain("plugin.transition");
   });
 
+  it("returns read-lifecycle snapshots instead of exposing a permanently failing host action", async () => {
+    const { invokePluginHostAction } = await import("./plugin-host");
+
+    const result = await invokePluginHostAction({
+      sessionId: "session-1",
+      pluginId: "plugin-1",
+      action: "read-lifecycle",
+      payload: {},
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      actorId: "teacher-1",
+      schoolId: "school-1",
+      plugin: {
+        id: "plugin-1",
+        schoolId: "school-1",
+        lifecycleState: "enabled",
+        killSwitchEnabled: false,
+      },
+    });
+    expect(mocks.dispatchPluginGovernanceCommand).not.toHaveBeenCalled();
+  });
+
+  it("keeps read-lifecycle as a real read contract instead of unsupported placeholder", async () => {
+    const source = await readFile(new URL("./plugin-host.ts", import.meta.url), "utf8");
+
+    expect(source).toContain('case "read-lifecycle"');
+    expect(source).toContain("lifecycleState");
+    expect(source).toContain("killSwitchEnabled");
+  });
+
   it("dispatches host governance mutations through the shared producer seam and documents host invalidation no-op", async () => {
     const { invokePluginHostAction } = await import("./plugin-host");
 
@@ -90,6 +122,40 @@ describe("plugin host governance seam", () => {
       invalidationTags: ["plugin:registry", "plugin:plugin-1"],
     });
     expect(String(result.hostInvalidation)).toContain("host invalidation");
+  });
+
+  it("requires write-capable host permission metadata for governance mutations", async () => {
+    const source = await readFile(new URL("./plugin-host.ts", import.meta.url), "utf8");
+    const permissionsSource = await readFile(new URL("../contracts/permissions.ts", import.meta.url), "utf8");
+
+    expect(source).toContain('"host:plugin:lifecycle:write"');
+    expect(permissionsSource).toContain('"host:plugin:lifecycle:write"');
+    expect(source).toContain("permission_denied");
+  });
+
+  it("preserves mounted and ready targets when resuming via host governance", async () => {
+    const { invokePluginHostAction } = await import("./plugin-host");
+
+    await invokePluginHostAction({
+      sessionId: "session-1",
+      pluginId: "plugin-1",
+      action: "plugin.resume",
+      payload: { targetState: "mounted", reason: "resume-mounted" },
+    });
+
+    expect(mocks.dispatchPluginGovernanceCommand).toHaveBeenLastCalledWith({
+      type: "plugin.resume",
+      actor: { actorId: "teacher-1", actorScope: "teacher" },
+      scope: { schoolId: "school-1", pluginId: "plugin-1" },
+      payload: {
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        reason: "resume-mounted",
+        targetState: "mounted",
+      },
+      source: "host-action",
+      correlation: { producer: "plugin-host" },
+    });
   });
 
   it("supports plugin kill switch governance writes through the same producer seam", async () => {

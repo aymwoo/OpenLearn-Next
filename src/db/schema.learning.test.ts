@@ -15,8 +15,10 @@ describe("Phase 04 learning persistence schema", () => {
     expect(schema).toContain("attemptNo");
     expect(schema).toContain("isLatest");
     expect(schema).toContain("taskSubmissions_latest_idx");
+    expect(schema).not.toContain("taskSubmissions_latest_unique");
     expect(schema).toContain("taskSubmissions_history_idx");
     expect(schema).toContain("quizAttempts_latest_idx");
+    expect(schema).not.toContain("quizAttempts_latest_unique");
     expect(schema).toContain("quizAttempts_history_idx");
   });
 

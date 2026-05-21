@@ -8,10 +8,10 @@
 
 ### Platform Boundary & Vocabulary
 
-- [ ] **BOUND-01**: 平台维护者可以在文档与代码中用统一 vocabulary 区分 `command`、`action`、`event`、`task`、`runtime transport`。
-- [ ] **BOUND-02**: 平台维护者可以在 `platform-core` 层找到命令执行、action 注册、lifecycle orchestration、event outbox 的 authoritative ownership，而不是继续散落在 ad-hoc 文件中。
-- [ ] **BOUND-03**: 系统继续把 SQLite + DAL 作为 canonical truth，并显式限制 Redis、BullMQ、WebSocket 只承担 delivery / orchestration。
-- [ ] **BOUND-04**: 平台维护者可以依赖正式的 deferred 清单，防止 QuickJS、Extension Host、PostgreSQL、Workflow Engine 等高风险能力被偷偷纳入 `v3.0` committed scope。
+- [x] **BOUND-01**: 平台维护者可以在文档与代码中用统一 vocabulary 区分 `command`、`action`、`event`、`task`、`runtime transport`。
+- [x] **BOUND-02**: 平台维护者可以在 `platform-core` 层找到命令执行、action 注册、lifecycle orchestration、event outbox 的 authoritative ownership，而不是继续散落在 ad-hoc 文件中。
+- [x] **BOUND-03**: 系统继续把 SQLite + DAL 作为 canonical truth，并显式限制 Redis、BullMQ、WebSocket 只承担 delivery / orchestration。
+- [x] **BOUND-04**: 平台维护者可以依赖正式的 deferred 清单，防止 QuickJS、Extension Host、PostgreSQL、Workflow Engine 等高风险能力被偷偷纳入 `v3.0` committed scope。
 
 ### Command Bus Foundation
 
@@ -91,10 +91,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BOUND-01 | Phase 50 | Pending |
-| BOUND-02 | Phase 50 | Pending |
-| BOUND-03 | Phase 50 | Pending |
-| BOUND-04 | Phase 50 | Pending |
+| BOUND-01 | Phase 50 | Completed |
+| BOUND-02 | Phase 50 | Completed |
+| BOUND-03 | Phase 50 | Completed |
+| BOUND-04 | Phase 50 | Completed |
 | CMD-01 | Phase 51 | Pending |
 | CMD-02 | Phase 51 | Pending |
 | CMD-03 | Phase 51 | Pending |
@@ -131,4 +131,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-21*  
-*Last updated: 2026-05-21 after roadmap mapping for phases 50-54*
+*Last updated: 2026-05-21 after Phase 50 closure and requirement status sync*

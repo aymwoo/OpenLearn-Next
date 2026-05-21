@@ -136,6 +136,7 @@ describe("plugin DAL security boundary", () => {
   it("requires authenticated actor scope and teacher membership for management paths", () => {
     expect(source).toContain("function assertActorId");
     expect(source).toContain("assertActiveTeacher");
+    expect(source).toContain('if (actorScope === "system")');
     expect(source).toContain("scope.userId !== input.actorId");
     expect(source).toContain("!scope.schoolIds.includes(input.schoolId)");
     expect(source).not.toContain("actorId?: string | null");
@@ -247,7 +248,8 @@ describe("plugin DAL security boundary", () => {
     expect(source).toContain("PLUGIN_KEY_CONFLICT");
     expect(source).toContain("PLUGIN_DB_NAMESPACE_CONFLICT");
     expect(source).toContain("PLUGIN_DB_NAMESPACE_FROZEN");
-    expect(source).toContain('const shouldReconcileExisting = input.installSource !== "manual" || Boolean(input.pluginId);');
+    expect(source).toContain("const hasExplicitRegistrationId = Boolean(input.pluginId);");
+    expect(source).toContain('const shouldReconcileExisting = input.installSource !== "manual" || hasExplicitRegistrationId;');
   });
 
   it("keeps namespace helper aligned with migration parity corpus", () => {
@@ -709,6 +711,26 @@ describe("plugin DAL security boundary", () => {
       commandId: "command-1",
       correlationId: "corr-1",
     }));
+  });
+
+  it("allows trusted system actor scope for tx-aware install reconciliation without session auth", async () => {
+    const { installOrReconcilePluginWithTx } = await import("./plugins");
+
+    await installOrReconcilePluginWithTx({
+      tx: {
+        insert: dbInsert,
+        update: dbUpdate,
+        delete: dbDelete,
+      } as never,
+      schoolId: "school-1",
+      actorId: "teacher-1",
+      actorScope: "system",
+      name: "System Plugin",
+      manifestJson: createManifest(),
+      installSource: "bootstrap",
+    });
+
+    expect(assertActiveTeacher).not.toHaveBeenCalled();
   });
 
   it("preflights uninstall counts across all plugin-owned physical tables", async () => {
