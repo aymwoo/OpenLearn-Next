@@ -70,6 +70,8 @@ async function main() {
   const registrySource = read("src/features/platform-core/actions/registry.ts");
   const actionsSource = read("src/actions/plugin-actions.ts");
   const hostSource = read("src/features/runtime-platform/host-actions/plugin-host.ts");
+  const handlerSource = read("src/features/platform-core/commands/handlers/plugins.ts");
+  const dependencyGraphSource = read("src/features/platform-core/plugins/dependency-graph.ts");
   const surfaceSource = read("src/components/surfaces/plugin-lifecycle-operator-surface.tsx");
   const dalSource = read("src/lib/dal/plugins.ts");
 
@@ -95,15 +97,20 @@ async function main() {
         "readBlockedActionDiagnostics",
         "readPluginGovernanceLifecycle",
         'retentionMode: parsed.data.retentionMode',
+        'confirmationToken: parsed.data.confirmationToken',
       ]),
     },
     {
-      label: "plugin host reads lifecycle through registry and keeps read-lifecycle separate from writes",
+      label: "plugin host reads lifecycle through registry and gates recovery writes by reason code",
       passed: includesAll(hostSource, [
         '"read-lifecycle"',
         "readPluginGovernanceLifecycle",
         'retentionMode: input.payload.retentionMode === "cleanup" ? "cleanup" : "retain"',
         'reason: "lifecycle_blocked"',
+        'case "activation_failed":',
+        'return action === "plugin.retry"',
+        'case "kill_switch":',
+        'return action === "plugin.resume"',
       ]),
     },
     {
@@ -123,6 +130,35 @@ async function main() {
         'return "UNINSTALL_BLOCKED_DEFAULT_PLUGIN"',
       ]),
     },
+    {
+      label: "DAL enforces deterministic cleanup confirmation and retain uninstall metadata",
+      passed: includesAll(dalSource, [
+        "cleanupConfirmationToken",
+        'cleanup:${input.pluginId}:${input.lessonExtCount}:${input.stepExtCount}:${input.resourceExtCount}:${input.ownedBusinessCount}:${input.totalCount}',
+        'uninstallRetentionMode: "retain"',
+        'uninstalledAt: new Date()',
+        'PLUGIN_CLEANUP_CONFIRMATION_REQUIRED',
+      ]),
+    },
+    {
+      label: "dependency graph exposes activation chain helper",
+      passed: includesAll(dependencyGraphSource, [
+        "export function resolvePluginActivationChain",
+        "orderedPluginIds",
+        "missingDependencies",
+        "cycles",
+      ]),
+    },
+    {
+      label: "command handlers consume dependency ordering before enable or resume transitions",
+      passed: includesAll(handlerSource, [
+        "listPluginsForSchool",
+        "readRegistryProjectionBundleForSchool",
+        'PLUGIN_DEPENDENCY_BLOCKED:',
+        'PLUGIN_DEPENDENCY_CYCLE:',
+        'dependency:${command.scope.pluginId}',
+      ]),
+    },
   ];
 
   const failedChecks = staticChecks.filter((check) => !check.passed);
@@ -139,6 +175,8 @@ async function main() {
   console.log("\n[2/2] Running focused behavior tests...");
   runVitest([
     "src/features/platform-core/actions/static-catalog.test.ts",
+    "src/features/platform-core/commands/handlers/plugins.test.ts",
+    "src/features/platform-core/plugins/governance-projection.test.ts",
     "src/features/runtime-platform/host-actions/plugin-host.phase52.test.ts",
     "src/components/surfaces/plugin-lifecycle-operator-surface.test.tsx",
     "src/lib/dal/plugins.test.ts",
