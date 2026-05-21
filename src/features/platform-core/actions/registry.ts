@@ -16,6 +16,7 @@ import {
 import { listStaticActionCatalog } from "./static-catalog";
 import { projectPluginGovernance } from "../plugins/governance-projection";
 import type {
+  GovernanceLifecycleInternalSubstate,
   PluginGovernanceReasonCode,
   PluginRecoveryAction,
 } from "../plugins/lifecycle-contracts";
@@ -59,9 +60,49 @@ export type PluginGovernanceLifecycleReadModel = {
   blockedActionDiagnostics: BlockedActionDiagnosticRow[];
 };
 
+export type GovernanceDashboardPluginLifecycleRow = {
+  pluginId: string;
+  pluginKey: string;
+  name: string;
+  sourceType: PluginRegistrationDTO["sourceType"];
+  builtIn: boolean;
+  defaultEnabled: boolean;
+  nonDeletable: boolean;
+  lifecycleState: ExecutableActionCatalogRow["lifecycleState"];
+  internalLifecycleSubstate: GovernanceLifecycleInternalSubstate | null;
+  blocked: boolean;
+  killSwitchEnabled: boolean;
+  reasonCode: PluginGovernanceReasonCode | null;
+  recommendedRecoveryAction: PluginRecoveryAction | null;
+  executableActionCatalog: ExecutableActionCatalogRow[];
+  blockedActionDiagnostics: BlockedActionDiagnosticRow[];
+  uninstall: {
+    posture: "retain" | "cleanup";
+    cleanupRequested: boolean;
+    blocked: boolean;
+    reasonCode: PluginGovernanceReasonCode | null;
+    recommendedRecoveryAction: PluginRecoveryAction | null;
+    cleanupConfirmationToken: string;
+    preflightSummary: {
+      lessonExtCount: number;
+      stepExtCount: number;
+      resourceExtCount: number;
+      ownedBusinessCount: number;
+      totalCount: number;
+    };
+  };
+};
+
+export type GovernanceDashboardBundle = {
+  executableActionCatalog: ExecutableActionCatalogRow[];
+  blockedActionDiagnostics: BlockedActionDiagnosticRow[];
+  pluginLifecycleRows: GovernanceDashboardPluginLifecycleRow[];
+};
+
 type RegistryProjectionBundle = {
   pluginsById: Map<string, PluginRegistrationDTO>;
   governanceById: ReturnType<typeof projectPluginGovernance>["plugins"] extends Array<infer T> ? Map<string, T> : never;
+  snapshotsById: Map<string, Awaited<ReturnType<typeof listPluginGovernanceSnapshotRecords>>[number]>;
   executableActionCatalog: ExecutableActionCatalogRow[];
   blockedActionDiagnostics: BlockedActionDiagnosticRow[];
 };
@@ -167,9 +208,63 @@ async function readRegistryProjectionBundle(input: RegistryReadInput): Promise<R
   return {
     pluginsById: new Map(plugins.map((plugin) => [plugin.id, plugin])),
     governanceById: new Map(governanceProjection.plugins.map((plugin) => [plugin.pluginId, plugin])),
+    snapshotsById: new Map(governanceSnapshots.map((plugin) => [plugin.pluginId, plugin])),
     executableActionCatalog: registryRows.executableActionCatalog,
     blockedActionDiagnostics: registryRows.blockedActionDiagnostics,
   };
+}
+
+function projectGovernanceDashboardBundle(bundle: RegistryProjectionBundle): GovernanceDashboardBundle {
+  return {
+    executableActionCatalog: bundle.executableActionCatalog,
+    blockedActionDiagnostics: bundle.blockedActionDiagnostics,
+    pluginLifecycleRows: Array.from(bundle.pluginsById.values()).flatMap((plugin) => {
+      const governance = bundle.governanceById.get(plugin.id);
+      const snapshot = bundle.snapshotsById.get(plugin.id);
+
+      if (!governance || !snapshot) {
+        return [];
+      }
+
+      return [{
+        pluginId: plugin.id,
+        pluginKey: plugin.pluginKey,
+        name: plugin.name,
+        sourceType: plugin.sourceType,
+        builtIn: plugin.builtIn,
+        defaultEnabled: plugin.defaultEnabled,
+        nonDeletable: plugin.nonDeletable,
+        lifecycleState: governance.lifecycle.state,
+        internalLifecycleSubstate: governance.lifecycle.internalSubstate,
+        blocked: governance.lifecycle.blocked,
+        killSwitchEnabled: governance.lifecycle.killSwitchEnabled,
+        reasonCode: governance.lifecycle.reasonCode,
+        recommendedRecoveryAction: governance.lifecycle.recommendedRecoveryAction,
+        executableActionCatalog: bundle.executableActionCatalog.filter(
+          (row) => row.ownerPluginId === plugin.id,
+        ),
+        blockedActionDiagnostics: bundle.blockedActionDiagnostics.filter(
+          (row) => row.ownerPluginId === plugin.id,
+        ),
+        uninstall: {
+          posture: governance.uninstall.posture,
+          cleanupRequested: governance.uninstall.cleanupRequested,
+          blocked: governance.uninstall.blocked,
+          reasonCode: governance.uninstall.reasonCode,
+          recommendedRecoveryAction: governance.uninstall.recommendedRecoveryAction,
+          cleanupConfirmationToken: snapshot.uninstall.cleanupConfirmationToken,
+          preflightSummary: governance.uninstall.preflightSummary,
+        },
+      }];
+    }),
+  };
+}
+
+export async function readGovernanceDashboardBundle(
+  input: RegistryReadInput,
+): Promise<GovernanceDashboardBundle> {
+  const bundle = await readRegistryProjectionBundle(input);
+  return projectGovernanceDashboardBundle(bundle);
 }
 
 export async function readExecutableActionCatalog(input: RegistryReadInput) {
@@ -185,32 +280,27 @@ export async function readBlockedActionDiagnostics(input: RegistryReadInput) {
 export async function readPluginGovernanceLifecycle(
   input: RegistryPluginReadInput,
 ): Promise<PluginGovernanceLifecycleReadModel | null> {
-  const bundle = await readRegistryProjectionBundle(input);
-  const plugin = bundle.pluginsById.get(input.pluginId);
-  const governance = bundle.governanceById.get(input.pluginId);
+  const dashboard = await readGovernanceDashboardBundle(input);
+  const plugin = dashboard.pluginLifecycleRows.find((row) => row.pluginId === input.pluginId);
 
-  if (!plugin || !governance) {
+  if (!plugin) {
     return null;
   }
 
   return {
-    id: plugin.id,
-    schoolId: plugin.schoolId,
+    id: plugin.pluginId,
+    schoolId: input.schoolId,
     name: plugin.name,
     pluginKey: plugin.pluginKey,
     sourceType: plugin.sourceType,
-    lifecycleState: governance.lifecycle.state,
-    blocked: governance.lifecycle.blocked,
-    killSwitchEnabled: governance.lifecycle.killSwitchEnabled,
-    internalLifecycleSubstate: governance.lifecycle.internalSubstate,
-    reasonCode: governance.lifecycle.reasonCode,
-    recommendedRecoveryAction: governance.lifecycle.recommendedRecoveryAction,
-    uninstall: governance.uninstall,
-    executableActionCatalog: bundle.executableActionCatalog.filter(
-      (row) => row.ownerPluginId === plugin.id,
-    ),
-    blockedActionDiagnostics: bundle.blockedActionDiagnostics.filter(
-      (row) => row.ownerPluginId === plugin.id,
-    ),
+    lifecycleState: plugin.lifecycleState,
+    blocked: plugin.blocked,
+    killSwitchEnabled: plugin.killSwitchEnabled,
+    internalLifecycleSubstate: plugin.internalLifecycleSubstate,
+    reasonCode: plugin.reasonCode,
+    recommendedRecoveryAction: plugin.recommendedRecoveryAction,
+    uninstall: plugin.uninstall,
+    executableActionCatalog: plugin.executableActionCatalog,
+    blockedActionDiagnostics: plugin.blockedActionDiagnostics,
   };
 }

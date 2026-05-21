@@ -11,9 +11,13 @@ import {
 } from "lucide-react";
 
 import {
-  listPluginsAction,
   setPluginEnabledAction,
 } from "@/actions/plugin-actions";
+import {
+  readGovernanceDashboardBundle,
+  type GovernanceDashboardBundle,
+} from "@/features/platform-core/actions/registry";
+import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { setSystemTransportModeAction } from "@/actions/system-transport-settings-actions";
 import { setActiveThemeAction } from "@/actions/theme-actions";
 import { Badge } from "@/components/ui/badge";
@@ -404,11 +408,30 @@ async function GeneralSettingsSurface({
 }
 
 async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
-  const pluginResult = schoolId
-    ? await listPluginsAction({ schoolId })
-    : { success: true as const, data: [] };
-  const plugins = pluginResult.success ? (pluginResult.data ?? []) : [];
-  const pluginLoadError = pluginResult.success ? null : pluginResult.error ?? "PLUGIN_LIST_FAILED";
+  const emptyDashboard: GovernanceDashboardBundle = {
+    executableActionCatalog: [],
+    blockedActionDiagnostics: [],
+    pluginLifecycleRows: [],
+  };
+  let dashboard = emptyDashboard;
+  let pluginLoadError: string | null = null;
+
+  if (schoolId) {
+    try {
+      const actor = await getCurrentUserDTO();
+
+      if (!actor?.id) {
+        pluginLoadError = "AUTH_REQUIRED";
+      } else {
+        dashboard = await readGovernanceDashboardBundle({
+          actorId: actor.id,
+          schoolId,
+        });
+      }
+    } catch (error) {
+      pluginLoadError = error instanceof Error ? error.message : "PLUGIN_LIST_FAILED";
+    }
+  }
   return (
     <main className="min-h-screen bg-surface px-4 py-6 text-on-surface sm:px-6 lg:px-8">
       <div className={cn(surfaceWidths.workspace, teacherSurfaceRhythm.stack, "flex flex-col")}>
@@ -582,7 +605,7 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
                     插件列表加载失败：{pluginLoadError}
                   </div>
                 ) : (
-                  <PluginLifecycleOperatorSurface schoolId={schoolId} plugins={plugins} />
+                  <PluginLifecycleOperatorSurface schoolId={schoolId} dashboard={dashboard} />
                 )}
               </div>
             </section>

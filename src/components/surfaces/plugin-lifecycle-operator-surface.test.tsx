@@ -2,11 +2,30 @@
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { GovernanceDashboardBundle } from "@/features/platform-core/actions/registry";
 
 const pluginActionMocks = vi.hoisted(() => ({
   setPluginEnabledAction: vi.fn().mockResolvedValue({ success: true }),
   setPluginKillSwitchAction: vi.fn().mockResolvedValue({ success: true }),
-  preflightUninstallPluginAction: vi.fn(),
+  preflightUninstallPluginAction: vi.fn().mockResolvedValue({
+    success: true,
+    data: {
+      pluginId: "plugin-ext",
+      schoolId: "school-1",
+      blocked: false,
+      reason: null,
+      lessonExtCount: 1,
+      stepExtCount: 2,
+      resourceExtCount: 1,
+      ownedBusinessCount: 3,
+      totalCount: 7,
+      impactedLessonIds: ["lesson-1"],
+      impactedLessonStepIds: ["step-1", "step-2"],
+      impactedResourceIds: ["resource-1"],
+      impactedBusinessKeys: ["dashboard", "settings", "gradebook"],
+      cleanupConfirmationToken: "cleanup:plugin-ext:1:2:1:3:7",
+    },
+  }),
   uninstallPluginAction: vi.fn().mockResolvedValue({ success: true }),
 }));
 
@@ -18,18 +37,18 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-const dashboardBundle = {
+const dashboardBundle: GovernanceDashboardBundle = {
   executableActionCatalog: [
     {
       actionKey: "createNotificationStub",
-      title: "创建通知草稿",
-      description: "创建教师通知占位草稿。",
       ownerType: "external-plugin",
       ownerPluginKey: "vendor/mounted",
+      inputSchemaKey: "plugin-action.payload.generic",
+      requiredPermission: null,
+      sideEffectClass: "notification-stub",
+      implementationSource: "main-repo-static-implementation",
       ownerPluginId: "plugin-mounted",
       ownerDisplayName: "挂载插件",
-      permissions: [],
-      hooks: ["dashboard.widget"],
       lifecycleState: "active",
       catalogView: "executable",
     },
@@ -37,14 +56,14 @@ const dashboardBundle = {
   blockedActionDiagnostics: [
     {
       actionKey: "createNotificationStub",
-      title: "创建通知草稿",
-      description: "创建教师通知占位草稿。",
       ownerType: "external-plugin",
       ownerPluginKey: "vendor/ext",
+      inputSchemaKey: "plugin-action.payload.generic",
+      requiredPermission: null,
+      sideEffectClass: "notification-stub",
+      implementationSource: "main-repo-static-implementation",
       ownerPluginId: "plugin-ext",
       ownerDisplayName: "外部插件",
-      permissions: [],
-      hooks: ["dashboard.widget"],
       lifecycleState: "installed",
       catalogView: "blocked-diagnostic",
       internalLifecycleSubstate: "disabled",
@@ -82,6 +101,22 @@ const dashboardBundle = {
           totalCount: 0,
         },
       },
+      executableActionCatalog: [
+        {
+          actionKey: "createNotificationStub",
+          ownerType: "external-plugin",
+          ownerPluginKey: "vendor/mounted",
+          inputSchemaKey: "plugin-action.payload.generic",
+          requiredPermission: null,
+          sideEffectClass: "notification-stub",
+          implementationSource: "main-repo-static-implementation",
+          ownerPluginId: "plugin-mounted",
+          ownerDisplayName: "挂载插件",
+          lifecycleState: "active",
+          catalogView: "executable",
+        },
+      ],
+      blockedActionDiagnostics: [],
     },
     {
       pluginId: "plugin-ready",
@@ -112,6 +147,8 @@ const dashboardBundle = {
           totalCount: 0,
         },
       },
+      executableActionCatalog: [],
+      blockedActionDiagnostics: [],
     },
     {
       pluginId: "plugin-default",
@@ -126,12 +163,12 @@ const dashboardBundle = {
       defaultEnabled: true,
       nonDeletable: true,
       killSwitchEnabled: false,
-      blocked: false,
+      blocked: true,
       uninstall: {
         posture: "retain",
         cleanupRequested: false,
         blocked: true,
-        reasonCode: "default_plugin",
+        reasonCode: null,
         recommendedRecoveryAction: null,
         cleanupConfirmationToken: "cleanup:plugin-default:0:0:0:0:0",
         preflightSummary: {
@@ -142,6 +179,25 @@ const dashboardBundle = {
           totalCount: 0,
         },
       },
+      executableActionCatalog: [],
+      blockedActionDiagnostics: [
+        {
+          actionKey: "createNotificationStub",
+          ownerType: "default-plugin",
+          ownerPluginKey: "builtin/default",
+          inputSchemaKey: "plugin-action.payload.generic",
+          requiredPermission: null,
+          sideEffectClass: "notification-stub",
+          implementationSource: "main-repo-static-implementation",
+          ownerPluginId: "plugin-default",
+          ownerDisplayName: "默认插件",
+          lifecycleState: "enabled",
+          catalogView: "blocked-diagnostic",
+          internalLifecycleSubstate: "enabled",
+          reasonCode: "plugin_not_enabled",
+          recommendedRecoveryAction: "enable",
+        },
+      ],
     },
     {
       pluginId: "plugin-ext",
@@ -172,6 +228,25 @@ const dashboardBundle = {
           totalCount: 7,
         },
       },
+      executableActionCatalog: [],
+      blockedActionDiagnostics: [
+        {
+          actionKey: "createNotificationStub",
+          ownerType: "external-plugin",
+          ownerPluginKey: "vendor/ext",
+          inputSchemaKey: "plugin-action.payload.generic",
+          requiredPermission: null,
+          sideEffectClass: "notification-stub",
+          implementationSource: "main-repo-static-implementation",
+          ownerPluginId: "plugin-ext",
+          ownerDisplayName: "外部插件",
+          lifecycleState: "installed",
+          catalogView: "blocked-diagnostic",
+          internalLifecycleSubstate: "disabled",
+          reasonCode: "plugin_not_enabled",
+          recommendedRecoveryAction: "enable",
+        },
+      ],
     },
     {
       pluginId: "plugin-enabled",
@@ -185,8 +260,8 @@ const dashboardBundle = {
       builtIn: false,
       defaultEnabled: false,
       nonDeletable: false,
-      killSwitchEnabled: false,
-      blocked: false,
+      killSwitchEnabled: true,
+      blocked: true,
       uninstall: {
         posture: "retain",
         cleanupRequested: false,
@@ -202,9 +277,28 @@ const dashboardBundle = {
           totalCount: 0,
         },
       },
+      executableActionCatalog: [],
+      blockedActionDiagnostics: [
+        {
+          actionKey: "createNotificationStub",
+          ownerType: "external-plugin",
+          ownerPluginKey: "vendor/enabled",
+          inputSchemaKey: "plugin-action.payload.generic",
+          requiredPermission: null,
+          sideEffectClass: "notification-stub",
+          implementationSource: "main-repo-static-implementation",
+          ownerPluginId: "plugin-enabled",
+          ownerDisplayName: "运行中插件",
+          lifecycleState: "suspended",
+          catalogView: "blocked-diagnostic",
+          internalLifecycleSubstate: "ready",
+          reasonCode: "plugin_suspended",
+          recommendedRecoveryAction: "resume",
+        },
+      ],
     },
   ],
-} as const;
+};
 
 describe("plugin lifecycle operator surface", () => {
   beforeEach(() => {
@@ -256,14 +350,17 @@ describe("plugin lifecycle operator surface", () => {
 
     fireEvent.click(within(externalPluginCard!).getByRole("button", { name: "查看卸载影响" }));
 
-    expect(screen.getByText("卸载前检查")).toBeTruthy();
-    expect(screen.getByText("lessons")).toBeTruthy();
-    expect(screen.getByText("lesson steps")).toBeTruthy();
-    expect(screen.getByText("resources")).toBeTruthy();
-    expect(screen.getByText("plugin-owned data")).toBeTruthy();
+    expect(within(externalPluginCard!).getByText("卸载前检查")).toBeTruthy();
+    expect(within(externalPluginCard!).getByText("lessons")).toBeTruthy();
+    expect(within(externalPluginCard!).getByText("lesson steps")).toBeTruthy();
+    expect(within(externalPluginCard!).getByText("resources")).toBeTruthy();
+    expect(within(externalPluginCard!).getByText("plugin-owned data")).toBeTruthy();
 
     fireEvent.click(within(externalPluginCard!).getByRole("button", { name: "打开卸载确认" }));
-    expect(screen.getByRole("button", { name: "确认卸载插件" })).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByRole("checkbox", { name: "改为 cleanup 卸载" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "确认卸载插件" }).hasAttribute("disabled")).toBe(false);
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "确认卸载插件" }));
 
@@ -277,6 +374,9 @@ describe("plugin lifecycle operator surface", () => {
     });
 
     fireEvent.click(within(externalPluginCard!).getByRole("button", { name: "打开卸载确认" }));
+    await waitFor(() => {
+      expect(screen.getByRole("checkbox", { name: "改为 cleanup 卸载" })).toBeTruthy();
+    });
 
     fireEvent.click(screen.getByRole("checkbox", { name: "改为 cleanup 卸载" }));
     fireEvent.click(screen.getByRole("button", { name: "确认卸载插件" }));
@@ -305,6 +405,8 @@ describe("plugin lifecycle operator surface", () => {
         dashboard={dashboardBundle}
       />,
     );
+
+    fireEvent.click(screen.getByRole("button", { name: "查看治理诊断" }));
 
     const pluginCard = screen.getByText("运行中插件", { selector: "p" }).closest("article");
     expect(pluginCard).toBeTruthy();
