@@ -10,6 +10,7 @@ import {
   ScheduleReminderDraftPayloadSchema,
 } from "@/lib/dto/resource-ai";
 
+// Phase 50 boundary freeze: static implementation catalog only; not dynamic action authority.
 export const PLUGIN_HOOK_ANCHORS = ["dashboard.widget", "lesson.sidebar", "schedule.assistant"] as const;
 export const PLUGIN_ACTION_ALLOWLIST = [
   "addStepSuggestion",

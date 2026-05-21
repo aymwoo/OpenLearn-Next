@@ -18,6 +18,7 @@ import {
 import { cacheTags } from "@/lib/cache-policy";
 import { PluginActionInputSchema, PluginManifestSchema } from "@/lib/dto/resource-ai";
 
+// Phase 50 boundary freeze: Server Actions are future PlatformCommand producer adapters; keep updateTag() at the entrypoint.
 const RegisterPluginSchema = z.object({
   schoolId: z.string().min(1),
   name: z.string().min(1),

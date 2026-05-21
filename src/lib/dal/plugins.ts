@@ -21,6 +21,7 @@ import { PluginActionInput, PluginActionResult, PluginManifest, PluginManifestSc
 import { dispatchPluginAction, PLUGIN_ACTION_PERMISSION_REQUIREMENTS } from "@/server/plugins/registry";
 import { registerThemeTokens } from "@/lib/dal/themes";
 
+// Phase 50 boundary freeze: plugin domain DAL only; not platform orchestration authority.
 export const PLUGIN_KEY_CONFLICT = "PLUGIN_KEY_CONFLICT";
 export const PLUGIN_DB_NAMESPACE_CONFLICT = "PLUGIN_DB_NAMESPACE_CONFLICT";
 export const PLUGIN_DB_NAMESPACE_FROZEN = "PLUGIN_DB_NAMESPACE_FROZEN";

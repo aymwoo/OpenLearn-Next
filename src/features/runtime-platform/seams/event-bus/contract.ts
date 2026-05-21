@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// Phase 50 boundary freeze: runtime-only transport seam; not platform event truth.
 export const RuntimeEventBusDeliverySchema = z.enum(["in-process", "redis-streams"]);
 
 export const RuntimeEventEnvelopeSchema = z.object({
