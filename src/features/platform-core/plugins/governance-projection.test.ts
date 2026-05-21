@@ -78,6 +78,21 @@ describe("plugin governance lifecycle contracts", () => {
         { pluginId: "plugin-c", dependencies: [] },
       ]),
     ).toEqual([["plugin-a", "plugin-b", "plugin-a"]]);
+
+    expect(
+      dependencyGraph.resolvePluginActivationChain(
+        [
+          { pluginId: "plugin-a", dependencies: [] },
+          { pluginId: "plugin-b", dependencies: ["plugin-a"] },
+          { pluginId: "plugin-c", dependencies: ["plugin-b", "plugin-missing"] },
+        ],
+        "plugin-c",
+      ),
+    ).toEqual({
+      orderedPluginIds: ["plugin-a", "plugin-b", "plugin-c"],
+      missingDependencies: ["plugin-missing"],
+      cycles: [],
+    });
   });
 
   it("projects plugin governance diagnostics, executable gating, and explicit uninstall posture", async () => {

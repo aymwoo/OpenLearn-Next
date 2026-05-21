@@ -43,6 +43,26 @@ function getRequiredHostPermission(action: PluginHostRequest["action"]) {
     : "host:plugin:lifecycle:read";
 }
 
+function isReasonMatchedRecoveryAction(
+  action: PluginHostRequest["action"],
+  reasonCode: string | null,
+) {
+  switch (reasonCode) {
+    case "not_enabled":
+    case "not_installed":
+      return action === "plugin.enable";
+    case "kill_switch":
+      return action === "plugin.resume";
+    case "activation_failed":
+      return action === "plugin.retry";
+    case "dependency_missing":
+    case "dependency_cycle":
+      return false;
+    default:
+      return false;
+  }
+}
+
 async function dispatchGovernanceFromHost(input: {
   action: Exclude<PluginHostRequest["action"], "publish-event" | "read-lifecycle">;
   actorId: string;
@@ -214,7 +234,7 @@ export const invokePluginHostAction = createGuardedHostAction({
           });
         }
 
-        if (plugin.blocked) {
+        if (plugin.blocked && !isReasonMatchedRecoveryAction(input.action, plugin.reasonCode)) {
           return createDeniedGovernanceDecision({
             action: input.action,
             actor,

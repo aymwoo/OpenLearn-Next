@@ -394,4 +394,59 @@ describe("phase 52 plugin registry and host governance wiring", () => {
 
     expect(mocks.dispatchPluginGovernanceCommand).not.toHaveBeenCalled();
   });
+
+  it("allows recovery commands only when they match the current lifecycle reason code", async () => {
+    const { invokePluginHostAction } = await import("./plugin-host");
+
+    mocks.listPluginGovernanceSnapshotRecords.mockResolvedValueOnce([
+      {
+        pluginId: "plugin-blocked",
+        pluginKey: "vendor/blocked",
+        name: "受阻插件",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "failed",
+        sourceType: "external",
+        dependencies: [],
+        activationStatus: "failed",
+        failureDetail: "boot failed",
+        uninstall: {
+          pluginId: "plugin-blocked",
+          schoolId: "school-1",
+          blocked: false,
+          reason: null,
+          lessonExtCount: 0,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 0,
+          totalCount: 0,
+          impactedLessonIds: [],
+          impactedLessonStepIds: [],
+          impactedResourceIds: [],
+          impactedBusinessKeys: [],
+          cleanupConfirmationToken: "cleanup:plugin-blocked:0:0:0:0:0",
+        },
+      },
+    ]);
+
+    await invokePluginHostAction({
+      sessionId: "session-1",
+      pluginId: "plugin-blocked",
+      action: "plugin.retry",
+      payload: { reason: "retry activation", commandId: "cmd-1" },
+    });
+
+    expect(mocks.dispatchPluginGovernanceCommand).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "plugin.retry" }),
+    );
+
+    await expect(
+      invokePluginHostAction({
+        sessionId: "session-1",
+        pluginId: "plugin-blocked",
+        action: "plugin.enable",
+        payload: {},
+      }),
+    ).rejects.toThrow("HOST_ACTION_DENIED:lifecycle_blocked");
+  });
 });

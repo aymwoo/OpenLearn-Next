@@ -6,11 +6,13 @@ const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
   assertActiveTeacher: vi.fn(),
   installOrReconcilePluginWithTx: vi.fn(),
+  listPluginsForSchool: vi.fn(),
   transitionPluginLifecycleWithTx: vi.fn(),
   setPluginKillSwitchWithTx: vi.fn(),
   preflightUninstallPluginWithTx: vi.fn(),
   uninstallPluginWithTx: vi.fn(),
   findPlatformCommand: vi.fn(),
+  readRegistryProjectionBundleForSchool: vi.fn(),
 }));
 
 vi.mock("@/db", () => ({
@@ -30,6 +32,7 @@ vi.mock("@/lib/dal/lesson-authoring", () => ({
 
 vi.mock("@/lib/dal/plugins", () => ({
   installOrReconcilePluginWithTx: mocks.installOrReconcilePluginWithTx,
+  listPluginsForSchool: mocks.listPluginsForSchool,
   transitionPluginLifecycleWithTx: mocks.transitionPluginLifecycleWithTx,
   setPluginKillSwitchWithTx: mocks.setPluginKillSwitchWithTx,
   preflightUninstallPluginWithTx: mocks.preflightUninstallPluginWithTx,
@@ -38,6 +41,10 @@ vi.mock("@/lib/dal/plugins", () => ({
 
 vi.mock("@/lib/dal/themes", () => ({
   registerThemeTokens: vi.fn(async () => ({ id: "theme-1" })),
+}));
+
+vi.mock("@/features/platform-core/plugins/dependency-graph", () => ({
+  readRegistryProjectionBundleForSchool: mocks.readRegistryProjectionBundleForSchool,
 }));
 
 import { platformCommandRegistry } from "../registry";
@@ -137,6 +144,33 @@ describe("platform plugin command registry", () => {
       scopeJson: { schoolId: "school-1", pluginId: "plugin-1" },
       payloadJson: { schoolId: "school-1", pluginId: "plugin-1", enabledBy: "teacher-1" },
       correlationJson: { correlationId: "corr-original", causationId: null, producer: "producer" },
+    });
+    mocks.listPluginsForSchool.mockResolvedValue([
+      {
+        id: "plugin-1",
+        pluginKey: "vendor/plugin-1",
+        enabled: true,
+        manifestJson: {
+          governance: {
+            dependencies: [],
+          },
+        },
+      },
+      {
+        id: "plugin-dep",
+        pluginKey: "vendor/plugin-dep",
+        enabled: true,
+        manifestJson: {
+          governance: {
+            dependencies: [],
+          },
+        },
+      },
+    ]);
+    mocks.readRegistryProjectionBundleForSchool.mockReturnValue({
+      orderedPluginIds: ["plugin-1"],
+      missingDependencies: [],
+      cycles: [],
     });
   });
 
@@ -314,6 +348,52 @@ describe("platform plugin command registry", () => {
     expect(mocks.transitionPluginLifecycleWithTx).toHaveBeenCalledWith(expect.objectContaining({
       targetState: "ready",
       actorScope: "teacher",
+    }));
+  });
+
+  it("fails fast when enable or resume sees missing dependencies in activation chain", async () => {
+    const command = createCommand("plugin.enable", {
+      schoolId: "school-1",
+      pluginId: "plugin-1",
+      enabledBy: "teacher-1",
+    });
+
+    mocks.readRegistryProjectionBundleForSchool.mockReturnValueOnce({
+      orderedPluginIds: ["plugin-1"],
+      missingDependencies: ["vendor/missing"],
+      cycles: [],
+    });
+
+    await expect(
+      platformCommandRegistry["plugin.enable"].execute({ command, attemptNumber: 1 }),
+    ).rejects.toThrow("PLUGIN_DEPENDENCY_BLOCKED:vendor/missing");
+
+    expect(mocks.transitionPluginLifecycleWithTx).not.toHaveBeenCalled();
+  });
+
+  it("activates dependency chain in topological order before target plugin", async () => {
+    const command = createCommand("plugin.resume", {
+      schoolId: "school-1",
+      pluginId: "plugin-1",
+      reason: "resume target",
+      targetState: "ready",
+    });
+
+    mocks.readRegistryProjectionBundleForSchool.mockReturnValueOnce({
+      orderedPluginIds: ["plugin-dep", "plugin-1"],
+      missingDependencies: [],
+      cycles: [],
+    });
+
+    await platformCommandRegistry["plugin.resume"].execute({ command, attemptNumber: 1 });
+
+    expect(mocks.transitionPluginLifecycleWithTx).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      pluginId: "plugin-dep",
+      targetState: "ready",
+    }));
+    expect(mocks.transitionPluginLifecycleWithTx).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      pluginId: "plugin-1",
+      targetState: "ready",
     }));
   });
 

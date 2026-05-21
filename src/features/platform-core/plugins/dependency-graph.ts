@@ -3,6 +3,19 @@ export type PluginDependencyNode = {
   dependencies: readonly string[];
 };
 
+export type PluginActivationChain = {
+  orderedPluginIds: string[];
+  missingDependencies: string[];
+  cycles: string[][];
+};
+
+export type RegistryProjectionActivationInput = {
+  pluginId: string;
+  pluginKey: string;
+  dependencies: readonly string[];
+  enabled: boolean;
+};
+
 function unique(items: readonly string[]) {
   return [...new Set(items)];
 }
@@ -87,4 +100,69 @@ export function detectPluginDependencyCycles(nodes: readonly PluginDependencyNod
   }
 
   return cycles;
+}
+
+export function resolvePluginActivationChain(
+  nodes: readonly PluginDependencyNode[],
+  targetPluginId: string,
+): PluginActivationChain {
+  const byId = new Map(nodes.map((node) => [node.pluginId, unique(node.dependencies)]));
+  const included = new Set<string>();
+  const missing = new Set<string>();
+
+  function visit(pluginId: string) {
+    if (included.has(pluginId)) {
+      return;
+    }
+    included.add(pluginId);
+
+    for (const dependency of byId.get(pluginId) ?? []) {
+      if (!byId.has(dependency)) {
+        missing.add(dependency);
+        continue;
+      }
+      visit(dependency);
+    }
+  }
+
+  visit(targetPluginId);
+
+  const scopedNodes = nodes.filter((node) => included.has(node.pluginId));
+  const cycles = detectPluginDependencyCycles(scopedNodes);
+  let orderedPluginIds: string[] = [];
+
+  try {
+    orderedPluginIds = orderPluginDependencies(scopedNodes);
+  } catch {
+    orderedPluginIds = scopedNodes.map((node) => node.pluginId);
+  }
+
+  return {
+    orderedPluginIds,
+    missingDependencies: [...missing],
+    cycles,
+  };
+}
+
+export function readRegistryProjectionBundleForSchool(
+  plugins: readonly RegistryProjectionActivationInput[],
+  targetPluginId: string,
+) {
+  const target = plugins.find((plugin) => plugin.pluginId === targetPluginId);
+  if (!target) {
+    return {
+      orderedPluginIds: [targetPluginId],
+      missingDependencies: [],
+      cycles: [],
+    };
+  }
+
+  const byKey = new Map(plugins.map((plugin) => [plugin.pluginKey, plugin]));
+  const nodes: PluginDependencyNode[] = plugins.map((plugin) => ({
+    pluginId: plugin.pluginId,
+    dependencies: plugin.dependencies
+      .map((dependencyKey) => byKey.get(dependencyKey)?.pluginId ?? dependencyKey),
+  }));
+
+  return resolvePluginActivationChain(nodes, target.pluginId);
 }

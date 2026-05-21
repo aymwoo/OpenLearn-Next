@@ -7,7 +7,11 @@ import { platformCommands } from "@/db/schema";
 import type { PluginLifecycleState } from "@/features/runtime-platform/contracts/permissions";
 import type { PluginManifest } from "@/lib/dto/resource-ai";
 import {
+  readRegistryProjectionBundleForSchool,
+} from "@/features/platform-core/plugins/dependency-graph";
+import {
   installOrReconcilePluginWithTx,
+  listPluginsForSchool,
   preflightUninstallPluginWithTx,
   setPluginKillSwitchWithTx,
   transitionPluginLifecycleWithTx,
@@ -107,16 +111,63 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
   commandType: TType,
 ): Promise<ExecutionResult> {
   const { command } = input;
-  const record = await db.transaction(async (tx) => transitionPluginLifecycleWithTx({
-    actorId: command.actor.actorId,
-    schoolId: command.scope.schoolId,
-    pluginId: command.scope.pluginId,
-    targetState,
-    reason,
-    actorScope: command.actor.actorScope,
-    tx,
-    commandContext: createCommandContext(input),
-  }));
+  let record: Awaited<ReturnType<typeof transitionPluginLifecycleWithTx>> | null = null;
+
+  if (commandType === "plugin.enable" || commandType === "plugin.resume") {
+    const plugins = await listPluginsForSchool({
+      actorId: command.actor.actorId,
+      schoolId: command.scope.schoolId,
+    });
+    const activationChain = readRegistryProjectionBundleForSchool(
+      plugins.map((plugin) => ({
+        pluginId: plugin.id,
+        pluginKey: plugin.pluginKey,
+        dependencies: plugin.manifestJson.governance?.dependencies ?? [],
+        enabled: plugin.enabled,
+      })),
+      command.scope.pluginId,
+    );
+
+    if (activationChain.missingDependencies.length > 0) {
+      throw new Error(`PLUGIN_DEPENDENCY_BLOCKED:${activationChain.missingDependencies.join(",")}`);
+    }
+
+    if (activationChain.cycles.length > 0) {
+      throw new Error(`PLUGIN_DEPENDENCY_CYCLE:${activationChain.cycles[0]?.join("->") ?? "unknown"}`);
+    }
+
+    record = await db.transaction(async (tx) => {
+      let latestRecord = null;
+      for (const pluginId of activationChain.orderedPluginIds) {
+        latestRecord = await transitionPluginLifecycleWithTx({
+          actorId: command.actor.actorId,
+          schoolId: command.scope.schoolId,
+          pluginId,
+          targetState,
+          reason: pluginId === command.scope.pluginId ? reason : `dependency:${command.scope.pluginId}`,
+          actorScope: command.actor.actorScope,
+          tx,
+          commandContext: createCommandContext(input),
+        });
+      }
+      return latestRecord;
+    });
+  } else {
+    record = await db.transaction(async (tx) => transitionPluginLifecycleWithTx({
+      actorId: command.actor.actorId,
+      schoolId: command.scope.schoolId,
+      pluginId: command.scope.pluginId,
+      targetState,
+      reason,
+      actorScope: command.actor.actorScope,
+      tx,
+      commandContext: createCommandContext(input),
+    }));
+  }
+
+  if (!record) {
+    throw new Error("PLUGIN_NOT_FOUND");
+  }
 
   let extraTags: string[] = [];
   let registeredThemeId: string | null = null;
