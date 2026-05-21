@@ -33,6 +33,13 @@ export const platformCommandRegistry = {
     authorize: pluginCommandHandlers["plugin.disable"].authorize,
     execute: pluginCommandHandlers["plugin.disable"].execute,
   }),
+  "plugin.reconcile": createPlatformCommandDefinition({
+    commandType: "plugin.reconcile",
+    payloadSchema: PlatformCommandPayloadSchemas["plugin.reconcile"],
+    dedupe: "required",
+    authorize: pluginCommandHandlers["plugin.reconcile"].authorize,
+    execute: pluginCommandHandlers["plugin.reconcile"].execute,
+  }),
   "plugin.retry": createPlatformCommandDefinition({
     commandType: "plugin.retry",
     payloadSchema: PlatformCommandPayloadSchemas["plugin.retry"],

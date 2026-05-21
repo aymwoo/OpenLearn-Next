@@ -25,6 +25,7 @@ import type { PlatformCommand, PlatformCommandDefinition, PlatformCommandType } 
 type InstallCommand = Extract<PlatformCommand, { type: "plugin.install" }>;
 type EnableCommand = Extract<PlatformCommand, { type: "plugin.enable" }>;
 type DisableCommand = Extract<PlatformCommand, { type: "plugin.disable" }>;
+type ReconcileCommand = Extract<PlatformCommand, { type: "plugin.reconcile" }>;
 type RetryCommand = Extract<PlatformCommand, { type: "plugin.retry" }>;
 type SuspendCommand = Extract<PlatformCommand, { type: "plugin.suspend" }>;
 type ResumeCommand = Extract<PlatformCommand, { type: "plugin.resume" }>;
@@ -101,6 +102,87 @@ async function executeInstall(input: ExecutionInput<InstallCommand>): Promise<Ex
       lifecycleState: record.lifecycleState,
     },
     invalidation: buildPluginTags(record.id),
+  };
+}
+
+async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promise<ExecutionResult> {
+  const { command } = input;
+  const targetPluginId = command.scope.pluginId;
+  const targetState = command.payload.targetState ?? "enabled";
+  const plugins = await listPluginsForSchool({
+    actorId: command.actor.actorId,
+    schoolId: command.scope.schoolId,
+  });
+  const currentPlugin = plugins.find((plugin) => plugin.id === targetPluginId);
+
+  if (!currentPlugin) {
+    throw new Error("PLUGIN_NOT_FOUND");
+  }
+
+  await db.transaction(async (tx) => installOrReconcilePluginWithTx({
+    schoolId: command.payload.schoolId,
+    pluginId: currentPlugin.id,
+    name: currentPlugin.name,
+    installSource: currentPlugin.installSource,
+    manifestJson: currentPlugin.manifestJson,
+    enabled: currentPlugin.enabled,
+    killSwitchEnabled: currentPlugin.killSwitchEnabled,
+    lifecycleState: currentPlugin.lifecycleState,
+    actorId: command.actor.actorId,
+    actorScope: command.actor.actorScope,
+    tx,
+    commandContext: createCommandContext(input),
+  }));
+
+  const activationChain = readRegistryProjectionBundleForSchool(
+    plugins.map((plugin) => ({
+      pluginId: plugin.id,
+      pluginKey: plugin.pluginKey,
+      dependencies: plugin.manifestJson.governance?.dependencies ?? [],
+      enabled: plugin.enabled,
+    })),
+    targetPluginId,
+  );
+
+  if (activationChain.missingDependencies.length > 0) {
+    throw new Error(`PLUGIN_RECONCILE_BLOCKED:missing:${activationChain.missingDependencies.join(",")}`);
+  }
+
+  if (activationChain.cycles.length > 0) {
+    throw new Error(`PLUGIN_RECONCILE_BLOCKED:cycle:${activationChain.cycles[0]?.join("->") ?? "unknown"}`);
+  }
+
+  let latestRecord: Awaited<ReturnType<typeof transitionPluginLifecycleWithTx>> | null = null;
+
+  latestRecord = await db.transaction(async (tx) => {
+    let latest: Awaited<ReturnType<typeof transitionPluginLifecycleWithTx>> | null = null;
+    for (const pluginId of activationChain.orderedPluginIds) {
+      latest = await transitionPluginLifecycleWithTx({
+        actorId: command.actor.actorId,
+        schoolId: command.scope.schoolId,
+        pluginId,
+        targetState,
+        reason: pluginId === targetPluginId ? command.payload.reason : `dependency:${targetPluginId}`,
+        actorScope: command.actor.actorScope,
+        tx,
+        commandContext: createCommandContext(input),
+      });
+    }
+    return latest;
+  });
+
+  if (!latestRecord) {
+    throw new Error("PLUGIN_NOT_FOUND");
+  }
+
+  return {
+    resultSummary: {
+      commandType: "plugin.reconcile",
+      pluginId: latestRecord.id,
+      lifecycleState: latestRecord.lifecycleState,
+      targetState,
+    },
+    invalidation: buildPluginTags(latestRecord.id),
   };
 }
 
@@ -435,6 +517,10 @@ export const pluginCommandHandlers = {
   "plugin.disable": {
     authorize: ({ command }) => authorizePluginGovernanceCommand(command),
     execute: (input) => executeLifecycleTransition(input as ExecutionInput<DisableCommand>, "disabled", "disabled", "plugin.disable"),
+  },
+  "plugin.reconcile": {
+    authorize: ({ command }) => authorizePluginGovernanceCommand(command),
+    execute: (input) => executeReconcile(input as ExecutionInput<ReconcileCommand>),
   },
   "plugin.retry": {
     authorize: ({ command }) => authorizePluginGovernanceCommand(command),

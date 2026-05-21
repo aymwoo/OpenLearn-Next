@@ -6,6 +6,7 @@ export const PlatformPluginGovernanceCommandTypes = [
   "plugin.install",
   "plugin.enable",
   "plugin.disable",
+  "plugin.reconcile",
   "plugin.retry",
   "plugin.suspend",
   "plugin.resume",
@@ -60,6 +61,15 @@ const PluginRetryPayloadSchema = z.object({
   reason: z.string().min(1),
 });
 
+const PluginReconcileTargetStateSchema = z.enum(["enabled", "mounted", "ready"]);
+
+const PluginReconcilePayloadSchema = z.object({
+  schoolId: z.string().min(1),
+  pluginId: z.string().min(1),
+  reason: z.string().min(1),
+  targetState: PluginReconcileTargetStateSchema.optional(),
+});
+
 const PluginSuspendPayloadSchema = z.object({
   schoolId: z.string().min(1),
   pluginId: z.string().min(1),
@@ -98,6 +108,7 @@ export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,
   "plugin.enable": PluginEnablePayloadSchema,
   "plugin.disable": PluginDisablePayloadSchema,
+  "plugin.reconcile": PluginReconcilePayloadSchema,
   "plugin.retry": PluginRetryPayloadSchema,
   "plugin.suspend": PluginSuspendPayloadSchema,
   "plugin.resume": PluginResumePayloadSchema,
@@ -131,6 +142,15 @@ export const PlatformCommandSchema = z.discriminatedUnion("type", [
     actor: PlatformCommandActorSchema,
     scope: PlatformCommandScopeSchema,
     payload: PluginDisablePayloadSchema,
+    correlation: PlatformCommandCorrelationSchema,
+    dedupeKey: z.string().min(1).optional(),
+  }),
+  z.object({
+    id: z.string().min(1),
+    type: z.literal("plugin.reconcile"),
+    actor: PlatformCommandActorSchema,
+    scope: PlatformCommandScopeSchema,
+    payload: PluginReconcilePayloadSchema,
     correlation: PlatformCommandCorrelationSchema,
     dedupeKey: z.string().min(1).optional(),
   }),
