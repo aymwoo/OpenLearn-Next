@@ -12,6 +12,7 @@ export const PlatformLegacySeamPostureSchema = z.enum([
   "plugin_domain_dal",
   "static_implementation_catalog",
   "runtime_transport_only",
+  "runtime_durable_anchor_only",
 ]);
 
 export const PLATFORM_CORE_AUTHORITY_NOTES = [
