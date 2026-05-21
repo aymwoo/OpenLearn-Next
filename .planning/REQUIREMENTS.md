@@ -23,11 +23,11 @@
 
 ### Dynamic Action Registry
 
-- [ ] **ACTN-01**: 平台维护者可以为 built-in 与 plugin action 统一注册 typed descriptor，包括 owner、schema、capability、side-effect metadata。
-- [ ] **ACTN-02**: 系统会拒绝冲突或重复 action key 注册，而不是静默覆盖。
+- [x] **ACTN-01**: 平台维护者可以为 built-in 与 plugin action 统一注册 typed descriptor，包括 owner、schema、capability、side-effect metadata。
+- [x] **ACTN-02**: 系统会拒绝冲突或重复 action key 注册，而不是静默覆盖。
 - [ ] **ACTN-03**: 系统只在 plugin install / enabled / lifecycle 条件满足时暴露 action。
-- [ ] **ACTN-04**: 平台调用方可以用 machine-readable 方式列出当前可用 action catalog。
-- [ ] **ACTN-05**: Action registry 只解析主仓库受控实现，不执行远程脚本或插件自带代码。
+- [x] **ACTN-04**: 平台调用方可以用 machine-readable 方式列出当前可用 action catalog。
+- [x] **ACTN-05**: Action registry 只解析主仓库受控实现，不执行远程脚本或插件自带代码。
 
 ### Formal Plugin Lifecycle
 
@@ -100,11 +100,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CMD-03 | Phase 51 | Pending |
 | CMD-04 | Phase 51 | Pending |
 | CMD-05 | Phase 51 | Pending |
-| ACTN-01 | Phase 52 | Pending |
-| ACTN-02 | Phase 52 | Pending |
+| ACTN-01 | Phase 52 | Complete |
+| ACTN-02 | Phase 52 | Complete |
 | ACTN-03 | Phase 52 | Pending |
-| ACTN-04 | Phase 52 | Pending |
-| ACTN-05 | Phase 52 | Pending |
+| ACTN-04 | Phase 52 | Complete |
+| ACTN-05 | Phase 52 | Complete |
 | LIFE-01 | Phase 52 | Pending |
 | LIFE-02 | Phase 52 | Pending |
 | LIFE-03 | Phase 52 | Pending |

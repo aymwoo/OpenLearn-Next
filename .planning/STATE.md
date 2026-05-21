@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Teaching Orchestration & Classroom Intelligence
 status: executing
-stopped_at: Phase 52 UI-SPEC approved
-last_updated: "2026-05-21T13:37:48.974Z"
-last_activity: 2026-05-21 -- Phase 52 planning complete
+stopped_at: Completed 52-action-registry-plugin-lifecycle-governance-01-PLAN.md
+last_updated: "2026-05-21T14:26:55.014Z"
+last_activity: 2026-05-21
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 9
-  completed_plans: 6
-  percent: 67
+  completed_plans: 7
+  percent: 78
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-21)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 51 — command-bus-foundation
+**Current focus:** Phase 52 — action-registry-plugin-lifecycle-governance
 
 ## Current Position
 
 Milestone: v3.0 -- AI Native Educational OS Upgrade
-Phase: 51 (command-bus-foundation) — EXECUTING
-Plan: 1 of 3
+Phase: 52 (action-registry-plugin-lifecycle-governance) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-05-21 -- Phase 52 planning complete
-Progress: [██░░░░░░░░] 20%
+Last activity: 2026-05-21
+Progress: [████████░░] 78%
 Next queued phase: 51 -- Command Bus Foundation
 
 ## Performance Metrics
@@ -52,6 +52,8 @@ Next queued phase: 51 -- Command Bus Foundation
 - Last 5 plans: 50-01, 50-02, 50-03
 - Trend: Positive
 
+| Phase 52 P01 | 18 min | 2 tasks | 4 files |
+
 ## Accumulated Context
 
 ### Decisions
@@ -63,6 +65,8 @@ Recent decisions affecting current work:
 - [Milestone v3.0]: phase numbering continues at 50; v2.4 phases 44-49 remain frozen historical context only.
 - [Milestone v3.0]: Command Bus is the first new authoritative mutation boundary; old seams may only survive as adapters.
 - [Milestone v3.0]: AI work in this milestone stops at machine-readable contracts and delegated metadata, not full Agent/Skill Runtime.
+- [Phase 52]: Action catalog keeps executable rows separate from blocked diagnostic rows so default consumers only see machine-readable runnable metadata.
+- [Phase 52]: Static action descriptors are projected from code-owned registry inputs and reject duplicate action keys instead of silently overriding them.
 
 ### Pending Todos
 
@@ -86,6 +90,6 @@ None currently.
 
 ## Session Continuity
 
-Last session: 2026-05-21T13:22:52.205Z
-Stopped at: Phase 52 UI-SPEC approved
-Resume file: .planning/phases/52-action-registry-plugin-lifecycle-governance/52-UI-SPEC.md
+Last session: 2026-05-21T14:26:55.010Z
+Stopped at: Completed 52-action-registry-plugin-lifecycle-governance-01-PLAN.md
+Resume file: None

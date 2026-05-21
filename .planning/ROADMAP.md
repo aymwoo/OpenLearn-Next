@@ -77,7 +77,7 @@ Plans:
 
 Plans:
 - **Wave 1** *(parallel)*
-  - [ ] 52-01-PLAN.md — Define typed action descriptor contracts and build the static descriptor source with duplicate-key rejection.
+  - [x] 52-01-PLAN.md — Define typed action descriptor contracts and build the static descriptor source with duplicate-key rejection.
   - [ ] 52-02-PLAN.md — Add external lifecycle governance projection, dependency ordering, failure attribution, and retain/cleanup semantics.
 - **Wave 2** *(blocked on Wave 1 completion)*
   - [ ] 52-03-PLAN.md — Wire executable catalog and governance diagnostics into host/server/UI surfaces, then add `verify:phase52`.
@@ -118,7 +118,7 @@ Cross-cutting constraints:
 |-------|----------------|--------|-----------|
 | 50. Boundary Freeze & Platform Vocabulary | 3/3 | Completed | 2026-05-21 |
 | 51. Command Bus Foundation | 3/3 | Complete   | 2026-05-21 |
-| 52. Action Registry & Plugin Lifecycle Governance | 0/TBD | Not started | - |
+| 52. Action Registry & Plugin Lifecycle Governance | 1/3 | In Progress|  |
 | 53. Platform Event Bus & Execution Observability | 0/TBD | Not started | - |
 | 54. AI-Native Contract Exposure | 0/TBD | Not started | - |
 
