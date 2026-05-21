@@ -21,8 +21,12 @@ import {
   PluginManifestSchema,
   type BuiltInTeachingStepDefinition,
 } from "@/lib/dto/resource-ai";
+import {
+  getCanonicalRuntimeProofSnapshotStep,
+  getCanonicalRuntimeProofStepDefinition,
+} from "@/features/runtime-platform/classroom/runtime-proof";
+import { producePluginInstallCommand } from "@/features/platform-core/commands/producers/plugin-governance";
 import { registerThemeTokens } from "@/server/themes/registry";
-import { installOrReconcilePlugin } from "@/lib/dal/plugins";
 
 import { seedTestAccounts } from "./seed-test-accounts";
 
@@ -32,8 +36,6 @@ const DEV_COURSE_SUBJECT = "初中信息科技";
 const DEV_COURSE_GRADE = "七年级";
 const DEV_LESSON_TITLE = "开发测试课时";
 const DEV_LESSON_OBJECTIVE = "帮助开发环境快速验证教师备课、学生学习与课堂联调链路。";
-
-const CANONICAL_RUNTIME_PROOF_STEP_RANK = "b5";
 
 function derivePluginDbNamespace(pluginKey: string) {
   const normalized = pluginKey
@@ -59,34 +61,6 @@ function getHtmlCoursewareBuiltInDefinition(): BuiltInTeachingStepDefinition {
   }
 
   return definition;
-}
-
-export function getCanonicalRuntimeProofStepDefinition() {
-  const definition = getHtmlCoursewareBuiltInDefinition();
-
-  return {
-    type: definition.stepType,
-    title: "互动证明：HTML 课件实验",
-    rank: CANONICAL_RUNTIME_PROOF_STEP_RANK,
-    payload: {
-      ...definition.initialPayload,
-      prompt: "在 HTML 互动课件中完成观察、填写结论，并提交结构化证明结果。",
-      successCriteria: "成功完成互动输入并提交观察摘要，教师可在课堂面板立即看到完成反馈。",
-    },
-  };
-}
-
-export function getCanonicalRuntimeProofSnapshotStep(lessonId: string) {
-  const definition = getCanonicalRuntimeProofStepDefinition();
-
-  return {
-    id: `canonical-runtime-proof-${lessonId}`,
-    lessonId,
-    type: definition.type,
-    title: definition.title,
-    rank: definition.rank,
-    payload: definition.payload,
-  };
 }
 
 const DEV_STEP_DEFINITIONS = [
@@ -506,12 +480,18 @@ async function publishLessonVersion(input: {
 async function upsertBuiltInPlugins(schoolId: string, actorId: string) {
   for (const definition of BUILT_IN_PLUGIN_DEFINITIONS) {
     const manifest = PluginManifestSchema.parse(definition.manifest);
-    await installOrReconcilePlugin({
-      actorId,
-      schoolId,
-      name: definition.name,
-      manifestJson: manifest,
-      installSource: "bootstrap",
+    await producePluginInstallCommand({
+      actor: { actorId, actorScope: "system" },
+      scope: { schoolId, pluginId: manifest.id },
+      payload: {
+        schoolId,
+        pluginId: manifest.id,
+        name: definition.name,
+        manifestJson: manifest,
+        installSource: "bootstrap",
+      },
+      source: "bootstrap-script",
+      correlation: { producer: "bootstrap-dev-db.builtins" },
     });
   }
 }
@@ -522,12 +502,18 @@ async function upsertDevThemePlugin(
   definition: (typeof DEV_THEME_PLUGIN_DEFINITIONS)[number],
 ) {
   const manifest = PluginManifestSchema.parse(definition.manifest);
-  await installOrReconcilePlugin({
-    actorId,
-    schoolId,
-    name: definition.name,
-    manifestJson: manifest,
-    installSource: "seed",
+  await producePluginInstallCommand({
+    actor: { actorId, actorScope: "system" },
+    scope: { schoolId, pluginId: manifest.id },
+    payload: {
+      schoolId,
+      pluginId: manifest.id,
+      name: definition.name,
+      manifestJson: manifest,
+      installSource: "seed",
+    },
+    source: "bootstrap-script",
+    correlation: { producer: "bootstrap-dev-db.theme" },
   });
 
   await registerThemeTokens(
