@@ -84,22 +84,36 @@ describe("phase 52 action contracts", () => {
     const { listStaticActionCatalog } = await import("./static-catalog");
 
     const catalog = listStaticActionCatalog();
+    const externalAction = catalog.find((item) => item.actionKey === "addStepSuggestion");
     const suggestionAction = catalog.find((item) => item.actionKey === "suggestBuiltInTeachingStep");
     const templateAction = catalog.find((item) => item.actionKey === "insertBuiltInTeachingStepTemplate");
+    const defaultPluginAction = catalog.find((item) => item.actionKey === "createNotificationStub");
     const scheduleAction = catalog.find((item) => item.actionKey === "createScheduleReminderDraft");
 
     expect(catalog.length).toBeGreaterThanOrEqual(8);
+    expect(externalAction).toMatchObject({
+      ownerType: "external-plugin",
+      requiredPermission: "lesson:write:suggestion",
+      implementationSource: "main-repo-static-implementation",
+      sideEffectClass: "proposal",
+      catalogView: "executable",
+    });
     expect(suggestionAction).toMatchObject({
-      ownerType: "default-plugin",
+      ownerType: "built-in",
       requiredPermission: "lesson:write:suggestion",
       implementationSource: "main-repo-static-implementation",
       sideEffectClass: "proposal",
       catalogView: "executable",
     });
     expect(templateAction).toMatchObject({
-      ownerType: "default-plugin",
+      ownerType: "built-in",
       sideEffectClass: "teaching-step-template",
       implementationSource: "main-repo-static-implementation",
+    });
+    expect(defaultPluginAction).toMatchObject({
+      ownerType: "default-plugin",
+      requiredPermission: "notification:create:stub",
+      sideEffectClass: "notification-stub",
     });
     expect(scheduleAction).toMatchObject({
       requiredPermission: "schedule:write:proposal",
