@@ -51,6 +51,7 @@ const PluginBySchoolSchema = z.object({
 
 const UninstallPluginSchema = PluginBySchoolSchema.extend({
   retentionMode: z.enum(["retain", "cleanup"]).default("retain"),
+  confirmationToken: z.string().min(1).optional(),
 });
 
 const PluginListSchema = z.object({
@@ -362,6 +363,7 @@ export async function deletePluginAction(data: z.infer<typeof UninstallPluginSch
           schoolId: parsed.data.schoolId,
           pluginId: parsed.data.pluginId,
           retentionMode: parsed.data.retentionMode,
+          confirmationToken: parsed.data.confirmationToken,
         },
       source: "server-action",
       correlation: { producer: "plugin-actions.uninstall" },

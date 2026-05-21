@@ -195,7 +195,9 @@ export function projectPluginGovernance(
     }
 
     const cleanupRequested = plugin.uninstallRequest?.mode === "cleanup";
-    const cleanupConfirmed = Boolean(plugin.uninstallRequest?.confirmationToken);
+    const cleanupConfirmed =
+      Boolean(plugin.uninstallRequest?.confirmationToken) &&
+      plugin.uninstallRequest?.confirmationToken === plugin.uninstall.cleanupConfirmationToken;
     const uninstallReasonCode = plugin.uninstall.blocked
       ? null
       : cleanupRequested && !cleanupConfirmed

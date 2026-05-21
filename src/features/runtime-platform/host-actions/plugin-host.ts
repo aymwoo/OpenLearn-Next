@@ -119,6 +119,10 @@ async function dispatchGovernanceFromHost(input: {
           schoolId: input.schoolId,
           pluginId: input.pluginId,
           retentionMode: input.payload.retentionMode === "cleanup" ? "cleanup" : "retain",
+          confirmationToken:
+            typeof input.payload.confirmationToken === "string"
+              ? input.payload.confirmationToken
+              : undefined,
         },
       });
     case "plugin.kill_switch.set":

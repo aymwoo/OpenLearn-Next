@@ -191,10 +191,17 @@ async function executeUninstallPreflight(input: ExecutionInput<UninstallPrefligh
 
 async function executeUninstall(input: ExecutionInput<UninstallCommand>): Promise<ExecutionResult> {
   const { command } = input;
+
+  if (command.payload.retentionMode === "cleanup" && !command.payload.confirmationToken) {
+    throw new Error("PLUGIN_CLEANUP_CONFIRMATION_REQUIRED");
+  }
+
   const record = await db.transaction(async (tx) => uninstallPluginWithTx({
     actorId: command.actor.actorId,
     schoolId: command.scope.schoolId,
     pluginId: command.scope.pluginId,
+    retentionMode: command.payload.retentionMode,
+    confirmationToken: command.payload.confirmationToken,
     actorScope: command.actor.actorScope,
     tx,
     commandContext: createCommandContext(input),
@@ -316,6 +323,10 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         actorId: command.actor.actorId,
         schoolId: command.scope.schoolId,
         pluginId,
+        retentionMode: (retriedPayload.retentionMode as "retain" | "cleanup" | undefined) ?? "retain",
+        confirmationToken: typeof retriedPayload.confirmationToken === "string"
+          ? retriedPayload.confirmationToken
+          : undefined,
         actorScope: command.actor.actorScope,
         tx,
         commandContext,

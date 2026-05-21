@@ -121,6 +121,8 @@ type PreflightUninstallPluginWithTxInput = PluginBySchoolInput & {
 
 type UninstallPluginWithTxInput = PluginBySchoolInput & {
   tx: PluginDalTx;
+  retentionMode?: "retain" | "cleanup";
+  confirmationToken?: string;
   commandContext?: PluginCommandContext;
   actorScope?: RuntimeActorScope;
 };
@@ -139,6 +141,7 @@ export type PreflightUninstallPluginResult = {
   impactedLessonStepIds: string[];
   impactedResourceIds: string[];
   impactedBusinessKeys: string[];
+  cleanupConfirmationToken: string;
 };
 
 export type PluginGovernanceSnapshotRecord = PluginGovernanceProjectionInput;
@@ -384,6 +387,17 @@ function getActivationStatus(plugin: Pick<typeof pluginRegistrations.$inferSelec
   return "idle" as const;
 }
 
+function buildCleanupConfirmationToken(input: {
+  pluginId: string;
+  lessonExtCount: number;
+  stepExtCount: number;
+  resourceExtCount: number;
+  ownedBusinessCount: number;
+  totalCount: number;
+}) {
+  return `cleanup:${input.pluginId}:${input.lessonExtCount}:${input.stepExtCount}:${input.resourceExtCount}:${input.ownedBusinessCount}:${input.totalCount}`;
+}
+
 export async function listPluginGovernanceSnapshotRecords(
   input: PluginManagerScopeInput,
 ): Promise<PluginGovernanceSnapshotRecord[]> {
@@ -436,6 +450,14 @@ export async function listPluginGovernanceSnapshotRecords(
       impactedLessonStepIds: [],
       impactedResourceIds: [],
       impactedBusinessKeys: [],
+      cleanupConfirmationToken: buildCleanupConfirmationToken({
+        pluginId: row.id,
+        lessonExtCount: 0,
+        stepExtCount: 0,
+        resourceExtCount: 0,
+        ownedBusinessCount: 0,
+        totalCount: 0,
+      }),
     },
   }));
 }
@@ -876,6 +898,14 @@ export async function preflightUninstallPluginWithTx(input: PreflightUninstallPl
       impactedLessonStepIds: [],
       impactedResourceIds: [],
       impactedBusinessKeys: [],
+      cleanupConfirmationToken: buildCleanupConfirmationToken({
+        pluginId: plugin.id,
+        lessonExtCount: 0,
+        stepExtCount: 0,
+        resourceExtCount: 0,
+        ownedBusinessCount: 0,
+        totalCount: 0,
+      }),
     };
   }
 
@@ -903,6 +933,8 @@ export async function preflightUninstallPluginWithTx(input: PreflightUninstallPl
   const resourceExtCount = resourceExtensions.length;
   const ownedBusinessCount = ownedBusiness.length;
 
+  const totalCount = lessonExtCount + stepExtCount + resourceExtCount + ownedBusinessCount;
+
   return {
     pluginId: plugin.id,
     schoolId: plugin.schoolId,
@@ -912,11 +944,19 @@ export async function preflightUninstallPluginWithTx(input: PreflightUninstallPl
     stepExtCount,
     resourceExtCount,
     ownedBusinessCount,
-    totalCount: lessonExtCount + stepExtCount + resourceExtCount + ownedBusinessCount,
+    totalCount,
     impactedLessonIds: lessonExtensions.map((row) => row.lessonId),
     impactedLessonStepIds: stepExtensions.map((row) => row.lessonStepId),
     impactedResourceIds: resourceExtensions.map((row) => row.resourceId),
     impactedBusinessKeys: ownedBusiness.map((row) => row.key),
+    cleanupConfirmationToken: buildCleanupConfirmationToken({
+      pluginId: plugin.id,
+      lessonExtCount,
+      stepExtCount,
+      resourceExtCount,
+      ownedBusinessCount,
+      totalCount,
+    }),
   };
 }
 
@@ -943,6 +983,20 @@ export async function uninstallPluginWithTx(input: UninstallPluginWithTxInput) {
     throw new Error(blockedReason);
   }
 
+  const retentionMode = input.retentionMode ?? "retain";
+  const preflight = await preflightUninstallPluginWithTx({
+    actorId: input.actorId,
+    schoolId: input.schoolId,
+    pluginId: input.pluginId,
+    tx: input.tx,
+    commandContext: input.commandContext,
+    actorScope: input.actorScope,
+  });
+
+  if (!preflight) {
+    return null;
+  }
+
   const manifest = PluginManifestSchema.parse(plugin.manifestJson);
   const correlationId = input.commandContext?.correlationId ?? `${plugin.id}:uninstall:${Date.now()}`;
   await createGovernanceAudit({
@@ -965,16 +1019,52 @@ export async function uninstallPluginWithTx(input: UninstallPluginWithTxInput) {
       sourceType: plugin.sourceType,
       dbNamespace: plugin.dbNamespace,
       lifecycleState: plugin.lifecycleState,
+      retentionMode,
+      confirmationToken: input.confirmationToken ?? null,
       attemptNumber: input.commandContext?.attemptNumber ?? null,
     },
   });
 
-  const [deleted] = await input.tx
+  if (retentionMode === "cleanup") {
+    if (input.confirmationToken !== preflight.cleanupConfirmationToken) {
+      throw new Error("PLUGIN_CLEANUP_CONFIRMATION_REQUIRED");
+    }
+
+    const [deleted] = await input.tx
       .delete(pluginRegistrations)
       .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
       .returning();
 
-  return deleted ?? null;
+    return deleted ?? null;
+  }
+
+  const [updated] = await input.tx
+    .update(pluginRegistrations)
+    .set({
+      enabled: false,
+      killSwitchEnabled: false,
+      lifecycleState: "disabled",
+      uninstalledAt: new Date(),
+      uninstallRetentionMode: "retain",
+      updatedAt: new Date(),
+    })
+    .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
+    .returning();
+
+  if (!updated) {
+    throw new Error("PLUGIN_NOT_FOUND");
+  }
+
+  await appendPluginLifecycleTransition({
+    tx: input.tx,
+    pluginId: plugin.id,
+    actorId: input.actorId,
+    fromState: plugin.lifecycleState,
+    toState: "disabled",
+    reason: "uninstalled:retain",
+  });
+
+  return updated;
 }
 
 export async function uninstallPlugin(input: PluginBySchoolInput) {

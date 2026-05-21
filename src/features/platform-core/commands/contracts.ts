@@ -84,6 +84,7 @@ const PluginUninstallPayloadSchema = z.object({
   schoolId: z.string().min(1),
   pluginId: z.string().min(1),
   retentionMode: z.enum(["retain", "cleanup"]),
+  confirmationToken: z.string().min(1).optional(),
 });
 
 const PluginKillSwitchSetPayloadSchema = z.object({

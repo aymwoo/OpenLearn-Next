@@ -1157,6 +1157,10 @@ export const pluginRegistrations = sqliteTable("pluginRegistration", {
   lifecycleState: text("lifecycleState", {
     enum: ["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"],
   }).notNull().default("installed"),
+  uninstalledAt: integer("uninstalledAt", { mode: "timestamp_ms" }),
+  uninstallRetentionMode: text("uninstallRetentionMode", {
+    enum: ["retain", "cleanup"],
+  }),
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
 }, (table) => [
