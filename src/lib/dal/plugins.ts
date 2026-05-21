@@ -21,6 +21,8 @@ import { PluginActionInput, PluginActionResult, PluginManifest, PluginManifestSc
 import { dispatchPluginAction, PLUGIN_ACTION_PERMISSION_REQUIREMENTS } from "@/server/plugins/registry";
 import { registerThemeTokens } from "@/lib/dal/themes";
 
+import type { PluginGovernanceProjectionInput } from "@/features/platform-core/plugins/governance-projection";
+
 // Phase 50 boundary freeze: plugin domain DAL only; not platform orchestration authority.
 export const PLUGIN_KEY_CONFLICT = "PLUGIN_KEY_CONFLICT";
 export const PLUGIN_DB_NAMESPACE_CONFLICT = "PLUGIN_DB_NAMESPACE_CONFLICT";
@@ -138,6 +140,8 @@ export type PreflightUninstallPluginResult = {
   impactedResourceIds: string[];
   impactedBusinessKeys: string[];
 };
+
+export type PluginGovernanceSnapshotRecord = PluginGovernanceProjectionInput;
 
 export const ACTIVE_PLUGIN_STATES = ["enabled", "mounted", "ready"] as const satisfies readonly PluginLifecycleState[];
 
@@ -357,6 +361,83 @@ function getPluginUninstallBlockReason(plugin: Pick<typeof pluginRegistrations.$
   }
 
   return null;
+}
+
+function getGovernanceDependencies(plugin: Pick<typeof pluginRegistrations.$inferSelect, "manifestJson">) {
+  const manifest = PluginManifestSchema.parse(plugin.manifestJson);
+  return manifest.governance?.dependencies ?? [];
+}
+
+function getActivationStatus(plugin: Pick<typeof pluginRegistrations.$inferSelect, "lifecycleState" | "enabled" | "killSwitchEnabled">) {
+  if (plugin.killSwitchEnabled || plugin.lifecycleState === "suspended") {
+    return "idle" as const;
+  }
+
+  if (plugin.lifecycleState === "failed") {
+    return "failed" as const;
+  }
+
+  if (plugin.enabled && (plugin.lifecycleState === "mounted" || plugin.lifecycleState === "ready")) {
+    return "active" as const;
+  }
+
+  return "idle" as const;
+}
+
+export async function listPluginGovernanceSnapshotRecords(
+  input: PluginManagerScopeInput,
+): Promise<PluginGovernanceSnapshotRecord[]> {
+  await assertTeacherManagerScope(input);
+
+  const rows = await db.query.pluginRegistrations.findMany({
+    where: eq(pluginRegistrations.schoolId, input.schoolId),
+  });
+
+  const uninstallRows = await Promise.all(
+    rows.map(async (row) => ({
+      pluginId: row.id,
+      uninstall: await preflightUninstallPluginWithTx({
+        actorId: input.actorId,
+        schoolId: input.schoolId,
+        pluginId: row.id,
+        tx: db,
+      }),
+    })),
+  );
+
+  const uninstallByPluginId = new Map(
+    uninstallRows
+      .filter((row): row is { pluginId: string; uninstall: PreflightUninstallPluginResult } => Boolean(row.uninstall))
+      .map((row) => [row.pluginId, row.uninstall]),
+  );
+
+  return rows.map((row) => ({
+    pluginId: row.id,
+    pluginKey: row.pluginKey,
+    name: row.name,
+    enabled: row.enabled,
+    killSwitchEnabled: row.killSwitchEnabled,
+    lifecycleState: row.lifecycleState,
+    sourceType: row.sourceType as "default" | "external",
+    dependencies: getGovernanceDependencies(row),
+    activationStatus: getActivationStatus(row),
+    failureDetail: row.lifecycleState === "failed" ? "activation failed" : null,
+    uninstall: uninstallByPluginId.get(row.id) ?? {
+      pluginId: row.id,
+      schoolId: row.schoolId,
+      blocked: false,
+      reason: null,
+      lessonExtCount: 0,
+      stepExtCount: 0,
+      resourceExtCount: 0,
+      ownedBusinessCount: 0,
+      totalCount: 0,
+      impactedLessonIds: [],
+      impactedLessonStepIds: [],
+      impactedResourceIds: [],
+      impactedBusinessKeys: [],
+    },
+  }));
 }
 
 export async function installOrReconcilePluginWithTx(input: InstallOrReconcilePluginWithTxInput) {

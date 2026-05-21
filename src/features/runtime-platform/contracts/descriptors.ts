@@ -72,6 +72,7 @@ export const PluginManifestGovernanceV2Schema = z.object({
   runtime: RuntimeDescriptorSchema.extend({
     entry: RuntimeEntryDescriptorSchema,
   }).optional(),
+  dependencies: z.array(z.string().min(1)).default([]),
   requestedCapabilities: z.array(RuntimeCapabilitySchema).default([]),
   permissions: z.array(PluginPermissionSchema).default([]),
   lifecycle: PluginLifecycleMetadataSchema.default({
