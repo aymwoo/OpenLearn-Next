@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -257,7 +257,7 @@ const PLUGIN_LIFECYCLE_TRANSITION_MATRIX: Record<PluginLifecycleState, readonly 
   enabled: ["mounted", "ready", "suspended", "disabled", "failed"],
   mounted: ["ready", "suspended", "disabled", "failed"],
   ready: ["suspended", "disabled", "failed"],
-  suspended: ["enabled", "disabled", "failed"],
+  suspended: ["enabled", "mounted", "ready", "disabled", "failed"],
   disabled: ["enabled"],
   failed: ["installed", "disabled"],
 };
@@ -516,11 +516,25 @@ export async function setPluginKillSwitch(input: { pluginId: string; actorId: st
 
   await assertTeacherManagerScope({ actorId: input.actorId, schoolId: plugin.schoolId });
 
-  const targetState = input.killSwitchEnabled
-    ? "suspended"
-    : plugin.lifecycleState === "suspended"
-      ? "enabled"
-      : plugin.lifecycleState;
+  let targetState: PluginLifecycleState = plugin.lifecycleState;
+
+  if (input.killSwitchEnabled) {
+    targetState = "suspended";
+  } else if (plugin.lifecycleState === "suspended") {
+    const lastTransition = await db.query.pluginLifecycleTransitions.findFirst({
+      where: and(
+        eq(pluginLifecycleTransitions.pluginId, plugin.id),
+        eq(pluginLifecycleTransitions.toState, "suspended")
+      ),
+      orderBy: [desc(pluginLifecycleTransitions.createdAt)],
+    });
+
+    if (lastTransition && lastTransition.fromState && isRunnablePluginState(lastTransition.fromState as PluginLifecycleState)) {
+      targetState = lastTransition.fromState as PluginLifecycleState;
+    } else {
+      targetState = "enabled";
+    }
+  }
 
   if (targetState !== plugin.lifecycleState) {
     assertPluginLifecycleTransition(plugin.lifecycleState, targetState);
@@ -530,7 +544,7 @@ export async function setPluginKillSwitch(input: { pluginId: string; actorId: st
     .update(pluginRegistrations)
     .set({
       killSwitchEnabled: input.killSwitchEnabled,
-      enabled: targetState === "enabled",
+      enabled: isRunnablePluginState(targetState),
       lifecycleState: targetState,
       updatedAt: new Date(),
     })
@@ -596,6 +610,7 @@ export async function transitionPluginLifecycle(input: TransitionPluginLifecycle
       .set({
         lifecycleState: input.targetState,
         enabled: isRunnablePluginState(input.targetState),
+        killSwitchEnabled: input.targetState === "suspended",
         updatedAt: new Date(),
       })
       .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))

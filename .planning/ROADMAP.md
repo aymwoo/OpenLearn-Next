@@ -20,10 +20,10 @@
 
 ## Phases
 
-- [ ] **Phase 44: Plugin Identity & Namespace Contract** - 显式化插件稳定身份、数据库命名空间与默认插件正式安装入口。
-- [ ] **Phase 45: Extension & Plugin-Owned Schema Patterns** - 落插件扩展核心实体与插件自有业务表两类正式数据模式。
-- [ ] **Phase 46: Migration Governance & Backfill Safety** - 把插件 schema 演进、命名治理与 JSON→结构化迁移纳入统一迁移流程。
-- [ ] **Phase 47: DAL/Authz/Cache/Audit Integration** - 让插件数据继续受 DAL、权限、缓存与审计统一约束。
+- [x] **Phase 44: Plugin Identity & Namespace Contract** - 显式化插件稳定身份、数据库命名空间与默认插件正式安装入口。
+- [x] **Phase 45: Extension & Plugin-Owned Schema Patterns** - 落插件扩展核心实体与插件自有业务表两类正式数据模式。
+- [x] **Phase 46: Migration Governance & Backfill Safety** - 把插件 schema 演进、命名治理与 JSON→结构化迁移纳入统一迁移流程。
+- [x] **Phase 47: DAL/Authz/Cache/Audit Integration** - 让插件数据继续受 DAL、权限、缓存与审计统一约束。
 - [ ] **Phase 48: Lifecycle & Uninstall Semantics** - 建立 install/enable/disable/suspend/uninstall 的一致生命周期与卸载前检查。
 - [ ] **Phase 49: Default Plugin Exemplars** - 用 2-3 个默认插件样板验证正式插件数据模型与最小依赖闭环。
 
@@ -42,8 +42,8 @@
 Plans:
 - [x] 44-01-PLAN.md — 固化 plugin identity / namespace SQL contract、migration 与 schema push 闸门。
 - [x] 44-02-PLAN.md — 建立统一 install/reconcile DAL seam 与 school-scoped conflict 语义。
-- [ ] 44-03-PLAN.md — 让默认插件 bootstrap / built-in registry 改走正式身份 contract。
-- [ ] 44-04-PLAN.md — 暴露正式运维元数据并建立 `verify:phase44` close gate。
+- [x] 44-03-PLAN.md — 让默认插件 bootstrap / built-in registry 改走正式身份 contract。
+- [x] 44-04-PLAN.md — 暴露正式运维元数据并建立 `verify:phase44` close gate。
 
 ### Phase 45: Extension & Plugin-Owned Schema Patterns
 **Goal**: 插件可以用受治理的结构化表扩展 lesson、lesson step、resource，并为自身业务对象持久化数据，而不会污染核心表或把业务真相塞回 JSON。
@@ -53,7 +53,11 @@ Plans:
   1. 插件可以为 lesson 保存并读取结构化扩展数据，而不需要继续把可查询字段塞进零散 JSON。
   2. 插件可以为 lesson step 与 resource 保存结构化扩展数据，且每条扩展记录都带有学校范围、插件归属、核心实体关联与单插件-单实体唯一性约束。
   3. 插件可以保存自身模板、规则、建议稿、批注或配置等独立业务数据，并按学校与安装记录隔离，同时允许受控引用核心实体而不反向破坏核心真相。
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [x] 45-01-PLAN.md — 制定插件扩展及自有数据物理表 Drizzle 规范与 DAL/DTO 抽象设计。
+
 
 ### Phase 46: Migration Governance & Backfill Safety
 **Goal**: 插件 schema 的命名、迁移与 JSON→结构化 backfill 都进入主仓库统一治理，而插件运行时不会执行未审查 DDL。
@@ -63,7 +67,10 @@ Plans:
   1. 平台维护者只能通过主仓库的 Drizzle migration 流程演进插件 schema，而插件 install/enable/disable 流程不会触发运行时建表或任意 SQL migration。
   2. 新增的插件表、索引和唯一约束都会遵循统一、稳定、可审计的 namespace/prefix 命名规则。
   3. 对 JSON → 结构化插件数据迁移，维护者可以执行并审查清晰的 backfill、验证与 cutover 流程，而不会留下长期 split-brain 真相。
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [x] 46-01-PLAN.md — 制定插件命名治理规范、运行时 DDL 预防和数据安全割接 DAL 服务层。
 
 ### Phase 47: DAL/Authz/Cache/Audit Integration
 **Goal**: 插件数据在读写、授权、缓存和审计上继续服从主系统纪律，而不是形成新的数据库特权通道。
@@ -74,7 +81,10 @@ Plans:
   2. 当插件声明权限、当前 actor 能力或学校范围任一不满足时，插件数据写入会被拒绝。
   3. 插件数据 mutation 会同时刷新插件自身相关缓存与受影响核心实体缓存，避免页面继续展示旧 DTO。
   4. 插件安装、生命周期切换与关键插件数据写入都会进入统一 governance/audit 轨迹。
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [x] 47-01-PLAN.md — 制定插件数据读写双层安全鉴权、缓存级联失效以及物理事务审计日志设计。
 
 ### Phase 48: Lifecycle & Uninstall Semantics
 **Goal**: 学校操作员可以安全区分插件生命周期动作，并在不误删数据或破坏核心真相的前提下停用、挂起或卸载插件。
@@ -104,11 +114,11 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 44. Plugin Identity & Namespace Contract | 2/4 | In Progress|  |
-| 45. Extension & Plugin-Owned Schema Patterns | 0/TBD | Not started | - |
-| 46. Migration Governance & Backfill Safety | 0/TBD | Not started | - |
-| 47. DAL/Authz/Cache/Audit Integration | 0/TBD | Not started | - |
-| 48. Lifecycle & Uninstall Semantics | 0/TBD | Not started | - |
+| 44. Plugin Identity & Namespace Contract | 4/4 | Completed | 2026-05-20 |
+| 45. Extension & Plugin-Owned Schema Patterns | 1/1 | Completed | 2026-05-20 |
+| 46. Migration Governance & Backfill Safety | 1/1 | Completed | 2026-05-20 |
+| 47. DAL/Authz/Cache/Audit Integration | 1/1 | Completed | 2026-05-20 |
+| 48. Lifecycle & Uninstall Semantics | 3/3 | Complete   | 2026-05-20 |
 | 49. Default Plugin Exemplars | 0/TBD | Not started | - |
 
 ## Archived Milestones

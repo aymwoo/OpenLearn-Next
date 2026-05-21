@@ -28,6 +28,12 @@ const pluginActionMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/actions/plugin-actions", () => pluginActionMocks);
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
 
 describe("plugin lifecycle operator surface", () => {
   beforeEach(() => {

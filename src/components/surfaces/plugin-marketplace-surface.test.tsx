@@ -61,4 +61,16 @@ describe("plugin marketplace surface", () => {
       });
     });
   });
+
+  it("shows plugin load errors instead of masking them as an empty marketplace", async () => {
+    pluginActionMocks.listPluginsAction.mockResolvedValueOnce({
+      success: false,
+      error: "PLUGIN_LIST_FAILED",
+    } as unknown as Awaited<ReturnType<typeof pluginActionMocks.listPluginsAction>>);
+
+    render(await PluginMarketplaceSurface());
+
+    expect(screen.getByText("插件列表加载失败：PLUGIN_LIST_FAILED")).toBeTruthy();
+    expect(screen.queryByText("当前学校还没有可见的系统内置教学环节。完成 seed 或启用后，这里会显示系统内置目录与默认开启状态。")).toBeNull();
+  });
 });

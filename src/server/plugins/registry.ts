@@ -32,11 +32,37 @@ export const PLUGIN_ACTION_PERMISSION_REQUIREMENTS = {
   annotateScheduleConflict: "schedule:write:proposal",
 } as const;
 
+const BUILT_IN_TEACHING_STEP_BY_KEY = new Map(
+  BUILT_IN_TEACHING_STEP_DEFINITIONS
+    .filter((definition) => definition.pluginKey !== null)
+    .map((definition) => [definition.pluginKey, definition] as const),
+);
+
+const BUILT_IN_TEACHING_STEP_BY_BUILTIN_KEY = new Map(
+  BUILT_IN_TEACHING_STEP_DEFINITIONS.map((definition) => [definition.builtInKey, definition] as const),
+);
+
 const BUILT_IN_TEACHING_STEP_BY_NAME = new Map(
   BUILT_IN_TEACHING_STEP_DEFINITIONS.map((definition) => [definition.pluginName, definition] as const),
 );
 
 function resolveBuiltInTeachingStep(input: PluginActionInput) {
+  const pluginKey = typeof input.payload.pluginKey === "string" ? input.payload.pluginKey : null;
+  if (pluginKey) {
+    const resolved = BUILT_IN_TEACHING_STEP_BY_KEY.get(pluginKey as any);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  const builtInKey = typeof input.payload.builtInKey === "string" ? input.payload.builtInKey : null;
+  if (builtInKey) {
+    const resolved = BUILT_IN_TEACHING_STEP_BY_BUILTIN_KEY.get(builtInKey as any);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
   const pluginName = typeof input.payload.pluginName === "string" ? input.payload.pluginName : null;
   if (!pluginName) {
     return null;

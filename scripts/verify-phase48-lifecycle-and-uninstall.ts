@@ -59,15 +59,20 @@ function hasFile(filePath: string): boolean {
 }
 
 function verifyPackageScript(packageSource: string, phase: 44 | 45 | 46 | 47 | 48): boolean {
-  const scriptByPhase = {
-    44: '"verify:phase44": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase44-plugin-identity.ts"',
-    45: '"verify:phase45": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase45-plugin-schema.ts"',
-    46: '"verify:phase46": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase46-migration-governance.ts"',
-    47: '"verify:phase47": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase47-dal-integration.ts"',
-    48: '"verify:phase48": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase48-lifecycle-and-uninstall.ts"',
-  } as const;
-
-  return packageSource.includes(scriptByPhase[phase]);
+  try {
+    const pkg = JSON.parse(packageSource);
+    const scripts = pkg.scripts || {};
+    const key = `verify:phase${phase}`;
+    const script = scripts[key];
+    if (typeof script !== "string") {
+      return false;
+    }
+    const expectedFile = `scripts/verify-phase${phase}`;
+    return script.includes(expectedFile);
+  } catch (error) {
+    console.error("Failed to parse package.json:", error);
+    return false;
+  }
 }
 
 function errorText(error: unknown): string {

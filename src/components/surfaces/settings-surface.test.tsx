@@ -167,6 +167,7 @@ describe("settings and plugin entry surfaces", () => {
   it("wires settings labs plugin management to operator lifecycle surface", () => {
     expect(settingsSurfaceSource).toContain("PluginLifecycleOperatorSurface");
     expect(settingsSurfaceSource).toContain("<PluginLifecycleOperatorSurface schoolId={schoolId} plugins={plugins} />");
+    expect(settingsSurfaceSource).toContain("插件列表加载失败：{pluginLoadError}");
     expect(settingsSurfaceSource).toContain('href="/settings/labs/async-tasks"');
     expect(settingsSurfaceSource).toContain('href="/settings/labs/runtime-inspector"');
     expect(settingsSurfaceSource).toContain('href="/settings/plugins"');
@@ -216,5 +217,17 @@ describe("settings and plugin entry surfaces", () => {
     expect(pluginActionMocks.setPluginKillSwitchAction).not.toHaveBeenCalled();
     expect(pluginActionMocks.preflightUninstallPluginAction).not.toHaveBeenCalled();
     expect(pluginActionMocks.uninstallPluginAction).not.toHaveBeenCalled();
+  });
+
+  it("surfaces marketplace plugin load failures instead of faking an empty state", async () => {
+    pluginActionMocks.listPluginsAction.mockResolvedValueOnce({
+      success: false,
+      error: "PLUGIN_LIST_FAILED",
+    } as unknown as Awaited<ReturnType<typeof pluginActionMocks.listPluginsAction>>);
+
+    render(await PluginMarketplaceSurface());
+
+    expect(screen.getByText("插件列表加载失败：PLUGIN_LIST_FAILED")).toBeTruthy();
+    expect(screen.queryByText("当前学校还没有可见的系统内置教学环节。完成 seed 或启用后，这里会显示系统内置目录与默认开启状态。")).toBeNull();
   });
 });

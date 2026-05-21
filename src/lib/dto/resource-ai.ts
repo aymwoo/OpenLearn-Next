@@ -392,6 +392,7 @@ export type BuiltInTeachingStepKey = z.infer<typeof BuiltInTeachingStepKeySchema
 
 export const BuiltInTeachingStepTemplatePayloadSchema = z.object({
   builtInKey: BuiltInTeachingStepKeySchema,
+  pluginKey: z.string().nullable().optional(),
   pluginName: z.string(),
   title: z.string(),
   summary: z.string(),
@@ -403,6 +404,7 @@ export type BuiltInTeachingStepTemplatePayload = z.infer<typeof BuiltInTeachingS
 
 export const BuiltInTeachingStepSuggestionPayloadSchema = z.object({
   builtInKey: BuiltInTeachingStepKeySchema,
+  pluginKey: z.string().nullable().optional(),
   pluginName: z.string(),
   title: z.string(),
   summary: z.string(),
@@ -413,6 +415,7 @@ export type BuiltInTeachingStepSuggestionPayload = z.infer<typeof BuiltInTeachin
 export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
   {
     builtInKey: "directInstruction",
+    pluginKey: "builtin-teaching-step-direct-instruction",
     pluginName: "教师讲授",
     title: "教师讲授",
     summary: "面向全班进行重点讲授、示范演示或板书整理。",
@@ -428,6 +431,7 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
   },
   {
     builtInKey: "markdownDeck",
+    pluginKey: "builtin-teaching-step-markdown-deck",
     pluginName: "Markdown 课件",
     title: "Markdown 课件",
     summary: "插入可渲染 Mermaid 与 RevealJS 的 markdown 文档课件。",
@@ -443,6 +447,7 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
   },
   {
     builtInKey: "htmlCourseware",
+    pluginKey: null,
     pluginName: "HTML 互动课件",
     title: "HTML 互动课件",
     summary: "插入本地 HTML runtime pilot，在共享 Runtime Host 中完成互动、保存与提交。",
@@ -487,6 +492,7 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
   },
   {
     builtInKey: "survey",
+    pluginKey: "builtin-teaching-step-survey",
     pluginName: "问卷调查",
     title: "问卷调查",
     summary: "快速收集学生理解度、偏好或课堂反馈。",
@@ -504,6 +510,7 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
   },
   {
     builtInKey: "inquiry",
+    pluginKey: "builtin-teaching-step-inquiry",
     pluginName: "学生探究",
     title: "学生探究",
     summary: "布置开放任务，引导学生自主观察、讨论与记录。",
@@ -521,6 +528,7 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
   },
   {
     builtInKey: "inClassQuiz",
+    pluginKey: "builtin-teaching-step-quiz",
     pluginName: "课堂测验",
     title: "课堂测验",
     summary: "用简短测验即时检查学生对关键知识点的掌握情况。",
@@ -539,6 +547,7 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
   },
   {
     builtInKey: "evaluation",
+    pluginKey: "builtin-teaching-step-evaluation",
     pluginName: "评价",
     title: "评价",
     summary: "引导学生进行自评、互评或教师反馈总结。",

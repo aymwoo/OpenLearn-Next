@@ -22,6 +22,7 @@ import {
   type BuiltInTeachingStepDefinition,
 } from "@/lib/dto/resource-ai";
 import { registerThemeTokens } from "@/server/themes/registry";
+import { installOrReconcilePlugin } from "@/lib/dal/plugins";
 
 import { seedTestAccounts } from "./seed-test-accounts";
 
@@ -502,43 +503,15 @@ async function publishLessonVersion(input: {
   return published;
 }
 
-async function upsertBuiltInPlugins(schoolId: string) {
+async function upsertBuiltInPlugins(schoolId: string, actorId: string) {
   for (const definition of BUILT_IN_PLUGIN_DEFINITIONS) {
     const manifest = PluginManifestSchema.parse(definition.manifest);
-    const pluginKey = manifest.id;
-    const dbNamespace = derivePluginDbNamespace(pluginKey);
-    const existing = await db.query.pluginRegistrations.findFirst({
-      where: and(eq(pluginRegistrations.schoolId, schoolId), eq(pluginRegistrations.name, definition.name)),
-    });
-
-    if (existing) {
-      await db
-        .update(pluginRegistrations)
-        .set({
-          manifestJson: manifest,
-          pluginKey,
-          dbNamespace,
-          sourceType: "default",
-          installSource: "bootstrap",
-          enabled: true,
-          killSwitchEnabled: false,
-          updatedAt: new Date(),
-        })
-        .where(eq(pluginRegistrations.id, existing.id));
-
-      continue;
-    }
-
-    await db.insert(pluginRegistrations).values({
+    await installOrReconcilePlugin({
+      actorId,
       schoolId,
       name: definition.name,
       manifestJson: manifest,
-      pluginKey,
-      dbNamespace,
-      sourceType: "default",
       installSource: "bootstrap",
-      enabled: true,
-      killSwitchEnabled: false,
     });
   }
 }
@@ -549,39 +522,13 @@ async function upsertDevThemePlugin(
   definition: (typeof DEV_THEME_PLUGIN_DEFINITIONS)[number],
 ) {
   const manifest = PluginManifestSchema.parse(definition.manifest);
-  const pluginKey = manifest.id;
-  const dbNamespace = derivePluginDbNamespace(pluginKey);
-  const existing = await db.query.pluginRegistrations.findFirst({
-    where: and(eq(pluginRegistrations.schoolId, schoolId), eq(pluginRegistrations.name, definition.name)),
+  await installOrReconcilePlugin({
+    actorId,
+    schoolId,
+    name: definition.name,
+    manifestJson: manifest,
+    installSource: "seed",
   });
-
-  if (existing) {
-    await db
-      .update(pluginRegistrations)
-        .set({
-          manifestJson: manifest,
-          pluginKey,
-          dbNamespace,
-          sourceType: "external",
-          installSource: "seed",
-          enabled: true,
-          killSwitchEnabled: false,
-          updatedAt: new Date(),
-      })
-      .where(eq(pluginRegistrations.id, existing.id));
-  } else {
-    await db.insert(pluginRegistrations).values({
-      schoolId,
-      name: definition.name,
-      manifestJson: manifest,
-      pluginKey,
-      dbNamespace,
-      sourceType: "external",
-      installSource: "seed",
-      enabled: true,
-      killSwitchEnabled: false,
-    });
-  }
 
   await registerThemeTokens(
     schoolId,
@@ -637,7 +584,7 @@ export async function bootstrapDevDb() {
     courseTitle: DEV_COURSE_TITLE,
     steps,
   });
-  await upsertBuiltInPlugins(seeded.school.id);
+  await upsertBuiltInPlugins(seeded.school.id, seeded.teacher.id);
   await seedDefaultSystemTransportMode(seeded.teacher.id);
   for (const definition of DEV_THEME_PLUGIN_DEFINITIONS) {
     await upsertDevThemePlugin(seeded.school.id, seeded.teacher.id, definition);

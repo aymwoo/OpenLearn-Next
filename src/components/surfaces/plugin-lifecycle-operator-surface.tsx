@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   preflightUninstallPluginAction,
@@ -92,6 +93,7 @@ function getPrimaryActionEnabled(plugin: PluginRegistrationDTO) {
 }
 
 export function PluginLifecycleOperatorSurface({ schoolId, plugins }: Props) {
+  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isPending, startTransition] = useTransition();
   const [inlineError, setInlineError] = useState<Record<string, string | null>>({});
@@ -123,6 +125,8 @@ export function PluginLifecycleOperatorSurface({ schoolId, plugins }: Props) {
 
       if (!result.success) {
         setInlineError((current) => ({ ...current, [plugin.id]: result.error ?? "PLUGIN_SET_ENABLED_FAILED" }));
+      } else {
+        router.refresh();
       }
     });
   };
@@ -137,6 +141,8 @@ export function PluginLifecycleOperatorSurface({ schoolId, plugins }: Props) {
 
       if (!result.success) {
         setInlineError((current) => ({ ...current, [plugin.id]: result.error ?? "PLUGIN_KILL_SWITCH_FAILED" }));
+      } else {
+        router.refresh();
       }
     });
   };
@@ -183,6 +189,7 @@ export function PluginLifecycleOperatorSurface({ schoolId, plugins }: Props) {
       }
 
       closeDialog();
+      router.refresh();
     });
   };
 
@@ -232,39 +239,67 @@ export function PluginLifecycleOperatorSurface({ schoolId, plugins }: Props) {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="min-h-10 px-4 text-sm shadow-none"
-                  onClick={() => submitToggle(plugin)}
-                  disabled={isPending || !schoolId}
-                >
-                  {getPrimaryActionLabel(plugin)}
-                </Button>
-
-                {(plugin.lifecycleState === "enabled" || plugin.lifecycleState === "mounted" || plugin.lifecycleState === "ready") ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="min-h-10 px-4 text-sm shadow-none"
-                    onClick={() => submitKillSwitch(plugin, true)}
-                    disabled={isPending}
-                  >
-                    紧急挂起
-                  </Button>
-                ) : null}
-
                 {plugin.lifecycleState === "suspended" ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="min-h-10 px-4 text-sm shadow-none"
-                    onClick={() => submitKillSwitch(plugin, false)}
-                    disabled={isPending}
-                  >
-                    保持停用
-                  </Button>
-                ) : null}
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="min-h-10 px-4 text-sm shadow-none"
+                      onClick={() => submitKillSwitch(plugin, false)}
+                      disabled={isPending}
+                    >
+                      解除挂起
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="min-h-10 px-4 text-sm shadow-none"
+                      onClick={() => {
+                        if (!schoolId) return;
+                        setInlineError((current) => ({ ...current, [plugin.id]: null }));
+                        startTransition(async () => {
+                          const result = await setPluginEnabledAction({
+                            pluginId: plugin.id,
+                            schoolId,
+                            enabled: false,
+                          });
+                          if (!result.success) {
+                            setInlineError((current) => ({ ...current, [plugin.id]: result.error ?? "PLUGIN_SET_ENABLED_FAILED" }));
+                          } else {
+                            router.refresh();
+                          }
+                        });
+                      }}
+                      disabled={isPending || !schoolId}
+                    >
+                      保持停用
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="min-h-10 px-4 text-sm shadow-none"
+                      onClick={() => submitToggle(plugin)}
+                      disabled={isPending || !schoolId}
+                    >
+                      {getPrimaryActionLabel(plugin)}
+                    </Button>
+
+                    {(plugin.lifecycleState === "enabled" || plugin.lifecycleState === "mounted" || plugin.lifecycleState === "ready") ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="min-h-10 px-4 text-sm shadow-none"
+                        onClick={() => submitKillSwitch(plugin, true)}
+                        disabled={isPending}
+                      >
+                        紧急挂起
+                      </Button>
+                    ) : null}
+                  </>
+                )}
               </div>
 
               <div className="mt-4 rounded-[1.5rem] bg-surface-container-low px-4 py-4">

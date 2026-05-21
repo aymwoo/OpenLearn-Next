@@ -1649,3 +1649,97 @@ export const scheduleAssistantProposal = sqliteTable(
   },
   (table) => [index("scheduleAssistantProposal_school_status_idx").on(table.schoolId, table.status)]
 );
+
+export const pluginLessonExtensions = sqliteTable(
+  "plugin_ext_lesson",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    pluginId: text("pluginId")
+      .notNull()
+      .references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+    lessonId: text("lessonId")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("plugin_ext_lesson_school_plugin_entity_unique").on(table.schoolId, table.pluginId, table.lessonId),
+  ]
+);
+
+export const pluginLessonStepExtensions = sqliteTable(
+  "plugin_ext_lesson_step",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    pluginId: text("pluginId")
+      .notNull()
+      .references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+    lessonStepId: text("lessonStepId")
+      .notNull()
+      .references(() => lessonSteps.id, { onDelete: "cascade" }),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("plugin_ext_lesson_step_school_plugin_entity_unique").on(table.schoolId, table.pluginId, table.lessonStepId),
+  ]
+);
+
+export const pluginResourceExtensions = sqliteTable(
+  "plugin_ext_resource",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    pluginId: text("pluginId")
+      .notNull()
+      .references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+    resourceId: text("resourceId")
+      .notNull()
+      .references(() => resources.id, { onDelete: "cascade" }),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("plugin_ext_resource_school_plugin_entity_unique").on(table.schoolId, table.pluginId, table.resourceId),
+  ]
+);
+
+export const pluginOwnedBusinessData = sqliteTable(
+  "plugin_owned_business_data",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    pluginId: text("pluginId")
+      .notNull()
+      .references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    payloadJson: text("payloadJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("plugin_owned_biz_school_plugin_key_idx").on(table.schoolId, table.pluginId, table.key),
+  ]
+);

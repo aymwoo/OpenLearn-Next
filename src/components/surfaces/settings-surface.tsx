@@ -408,6 +408,7 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
     ? await listPluginsAction({ schoolId })
     : { success: true as const, data: [] };
   const plugins = pluginResult.success ? (pluginResult.data ?? []) : [];
+  const pluginLoadError = pluginResult.success ? null : pluginResult.error ?? "PLUGIN_LIST_FAILED";
   return (
     <main className="min-h-screen bg-surface px-4 py-6 text-on-surface sm:px-6 lg:px-8">
       <div className={cn(surfaceWidths.workspace, teacherSurfaceRhythm.stack, "flex flex-col")}>
@@ -576,7 +577,13 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
               </div>
 
               <div className="mt-4 grid gap-3">
-                <PluginLifecycleOperatorSurface schoolId={schoolId} plugins={plugins} />
+                {pluginLoadError ? (
+                  <div className="rounded-[1.5rem] bg-error-container px-4 py-4 text-sm leading-6 text-on-error-container">
+                    插件列表加载失败：{pluginLoadError}
+                  </div>
+                ) : (
+                  <PluginLifecycleOperatorSurface schoolId={schoolId} plugins={plugins} />
+                )}
               </div>
             </section>
           </aside>

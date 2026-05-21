@@ -85,6 +85,13 @@
       "when": 1779272108905,
       "tag": "0011_phase44_plugin_identity_namespace",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1779278519170,
+      "tag": "0012_aspiring_corsair",
+      "breakpoints": true
     }
   ]
 }

@@ -16,6 +16,8 @@ export const cacheTags = {
   mcpServer: (id: string) => `mcp:server:${id}`,
   pluginRegistry: 'plugin:registry',
   plugin: (id: string) => `plugin:${id}`,
+  pluginExtension: (schoolId: string, pluginId: string, entityId: string) => `plugin:ext:${schoolId}:${pluginId}:${entityId}`,
+  pluginOwned: (schoolId: string, pluginId: string, key: string) => `plugin:owned:${schoolId}:${pluginId}:${key}`,
   systemTransport: 'transport:system',
   themeRegistry: 'theme:registry',
   theme: (id: string) => `theme:${id}`,

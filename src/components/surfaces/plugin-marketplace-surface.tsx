@@ -12,6 +12,7 @@ export async function PluginMarketplaceSurface() {
   const schoolIds = await getCurrentUserSchoolIds()
   const schoolId = schoolIds[0] ?? null
   const pluginResult = schoolId ? await listPluginsAction({ schoolId }) : { success: true as const, data: [] }
+  const pluginLoadError = pluginResult.success ? null : pluginResult.error ?? 'PLUGIN_LIST_FAILED'
   const plugins = (pluginResult.success ? pluginResult.data ?? [] : []).filter((plugin) => plugin.builtIn)
 
   const submitPluginToggle = async (formData: FormData) => {
@@ -66,6 +67,12 @@ export async function PluginMarketplaceSurface() {
             </div>
 
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              {pluginLoadError ? (
+                <div className="rounded-[1.75rem] bg-error-container p-5 text-sm leading-7 text-on-error-container shadow-ambient lg:col-span-2">
+                  插件列表加载失败：{pluginLoadError}
+                </div>
+              ) : null}
+
               {plugins.map((plugin) => (
                 <article key={plugin.id} className="rounded-[1.75rem] bg-surface-container-lowest p-5 shadow-ambient">
                   <div className="flex items-start justify-between gap-4">
@@ -109,7 +116,7 @@ export async function PluginMarketplaceSurface() {
                 </article>
               ))}
 
-              {plugins.length === 0 ? (
+              {!pluginLoadError && plugins.length === 0 ? (
                 <div className="rounded-[1.75rem] bg-surface-container-lowest p-5 text-sm leading-7 text-on-surface-variant shadow-ambient lg:col-span-2">
                   当前学校还没有可见的系统内置教学环节。完成 seed 或启用后，这里会显示系统内置目录与默认开启状态。
                 </div>
