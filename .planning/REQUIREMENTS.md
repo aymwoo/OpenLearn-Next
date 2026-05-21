@@ -25,18 +25,18 @@
 
 - [x] **ACTN-01**: 平台维护者可以为 built-in 与 plugin action 统一注册 typed descriptor，包括 owner、schema、capability、side-effect metadata。
 - [x] **ACTN-02**: 系统会拒绝冲突或重复 action key 注册，而不是静默覆盖。
-- [ ] **ACTN-03**: 系统只在 plugin install / enabled / lifecycle 条件满足时暴露 action。
+- [x] **ACTN-03**: 系统只在 plugin install / enabled / lifecycle 条件满足时暴露 action。
 - [x] **ACTN-04**: 平台调用方可以用 machine-readable 方式列出当前可用 action catalog。
 - [x] **ACTN-05**: Action registry 只解析主仓库受控实现，不执行远程脚本或插件自带代码。
 
 ### Formal Plugin Lifecycle
 
-- [ ] **LIFE-01**: 学校操作员可以区分 `installed`、`enabled`、`active`、`suspended`、`uninstalled` 语义。
-- [ ] **LIFE-02**: 系统会按依赖顺序激活插件，并在缺依赖或循环依赖时阻止半启动状态。
-- [ ] **LIFE-03**: 插件激活失败可以归因到具体插件或模块，而不是只暴露平台整体失败。
-- [ ] **LIFE-04**: `disable` / `suspend` 会停止插件运行能力，但默认保留数据和历史记录。
-- [ ] **LIFE-05**: `uninstall` 前会执行 preflight，并明确 retention / cleanup 影响。
-- [ ] **LIFE-06**: built-in / default plugins 复用同一 lifecycle model，而不是保留特权路径。
+- [x] **LIFE-01**: 学校操作员可以区分 `installed`、`enabled`、`active`、`suspended`、`uninstalled` 语义。
+- [x] **LIFE-02**: 系统会按依赖顺序激活插件，并在缺依赖或循环依赖时阻止半启动状态。
+- [x] **LIFE-03**: 插件激活失败可以归因到具体插件或模块，而不是只暴露平台整体失败。
+- [x] **LIFE-04**: `disable` / `suspend` 会停止插件运行能力，但默认保留数据和历史记录。
+- [x] **LIFE-05**: `uninstall` 前会执行 preflight，并明确 retention / cleanup 影响。
+- [x] **LIFE-06**: built-in / default plugins 复用同一 lifecycle model，而不是保留特权路径。
 
 ### Platform Event Bus & Observability Hooks
 
@@ -102,15 +102,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CMD-05 | Phase 51 | Pending |
 | ACTN-01 | Phase 52 | Complete |
 | ACTN-02 | Phase 52 | Complete |
-| ACTN-03 | Phase 52 | Pending |
+| ACTN-03 | Phase 52 | Complete |
 | ACTN-04 | Phase 52 | Complete |
 | ACTN-05 | Phase 52 | Complete |
-| LIFE-01 | Phase 52 | Pending |
-| LIFE-02 | Phase 52 | Pending |
-| LIFE-03 | Phase 52 | Pending |
-| LIFE-04 | Phase 52 | Pending |
-| LIFE-05 | Phase 52 | Pending |
-| LIFE-06 | Phase 52 | Pending |
+| LIFE-01 | Phase 52 | Complete |
+| LIFE-02 | Phase 52 | Complete |
+| LIFE-03 | Phase 52 | Complete |
+| LIFE-04 | Phase 52 | Complete |
+| LIFE-05 | Phase 52 | Complete |
+| LIFE-06 | Phase 52 | Complete |
 | EVNT-01 | Phase 53 | Pending |
 | EVNT-02 | Phase 53 | Pending |
 | EVNT-03 | Phase 53 | Pending |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Teaching Orchestration & Classroom Intelligence
 status: executing
-stopped_at: Completed 52-action-registry-plugin-lifecycle-governance-01-PLAN.md
-last_updated: "2026-05-21T14:26:55.014Z"
+stopped_at: Completed 52-action-registry-plugin-lifecycle-governance-02-PLAN.md
+last_updated: "2026-05-21T14:58:30.000Z"
 last_activity: 2026-05-21
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 9
-  completed_plans: 7
-  percent: 78
+  completed_plans: 8
+  percent: 89
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: `.planning/PROJECT.md` (updated 2026-05-21)
 
 Milestone: v3.0 -- AI Native Educational OS Upgrade
 Phase: 52 (action-registry-plugin-lifecycle-governance) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-05-21
-Progress: [████████░░] 78%
+Progress: [█████████░] 89%
 Next queued phase: 51 -- Command Bus Foundation
 
 ## Performance Metrics
@@ -53,6 +53,7 @@ Next queued phase: 51 -- Command Bus Foundation
 - Trend: Positive
 
 | Phase 52 P01 | 18 min | 2 tasks | 4 files |
+| Phase 52 P02 | 15 min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,9 @@ Recent decisions affecting current work:
 - [Milestone v3.0]: AI work in this milestone stops at machine-readable contracts and delegated metadata, not full Agent/Skill Runtime.
 - [Phase 52]: Action catalog keeps executable rows separate from blocked diagnostic rows so default consumers only see machine-readable runnable metadata.
 - [Phase 52]: Static action descriptors are projected from code-owned registry inputs and reject duplicate action keys instead of silently overriding them.
+- [Phase 52]: External lifecycle contract is fixed at installed/enabled/active/suspended/uninstalled while mounted/ready/failed remain diagnostic-only internals.
+- [Phase 52]: Dependency failures block only affected plugin chains and require explicit reconcile or retry actions instead of implicit recovery.
+- [Phase 52]: Uninstall governance defaults to retain posture and requires explicit cleanup confirmation before destructive cleanup.
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ None currently.
 
 ## Session Continuity
 
-Last session: 2026-05-21T14:26:55.010Z
-Stopped at: Completed 52-action-registry-plugin-lifecycle-governance-01-PLAN.md
+Last session: 2026-05-21T14:58:30.000Z
+Stopped at: Completed 52-action-registry-plugin-lifecycle-governance-02-PLAN.md
 Resume file: None
