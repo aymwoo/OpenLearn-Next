@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+import {
+  GovernanceLifecycleInternalSubstateSchema,
+  GovernanceLifecycleStateSchema,
+  GovernanceLifecycleStateValues,
+  PluginGovernanceReasonCodeSchema,
+  PluginGovernanceReasonCodeValues,
+  PluginRecoveryActionSchema,
+  PluginRecoveryActionValues,
+} from "@/features/platform-core/plugins/lifecycle-contracts";
+
 export const RuntimeCapabilityValues = [
   "runtime:ready",
   "runtime:event:emit",
@@ -67,9 +77,12 @@ export const GovernanceCapabilitySummarySchema = z.object({
 });
 
 export const GovernanceLifecycleSnapshotSchema = z.object({
-  state: PluginLifecycleStateSchema,
+  state: GovernanceLifecycleStateSchema,
   blocked: z.boolean().default(false),
   killSwitchEnabled: z.boolean().default(false),
+  internalSubstate: GovernanceLifecycleInternalSubstateSchema.nullable().default(null),
+  reasonCode: PluginGovernanceReasonCodeSchema.nullable().default(null),
+  recommendedRecoveryAction: PluginRecoveryActionSchema.nullable().default(null),
 });
 
 export const GovernanceDecisionEnvelopeSchema = z.object({
@@ -90,6 +103,18 @@ export type GovernanceDecision = z.infer<typeof GovernanceDecisionSchema>;
 export type GovernanceDeniedReason = z.infer<typeof GovernanceDeniedReasonSchema>;
 export type PluginPermission = z.infer<typeof PluginPermissionSchema>;
 export type PluginLifecycleState = z.infer<typeof PluginLifecycleStateSchema>;
+export type GovernanceLifecycleState = z.infer<typeof GovernanceLifecycleStateSchema>;
+export type PluginGovernanceReasonCode = z.infer<typeof PluginGovernanceReasonCodeSchema>;
+export type PluginRecoveryAction = z.infer<typeof PluginRecoveryActionSchema>;
 export type GovernanceCapabilitySummary = z.infer<typeof GovernanceCapabilitySummarySchema>;
 export type GovernanceLifecycleSnapshot = z.infer<typeof GovernanceLifecycleSnapshotSchema>;
 export type GovernanceDecisionEnvelope = z.infer<typeof GovernanceDecisionEnvelopeSchema>;
+
+export {
+  GovernanceLifecycleStateSchema as GovernanceLifecycleStateSchema,
+  GovernanceLifecycleStateValues as GovernanceLifecycleStateValues,
+  PluginGovernanceReasonCodeSchema as PluginGovernanceReasonCodeSchema,
+  PluginGovernanceReasonCodeValues as PluginGovernanceReasonCodeValues,
+  PluginRecoveryActionSchema as PluginRecoveryActionSchema,
+  PluginRecoveryActionValues as PluginRecoveryActionValues,
+};
