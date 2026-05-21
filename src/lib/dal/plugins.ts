@@ -78,6 +78,46 @@ type PluginBySchoolInput = PluginManagerScopeInput & {
   pluginId: string;
 };
 
+export type PluginCommandContext = {
+  commandId: string;
+  correlationId: string;
+  attemptNumber: number;
+};
+
+type PluginDalTx = {
+  insert: typeof db.insert;
+  update: typeof db.update;
+  delete: typeof db.delete;
+};
+
+type InstallOrReconcilePluginWithTxInput = InstallOrReconcilePluginInput & {
+  tx: PluginDalTx;
+  commandContext?: PluginCommandContext;
+};
+
+type TransitionPluginLifecycleWithTxInput = TransitionPluginLifecycleInput & {
+  tx: PluginDalTx;
+  commandContext?: PluginCommandContext;
+};
+
+type SetPluginKillSwitchWithTxInput = {
+  tx: PluginDalTx;
+  pluginId: string;
+  actorId: string;
+  killSwitchEnabled: boolean;
+  commandContext?: PluginCommandContext;
+};
+
+type PreflightUninstallPluginWithTxInput = PluginBySchoolInput & {
+  tx: PluginDalTx;
+  commandContext?: PluginCommandContext;
+};
+
+type UninstallPluginWithTxInput = PluginBySchoolInput & {
+  tx: PluginDalTx;
+  commandContext?: PluginCommandContext;
+};
+
 export type PreflightUninstallPluginResult = {
   pluginId: string;
   schoolId: string;
@@ -158,6 +198,7 @@ function toPluginDTO(record: typeof pluginRegistrations.$inferSelect): PluginReg
 }
 
 async function createPluginAudit(input: {
+  tx?: PluginDalTx;
   pluginId: string;
   action: string;
   decision: "allowed" | "denied";
@@ -166,13 +207,16 @@ async function createPluginAudit(input: {
   actorScope?: RuntimeActorScope;
   lifecycleState?: PluginLifecycleState;
   correlationId?: string;
+  commandId?: string | null;
   payloadJson: Record<string, unknown>;
   actorId: string;
 }) {
-  const [record] = await db
+  const executor = input.tx ?? db;
+  const [record] = await executor
     .insert(pluginActionAudits)
     .values({
       pluginId: input.pluginId,
+      commandId: input.commandId ?? null,
       action: input.action,
       decision: input.decision,
       reasonCode: input.reason ?? null,
@@ -189,7 +233,8 @@ async function createPluginAudit(input: {
 }
 
 async function createGovernanceAudit(input: {
-  pluginId: string;
+  tx?: PluginDalTx;
+  pluginId?: string | null;
   schoolId: string;
   action: string;
   decision: "allowed" | "denied";
@@ -201,13 +246,16 @@ async function createGovernanceAudit(input: {
   requestedCapabilities: readonly string[];
   requiredPermission?: string | null;
   correlationId: string;
+  commandId?: string | null;
   payloadJson: Record<string, unknown>;
 }) {
-  await db.insert(governanceAudits).values({
+  const executor = input.tx ?? db;
+  await executor.insert(governanceAudits).values({
     targetType: "plugin",
-    targetId: input.pluginId,
-    pluginId: input.pluginId,
+    targetId: input.pluginId ?? "",
+    pluginId: input.pluginId ?? null,
     schoolId: input.schoolId,
+    commandId: input.commandId ?? null,
     action: input.action,
     decision: input.decision,
     reasonCode: input.reason ?? null,
@@ -224,13 +272,15 @@ async function createGovernanceAudit(input: {
 }
 
 async function appendPluginLifecycleTransition(input: {
+  tx?: PluginDalTx;
   pluginId: string;
   actorId: string;
   fromState: PluginLifecycleState | null;
   toState: PluginLifecycleState;
   reason: string;
 }) {
-  await db.insert(pluginLifecycleTransitions).values({
+  const executor = input.tx ?? db;
+  await executor.insert(pluginLifecycleTransitions).values({
     pluginId: input.pluginId,
     actorId: input.actorId,
     fromState: input.fromState,
@@ -297,7 +347,7 @@ function getPluginUninstallBlockReason(plugin: Pick<typeof pluginRegistrations.$
   return null;
 }
 
-export async function installOrReconcilePlugin(input: InstallOrReconcilePluginInput) {
+export async function installOrReconcilePluginWithTx(input: InstallOrReconcilePluginWithTxInput) {
   await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
 
   const parsedManifest = PluginManifestSchema.parse(input.manifestJson);
@@ -348,7 +398,7 @@ export async function installOrReconcilePlugin(input: InstallOrReconcilePluginIn
     const enabled = input.enabled ?? input.forceDefaultEnabledSnapshot ?? parsedManifest.defaultEnabled;
     const killSwitchEnabled = input.killSwitchEnabled ?? false;
     const lifecycleState = resolveInitialPluginLifecycleState(enabled, input.lifecycleState);
-    const [record] = await db
+    const [record] = await input.tx
       .insert(pluginRegistrations)
       .values({
         schoolId: input.schoolId,
@@ -365,6 +415,7 @@ export async function installOrReconcilePlugin(input: InstallOrReconcilePluginIn
       .returning();
 
     await appendPluginLifecycleTransition({
+      tx: input.tx,
       pluginId: record.id,
       actorId: input.actorId,
       fromState: null,
@@ -378,7 +429,7 @@ export async function installOrReconcilePlugin(input: InstallOrReconcilePluginIn
   const nextLifecycleState = input.lifecycleState ?? targetRecord.lifecycleState;
   assertPluginLifecycleTransition(targetRecord.lifecycleState, nextLifecycleState);
 
-  const [record] = await db
+  const [record] = await input.tx
     .update(pluginRegistrations)
     .set({
       name: input.name,
@@ -399,6 +450,7 @@ export async function installOrReconcilePlugin(input: InstallOrReconcilePluginIn
     throw new Error("PLUGIN_NOT_FOUND");
   }
   await appendPluginLifecycleTransition({
+    tx: input.tx,
     pluginId: record.id,
     actorId: input.actorId,
     fromState: targetRecord.lifecycleState,
@@ -407,6 +459,13 @@ export async function installOrReconcilePlugin(input: InstallOrReconcilePluginIn
   });
 
   return toPluginDTO(record);
+}
+
+export async function installOrReconcilePlugin(input: InstallOrReconcilePluginInput) {
+  return db.transaction(async (tx) => installOrReconcilePluginWithTx({
+    ...input,
+    tx,
+  }));
 }
 
 async function denyHook(input: {
@@ -505,6 +564,13 @@ export async function setPluginEnabled(input: SetPluginEnabledInput) {
 }
 
 export async function setPluginKillSwitch(input: { pluginId: string; actorId: string; killSwitchEnabled: boolean }) {
+  return db.transaction(async (tx) => setPluginKillSwitchWithTx({
+    ...input,
+    tx,
+  }));
+}
+
+export async function setPluginKillSwitchWithTx(input: SetPluginKillSwitchWithTxInput) {
   assertActorId(input.actorId);
 
   const plugin = await db.query.pluginRegistrations.findFirst({
@@ -541,7 +607,7 @@ export async function setPluginKillSwitch(input: { pluginId: string; actorId: st
     assertPluginLifecycleTransition(plugin.lifecycleState, targetState);
   }
 
-  const [record] = await db
+  const [record] = await input.tx
     .update(pluginRegistrations)
     .set({
       killSwitchEnabled: input.killSwitchEnabled,
@@ -558,6 +624,7 @@ export async function setPluginKillSwitch(input: { pluginId: string; actorId: st
 
   if (record.lifecycleState !== plugin.lifecycleState) {
     await appendPluginLifecycleTransition({
+      tx: input.tx,
       pluginId: record.id,
       actorId: input.actorId,
       fromState: plugin.lifecycleState,
@@ -589,7 +656,7 @@ export async function getPluginForSchool(input: PluginBySchoolInput) {
   return row ? toPluginDTO(row) : null;
 }
 
-export async function transitionPluginLifecycle(input: TransitionPluginLifecycleInput) {
+export async function transitionPluginLifecycleWithTx(input: TransitionPluginLifecycleWithTxInput) {
   await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
 
   const plugin = await db.query.pluginRegistrations.findFirst({
@@ -603,10 +670,9 @@ export async function transitionPluginLifecycle(input: TransitionPluginLifecycle
   assertPluginLifecycleTransition(plugin.lifecycleState, input.targetState);
 
   const manifest = PluginManifestSchema.parse(plugin.manifestJson);
-  const correlationId = `${plugin.id}:lifecycle:${input.targetState}:${Date.now()}`;
+  const correlationId = input.commandContext?.correlationId ?? `${plugin.id}:lifecycle:${input.targetState}:${Date.now()}`;
 
-  const [record] = await db.transaction(async (tx) => {
-    const [updated] = await tx
+  const [updated] = await input.tx
       .update(pluginRegistrations)
       .set({
         lifecycleState: input.targetState,
@@ -621,62 +687,74 @@ export async function transitionPluginLifecycle(input: TransitionPluginLifecycle
       throw new Error("PLUGIN_NOT_FOUND");
     }
 
-    await tx.insert(pluginLifecycleTransitions).values({
-      pluginId: plugin.id,
-      actorId: input.actorId,
+  if (!updated) {
+    throw new Error("PLUGIN_NOT_FOUND");
+  }
+
+  await appendPluginLifecycleTransition({
+    tx: input.tx,
+    pluginId: plugin.id,
+    actorId: input.actorId,
+    fromState: plugin.lifecycleState,
+    toState: input.targetState,
+    reason: input.reason,
+  });
+
+  await createPluginAudit({
+    tx: input.tx,
+    pluginId: plugin.id,
+    action: "plugin.lifecycle.transition",
+    decision: "allowed",
+    reason: null,
+    schoolId: plugin.schoolId,
+    actorScope: "teacher",
+    lifecycleState: input.targetState,
+    correlationId,
+    commandId: input.commandContext?.commandId ?? null,
+    payloadJson: {
       fromState: plugin.lifecycleState,
       toState: input.targetState,
       reason: input.reason,
-    });
-
-    await tx.insert(pluginActionAudits).values({
-      pluginId: plugin.id,
-      action: "plugin.lifecycle.transition",
-      decision: "allowed",
-      reasonCode: null,
-      schoolId: plugin.schoolId,
-      actorScope: "teacher",
-      lifecycleState: input.targetState,
-      correlationId,
-      payloadJson: {
-        fromState: plugin.lifecycleState,
-        toState: input.targetState,
-        reason: input.reason,
-        sourceType: plugin.sourceType,
-      },
-      actorId: input.actorId,
-    });
-
-    await tx.insert(governanceAudits).values({
-      targetType: "plugin",
-      targetId: plugin.id,
-      pluginId: plugin.id,
-      schoolId: plugin.schoolId,
-      action: "plugin.lifecycle.transition",
-      decision: "allowed",
-      reasonCode: null,
-      actorId: input.actorId,
-      actorScope: "teacher",
-      lifecycleState: input.targetState,
-      killSwitchEnabled: plugin.killSwitchEnabled,
-      requestedCapabilitiesJson: [...(manifest.governance?.requestedCapabilities ?? [])],
-      grantedCapabilitiesJson: [],
-      requiredPermission: null,
-      correlationId,
-      payloadJson: {
-        fromState: plugin.lifecycleState,
-        toState: input.targetState,
-        reason: input.reason,
-      },
-    });
-
-    return [updated] as const;
+      sourceType: plugin.sourceType,
+      attemptNumber: input.commandContext?.attemptNumber ?? null,
+    },
+    actorId: input.actorId,
   });
 
-  return toPluginDTO(record);
+  await createGovernanceAudit({
+    tx: input.tx,
+    pluginId: plugin.id,
+    schoolId: plugin.schoolId,
+    action: "plugin.lifecycle.transition",
+    decision: "allowed",
+    reason: null,
+    actorId: input.actorId,
+    actorScope: "teacher",
+    lifecycleState: input.targetState,
+    killSwitchEnabled: updated.killSwitchEnabled,
+    requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
+    requiredPermission: null,
+    correlationId,
+    commandId: input.commandContext?.commandId ?? null,
+    payloadJson: {
+      fromState: plugin.lifecycleState,
+      toState: input.targetState,
+      reason: input.reason,
+      attemptNumber: input.commandContext?.attemptNumber ?? null,
+    },
+  });
+
+  return toPluginDTO(updated);
 }
 
-export async function preflightUninstallPlugin(input: PluginBySchoolInput): Promise<PreflightUninstallPluginResult | null> {
+export async function transitionPluginLifecycle(input: TransitionPluginLifecycleInput) {
+  return db.transaction(async (tx) => transitionPluginLifecycleWithTx({
+    ...input,
+    tx,
+  }));
+}
+
+export async function preflightUninstallPluginWithTx(input: PreflightUninstallPluginWithTxInput): Promise<PreflightUninstallPluginResult | null> {
   await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
 
   const plugin = await db.query.pluginRegistrations.findFirst({
@@ -748,7 +826,14 @@ export async function preflightUninstallPlugin(input: PluginBySchoolInput): Prom
   };
 }
 
-export async function uninstallPlugin(input: PluginBySchoolInput) {
+export async function preflightUninstallPlugin(input: PluginBySchoolInput): Promise<PreflightUninstallPluginResult | null> {
+  return db.transaction(async (tx) => preflightUninstallPluginWithTx({
+    ...input,
+    tx,
+  }));
+}
+
+export async function uninstallPluginWithTx(input: UninstallPluginWithTxInput) {
   await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
 
   const plugin = await db.query.pluginRegistrations.findFirst({
@@ -765,39 +850,41 @@ export async function uninstallPlugin(input: PluginBySchoolInput) {
   }
 
   const manifest = PluginManifestSchema.parse(plugin.manifestJson);
-  const correlationId = `${plugin.id}:uninstall:${Date.now()}`;
-  const [record] = await db.transaction(async (tx) => {
-    await tx.insert(governanceAudits).values({
-      targetType: "plugin",
-      targetId: plugin.id,
-      pluginId: null,
-      schoolId: plugin.schoolId,
-      action: "plugin.uninstall",
-      decision: "allowed",
-      reasonCode: null,
-      actorId: input.actorId,
-      actorScope: "teacher",
+  const correlationId = input.commandContext?.correlationId ?? `${plugin.id}:uninstall:${Date.now()}`;
+  await createGovernanceAudit({
+    tx: input.tx,
+    pluginId: null,
+    schoolId: plugin.schoolId,
+    action: "plugin.uninstall",
+    decision: "allowed",
+    reason: null,
+    actorId: input.actorId,
+    actorScope: "teacher",
+    lifecycleState: plugin.lifecycleState,
+    killSwitchEnabled: plugin.killSwitchEnabled,
+    requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
+    requiredPermission: null,
+    correlationId,
+    commandId: input.commandContext?.commandId ?? null,
+    payloadJson: {
+      pluginKey: plugin.pluginKey,
+      sourceType: plugin.sourceType,
+      dbNamespace: plugin.dbNamespace,
       lifecycleState: plugin.lifecycleState,
-      killSwitchEnabled: plugin.killSwitchEnabled,
-      requestedCapabilitiesJson: [...(manifest.governance?.requestedCapabilities ?? [])],
-      grantedCapabilitiesJson: [],
-      requiredPermission: null,
-      correlationId,
-      payloadJson: {
-        pluginKey: plugin.pluginKey,
-        sourceType: plugin.sourceType,
-        dbNamespace: plugin.dbNamespace,
-        lifecycleState: plugin.lifecycleState,
-      },
-    });
+      attemptNumber: input.commandContext?.attemptNumber ?? null,
+    },
+  });
 
-    const [deleted] = await tx
+  const [deleted] = await input.tx
       .delete(pluginRegistrations)
       .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
       .returning();
 
-    return [deleted ?? null] as const;
-  });
+  return deleted ?? null;
+}
+
+export async function uninstallPlugin(input: PluginBySchoolInput) {
+  const record = await db.transaction(async (tx) => uninstallPluginWithTx({ ...input, tx }));
 
   return record ? toPluginDTO(record) : null;
 }
