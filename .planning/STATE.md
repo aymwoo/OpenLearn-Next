@@ -1,43 +1,42 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.4
-milestone_name: Plugin Data Architecture & Default Plugins
-status: executing
-stopped_at: Completed 44-01-PLAN.md
-last_updated: "2026-05-20T22:41:27.747Z"
-last_activity: 2026-05-20 -- Phase 48 execution started
+milestone: v3.0
+milestone_name: AI Native Educational OS Upgrade
+status: planning
+stopped_at: Roadmap created
+last_updated: "2026-05-21T00:00:00.000Z"
+last_activity: 2026-05-21 -- v3.0 roadmap created (Phases 50-54)
 progress:
-  total_phases: 6
+  total_phases: 5
   completed_phases: 0
-  total_plans: 10
-  completed_plans: 4
-  percent: 40
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-05-20)
+See: `.planning/PROJECT.md` (updated 2026-05-21)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 48 — lifecycle-and-uninstall-semantics
+**Current focus:** Phase 50 roadmap handoff for v3.0 first-stage platform core
 
 ## Current Position
 
-Milestone: v2.4 -- Plugin Data Architecture & Default Plugins
-Phase: 48 (lifecycle-and-uninstall-semantics) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 48
-Last activity: 2026-05-20 -- Phase 48 execution started
-Progress: [█████████░] 90%
-Next queued phase: 48 -- Lifecycle & Uninstall Semantics
+Milestone: v3.0 -- AI Native Educational OS Upgrade
+Phase: 50 of 54 (Boundary Freeze & Platform Vocabulary)
+Plan: —
+Status: Ready to plan
+Last activity: 2026-05-21 -- Roadmap created for phases 50-54
+Progress: [░░░░░░░░░░] 0%
+Next queued phase: 50 -- Boundary Freeze & Platform Vocabulary
 
 ## Performance Metrics
 
 **Velocity:**
-
-- Total plans completed: 1
+- Total plans completed: 0
 - Average duration: -
 - Total execution time: 0.0 hours
 
@@ -45,14 +44,11 @@ Next queued phase: 48 -- Lifecycle & Uninstall Semantics
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 44 | 1 | 14 min | 14 min |
+| None yet | 0 | - | - |
 
 **Recent Trend:**
-
 - Last 5 plans: none yet
 - Trend: Stable
-
-| Phase 44 P01 | 14 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -61,11 +57,10 @@ Next queued phase: 48 -- Lifecycle & Uninstall Semantics
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Milestone v2.4]: 采用 44-49 六阶段顺序，严格跟随 research summary 的低 blast radius 主线。
-- [Milestone v2.4]: 默认插件样板只补最小 dependency closure，不重开全部 `v2.3` accepted gaps。
-- [Milestone v2.4]: 每个 v2.4 requirement 已唯一映射到一个 phase，无 orphan、无重复。
-- [Phase 44]: 把 pluginKey、dbNamespace、sourceType、installSource 固化为 pluginRegistration SQL truth，而不是继续依赖 manifestJson 解析。
-- [Phase 44]: Phase 44 migration 采用 SQLite rebuild + backfill + unique index 的单次升级路径，不留下运行时补写窗口。
+- [Milestone v3.0]: roadmap scope is limited to first-stage platform core from research summary.
+- [Milestone v3.0]: phase numbering continues at 50; v2.4 phases 44-49 remain frozen historical context only.
+- [Milestone v3.0]: Command Bus is the first new authoritative mutation boundary; old seams may only survive as adapters.
+- [Milestone v3.0]: AI work in this milestone stops at machine-readable contracts and delegated metadata, not full Agent/Skill Runtime.
 
 ### Pending Todos
 
@@ -73,8 +68,9 @@ None yet.
 
 ### Blockers/Concerns
 
-- `DFLT-03` 可能触达 `ATP-22` 相关资源入口缺口；Phase 49 只能补样板直接依赖的最小产品闭环。
-- `dbNamespace` 一旦公开发布后几乎不可随意改名，Phase 44 需把它当稳定 contract 设计。
+- No hard blocker for planning handoff.
+- Phase planning must re-validate any dependency on frozen v2.4 work instead of assuming phases 44-49 shipped.
+- Lifecycle state mapping, command/event ledger naming, and invalidation intent contract still need phase-level decisions.
 
 ## Deferred Items
 
@@ -88,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-20T10:29:25.279Z
-Stopped at: Completed 44-01-PLAN.md
+Last session: 2026-05-21T00:00:00.000Z
+Stopped at: v3.0 roadmap creation complete
 Resume file: None
