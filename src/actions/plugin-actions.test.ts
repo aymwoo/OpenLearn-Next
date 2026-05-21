@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PluginManifest } from "@/lib/dto/resource-ai";
@@ -64,6 +65,19 @@ describe("plugin-actions", () => {
     vi.resetModules();
     vi.clearAllMocks();
     getCurrentUserDTOMock.mockResolvedValue({ id: "user-1", name: "Teacher" });
+  });
+
+  it("routes mutation actions through a shared plugin governance producer seam", async () => {
+    const source = await readFile(new URL("./plugin-actions.ts", import.meta.url), "utf8");
+
+    expect(source).toContain('from "@/features/platform-core/commands/producers/plugin-governance"');
+    expect(source).toContain("dispatchPluginGovernanceCommand");
+    expect(source).not.toContain("registerPluginManifest,");
+    expect(source).not.toContain("setPluginEnabled,");
+    expect(source).not.toContain("transitionPluginLifecycle,");
+    expect(source).not.toContain("setPluginKillSwitch,");
+    expect(source).not.toContain("preflightUninstallPlugin,");
+    expect(source).not.toContain("uninstallPlugin,");
   });
 
   describe("registerPluginManifestAction", () => {
