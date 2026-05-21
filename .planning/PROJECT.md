@@ -18,7 +18,8 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - durable truth 继续由 SQLite + DAL + canonical classroom/runtime write path 持有，Redis、BullMQ 与 WebSocket 都不成为新的业务真相源。
 - `v2.3 Async Task Platform` 已于 2026-05-20 归档；typed task registry、统一 enqueue boundary、SQLite task ledger、dedicated worker、operator visibility 与 safe retry posture 已落地。
 - batch import、scheduled reminders 与 classroom event post-processing 已形成真实产品闭环；resource processing 的平台层 wiring 已交付，但 `/resources` 产品触发入口和部分 milestone proof artifact 仍作为 accepted gaps 保留。
-- `v2.4 Plugin Data Architecture & Default Plugins` 已启动；当前 planning 主问题从 async platform closeout 转向“插件如何安全拥有结构化数据并扩展系统能力”。
+- `v2.4 Plugin Data Architecture & Default Plugins` 在 Phase 44-48 planning / partial execution 后被冻结，作为输入上下文保留，但不再是当前 committed milestone。
+- 当前 planning 主问题切换为 `v3.0 AI Native Educational OS Upgrade`：在现有课堂闭环、插件骨架与 async/runtime 基础上，先落第一阶段平台内核升级。
 
 ## Most Recently Archived Milestone: v2.3 Async Task Platform
 
@@ -35,22 +36,22 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - `ATP-23`: 第 4 类 workload 因产品触发闭环缺失，只能算 partial proof。
 - Phase 39 / 40 / 41 仍缺 `VERIFICATION.md` proof artifacts；Phase 40 还缺 `verify:phase40` npm entry。
 
-## Current Milestone: v2.4 Plugin Data Architecture & Default Plugins
+## Current Milestone: v3.0 AI Native Educational OS Upgrade
 
-**Goal:** 建立可让插件安全拥有结构化数据的数据库与治理架构，使插件既能扩展核心实体，也能拥有独立业务表，并在统一前缀约束下落地一批系统默认插件样板。
+**Goal:** 以 `openlearn_next_upgrade_plan.md` 为蓝图，把当前系统从“已有课堂闭环与插件/任务基础设施的教学平台”升级为更完整的 AI Native Educational Operating System，并先落第一阶段的平台级内核改造。
 
 **Target features:**
-- 梳理当前插件系统在 manifest、registry、DAL、hook/action、built-in plugin、marketplace 和 schema 层的真实实现与边界。
-- 设计并落地插件数据模型，支持插件以 extension table 扩展核心实体，而不是继续把结构化数据挤进 JSON payload。
-- 允许插件拥有独立业务表，但必须通过稳定的 `dbNamespace` / 前缀规范统一命名，并受主仓库 migration governance 管理。
-- 收口插件架构的关键约束：插件身份显式化、权限模型、生命周期状态、默认启用语义，以及插件与附属数据的一致性。
-- 先落地 2-3 类默认插件样板，验证“系统基础模块默认插件化”不是特例，而是这套数据模型的第一批使用者。
+- 建立以 Command Bus 为核心的统一命令执行边界，让插件、工作流和 Agent 的动作进入同一条可校验、可审计、可回放的系统通路。
+- 在现有插件体系之上补齐 Dynamic Action Registry、Plugin Lifecycle、Event Bus 等平台内核能力，减少 built-in / hard-coded 特例。
+- 为后续 Agent Runtime、Skill Runtime、Capability Security、Observability 升级建立清晰的分层边界与演进路线，而不是直接跳到高风险的 sandbox / QuickJS / PostgreSQL cutover。
+- 把未完成的 `v2.4` 视为冻结的上一轮规划，不在本 milestone 里默认继承全部 scope；仅在新架构直接依赖时才吸收最小必要能力。
 
 ## Next Milestone Goals
 
-- 先把插件数据边界做对：明确哪些场景使用 extension table、哪些场景使用 plugin-owned table，以及插件如何稳定声明自己的数据库命名空间。
-- 保持 `v2.3` accepted gaps 为已知债务，但不把本 milestone 重新拉回 async platform closeout；只有当默认插件样板直接依赖这些入口时，才在 roadmap 中纳入最小必要闭环。
-- 继续沿用“单体内平台化”路线：SQLite + DAL 持有 durable truth；插件可以拥有表，但不能绕过主应用的 migration、authz、DTO 和 cache discipline。
+- 先落 `openlearn_next_upgrade_plan.md` 第一阶段的低 blast radius 核心：Command Bus、Dynamic Action Registry、Plugin Lifecycle、Event Bus。
+- 让“Everything is Plugin / Command / Event / Capability / Observable / Agent-callable”先落到可实现的系统内核 contract，而不是停留在宣言层。
+- 延续“单体内平台化”路线：SQLite + DAL 持有 durable truth；新增平台层不会绕过主应用的 migration、authz、DTO、cache discipline 与 Node runtime 边界。
+- 把 `v2.4` 未完成内容视为依赖输入和历史 planning context，而不是自动继承为 `v3.0` committed scope。
 
 <details>
 <summary>Archived v2.2 milestone context</summary>
@@ -92,11 +93,11 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ### Active
 
-- [ ] 插件可以通过受治理的 extension table 为核心实体新增结构化数据，而不是继续依赖零散 JSON 字段。
-- [ ] 插件可以拥有独立业务表，但所有插件自有数据库对象都必须使用统一、稳定、可审计的前缀 / namespace。
-- [ ] 插件注册信息必须显式表达稳定身份与数据库命名空间，不能把关键治理字段仅埋在 `manifestJson` 内。
-- [ ] 默认插件必须复用同一套数据治理模型，而不是继续依赖 hard-coded built-in 特例。
-- [ ] 插件数据访问继续强制经过 DAL + Server Actions + cache/tag discipline，不开放 runtime DDL、插件直连 DB 或 manifest 自带 SQL migration。
+- [ ] 插件、工作流与 Agent 的系统动作统一走 Command Bus，而不是继续分散在 ad-hoc action / service seams 中。
+- [ ] 平台提供 Dynamic Action Registry、正式 Plugin Lifecycle 与 Event Bus，形成 AI Native 可规划的扩展内核。
+- [ ] 第一阶段平台升级保持 capability-based security、DAL-only 数据边界与审计可追踪性，不为平台化牺牲当前安全约束。
+- [ ] 平台内核为后续 Agent Runtime、Skill Runtime、Observability 做好 contract 与演进路线，但不在本 milestone 直接完成全部高风险能力。
+- [ ] `v2.4` 未完成 scope 仅在新架构直接依赖时最小吸收，不自动成为 `v3.0` committed scope。
 
 ### Out of Scope
 
@@ -113,6 +114,8 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - runtime manifest 驱动的动态建表、动态执行 SQL migration，或插件绕过主仓库迁移体系直接修改数据库结构。
 - 为单个插件需求在核心表上持续堆叠插件专属 nullable 列，导致 core schema 被插件污染。
 - 按 school / plugin installation 动态创建物理表或引入多数据库 / PostgreSQL schema-per-plugin 模型。
+- 在 `v3.0` 第一阶段直接推进 QuickJS Sandbox、完整 Extension Host、多进程插件宿主或 PostgreSQL/pgvector primary cutover。
+- 把 `openlearn_next_upgrade_plan.md` 全部二、三阶段能力一次性打包进入本 milestone，导致平台升级范围失控。
 
 ## Context
 
@@ -120,11 +123,11 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 
 当前代码已经具备 `courses`、`courseClasses`、`courseEnrollments`、`lessons`、`publishedLessonVersions`、`lessonStepProgress`、`taskSubmissions`、`quizAttempts`、`classroomSessions`、`classroomParticipants`、`classroomEvents` 等核心 schema，也已经支持教师端编排、预览、发布，学生端学习与提交，课堂运行与评价闭环，以及 runtime-platform foundation、sandboxed HTML runtime、transport boundary、WebSocket cutover、optional Redis fanout 与 async task platform。
 
-这意味着“可运行的课堂闭环基础”、`Runtime Platform` 第一轮核心边界、以及通用后台任务平台都已经成立。当前真正的规划问题不再是“BullMQ/worker 能不能接进来”，而是插件能否从“受控动作与 built-in 模板”演进为“可安全拥有结构化数据、可扩展核心模型、可承载默认系统模块”的长期架构。
+这意味着“可运行的课堂闭环基础”、`Runtime Platform` 第一轮核心边界、以及通用后台任务平台都已经成立。当前真正的规划问题，不再是某一条产品功能链路是否能补完，而是系统是否已经具备足够清晰的平台内核，使插件、命令、事件、能力边界与 Agent 调用模型能够长期演化。
 
-当前主工程仍以 `src/app` 为中心，但已经落地 `src/features/runtime-platform/*`、shared contracts、runtime host、typed event truth、plugin lifecycle、transport boundary、WebSocket-first classroom transport、optional Redis fanout、`src/features/async-tasks/*` 和 canonical milestone close gates。插件侧已有 `pluginRegistration`、lifecycle / hook / governance audit、built-in teaching step definitions、plugin marketplace 与受控 dispatch，但数据模型仍停留在“核心表 + 插件注册表 + JSON payload”为主的阶段，尚未形成插件可持续演进的数据边界。
+当前主工程仍以 `src/app` 为中心，但已经落地 `src/features/runtime-platform/*`、shared contracts、runtime host、typed event truth、plugin lifecycle、transport boundary、WebSocket-first classroom transport、optional Redis fanout、`src/features/async-tasks/*` 和 canonical milestone close gates。插件侧已有 `pluginRegistration`、lifecycle / hook / governance audit、built-in teaching step definitions、plugin marketplace 与受控 dispatch；`v2.4` 又进一步产出了 plugin identity / namespace、lifecycle / uninstall semantics 等 planning 与 partial implementation 输入，但尚未形成更上层的 command / event / action runtime 内核。
 
-本 milestone 的核心，不是做一个抽象插件平台 demo，而是把数据库与治理边界补齐：插件既可以通过 extension table 扩展核心实体，也可以拥有独立业务表；默认插件也必须走同一模型；同时保持 SQLite-first、DAL-only、migration-centralized 的项目约束不被破坏。
+本 milestone 的核心，不是直接把全部未来平台部件一次性做完，而是优先搭起第一阶段升级骨架：以 Command Bus 为中心，把 Dynamic Action Registry、Plugin Lifecycle、Event Bus 收口成统一平台 contract，并明确与后续 Agent Runtime、Skill Runtime、Capability Security、Observability 的关系，同时保持 SQLite-first、DAL-only、migration-centralized 与 no arbitrary code execution 的项目约束不被破坏。
 
 ## Constraints
 
@@ -133,7 +136,7 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 - **Runtime**: Node.js 20.9+ 为主，WebSocket upgrade 与 transport host 由 Node runtime 承接，SSE 只保留为 rollback surface。
 - **Caching**: Next.js 16 必须显式缓存，写入后必须更新或失效 tag。
 - **Database**: 首发只针对 SQLite，所有关联必须 cascade delete。
-- **Plugin data**: 插件允许拥有独立表，但表名、索引名和其他数据库对象必须遵循统一前缀 / namespace 规范，并由主仓库迁移统一管理。
+- **Platform scope**: `v3.0` 第一阶段优先落 Command Bus、Dynamic Action Registry、Plugin Lifecycle、Event Bus；QuickJS、Extension Host、PostgreSQL cutover 等高风险项继续 deferred。
 - **Realtime**: 课堂实时链路现为 WebSocket-first，并保留 SSE rollback surface，支持 locked/unlocked。
 - **Security**: 插件禁止 `eval()`、动态执行第三方代码、直接访问 DB 或核心 API。
 - **Design**: 页面实现必须参考 Stitch 项目 `5322129002350954765` 与 `DESIGN.md`。
@@ -157,6 +160,9 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 | milestone audit 必须区分“真实产品闭环缺口”和“proof artifact 缺口” | 避免把代码 blocker 与文档/verification debt 混成一个模糊结论 | ✓ Good |
 | 插件数据模型优先采用 extension table + plugin-owned table，而不是 core table 污染或 runtime DDL | 在 SQLite-first 单体里兼顾灵活扩展、可迁移性和治理边界 | — Pending |
 | 默认插件必须复用正式插件数据治理模型，而不是继续依赖 built-in 特例 | 只有系统模块自己走通这套模型，插件架构才算真实成立 | — Pending |
+| `v3.0` 采用 `openlearn_next_upgrade_plan.md` 作为新的平台升级蓝图 | 需要把当前系统从“已有功能闭环”推进到“AI Native Educational OS” 的正式平台演进路径 | — Pending |
+| `v3.0` 第一阶段先做 Command Bus、Dynamic Action Registry、Plugin Lifecycle、Event Bus | 这些是低 blast radius 且能支撑后续 Agent / Skill / Capability / Observability 演进的内核能力 | — Pending |
+| 未完成的 `v2.4` 冻结为历史 planning context，而不是自动并入 `v3.0` committed scope | 避免把插件数据治理尾项与更大平台升级混成单个失控 milestone | — Pending |
 
 ## Evolution
 
@@ -176,4 +182,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-20 after starting milestone v2.4 Plugin Data Architecture & Default Plugins*
+*Last updated: 2026-05-21 after starting milestone v3.0 AI Native Educational OS Upgrade*
