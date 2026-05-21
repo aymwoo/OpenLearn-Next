@@ -61,17 +61,33 @@ function includesAll(source: string, tokens: readonly string[]) {
   return tokens.every((token) => source.includes(token));
 }
 
+function verifyReasonAwareRecoverySurface(source: string) {
+  return includesAll(source, [
+    "const submitRecoveryAction = ",
+    "transitionPluginLifecycleAction",
+    "retryPluginAction",
+    "reconcilePluginAction",
+    'plugin.recommendedRecoveryAction',
+    '? submitRecoveryAction(plugin)',
+    ': submitToggle(plugin)',
+  ]);
+}
+
 async function main() {
   console.log("==================================================");
   console.log("Starting Phase 52 Action Registry Verification...");
   console.log("==================================================");
 
   const packageSource = read("package.json");
-  const registrySource = read("src/features/platform-core/actions/registry.ts");
+  const actionRegistrySource = read("src/features/platform-core/actions/registry.ts");
+  const commandContractsSource = read("src/features/platform-core/commands/contracts.ts");
+  const commandRegistrySource = read("src/features/platform-core/commands/registry.ts");
+  const producerSource = read("src/features/platform-core/commands/producers/plugin-governance.ts");
   const actionsSource = read("src/actions/plugin-actions.ts");
   const hostSource = read("src/features/runtime-platform/host-actions/plugin-host.ts");
   const handlerSource = read("src/features/platform-core/commands/handlers/plugins.ts");
   const dependencyGraphSource = read("src/features/platform-core/plugins/dependency-graph.ts");
+  const governanceProjectionSource = read("src/features/platform-core/plugins/governance-projection.ts");
   const settingsSurfaceSource = read("src/components/surfaces/settings-surface.tsx");
   const surfaceSource = read("src/components/surfaces/plugin-lifecycle-operator-surface.tsx");
   const dalSource = read("src/lib/dal/plugins.ts");
@@ -83,13 +99,41 @@ async function main() {
     },
     {
       label: "registry exports executable catalog, blocked diagnostics, and lifecycle read model",
-      passed: includesAll(registrySource, [
+      passed: includesAll(actionRegistrySource, [
         "export async function readExecutableActionCatalog",
         "export async function readBlockedActionDiagnostics",
         "export async function readPluginGovernanceLifecycle",
         "blockedActionDiagnostics",
         "executableActionCatalog",
       ]),
+    },
+    {
+      label: "plugin.reconcile is wired through command contracts, registry, producer, server actions, and host adapters",
+      passed:
+        includesAll(commandContractsSource, [
+          '"plugin.reconcile"',
+          'PluginReconcilePayloadSchema',
+          'type: z.literal("plugin.reconcile")',
+        ]) &&
+        includesAll(commandRegistrySource, [
+          '"plugin.reconcile": createPlatformCommandDefinition',
+          'payloadSchema: PlatformCommandPayloadSchemas["plugin.reconcile"]',
+          'authorize: pluginCommandHandlers["plugin.reconcile"].authorize',
+          'execute: pluginCommandHandlers["plugin.reconcile"].execute',
+        ]) &&
+        includesAll(producerSource, [
+          'BaseProducerInput<"plugin.reconcile"',
+          'export async function producePluginReconcileCommand',
+        ]) &&
+        includesAll(actionsSource, [
+          'export async function reconcilePluginAction',
+          'type: "plugin.reconcile"',
+        ]) &&
+        includesAll(hostSource, [
+          '"plugin.reconcile"',
+          'case "plugin.reconcile":',
+          'return action === "plugin.reconcile"',
+        ]),
     },
     {
       label: "server actions consume unified registry read APIs and preserve retention mode",
@@ -100,6 +144,20 @@ async function main() {
         'retentionMode: parsed.data.retentionMode',
         'confirmationToken: parsed.data.confirmationToken',
       ]),
+    },
+    {
+      label: "DAL and governance projection keep retained uninstall metadata wired to external uninstalled state",
+      passed:
+        includesAll(dalSource, [
+          'uninstalledAt: row.uninstalledAt',
+          'uninstallRetentionMode: row.uninstallRetentionMode',
+        ]) &&
+        includesAll(governanceProjectionSource, [
+          'input.uninstallRetentionMode === "retain" && input.uninstalledAt !== null',
+          'return "uninstalled"',
+          'reasonCode = "not_installed"',
+          'recoveryAction = null',
+        ]),
     },
     {
       label: "plugin host reads lifecycle through registry and gates recovery writes by reason code",
@@ -115,14 +173,14 @@ async function main() {
       ]),
     },
     {
-      label: "operator surface keeps governance diagnostics behind explicit entry and cleanup opt-in",
+      label: "operator surface keeps governance diagnostics behind explicit entry, cleanup opt-in, and reason-aware recovery dispatch",
       passed: includesAll(surfaceSource, [
         "dashboard: GovernanceDashboardBundle",
         "查看治理诊断",
         "retain 为默认姿态；cleanup 需要显式 opt-in 与确认。",
         "我已确认 cleanup 会删除以上分类数据，并且这是显式的破坏性操作。",
         "该插件由系统提供，可启用或停用，但不会作为可删除扩展处理。",
-      ]) && !includesAll(surfaceSource, [
+      ]) && verifyReasonAwareRecoverySurface(surfaceSource) && !includesAll(surfaceSource, [
         "PluginRegistrationDTO",
         "lifecycleCopyMap",
         "isExecutablePlugin",
@@ -192,6 +250,7 @@ async function main() {
   runVitest([
     "src/features/platform-core/actions/static-catalog.test.ts",
     "src/features/platform-core/commands/handlers/plugins.test.ts",
+    "src/actions/plugin-actions.test.ts",
     "src/features/platform-core/plugins/governance-projection.test.ts",
     "src/features/runtime-platform/host-actions/plugin-host.phase52.test.ts",
     "src/components/surfaces/plugin-lifecycle-operator-surface.test.tsx",
