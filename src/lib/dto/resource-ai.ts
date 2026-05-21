@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { AsyncTaskOutcomeCountsSchema, AsyncTaskOutcomeStatusSchema, AsyncTaskResultSummarySchema } from "@/features/async-tasks/shared/contract";
+import {
+  BlockedActionDiagnosticRowSchema,
+  ExecutableActionCatalogRowSchema,
+} from "@/features/platform-core/actions/contracts";
 
 import { PluginManifestGovernanceV2Schema } from "@/features/runtime-platform/contracts/descriptors";
 import { PluginPermissionSchema, PluginLifecycleStateSchema } from "@/features/runtime-platform/contracts/permissions";
@@ -114,6 +118,12 @@ export const AgentRegistryDTOSchema = z.object({
   enabled: z.boolean(),
 });
 export type AgentRegistryDTO = z.infer<typeof AgentRegistryDTOSchema>;
+
+export const ActionCatalogDTOSchema = z.array(ExecutableActionCatalogRowSchema);
+export type ActionCatalogDTO = z.infer<typeof ActionCatalogDTOSchema>;
+
+export const ActionBlockedDiagnosticDTOSchema = z.array(BlockedActionDiagnosticRowSchema);
+export type ActionBlockedDiagnosticDTO = z.infer<typeof ActionBlockedDiagnosticDTOSchema>;
 
 export const AgentProposalDTOSchema = z.object({
   id: z.string(),
