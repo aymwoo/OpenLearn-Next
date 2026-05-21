@@ -72,8 +72,20 @@ Plans:
   3. 学校操作员可以区分 `installed`、`enabled`、`active`、`suspended`、`uninstalled` 状态，且 built-in / default plugins 复用同一 lifecycle model。
   4. 插件会按依赖顺序激活；缺依赖、循环依赖或激活失败时，系统会阻止半启动状态并归因到具体插件或模块。
   5. `disable`、`suspend` 与 `uninstall` 会体现不同治理语义：前两者停止运行能力但默认保留数据，卸载前会明确 retention / cleanup 影响。
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
+
+Plans:
+- **Wave 1** *(parallel)*
+  - [ ] 52-01-PLAN.md — Define typed action descriptor contracts and build the static descriptor source with duplicate-key rejection.
+  - [ ] 52-02-PLAN.md — Add external lifecycle governance projection, dependency ordering, failure attribution, and retain/cleanup semantics.
+- **Wave 2** *(blocked on Wave 1 completion)*
+  - [ ] 52-03-PLAN.md — Wire executable catalog and governance diagnostics into host/server/UI surfaces, then add `verify:phase52`.
+
+Cross-cutting constraints:
+- 主 action catalog 只暴露当前可执行 actions；blocked actions 只能在 operator/governance diagnostics 中可见。
+- `src/server/plugins/registry.ts` 继续只是 static implementation catalog，不能恢复动态 authority。
+- 恢复路径必须显式走 `enable` / `retry` / `resume` / `reconcile`，不得隐式 auto-recovery。
 
 ### Phase 53: Platform Event Bus & Execution Observability
 **Goal**: 平台可以把 command 执行结果转化为 typed events、durable outbox truth 与最小 operator-visible observability，而不把事件系统变成新的真相源。
