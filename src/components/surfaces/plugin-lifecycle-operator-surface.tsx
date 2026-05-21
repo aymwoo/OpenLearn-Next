@@ -74,6 +74,12 @@ function getPrimaryActionLabel(
   return row.lifecycleState === "active" ? "停用插件" : "启用插件";
 }
 
+function showPrimaryLifecycleAction(
+  row: GovernanceDashboardBundle["pluginLifecycleRows"][number],
+) {
+  return row.lifecycleState !== "uninstalled";
+}
+
 function shouldEnablePlugin(
   row: GovernanceDashboardBundle["pluginLifecycleRows"][number],
 ) {
@@ -372,41 +378,47 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
                         ? recoveryActionLabel[plugin.recommendedRecoveryAction]
                         : "无"}
                     </p>
-                    {plugin.builtIn || plugin.nonDeletable ? (
-                      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                        该插件由系统提供，可启用或停用，但不会作为可删除扩展处理。
-                      </p>
-                    ) : (
-                      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                        停用 ≠ 卸载。卸载默认 retain；只有显式选择 cleanup 并确认后才会进入清理分支。
-                      </p>
-                    )}
+                     {plugin.builtIn || plugin.nonDeletable ? (
+                       <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                         该插件由系统提供，可启用或停用，但不会作为可删除扩展处理。
+                       </p>
+                     ) : plugin.lifecycleState === "uninstalled" ? (
+                       <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                         该插件处于 retain-uninstall 审计态；历史数据保留，但不会作为当前可执行扩展参与治理动作。
+                       </p>
+                     ) : (
+                       <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                         停用 ≠ 卸载。卸载默认 retain；只有显式选择 cleanup 并确认后才会进入清理分支。
+                       </p>
+                     )}
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="min-h-10 px-4 text-sm shadow-none"
-                    onClick={() => submitToggle(plugin)}
-                    disabled={isPending || !schoolId}
-                  >
-                    {getPrimaryActionLabel(plugin)}
-                  </Button>
-
-                  {plugin.lifecycleState === "active" ? (
+                {showPrimaryLifecycleAction(plugin) ? (
+                  <div className="mt-4 flex flex-wrap gap-3">
                     <Button
                       type="button"
                       variant="secondary"
                       className="min-h-10 px-4 text-sm shadow-none"
-                      onClick={() => submitKillSwitch(plugin, true)}
-                      disabled={isPending}
+                      onClick={() => submitToggle(plugin)}
+                      disabled={isPending || !schoolId}
                     >
-                      紧急挂起
+                      {getPrimaryActionLabel(plugin)}
                     </Button>
-                  ) : null}
-                </div>
+
+                    {plugin.lifecycleState === "active" ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="min-h-10 px-4 text-sm shadow-none"
+                        onClick={() => submitKillSwitch(plugin, true)}
+                        disabled={isPending}
+                      >
+                        紧急挂起
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className="mt-4 rounded-[1.5rem] bg-surface-container-low px-4 py-4">
                   <p className="text-sm font-semibold text-on-surface">运行保护与卸载</p>

@@ -297,6 +297,55 @@ const dashboardBundle: GovernanceDashboardBundle = {
         },
       ],
     },
+    {
+      pluginId: "plugin-uninstalled",
+      pluginKey: "vendor/uninstalled",
+      name: "审计卸载插件",
+      sourceType: "external",
+      lifecycleState: "uninstalled",
+      internalLifecycleSubstate: "disabled",
+      reasonCode: "not_installed",
+      recommendedRecoveryAction: null,
+      builtIn: false,
+      defaultEnabled: false,
+      nonDeletable: false,
+      killSwitchEnabled: false,
+      blocked: true,
+      uninstall: {
+        posture: "retain",
+        cleanupRequested: false,
+        blocked: false,
+        reasonCode: null,
+        recommendedRecoveryAction: null,
+        cleanupConfirmationToken: "cleanup:plugin-uninstalled:1:0:0:2:3",
+        preflightSummary: {
+          lessonExtCount: 1,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 2,
+          totalCount: 3,
+        },
+      },
+      executableActionCatalog: [],
+      blockedActionDiagnostics: [
+        {
+          actionKey: "createNotificationStub",
+          ownerType: "external-plugin",
+          ownerPluginKey: "vendor/uninstalled",
+          inputSchemaKey: "plugin-action.payload.generic",
+          requiredPermission: null,
+          sideEffectClass: "notification-stub",
+          implementationSource: "main-repo-static-implementation",
+          ownerPluginId: "plugin-uninstalled",
+          ownerDisplayName: "审计卸载插件",
+          lifecycleState: "uninstalled",
+          catalogView: "blocked-diagnostic",
+          internalLifecycleSubstate: "disabled",
+          reasonCode: "plugin_not_installed",
+          recommendedRecoveryAction: null,
+        },
+      ],
+    },
   ],
 };
 
@@ -419,5 +468,28 @@ describe("plugin lifecycle operator surface", () => {
         killSwitchEnabled: true,
       });
     });
+  });
+
+  it("renders uninstalled plugins as audit-only diagnostics without primary lifecycle action", async () => {
+    const { PluginLifecycleOperatorSurface } = await import("./plugin-lifecycle-operator-surface");
+
+    render(
+      <PluginLifecycleOperatorSurface
+        schoolId="school-1"
+        dashboard={dashboardBundle}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "查看治理诊断" }));
+
+    const pluginCard = screen.getByText("审计卸载插件", { selector: "p" }).closest("article");
+    expect(pluginCard).toBeTruthy();
+    expect(within(pluginCard!).getAllByText("已卸载").length).toBeGreaterThan(0);
+    expect(
+      within(pluginCard!).getByText("该插件处于 retain-uninstall 审计态；历史数据保留，但不会作为当前可执行扩展参与治理动作。"),
+    ).toBeTruthy();
+    expect(within(pluginCard!).queryByRole("button", { name: "启用插件" })).toBeNull();
+    expect(within(pluginCard!).queryByRole("button", { name: "重试恢复" })).toBeNull();
+    expect(within(pluginCard!).getByText("卸载前检查")).toBeTruthy();
   });
 });
