@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -13,10 +15,18 @@ import {
 } from "./bus";
 import {
   PlatformCommandValidationError,
+  PlatformCommandExecutionError,
   PlatformCommandPayloadSchemas,
   type PlatformCommand,
   type PlatformCommandDefinition,
 } from "./contracts";
+import type {
+  PlatformEvent,
+  PlatformFailureAttribution,
+  PlatformEventPublicationPort,
+} from "@/features/platform-core/events/contracts";
+
+const busSource = readFileSync("src/features/platform-core/commands/bus.ts", "utf8");
 
 function createStore(): PlatformCommandStore {
   const commands = new Map<string, {
@@ -94,12 +104,27 @@ describe("dispatchPlatformCommand", () => {
   let definition: PlatformCommandDefinition;
   let dependencies: PlatformCommandBusDependencies;
   let command: PlatformCommand;
+  let persistPlatformEvents: NonNullable<PlatformCommandBusDependencies["persistPlatformEvents"]>;
+  let publicationPort: PlatformEventPublicationPort;
 
   beforeEach(() => {
     authorize = vi.fn(async () => undefined);
     execute = vi.fn(async () => ({
       resultSummary: { ok: true },
       invalidation: { tags: ["plugin:registry"] },
+      emittedEvents: [
+        {
+          eventType: "platform.command.succeeded",
+          category: "outcome",
+          aggregateType: "plugin",
+          aggregateId: "plugin-1",
+          payload: {
+            commandType: "plugin.enable",
+            invalidationTags: ["plugin:registry"],
+            resultSummary: { ok: true },
+          },
+        },
+      ],
     }));
 
     definition = {
@@ -110,11 +135,63 @@ describe("dispatchPlatformCommand", () => {
       execute: execute as PlatformCommandDefinition<"plugin.enable">["execute"],
     };
 
+    persistPlatformEvents = vi.fn<NonNullable<PlatformCommandBusDependencies["persistPlatformEvents"]>>(async (input) => ({
+      events: input.events.map((event: PlatformEvent, index: number) => ({
+        id: `event-${index + 1}`,
+        commandId: input.commandId,
+        attemptNumber: input.attemptNumber,
+        eventOrdinal: index + 1,
+        correlationId: input.correlationId,
+        causationId: input.causationId ?? null,
+        eventType: event.eventType,
+        category: event.category,
+        aggregateType: event.aggregateType,
+        aggregateId: event.aggregateId,
+        payloadSummaryJson: event.payload,
+        createdAt: new Date(),
+      })),
+      dispatches: input.events.map((_: PlatformEvent, index: number) => ({
+        id: `dispatch-${index + 1}`,
+        eventId: `event-${index + 1}`,
+        commandId: input.commandId,
+        attemptNumber: input.attemptNumber,
+        correlationId: input.correlationId,
+        causationId: input.causationId ?? null,
+        dispatchChannel: "in-process" as const,
+        dispatchStatus: "pending" as const,
+        adapterId: null,
+        failureReason: null,
+        createdAt: new Date(),
+        deliveredAt: null,
+        failedAt: null,
+      })),
+    }));
+
+    publicationPort = {
+      id: "in-process-default",
+      ownership: {
+        sourceOfTruth: "sqlite-platform-event-ledger",
+        delivery: "in-process",
+        posture: "ledger-first",
+        notes: [],
+      },
+      describeOwnership: vi.fn<PlatformEventPublicationPort["describeOwnership"]>(() => ({
+        sourceOfTruth: "sqlite-platform-event-ledger",
+        delivery: "in-process" as const,
+        posture: "ledger-first",
+        notes: [],
+      })),
+      publishPersisted: vi.fn(async () => undefined),
+      subscribe: vi.fn(() => () => undefined),
+    };
+
     dependencies = {
       definitions: {
         "plugin.enable": definition,
       },
       store: createStore(),
+      persistPlatformEvents,
+      publicationPort,
     };
 
     command = {
@@ -200,6 +277,25 @@ describe("dispatchPlatformCommand", () => {
     const stored = await dependencies.store.getCommand(command.id);
     expect(stored?.status).toBe("succeeded");
     expect(stored?.latestAttemptNumber).toBe(1);
+    expect(persistPlatformEvents).toHaveBeenCalledWith(expect.objectContaining({
+      commandId: "command-1",
+      attemptNumber: 1,
+      correlationId: "corr-1",
+      causationId: null,
+      invalidationTags: ["plugin:registry"],
+      events: [
+        expect.objectContaining({
+          eventType: "platform.command.succeeded",
+          aggregateId: "plugin-1",
+        }),
+      ],
+    }));
+    expect(publicationPort?.publishPersisted).toHaveBeenCalledWith({
+      commandId: "command-1",
+      attemptNumber: 1,
+      eventIds: ["event-1"],
+      dispatchIds: ["dispatch-1"],
+    });
   });
 
   it("records authorization failures as failed instead of leaving the command running", async () => {
@@ -221,6 +317,62 @@ describe("dispatchPlatformCommand", () => {
       }),
     ]);
     expect(execute).not.toHaveBeenCalled();
+    expect(persistPlatformEvents).toHaveBeenCalledWith(expect.objectContaining({
+      commandId: "command-1",
+      attemptNumber: 1,
+      correlationId: "corr-1",
+      events: [
+        expect.objectContaining({
+          eventType: "platform.command.failed",
+          aggregateId: "plugin-1",
+        }),
+      ],
+    }));
+  });
+
+  it("persists structured failure events from execution errors before rethrowing", async () => {
+    execute.mockRejectedValueOnce(new PlatformCommandExecutionError({
+      message: "PLUGIN_DEPENDENCY_BLOCKED:vendor/missing",
+      failureAttribution: {
+        scope: "dependency",
+        pluginId: "plugin-1",
+        reasonCode: "dependency_missing",
+        recommendedRecoveryAction: "reconcile",
+      },
+      failureEvent: {
+        eventType: "platform.command.failed",
+        category: "outcome",
+        aggregateType: "plugin",
+        aggregateId: "plugin-1",
+        payload: {
+          commandType: "plugin.enable",
+          reasonCode: "dependency_missing",
+          failureAttribution: {
+            scope: "dependency",
+            pluginId: "plugin-1",
+            reasonCode: "dependency_missing",
+            recommendedRecoveryAction: "reconcile",
+          },
+        },
+      },
+    }));
+
+    await expect(dispatchPlatformCommand(command, dependencies)).rejects.toThrow("PLUGIN_DEPENDENCY_BLOCKED:vendor/missing");
+
+    expect(persistPlatformEvents).toHaveBeenCalledWith(expect.objectContaining({
+      invalidationTags: [],
+      failureAttribution: {
+        scope: "dependency",
+        pluginId: "plugin-1",
+        reasonCode: "dependency_missing",
+        recommendedRecoveryAction: "reconcile",
+      },
+      events: [
+        expect.objectContaining({
+          eventType: "platform.command.failed",
+        }),
+      ],
+    }));
   });
 
   it("uses a per-dispatch unique dedupe key for optional dedupe commands without an explicit dedupe key", async () => {
@@ -237,6 +389,8 @@ describe("dispatchPlatformCommand", () => {
         "plugin.uninstall.preflight": optionalDefinition,
       },
       store: createStore(),
+      persistPlatformEvents,
+      publicationPort,
     };
 
     const preflightCommand: PlatformCommand = {
@@ -264,6 +418,11 @@ describe("dispatchPlatformCommand", () => {
 
     expect(first.commandId).toBe("preflight-1");
     expect(second.commandId).toBe("preflight-2");
+  });
+
+  it("does not import runtime transport or runtime outbox modules", () => {
+    expect(busSource).not.toContain("runtime-platform/seams/event-bus");
+    expect(busSource).not.toContain("runtimeEventOutbox");
   });
 });
 

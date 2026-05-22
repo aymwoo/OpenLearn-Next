@@ -394,6 +394,8 @@ export const platformCommands = sqliteTable(
     correlationJson: text("correlationJson", { mode: "json" }).notNull(),
     resultSummaryJson: text("resultSummaryJson", { mode: "json" }),
     failureDetailJson: text("failureDetailJson", { mode: "json" }),
+    invalidationTagsJson: text("invalidationTagsJson", { mode: "json" }),
+    failureAttributionJson: text("failureAttributionJson", { mode: "json" }),
     latestAttemptNumber: integer("latestAttemptNumber").notNull().default(0),
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
     updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
@@ -428,6 +430,65 @@ export const platformCommandAttempts = sqliteTable(
   (table) => [
     uniqueIndex("platformCommandAttempts_command_attempt_unique").on(table.commandId, table.attemptNumber),
     index("platformCommandAttempts_command_attempt_idx").on(table.commandId, table.attemptNumber),
+  ]
+);
+
+export const platformEvents = sqliteTable(
+  "platformEvent",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    commandId: text("commandId")
+      .notNull()
+      .references(() => platformCommands.id, { onDelete: "cascade" }),
+    attemptNumber: integer("attemptNumber").notNull(),
+    eventOrdinal: integer("eventOrdinal").notNull(),
+    correlationId: text("correlationId").notNull(),
+    causationId: text("causationId"),
+    eventType: text("eventType").notNull(),
+    category: text("category", { enum: ["outcome", "domain"] }).notNull(),
+    aggregateType: text("aggregateType").notNull(),
+    aggregateId: text("aggregateId").notNull(),
+    payloadSummaryJson: text("payloadSummaryJson", { mode: "json" }).notNull(),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("platformEvents_command_attempt_ordinal_unique").on(table.commandId, table.attemptNumber, table.eventOrdinal),
+    index("platformEvents_command_attempt_created_idx").on(table.commandId, table.attemptNumber, table.createdAt),
+    index("platformEvents_correlation_created_idx").on(table.correlationId, table.createdAt),
+    index("platformEvents_eventType_created_idx").on(table.eventType, table.createdAt),
+  ]
+);
+
+export const platformEventDispatches = sqliteTable(
+  "platformEventDispatch",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    eventId: text("eventId")
+      .notNull()
+      .references(() => platformEvents.id, { onDelete: "cascade" }),
+    commandId: text("commandId")
+      .notNull()
+      .references(() => platformCommands.id, { onDelete: "cascade" }),
+    attemptNumber: integer("attemptNumber").notNull(),
+    correlationId: text("correlationId").notNull(),
+    causationId: text("causationId"),
+    dispatchChannel: text("dispatchChannel", { enum: ["in-process", "redis-bridge", "websocket-bridge"] }).notNull(),
+    dispatchStatus: text("dispatchStatus", { enum: ["pending", "delivered", "failed"] }).notNull().default("pending"),
+    adapterId: text("adapterId"),
+    failureReason: text("failureReason"),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    deliveredAt: integer("deliveredAt", { mode: "timestamp_ms" }),
+    failedAt: integer("failedAt", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    uniqueIndex("platformEventDispatches_event_channel_unique").on(table.eventId, table.dispatchChannel),
+    index("platformEventDispatches_command_attempt_idx").on(table.commandId, table.attemptNumber, table.createdAt),
+    index("platformEventDispatches_status_channel_idx").on(table.dispatchStatus, table.dispatchChannel, table.createdAt),
+    index("platformEventDispatches_correlation_idx").on(table.correlationId, table.createdAt),
   ]
 );
 

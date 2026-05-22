@@ -171,9 +171,15 @@ describe("settings and plugin entry surfaces", () => {
   it("wires settings labs plugin management to operator lifecycle surface", () => {
     expect(settingsSurfaceSource).toContain("PluginLifecycleOperatorSurface");
     expect(settingsSurfaceSource).toContain("readGovernanceDashboardBundle");
+    expect(settingsSurfaceSource).toContain("listOperatorVisiblePlatformCommands");
+    expect(settingsSurfaceSource).toContain("getPlatformCommandWithTimeline");
     expect(settingsSurfaceSource).toContain("<PluginLifecycleOperatorSurface schoolId={schoolId} dashboard={dashboard} />");
     expect(settingsSurfaceSource).not.toContain("listPluginsAction");
     expect(settingsSurfaceSource).toContain("插件列表加载失败：{pluginLoadError}");
+    expect(settingsSurfaceSource).toContain("平台事件视图加载失败：{operatorLoadError}");
+    expect(settingsSurfaceSource).toContain("Platform Event Operator");
+    expect(settingsSurfaceSource).toContain("先看 command summary，再下钻 event timeline");
+    expect(settingsSurfaceSource).toContain('href={`/settings/labs?commandId=${encodeURIComponent(summary.commandId)}`}');
     expect(settingsSurfaceSource).toContain('href="/settings/labs/async-tasks"');
     expect(settingsSurfaceSource).toContain('href="/settings/labs/runtime-inspector"');
     expect(settingsSurfaceSource).toContain('href="/settings/plugins"');

@@ -2,9 +2,10 @@ import { z } from "zod";
 
 import { RuntimeActorScopeSchema } from "@/features/runtime-platform/contracts/permissions";
 import {
-  PlatformDomainEventSchema,
   PlatformFailureAttributionSchema,
   PlatformFailureEventSchema,
+  type PlatformFailureAttribution,
+  type PlatformFailureEvent,
   PlatformSuccessOrDomainEventSchema,
 } from "@/features/platform-core/events/contracts";
 
@@ -263,12 +264,28 @@ export class PlatformCommandValidationError extends Error {
   }
 }
 
+export class PlatformCommandExecutionError extends Error {
+  readonly failureAttribution: PlatformFailureAttribution;
+  readonly failureEvent: PlatformFailureEvent;
+
+  constructor(input: {
+    message: string;
+    failureAttribution: PlatformFailureAttribution;
+    failureEvent: PlatformFailureEvent;
+  }) {
+    super(input.message);
+    this.name = "PlatformCommandExecutionError";
+    this.failureAttribution = input.failureAttribution;
+    this.failureEvent = input.failureEvent;
+  }
+}
+
 export type PlatformCommandType = z.infer<typeof PlatformCommandTypeSchema>;
 export type PlatformCommand = z.infer<typeof PlatformCommandSchema>;
 export type PlatformCommandStatus = z.infer<typeof PlatformCommandResultStatusSchema>;
 export type PlatformCommandInvalidation = z.infer<typeof PlatformCommandInvalidationSchema>;
 export type PlatformCommandDispatchResult = z.infer<typeof PlatformCommandDispatchResultSchema>;
-export type PlatformCommandExecutionResult = z.input<typeof PlatformCommandExecutionResultSchema>;
+export type PlatformCommandExecutionResult = z.infer<typeof PlatformCommandExecutionResultSchema>;
 
 export type PlatformCommandDefinition<TType extends PlatformCommandType = PlatformCommandType> = {
   commandType: TType;

@@ -138,11 +138,17 @@ export type PlatformFailureEvent = z.infer<typeof PlatformFailureEventSchema>;
 export type PlatformFailureAttribution = z.infer<typeof PlatformFailureAttributionSchema>;
 export type PlatformEventBridgeOwnership = z.infer<typeof PlatformEventBridgeOwnershipSchema>;
 export type PlatformSuccessOrDomainEvent = z.infer<typeof PlatformSuccessOrDomainEventSchema>;
+export type PlatformPersistedDispatchBatch = {
+  commandId: string;
+  attemptNumber: number;
+  eventIds: string[];
+  dispatchIds: string[];
+};
 
 export type PlatformEventPublicationPort = {
   readonly id: string;
   readonly ownership: PlatformEventBridgeOwnership;
   describeOwnership(): PlatformEventBridgeOwnership;
-  publishPersisted(event: PlatformEvent): Promise<void>;
+  publishPersisted(batch: PlatformPersistedDispatchBatch): Promise<void>;
   subscribe(eventType: PlatformEvent["eventType"] | "*", handler: (event: PlatformEvent) => Promise<void>): () => void;
 };

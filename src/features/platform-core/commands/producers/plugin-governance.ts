@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { platformCommandAttempts, platformCommands } from "@/db/schema";
 import { dispatchPlatformCommand, type PersistedPlatformCommandRecord, type PlatformCommandStore } from "@/features/platform-core/commands/bus";
+import { defaultInProcessPlatformEventAdapter } from "@/features/platform-core/events/adapters/in-process";
 import type {
   PlatformCommand,
   PlatformCommandDispatchResult,
@@ -252,6 +253,7 @@ export async function dispatchPluginGovernanceCommand(input: DispatchPluginGover
     dedupeKey: input.dedupeKey,
   }, {
     store: platformCommandStore,
+    publicationPort: defaultInProcessPlatformEventAdapter,
   });
 
   return normalizeProducerResult(result);

@@ -1,6 +1,17 @@
 import "server-only";
 
 import {
+  appendPlatformEvents,
+  type PersistedPlatformEventDispatchRecord,
+  type PersistedPlatformEventRecord,
+} from "@/features/platform-core/events/ledger";
+import type {
+  PlatformEvent,
+  PlatformEventPublicationPort,
+} from "@/features/platform-core/events/contracts";
+
+import {
+  PlatformCommandExecutionError,
   PlatformCommandDispatchResultSchema,
   PlatformCommandSchema,
   PlatformCommandValidationError,
@@ -57,6 +68,19 @@ export type PlatformCommandStore = {
 export type PlatformCommandBusDependencies = {
   definitions?: Partial<Record<PlatformCommandType, PlatformCommandDefinition>>;
   store: PlatformCommandStore;
+  publicationPort?: PlatformEventPublicationPort;
+  persistPlatformEvents?: (input: {
+    commandId: string;
+    attemptNumber: number;
+    correlationId: string;
+    causationId?: string | null;
+    invalidationTags: string[];
+    failureAttribution?: PlatformCommandExecutionError["failureAttribution"] | null;
+    events: PlatformEvent[];
+  }) => Promise<{
+    events: PersistedPlatformEventRecord[];
+    dispatches: PersistedPlatformEventDispatchRecord[];
+  }>;
 };
 
 type DedupeResolution = {
@@ -129,6 +153,90 @@ function validate(commandInput: unknown, definition: PlatformCommandDefinition):
   } as PlatformCommand;
 }
 
+function inferFailureSemantics(command: PlatformCommand, error: unknown) {
+  if (error instanceof PlatformCommandExecutionError) {
+    return {
+      failureAttribution: error.failureAttribution,
+      failureEvent: error.failureEvent,
+    };
+  }
+
+  const message = error instanceof Error && error.message.trim()
+    ? error.message.trim()
+    : "PLATFORM_COMMAND_EXECUTION_FAILED";
+
+  const failureAttribution = message === "TEACHER_AUTH_REQUIRED" || message === "AUTH_REQUIRED"
+    ? {
+        scope: "operator" as const,
+        pluginId: command.scope.pluginId,
+        reasonCode: "authorization_required",
+        recommendedRecoveryAction: "reauthenticate",
+      }
+    : message.includes("DEPENDENCY") || message.includes("RECONCILE_BLOCKED")
+      ? {
+          scope: "dependency" as const,
+          pluginId: command.scope.pluginId,
+          reasonCode: message.includes("CYCLE") ? "dependency_cycle" : "dependency_missing",
+          recommendedRecoveryAction: "reconcile",
+        }
+      : message.includes("CLEANUP_CONFIRMATION_REQUIRED")
+        ? {
+            scope: "operator" as const,
+            pluginId: command.scope.pluginId,
+            reasonCode: "cleanup_confirmation_required",
+            recommendedRecoveryAction: "confirm_cleanup",
+          }
+        : message.includes("NOT_FOUND")
+          ? {
+              scope: "plugin" as const,
+              pluginId: command.scope.pluginId,
+              reasonCode: "not_installed",
+              recommendedRecoveryAction: "install",
+            }
+          : {
+              scope: "plugin" as const,
+              pluginId: command.scope.pluginId,
+              reasonCode: "command_execution_failed",
+              recommendedRecoveryAction: "retry",
+            };
+
+  return {
+    failureAttribution,
+    failureEvent: {
+      eventType: "platform.command.failed" as const,
+      category: "outcome" as const,
+      aggregateType: "plugin" as const,
+      aggregateId: command.scope.pluginId,
+      payload: {
+        commandType: command.type,
+        reasonCode: failureAttribution.reasonCode,
+        failureAttribution,
+      },
+    },
+  };
+}
+
+async function publishPersistedIfNeeded(
+  publicationPort: PlatformEventPublicationPort | undefined,
+  input: {
+    commandId: string;
+    attemptNumber: number;
+    events: PersistedPlatformEventRecord[];
+    dispatches: PersistedPlatformEventDispatchRecord[];
+  },
+) {
+  if (!publicationPort || input.dispatches.length === 0) {
+    return;
+  }
+
+  await publicationPort.publishPersisted({
+    commandId: input.commandId,
+    attemptNumber: input.attemptNumber,
+    eventIds: input.events.map((event) => event.id),
+    dispatchIds: input.dispatches.map((dispatch) => dispatch.id),
+  });
+}
+
 export async function dispatchPlatformCommand(
   commandInput: unknown,
   dependencies: PlatformCommandBusDependencies,
@@ -169,6 +277,7 @@ export async function dispatchPlatformCommand(
   command.id = activeCommandId;
   const existingRecord = await dependencies.store.getCommand(activeCommandId);
   const attemptNumber = (existingRecord?.latestAttemptNumber ?? 0) + 1;
+  const persistEvents = dependencies.persistPlatformEvents ?? appendPlatformEvents;
 
   try {
     await definition.authorize({ command });
@@ -200,6 +309,23 @@ export async function dispatchPlatformCommand(
       failureDetail: null,
     });
 
+    const persistedEvents = await persistEvents({
+      commandId: activeCommandId,
+      attemptNumber,
+      correlationId: command.correlation.correlationId,
+      causationId: command.correlation.causationId,
+      invalidationTags: invalidation.tags,
+      failureAttribution: null,
+      events: execution.emittedEvents ?? [],
+    });
+
+    await publishPersistedIfNeeded(dependencies.publicationPort, {
+      commandId: activeCommandId,
+      attemptNumber,
+      events: persistedEvents.events,
+      dispatches: persistedEvents.dispatches,
+    });
+
     return PlatformCommandDispatchResultSchema.parse({
       commandId: activeCommandId,
       attemptNumber,
@@ -211,6 +337,7 @@ export async function dispatchPlatformCommand(
     const failureDetail = {
       message: error instanceof Error ? error.message : "PLATFORM_COMMAND_EXECUTION_FAILED",
     };
+    const failure = inferFailureSemantics(command, error);
 
     // record failure
     await dependencies.store.appendAttempt({
@@ -226,6 +353,23 @@ export async function dispatchPlatformCommand(
       latestAttemptNumber: attemptNumber,
       failureDetail,
       resultSummary: null,
+    });
+
+    const persistedEvents = await persistEvents({
+      commandId: activeCommandId,
+      attemptNumber,
+      correlationId: command.correlation.correlationId,
+      causationId: command.correlation.causationId,
+      invalidationTags: [],
+      failureAttribution: failure.failureAttribution,
+      events: [failure.failureEvent],
+    });
+
+    await publishPersistedIfNeeded(dependencies.publicationPort, {
+      commandId: activeCommandId,
+      attemptNumber,
+      events: persistedEvents.events,
+      dispatches: persistedEvents.dispatches,
     });
 
     throw error;

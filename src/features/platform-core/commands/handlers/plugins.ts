@@ -9,6 +9,10 @@ import type { PluginManifest } from "@/lib/dto/resource-ai";
 import {
   readRegistryProjectionBundleForSchool,
 } from "@/features/platform-core/plugins/dependency-graph";
+import type {
+  PlatformFailureAttribution,
+  PlatformSuccessOrDomainEvent,
+} from "@/features/platform-core/events/contracts";
 import {
   installOrReconcilePluginWithTx,
   listPluginsForSchool,
@@ -20,7 +24,12 @@ import {
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { registerThemeTokens } from "@/lib/dal/themes";
 
-import type { PlatformCommand, PlatformCommandDefinition, PlatformCommandType } from "../contracts";
+import {
+  PlatformCommandExecutionError,
+  type PlatformCommand,
+  type PlatformCommandDefinition,
+  type PlatformCommandType,
+} from "../contracts";
 
 type InstallCommand = Extract<PlatformCommand, { type: "plugin.install" }>;
 type EnableCommand = Extract<PlatformCommand, { type: "plugin.enable" }>;
@@ -80,6 +89,57 @@ function buildLifecycleSummary(commandType: PlatformCommandType, pluginId: strin
   };
 }
 
+function buildSuccessEvent(input: {
+  aggregateId: string;
+  commandType: PlatformCommandType;
+  invalidationTags: string[];
+  resultSummary: Record<string, unknown> | null;
+}): PlatformSuccessOrDomainEvent {
+  return {
+    eventType: "platform.command.succeeded",
+    category: "outcome",
+    aggregateType: "plugin",
+    aggregateId: input.aggregateId,
+    payload: {
+      commandType: input.commandType,
+      invalidationTags: input.invalidationTags,
+      resultSummary: input.resultSummary,
+    },
+  };
+}
+
+function throwCommandFailure(input: {
+  commandType: PlatformCommandType;
+  pluginId: string;
+  message: string;
+  scope: PlatformFailureAttribution["scope"];
+  reasonCode: string;
+  recommendedRecoveryAction: string;
+}): never {
+  const failureAttribution: PlatformFailureAttribution = {
+    scope: input.scope,
+    pluginId: input.pluginId,
+    reasonCode: input.reasonCode,
+    recommendedRecoveryAction: input.recommendedRecoveryAction,
+  };
+
+  throw new PlatformCommandExecutionError({
+    message: input.message,
+    failureAttribution,
+    failureEvent: {
+      eventType: "platform.command.failed",
+      category: "outcome",
+      aggregateType: "plugin",
+      aggregateId: input.pluginId,
+      payload: {
+        commandType: input.commandType,
+        reasonCode: input.reasonCode,
+        failureAttribution,
+      },
+    },
+  });
+}
+
 async function executeInstall(input: ExecutionInput<InstallCommand>): Promise<ExecutionResult> {
   const { command } = input;
   const manifestJson = command.payload.manifestJson as PluginManifest;
@@ -95,13 +155,36 @@ async function executeInstall(input: ExecutionInput<InstallCommand>): Promise<Ex
     commandContext: createCommandContext(input),
   }));
 
+  const resultSummary = {
+    commandType: "plugin.install",
+    pluginId: record.id,
+    lifecycleState: record.lifecycleState,
+  };
+  const invalidation = buildPluginTags(record.id);
+
   return {
-    resultSummary: {
-      commandType: "plugin.install",
-      pluginId: record.id,
-      lifecycleState: record.lifecycleState,
-    },
-    invalidation: buildPluginTags(record.id),
+    resultSummary,
+    invalidation,
+    emittedEvents: [
+      buildSuccessEvent({
+        aggregateId: record.id,
+        commandType: command.type,
+        invalidationTags: invalidation.tags,
+        resultSummary,
+      }),
+      {
+        eventType: "plugin.installed",
+        category: "domain",
+        aggregateType: "plugin",
+        aggregateId: record.id,
+        payload: {
+          pluginId: record.id,
+          pluginKey: record.pluginKey,
+          installSource: record.installSource,
+          lifecycleState: record.lifecycleState,
+        },
+      },
+    ],
   };
 }
 
@@ -116,7 +199,14 @@ async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promis
   const currentPlugin = plugins.find((plugin) => plugin.id === targetPluginId);
 
   if (!currentPlugin) {
-    throw new Error("PLUGIN_NOT_FOUND");
+    throwCommandFailure({
+      commandType: command.type,
+      pluginId: targetPluginId,
+      message: "PLUGIN_NOT_FOUND",
+      scope: "plugin",
+      reasonCode: "not_installed",
+      recommendedRecoveryAction: "install",
+    });
   }
 
   await db.transaction(async (tx) => installOrReconcilePluginWithTx({
@@ -145,11 +235,25 @@ async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promis
   );
 
   if (activationChain.missingDependencies.length > 0) {
-    throw new Error(`PLUGIN_RECONCILE_BLOCKED:missing:${activationChain.missingDependencies.join(",")}`);
+    throwCommandFailure({
+      commandType: command.type,
+      pluginId: targetPluginId,
+      message: `PLUGIN_RECONCILE_BLOCKED:missing:${activationChain.missingDependencies.join(",")}`,
+      scope: "dependency",
+      reasonCode: "dependency_missing",
+      recommendedRecoveryAction: "reconcile",
+    });
   }
 
   if (activationChain.cycles.length > 0) {
-    throw new Error(`PLUGIN_RECONCILE_BLOCKED:cycle:${activationChain.cycles[0]?.join("->") ?? "unknown"}`);
+    throwCommandFailure({
+      commandType: command.type,
+      pluginId: targetPluginId,
+      message: `PLUGIN_RECONCILE_BLOCKED:cycle:${activationChain.cycles[0]?.join("->") ?? "unknown"}`,
+      scope: "dependency",
+      reasonCode: "dependency_cycle",
+      recommendedRecoveryAction: "reconcile",
+    });
   }
 
   let latestRecord: Awaited<ReturnType<typeof transitionPluginLifecycleWithTx>> | null = null;
@@ -172,17 +276,48 @@ async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promis
   });
 
   if (!latestRecord) {
-    throw new Error("PLUGIN_NOT_FOUND");
+    throwCommandFailure({
+      commandType: command.type,
+      pluginId: targetPluginId,
+      message: "PLUGIN_NOT_FOUND",
+      scope: "plugin",
+      reasonCode: "not_installed",
+      recommendedRecoveryAction: "install",
+    });
   }
 
+  const resultSummary = {
+    commandType: "plugin.reconcile",
+    pluginId: latestRecord.id,
+    lifecycleState: latestRecord.lifecycleState,
+    targetState,
+  };
+  const invalidation = buildPluginTags(latestRecord.id);
+
   return {
-    resultSummary: {
-      commandType: "plugin.reconcile",
-      pluginId: latestRecord.id,
-      lifecycleState: latestRecord.lifecycleState,
-      targetState,
-    },
-    invalidation: buildPluginTags(latestRecord.id),
+    resultSummary,
+    invalidation,
+    emittedEvents: [
+      buildSuccessEvent({
+        aggregateId: latestRecord.id,
+        commandType: command.type,
+        invalidationTags: invalidation.tags,
+        resultSummary,
+      }),
+      {
+        eventType: "plugin.lifecycle.changed",
+        category: "domain",
+        aggregateType: "plugin",
+        aggregateId: latestRecord.id,
+        payload: {
+          pluginId: latestRecord.id,
+          fromState: currentPlugin.lifecycleState,
+          toState: latestRecord.lifecycleState,
+          reasonCode: command.payload.reason,
+          transitionCounter: input.attemptNumber,
+        },
+      },
+    ],
   };
 }
 
@@ -194,12 +329,14 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
 ): Promise<ExecutionResult> {
   const { command } = input;
   let record: Awaited<ReturnType<typeof transitionPluginLifecycleWithTx>> | null = null;
+  let fromState: PluginLifecycleState | null = null;
 
   if (commandType === "plugin.enable" || commandType === "plugin.resume") {
     const plugins = await listPluginsForSchool({
       actorId: command.actor.actorId,
       schoolId: command.scope.schoolId,
     });
+    fromState = plugins.find((plugin) => plugin.id === command.scope.pluginId)?.lifecycleState ?? null;
     const activationChain = readRegistryProjectionBundleForSchool(
       plugins.map((plugin) => ({
         pluginId: plugin.id,
@@ -211,11 +348,25 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
     );
 
     if (activationChain.missingDependencies.length > 0) {
-      throw new Error(`PLUGIN_DEPENDENCY_BLOCKED:${activationChain.missingDependencies.join(",")}`);
+      throwCommandFailure({
+        commandType,
+        pluginId: command.scope.pluginId,
+        message: `PLUGIN_DEPENDENCY_BLOCKED:${activationChain.missingDependencies.join(",")}`,
+        scope: "dependency",
+        reasonCode: "dependency_missing",
+        recommendedRecoveryAction: "reconcile",
+      });
     }
 
     if (activationChain.cycles.length > 0) {
-      throw new Error(`PLUGIN_DEPENDENCY_CYCLE:${activationChain.cycles[0]?.join("->") ?? "unknown"}`);
+      throwCommandFailure({
+        commandType,
+        pluginId: command.scope.pluginId,
+        message: `PLUGIN_DEPENDENCY_CYCLE:${activationChain.cycles[0]?.join("->") ?? "unknown"}`,
+        scope: "dependency",
+        reasonCode: "dependency_cycle",
+        recommendedRecoveryAction: "reconcile",
+      });
     }
 
     record = await db.transaction(async (tx) => {
@@ -235,6 +386,11 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
       return latestRecord;
     });
   } else {
+    fromState = (await listPluginsForSchool({
+      actorId: command.actor.actorId,
+      schoolId: command.scope.schoolId,
+    })).find((plugin) => plugin.id === command.scope.pluginId)?.lifecycleState ?? null;
+
     record = await db.transaction(async (tx) => transitionPluginLifecycleWithTx({
       actorId: command.actor.actorId,
       schoolId: command.scope.schoolId,
@@ -248,7 +404,14 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
   }
 
   if (!record) {
-    throw new Error("PLUGIN_NOT_FOUND");
+    throwCommandFailure({
+      commandType,
+      pluginId: command.scope.pluginId,
+      message: "PLUGIN_NOT_FOUND",
+      scope: "plugin",
+      reasonCode: "not_installed",
+      recommendedRecoveryAction: "install",
+    });
   }
 
   let extraTags: string[] = [];
@@ -265,12 +428,36 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
     extraTags = ["theme:registry", `theme:${theme.id}`];
   }
 
+  const resultSummary = {
+    ...buildLifecycleSummary(commandType, record.id, record.lifecycleState),
+    registeredThemeId,
+  };
+  const invalidation = buildPluginTags(record.id, extraTags);
+
   return {
-    resultSummary: {
-      ...buildLifecycleSummary(commandType, record.id, record.lifecycleState),
-      registeredThemeId,
-    },
-    invalidation: buildPluginTags(record.id, extraTags),
+    resultSummary,
+    invalidation,
+    emittedEvents: [
+      buildSuccessEvent({
+        aggregateId: record.id,
+        commandType,
+        invalidationTags: invalidation.tags,
+        resultSummary,
+      }),
+      {
+        eventType: "plugin.lifecycle.changed",
+        category: "domain",
+        aggregateType: "plugin",
+        aggregateId: record.id,
+        payload: {
+          pluginId: record.id,
+          fromState,
+          toState: record.lifecycleState,
+          reasonCode: reason,
+          transitionCounter: input.attemptNumber,
+        },
+      },
+    ],
   };
 }
 
@@ -285,15 +472,38 @@ async function executeKillSwitchSet(input: ExecutionInput<KillSwitchCommand>): P
     commandContext: createCommandContext(input),
   }));
 
+  const resultSummary = {
+    commandType: "plugin.kill_switch.set",
+    pluginId: record.id,
+    lifecycleState: record.lifecycleState,
+    killSwitchEnabled: record.killSwitchEnabled,
+    reason: command.payload.reason,
+  };
+  const invalidation = buildPluginTags(record.id);
+
   return {
-    resultSummary: {
-      commandType: "plugin.kill_switch.set",
-      pluginId: record.id,
-      lifecycleState: record.lifecycleState,
-      killSwitchEnabled: record.killSwitchEnabled,
-      reason: command.payload.reason,
-    },
-    invalidation: buildPluginTags(record.id),
+    resultSummary,
+    invalidation,
+    emittedEvents: [
+      buildSuccessEvent({
+        aggregateId: record.id,
+        commandType: command.type,
+        invalidationTags: invalidation.tags,
+        resultSummary,
+      }),
+      {
+        eventType: "plugin.kill_switch.changed",
+        category: "domain",
+        aggregateType: "plugin",
+        aggregateId: record.id,
+        payload: {
+          pluginId: record.id,
+          enabled: record.killSwitchEnabled,
+          reasonCode: command.payload.reason,
+          toggleCounter: input.attemptNumber,
+        },
+      },
+    ],
   };
 }
 
@@ -308,17 +518,27 @@ async function executeUninstallPreflight(input: ExecutionInput<UninstallPrefligh
     commandContext: createCommandContext(input),
   }));
 
+  const resultSummary = {
+    commandType: "plugin.uninstall.preflight",
+    pluginId: command.scope.pluginId,
+    ...(result ?? {
+      blocked: false,
+      reason: null,
+      totalCount: 0,
+    }),
+  };
+
   return {
-    resultSummary: {
-      commandType: "plugin.uninstall.preflight",
-      pluginId: command.scope.pluginId,
-      ...(result ?? {
-        blocked: false,
-        reason: null,
-        totalCount: 0,
-      }),
-    },
+    resultSummary,
     invalidation: { tags: [] },
+    emittedEvents: [
+      buildSuccessEvent({
+        aggregateId: command.scope.pluginId,
+        commandType: command.type,
+        invalidationTags: [],
+        resultSummary,
+      }),
+    ],
   };
 }
 
@@ -326,7 +546,14 @@ async function executeUninstall(input: ExecutionInput<UninstallCommand>): Promis
   const { command } = input;
 
   if (command.payload.retentionMode === "cleanup" && !command.payload.confirmationToken) {
-    throw new Error("PLUGIN_CLEANUP_CONFIRMATION_REQUIRED");
+    throwCommandFailure({
+      commandType: command.type,
+      pluginId: command.scope.pluginId,
+      message: "PLUGIN_CLEANUP_CONFIRMATION_REQUIRED",
+      scope: "operator",
+      reasonCode: "cleanup_confirmation_required",
+      recommendedRecoveryAction: "confirm_cleanup",
+    });
   }
 
   const record = await db.transaction(async (tx) => uninstallPluginWithTx({
@@ -340,13 +567,24 @@ async function executeUninstall(input: ExecutionInput<UninstallCommand>): Promis
     commandContext: createCommandContext(input),
   }));
 
+  const resultSummary = {
+    commandType: "plugin.uninstall",
+    pluginId: command.scope.pluginId,
+    uninstalled: Boolean(record),
+  };
+  const invalidation = buildPluginTags(command.scope.pluginId);
+
   return {
-    resultSummary: {
-      commandType: "plugin.uninstall",
-      pluginId: command.scope.pluginId,
-      uninstalled: Boolean(record),
-    },
-    invalidation: buildPluginTags(command.scope.pluginId),
+    resultSummary,
+    invalidation,
+    emittedEvents: [
+      buildSuccessEvent({
+        aggregateId: command.scope.pluginId,
+        commandType: command.type,
+        invalidationTags: invalidation.tags,
+        resultSummary,
+      }),
+    ],
   };
 }
 
@@ -370,7 +608,14 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
   const { command, attemptNumber } = input;
 
   if (command.id !== command.payload.commandId) {
-    throw new Error("PLATFORM_COMMAND_RETRY_REQUIRES_STABLE_COMMAND_ID");
+    throwCommandFailure({
+      commandType: command.type,
+      pluginId: command.scope.pluginId,
+      message: "PLATFORM_COMMAND_RETRY_REQUIRES_STABLE_COMMAND_ID",
+      scope: "operator",
+      reasonCode: "retry_identity_mismatch",
+      recommendedRecoveryAction: "retry",
+    });
   }
 
   const existing = await loadRetriedCommand(command.payload.commandId);
@@ -408,12 +653,43 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
           lifecycleState: record.lifecycleState,
         },
         invalidation: buildPluginTags(record.id),
+        emittedEvents: [
+          buildSuccessEvent({
+            aggregateId: record.id,
+            commandType: command.type,
+            invalidationTags: buildPluginTags(record.id).tags,
+            resultSummary: {
+              commandType: "plugin.retry",
+              retriedCommandType: existing.commandType,
+              commandId: command.id,
+              attemptNumber,
+              pluginId: record.id,
+              lifecycleState: record.lifecycleState,
+            },
+          }),
+          {
+            eventType: "plugin.installed",
+            category: "domain",
+            aggregateType: "plugin",
+            aggregateId: record.id,
+            payload: {
+              pluginId: record.id,
+              pluginKey: record.pluginKey,
+              installSource: record.installSource,
+              lifecycleState: record.lifecycleState,
+            },
+          },
+        ],
       };
     }
     case "plugin.enable":
     case "plugin.disable":
     case "plugin.suspend":
     case "plugin.resume": {
+      const fromState = (await listPluginsForSchool({
+        actorId: command.actor.actorId,
+        schoolId: command.scope.schoolId,
+      })).find((plugin) => plugin.id === pluginId)?.lifecycleState ?? null;
       const targetState = existing.commandType === "plugin.enable" || existing.commandType === "plugin.resume"
         ? (retriedPayload.targetState === "mounted" || retriedPayload.targetState === "ready"
             ? retriedPayload.targetState
@@ -439,16 +715,40 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         commandContext,
       }));
 
-      return {
-        resultSummary: {
+      const resultSummary = {
           commandType: "plugin.retry",
           retriedCommandType: existing.commandType,
           commandId: command.id,
           attemptNumber,
           pluginId: record.id,
           lifecycleState: record.lifecycleState,
-        },
-        invalidation: buildPluginTags(record.id),
+        };
+      const invalidation = buildPluginTags(record.id);
+
+      return {
+        resultSummary,
+        invalidation,
+        emittedEvents: [
+          buildSuccessEvent({
+            aggregateId: record.id,
+            commandType: command.type,
+            invalidationTags: invalidation.tags,
+            resultSummary,
+          }),
+          {
+            eventType: "plugin.lifecycle.changed",
+            category: "domain",
+            aggregateType: "plugin",
+            aggregateId: record.id,
+            payload: {
+              pluginId: record.id,
+              fromState,
+              toState: record.lifecycleState,
+              reasonCode: typeof reason === "string" ? reason : "retry",
+              transitionCounter: attemptNumber,
+            },
+          },
+        ],
       };
     }
     case "plugin.uninstall": {
@@ -465,16 +765,27 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         commandContext,
       }));
 
-      return {
-        resultSummary: {
+      const resultSummary = {
           commandType: "plugin.retry",
           retriedCommandType: existing.commandType,
           commandId: command.id,
           attemptNumber,
           pluginId,
           uninstalled: true,
-        },
-        invalidation: buildPluginTags(pluginId),
+        };
+      const invalidation = buildPluginTags(pluginId);
+
+      return {
+        resultSummary,
+        invalidation,
+        emittedEvents: [
+          buildSuccessEvent({
+            aggregateId: pluginId,
+            commandType: command.type,
+            invalidationTags: invalidation.tags,
+            resultSummary,
+          }),
+        ],
       };
     }
     case "plugin.kill_switch.set": {
@@ -487,8 +798,7 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         commandContext,
       }));
 
-      return {
-        resultSummary: {
+      const resultSummary = {
           commandType: "plugin.retry",
           retriedCommandType: existing.commandType,
           commandId: command.id,
@@ -496,8 +806,32 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
           pluginId: record.id,
           lifecycleState: record.lifecycleState,
           killSwitchEnabled: record.killSwitchEnabled,
-        },
-        invalidation: buildPluginTags(record.id),
+        };
+      const invalidation = buildPluginTags(record.id);
+
+      return {
+        resultSummary,
+        invalidation,
+        emittedEvents: [
+          buildSuccessEvent({
+            aggregateId: record.id,
+            commandType: command.type,
+            invalidationTags: invalidation.tags,
+            resultSummary,
+          }),
+          {
+            eventType: "plugin.kill_switch.changed",
+            category: "domain",
+            aggregateType: "plugin",
+            aggregateId: record.id,
+            payload: {
+              pluginId: record.id,
+              enabled: record.killSwitchEnabled,
+              reasonCode: command.payload.reason,
+              toggleCounter: attemptNumber,
+            },
+          },
+        ],
       };
     }
     default:

@@ -17,6 +17,10 @@ import {
   readGovernanceDashboardBundle,
   type GovernanceDashboardBundle,
 } from "@/features/platform-core/actions/registry";
+import {
+  getPlatformCommandWithTimeline,
+  listOperatorVisiblePlatformCommands,
+} from "@/features/platform-core/observability/operator-read-model";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { setSystemTransportModeAction } from "@/actions/system-transport-settings-actions";
 import { setActiveThemeAction } from "@/actions/theme-actions";
@@ -33,6 +37,7 @@ import { cn } from "@/lib/utils";
 
 type SettingsSurfaceProps = {
   mode: "general" | "labs";
+  selectedCommandId?: string | null;
 };
 
 const settingsSections = [
@@ -66,12 +71,20 @@ function getThemeStructureSummary(
   };
 }
 
-export async function SettingsSurface({ mode }: SettingsSurfaceProps) {
+export async function SettingsSurface({
+  mode,
+  selectedCommandId = null,
+}: SettingsSurfaceProps) {
   const schoolIds = await getCurrentUserSchoolIds();
   const schoolId = schoolIds[0] ?? null;
 
   if (mode === "labs") {
-    return <LabsSettingsSurface schoolId={schoolId} />;
+    return (
+      <LabsSettingsSurface
+        schoolId={schoolId}
+        selectedCommandId={selectedCommandId}
+      />
+    );
   }
 
   return <GeneralSettingsSurface schoolId={schoolId} />;
@@ -407,7 +420,13 @@ async function GeneralSettingsSurface({
   );
 }
 
-async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
+async function LabsSettingsSurface({
+  schoolId,
+  selectedCommandId,
+}: {
+  schoolId: string | null;
+  selectedCommandId: string | null;
+}) {
   const emptyDashboard: GovernanceDashboardBundle = {
     executableActionCatalog: [],
     blockedActionDiagnostics: [],
@@ -415,6 +434,13 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
   };
   let dashboard = emptyDashboard;
   let pluginLoadError: string | null = null;
+  let operatorLoadError: string | null = null;
+  let commandSummaries = [] as Awaited<
+    ReturnType<typeof listOperatorVisiblePlatformCommands>
+  >;
+  let selectedCommand = null as Awaited<
+    ReturnType<typeof getPlatformCommandWithTimeline>
+  > | null;
 
   if (schoolId) {
     try {
@@ -430,6 +456,29 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
       }
     } catch (error) {
       pluginLoadError = error instanceof Error ? error.message : "PLUGIN_LIST_FAILED";
+    }
+
+    try {
+      commandSummaries = await listOperatorVisiblePlatformCommands({
+        schoolIds: [schoolId],
+        limit: 6,
+      });
+
+      if (selectedCommandId) {
+        const detail = await getPlatformCommandWithTimeline({
+          commandId: selectedCommandId,
+          schoolIds: [schoolId],
+        });
+
+        if (detail.command) {
+          selectedCommand = detail;
+        } else {
+          operatorLoadError = "PLATFORM_COMMAND_NOT_FOUND";
+        }
+      }
+    } catch (error) {
+      operatorLoadError =
+        error instanceof Error ? error.message : "PLATFORM_OPERATOR_LOAD_FAILED";
     }
   }
   return (
@@ -589,6 +638,147 @@ async function LabsSettingsSurface({ schoolId }: { schoolId: string | null }) {
             <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
               <div className="flex items-center justify-between gap-3">
                 <div>
+                  <p className="text-sm text-on-surface-variant">Platform Event Operator</p>
+                  <p className="mt-2 text-lg font-semibold text-on-surface">
+                    先看 command summary，再下钻 event timeline
+                  </p>
+                </div>
+                <Badge className="bg-surface-container-lowest text-on-surface-variant">
+                  Phase 53
+                </Badge>
+              </div>
+
+              {operatorLoadError ? (
+                <div className="mt-4 rounded-[1.5rem] bg-error-container px-4 py-4 text-sm leading-6 text-on-error-container">
+                  平台事件视图加载失败：{operatorLoadError}
+                </div>
+              ) : (
+                <>
+                  <div className="mt-4 grid gap-3">
+                    {commandSummaries.length === 0 ? (
+                      <div className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-sm leading-6 text-on-surface-variant shadow-ambient">
+                        当前还没有可供 operator 查看的 platform command 执行记录。
+                      </div>
+                    ) : (
+                      commandSummaries.map((summary) => {
+                        const isSelected = selectedCommand?.command?.commandId === summary.commandId;
+
+                        return (
+                          <Link
+                            key={summary.commandId}
+                            href={`/settings/labs?commandId=${encodeURIComponent(summary.commandId)}`}
+                            className={cn(
+                              teacherSurfaceRhythm.card,
+                              "bg-surface-container-lowest px-4 py-4 shadow-ambient transition hover:bg-surface-container-lowest/90",
+                              isSelected ? "ring-2 ring-primary/30" : null,
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Badge className={getPlatformCommandStatusTone(summary.status)}>
+                                    {summary.statusLabel}
+                                  </Badge>
+                                  <Badge className="bg-surface-container-low text-on-surface-variant">
+                                    {summary.commandType}
+                                  </Badge>
+                                </div>
+                                <p className="mt-3 font-semibold text-on-surface">
+                                  {summary.pluginId ?? summary.commandId}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                                  {summary.failureSummaryLabel ?? summary.resultSummaryLabel}
+                                </p>
+                                <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+                                  invalidation: {summary.invalidationIntent.label}
+                                </p>
+                              </div>
+                              <ChevronRight className="mt-1 size-4 text-primary" aria-hidden />
+                            </div>
+                          </Link>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {selectedCommand?.command ? (
+                    <div className="mt-5 rounded-[1.5rem] bg-surface-container-lowest p-4 shadow-ambient">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm text-on-surface-variant">Execution Detail</p>
+                          <p className="mt-2 font-semibold text-on-surface">
+                            {selectedCommand.command.commandType} · {selectedCommand.command.pluginId ?? selectedCommand.command.commandId}
+                          </p>
+                        </div>
+                        <Link
+                          href="/settings/labs"
+                          className="rounded-full bg-surface-container-low px-3 py-2 text-xs font-medium text-primary"
+                        >
+                          清除选择
+                        </Link>
+                      </div>
+
+                      <div className="mt-4 grid gap-3">
+                        <div className="rounded-[1.25rem] bg-surface-container-low px-4 py-4">
+                          <p className="text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+                            Result Summary
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-on-surface">
+                            {selectedCommand.command.failureSummaryLabel ?? selectedCommand.command.resultSummaryLabel}
+                          </p>
+                        </div>
+                        <div className="rounded-[1.25rem] bg-surface-container-low px-4 py-4">
+                          <p className="text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+                            Invalidation Intent
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-on-surface">
+                            {selectedCommand.command.invalidationIntent.label}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid gap-3">
+                        {selectedCommand.timeline.length === 0 ? (
+                          <div className="rounded-[1.25rem] bg-surface-container-low px-4 py-4 text-sm leading-6 text-on-surface-variant">
+                            当前 command 还没有持久化 event timeline。
+                          </div>
+                        ) : (
+                          selectedCommand.timeline.map((event) => (
+                            <div
+                              key={event.id}
+                              className="rounded-[1.25rem] bg-surface-container-low px-4 py-4"
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge className="bg-surface-container-lowest text-on-surface-variant">
+                                  attempt #{event.attemptNumber}
+                                </Badge>
+                                <Badge className="bg-surface-container-lowest text-on-surface-variant">
+                                  {event.eventType}
+                                </Badge>
+                              </div>
+                              <p className="mt-3 text-sm leading-6 text-on-surface">
+                                {event.payloadSummaryLabel}
+                              </p>
+                              <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+                                {new Date(event.occurredAt).toLocaleString()}
+                              </p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ) : commandSummaries.length > 0 ? (
+                    <div className="mt-5 rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-sm leading-6 text-on-surface-variant shadow-ambient">
+                      选择一条 execution summary 查看 event timeline。
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </section>
+
+            <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
+              <div className="flex items-center justify-between gap-3">
+                <div>
                   <p className="text-sm text-on-surface-variant">插件管理</p>
                   <p className="mt-2 text-lg font-semibold text-on-surface">
                     按学校启停安全插件
@@ -695,6 +885,19 @@ function QuickLink({
       </div>
     </Link>
   );
+}
+
+function getPlatformCommandStatusTone(status: string) {
+  switch (status) {
+    case "succeeded":
+      return "bg-primary/15 text-primary";
+    case "failed":
+      return "bg-[#fff1f2] text-[#b31b25]";
+    case "running":
+      return "bg-[#eef6ff] text-[#1d4ed8]";
+    default:
+      return "bg-surface-container-low text-on-surface-variant";
+  }
 }
 
 function SeatCard({
