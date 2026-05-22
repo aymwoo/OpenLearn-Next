@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Teaching Orchestration & Classroom Intelligence
 status: executing
-stopped_at: Completed 54-ai-native-contract-exposure-01-PLAN.md
-last_updated: "2026-05-22T14:15:21.392Z"
-last_activity: 2026-05-22 -- Completed Phase 54 plan 01
+stopped_at: Completed 54-ai-native-contract-exposure-02-PLAN.md
+last_updated: "2026-05-22T14:28:05Z"
+last_activity: 2026-05-22 -- Completed Phase 54 plan 02
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: `.planning/PROJECT.md` (updated 2026-05-21)
 
 Milestone: v3.0 -- AI Native Educational OS Upgrade
 Phase: 54 (ai-native-contract-exposure) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
-Last activity: 2026-05-22 -- Completed Phase 54 plan 01
+Last activity: 2026-05-22 -- Completed Phase 54 plan 02
 Progress: [█████████░] 86%
 Next queued phase: 54 -- AI-Native Contract Exposure
 
@@ -61,6 +61,7 @@ Next queued phase: 54 -- AI-Native Contract Exposure
 | Phase 52 P07 | 4 min | 2 tasks | 9 files |
 | Phase 52 P08 | 7 min | 2 tasks | 5 files |
 | Phase 54 P01 | 1 min | 1 task | 3 files |
+| Phase 54 P02 | 8 min | 1 task | 4 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 53]: `/settings/labs` exposes command-summary-first execution observability with timeline drill-down instead of a raw event console.
 - [Phase 53]: `verify:phase53` is the regression gate for event truth ownership, invalidation summary-only posture, and Phase 54 scope isolation.
 - [Phase 54]: AI-native discovery now uses one shared descriptor shell, and action descriptors preserve ActionDescriptorSchema semantics through sourceDescriptor parity checks.
+- [Phase 54]: AI-native discovery command descriptors now project strictly from `PlatformPluginGovernanceCommandTypes` instead of importing executable registry handlers.
+- [Phase 54]: Plan 02 exposes server-only `listPlatformCommands` / `listPlatformActions` / `listPlatformCapabilities` APIs so UI consumers stay on DTO/read-model boundaries.
 
 ### Pending Todos
 
@@ -114,6 +117,6 @@ None currently.
 
 ## Session Continuity
 
-Last session: 2026-05-22T14:15:21.387Z
-Stopped at: Completed 54-ai-native-contract-exposure-01-PLAN.md
+Last session: 2026-05-22T14:28:37.577Z
+Stopped at: Completed 54-ai-native-contract-exposure-02-PLAN.md
 Resume file: None

@@ -54,7 +54,7 @@
 - [x] **AINT-02**: 每个 descriptor 都声明 input schema、required capability、side-effect class、stability / version metadata。
 - [ ] **AINT-03**: command、event、audit metadata 支持 human actor、system actor、plugin actor、delegated agent actor。
 - [ ] **AINT-04**: delegated agent action 可以携带 delegation / approval metadata，而不是默认高权限执行。
-- [ ] **AINT-05**: `v3.0` 交付 agent-callable contracts，而不要求完整 Agent Runtime / Skill Runtime 落地。
+- [x] **AINT-05**: `v3.0` 交付 agent-callable contracts，而不要求完整 Agent Runtime / Skill Runtime 落地。
 
 ## Future Requirements
 
@@ -122,7 +122,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AINT-02 | Phase 54 | Complete |
 | AINT-03 | Phase 54 | Pending |
 | AINT-04 | Phase 54 | Pending |
-| AINT-05 | Phase 54 | Pending |
+| AINT-05 | Phase 54 | Complete |
 
 **Coverage:**
 - v3.0 requirements: 32 total
