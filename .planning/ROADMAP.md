@@ -130,7 +130,7 @@ Plans:
 Plans:
 - [x] 54-01-PLAN.md — Define shared AI-native descriptor contracts and outward DTO shell for command/action/capability discovery
 - [x] 54-02-PLAN.md — Project real command/action/capability descriptors into server-side registry and read-model APIs
-- [ ] 54-03-PLAN.md — Add delegated actor and approval metadata contracts without changing execution authority
+- [x] 54-03-PLAN.md — Add delegated actor and approval metadata contracts without changing execution authority
 - [ ] 54-04-PLAN.md — Add minimal discoverability surface and `verify:phase54` regression gate
 
 ## Progress
@@ -141,7 +141,7 @@ Plans:
 | 51. Command Bus Foundation | 3/3 | Complete   | 2026-05-21 |
 | 52. Action Registry & Plugin Lifecycle Governance | 8/8 | Complete   | 2026-05-21 |
 | 53. Platform Event Bus & Execution Observability | 4/4 | Complete | 2026-05-22 |
-| 54. AI-Native Contract Exposure | 2/4 | In Progress|  |
+| 54. AI-Native Contract Exposure | 3/4 | In Progress|  |
 
 ## Frozen Historical Context
 
