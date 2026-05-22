@@ -1,6 +1,12 @@
 import { z } from "zod";
 
 import { RuntimeActorScopeSchema } from "@/features/runtime-platform/contracts/permissions";
+import {
+  PlatformDomainEventSchema,
+  PlatformFailureAttributionSchema,
+  PlatformFailureEventSchema,
+  PlatformSuccessOrDomainEventSchema,
+} from "@/features/platform-core/events/contracts";
 
 export const PlatformPluginGovernanceCommandTypes = [
   "plugin.install",
@@ -224,6 +230,32 @@ export const PlatformCommandDispatchResultSchema = z.object({
   invalidation: PlatformCommandInvalidationSchema,
 });
 
+export const PlatformCommandExecutionResultSchema = z.object({
+  resultSummary: z.record(z.string(), z.unknown()).nullable(),
+  invalidation: PlatformCommandInvalidationSchema.default({ tags: [] }),
+  // D-53-07: handler-owned generic/domain event facts must be explicitly carried by execute() results.
+  emittedEvents: z.array(PlatformSuccessOrDomainEventSchema).default([]),
+  // D-53-08: failed commands emit exactly one generic failure event and never domain-change events.
+  failureEvent: PlatformFailureEventSchema.nullable().default(null),
+  failureAttribution: PlatformFailureAttributionSchema.nullable().default(null),
+}).superRefine((value, ctx) => {
+  if (value.failureEvent && value.emittedEvents.length > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Failed command results cannot include domain events when failureEvent is present",
+      path: ["emittedEvents"],
+    });
+  }
+
+  if (value.failureEvent && !value.failureAttribution) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "failureAttribution is required when failureEvent is present",
+      path: ["failureAttribution"],
+    });
+  }
+});
+
 export class PlatformCommandValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -236,14 +268,12 @@ export type PlatformCommand = z.infer<typeof PlatformCommandSchema>;
 export type PlatformCommandStatus = z.infer<typeof PlatformCommandResultStatusSchema>;
 export type PlatformCommandInvalidation = z.infer<typeof PlatformCommandInvalidationSchema>;
 export type PlatformCommandDispatchResult = z.infer<typeof PlatformCommandDispatchResultSchema>;
+export type PlatformCommandExecutionResult = z.input<typeof PlatformCommandExecutionResultSchema>;
 
 export type PlatformCommandDefinition<TType extends PlatformCommandType = PlatformCommandType> = {
   commandType: TType;
   payloadSchema: z.ZodTypeAny;
   dedupe: "required" | "optional";
   authorize: (input: { command: PlatformCommand }) => Promise<void> | void;
-  execute: (input: { command: PlatformCommand; attemptNumber: number }) => Promise<{
-    resultSummary: Record<string, unknown> | null;
-    invalidation?: PlatformCommandInvalidation;
-  }>;
+  execute: (input: { command: PlatformCommand; attemptNumber: number }) => Promise<PlatformCommandExecutionResult>;
 };
