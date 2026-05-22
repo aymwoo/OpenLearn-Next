@@ -50,8 +50,8 @@
 
 ### AI-Native Contract Exposure
 
-- [ ] **AINT-01**: 平台调用方可以列出 commands、actions、capabilities 的 machine-readable descriptors。
-- [ ] **AINT-02**: 每个 descriptor 都声明 input schema、required capability、side-effect class、stability / version metadata。
+- [x] **AINT-01**: 平台调用方可以列出 commands、actions、capabilities 的 machine-readable descriptors。
+- [x] **AINT-02**: 每个 descriptor 都声明 input schema、required capability、side-effect class、stability / version metadata。
 - [ ] **AINT-03**: command、event、audit metadata 支持 human actor、system actor、plugin actor、delegated agent actor。
 - [ ] **AINT-04**: delegated agent action 可以携带 delegation / approval metadata，而不是默认高权限执行。
 - [ ] **AINT-05**: `v3.0` 交付 agent-callable contracts，而不要求完整 Agent Runtime / Skill Runtime 落地。
@@ -118,8 +118,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EVNT-05 | Phase 53 | Pending |
 | EVNT-06 | Phase 53 | Pending |
 | EVNT-07 | Phase 53 | Pending |
-| AINT-01 | Phase 54 | Pending |
-| AINT-02 | Phase 54 | Pending |
+| AINT-01 | Phase 54 | Complete |
+| AINT-02 | Phase 54 | Complete |
 | AINT-03 | Phase 54 | Pending |
 | AINT-04 | Phase 54 | Pending |
 | AINT-05 | Phase 54 | Pending |
