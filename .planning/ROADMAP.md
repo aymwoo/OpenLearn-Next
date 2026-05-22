@@ -25,7 +25,7 @@
 - [x] **Phase 51: Command Bus Foundation** - 建立统一 command envelope、execution pipeline 与 durable command ledger。 (completed 2026-05-21)
 - [x] **Phase 52: Action Registry & Plugin Lifecycle Governance** - 让 action catalog 与 plugin lifecycle 进入同一受治理模型，并关闭 verification gaps。 (completed 2026-05-21)
 - [x] **Phase 53: Platform Event Bus & Execution Observability** - 为 command 结果建立 typed events、outbox truth 与 operator-visible execution summary。 (completed 2026-05-22)
-- [ ] **Phase 54: AI-Native Contract Exposure** - 暴露 machine-readable commands/actions/capabilities 与 delegated actor contract。
+- [x] **Phase 54: AI-Native Contract Exposure** - 暴露 machine-readable commands/actions/capabilities 与 delegated actor contract。 (completed 2026-05-22)
 
 ## Phase Details
 
@@ -131,7 +131,7 @@ Plans:
 - [x] 54-01-PLAN.md — Define shared AI-native descriptor contracts and outward DTO shell for command/action/capability discovery
 - [x] 54-02-PLAN.md — Project real command/action/capability descriptors into server-side registry and read-model APIs
 - [x] 54-03-PLAN.md — Add delegated actor and approval metadata contracts without changing execution authority
-- [ ] 54-04-PLAN.md — Add minimal discoverability surface and `verify:phase54` regression gate
+- [x] 54-04-PLAN.md — Add minimal discoverability surface and `verify:phase54` regression gate
 
 ## Progress
 
@@ -141,7 +141,7 @@ Plans:
 | 51. Command Bus Foundation | 3/3 | Complete   | 2026-05-21 |
 | 52. Action Registry & Plugin Lifecycle Governance | 8/8 | Complete   | 2026-05-21 |
 | 53. Platform Event Bus & Execution Observability | 4/4 | Complete | 2026-05-22 |
-| 54. AI-Native Contract Exposure | 3/4 | In Progress|  |
+| 54. AI-Native Contract Exposure | 4/4 | Complete   | 2026-05-22 |
 
 ## Frozen Historical Context
 
