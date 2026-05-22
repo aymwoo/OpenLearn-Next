@@ -4,6 +4,10 @@ import {
   BlockedActionDiagnosticRowSchema,
   ExecutableActionCatalogRowSchema,
 } from "@/features/platform-core/actions/contracts";
+import {
+  PlatformAiDescriptorCatalogSchema,
+  PlatformAiDescriptorSchema,
+} from "@/features/platform-core/ai-contracts/contracts";
 
 import { PluginManifestGovernanceV2Schema } from "@/features/runtime-platform/contracts/descriptors";
 import { PluginPermissionSchema, PluginLifecycleStateSchema } from "@/features/runtime-platform/contracts/permissions";
@@ -124,6 +128,12 @@ export type ActionCatalogDTO = z.infer<typeof ActionCatalogDTOSchema>;
 
 export const ActionBlockedDiagnosticDTOSchema = z.array(BlockedActionDiagnosticRowSchema);
 export type ActionBlockedDiagnosticDTO = z.infer<typeof ActionBlockedDiagnosticDTOSchema>;
+
+export const PlatformAiDescriptorDTOSchema = PlatformAiDescriptorSchema;
+export type PlatformAiDescriptorDTO = z.infer<typeof PlatformAiDescriptorDTOSchema>;
+
+export const PlatformAiDescriptorCatalogDTOSchema = PlatformAiDescriptorCatalogSchema;
+export type PlatformAiDescriptorCatalogDTO = z.infer<typeof PlatformAiDescriptorCatalogDTOSchema>;
 
 export const AgentProposalDTOSchema = z.object({
   id: z.string(),
