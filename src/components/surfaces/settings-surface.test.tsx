@@ -11,6 +11,7 @@ const settingsSurfaceSource = readFileSync(
   "src/components/surfaces/settings-surface.tsx",
   "utf8",
 );
+const packageJsonSource = readFileSync("package.json", "utf8");
 
 const pluginActionMocks = vi.hoisted(() => ({
   listPluginsAction: vi.fn(async () => ({
@@ -183,6 +184,27 @@ describe("settings and plugin entry surfaces", () => {
     expect(settingsSurfaceSource).toContain('href="/settings/labs/async-tasks"');
     expect(settingsSurfaceSource).toContain('href="/settings/labs/runtime-inspector"');
     expect(settingsSurfaceSource).toContain('href="/settings/plugins"');
+  });
+
+  it("adds a minimal ai discoverability panel instead of a full agent console", () => {
+    expect(settingsSurfaceSource).toContain("AI Contract Discoverability");
+    expect(settingsSurfaceSource).toContain("最小 discoverability surface");
+    expect(settingsSurfaceSource).toContain("readPlatformAiDescriptorCatalog");
+    expect(settingsSurfaceSource).toContain("approvalPosture");
+    expect(settingsSurfaceSource).toContain("delegationPosture");
+    expect(settingsSurfaceSource).not.toContain("Agent Console");
+    expect(settingsSurfaceSource).not.toContain("Workflow Console");
+    expect(settingsSurfaceSource).not.toContain("Skill Runtime Console");
+  });
+
+  it("registers verify:phase54 as the focused regression gate", () => {
+    const pkg = JSON.parse(packageJsonSource) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(pkg.scripts?.["verify:phase54"]).toBe(
+      "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase54-ai-contracts.ts",
+    );
   });
 
   it("renders built-in marketplace cards with runtime toggle controls", async () => {
