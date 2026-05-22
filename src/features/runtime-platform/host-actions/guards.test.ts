@@ -95,7 +95,7 @@ describe("runtime host guards", () => {
     expect(source).toContain("classroomSessionId: bootstrap.classroomSummary.classroomSessionId");
   });
 
-  it("rejects unsupported plugin host actions instead of returning success", async () => {
+  it("rejects plugin lifecycle reads when the target plugin is outside the actor school scope", async () => {
     vi.mocked(getCurrentUserDTO).mockResolvedValue({
       id: "teacher-1",
     } as unknown as Awaited<ReturnType<typeof getCurrentUserDTO>>);
@@ -110,7 +110,7 @@ describe("runtime host guards", () => {
         action: "read-lifecycle",
         payload: {},
       }),
-    ).rejects.toThrowError("HOST_ACTION_DENIED:unsupported_action");
+    ).rejects.toThrowError("HOST_ACTION_DENIED:school_mismatch");
   });
 
   it("rejects unauthorized actor scopes", async () => {
@@ -296,7 +296,7 @@ describe("runtime host guards", () => {
 
     expect(runtimeSource).toContain("capability_missing");
     expect(runtimeSource).toContain("lifecycle_blocked");
-    expect(pluginSource).toContain("unsupported_action");
+    expect(pluginSource).toContain("school_mismatch");
     expect(pluginSource).toContain("kill_switch");
   });
 });

@@ -406,9 +406,9 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       });
 
       // 验证缓存标签重置
-      expect(revalidateTag).toHaveBeenCalledWith("plugin:ext:school-1:plugin-1:lesson-1");
-      expect(revalidateTag).toHaveBeenCalledWith("lesson:lesson-1");
-      expect(revalidateTag).toHaveBeenCalledWith("course:course-123");
+      expect(revalidateTag).toHaveBeenCalledWith("plugin:ext:school-1:plugin-1:lesson-1", "max");
+      expect(revalidateTag).toHaveBeenCalledWith("lesson:lesson-1", "max");
+      expect(revalidateTag).toHaveBeenCalledWith("course:course-123", "max");
     });
 
     it("should insert record into pluginActionAudits and governanceAudits in transaction on success", async () => {

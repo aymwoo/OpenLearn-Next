@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TeacherCourseCenterSurface } from "./teacher-course-center-surface";
 
@@ -34,6 +34,10 @@ describe("TeacherCourseCenterSurface create flow", () => {
       ok: true,
       data: { id: "course-new" },
     });
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it("submits the real default school for single-school teachers instead of falling back to school-1", async () => {

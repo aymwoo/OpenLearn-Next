@@ -2,8 +2,8 @@
 
 import { readFileSync } from "node:fs";
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PluginMarketplaceSurface } from "./plugin-marketplace-surface";
 
@@ -162,6 +162,10 @@ vi.mock("@/actions/system-transport-settings-actions", () => ({
 describe("settings and plugin entry surfaces", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it("wires settings labs plugin management to operator lifecycle surface", () => {

@@ -121,6 +121,7 @@ Accent reserved for: `查看治理诊断` 入口、`active` 生命周期徽标�
 
 ## Surface Composition
 
+- 默认主屏第一视觉焦点固定为页面标题下方的可执行 action catalog 首屏卡组；次焦点固定为 `查看治理诊断` CTA。blocked diagnostics 不参与首屏视觉竞争，必须留在次级 operator / governance 入口之后。
 - 页面宽度使用 `max-w-[1360px]`，hero 标题宽度使用 `max-w-[52rem]`（source: `src/components/surfaces/surface-widths.ts`）。
 - 大容器圆角使用 `2rem`，插件卡片与内嵌摘要卡使用 `1.5rem`（source: `src/app/globals.css` + `teacherSurfaceRhythm.ts`）。
 - 继续执行 **No-Line Rule**：不用 1px divider；列表分隔仅靠 tonal surface 与垂直留白（source: `DESIGN.md`）。
