@@ -24,7 +24,7 @@
 - [x] **Phase 50: Boundary Freeze & Platform Vocabulary** - 冻结第一阶段平台术语、authoritative ownership 与 deferred boundary。
 - [x] **Phase 51: Command Bus Foundation** - 建立统一 command envelope、execution pipeline 与 durable command ledger。 (completed 2026-05-21)
 - [x] **Phase 52: Action Registry & Plugin Lifecycle Governance** - 让 action catalog 与 plugin lifecycle 进入同一受治理模型，并关闭 verification gaps。 (completed 2026-05-21)
-- [ ] **Phase 53: Platform Event Bus & Execution Observability** - 为 command 结果建立 typed events、outbox truth 与 operator-visible execution summary。
+- [x] **Phase 53: Platform Event Bus & Execution Observability** - 为 command 结果建立 typed events、outbox truth 与 operator-visible execution summary。 (completed 2026-05-22)
 - [ ] **Phase 54: AI-Native Contract Exposure** - 暴露 machine-readable commands/actions/capabilities 与 delegated actor contract。
 
 ## Phase Details
@@ -106,8 +106,14 @@ Cross-cutting constraints:
   3. 平台订阅者可以消费 platform events，而不必复用 classroom runtime transport bus。
   4. 系统可以把 platform events 桥接到 in-process、Redis、WebSocket delivery adapters，同时继续由 SQLite 持有 canonical truth ownership。
   5. 入口层可以根据 command handler 返回的 invalidation intent 统一刷新缓存，并让操作员查看最小 command / event execution summary 与 failure attribution。
-**Plans**: TBD
+**Plans**: 4 plans
 **UI hint**: yes
+
+Plans:
+- [x] 53-01-PLAN.md — Establish typed platform event contracts, independent SQLite event ledger/outbox truth, and command-summary carrying fields
+- [x] 53-02-PLAN.md — Emit explicit generic/domain events on the command path and persist failure-safe event facts
+- [x] 53-03-PLAN.md — Add persisted-event subscriber seam with an in-process adapter plus future Redis/WebSocket bridge contracts
+- [x] 53-04-PLAN.md — Deliver command-first operator execution summary, event timeline, and `verify:phase53` regression gate
 
 ### Phase 54: AI-Native Contract Exposure
 **Goal**: 平台调用方和未来 Agent 可以发现稳定的 machine-readable platform contracts，同时保持 delegated execution、capability boundary 与 v3.0 scope 的克制。
@@ -119,7 +125,13 @@ Cross-cutting constraints:
   3. command、event 与 audit metadata 可以区分 human actor、system actor、plugin actor 与 delegated agent actor。
   4. delegated agent action 可以携带 delegation / approval metadata，不会默认继承高权限执行。
   5. `v3.0` 只交付 agent-callable contracts 与 future evolution seam，不要求完整 Agent Runtime / Skill Runtime 在本 milestone 一次落地。
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 54-01-PLAN.md — Define shared AI-native descriptor contracts and outward DTO shell for command/action/capability discovery
+- [ ] 54-02-PLAN.md — Project real command/action/capability descriptors into server-side registry and read-model APIs
+- [ ] 54-03-PLAN.md — Add delegated actor and approval metadata contracts without changing execution authority
+- [ ] 54-04-PLAN.md — Add minimal discoverability surface and `verify:phase54` regression gate
 
 ## Progress
 
@@ -128,8 +140,8 @@ Cross-cutting constraints:
 | 50. Boundary Freeze & Platform Vocabulary | 3/3 | Completed | 2026-05-21 |
 | 51. Command Bus Foundation | 3/3 | Complete   | 2026-05-21 |
 | 52. Action Registry & Plugin Lifecycle Governance | 8/8 | Complete   | 2026-05-21 |
-| 53. Platform Event Bus & Execution Observability | 0/TBD | Not started | - |
-| 54. AI-Native Contract Exposure | 0/TBD | Not started | - |
+| 53. Platform Event Bus & Execution Observability | 4/4 | Complete | 2026-05-22 |
+| 54. AI-Native Contract Exposure | 0/4 | Planning ready | - |
 
 ## Frozen Historical Context
 
