@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { PlatformAuditMetadataSchema } from "@/features/platform-core/ai-contracts/delegation";
+
 const SummaryRecordSchema = z.record(z.string(), z.unknown()).superRefine((value, ctx) => {
   for (const [key, entry] of Object.entries(value)) {
     if (key.toLowerCase().endsWith("json")) {
@@ -71,6 +73,10 @@ export const PlatformSuccessEventSchema = z.object({
   aggregateType: z.literal("plugin"),
   aggregateId: z.string().min(1),
   payload: PlatformCommandSucceededPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
 }).strict();
 
 export const PlatformFailureEventSchema = z.object({
@@ -79,6 +85,10 @@ export const PlatformFailureEventSchema = z.object({
   aggregateType: z.literal("plugin"),
   aggregateId: z.string().min(1),
   payload: PlatformCommandFailedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
 }).strict();
 
 export const PluginInstalledEventSchema = z.object({
@@ -87,6 +97,10 @@ export const PluginInstalledEventSchema = z.object({
   aggregateType: z.literal("plugin"),
   aggregateId: z.string().min(1),
   payload: PluginInstalledPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
 }).strict();
 
 export const PluginLifecycleChangedEventSchema = z.object({
@@ -95,6 +109,10 @@ export const PluginLifecycleChangedEventSchema = z.object({
   aggregateType: z.literal("plugin"),
   aggregateId: z.string().min(1),
   payload: PluginLifecycleChangedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
 }).strict();
 
 export const PluginKillSwitchChangedEventSchema = z.object({
@@ -103,6 +121,10 @@ export const PluginKillSwitchChangedEventSchema = z.object({
   aggregateType: z.literal("plugin"),
   aggregateId: z.string().min(1),
   payload: PluginKillSwitchChangedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
 }).strict();
 
 export const PlatformEventSchema = z.discriminatedUnion("eventType", [

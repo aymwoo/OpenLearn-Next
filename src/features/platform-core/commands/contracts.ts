@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { RuntimeActorScopeSchema } from "@/features/runtime-platform/contracts/permissions";
+import { PlatformAuditMetadataSchema } from "@/features/platform-core/ai-contracts/delegation";
 import {
   PlatformFailureAttributionSchema,
   PlatformFailureEventSchema,
@@ -38,6 +39,18 @@ export const PlatformCommandCorrelationSchema = z.object({
   correlationId: z.string().min(1),
   causationId: z.string().min(1).nullable().default(null),
   producer: z.string().min(1),
+});
+
+const PlatformCommandEnvelopeSchema = z.object({
+  id: z.string().min(1),
+  actor: PlatformCommandActorSchema,
+  scope: PlatformCommandScopeSchema,
+  correlation: PlatformCommandCorrelationSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
+  dedupeKey: z.string().min(1).optional(),
 });
 
 const PluginInstallPayloadSchema = z.object({
@@ -125,95 +138,45 @@ export const PlatformCommandPayloadSchemas = {
 } as const;
 
 export const PlatformCommandSchema = z.discriminatedUnion("type", [
-  z.object({
-    id: z.string().min(1),
+  PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.install"),
-    actor: PlatformCommandActorSchema,
-    scope: PlatformCommandScopeSchema,
     payload: PluginInstallPayloadSchema,
-    correlation: PlatformCommandCorrelationSchema,
-    dedupeKey: z.string().min(1).optional(),
   }),
-  z.object({
-    id: z.string().min(1),
+  PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.enable"),
-    actor: PlatformCommandActorSchema,
-    scope: PlatformCommandScopeSchema,
     payload: PluginEnablePayloadSchema,
-    correlation: PlatformCommandCorrelationSchema,
-    dedupeKey: z.string().min(1).optional(),
   }),
-  z.object({
-    id: z.string().min(1),
+  PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.disable"),
-    actor: PlatformCommandActorSchema,
-    scope: PlatformCommandScopeSchema,
     payload: PluginDisablePayloadSchema,
-    correlation: PlatformCommandCorrelationSchema,
-    dedupeKey: z.string().min(1).optional(),
   }),
-  z.object({
-    id: z.string().min(1),
+  PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.reconcile"),
-    actor: PlatformCommandActorSchema,
-    scope: PlatformCommandScopeSchema,
     payload: PluginReconcilePayloadSchema,
-    correlation: PlatformCommandCorrelationSchema,
-    dedupeKey: z.string().min(1).optional(),
   }),
-  z.object({
-    id: z.string().min(1),
+  PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.retry"),
-    actor: PlatformCommandActorSchema,
-    scope: PlatformCommandScopeSchema,
     payload: PluginRetryPayloadSchema,
-    correlation: PlatformCommandCorrelationSchema,
-    dedupeKey: z.string().min(1).optional(),
   }),
-  z.object({
-    id: z.string().min(1),
+  PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.suspend"),
-    actor: PlatformCommandActorSchema,
-    scope: PlatformCommandScopeSchema,
     payload: PluginSuspendPayloadSchema,
-    correlation: PlatformCommandCorrelationSchema,
-    dedupeKey: z.string().min(1).optional(),
   }),
-  z.object({
-    id: z.string().min(1),
+  PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.resume"),
-    actor: PlatformCommandActorSchema,
-    scope: PlatformCommandScopeSchema,
     payload: PluginResumePayloadSchema,
-    correlation: PlatformCommandCorrelationSchema,
-    dedupeKey: z.string().min(1).optional(),
   }),
-  z.object({
-    id: z.string().min(1),
+  PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.uninstall.preflight"),
-    actor: PlatformCommandActorSchema,
-    scope: PlatformCommandScopeSchema,
     payload: PluginUninstallPreflightPayloadSchema,
-    correlation: PlatformCommandCorrelationSchema,
-    dedupeKey: z.string().min(1).optional(),
   }),
-  z.object({
-    id: z.string().min(1),
+  PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.uninstall"),
-    actor: PlatformCommandActorSchema,
-    scope: PlatformCommandScopeSchema,
     payload: PluginUninstallPayloadSchema,
-    correlation: PlatformCommandCorrelationSchema,
-    dedupeKey: z.string().min(1).optional(),
   }),
-  z.object({
-    id: z.string().min(1),
+  PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.kill_switch.set"),
-    actor: PlatformCommandActorSchema,
-    scope: PlatformCommandScopeSchema,
     payload: PluginKillSwitchSetPayloadSchema,
-    correlation: PlatformCommandCorrelationSchema,
-    dedupeKey: z.string().min(1).optional(),
   }),
 ]);
 
