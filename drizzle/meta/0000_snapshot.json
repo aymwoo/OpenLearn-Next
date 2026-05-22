@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "62415707-684a-4df1-802f-76073856e111",
+  "id": "cb2e29c8-78d4-4ff0-bd19-390a9794f21f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -389,6 +389,460 @@
             "agentKey"
           ],
           "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "asyncTaskEvent": {
+      "name": "asyncTaskEvent",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "taskId": {
+          "name": "taskId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "eventType": {
+          "name": "eventType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attemptNumber": {
+          "name": "attemptNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "payloadJson": {
+          "name": "payloadJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "asyncTaskEvents_task_created_idx": {
+          "name": "asyncTaskEvents_task_created_idx",
+          "columns": [
+            "taskId",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "asyncTaskEvents_status_created_idx": {
+          "name": "asyncTaskEvents_status_created_idx",
+          "columns": [
+            "status",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "asyncTaskEvents_task_attempt_idx": {
+          "name": "asyncTaskEvents_task_attempt_idx",
+          "columns": [
+            "taskId",
+            "attemptNumber",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "asyncTaskEvent_taskId_asyncTask_id_fk": {
+          "name": "asyncTaskEvent_taskId_asyncTask_id_fk",
+          "tableFrom": "asyncTaskEvent",
+          "tableTo": "asyncTask",
+          "columnsFrom": [
+            "taskId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "asyncTask": {
+      "name": "asyncTask",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actorId": {
+          "name": "actorId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "taskType": {
+          "name": "taskType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "featureArea": {
+          "name": "featureArea",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending_enqueue'"
+        },
+        "enqueueIntentStatus": {
+          "name": "enqueueIntentStatus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending_enqueue'"
+        },
+        "visibilityScope": {
+          "name": "visibilityScope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'actor_owned'"
+        },
+        "entityType": {
+          "name": "entityType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "entityId": {
+          "name": "entityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "entityLabel": {
+          "name": "entityLabel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "labelKey": {
+          "name": "labelKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "summaryKey": {
+          "name": "summaryKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payloadJson": {
+          "name": "payloadJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "latestProgressJson": {
+          "name": "latestProgressJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "latestResultJson": {
+          "name": "latestResultJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "queueJobId": {
+          "name": "queueJobId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "latestAttemptNumber": {
+          "name": "latestAttemptNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "latestFailureReason": {
+          "name": "latestFailureReason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "latestRecoveryJson": {
+          "name": "latestRecoveryJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "startedAt": {
+          "name": "startedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "completedAt": {
+          "name": "completedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "asyncTasks_actor_status_idx": {
+          "name": "asyncTasks_actor_status_idx",
+          "columns": [
+            "actorId",
+            "status"
+          ],
+          "isUnique": false
+        },
+        "asyncTasks_school_status_idx": {
+          "name": "asyncTasks_school_status_idx",
+          "columns": [
+            "schoolId",
+            "status"
+          ],
+          "isUnique": false
+        },
+        "asyncTasks_entity_idx": {
+          "name": "asyncTasks_entity_idx",
+          "columns": [
+            "entityType",
+            "entityId",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "asyncTasks_type_created_idx": {
+          "name": "asyncTasks_type_created_idx",
+          "columns": [
+            "taskType",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "asyncTasks_queueJobId_unique": {
+          "name": "asyncTasks_queueJobId_unique",
+          "columns": [
+            "queueJobId"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "asyncTask_actorId_user_id_fk": {
+          "name": "asyncTask_actorId_user_id_fk",
+          "tableFrom": "asyncTask",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "asyncTask_schoolId_school_id_fk": {
+          "name": "asyncTask_schoolId_school_id_fk",
+          "tableFrom": "asyncTask",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "asyncWorkerHeartbeat": {
+      "name": "asyncWorkerHeartbeat",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "instanceId": {
+          "name": "instanceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'ready'"
+        },
+        "queueNamesJson": {
+          "name": "queueNamesJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lastSeenAt": {
+          "name": "lastSeenAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "startedAt": {
+          "name": "startedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "stoppedAt": {
+          "name": "stoppedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lastSignal": {
+          "name": "lastSignal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "detailJson": {
+          "name": "detailJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "asyncWorkerHeartbeat_instanceId_unique": {
+          "name": "asyncWorkerHeartbeat_instanceId_unique",
+          "columns": [
+            "instanceId"
+          ],
+          "isUnique": true
+        },
+        "asyncWorkerHeartbeat_status_seen_idx": {
+          "name": "asyncWorkerHeartbeat_status_seen_idx",
+          "columns": [
+            "status",
+            "lastSeenAt"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {},
@@ -1028,6 +1482,146 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "classroomSessionSummary": {
+      "name": "classroomSessionSummary",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sessionId": {
+          "name": "sessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'processing'"
+        },
+        "triggerMode": {
+          "name": "triggerMode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lastEventVersion": {
+          "name": "lastEventVersion",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "summaryJson": {
+          "name": "summaryJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "failureReason": {
+          "name": "failureReason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "finalizedAt": {
+          "name": "finalizedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "classroomSessionSummary_sessionId_unique": {
+          "name": "classroomSessionSummary_sessionId_unique",
+          "columns": [
+            "sessionId"
+          ],
+          "isUnique": true
+        },
+        "classroomSessionSummary_school_status_idx": {
+          "name": "classroomSessionSummary_school_status_idx",
+          "columns": [
+            "schoolId",
+            "status"
+          ],
+          "isUnique": false
+        },
+        "classroomSessionSummary_school_trigger_idx": {
+          "name": "classroomSessionSummary_school_trigger_idx",
+          "columns": [
+            "schoolId",
+            "triggerMode"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "classroomSessionSummary_sessionId_classroomSession_id_fk": {
+          "name": "classroomSessionSummary_sessionId_classroomSession_id_fk",
+          "tableFrom": "classroomSessionSummary",
+          "tableTo": "classroomSession",
+          "columnsFrom": [
+            "sessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "classroomSessionSummary_schoolId_school_id_fk": {
+          "name": "classroomSessionSummary_schoolId_school_id_fk",
+          "tableFrom": "classroomSessionSummary",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "classroomSession": {
       "name": "classroomSession",
       "columns": {
@@ -1080,6 +1674,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": false
+        },
+        "transportModeSnapshot": {
+          "name": "transportModeSnapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'local_only'"
         },
         "status": {
           "name": "status",
@@ -1452,6 +2054,14 @@
         }
       },
       "indexes": {
+        "courseEnrollments_course_student_unique": {
+          "name": "courseEnrollments_course_student_unique",
+          "columns": [
+            "courseId",
+            "studentId"
+          ],
+          "isUnique": true
+        },
         "courseEnrollments_courseId_idx": {
           "name": "courseEnrollments_courseId_idx",
           "columns": [
@@ -1940,6 +2550,261 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "governanceAudit": {
+      "name": "governanceAudit",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "targetType": {
+          "name": "targetType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "targetId": {
+          "name": "targetId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "commandId": {
+          "name": "commandId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "runtimeSessionId": {
+          "name": "runtimeSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "classroomSessionId": {
+          "name": "classroomSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pluginId": {
+          "name": "pluginId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "decision": {
+          "name": "decision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reasonCode": {
+          "name": "reasonCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "actorId": {
+          "name": "actorId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "actorScope": {
+          "name": "actorScope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lifecycleState": {
+          "name": "lifecycleState",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "killSwitchEnabled": {
+          "name": "killSwitchEnabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "requestedCapabilitiesJson": {
+          "name": "requestedCapabilitiesJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "grantedCapabilitiesJson": {
+          "name": "grantedCapabilitiesJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "requiredPermission": {
+          "name": "requiredPermission",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "correlationId": {
+          "name": "correlationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payloadJson": {
+          "name": "payloadJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "governanceAudit_target_created_idx": {
+          "name": "governanceAudit_target_created_idx",
+          "columns": [
+            "targetType",
+            "targetId",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "governanceAudit_decision_created_idx": {
+          "name": "governanceAudit_decision_created_idx",
+          "columns": [
+            "decision",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "governanceAudit_commandId_platformCommand_id_fk": {
+          "name": "governanceAudit_commandId_platformCommand_id_fk",
+          "tableFrom": "governanceAudit",
+          "tableTo": "platformCommand",
+          "columnsFrom": [
+            "commandId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "governanceAudit_runtimeSessionId_runtimeStepSession_id_fk": {
+          "name": "governanceAudit_runtimeSessionId_runtimeStepSession_id_fk",
+          "tableFrom": "governanceAudit",
+          "tableTo": "runtimeStepSession",
+          "columnsFrom": [
+            "runtimeSessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "governanceAudit_classroomSessionId_classroomSession_id_fk": {
+          "name": "governanceAudit_classroomSessionId_classroomSession_id_fk",
+          "tableFrom": "governanceAudit",
+          "tableTo": "classroomSession",
+          "columnsFrom": [
+            "classroomSessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "governanceAudit_pluginId_pluginRegistration_id_fk": {
+          "name": "governanceAudit_pluginId_pluginRegistration_id_fk",
+          "tableFrom": "governanceAudit",
+          "tableTo": "pluginRegistration",
+          "columnsFrom": [
+            "pluginId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "governanceAudit_schoolId_school_id_fk": {
+          "name": "governanceAudit_schoolId_school_id_fk",
+          "tableFrom": "governanceAudit",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "governanceAudit_actorId_user_id_fk": {
+          "name": "governanceAudit_actorId_user_id_fk",
+          "tableFrom": "governanceAudit",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "knowledgeChunk": {
       "name": "knowledgeChunk",
       "columns": {
@@ -2008,7 +2873,16 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "knowledgeChunks_source_chunk_unique": {
+          "name": "knowledgeChunks_source_chunk_unique",
+          "columns": [
+            "sourceId",
+            "chunkIndex"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "knowledgeChunk_sourceId_knowledgeSource_id_fk": {
           "name": "knowledgeChunk_sourceId_knowledgeSource_id_fk",
@@ -2075,7 +2949,15 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "knowledgeSources_resourceId_unique": {
+          "name": "knowledgeSources_resourceId_unique",
+          "columns": [
+            "resourceId"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "knowledgeSource_resourceId_resource_id_fk": {
           "name": "knowledgeSource_resourceId_resource_id_fk",
@@ -2979,6 +3861,286 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "platformCommandAttempt": {
+      "name": "platformCommandAttempt",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "commandId": {
+          "name": "commandId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attemptNumber": {
+          "name": "attemptNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "resultSummaryJson": {
+          "name": "resultSummaryJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "failureDetailJson": {
+          "name": "failureDetailJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "startedAt": {
+          "name": "startedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "completedAt": {
+          "name": "completedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "platformCommandAttempts_command_attempt_unique": {
+          "name": "platformCommandAttempts_command_attempt_unique",
+          "columns": [
+            "commandId",
+            "attemptNumber"
+          ],
+          "isUnique": true
+        },
+        "platformCommandAttempts_command_attempt_idx": {
+          "name": "platformCommandAttempts_command_attempt_idx",
+          "columns": [
+            "commandId",
+            "attemptNumber"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "platformCommandAttempt_commandId_platformCommand_id_fk": {
+          "name": "platformCommandAttempt_commandId_platformCommand_id_fk",
+          "tableFrom": "platformCommandAttempt",
+          "tableTo": "platformCommand",
+          "columnsFrom": [
+            "commandId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "platformCommand": {
+      "name": "platformCommand",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actorId": {
+          "name": "actorId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "commandType": {
+          "name": "commandType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "dedupeKey": {
+          "name": "dedupeKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actorScope": {
+          "name": "actorScope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "scopeJson": {
+          "name": "scopeJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payloadJson": {
+          "name": "payloadJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "correlationJson": {
+          "name": "correlationJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "resultSummaryJson": {
+          "name": "resultSummaryJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "failureDetailJson": {
+          "name": "failureDetailJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "latestAttemptNumber": {
+          "name": "latestAttemptNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "completedAt": {
+          "name": "completedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "platformCommands_dedupeKey_unique": {
+          "name": "platformCommands_dedupeKey_unique",
+          "columns": [
+            "dedupeKey"
+          ],
+          "isUnique": true
+        },
+        "platformCommands_type_created_idx": {
+          "name": "platformCommands_type_created_idx",
+          "columns": [
+            "commandType",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "platformCommands_school_status_created_idx": {
+          "name": "platformCommands_school_status_created_idx",
+          "columns": [
+            "schoolId",
+            "status",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "platformCommand_actorId_user_id_fk": {
+          "name": "platformCommand_actorId_user_id_fk",
+          "tableFrom": "platformCommand",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "platformCommand_schoolId_school_id_fk": {
+          "name": "platformCommand_schoolId_school_id_fk",
+          "tableFrom": "platformCommand",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "pluginActionAudit": {
       "name": "pluginActionAudit",
       "columns": {
@@ -2996,11 +4158,61 @@
           "notNull": true,
           "autoincrement": false
         },
+        "commandId": {
+          "name": "commandId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "action": {
           "name": "action",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "decision": {
+          "name": "decision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'allowed'"
+        },
+        "reasonCode": {
+          "name": "reasonCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "actorScope": {
+          "name": "actorScope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lifecycleState": {
+          "name": "lifecycleState",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "correlationId": {
+          "name": "correlationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "payloadJson": {
@@ -3025,7 +4237,24 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "pluginActionAudit_plugin_created_idx": {
+          "name": "pluginActionAudit_plugin_created_idx",
+          "columns": [
+            "pluginId",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "pluginActionAudit_decision_created_idx": {
+          "name": "pluginActionAudit_decision_created_idx",
+          "columns": [
+            "decision",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "pluginActionAudit_pluginId_pluginRegistration_id_fk": {
           "name": "pluginActionAudit_pluginId_pluginRegistration_id_fk",
@@ -3033,6 +4262,32 @@
           "tableTo": "pluginRegistration",
           "columnsFrom": [
             "pluginId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pluginActionAudit_commandId_platformCommand_id_fk": {
+          "name": "pluginActionAudit_commandId_platformCommand_id_fk",
+          "tableFrom": "pluginActionAudit",
+          "tableTo": "platformCommand",
+          "columnsFrom": [
+            "commandId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pluginActionAudit_schoolId_school_id_fk": {
+          "name": "pluginActionAudit_schoolId_school_id_fk",
+          "tableFrom": "pluginActionAudit",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
           ],
           "columnsTo": [
             "id"
@@ -3124,6 +4379,415 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "plugin_ext_lesson": {
+      "name": "plugin_ext_lesson",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pluginId": {
+          "name": "pluginId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lessonId": {
+          "name": "lessonId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payloadJson": {
+          "name": "payloadJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "plugin_ext_lesson_school_plugin_entity_unique": {
+          "name": "plugin_ext_lesson_school_plugin_entity_unique",
+          "columns": [
+            "schoolId",
+            "pluginId",
+            "lessonId"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "plugin_ext_lesson_schoolId_school_id_fk": {
+          "name": "plugin_ext_lesson_schoolId_school_id_fk",
+          "tableFrom": "plugin_ext_lesson",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "plugin_ext_lesson_pluginId_pluginRegistration_id_fk": {
+          "name": "plugin_ext_lesson_pluginId_pluginRegistration_id_fk",
+          "tableFrom": "plugin_ext_lesson",
+          "tableTo": "pluginRegistration",
+          "columnsFrom": [
+            "pluginId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "plugin_ext_lesson_lessonId_lesson_id_fk": {
+          "name": "plugin_ext_lesson_lessonId_lesson_id_fk",
+          "tableFrom": "plugin_ext_lesson",
+          "tableTo": "lesson",
+          "columnsFrom": [
+            "lessonId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "plugin_ext_lesson_step": {
+      "name": "plugin_ext_lesson_step",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pluginId": {
+          "name": "pluginId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lessonStepId": {
+          "name": "lessonStepId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payloadJson": {
+          "name": "payloadJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "plugin_ext_lesson_step_school_plugin_entity_unique": {
+          "name": "plugin_ext_lesson_step_school_plugin_entity_unique",
+          "columns": [
+            "schoolId",
+            "pluginId",
+            "lessonStepId"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "plugin_ext_lesson_step_schoolId_school_id_fk": {
+          "name": "plugin_ext_lesson_step_schoolId_school_id_fk",
+          "tableFrom": "plugin_ext_lesson_step",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "plugin_ext_lesson_step_pluginId_pluginRegistration_id_fk": {
+          "name": "plugin_ext_lesson_step_pluginId_pluginRegistration_id_fk",
+          "tableFrom": "plugin_ext_lesson_step",
+          "tableTo": "pluginRegistration",
+          "columnsFrom": [
+            "pluginId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "plugin_ext_lesson_step_lessonStepId_lessonStep_id_fk": {
+          "name": "plugin_ext_lesson_step_lessonStepId_lessonStep_id_fk",
+          "tableFrom": "plugin_ext_lesson_step",
+          "tableTo": "lessonStep",
+          "columnsFrom": [
+            "lessonStepId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "pluginLifecycleTransition": {
+      "name": "pluginLifecycleTransition",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pluginId": {
+          "name": "pluginId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fromState": {
+          "name": "fromState",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "toState": {
+          "name": "toState",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "actorId": {
+          "name": "actorId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "pluginLifecycleTransition_plugin_created_idx": {
+          "name": "pluginLifecycleTransition_plugin_created_idx",
+          "columns": [
+            "pluginId",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "pluginLifecycleTransition_pluginId_pluginRegistration_id_fk": {
+          "name": "pluginLifecycleTransition_pluginId_pluginRegistration_id_fk",
+          "tableFrom": "pluginLifecycleTransition",
+          "tableTo": "pluginRegistration",
+          "columnsFrom": [
+            "pluginId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pluginLifecycleTransition_actorId_user_id_fk": {
+          "name": "pluginLifecycleTransition_actorId_user_id_fk",
+          "tableFrom": "pluginLifecycleTransition",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "plugin_owned_business_data": {
+      "name": "plugin_owned_business_data",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pluginId": {
+          "name": "pluginId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payloadJson": {
+          "name": "payloadJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "plugin_owned_biz_school_plugin_key_idx": {
+          "name": "plugin_owned_biz_school_plugin_key_idx",
+          "columns": [
+            "schoolId",
+            "pluginId",
+            "key"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "plugin_owned_business_data_schoolId_school_id_fk": {
+          "name": "plugin_owned_business_data_schoolId_school_id_fk",
+          "tableFrom": "plugin_owned_business_data",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "plugin_owned_business_data_pluginId_pluginRegistration_id_fk": {
+          "name": "plugin_owned_business_data_pluginId_pluginRegistration_id_fk",
+          "tableFrom": "plugin_owned_business_data",
+          "tableTo": "pluginRegistration",
+          "columnsFrom": [
+            "pluginId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "pluginRegistration": {
       "name": "pluginRegistration",
       "columns": {
@@ -3155,6 +4819,34 @@
           "notNull": true,
           "autoincrement": false
         },
+        "pluginKey": {
+          "name": "pluginKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dbNamespace": {
+          "name": "dbNamespace",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sourceType": {
+          "name": "sourceType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "installSource": {
+          "name": "installSource",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "enabled": {
           "name": "enabled",
           "type": "integer",
@@ -3171,6 +4863,28 @@
           "autoincrement": false,
           "default": false
         },
+        "lifecycleState": {
+          "name": "lifecycleState",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'installed'"
+        },
+        "uninstalledAt": {
+          "name": "uninstalledAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "uninstallRetentionMode": {
+          "name": "uninstallRetentionMode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "integer",
@@ -3186,7 +4900,24 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "pluginRegistration_school_pluginKey_unique": {
+          "name": "pluginRegistration_school_pluginKey_unique",
+          "columns": [
+            "schoolId",
+            "pluginKey"
+          ],
+          "isUnique": true
+        },
+        "pluginRegistration_school_dbNamespace_unique": {
+          "name": "pluginRegistration_school_dbNamespace_unique",
+          "columns": [
+            "schoolId",
+            "dbNamespace"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "pluginRegistration_schoolId_school_id_fk": {
           "name": "pluginRegistration_schoolId_school_id_fk",
@@ -3194,6 +4925,115 @@
           "tableTo": "school",
           "columnsFrom": [
             "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "plugin_ext_resource": {
+      "name": "plugin_ext_resource",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pluginId": {
+          "name": "pluginId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "resourceId": {
+          "name": "resourceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payloadJson": {
+          "name": "payloadJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "plugin_ext_resource_school_plugin_entity_unique": {
+          "name": "plugin_ext_resource_school_plugin_entity_unique",
+          "columns": [
+            "schoolId",
+            "pluginId",
+            "resourceId"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "plugin_ext_resource_schoolId_school_id_fk": {
+          "name": "plugin_ext_resource_schoolId_school_id_fk",
+          "tableFrom": "plugin_ext_resource",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "plugin_ext_resource_pluginId_pluginRegistration_id_fk": {
+          "name": "plugin_ext_resource_pluginId_pluginRegistration_id_fk",
+          "tableFrom": "plugin_ext_resource",
+          "tableTo": "pluginRegistration",
+          "columnsFrom": [
+            "pluginId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "plugin_ext_resource_resourceId_resource_id_fk": {
+          "name": "plugin_ext_resource_resourceId_resource_id_fk",
+          "tableFrom": "plugin_ext_resource",
+          "tableTo": "resource",
+          "columnsFrom": [
+            "resourceId"
           ],
           "columnsTo": [
             "id"
@@ -3377,16 +5217,6 @@
             "stepId",
             "studentId",
             "attemptNo"
-          ],
-          "isUnique": true
-        },
-        "quizAttempts_latest_unique": {
-          "name": "quizAttempts_latest_unique",
-          "columns": [
-            "publishedVersionId",
-            "stepId",
-            "studentId",
-            "isLatest"
           ],
           "isUnique": true
         },
@@ -3615,6 +5445,578 @@
           "tableTo": "course",
           "columnsFrom": [
             "courseId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "runtimeEventOutbox": {
+      "name": "runtimeEventOutbox",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "runtimeSessionId": {
+          "name": "runtimeSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "classroomSessionId": {
+          "name": "classroomSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stepId": {
+          "name": "stepId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "eventType": {
+          "name": "eventType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "messageId": {
+          "name": "messageId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "correlationId": {
+          "name": "correlationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payloadJson": {
+          "name": "payloadJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "deliveryChannel": {
+          "name": "deliveryChannel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "deliveryStatus": {
+          "name": "deliveryStatus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deliveredAt": {
+          "name": "deliveredAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "runtimeEventOutbox_message_unique": {
+          "name": "runtimeEventOutbox_message_unique",
+          "columns": [
+            "messageId"
+          ],
+          "isUnique": true
+        },
+        "runtimeEventOutbox_session_created_idx": {
+          "name": "runtimeEventOutbox_session_created_idx",
+          "columns": [
+            "runtimeSessionId",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "runtimeEventOutbox_delivery_idx": {
+          "name": "runtimeEventOutbox_delivery_idx",
+          "columns": [
+            "deliveryStatus",
+            "deliveryChannel",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "runtimeEventOutbox_runtimeSessionId_runtimeStepSession_id_fk": {
+          "name": "runtimeEventOutbox_runtimeSessionId_runtimeStepSession_id_fk",
+          "tableFrom": "runtimeEventOutbox",
+          "tableTo": "runtimeStepSession",
+          "columnsFrom": [
+            "runtimeSessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "runtimeEventOutbox_classroomSessionId_classroomSession_id_fk": {
+          "name": "runtimeEventOutbox_classroomSessionId_classroomSession_id_fk",
+          "tableFrom": "runtimeEventOutbox",
+          "tableTo": "classroomSession",
+          "columnsFrom": [
+            "classroomSessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "runtimeEventOutbox_stepId_lessonStep_id_fk": {
+          "name": "runtimeEventOutbox_stepId_lessonStep_id_fk",
+          "tableFrom": "runtimeEventOutbox",
+          "tableTo": "lessonStep",
+          "columnsFrom": [
+            "stepId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "runtimeLifecycleTransition": {
+      "name": "runtimeLifecycleTransition",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "runtimeSessionId": {
+          "name": "runtimeSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fromState": {
+          "name": "fromState",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "toState": {
+          "name": "toState",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "actorId": {
+          "name": "actorId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "runtimeLifecycleTransition_session_created_idx": {
+          "name": "runtimeLifecycleTransition_session_created_idx",
+          "columns": [
+            "runtimeSessionId",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "runtimeLifecycleTransition_runtimeSessionId_runtimeStepSession_id_fk": {
+          "name": "runtimeLifecycleTransition_runtimeSessionId_runtimeStepSession_id_fk",
+          "tableFrom": "runtimeLifecycleTransition",
+          "tableTo": "runtimeStepSession",
+          "columnsFrom": [
+            "runtimeSessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "runtimeLifecycleTransition_actorId_user_id_fk": {
+          "name": "runtimeLifecycleTransition_actorId_user_id_fk",
+          "tableFrom": "runtimeLifecycleTransition",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "runtimeStepSession": {
+      "name": "runtimeStepSession",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "classroomSessionId": {
+          "name": "classroomSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "publishedVersionId": {
+          "name": "publishedVersionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lessonId": {
+          "name": "lessonId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stepId": {
+          "name": "stepId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "runtimeId": {
+          "name": "runtimeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "runtimeVersion": {
+          "name": "runtimeVersion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actorId": {
+          "name": "actorId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actorScope": {
+          "name": "actorScope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "resetReason": {
+          "name": "resetReason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "isLatest": {
+          "name": "isLatest",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "runtimeStepSessions_latest_identity_idx": {
+          "name": "runtimeStepSessions_latest_identity_idx",
+          "columns": [
+            "classroomSessionId",
+            "stepId",
+            "actorId",
+            "actorScope",
+            "runtimeVersion",
+            "isLatest"
+          ],
+          "isUnique": false
+        },
+        "runtimeStepSessions_classroom_step_actor_idx": {
+          "name": "runtimeStepSessions_classroom_step_actor_idx",
+          "columns": [
+            "classroomSessionId",
+            "stepId",
+            "actorId"
+          ],
+          "isUnique": false
+        },
+        "runtimeStepSessions_actor_history_idx": {
+          "name": "runtimeStepSessions_actor_history_idx",
+          "columns": [
+            "actorId",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "runtimeStepSession_classroomSessionId_classroomSession_id_fk": {
+          "name": "runtimeStepSession_classroomSessionId_classroomSession_id_fk",
+          "tableFrom": "runtimeStepSession",
+          "tableTo": "classroomSession",
+          "columnsFrom": [
+            "classroomSessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "runtimeStepSession_publishedVersionId_publishedLessonVersion_id_fk": {
+          "name": "runtimeStepSession_publishedVersionId_publishedLessonVersion_id_fk",
+          "tableFrom": "runtimeStepSession",
+          "tableTo": "publishedLessonVersion",
+          "columnsFrom": [
+            "publishedVersionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "runtimeStepSession_lessonId_lesson_id_fk": {
+          "name": "runtimeStepSession_lessonId_lesson_id_fk",
+          "tableFrom": "runtimeStepSession",
+          "tableTo": "lesson",
+          "columnsFrom": [
+            "lessonId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "runtimeStepSession_stepId_lessonStep_id_fk": {
+          "name": "runtimeStepSession_stepId_lessonStep_id_fk",
+          "tableFrom": "runtimeStepSession",
+          "tableTo": "lessonStep",
+          "columnsFrom": [
+            "stepId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "runtimeStepSession_actorId_user_id_fk": {
+          "name": "runtimeStepSession_actorId_user_id_fk",
+          "tableFrom": "runtimeStepSession",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "runtimeStepSession_schoolId_school_id_fk": {
+          "name": "runtimeStepSession_schoolId_school_id_fk",
+          "tableFrom": "runtimeStepSession",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "runtimeStepState": {
+      "name": "runtimeStepState",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "runtimeSessionId": {
+          "name": "runtimeSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stateVersion": {
+          "name": "stateVersion",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stateJson": {
+          "name": "stateJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "summaryJson": {
+          "name": "summaryJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "isLatest": {
+          "name": "isLatest",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "runtimeStepStates_session_version_unique": {
+          "name": "runtimeStepStates_session_version_unique",
+          "columns": [
+            "runtimeSessionId",
+            "stateVersion"
+          ],
+          "isUnique": true
+        },
+        "runtimeStepStates_session_latest_idx": {
+          "name": "runtimeStepStates_session_latest_idx",
+          "columns": [
+            "runtimeSessionId",
+            "isLatest"
+          ],
+          "isUnique": false
+        },
+        "runtimeStepStates_session_history_idx": {
+          "name": "runtimeStepStates_session_history_idx",
+          "columns": [
+            "runtimeSessionId",
+            "stateVersion"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "runtimeStepState_runtimeSessionId_runtimeStepSession_id_fk": {
+          "name": "runtimeStepState_runtimeSessionId_runtimeStepSession_id_fk",
+          "tableFrom": "runtimeStepState",
+          "tableTo": "runtimeStepSession",
+          "columnsFrom": [
+            "runtimeSessionId"
           ],
           "columnsTo": [
             "id"
@@ -5198,6 +7600,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "actorId": {
+          "name": "actorId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "ruleId": {
           "name": "ruleId",
           "type": "text",
@@ -5253,6 +7662,27 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "deliveryTaskId": {
+          "name": "deliveryTaskId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dispatchClaimedAt": {
+          "name": "dispatchClaimedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dispatchClaimedBy": {
+          "name": "dispatchClaimedBy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "lastAttemptAt": {
@@ -5314,6 +7744,13 @@
             "scheduledFor"
           ],
           "isUnique": false
+        },
+        "scheduleReminderDispatch_deliveryTaskId_unique": {
+          "name": "scheduleReminderDispatch_deliveryTaskId_unique",
+          "columns": [
+            "deliveryTaskId"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
@@ -5323,6 +7760,19 @@
           "tableTo": "school",
           "columnsFrom": [
             "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "scheduleReminderDispatch_actorId_user_id_fk": {
+          "name": "scheduleReminderDispatch_actorId_user_id_fk",
+          "tableFrom": "scheduleReminderDispatch",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actorId"
           ],
           "columnsTo": [
             "id"
@@ -5937,6 +8387,59 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "systemTransportSetting": {
+      "name": "systemTransportSetting",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "classroomTransportMode": {
+          "name": "classroomTransportMode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'local_only'"
+        },
+        "updatedById": {
+          "name": "updatedById",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "systemTransportSetting_updatedById_user_id_fk": {
+          "name": "systemTransportSetting_updatedById_user_id_fk",
+          "tableFrom": "systemTransportSetting",
+          "tableTo": "user",
+          "columnsFrom": [
+            "updatedById"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "taskSubmission": {
       "name": "taskSubmission",
       "columns": {
@@ -6013,16 +8516,6 @@
             "stepId",
             "studentId",
             "attemptNo"
-          ],
-          "isUnique": true
-        },
-        "taskSubmissions_latest_unique": {
-          "name": "taskSubmissions_latest_unique",
-          "columns": [
-            "publishedVersionId",
-            "stepId",
-            "studentId",
-            "isLatest"
           ],
           "isUnique": true
         },
@@ -6243,6 +8736,421 @@
         "themeTokenRegistry_schoolId_school_id_fk": {
           "name": "themeTokenRegistry_schoolId_school_id_fk",
           "tableFrom": "themeTokenRegistry",
+          "tableTo": "school",
+          "columnsFrom": [
+            "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "transportConsumerTrace": {
+      "name": "transportConsumerTrace",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attemptId": {
+          "name": "attemptId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "classroomSessionId": {
+          "name": "classroomSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "runtimeSessionId": {
+          "name": "runtimeSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "correlationId": {
+          "name": "correlationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "adapterId": {
+          "name": "adapterId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "adapterMode": {
+          "name": "adapterMode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "traceType": {
+          "name": "traceType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "snapshotVersion": {
+          "name": "snapshotVersion",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "detailJson": {
+          "name": "detailJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "emittedAt": {
+          "name": "emittedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "failedAt": {
+          "name": "failedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "closedAt": {
+          "name": "closedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "transportConsumerTrace_attempt_idx": {
+          "name": "transportConsumerTrace_attempt_idx",
+          "columns": [
+            "attemptId",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "transportConsumerTrace_session_idx": {
+          "name": "transportConsumerTrace_session_idx",
+          "columns": [
+            "classroomSessionId",
+            "runtimeSessionId",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "transportConsumerTrace_correlation_idx": {
+          "name": "transportConsumerTrace_correlation_idx",
+          "columns": [
+            "correlationId",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "transportConsumerTrace_attemptId_transportDeliveryAttempt_id_fk": {
+          "name": "transportConsumerTrace_attemptId_transportDeliveryAttempt_id_fk",
+          "tableFrom": "transportConsumerTrace",
+          "tableTo": "transportDeliveryAttempt",
+          "columnsFrom": [
+            "attemptId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "transportConsumerTrace_classroomSessionId_classroomSession_id_fk": {
+          "name": "transportConsumerTrace_classroomSessionId_classroomSession_id_fk",
+          "tableFrom": "transportConsumerTrace",
+          "tableTo": "classroomSession",
+          "columnsFrom": [
+            "classroomSessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "transportConsumerTrace_runtimeSessionId_runtimeStepSession_id_fk": {
+          "name": "transportConsumerTrace_runtimeSessionId_runtimeStepSession_id_fk",
+          "tableFrom": "transportConsumerTrace",
+          "tableTo": "runtimeStepSession",
+          "columnsFrom": [
+            "runtimeSessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "transportDeliveryAttempt": {
+      "name": "transportDeliveryAttempt",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "runtimeSessionId": {
+          "name": "runtimeSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "classroomSessionId": {
+          "name": "classroomSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "schoolId": {
+          "name": "schoolId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "truthRefType": {
+          "name": "truthRefType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "truthRefId": {
+          "name": "truthRefId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "channel": {
+          "name": "channel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "adapterId": {
+          "name": "adapterId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "adapterMode": {
+          "name": "adapterMode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "messageId": {
+          "name": "messageId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "correlationId": {
+          "name": "correlationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "truthPersisted": {
+          "name": "truthPersisted",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "deliveryAttempted": {
+          "name": "deliveryAttempted",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "attemptStatus": {
+          "name": "attemptStatus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "payloadSummaryJson": {
+          "name": "payloadSummaryJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "failureReason": {
+          "name": "failureReason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "attemptedAt": {
+          "name": "attemptedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deliveredAt": {
+          "name": "deliveredAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "failedAt": {
+          "name": "failedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "transportDeliveryAttempt_message_unique": {
+          "name": "transportDeliveryAttempt_message_unique",
+          "columns": [
+            "messageId"
+          ],
+          "isUnique": true
+        },
+        "transportDeliveryAttempt_truth_idx": {
+          "name": "transportDeliveryAttempt_truth_idx",
+          "columns": [
+            "truthRefType",
+            "truthRefId",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "transportDeliveryAttempt_session_idx": {
+          "name": "transportDeliveryAttempt_session_idx",
+          "columns": [
+            "classroomSessionId",
+            "runtimeSessionId",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "transportDeliveryAttempt_correlation_idx": {
+          "name": "transportDeliveryAttempt_correlation_idx",
+          "columns": [
+            "correlationId",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "transportDeliveryAttempt_runtimeSessionId_runtimeStepSession_id_fk": {
+          "name": "transportDeliveryAttempt_runtimeSessionId_runtimeStepSession_id_fk",
+          "tableFrom": "transportDeliveryAttempt",
+          "tableTo": "runtimeStepSession",
+          "columnsFrom": [
+            "runtimeSessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "transportDeliveryAttempt_classroomSessionId_classroomSession_id_fk": {
+          "name": "transportDeliveryAttempt_classroomSessionId_classroomSession_id_fk",
+          "tableFrom": "transportDeliveryAttempt",
+          "tableTo": "classroomSession",
+          "columnsFrom": [
+            "classroomSessionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "transportDeliveryAttempt_schoolId_school_id_fk": {
+          "name": "transportDeliveryAttempt_schoolId_school_id_fk",
+          "tableFrom": "transportDeliveryAttempt",
           "tableTo": "school",
           "columnsFrom": [
             "schoolId"

@@ -5,99 +5,15 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1778818817841,
-      "tag": "0000_phase15-course-import",
+      "when": 1779418772627,
+      "tag": "0000_windy_metal_master",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1778911690470,
-      "tag": "0001_curved_overlord",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1778982969492,
-      "tag": "0002_runtime-governance-transport",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1779076800000,
-      "tag": "0003_phase37_redis_fanout",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1779110004144,
-      "tag": "0004_phase39_async_tasks",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1779113629510,
-      "tag": "0005_phase40_async_task_runtime_projection",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1779192000000,
-      "tag": "0006_phase42_async_operator",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1779241806231,
-      "tag": "0007_phase43_scheduled_reminder_dispatch_claim",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1779244215255,
-      "tag": "0008_phase43_validation_workloads",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "6",
-      "when": 1779249395256,
-      "tag": "0009_phase43_knowledge_source_uniqueness",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "6",
-      "when": 1779252440603,
-      "tag": "0010_wandering_angel",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "6",
-      "when": 1779272108905,
-      "tag": "0011_phase44_plugin_identity_namespace",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "6",
-      "when": 1779278519170,
-      "tag": "0012_aspiring_corsair",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "6",
-      "when": 1779345253487,
-      "tag": "0013_phase51_command_bus_foundation",
+      "when": 1779435870469,
+      "tag": "0012_phase53_platform_event_foundation",
       "breakpoints": true
     }
   ]

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "883a9f6a-a460-4648-a86d-3938ce97af58",
-  "prevId": "cb5eec59-dd07-4d51-9c13-970d4b03e0ca",
+  "id": "38119013-934e-4b97-ab9e-90f9141ddb9b",
+  "prevId": "cb2e29c8-78d4-4ff0-bd19-390a9794f21f",
   "tables": {
     "account": {
       "name": "account",
@@ -4053,6 +4053,20 @@
           "notNull": false,
           "autoincrement": false
         },
+        "invalidationTagsJson": {
+          "name": "invalidationTagsJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "failureAttributionJson": {
+          "name": "failureAttributionJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "latestAttemptNumber": {
           "name": "latestAttemptNumber",
           "type": "integer",
@@ -4129,6 +4143,313 @@
           "tableTo": "school",
           "columnsFrom": [
             "schoolId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "platformEventDispatch": {
+      "name": "platformEventDispatch",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "eventId": {
+          "name": "eventId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "commandId": {
+          "name": "commandId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attemptNumber": {
+          "name": "attemptNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "correlationId": {
+          "name": "correlationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "causationId": {
+          "name": "causationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dispatchChannel": {
+          "name": "dispatchChannel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dispatchStatus": {
+          "name": "dispatchStatus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "adapterId": {
+          "name": "adapterId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "failureReason": {
+          "name": "failureReason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deliveredAt": {
+          "name": "deliveredAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "failedAt": {
+          "name": "failedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "platformEventDispatches_event_channel_unique": {
+          "name": "platformEventDispatches_event_channel_unique",
+          "columns": [
+            "eventId",
+            "dispatchChannel"
+          ],
+          "isUnique": true
+        },
+        "platformEventDispatches_command_attempt_idx": {
+          "name": "platformEventDispatches_command_attempt_idx",
+          "columns": [
+            "commandId",
+            "attemptNumber",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "platformEventDispatches_status_channel_idx": {
+          "name": "platformEventDispatches_status_channel_idx",
+          "columns": [
+            "dispatchStatus",
+            "dispatchChannel",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "platformEventDispatches_correlation_idx": {
+          "name": "platformEventDispatches_correlation_idx",
+          "columns": [
+            "correlationId",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "platformEventDispatch_eventId_platformEvent_id_fk": {
+          "name": "platformEventDispatch_eventId_platformEvent_id_fk",
+          "tableFrom": "platformEventDispatch",
+          "tableTo": "platformEvent",
+          "columnsFrom": [
+            "eventId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "platformEventDispatch_commandId_platformCommand_id_fk": {
+          "name": "platformEventDispatch_commandId_platformCommand_id_fk",
+          "tableFrom": "platformEventDispatch",
+          "tableTo": "platformCommand",
+          "columnsFrom": [
+            "commandId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "platformEvent": {
+      "name": "platformEvent",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "commandId": {
+          "name": "commandId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attemptNumber": {
+          "name": "attemptNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "eventOrdinal": {
+          "name": "eventOrdinal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "correlationId": {
+          "name": "correlationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "causationId": {
+          "name": "causationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "eventType": {
+          "name": "eventType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "aggregateType": {
+          "name": "aggregateType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "aggregateId": {
+          "name": "aggregateId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payloadSummaryJson": {
+          "name": "payloadSummaryJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "platformEvents_command_attempt_ordinal_unique": {
+          "name": "platformEvents_command_attempt_ordinal_unique",
+          "columns": [
+            "commandId",
+            "attemptNumber",
+            "eventOrdinal"
+          ],
+          "isUnique": true
+        },
+        "platformEvents_command_attempt_created_idx": {
+          "name": "platformEvents_command_attempt_created_idx",
+          "columns": [
+            "commandId",
+            "attemptNumber",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "platformEvents_correlation_created_idx": {
+          "name": "platformEvents_correlation_created_idx",
+          "columns": [
+            "correlationId",
+            "createdAt"
+          ],
+          "isUnique": false
+        },
+        "platformEvents_eventType_created_idx": {
+          "name": "platformEvents_eventType_created_idx",
+          "columns": [
+            "eventType",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "platformEvent_commandId_platformCommand_id_fk": {
+          "name": "platformEvent_commandId_platformCommand_id_fk",
+          "tableFrom": "platformEvent",
+          "tableTo": "platformCommand",
+          "columnsFrom": [
+            "commandId"
           ],
           "columnsTo": [
             "id"
@@ -4871,6 +5192,20 @@
           "autoincrement": false,
           "default": "'installed'"
         },
+        "uninstalledAt": {
+          "name": "uninstalledAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "uninstallRetentionMode": {
+          "name": "uninstallRetentionMode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "integer",
@@ -5203,16 +5538,6 @@
             "stepId",
             "studentId",
             "attemptNo"
-          ],
-          "isUnique": true
-        },
-        "quizAttempts_latest_unique": {
-          "name": "quizAttempts_latest_unique",
-          "columns": [
-            "publishedVersionId",
-            "stepId",
-            "studentId",
-            "isLatest"
           ],
           "isUnique": true
         },
@@ -5805,8 +6130,8 @@
         }
       },
       "indexes": {
-        "runtimeStepSessions_latest_identity_unique": {
-          "name": "runtimeStepSessions_latest_identity_unique",
+        "runtimeStepSessions_latest_identity_idx": {
+          "name": "runtimeStepSessions_latest_identity_idx",
           "columns": [
             "classroomSessionId",
             "stepId",
@@ -5815,7 +6140,7 @@
             "runtimeVersion",
             "isLatest"
           ],
-          "isUnique": true
+          "isUnique": false
         },
         "runtimeStepSessions_classroom_step_actor_idx": {
           "name": "runtimeStepSessions_classroom_step_actor_idx",
@@ -5989,13 +6314,13 @@
           ],
           "isUnique": true
         },
-        "runtimeStepStates_session_latest_unique": {
-          "name": "runtimeStepStates_session_latest_unique",
+        "runtimeStepStates_session_latest_idx": {
+          "name": "runtimeStepStates_session_latest_idx",
           "columns": [
             "runtimeSessionId",
             "isLatest"
           ],
-          "isUnique": true
+          "isUnique": false
         },
         "runtimeStepStates_session_history_idx": {
           "name": "runtimeStepStates_session_history_idx",
@@ -8512,16 +8837,6 @@
             "stepId",
             "studentId",
             "attemptNo"
-          ],
-          "isUnique": true
-        },
-        "taskSubmissions_latest_unique": {
-          "name": "taskSubmissions_latest_unique",
-          "columns": [
-            "publishedVersionId",
-            "stepId",
-            "studentId",
-            "isLatest"
           ],
           "isUnique": true
         },

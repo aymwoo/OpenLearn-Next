@@ -276,6 +276,63 @@ const DEV_THEME_PLUGIN_DEFINITIONS = [
   },
 ] as const;
 
+const DEV_GOVERNANCE_PLUGIN_DEFINITIONS = [
+  {
+    name: "Phase52 缺依赖演示插件",
+    manifest: {
+      id: "phase52-missing-dependency-plugin",
+      version: "1.0.0",
+      manifestVersion: 2,
+      permissions: [],
+      anchors: ["dashboard.widget"],
+      actions: ["createNotificationStub"],
+      builtIn: false,
+      defaultEnabled: true,
+      nonDeletable: false,
+      governance: {
+        manifestVersion: 2,
+        contractVersion: "v2",
+        dependencies: ["phase52-missing-provider-plugin"],
+        requestedCapabilities: [],
+        permissions: [],
+        lifecycle: {
+          ownerType: "host",
+          installScope: "school",
+          initialState: "installed",
+          mountMode: "manual",
+        },
+      },
+    },
+  },
+  {
+    name: "Phase52 可卸载演示插件",
+    manifest: {
+      id: "phase52-retain-uninstall-plugin",
+      version: "1.0.0",
+      manifestVersion: 2,
+      permissions: [],
+      anchors: ["dashboard.widget"],
+      actions: ["createNotificationStub"],
+      builtIn: false,
+      defaultEnabled: true,
+      nonDeletable: false,
+      governance: {
+        manifestVersion: 2,
+        contractVersion: "v2",
+        dependencies: [],
+        requestedCapabilities: [],
+        permissions: [],
+        lifecycle: {
+          ownerType: "host",
+          installScope: "school",
+          initialState: "installed",
+          mountMode: "manual",
+        },
+      },
+    },
+  },
+] as const;
+
 async function getOrCreateClass(schoolId: string) {
   const existing = await db.query.classes.findFirst({
     where: and(eq(classes.schoolId, schoolId), eq(classes.name, DEV_CLASS_NAME)),
@@ -526,6 +583,28 @@ async function upsertDevThemePlugin(
   );
 }
 
+async function upsertDevGovernancePlugin(
+  schoolId: string,
+  actorId: string,
+  definition: (typeof DEV_GOVERNANCE_PLUGIN_DEFINITIONS)[number],
+) {
+  const manifest = PluginManifestSchema.parse(definition.manifest);
+  await producePluginInstallCommand({
+    actor: { actorId, actorScope: "system" },
+    scope: { schoolId, pluginId: manifest.id },
+    payload: {
+      schoolId,
+      pluginId: manifest.id,
+      existingRegistrationId: undefined,
+      name: definition.name,
+      manifestJson: manifest,
+      installSource: "seed",
+    },
+    source: "bootstrap-script",
+    correlation: { producer: "bootstrap-dev-db.phase52-governance" },
+  });
+}
+
 async function seedDefaultSystemTransportMode(teacherId: string) {
   const existing = await db.query.systemTransportSettings.findFirst({
     where: eq(systemTransportSettings.id, "default"),
@@ -577,6 +656,9 @@ export async function bootstrapDevDb() {
   for (const definition of DEV_THEME_PLUGIN_DEFINITIONS) {
     await upsertDevThemePlugin(seeded.school.id, seeded.teacher.id, definition);
   }
+  for (const definition of DEV_GOVERNANCE_PLUGIN_DEFINITIONS) {
+    await upsertDevGovernancePlugin(seeded.school.id, seeded.teacher.id, definition);
+  }
   const validThemeRows = await db.query.themeTokenRegistries.findMany({
     where: and(eq(themeTokenRegistries.schoolId, seeded.school.id), eq(themeTokenRegistries.validationStatus, "valid")),
   });
@@ -589,6 +671,7 @@ export async function bootstrapDevDb() {
   console.log(`- 发布版本：v${published.version}`);
   console.log(`- 内置教学环节：${BUILT_IN_PLUGIN_DEFINITIONS.map((plugin) => plugin.name).join("、")}`);
   console.log(`- 可用主题：${validThemeRows.map((theme) => theme.name).join("、")}`);
+  console.log(`- Phase 52 治理样本：${DEV_GOVERNANCE_PLUGIN_DEFINITIONS.map((plugin) => plugin.name).join("、")}`);
   console.log("- 全局 transport 默认：local_only（未提供 Redis 时默认保持单实例 local fanout）");
   console.log("- 如需验证 Redis fanout，请显式设置 REDIS_FANOUT_ENABLED=true 与 REDIS_URL 后运行 pnpm verify:phase37");
   console.log(`- 教师账号：${seeded.teacher.email} / password`);

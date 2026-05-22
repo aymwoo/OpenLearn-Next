@@ -32,4 +32,14 @@ describe("bootstrap dev theme seeding", () => {
     expect(registrySource).toContain("update(themeTokenRegistries)");
     expect(themeSource).toContain('export { registerThemeTokens, recordThemeAudit };');
   });
+
+  it("seeds dedicated phase52 governance demo plugins for UAT", () => {
+    expect(source).toContain("DEV_GOVERNANCE_PLUGIN_DEFINITIONS");
+    expect(source).toContain('id: "phase52-missing-dependency-plugin"');
+    expect(source).toContain('dependencies: ["phase52-missing-provider-plugin"]');
+    expect(source).toContain('id: "phase52-retain-uninstall-plugin"');
+    expect(source).toContain("await upsertDevGovernancePlugin(seeded.school.id, seeded.teacher.id, definition)");
+    expect(source).toContain('producer: "bootstrap-dev-db.phase52-governance"');
+    expect(source).toContain("Phase 52 治理样本");
+  });
 });

@@ -54,6 +54,70 @@ CREATE TABLE `agentRegistry` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `agentRegistry_agentKey_unique` ON `agentRegistry` (`agentKey`);--> statement-breakpoint
+CREATE TABLE `asyncTaskEvent` (
+	`id` text PRIMARY KEY NOT NULL,
+	`taskId` text NOT NULL,
+	`eventType` text NOT NULL,
+	`status` text NOT NULL,
+	`attemptNumber` integer DEFAULT 0 NOT NULL,
+	`payloadJson` text NOT NULL,
+	`createdAt` integer,
+	FOREIGN KEY (`taskId`) REFERENCES `asyncTask`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `asyncTaskEvents_task_created_idx` ON `asyncTaskEvent` (`taskId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `asyncTaskEvents_status_created_idx` ON `asyncTaskEvent` (`status`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `asyncTaskEvents_task_attempt_idx` ON `asyncTaskEvent` (`taskId`,`attemptNumber`,`createdAt`);--> statement-breakpoint
+CREATE TABLE `asyncTask` (
+	`id` text PRIMARY KEY NOT NULL,
+	`actorId` text NOT NULL,
+	`schoolId` text NOT NULL,
+	`taskType` text NOT NULL,
+	`featureArea` text NOT NULL,
+	`status` text DEFAULT 'pending_enqueue' NOT NULL,
+	`enqueueIntentStatus` text DEFAULT 'pending_enqueue' NOT NULL,
+	`visibilityScope` text DEFAULT 'actor_owned' NOT NULL,
+	`entityType` text NOT NULL,
+	`entityId` text NOT NULL,
+	`entityLabel` text,
+	`labelKey` text NOT NULL,
+	`summaryKey` text NOT NULL,
+	`payloadJson` text NOT NULL,
+	`latestProgressJson` text,
+	`latestResultJson` text,
+	`queueJobId` text,
+	`latestAttemptNumber` integer DEFAULT 0 NOT NULL,
+	`latestFailureReason` text,
+	`latestRecoveryJson` text,
+	`createdAt` integer,
+	`updatedAt` integer,
+	`startedAt` integer,
+	`completedAt` integer,
+	FOREIGN KEY (`actorId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `asyncTasks_actor_status_idx` ON `asyncTask` (`actorId`,`status`);--> statement-breakpoint
+CREATE INDEX `asyncTasks_school_status_idx` ON `asyncTask` (`schoolId`,`status`);--> statement-breakpoint
+CREATE INDEX `asyncTasks_entity_idx` ON `asyncTask` (`entityType`,`entityId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `asyncTasks_type_created_idx` ON `asyncTask` (`taskType`,`createdAt`);--> statement-breakpoint
+CREATE UNIQUE INDEX `asyncTasks_queueJobId_unique` ON `asyncTask` (`queueJobId`);--> statement-breakpoint
+CREATE TABLE `asyncWorkerHeartbeat` (
+	`id` text PRIMARY KEY NOT NULL,
+	`instanceId` text NOT NULL,
+	`status` text DEFAULT 'ready' NOT NULL,
+	`queueNamesJson` text NOT NULL,
+	`lastSeenAt` integer,
+	`startedAt` integer,
+	`stoppedAt` integer,
+	`lastSignal` text,
+	`detailJson` text NOT NULL,
+	`createdAt` integer,
+	`updatedAt` integer
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `asyncWorkerHeartbeat_instanceId_unique` ON `asyncWorkerHeartbeat` (`instanceId`);--> statement-breakpoint
+CREATE INDEX `asyncWorkerHeartbeat_status_seen_idx` ON `asyncWorkerHeartbeat` (`status`,`lastSeenAt`);--> statement-breakpoint
 CREATE TABLE `attemptFeedback` (
 	`id` text PRIMARY KEY NOT NULL,
 	`targetType` text NOT NULL,
@@ -138,6 +202,25 @@ CREATE TABLE `classroomParticipant` (
 CREATE UNIQUE INDEX `classroomParticipants_session_student_unique` ON `classroomParticipant` (`sessionId`,`studentId`);--> statement-breakpoint
 CREATE INDEX `classroomParticipants_session_idx` ON `classroomParticipant` (`sessionId`);--> statement-breakpoint
 CREATE INDEX `classroomParticipants_student_idx` ON `classroomParticipant` (`studentId`);--> statement-breakpoint
+CREATE TABLE `classroomSessionSummary` (
+	`id` text PRIMARY KEY NOT NULL,
+	`sessionId` text NOT NULL,
+	`schoolId` text NOT NULL,
+	`status` text DEFAULT 'processing' NOT NULL,
+	`triggerMode` text NOT NULL,
+	`lastEventVersion` integer DEFAULT 0 NOT NULL,
+	`summaryJson` text NOT NULL,
+	`failureReason` text,
+	`createdAt` integer,
+	`updatedAt` integer,
+	`finalizedAt` integer,
+	FOREIGN KEY (`sessionId`) REFERENCES `classroomSession`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `classroomSessionSummary_sessionId_unique` ON `classroomSessionSummary` (`sessionId`);--> statement-breakpoint
+CREATE INDEX `classroomSessionSummary_school_status_idx` ON `classroomSessionSummary` (`schoolId`,`status`);--> statement-breakpoint
+CREATE INDEX `classroomSessionSummary_school_trigger_idx` ON `classroomSessionSummary` (`schoolId`,`triggerMode`);--> statement-breakpoint
 CREATE TABLE `classroomSession` (
 	`id` text PRIMARY KEY NOT NULL,
 	`lessonId` text NOT NULL,
@@ -146,6 +229,7 @@ CREATE TABLE `classroomSession` (
 	`teacherId` text NOT NULL,
 	`activeStepId` text NOT NULL,
 	`locked` integer DEFAULT false NOT NULL,
+	`transportModeSnapshot` text DEFAULT 'local_only' NOT NULL,
 	`status` text DEFAULT 'live' NOT NULL,
 	`version` integer DEFAULT 1 NOT NULL,
 	`createdAt` integer,
@@ -196,6 +280,7 @@ CREATE TABLE `courseEnrollment` (
 	FOREIGN KEY (`studentId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `courseEnrollments_course_student_unique` ON `courseEnrollment` (`courseId`,`studentId`);--> statement-breakpoint
 CREATE INDEX `courseEnrollments_courseId_idx` ON `courseEnrollment` (`courseId`);--> statement-breakpoint
 CREATE INDEX `courseEnrollments_studentId_idx` ON `courseEnrollment` (`studentId`);--> statement-breakpoint
 CREATE TABLE `courseImportBatch` (
@@ -258,6 +343,38 @@ CREATE TABLE `course` (
 --> statement-breakpoint
 CREATE INDEX `courses_schoolId_idx` ON `course` (`schoolId`);--> statement-breakpoint
 CREATE INDEX `courses_ownerId_idx` ON `course` (`ownerId`);--> statement-breakpoint
+CREATE TABLE `governanceAudit` (
+	`id` text PRIMARY KEY NOT NULL,
+	`targetType` text NOT NULL,
+	`targetId` text NOT NULL,
+	`commandId` text,
+	`runtimeSessionId` text,
+	`classroomSessionId` text,
+	`pluginId` text,
+	`schoolId` text,
+	`action` text NOT NULL,
+	`decision` text NOT NULL,
+	`reasonCode` text,
+	`actorId` text,
+	`actorScope` text,
+	`lifecycleState` text,
+	`killSwitchEnabled` integer DEFAULT false NOT NULL,
+	`requestedCapabilitiesJson` text NOT NULL,
+	`grantedCapabilitiesJson` text NOT NULL,
+	`requiredPermission` text,
+	`correlationId` text NOT NULL,
+	`payloadJson` text NOT NULL,
+	`createdAt` integer,
+	FOREIGN KEY (`commandId`) REFERENCES `platformCommand`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`runtimeSessionId`) REFERENCES `runtimeStepSession`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`classroomSessionId`) REFERENCES `classroomSession`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`pluginId`) REFERENCES `pluginRegistration`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`actorId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `governanceAudit_target_created_idx` ON `governanceAudit` (`targetType`,`targetId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `governanceAudit_decision_created_idx` ON `governanceAudit` (`decision`,`createdAt`);--> statement-breakpoint
 CREATE TABLE `knowledgeChunk` (
 	`id` text PRIMARY KEY NOT NULL,
 	`sourceId` text NOT NULL,
@@ -271,6 +388,7 @@ CREATE TABLE `knowledgeChunk` (
 	FOREIGN KEY (`sourceId`) REFERENCES `knowledgeSource`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `knowledgeChunks_source_chunk_unique` ON `knowledgeChunk` (`sourceId`,`chunkIndex`);--> statement-breakpoint
 CREATE TABLE `knowledgeSource` (
 	`id` text PRIMARY KEY NOT NULL,
 	`resourceId` text NOT NULL,
@@ -281,6 +399,7 @@ CREATE TABLE `knowledgeSource` (
 	FOREIGN KEY (`resourceId`) REFERENCES `resource`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `knowledgeSources_resourceId_unique` ON `knowledgeSource` (`resourceId`);--> statement-breakpoint
 CREATE TABLE `lessonMaterial` (
 	`id` text PRIMARY KEY NOT NULL,
 	`lessonId` text NOT NULL,
@@ -403,17 +522,67 @@ CREATE TABLE `membership` (
 --> statement-breakpoint
 CREATE INDEX `membership_userId_idx` ON `membership` (`userId`);--> statement-breakpoint
 CREATE INDEX `membership_schoolId_idx` ON `membership` (`schoolId`);--> statement-breakpoint
+CREATE TABLE `platformCommandAttempt` (
+	`id` text PRIMARY KEY NOT NULL,
+	`commandId` text NOT NULL,
+	`attemptNumber` integer NOT NULL,
+	`status` text NOT NULL,
+	`resultSummaryJson` text,
+	`failureDetailJson` text,
+	`startedAt` integer,
+	`completedAt` integer,
+	`createdAt` integer,
+	FOREIGN KEY (`commandId`) REFERENCES `platformCommand`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `platformCommandAttempts_command_attempt_unique` ON `platformCommandAttempt` (`commandId`,`attemptNumber`);--> statement-breakpoint
+CREATE INDEX `platformCommandAttempts_command_attempt_idx` ON `platformCommandAttempt` (`commandId`,`attemptNumber`);--> statement-breakpoint
+CREATE TABLE `platformCommand` (
+	`id` text PRIMARY KEY NOT NULL,
+	`actorId` text NOT NULL,
+	`schoolId` text NOT NULL,
+	`commandType` text NOT NULL,
+	`status` text DEFAULT 'pending' NOT NULL,
+	`dedupeKey` text NOT NULL,
+	`actorScope` text NOT NULL,
+	`scopeJson` text NOT NULL,
+	`payloadJson` text NOT NULL,
+	`correlationJson` text NOT NULL,
+	`resultSummaryJson` text,
+	`failureDetailJson` text,
+	`latestAttemptNumber` integer DEFAULT 0 NOT NULL,
+	`createdAt` integer,
+	`updatedAt` integer,
+	`completedAt` integer,
+	FOREIGN KEY (`actorId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `platformCommands_dedupeKey_unique` ON `platformCommand` (`dedupeKey`);--> statement-breakpoint
+CREATE INDEX `platformCommands_type_created_idx` ON `platformCommand` (`commandType`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `platformCommands_school_status_created_idx` ON `platformCommand` (`schoolId`,`status`,`createdAt`);--> statement-breakpoint
 CREATE TABLE `pluginActionAudit` (
 	`id` text PRIMARY KEY NOT NULL,
 	`pluginId` text NOT NULL,
+	`commandId` text,
 	`action` text NOT NULL,
+	`decision` text DEFAULT 'allowed' NOT NULL,
+	`reasonCode` text,
+	`schoolId` text,
+	`actorScope` text,
+	`lifecycleState` text,
+	`correlationId` text,
 	`payloadJson` text NOT NULL,
 	`actorId` text,
 	`createdAt` integer,
 	FOREIGN KEY (`pluginId`) REFERENCES `pluginRegistration`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`commandId`) REFERENCES `platformCommand`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`actorId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `pluginActionAudit_plugin_created_idx` ON `pluginActionAudit` (`pluginId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `pluginActionAudit_decision_created_idx` ON `pluginActionAudit` (`decision`,`createdAt`);--> statement-breakpoint
 CREATE TABLE `pluginHookRun` (
 	`id` text PRIMARY KEY NOT NULL,
 	`pluginId` text NOT NULL,
@@ -424,18 +593,95 @@ CREATE TABLE `pluginHookRun` (
 	FOREIGN KEY (`pluginId`) REFERENCES `pluginRegistration`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `plugin_ext_lesson` (
+	`id` text PRIMARY KEY NOT NULL,
+	`schoolId` text NOT NULL,
+	`pluginId` text NOT NULL,
+	`lessonId` text NOT NULL,
+	`payloadJson` text NOT NULL,
+	`createdAt` integer,
+	`updatedAt` integer,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`pluginId`) REFERENCES `pluginRegistration`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`lessonId`) REFERENCES `lesson`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `plugin_ext_lesson_school_plugin_entity_unique` ON `plugin_ext_lesson` (`schoolId`,`pluginId`,`lessonId`);--> statement-breakpoint
+CREATE TABLE `plugin_ext_lesson_step` (
+	`id` text PRIMARY KEY NOT NULL,
+	`schoolId` text NOT NULL,
+	`pluginId` text NOT NULL,
+	`lessonStepId` text NOT NULL,
+	`payloadJson` text NOT NULL,
+	`createdAt` integer,
+	`updatedAt` integer,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`pluginId`) REFERENCES `pluginRegistration`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`lessonStepId`) REFERENCES `lessonStep`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `plugin_ext_lesson_step_school_plugin_entity_unique` ON `plugin_ext_lesson_step` (`schoolId`,`pluginId`,`lessonStepId`);--> statement-breakpoint
+CREATE TABLE `pluginLifecycleTransition` (
+	`id` text PRIMARY KEY NOT NULL,
+	`pluginId` text NOT NULL,
+	`fromState` text,
+	`toState` text NOT NULL,
+	`reason` text,
+	`actorId` text,
+	`createdAt` integer,
+	FOREIGN KEY (`pluginId`) REFERENCES `pluginRegistration`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`actorId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `pluginLifecycleTransition_plugin_created_idx` ON `pluginLifecycleTransition` (`pluginId`,`createdAt`);--> statement-breakpoint
+CREATE TABLE `plugin_owned_business_data` (
+	`id` text PRIMARY KEY NOT NULL,
+	`schoolId` text NOT NULL,
+	`pluginId` text NOT NULL,
+	`key` text NOT NULL,
+	`payloadJson` text NOT NULL,
+	`createdAt` integer,
+	`updatedAt` integer,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`pluginId`) REFERENCES `pluginRegistration`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `plugin_owned_biz_school_plugin_key_idx` ON `plugin_owned_business_data` (`schoolId`,`pluginId`,`key`);--> statement-breakpoint
 CREATE TABLE `pluginRegistration` (
 	`id` text PRIMARY KEY NOT NULL,
 	`schoolId` text NOT NULL,
 	`name` text NOT NULL,
 	`manifestJson` text NOT NULL,
+	`pluginKey` text NOT NULL,
+	`dbNamespace` text NOT NULL,
+	`sourceType` text NOT NULL,
+	`installSource` text NOT NULL,
 	`enabled` integer DEFAULT false NOT NULL,
 	`killSwitchEnabled` integer DEFAULT false NOT NULL,
+	`lifecycleState` text DEFAULT 'installed' NOT NULL,
+	`uninstalledAt` integer,
+	`uninstallRetentionMode` text,
 	`createdAt` integer,
 	`updatedAt` integer,
 	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `pluginRegistration_school_pluginKey_unique` ON `pluginRegistration` (`schoolId`,`pluginKey`);--> statement-breakpoint
+CREATE UNIQUE INDEX `pluginRegistration_school_dbNamespace_unique` ON `pluginRegistration` (`schoolId`,`dbNamespace`);--> statement-breakpoint
+CREATE TABLE `plugin_ext_resource` (
+	`id` text PRIMARY KEY NOT NULL,
+	`schoolId` text NOT NULL,
+	`pluginId` text NOT NULL,
+	`resourceId` text NOT NULL,
+	`payloadJson` text NOT NULL,
+	`createdAt` integer,
+	`updatedAt` integer,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`pluginId`) REFERENCES `pluginRegistration`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`resourceId`) REFERENCES `resource`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `plugin_ext_resource_school_plugin_entity_unique` ON `plugin_ext_resource` (`schoolId`,`pluginId`,`resourceId`);--> statement-breakpoint
 CREATE TABLE `publishedLessonVersion` (
 	`id` text PRIMARY KEY NOT NULL,
 	`lessonId` text NOT NULL,
@@ -466,7 +712,6 @@ CREATE TABLE `quizAttempt` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `quizAttempts_attempt_unique` ON `quizAttempt` (`publishedVersionId`,`stepId`,`studentId`,`attemptNo`);--> statement-breakpoint
-CREATE UNIQUE INDEX `quizAttempts_latest_unique` ON `quizAttempt` (`publishedVersionId`,`stepId`,`studentId`,`isLatest`);--> statement-breakpoint
 CREATE INDEX `quizAttempts_latest_idx` ON `quizAttempt` (`publishedVersionId`,`stepId`,`studentId`,`isLatest`);--> statement-breakpoint
 CREATE INDEX `quizAttempts_history_idx` ON `quizAttempt` (`publishedVersionId`,`stepId`,`studentId`,`attemptNo`);--> statement-breakpoint
 CREATE TABLE `resource` (
@@ -490,6 +735,80 @@ CREATE TABLE `resource` (
 CREATE INDEX `resources_schoolId_idx` ON `resource` (`schoolId`);--> statement-breakpoint
 CREATE INDEX `resources_ownerId_idx` ON `resource` (`ownerId`);--> statement-breakpoint
 CREATE INDEX `resources_courseId_idx` ON `resource` (`courseId`);--> statement-breakpoint
+CREATE TABLE `runtimeEventOutbox` (
+	`id` text PRIMARY KEY NOT NULL,
+	`runtimeSessionId` text NOT NULL,
+	`classroomSessionId` text NOT NULL,
+	`stepId` text NOT NULL,
+	`eventType` text NOT NULL,
+	`messageId` text NOT NULL,
+	`correlationId` text NOT NULL,
+	`payloadJson` text NOT NULL,
+	`deliveryChannel` text NOT NULL,
+	`deliveryStatus` text DEFAULT 'pending' NOT NULL,
+	`createdAt` integer,
+	`deliveredAt` integer,
+	FOREIGN KEY (`runtimeSessionId`) REFERENCES `runtimeStepSession`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`classroomSessionId`) REFERENCES `classroomSession`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`stepId`) REFERENCES `lessonStep`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `runtimeEventOutbox_message_unique` ON `runtimeEventOutbox` (`messageId`);--> statement-breakpoint
+CREATE INDEX `runtimeEventOutbox_session_created_idx` ON `runtimeEventOutbox` (`runtimeSessionId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `runtimeEventOutbox_delivery_idx` ON `runtimeEventOutbox` (`deliveryStatus`,`deliveryChannel`,`createdAt`);--> statement-breakpoint
+CREATE TABLE `runtimeLifecycleTransition` (
+	`id` text PRIMARY KEY NOT NULL,
+	`runtimeSessionId` text NOT NULL,
+	`fromState` text,
+	`toState` text NOT NULL,
+	`reason` text,
+	`actorId` text,
+	`createdAt` integer,
+	FOREIGN KEY (`runtimeSessionId`) REFERENCES `runtimeStepSession`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`actorId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `runtimeLifecycleTransition_session_created_idx` ON `runtimeLifecycleTransition` (`runtimeSessionId`,`createdAt`);--> statement-breakpoint
+CREATE TABLE `runtimeStepSession` (
+	`id` text PRIMARY KEY NOT NULL,
+	`classroomSessionId` text NOT NULL,
+	`publishedVersionId` text NOT NULL,
+	`lessonId` text NOT NULL,
+	`stepId` text NOT NULL,
+	`runtimeId` text NOT NULL,
+	`runtimeVersion` text NOT NULL,
+	`actorId` text NOT NULL,
+	`actorScope` text NOT NULL,
+	`schoolId` text NOT NULL,
+	`resetReason` text,
+	`isLatest` integer DEFAULT true NOT NULL,
+	`createdAt` integer,
+	FOREIGN KEY (`classroomSessionId`) REFERENCES `classroomSession`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`publishedVersionId`) REFERENCES `publishedLessonVersion`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`lessonId`) REFERENCES `lesson`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`stepId`) REFERENCES `lessonStep`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`actorId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `runtimeStepSessions_latest_identity_idx` ON `runtimeStepSession` (`classroomSessionId`,`stepId`,`actorId`,`actorScope`,`runtimeVersion`,`isLatest`);--> statement-breakpoint
+CREATE INDEX `runtimeStepSessions_classroom_step_actor_idx` ON `runtimeStepSession` (`classroomSessionId`,`stepId`,`actorId`);--> statement-breakpoint
+CREATE INDEX `runtimeStepSessions_actor_history_idx` ON `runtimeStepSession` (`actorId`,`createdAt`);--> statement-breakpoint
+CREATE TABLE `runtimeStepState` (
+	`id` text PRIMARY KEY NOT NULL,
+	`runtimeSessionId` text NOT NULL,
+	`stateVersion` integer NOT NULL,
+	`kind` text NOT NULL,
+	`stateJson` text NOT NULL,
+	`summaryJson` text NOT NULL,
+	`isLatest` integer DEFAULT true NOT NULL,
+	`createdAt` integer,
+	FOREIGN KEY (`runtimeSessionId`) REFERENCES `runtimeStepSession`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `runtimeStepStates_session_version_unique` ON `runtimeStepState` (`runtimeSessionId`,`stateVersion`);--> statement-breakpoint
+CREATE INDEX `runtimeStepStates_session_latest_idx` ON `runtimeStepState` (`runtimeSessionId`,`isLatest`);--> statement-breakpoint
+CREATE INDEX `runtimeStepStates_session_history_idx` ON `runtimeStepState` (`runtimeSessionId`,`stateVersion`);--> statement-breakpoint
 CREATE TABLE `scheduleAssistantProposal` (
 	`id` text PRIMARY KEY NOT NULL,
 	`schoolId` text NOT NULL,
@@ -690,6 +1009,7 @@ CREATE INDEX `scheduleRecurringEntry_term_weekday_idx` ON `scheduleRecurringEntr
 CREATE TABLE `scheduleReminderDispatch` (
 	`id` text PRIMARY KEY NOT NULL,
 	`schoolId` text NOT NULL,
+	`actorId` text,
 	`ruleId` text,
 	`type` text NOT NULL,
 	`channel` text NOT NULL,
@@ -698,6 +1018,9 @@ CREATE TABLE `scheduleReminderDispatch` (
 	`targetLabel` text NOT NULL,
 	`status` text DEFAULT 'planned' NOT NULL,
 	`scheduledFor` integer NOT NULL,
+	`deliveryTaskId` text,
+	`dispatchClaimedAt` integer,
+	`dispatchClaimedBy` text,
 	`lastAttemptAt` integer,
 	`sentAt` integer,
 	`failureReason` text,
@@ -705,11 +1028,13 @@ CREATE TABLE `scheduleReminderDispatch` (
 	`createdAt` integer,
 	`updatedAt` integer,
 	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`actorId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`ruleId`) REFERENCES `scheduleReminderRule`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE INDEX `scheduleReminderDispatch_school_status_idx` ON `scheduleReminderDispatch` (`schoolId`,`status`);--> statement-breakpoint
 CREATE INDEX `scheduleReminderDispatch_school_scheduled_idx` ON `scheduleReminderDispatch` (`schoolId`,`scheduledFor`);--> statement-breakpoint
+CREATE UNIQUE INDEX `scheduleReminderDispatch_deliveryTaskId_unique` ON `scheduleReminderDispatch` (`deliveryTaskId`);--> statement-breakpoint
 CREATE TABLE `scheduleReminderRule` (
 	`id` text PRIMARY KEY NOT NULL,
 	`schoolId` text NOT NULL,
@@ -790,6 +1115,14 @@ CREATE TABLE `session` (
 	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `systemTransportSetting` (
+	`id` text PRIMARY KEY NOT NULL,
+	`classroomTransportMode` text DEFAULT 'local_only' NOT NULL,
+	`updatedById` text,
+	`updatedAt` integer,
+	FOREIGN KEY (`updatedById`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
 CREATE TABLE `taskSubmission` (
 	`id` text PRIMARY KEY NOT NULL,
 	`publishedVersionId` text NOT NULL,
@@ -807,7 +1140,6 @@ CREATE TABLE `taskSubmission` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `taskSubmissions_attempt_unique` ON `taskSubmission` (`publishedVersionId`,`stepId`,`studentId`,`attemptNo`);--> statement-breakpoint
-CREATE UNIQUE INDEX `taskSubmissions_latest_unique` ON `taskSubmission` (`publishedVersionId`,`stepId`,`studentId`,`isLatest`);--> statement-breakpoint
 CREATE INDEX `taskSubmissions_latest_idx` ON `taskSubmission` (`publishedVersionId`,`stepId`,`studentId`,`isLatest`);--> statement-breakpoint
 CREATE INDEX `taskSubmissions_history_idx` ON `taskSubmission` (`publishedVersionId`,`stepId`,`studentId`,`attemptNo`);--> statement-breakpoint
 CREATE TABLE `themeAuditLog` (
@@ -832,6 +1164,61 @@ CREATE TABLE `themeTokenRegistry` (
 	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `transportConsumerTrace` (
+	`id` text PRIMARY KEY NOT NULL,
+	`attemptId` text,
+	`classroomSessionId` text,
+	`runtimeSessionId` text,
+	`correlationId` text NOT NULL,
+	`adapterId` text NOT NULL,
+	`adapterMode` text NOT NULL,
+	`traceType` text NOT NULL,
+	`status` text NOT NULL,
+	`snapshotVersion` integer,
+	`detailJson` text NOT NULL,
+	`emittedAt` integer,
+	`failedAt` integer,
+	`closedAt` integer,
+	`createdAt` integer,
+	FOREIGN KEY (`attemptId`) REFERENCES `transportDeliveryAttempt`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`classroomSessionId`) REFERENCES `classroomSession`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`runtimeSessionId`) REFERENCES `runtimeStepSession`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `transportConsumerTrace_attempt_idx` ON `transportConsumerTrace` (`attemptId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `transportConsumerTrace_session_idx` ON `transportConsumerTrace` (`classroomSessionId`,`runtimeSessionId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `transportConsumerTrace_correlation_idx` ON `transportConsumerTrace` (`correlationId`,`createdAt`);--> statement-breakpoint
+CREATE TABLE `transportDeliveryAttempt` (
+	`id` text PRIMARY KEY NOT NULL,
+	`runtimeSessionId` text,
+	`classroomSessionId` text,
+	`schoolId` text,
+	`truthRefType` text NOT NULL,
+	`truthRefId` text NOT NULL,
+	`channel` text NOT NULL,
+	`kind` text NOT NULL,
+	`adapterId` text,
+	`adapterMode` text,
+	`messageId` text NOT NULL,
+	`correlationId` text NOT NULL,
+	`truthPersisted` integer DEFAULT false NOT NULL,
+	`deliveryAttempted` integer DEFAULT false NOT NULL,
+	`attemptStatus` text DEFAULT 'pending' NOT NULL,
+	`payloadSummaryJson` text NOT NULL,
+	`failureReason` text,
+	`attemptedAt` integer,
+	`deliveredAt` integer,
+	`failedAt` integer,
+	`createdAt` integer,
+	FOREIGN KEY (`runtimeSessionId`) REFERENCES `runtimeStepSession`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`classroomSessionId`) REFERENCES `classroomSession`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`schoolId`) REFERENCES `school`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `transportDeliveryAttempt_message_unique` ON `transportDeliveryAttempt` (`messageId`);--> statement-breakpoint
+CREATE INDEX `transportDeliveryAttempt_truth_idx` ON `transportDeliveryAttempt` (`truthRefType`,`truthRefId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `transportDeliveryAttempt_session_idx` ON `transportDeliveryAttempt` (`classroomSessionId`,`runtimeSessionId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `transportDeliveryAttempt_correlation_idx` ON `transportDeliveryAttempt` (`correlationId`,`createdAt`);--> statement-breakpoint
 CREATE TABLE `user` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text,

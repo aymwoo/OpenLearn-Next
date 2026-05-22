@@ -51,12 +51,12 @@
     "verify:phase43": "node --import tsx scripts/verify-phase43-validation-workloads.ts",
     "verify:phase48": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase48-lifecycle-and-uninstall.ts",
     "verify:phase51": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase51-command-bus.ts",
-    "verify:phase53": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase53-platform-events.ts",
     "verify:phase52": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase52-action-registry-and-lifecycle.ts",
+    "verify:phase53": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase53-platform-events.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
-    "db:migrate": "tsx scripts/prepare-dev-db.ts",
-    "db:bootstrap:dev": "pnpm db:migrate && tsx scripts/bootstrap-dev-db.ts",
+    "db:migrate": "tsx --import ./scripts/node-shim.js scripts/prepare-dev-db.ts",
+    "db:bootstrap:dev": "pnpm db:migrate && tsx --import ./scripts/node-shim.js scripts/bootstrap-dev-db.ts",
     "test": "vitest"
   },
   "dependencies": {
@@ -79,6 +79,7 @@
     "remark-gfm": "^4.0.1",
     "reveal.js": "^6.0.1",
     "server-only": "^0.0.1",
+    "sharp": "0.33.4",
     "tailwind-merge": "3.5.0",
     "ws": "^8.20.1",
     "zod": "^4.4.3"
