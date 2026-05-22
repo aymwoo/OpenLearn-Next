@@ -1,40 +1,34 @@
 ---
 phase: 52-action-registry-plugin-lifecycle-governance
-verified: 2026-05-22T00:03:06Z
-status: human_needed
+verified: 2026-05-22T03:53:27Z
+status: passed
 score: 8/8 must-haves verified
 overrides_applied: 0
 re_verification:
-  previous_status: gaps_found
-  previous_score: 6/8
+  previous_status: human_needed
+  previous_score: 8/8 must-haves verified
   gaps_closed:
-    - "学校操作员可以区分 installed、enabled、active、suspended、uninstalled 状态。"
-    - "恢复路径必须显式且可执行，不发生隐式 auto-recovery。"
+    - human_verification.operator_diagnostics_end_to_end_recovery_flow
+    - human_verification.retain_uninstall_audit_only_presentation
   gaps_remaining: []
   regressions: []
-human_verification:
-  - test: "Operator diagnostics end-to-end recovery flow"
-    expected: "dependency-blocked 插件在治理诊断页显示“运行 reconcile”，点击后走显式 reconcile 并刷新为新治理状态。"
-    why_human: "需要真实浏览器 / server action / 数据状态联调，静态检查与单测无法证明完整交互链路。"
-  - test: "Retain uninstall audit-only presentation"
-    expected: "执行 retain uninstall 后，插件显示“已卸载”审计态，保留卸载摘要，且无主生命周期动作按钮。"
-    why_human: "需要人工确认真实 UI 呈现与用户流，不适合仅靠源码和 focused tests 断言。"
+human_verification: []
 ---
 
 # Phase 52: Action Registry & Plugin Lifecycle Governance Verification Report
 
 **Phase Goal:** 让 action catalog 与 plugin lifecycle 进入同一受治理模型，并关闭 verification gaps。
-**Verified:** 2026-05-22T00:03:06Z
-**Status:** human_needed
-**Re-verification:** Yes — after gap closure
+**Verified:** 2026-05-22T03:53:27Z
+**Status:** passed
+**Re-verification:** Yes — final closure re-check
 
 ## Goal Achievement
 
 本次按 re-verification 执行，先复核上次两个 blocker，再对已通过项做回归检查。
 
 结论：**代码层 must-haves 已全部闭合，之前 2 个 gaps 已被代码证据消除。**
-但该 phase 含 operator UI / 恢复交互，仍有 2 项需要人工做最终 UAT，
-因此状态为 `human_needed`，不是 `passed`。
+该 phase 原本还要求 2 项人工 UAT；这些检查随后已在 `52-UAT.md` 中完成并通过，
+因此当前状态更新为 `passed`。
 
 ### Observable Truths
 
@@ -121,7 +115,7 @@ against implementation.
 | --- | --- | --- | --- | --- |
 | — | — | 在本次复核的 phase-52 关键实现文件中，未发现会推翻 goal achievement 的 TODO / placeholder / orphaned wiring blocker。 | INFO | 无新的 blocker anti-pattern。 |
 
-### Human Verification Required
+### Human Verification Follow-up
 
 ### 1. Operator diagnostics end-to-end recovery flow
 
@@ -130,6 +124,8 @@ against implementation.
 
 **Expected:** UI 触发显式 reconcile，随后页面刷新到新的治理状态；不会回落成
 generic enable toggle，也不会被 host/server blanket deny。
+
+**Result:** passed in `52-UAT.md`
 
 **Why human:** 需要真实浏览器、server action、数据库状态与刷新交互联调。
 
@@ -140,6 +136,8 @@ generic enable toggle，也不会被 host/server blanket deny。
 
 **Expected:** 行状态显示“已卸载”，保留卸载摘要与审计说明，不显示“启用插件” /
 “重试恢复” / “运行 reconcile”等主动作。
+
+**Result:** passed in `52-UAT.md`
 
 **Why human:** 需要确认真实用户流和视觉呈现，而不仅是组件单测快照语义。
 
@@ -152,10 +150,9 @@ generic enable toggle，也不会被 host/server blanket deny。
 2. `plugin.reconcile` 已成为真实 command / producer / server / host / UI
    recovery path，不再只是 diagnostic 文案里的假动作。
 
-因此，**从代码实现角度看，Phase 52 目标已达成**。当前仅剩人工 UAT
-确认真实 UI/交互链路。
+因此，**Phase 52 已完成自动化与人工双重验证**，当前无剩余 verification gap。
 
 ---
 
-_Verified: 2026-05-22T00:03:06Z_  
+_Verified: 2026-05-22T03:53:27Z_  
 _Verifier: the agent (gsd-verifier)_
