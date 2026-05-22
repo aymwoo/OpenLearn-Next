@@ -53,6 +53,7 @@
     "verify:phase51": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase51-command-bus.ts",
     "verify:phase52": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase52-action-registry-and-lifecycle.ts",
     "verify:phase53": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase53-platform-events.ts",
+    "verify:phase54": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase54-ai-contracts.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "db:migrate": "tsx --import ./scripts/node-shim.js scripts/prepare-dev-db.ts",

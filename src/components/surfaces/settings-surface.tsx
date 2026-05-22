@@ -21,6 +21,7 @@ import {
   getPlatformCommandWithTimeline,
   listOperatorVisiblePlatformCommands,
 } from "@/features/platform-core/observability/operator-read-model";
+import { readPlatformAiDescriptorCatalog } from "@/features/platform-core/ai-contracts/read-model";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { setSystemTransportModeAction } from "@/actions/system-transport-settings-actions";
 import { setActiveThemeAction } from "@/actions/theme-actions";
@@ -438,6 +439,7 @@ async function LabsSettingsSurface({
   let commandSummaries = [] as Awaited<
     ReturnType<typeof listOperatorVisiblePlatformCommands>
   >;
+  let aiDescriptorCatalog = await readPlatformAiDescriptorCatalog();
   let selectedCommand = null as Awaited<
     ReturnType<typeof getPlatformCommandWithTimeline>
   > | null;
@@ -774,6 +776,76 @@ async function LabsSettingsSurface({
                   ) : null}
                 </>
               )}
+            </section>
+
+            <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-on-surface-variant">AI Contract Discoverability</p>
+                  <p className="mt-2 text-lg font-semibold text-on-surface">
+                    最小 discoverability surface
+                  </p>
+                </div>
+                <Badge className="bg-surface-container-lowest text-on-surface-variant">
+                  Phase 54
+                </Badge>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-on-surface-variant">
+                只暴露 command/action/capability 摘要，帮助 operator 快速确认
+                delegationPosture、approvalPosture 与 contract 边界；这里不是完整运行控制台。
+              </p>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {[
+                  ["commands", aiDescriptorCatalog.filter((item) => item.kind === "command").length],
+                  ["actions", aiDescriptorCatalog.filter((item) => item.kind === "action").length],
+                  ["capabilities", aiDescriptorCatalog.filter((item) => item.kind === "capability").length],
+                ].map(([label, count]) => (
+                  <div
+                    key={label}
+                    className={cn(
+                      teacherSurfaceRhythm.card,
+                      "bg-surface-container-lowest px-4 py-4 shadow-ambient",
+                    )}
+                  >
+                    <p className="text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+                      {label}
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-on-surface">{count}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                {aiDescriptorCatalog.slice(0, 4).map((descriptor) => (
+                  <div
+                    key={descriptor.key}
+                    className={cn(
+                      teacherSurfaceRhythm.card,
+                      "bg-surface-container-lowest px-4 py-4 shadow-ambient",
+                    )}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge className="bg-surface-container-low text-on-surface-variant">
+                        {descriptor.kind}
+                      </Badge>
+                      <Badge className="bg-primary/10 text-primary">
+                        {descriptor.delegationPosture}
+                      </Badge>
+                      <Badge className="bg-surface-container-low text-on-surface-variant">
+                        {descriptor.approvalPosture}
+                      </Badge>
+                    </div>
+                    <p className="mt-3 font-semibold text-on-surface">{descriptor.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                      {descriptor.description}
+                    </p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+                      {descriptor.key}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </section>
 
             <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
