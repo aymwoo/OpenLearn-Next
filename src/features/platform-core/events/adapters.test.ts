@@ -18,6 +18,10 @@ describe("platform event adapters", () => {
     });
   });
 
+  it("registers a real default subscriber on the persisted event bus", () => {
+    expect("registerSubscriber" in defaultInProcessPlatformEventAdapter).toBe(true);
+  });
+
   it("accepts future redis and websocket bridge contracts only when truth stays in sqlite", () => {
     expect(() =>
       assertFuturePlatformBridgeAdapter({

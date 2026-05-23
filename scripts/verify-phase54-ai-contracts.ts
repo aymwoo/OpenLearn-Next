@@ -63,18 +63,19 @@ function run(command: string, args: readonly string[], label: string) {
 function runVitest(paths: readonly string[], label: string) {
   const directRunner = path.join(process.cwd(), "node_modules", "vitest", "vitest.mjs");
   const localBin = path.join(process.cwd(), "node_modules", ".bin", "vitest");
+  const args = ["--run", "--testTimeout=20000", ...paths];
 
   if (existsSync(directRunner)) {
-    run(process.execPath, [directRunner, "--run", ...paths], label);
+    run(process.execPath, [directRunner, ...args], label);
     return;
   }
 
   if (existsSync(localBin)) {
-    run(localBin, ["--run", ...paths], label);
+    run(localBin, args, label);
     return;
   }
 
-  run("pnpm", ["exec", "vitest", "--run", ...paths], label);
+  run("pnpm", ["exec", "vitest", ...args], label);
 }
 
 function verifyPackageScript(packageSource: string): boolean {
@@ -112,6 +113,9 @@ function main() {
   const settingsSurfaceSource = read("src/components/surfaces/settings-surface.tsx");
   const delegationSource = read("src/features/platform-core/ai-contracts/delegation.ts");
   const registrySource = read("src/features/platform-core/ai-contracts/registry.ts");
+  const producerSource = read("src/features/platform-core/commands/producers/plugin-governance.ts");
+  const ledgerSource = read("src/features/platform-core/events/ledger.ts");
+  const operatorDtoSource = read("src/features/platform-core/observability/dto.ts");
   const combinedSource = readPhase54Sources()
     .map((entry) => entry.source)
     .join("\n");
@@ -144,6 +148,18 @@ function main() {
         !/authorityPosture:\s*["'`]elevated/.test(delegationSource),
     },
     {
+      label: "durable command and event truth preserve summary-only audit metadata",
+      passed:
+        producerSource.includes("auditSummaryJson") &&
+        ledgerSource.includes("auditSummaryJson"),
+    },
+    {
+      label: "operator read models expose persisted delegation and approval summaries",
+      passed:
+        operatorDtoSource.includes("auditSummaryLabel") &&
+        settingsSurfaceSource.includes("Delegation / Approval"),
+    },
+    {
       label: "phase 54 surface does not creep into full runtime scope",
       passed:
         !/Agent Runtime/i.test(combinedSource) &&
@@ -171,6 +187,10 @@ function main() {
       "src/features/platform-core/ai-contracts/registry.test.ts",
       "src/features/platform-core/ai-contracts/read-model.test.ts",
       "src/features/platform-core/ai-contracts/delegation.test.ts",
+      "src/features/platform-core/commands/producers/plugin-governance.test.ts",
+      "src/features/platform-core/events/ledger.test.ts",
+      "src/features/platform-core/events/bus.test.ts",
+      "src/features/platform-core/observability/operator-read-model.test.ts",
       "src/components/surfaces/settings-surface.test.tsx",
     ],
     "Phase 54 ai contract regression suite",

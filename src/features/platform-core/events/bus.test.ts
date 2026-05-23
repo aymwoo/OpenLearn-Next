@@ -23,6 +23,23 @@ describe("persisted platform event bus", () => {
           invalidationTags: ["plugin:registry"],
           resultSummary: { ok: true },
         },
+        auditSummaryJson: {
+          delegatedActor: {
+            delegatedAgentId: "agent-1",
+            delegatedAgentScope: "plugin",
+            delegationReason: "Teacher-approved delegated execution",
+            authorityPosture: "delegated-no-elevation",
+          },
+          approval: {
+            status: "approved",
+            summary: "Teacher approved delegated command",
+            reference: {
+              kind: "command",
+              id: "approval-1",
+              summary: "Approval reference",
+            },
+          },
+        },
         createdAt: new Date(),
       },
     ]);
@@ -71,6 +88,23 @@ describe("persisted platform event bus", () => {
       dispatchId: "dispatch-1",
       event: expect.objectContaining({
         eventType: "platform.command.succeeded",
+        audit: {
+          delegatedActor: {
+            delegatedAgentId: "agent-1",
+            delegatedAgentScope: "plugin",
+            delegationReason: "Teacher-approved delegated execution",
+            authorityPosture: "delegated-no-elevation",
+          },
+          approval: {
+            status: "approved",
+            summary: "Teacher approved delegated command",
+            reference: {
+              kind: "command",
+              id: "approval-1",
+              summary: "Approval reference",
+            },
+          },
+        },
       }),
     }));
     expect(markDispatch).toHaveBeenCalledWith({
@@ -101,6 +135,7 @@ describe("persisted platform event bus", () => {
             reasonCode: "enabled",
             transitionCounter: 1,
           },
+          auditSummaryJson: null,
           createdAt: new Date(),
         },
       ],
@@ -167,6 +202,23 @@ describe("persisted platform event bus", () => {
             commandType: "plugin.enable",
             invalidationTags: [],
             resultSummary: { ok: true },
+          },
+          auditSummaryJson: {
+            delegatedActor: {
+              delegatedAgentId: "agent-1",
+              delegatedAgentScope: "plugin",
+              delegationReason: "Teacher-approved delegated execution",
+              authorityPosture: "delegated-no-elevation",
+            },
+            approval: {
+              status: "approved",
+              summary: "Teacher approved delegated command",
+              reference: {
+                kind: "command",
+                id: "approval-1",
+                summary: "Approval reference",
+              },
+            },
           },
           createdAt: new Date(),
         },

@@ -78,6 +78,23 @@ function createCommand(type: string, payload: Record<string, unknown>) {
       causationId: null,
       producer: "test-suite",
     },
+    audit: {
+      delegatedActor: {
+        delegatedAgentId: "agent-1",
+        delegatedAgentScope: "plugin" as const,
+        delegationReason: "Teacher approved delegated plugin action",
+        authorityPosture: "delegated-no-elevation" as const,
+      },
+      approval: {
+        status: "approved" as const,
+        summary: "Teacher approved delegated action",
+        reference: {
+          kind: "command" as const,
+          id: "approval-1",
+          summary: "Approval reference",
+        },
+      },
+    },
   };
 }
 
@@ -171,7 +188,7 @@ describe("plugin command event emission", () => {
         }),
       }),
     ]);
-    expect(result.failureEvent).toBeUndefined();
+    expect(result.failureEvent).toBeNull();
   });
 
   it("emits generic success plus plugin.lifecycle.changed for lifecycle transitions", async () => {
@@ -186,6 +203,7 @@ describe("plugin command event emission", () => {
 
     expect(lifecycleEvent).toMatchObject({
       aggregateId: "plugin-1",
+      audit: command.audit,
       payload: {
         pluginId: "plugin-1",
         fromState: "installed",
@@ -193,6 +211,34 @@ describe("plugin command event emission", () => {
         reasonCode: "enabled",
         transitionCounter: 2,
       },
+    });
+  });
+
+  it("propagates delegated audit metadata into success and failure events", async () => {
+    const command = createCommand("plugin.enable", {
+      schoolId: "school-1",
+      pluginId: "plugin-1",
+      enabledBy: "teacher-1",
+    });
+
+    const success = await platformCommandRegistry["plugin.enable"].execute({ command, attemptNumber: 2 });
+    expect(success.emittedEvents[0]).toMatchObject({
+      eventType: "platform.command.succeeded",
+      audit: command.audit,
+    });
+
+    const retryCommand = {
+      ...createCommand("plugin.retry", {
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        commandId: "command-existing",
+        reason: "operator retry",
+      }),
+      id: "command-new",
+    };
+
+    await expect(platformCommandRegistry["plugin.retry"].execute({ command: retryCommand, attemptNumber: 2 })).rejects.toMatchObject({
+      failureEvent: expect.objectContaining({ audit: retryCommand.audit }),
     });
   });
 
@@ -247,6 +293,7 @@ describe("plugin command event emission", () => {
       });
       expect(executionError.failureEvent.eventType).toBe("platform.command.failed");
       expect(executionError.failureEvent.payload.reasonCode).toBe("retry_identity_mismatch");
+      expect(executionError.failureEvent.audit).toEqual(command.audit);
     }
   });
 });

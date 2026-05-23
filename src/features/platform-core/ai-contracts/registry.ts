@@ -2,6 +2,7 @@ import {
   PLUGIN_ACTION_ALLOWLIST,
   PLUGIN_ACTION_PERMISSION_REQUIREMENTS,
 } from "@/server/plugins/registry";
+import type { ExecutableActionCatalogRow } from "@/features/platform-core/actions/contracts";
 
 import type {
   PlatformAiActionDescriptor,
@@ -301,6 +302,42 @@ export function projectPlatformActionDescriptors(): PlatformAiActionDescriptor[]
       },
     });
   });
+}
+
+export function projectGovernedPlatformActionDescriptors(
+  executableCatalog: readonly ExecutableActionCatalogRow[],
+): PlatformAiActionDescriptor[] {
+  return executableCatalog
+    .filter((row) => PLUGIN_ACTION_ALLOWLIST.includes(row.actionKey as (typeof PLUGIN_ACTION_ALLOWLIST)[number]))
+    .map((descriptor) => {
+      const metadata = PLATFORM_ACTION_METADATA[descriptor.actionKey as (typeof PLUGIN_ACTION_ALLOWLIST)[number]];
+
+      return PlatformAiActionDescriptorSchema.parse({
+        kind: "action",
+        key: `action:${descriptor.actionKey}`,
+        title: metadata.title,
+        description: metadata.description,
+        inputSchemaKey: descriptor.inputSchemaKey,
+        requiredCapabilities: [],
+        requiredPermission: descriptor.requiredPermission,
+        sideEffectClass: descriptor.sideEffectClass,
+        implementationSource: descriptor.implementationSource,
+        delegationPosture: metadata.delegationPosture,
+        approvalPosture: metadata.approvalPosture,
+        stability: metadata.stability,
+        contractVersion: PLATFORM_AI_CONTRACT_VERSION,
+        implementationVersion: metadata.implementationVersion,
+        sourceDescriptor: {
+          actionKey: descriptor.actionKey,
+          ownerType: descriptor.ownerType,
+          ownerPluginKey: descriptor.ownerPluginKey,
+          inputSchemaKey: descriptor.inputSchemaKey,
+          requiredPermission: descriptor.requiredPermission,
+          sideEffectClass: descriptor.sideEffectClass,
+          implementationSource: descriptor.implementationSource,
+        },
+      });
+    });
 }
 
 export function projectPlatformCapabilityDescriptors(): PlatformAiCapabilityDescriptor[] {

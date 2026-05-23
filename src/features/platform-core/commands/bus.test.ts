@@ -123,8 +123,27 @@ describe("dispatchPlatformCommand", () => {
             invalidationTags: ["plugin:registry"],
             resultSummary: { ok: true },
           },
+          audit: {
+            delegatedActor: {
+              delegatedAgentId: "agent-1",
+              delegatedAgentScope: "plugin",
+              delegationReason: "Teacher-approved delegated execution",
+              authorityPosture: "delegated-no-elevation",
+            },
+            approval: {
+              status: "approved",
+              summary: "Teacher approved delegated command",
+              reference: {
+                kind: "command",
+                id: "approval-1",
+                summary: "Approval reference",
+              },
+            },
+          },
         },
       ],
+      failureEvent: null,
+      failureAttribution: null,
     }));
 
     definition = {
@@ -215,6 +234,23 @@ describe("dispatchPlatformCommand", () => {
         causationId: null,
         producer: "test-suite",
       },
+      audit: {
+        delegatedActor: {
+          delegatedAgentId: "agent-1",
+          delegatedAgentScope: "plugin",
+          delegationReason: "Teacher-approved delegated execution",
+          authorityPosture: "delegated-no-elevation",
+        },
+        approval: {
+          status: "approved",
+          summary: "Teacher approved delegated command",
+          reference: {
+            kind: "command",
+            id: "approval-1",
+            summary: "Approval reference",
+          },
+        },
+      },
     };
   });
 
@@ -287,8 +323,10 @@ describe("dispatchPlatformCommand", () => {
         expect.objectContaining({
           eventType: "platform.command.succeeded",
           aggregateId: "plugin-1",
+          audit: command.audit,
         }),
       ],
+      failureAttribution: null,
     }));
     expect(publicationPort?.publishPersisted).toHaveBeenCalledWith({
       commandId: "command-1",
@@ -354,6 +392,7 @@ describe("dispatchPlatformCommand", () => {
             recommendedRecoveryAction: "reconcile",
           },
         },
+        audit: command.audit,
       },
     }));
 
@@ -370,6 +409,7 @@ describe("dispatchPlatformCommand", () => {
       events: [
         expect.objectContaining({
           eventType: "platform.command.failed",
+          audit: command.audit,
         }),
       ],
     }));
@@ -403,6 +443,7 @@ describe("dispatchPlatformCommand", () => {
         pluginId: "plugin-1",
       },
       correlation: command.correlation,
+      audit: command.audit,
     };
 
     const first = await dispatchPlatformCommand(preflightCommand, optionalDependencies);
@@ -448,6 +489,23 @@ describe("buildPlatformCommandDedupeKey", () => {
         correlationId: "corr-1",
         causationId: null,
         producer: "test-suite",
+      },
+      audit: {
+        delegatedActor: {
+          delegatedAgentId: "agent-1",
+          delegatedAgentScope: "plugin",
+          delegationReason: "Teacher-approved delegated execution",
+          authorityPosture: "delegated-no-elevation",
+        },
+        approval: {
+          status: "approved",
+          summary: "Teacher approved delegated command",
+          reference: {
+            kind: "command",
+            id: "approval-1",
+            summary: "Approval reference",
+          },
+        },
       },
     });
 

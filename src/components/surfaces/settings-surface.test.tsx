@@ -174,12 +174,14 @@ describe("settings and plugin entry surfaces", () => {
     expect(settingsSurfaceSource).toContain("readGovernanceDashboardBundle");
     expect(settingsSurfaceSource).toContain("listOperatorVisiblePlatformCommands");
     expect(settingsSurfaceSource).toContain("getPlatformCommandWithTimeline");
+    expect(settingsSurfaceSource).toContain("auditSummaryLabel");
     expect(settingsSurfaceSource).toContain("<PluginLifecycleOperatorSurface schoolId={schoolId} dashboard={dashboard} />");
     expect(settingsSurfaceSource).not.toContain("listPluginsAction");
     expect(settingsSurfaceSource).toContain("插件列表加载失败：{pluginLoadError}");
     expect(settingsSurfaceSource).toContain("平台事件视图加载失败：{operatorLoadError}");
     expect(settingsSurfaceSource).toContain("Platform Event Operator");
     expect(settingsSurfaceSource).toContain("先看 command summary，再下钻 event timeline");
+    expect(settingsSurfaceSource).toContain("Delegation / Approval");
     expect(settingsSurfaceSource).toContain('href={`/settings/labs?commandId=${encodeURIComponent(summary.commandId)}`}');
     expect(settingsSurfaceSource).toContain('href="/settings/labs/async-tasks"');
     expect(settingsSurfaceSource).toContain('href="/settings/labs/runtime-inspector"');
@@ -192,9 +194,17 @@ describe("settings and plugin entry surfaces", () => {
     expect(settingsSurfaceSource).toContain("readPlatformAiDescriptorCatalog");
     expect(settingsSurfaceSource).toContain("approvalPosture");
     expect(settingsSurfaceSource).toContain("delegationPosture");
+    expect(settingsSurfaceSource).toContain("actorId: actor.id");
+    expect(settingsSurfaceSource).toContain("schoolId,");
     expect(settingsSurfaceSource).not.toContain("Agent Console");
     expect(settingsSurfaceSource).not.toContain("Workflow Console");
     expect(settingsSurfaceSource).not.toContain("Skill Runtime Console");
+  });
+
+  it("renders event dispatch delivery details in the labs timeline", () => {
+    expect(settingsSurfaceSource).toContain("dispatch {dispatch.channel} · {dispatch.status}");
+    expect(settingsSurfaceSource).toContain("adapter: {dispatch.adapterId}");
+    expect(settingsSurfaceSource).toContain("failure: {dispatch.failureReason}");
   });
 
   it("registers verify:phase54 as the focused regression gate", () => {

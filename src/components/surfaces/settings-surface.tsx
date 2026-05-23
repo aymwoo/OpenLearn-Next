@@ -455,6 +455,10 @@ async function LabsSettingsSurface({
           actorId: actor.id,
           schoolId,
         });
+        aiDescriptorCatalog = await readPlatformAiDescriptorCatalog({
+          actorId: actor.id,
+          schoolId,
+        });
       }
     } catch (error) {
       pluginLoadError = error instanceof Error ? error.message : "PLUGIN_LIST_FAILED";
@@ -691,12 +695,17 @@ async function LabsSettingsSurface({
                                 <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                                   {summary.failureSummaryLabel ?? summary.resultSummaryLabel}
                                 </p>
-                                <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
-                                  invalidation: {summary.invalidationIntent.label}
-                                </p>
-                              </div>
-                              <ChevronRight className="mt-1 size-4 text-primary" aria-hidden />
-                            </div>
+                                 <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+                                   invalidation: {summary.invalidationIntent.label}
+                                 </p>
+                                 {summary.auditSummaryLabel ? (
+                                   <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+                                     delegation / approval: {summary.auditSummaryLabel}
+                                   </p>
+                                 ) : null}
+                               </div>
+                               <ChevronRight className="mt-1 size-4 text-primary" aria-hidden />
+                             </div>
                           </Link>
                         );
                       })
@@ -737,6 +746,16 @@ async function LabsSettingsSurface({
                             {selectedCommand.command.invalidationIntent.label}
                           </p>
                         </div>
+                        {selectedCommand.command.auditSummaryLabel ? (
+                          <div className="rounded-[1.25rem] bg-surface-container-low px-4 py-4">
+                            <p className="text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+                              Delegation / Approval
+                            </p>
+                            <p className="mt-2 text-sm leading-6 text-on-surface">
+                              {selectedCommand.command.auditSummaryLabel}
+                            </p>
+                          </div>
+                        ) : null}
                       </div>
 
                       <div className="mt-5 grid gap-3">
@@ -761,12 +780,37 @@ async function LabsSettingsSurface({
                               <p className="mt-3 text-sm leading-6 text-on-surface">
                                 {event.payloadSummaryLabel}
                               </p>
-                              <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
-                                {new Date(event.occurredAt).toLocaleString()}
-                              </p>
-                            </div>
-                          ))
-                        )}
+                              {event.auditSummaryLabel ? (
+                                <p className="mt-2 text-xs leading-6 text-on-surface-variant">
+                                  delegation / approval: {event.auditSummaryLabel}
+                                </p>
+                              ) : null}
+                               <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+                                 {new Date(event.occurredAt).toLocaleString()}
+                               </p>
+                              {event.dispatches.length > 0 ? (
+                                <div className="mt-3 grid gap-2">
+                                  {event.dispatches.map((dispatch) => (
+                                    <div
+                                      key={dispatch.dispatchId}
+                                      className="rounded-[1rem] bg-surface-container-lowest px-3 py-3 text-xs leading-6 text-on-surface-variant"
+                                    >
+                                      <p className="uppercase tracking-[0.16em]">
+                                        dispatch {dispatch.channel} · {dispatch.status}
+                                      </p>
+                                      {dispatch.adapterId ? (
+                                        <p className="mt-1">adapter: {dispatch.adapterId}</p>
+                                      ) : null}
+                                      {dispatch.failureReason ? (
+                                        <p className="mt-1">failure: {dispatch.failureReason}</p>
+                                      ) : null}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                             </div>
+                           ))
+                         )}
                       </div>
                     </div>
                   ) : commandSummaries.length > 0 ? (

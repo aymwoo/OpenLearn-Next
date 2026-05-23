@@ -52,6 +52,35 @@ describe("phase 54 ai descriptor registry", () => {
     }
   });
 
+  it("projects action descriptors from governance-aware executable catalog rows when provided", async () => {
+    const { projectGovernedPlatformActionDescriptors } = await import("./registry");
+
+    const descriptors = projectGovernedPlatformActionDescriptors([
+      {
+        actionKey: "addStepSuggestion",
+        ownerType: "external-plugin",
+        ownerPluginKey: "vendor/plugin-one",
+        ownerPluginId: "plugin-1",
+        ownerDisplayName: "Plugin One",
+        inputSchemaKey: "plugin-action.payload.generic",
+        requiredPermission: null,
+        sideEffectClass: "proposal",
+        implementationSource: "main-repo-static-implementation",
+        catalogView: "executable",
+        lifecycleState: "active",
+      },
+    ]);
+
+    expect(descriptors).toHaveLength(1);
+    expect(descriptors[0]).toMatchObject({
+      key: "action:addStepSuggestion",
+      sourceDescriptor: {
+        actionKey: "addStepSuggestion",
+        ownerPluginKey: "vendor/plugin-one",
+      },
+    });
+  });
+
   it("projects capability descriptors from runtime capability truth only", async () => {
     const { projectPlatformCapabilityDescriptors } = await import("./registry");
 

@@ -200,6 +200,60 @@ describe("plugin host governance seam", () => {
     expect(String(result.hostInvalidation)).toContain("host invalidation");
   });
 
+  it("passes delegated audit metadata through the host governance ingress", async () => {
+    const { invokePluginHostAction } = await import("./plugin-host");
+
+    await invokePluginHostAction({
+      sessionId: "session-1",
+      pluginId: "plugin-1",
+      action: "plugin.enable",
+      payload: {},
+      audit: {
+        delegatedActor: {
+          delegatedAgentId: "agent-1",
+          delegatedAgentScope: "plugin",
+          delegationReason: "Teacher-approved delegated execution",
+          authorityPosture: "delegated-no-elevation",
+        },
+        approval: {
+          status: "approved",
+          summary: "Teacher approved delegated command",
+          reference: {
+            kind: "command",
+            id: "approval-1",
+            summary: "Approval reference",
+          },
+        },
+      },
+    });
+
+    expect(mocks.dispatchPluginGovernanceCommand).toHaveBeenLastCalledWith({
+      type: "plugin.enable",
+      actor: { actorId: "teacher-1", actorScope: "teacher" },
+      scope: { schoolId: "school-1", pluginId: "plugin-1" },
+      payload: { schoolId: "school-1", pluginId: "plugin-1", enabledBy: "teacher-1" },
+      source: "host-action",
+      correlation: { producer: "plugin-host" },
+      audit: {
+        delegatedActor: {
+          delegatedAgentId: "agent-1",
+          delegatedAgentScope: "plugin",
+          delegationReason: "Teacher-approved delegated execution",
+          authorityPosture: "delegated-no-elevation",
+        },
+        approval: {
+          status: "approved",
+          summary: "Teacher approved delegated command",
+          reference: {
+            kind: "command",
+            id: "approval-1",
+            summary: "Approval reference",
+          },
+        },
+      },
+    });
+  });
+
   it("requires write-capable host permission metadata for governance mutations", async () => {
     const source = await readFile(new URL("./plugin-host.ts", import.meta.url), "utf8");
     const permissionsSource = await readFile(new URL("../contracts/permissions.ts", import.meta.url), "utf8");

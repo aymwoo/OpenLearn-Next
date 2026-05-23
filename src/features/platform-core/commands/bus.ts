@@ -212,6 +212,7 @@ function inferFailureSemantics(command: PlatformCommand, error: unknown) {
         reasonCode: failureAttribution.reasonCode,
         failureAttribution,
       },
+      audit: command.audit,
     },
   };
 }

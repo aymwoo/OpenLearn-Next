@@ -7,11 +7,12 @@ import { RuntimeActorScopeSchema } from "@/features/runtime-platform/contracts/p
 import {
   PlatformApprovalMetadataSchema,
   PlatformAuditMetadataSchema,
+  PlatformDelegatedAgentScopeSchema,
 } from "./delegation";
 
 function pickActorScopes() {
-  const [actorScope, ...remainingScopes] = RuntimeActorScopeSchema.options;
-  const delegatedAgentScope = remainingScopes[0] ?? actorScope;
+  const [actorScope] = RuntimeActorScopeSchema.options;
+  const [delegatedAgentScope] = PlatformDelegatedAgentScopeSchema.options;
 
   return { actorScope, delegatedAgentScope };
 }
@@ -74,6 +75,20 @@ describe("delegated actor + approval contract seams", () => {
         delegatedAgentScope,
         delegationReason: "Attempted escalation",
         authorityPosture: "elevated",
+      },
+      approval: null,
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects delegated metadata that claims a higher-privilege runtime scope", () => {
+    const parsed = PlatformAuditMetadataSchema.safeParse({
+      delegatedActor: {
+        delegatedAgentId: "agent_system_1",
+        delegatedAgentScope: "system",
+        delegationReason: "Pretend to run as system",
+        authorityPosture: "delegated-no-elevation",
       },
       approval: null,
     });

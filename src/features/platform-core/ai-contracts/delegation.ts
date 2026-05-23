@@ -5,9 +5,12 @@ import { RuntimeActorScopeSchema } from "@/features/runtime-platform/contracts/p
 export const PlatformDelegatedAuthorityPostureSchema = z.literal("delegated-no-elevation");
 export type PlatformDelegatedAuthorityPosture = z.infer<typeof PlatformDelegatedAuthorityPostureSchema>;
 
+export const PlatformDelegatedAgentScopeSchema = RuntimeActorScopeSchema.extract(["plugin"]);
+export type PlatformDelegatedAgentScope = z.infer<typeof PlatformDelegatedAgentScopeSchema>;
+
 export const PlatformDelegatedActorMetadataSchema = z.object({
   delegatedAgentId: z.string().min(1),
-  delegatedAgentScope: RuntimeActorScopeSchema,
+  delegatedAgentScope: PlatformDelegatedAgentScopeSchema,
   delegationReason: z.string().min(1),
   authorityPosture: PlatformDelegatedAuthorityPostureSchema,
 }).strict();

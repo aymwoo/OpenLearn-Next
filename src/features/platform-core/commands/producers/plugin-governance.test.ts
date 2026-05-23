@@ -121,4 +121,77 @@ describe("dispatchPluginGovernanceCommand", () => {
       invalidationTags: ["plugin:registry"],
     });
   });
+
+  it("forwards summary-only audit metadata to the command bus", async () => {
+    mocks.dispatchPlatformCommand.mockResolvedValueOnce({
+      commandId: "plugin.enable:corr-audit",
+      attemptNumber: 1,
+      status: "succeeded",
+      resultSummary: { lifecycleState: "enabled" },
+      invalidation: { tags: [] },
+    });
+
+    await dispatchPluginGovernanceCommand({
+      type: "plugin.enable",
+      source: "server-action",
+      actor: {
+        actorId: "teacher-1",
+        actorScope: "teacher",
+      },
+      scope: {
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+      },
+      payload: {
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        enabledBy: "teacher-1",
+      },
+      correlation: {
+        correlationId: "corr-audit",
+        causationId: null,
+        producer: "plugin-actions",
+      },
+      audit: {
+        delegatedActor: {
+          delegatedAgentId: "agent-1",
+          delegatedAgentScope: "plugin",
+          delegationReason: "Teacher-approved delegated execution",
+          authorityPosture: "delegated-no-elevation",
+        },
+        approval: {
+          status: "approved",
+          summary: "Teacher approved delegated command",
+          reference: {
+            kind: "command",
+            id: "approval-1",
+            summary: "Approval reference",
+          },
+        },
+      },
+    });
+
+    expect(mocks.dispatchPlatformCommand).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        audit: {
+          delegatedActor: {
+            delegatedAgentId: "agent-1",
+            delegatedAgentScope: "plugin",
+            delegationReason: "Teacher-approved delegated execution",
+            authorityPosture: "delegated-no-elevation",
+          },
+          approval: {
+            status: "approved",
+            summary: "Teacher approved delegated command",
+            reference: {
+              kind: "command",
+              id: "approval-1",
+              summary: "Approval reference",
+            },
+          },
+        },
+      }),
+      expect.any(Object),
+    );
+  });
 });

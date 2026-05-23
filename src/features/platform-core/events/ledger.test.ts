@@ -42,6 +42,7 @@ async function bootstrapPlatformEventSchema(databaseUrl: string) {
       scopeJson TEXT NOT NULL,
       payloadJson TEXT NOT NULL,
       correlationJson TEXT NOT NULL,
+      auditSummaryJson TEXT,
       resultSummaryJson TEXT,
       failureDetailJson TEXT,
       invalidationTagsJson TEXT,
@@ -83,6 +84,7 @@ async function bootstrapPlatformEventSchema(databaseUrl: string) {
       aggregateType TEXT NOT NULL,
       aggregateId TEXT NOT NULL,
       payloadSummaryJson TEXT NOT NULL,
+      auditSummaryJson TEXT,
       createdAt INTEGER,
       FOREIGN KEY (commandId) REFERENCES platformCommand(id) ON DELETE cascade
     )
@@ -149,6 +151,9 @@ describe("platform event ledger persistence", () => {
 
   it("appends success events linked to one command attempt and creates dispatch rows", async () => {
     const { appendPlatformEvents, loadPlatformDispatchesByCommand, loadPlatformEventsByCommand } = await import("./ledger");
+    const { db } = await import("@/db");
+    const { platformCommands } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
 
     const result = await appendPlatformEvents({
       commandId: "command-1",
@@ -166,6 +171,23 @@ describe("platform event ledger persistence", () => {
             invalidationTags: ["plugin:registry", "plugin:plugin-1"],
             resultSummary: { pluginId: "plugin-1", lifecycleState: "enabled" },
           },
+          audit: {
+            delegatedActor: {
+              delegatedAgentId: "agent-1",
+              delegatedAgentScope: "plugin",
+              delegationReason: "Teacher-approved delegated execution",
+              authorityPosture: "delegated-no-elevation",
+            },
+            approval: {
+              status: "approved",
+              summary: "Teacher approved delegated command",
+              reference: {
+                kind: "command",
+                id: "approval-1",
+                summary: "Approval reference",
+              },
+            },
+          },
         },
         {
           eventType: "plugin.lifecycle.changed",
@@ -179,6 +201,23 @@ describe("platform event ledger persistence", () => {
             reasonCode: "enabled",
             transitionCounter: 1,
           },
+          audit: {
+            delegatedActor: {
+              delegatedAgentId: "agent-1",
+              delegatedAgentScope: "plugin",
+              delegationReason: "Teacher-approved delegated execution",
+              authorityPosture: "delegated-no-elevation",
+            },
+            approval: {
+              status: "approved",
+              summary: "Teacher approved delegated command",
+              reference: {
+                kind: "command",
+                id: "approval-1",
+                summary: "Approval reference",
+              },
+            },
+          },
         },
       ],
     });
@@ -191,6 +230,64 @@ describe("platform event ledger persistence", () => {
 
     expect(events.map((event) => event.attemptNumber)).toEqual([1, 1]);
     expect(dispatches.map((dispatch) => dispatch.dispatchStatus)).toEqual(["pending", "pending"]);
+    expect(events[0]?.auditSummaryJson).toEqual({
+      delegatedActor: {
+        delegatedAgentId: "agent-1",
+        delegatedAgentScope: "plugin",
+        delegationReason: "Teacher-approved delegated execution",
+        authorityPosture: "delegated-no-elevation",
+      },
+      approval: {
+        status: "approved",
+        summary: "Teacher approved delegated command",
+        reference: {
+          kind: "command",
+          id: "approval-1",
+          summary: "Approval reference",
+        },
+      },
+    });
+
+    await db.update(platformCommands).set({
+      auditSummaryJson: {
+        delegatedActor: {
+          delegatedAgentId: "agent-1",
+          delegatedAgentScope: "plugin",
+          delegationReason: "Teacher-approved delegated execution",
+          authorityPosture: "delegated-no-elevation",
+        },
+        approval: {
+          status: "approved",
+          summary: "Teacher approved delegated command",
+          reference: {
+            kind: "command",
+            id: "approval-1",
+            summary: "Approval reference",
+          },
+        },
+      },
+    }).where(eq(platformCommands.id, "command-1"));
+
+    const command = await db.query.platformCommands.findFirst({
+      where: eq(platformCommands.id, "command-1"),
+    });
+    expect(command?.auditSummaryJson).toEqual({
+      delegatedActor: {
+        delegatedAgentId: "agent-1",
+        delegatedAgentScope: "plugin",
+        delegationReason: "Teacher-approved delegated execution",
+        authorityPosture: "delegated-no-elevation",
+      },
+      approval: {
+        status: "approved",
+        summary: "Teacher approved delegated command",
+        reference: {
+          kind: "command",
+          id: "approval-1",
+          summary: "Approval reference",
+        },
+      },
+    });
   });
 
   it("persists failure summary on command row while storing only one generic failure event", async () => {
@@ -226,6 +323,23 @@ describe("platform event ledger persistence", () => {
               recommendedRecoveryAction: "retry",
             },
           },
+          audit: {
+            delegatedActor: {
+              delegatedAgentId: "agent-1",
+              delegatedAgentScope: "plugin",
+              delegationReason: "Teacher-approved delegated execution",
+              authorityPosture: "delegated-no-elevation",
+            },
+            approval: {
+              status: "approved",
+              summary: "Teacher approved delegated command",
+              reference: {
+                kind: "command",
+                id: "approval-1",
+                summary: "Approval reference",
+              },
+            },
+          },
         },
       ],
     });
@@ -233,6 +347,23 @@ describe("platform event ledger persistence", () => {
     const events = await loadPlatformEventsByCommand("command-1");
     expect(events).toHaveLength(1);
     expect(events[0]?.eventType).toBe("platform.command.failed");
+    expect(events[0]?.auditSummaryJson).toEqual({
+      delegatedActor: {
+        delegatedAgentId: "agent-1",
+        delegatedAgentScope: "plugin",
+        delegationReason: "Teacher-approved delegated execution",
+        authorityPosture: "delegated-no-elevation",
+      },
+      approval: {
+        status: "approved",
+        summary: "Teacher approved delegated command",
+        reference: {
+          kind: "command",
+          id: "approval-1",
+          summary: "Approval reference",
+        },
+      },
+    });
 
     const command = await db.query.platformCommands.findFirst({
       where: eq(platformCommands.id, "command-1"),
@@ -264,6 +395,23 @@ describe("platform event ledger persistence", () => {
             commandType: "plugin.enable",
             invalidationTags: [],
             resultSummary: { pluginId: "plugin-1", lifecycleState: "enabled" },
+          },
+          audit: {
+            delegatedActor: {
+              delegatedAgentId: "agent-1",
+              delegatedAgentScope: "plugin",
+              delegationReason: "Teacher-approved delegated execution",
+              authorityPosture: "delegated-no-elevation",
+            },
+            approval: {
+              status: "approved",
+              summary: "Teacher approved delegated command",
+              reference: {
+                kind: "command",
+                id: "approval-1",
+                summary: "Approval reference",
+              },
+            },
           },
         },
       ],

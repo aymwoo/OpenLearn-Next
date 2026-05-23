@@ -47,6 +47,7 @@ function toEventInsert(input: PersistPlatformEventsInput) {
     aggregateType: event.aggregateType,
     aggregateId: event.aggregateId,
     payloadSummaryJson: event.payload,
+    auditSummaryJson: event.audit,
   }));
 }
 

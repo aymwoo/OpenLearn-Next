@@ -90,6 +90,10 @@ export function createPersistedPlatformEventBus(
           aggregateType: persistedEvent.aggregateType,
           aggregateId: persistedEvent.aggregateId,
           payload: persistedEvent.payloadSummaryJson,
+          audit: (persistedEvent.auditSummaryJson as PlatformEvent["audit"] | null) ?? {
+            delegatedActor: null,
+            approval: null,
+          },
         } as PlatformEvent;
         const subscribers = registry.select(event);
 

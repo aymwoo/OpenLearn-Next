@@ -25,6 +25,7 @@ async function bootstrapPlatformObservabilitySchema(databaseUrl: string) {
       scopeJson TEXT NOT NULL,
       payloadJson TEXT NOT NULL,
       correlationJson TEXT NOT NULL,
+      auditSummaryJson TEXT,
       resultSummaryJson TEXT,
       failureDetailJson TEXT,
       invalidationTagsJson TEXT,
@@ -51,6 +52,7 @@ async function bootstrapPlatformObservabilitySchema(databaseUrl: string) {
       aggregateType TEXT NOT NULL,
       aggregateId TEXT NOT NULL,
       payloadSummaryJson TEXT NOT NULL,
+      auditSummaryJson TEXT,
       createdAt INTEGER,
       FOREIGN KEY (commandId) REFERENCES platformCommand(id) ON DELETE cascade
     )
@@ -83,13 +85,14 @@ async function bootstrapPlatformObservabilitySchema(databaseUrl: string) {
   await client.execute(`
     INSERT INTO platformCommand (
       id, actorId, schoolId, commandType, status, dedupeKey, actorScope, scopeJson, payloadJson, correlationJson,
-      resultSummaryJson, invalidationTagsJson, failureAttributionJson, latestAttemptNumber, createdAt, updatedAt, completedAt
+      auditSummaryJson, resultSummaryJson, invalidationTagsJson, failureAttributionJson, latestAttemptNumber, createdAt, updatedAt, completedAt
     ) VALUES
     (
       'command-1', 'teacher-1', 'school-1', 'plugin.enable', 'succeeded', 'dedupe-1', 'teacher',
       '{"schoolId":"school-1","pluginId":"plugin-1"}',
       '{"schoolId":"school-1","pluginId":"plugin-1","enabledBy":"teacher-1"}',
       '{"correlationId":"corr-1","causationId":null,"producer":"plugin-actions"}',
+      '{"delegatedActor":{"delegatedAgentId":"agent-1","delegatedAgentScope":"plugin","delegationReason":"Teacher-approved delegated execution","authorityPosture":"delegated-no-elevation"},"approval":{"status":"approved","summary":"Teacher approved delegated command","reference":{"kind":"command","id":"approval-1","summary":"Approval reference"}}}',
       '{"pluginId":"plugin-1","lifecycleState":"enabled"}',
       '["plugin:registry","plugin:plugin-1"]',
       NULL,
@@ -101,6 +104,7 @@ async function bootstrapPlatformObservabilitySchema(databaseUrl: string) {
       '{"schoolId":"school-1","pluginId":"plugin-2","reason":"resume"}',
       '{"correlationId":"corr-2","causationId":null,"producer":"plugin-actions"}',
       NULL,
+      NULL,
       '[]',
       '{"scope":"plugin","pluginId":"plugin-2","reasonCode":"activation_failed","recommendedRecoveryAction":"retry"}',
       1, 110, 250, 255
@@ -111,6 +115,7 @@ async function bootstrapPlatformObservabilitySchema(databaseUrl: string) {
       '{"schoolId":"school-1","pluginId":"plugin-3","reason":"manual"}',
       '{"correlationId":"corr-3","causationId":null,"producer":"plugin-actions"}',
       NULL,
+      NULL,
       '[]',
       NULL,
       1, 120, 240, NULL
@@ -120,6 +125,7 @@ async function bootstrapPlatformObservabilitySchema(databaseUrl: string) {
       '{"schoolId":"school-2","pluginId":"plugin-9"}',
       '{"schoolId":"school-2","pluginId":"plugin-9","enabledBy":"teacher-1"}',
       '{"correlationId":"corr-9","causationId":null,"producer":"plugin-actions"}',
+      NULL,
       '{"pluginId":"plugin-9","lifecycleState":"enabled"}',
       '["plugin:registry"]',
       NULL,
@@ -129,27 +135,31 @@ async function bootstrapPlatformObservabilitySchema(databaseUrl: string) {
 
   await client.execute(`
     INSERT INTO platformEvent (
-      id, commandId, attemptNumber, eventOrdinal, correlationId, causationId, eventType, category, aggregateType, aggregateId, payloadSummaryJson, createdAt
+      id, commandId, attemptNumber, eventOrdinal, correlationId, causationId, eventType, category, aggregateType, aggregateId, payloadSummaryJson, auditSummaryJson, createdAt
     ) VALUES
     (
       'event-1', 'command-1', 1, 1, 'corr-1', NULL, 'platform.command.failed', 'outcome', 'plugin', 'plugin-1',
-      '{"commandType":"plugin.enable","reasonCode":"activation_failed","failureAttribution":{"scope":"plugin","pluginId":"plugin-1","reasonCode":"activation_failed","recommendedRecoveryAction":"retry"}}',
-      150
+       '{"commandType":"plugin.enable","reasonCode":"activation_failed","failureAttribution":{"scope":"plugin","pluginId":"plugin-1","reasonCode":"activation_failed","recommendedRecoveryAction":"retry"}}',
+       NULL,
+       150
     ),
     (
       'event-2', 'command-1', 2, 1, 'corr-1', NULL, 'platform.command.succeeded', 'outcome', 'plugin', 'plugin-1',
-      '{"commandType":"plugin.enable","invalidationTags":["plugin:registry","plugin:plugin-1"],"resultSummary":{"pluginId":"plugin-1","lifecycleState":"enabled"}}',
-      200
+       '{"commandType":"plugin.enable","invalidationTags":["plugin:registry","plugin:plugin-1"],"resultSummary":{"pluginId":"plugin-1","lifecycleState":"enabled"}}',
+       '{"delegatedActor":{"delegatedAgentId":"agent-1","delegatedAgentScope":"plugin","delegationReason":"Teacher-approved delegated execution","authorityPosture":"delegated-no-elevation"},"approval":{"status":"approved","summary":"Teacher approved delegated command","reference":{"kind":"command","id":"approval-1","summary":"Approval reference"}}}',
+       200
     ),
     (
       'event-3', 'command-1', 2, 2, 'corr-1', NULL, 'plugin.lifecycle.changed', 'domain', 'plugin', 'plugin-1',
-      '{"pluginId":"plugin-1","fromState":"installed","toState":"enabled","reasonCode":"enabled","transitionCounter":2}',
-      201
+       '{"pluginId":"plugin-1","fromState":"installed","toState":"enabled","reasonCode":"enabled","transitionCounter":2}',
+       '{"delegatedActor":{"delegatedAgentId":"agent-1","delegatedAgentScope":"plugin","delegationReason":"Teacher-approved delegated execution","authorityPosture":"delegated-no-elevation"},"approval":{"status":"approved","summary":"Teacher approved delegated command","reference":{"kind":"command","id":"approval-1","summary":"Approval reference"}}}',
+       201
     ),
     (
       'event-4', 'command-2', 1, 1, 'corr-2', NULL, 'platform.command.failed', 'outcome', 'plugin', 'plugin-2',
-      '{"commandType":"plugin.resume","reasonCode":"activation_failed","failureAttribution":{"scope":"plugin","pluginId":"plugin-2","reasonCode":"activation_failed","recommendedRecoveryAction":"retry"}}',
-      210
+       '{"commandType":"plugin.resume","reasonCode":"activation_failed","failureAttribution":{"scope":"plugin","pluginId":"plugin-2","reasonCode":"activation_failed","recommendedRecoveryAction":"retry"}}',
+       NULL,
+       210
     )
   `);
 
@@ -202,6 +212,7 @@ describe("platform command operator read model", () => {
       status: "succeeded",
       statusLabel: "已成功",
       resultSummaryLabel: "lifecycleState=enabled / pluginId=plugin-1",
+      auditSummaryLabel: "委派 agent-1 (plugin) / delegated-no-elevation / 审批 approved / Teacher approved delegated command",
       invalidationIntent: {
         tags: ["plugin:registry", "plugin:plugin-1"],
         label: "plugin:registry / plugin:plugin-1",
@@ -254,6 +265,12 @@ describe("platform command operator read model", () => {
       "plugin.lifecycle.changed",
     ]);
     expect(detail.timeline.every((event) => !event.eventType.includes("invalidation"))).toBe(true);
+    expect(detail.command?.auditSummaryLabel).toBe(
+      "委派 agent-1 (plugin) / delegated-no-elevation / 审批 approved / Teacher approved delegated command",
+    );
+    expect(detail.timeline[1]?.auditSummaryLabel).toBe(
+      "委派 agent-1 (plugin) / delegated-no-elevation / 审批 approved / Teacher approved delegated command",
+    );
   });
 
   it("supports empty timelines for commands that have not emitted persisted events yet", async () => {

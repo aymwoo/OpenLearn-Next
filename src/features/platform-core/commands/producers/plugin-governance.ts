@@ -14,6 +14,7 @@ import type {
   PlatformCommandStatus,
   PlatformCommandType,
 } from "@/features/platform-core/commands/contracts";
+import type { PlatformAuditMetadata } from "@/features/platform-core/ai-contracts/delegation";
 
 type ProducerSource = "server-action" | "host-action" | "bootstrap-script";
 
@@ -33,6 +34,7 @@ type BaseProducerInput<TType extends PlatformCommandType, TPayload extends Recor
   payload: TPayload;
   dedupeKey?: string;
   correlation?: ProducerCorrelation;
+  audit?: PlatformAuditMetadata;
   source: ProducerSource;
 };
 
@@ -132,6 +134,10 @@ function mapPersistedCommand(record: typeof platformCommands.$inferSelect): Pers
       scope: record.scopeJson as PlatformCommand["scope"],
       payload: record.payloadJson as PlatformCommand["payload"],
       correlation: record.correlationJson as PlatformCommand["correlation"],
+      audit: (record.auditSummaryJson as PlatformCommand["audit"] | null) ?? {
+        delegatedActor: null,
+        approval: null,
+      },
       dedupeKey: record.dedupeKey,
     } as PlatformCommand,
     dedupeKey: record.dedupeKey,
@@ -178,6 +184,7 @@ const platformCommandStore: PlatformCommandStore = {
       scopeJson: input.command.scope,
       payloadJson: input.command.payload,
       correlationJson: input.command.correlation,
+      auditSummaryJson: input.command.audit,
       latestAttemptNumber: input.latestAttemptNumber,
     }).returning();
 
@@ -248,10 +255,11 @@ export async function dispatchPluginGovernanceCommand(input: DispatchPluginGover
     type: input.type,
     actor: input.actor,
     scope: input.scope,
-    payload: input.payload,
-    correlation,
-    dedupeKey: input.dedupeKey,
-  }, {
+      payload: input.payload,
+      correlation,
+      audit: input.audit,
+      dedupeKey: input.dedupeKey,
+    }, {
     store: platformCommandStore,
     publicationPort: defaultInProcessPlatformEventAdapter,
   });

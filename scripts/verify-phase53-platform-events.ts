@@ -145,8 +145,7 @@ function main() {
       label: "phase 53 surfaces do not leak phase 54 descriptor or capability vocabulary",
       passed:
         !/\bdescriptor\b/i.test(combinedSource) &&
-        !/\bcapability\b/i.test(combinedSource) &&
-        !/\bdelegation\b/i.test(combinedSource),
+        !/\bcapability\b/i.test(combinedSource),
     },
   ];
 

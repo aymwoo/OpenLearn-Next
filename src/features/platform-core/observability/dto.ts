@@ -7,6 +7,10 @@ import type {
   PlatformFailureAttribution,
 } from "@/features/platform-core/events/contracts";
 import type { PlatformCommandStatus } from "@/features/platform-core/commands/contracts";
+import {
+  PlatformAuditMetadataSchema,
+  type PlatformAuditMetadata,
+} from "@/features/platform-core/ai-contracts/delegation";
 
 type PlatformCommandRow = typeof platformCommands.$inferSelect;
 type PlatformEventRow = typeof platformEvents.$inferSelect;
@@ -35,6 +39,8 @@ export type PlatformCommandOperatorSummaryDTO = {
   completedAt: string | null;
   resultSummary: Record<string, unknown> | null;
   resultSummaryLabel: string;
+  auditSummary: PlatformAuditMetadata | null;
+  auditSummaryLabel: string | null;
   failureAttribution: PlatformFailureAttribution | null;
   failureSummaryLabel: string | null;
   invalidationIntent: PlatformCommandOperatorInvalidationIntentDTO;
@@ -60,6 +66,8 @@ export type PlatformCommandOperatorTimelineEventDTO = {
   occurredAt: string;
   payloadSummary: Record<string, unknown>;
   payloadSummaryLabel: string;
+  auditSummary: PlatformAuditMetadata | null;
+  auditSummaryLabel: string | null;
   dispatches: PlatformCommandOperatorTimelineDispatchDTO[];
 };
 
@@ -149,6 +157,39 @@ function formatFailureSummary(
   return `${failureAttribution.scope}:${failureAttribution.reasonCode} -> ${failureAttribution.recommendedRecoveryAction}`;
 }
 
+function asAuditSummary(value: unknown): PlatformAuditMetadata | null {
+  const parsed = PlatformAuditMetadataSchema.safeParse(value);
+  if (!parsed.success) {
+    return null;
+  }
+
+  if (!parsed.data.delegatedActor && !parsed.data.approval) {
+    return null;
+  }
+
+  return parsed.data;
+}
+
+function formatAuditSummary(auditSummary: PlatformAuditMetadata | null): string | null {
+  if (!auditSummary) {
+    return null;
+  }
+
+  const segments: string[] = [];
+
+  if (auditSummary.delegatedActor) {
+    segments.push(
+      `委派 ${auditSummary.delegatedActor.delegatedAgentId} (${auditSummary.delegatedActor.delegatedAgentScope}) / ${auditSummary.delegatedActor.authorityPosture}`,
+    );
+  }
+
+  if (auditSummary.approval) {
+    segments.push(`审批 ${auditSummary.approval.status} / ${auditSummary.approval.summary}`);
+  }
+
+  return segments.length > 0 ? segments.join(" / ") : null;
+}
+
 function formatInvalidationIntent(tags: string[]): PlatformCommandOperatorInvalidationIntentDTO {
   if (tags.length === 0) {
     return {
@@ -184,6 +225,7 @@ export function toPlatformCommandOperatorSummaryDTO(
   const scope = asRecord(row.scopeJson);
   const correlation = asRecord(row.correlationJson);
   const resultSummary = asRecord(row.resultSummaryJson);
+  const auditSummary = asAuditSummary(row.auditSummaryJson);
   const failureAttribution = asRecord(row.failureAttributionJson) as PlatformFailureAttribution | null;
   const invalidationTags = asStringArray(row.invalidationTagsJson);
 
@@ -207,6 +249,8 @@ export function toPlatformCommandOperatorSummaryDTO(
     completedAt: toIso(row.completedAt),
     resultSummary,
     resultSummaryLabel: formatSummaryRecord(resultSummary, "暂无结果摘要"),
+    auditSummary,
+    auditSummaryLabel: formatAuditSummary(auditSummary),
     failureAttribution,
     failureSummaryLabel: formatFailureSummary(failureAttribution),
     invalidationIntent: formatInvalidationIntent(invalidationTags),
@@ -218,6 +262,7 @@ export function toPlatformCommandOperatorTimelineEventDTO(input: {
   dispatches: PlatformEventDispatchRow[];
 }): PlatformCommandOperatorTimelineEventDTO {
   const payloadSummary = asRecord(input.event.payloadSummaryJson) ?? {};
+  const auditSummary = asAuditSummary(input.event.auditSummaryJson);
 
   return {
     id: input.event.id,
@@ -231,6 +276,8 @@ export function toPlatformCommandOperatorTimelineEventDTO(input: {
     occurredAt: toIso(input.event.createdAt) ?? new Date(0).toISOString(),
     payloadSummary,
     payloadSummaryLabel: formatSummaryRecord(payloadSummary, "无补充 payload 摘要"),
+    auditSummary,
+    auditSummaryLabel: formatAuditSummary(auditSummary),
     dispatches: input.dispatches
       .slice()
       .sort((left, right) => left.dispatchChannel.localeCompare(right.dispatchChannel))

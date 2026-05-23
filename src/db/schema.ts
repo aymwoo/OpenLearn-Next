@@ -392,6 +392,7 @@ export const platformCommands = sqliteTable(
     scopeJson: text("scopeJson", { mode: "json" }).notNull(),
     payloadJson: text("payloadJson", { mode: "json" }).notNull(),
     correlationJson: text("correlationJson", { mode: "json" }).notNull(),
+    auditSummaryJson: text("auditSummaryJson", { mode: "json" }),
     resultSummaryJson: text("resultSummaryJson", { mode: "json" }),
     failureDetailJson: text("failureDetailJson", { mode: "json" }),
     invalidationTagsJson: text("invalidationTagsJson", { mode: "json" }),
@@ -451,6 +452,7 @@ export const platformEvents = sqliteTable(
     aggregateType: text("aggregateType").notNull(),
     aggregateId: text("aggregateId").notNull(),
     payloadSummaryJson: text("payloadSummaryJson", { mode: "json" }).notNull(),
+    auditSummaryJson: text("auditSummaryJson", { mode: "json" }),
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
   (table) => [

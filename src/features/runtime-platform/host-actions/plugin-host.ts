@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { PlatformAuditMetadataSchema } from "@/features/platform-core/ai-contracts/delegation";
 import { readPluginGovernanceLifecycle } from "@/features/platform-core/actions/registry";
 import { dispatchPluginGovernanceCommand } from "@/features/platform-core/commands/producers/plugin-governance";
 
@@ -28,6 +29,7 @@ const PluginHostRequestSchema = z.object({
     "plugin.kill_switch.set",
   ]),
   payload: z.record(z.string(), z.unknown()).default({}),
+  audit: PlatformAuditMetadataSchema.optional(),
 });
 
 function isGovernanceAction(action: PluginHostRequest["action"]) {
@@ -70,12 +72,14 @@ async function dispatchGovernanceFromHost(input: {
   schoolId: string;
   pluginId: string;
   payload: Record<string, unknown>;
+  audit?: PluginHostRequest["audit"];
 }) {
   const base = {
     actor: { actorId: input.actorId, actorScope: "teacher" as const },
     scope: { schoolId: input.schoolId, pluginId: input.pluginId },
     source: "host-action" as const,
     correlation: { producer: "plugin-host" },
+    audit: input.audit,
   };
 
   switch (input.action) {
@@ -400,6 +404,7 @@ export const invokePluginHostAction = createGuardedHostAction({
           schoolId: actor.schoolId,
           pluginId: input.pluginId,
           payload: input.payload,
+          audit: input.audit,
         });
 
         return {

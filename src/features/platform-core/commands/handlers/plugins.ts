@@ -13,6 +13,7 @@ import type {
   PlatformFailureAttribution,
   PlatformSuccessOrDomainEvent,
 } from "@/features/platform-core/events/contracts";
+import type { PlatformAuditMetadata } from "@/features/platform-core/ai-contracts/delegation";
 import {
   installOrReconcilePluginWithTx,
   listPluginsForSchool,
@@ -94,6 +95,7 @@ function buildSuccessEvent(input: {
   commandType: PlatformCommandType;
   invalidationTags: string[];
   resultSummary: Record<string, unknown> | null;
+  audit: PlatformAuditMetadata;
 }): PlatformSuccessOrDomainEvent {
   return {
     eventType: "platform.command.succeeded",
@@ -105,6 +107,28 @@ function buildSuccessEvent(input: {
       invalidationTags: input.invalidationTags,
       resultSummary: input.resultSummary,
     },
+    audit: input.audit,
+  };
+}
+
+function withAudit<TEvent extends Omit<PlatformSuccessOrDomainEvent, "audit">>(event: TEvent, audit: PlatformAuditMetadata): TEvent & { audit: PlatformAuditMetadata } {
+  return {
+    ...event,
+    audit,
+  };
+}
+
+function successResult(input: {
+  resultSummary: Record<string, unknown> | null;
+  invalidation: { tags: string[] };
+  emittedEvents: PlatformSuccessOrDomainEvent[];
+}): ExecutionResult {
+  return {
+    resultSummary: input.resultSummary,
+    invalidation: input.invalidation,
+    emittedEvents: input.emittedEvents,
+    failureEvent: null,
+    failureAttribution: null,
   };
 }
 
@@ -115,6 +139,7 @@ function throwCommandFailure(input: {
   scope: PlatformFailureAttribution["scope"];
   reasonCode: string;
   recommendedRecoveryAction: string;
+  audit: PlatformAuditMetadata;
 }): never {
   const failureAttribution: PlatformFailureAttribution = {
     scope: input.scope,
@@ -136,6 +161,7 @@ function throwCommandFailure(input: {
         reasonCode: input.reasonCode,
         failureAttribution,
       },
+      audit: input.audit,
     },
   });
 }
@@ -162,7 +188,7 @@ async function executeInstall(input: ExecutionInput<InstallCommand>): Promise<Ex
   };
   const invalidation = buildPluginTags(record.id);
 
-  return {
+  return successResult({
     resultSummary,
     invalidation,
     emittedEvents: [
@@ -171,8 +197,9 @@ async function executeInstall(input: ExecutionInput<InstallCommand>): Promise<Ex
         commandType: command.type,
         invalidationTags: invalidation.tags,
         resultSummary,
+        audit: command.audit,
       }),
-      {
+      withAudit({
         eventType: "plugin.installed",
         category: "domain",
         aggregateType: "plugin",
@@ -183,9 +210,9 @@ async function executeInstall(input: ExecutionInput<InstallCommand>): Promise<Ex
           installSource: record.installSource,
           lifecycleState: record.lifecycleState,
         },
-      },
+      }, command.audit),
     ],
-  };
+  });
 }
 
 async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promise<ExecutionResult> {
@@ -206,6 +233,7 @@ async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promis
       scope: "plugin",
       reasonCode: "not_installed",
       recommendedRecoveryAction: "install",
+      audit: command.audit,
     });
   }
 
@@ -242,6 +270,7 @@ async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promis
       scope: "dependency",
       reasonCode: "dependency_missing",
       recommendedRecoveryAction: "reconcile",
+      audit: command.audit,
     });
   }
 
@@ -253,6 +282,7 @@ async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promis
       scope: "dependency",
       reasonCode: "dependency_cycle",
       recommendedRecoveryAction: "reconcile",
+      audit: command.audit,
     });
   }
 
@@ -283,6 +313,7 @@ async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promis
       scope: "plugin",
       reasonCode: "not_installed",
       recommendedRecoveryAction: "install",
+      audit: command.audit,
     });
   }
 
@@ -294,7 +325,7 @@ async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promis
   };
   const invalidation = buildPluginTags(latestRecord.id);
 
-  return {
+  return successResult({
     resultSummary,
     invalidation,
     emittedEvents: [
@@ -303,8 +334,9 @@ async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promis
         commandType: command.type,
         invalidationTags: invalidation.tags,
         resultSummary,
+        audit: command.audit,
       }),
-      {
+      withAudit({
         eventType: "plugin.lifecycle.changed",
         category: "domain",
         aggregateType: "plugin",
@@ -316,9 +348,9 @@ async function executeReconcile(input: ExecutionInput<ReconcileCommand>): Promis
           reasonCode: command.payload.reason,
           transitionCounter: input.attemptNumber,
         },
-      },
+      }, command.audit),
     ],
-  };
+  });
 }
 
 async function executeLifecycleTransition<TType extends Extract<PlatformCommandType, "plugin.enable" | "plugin.disable" | "plugin.suspend" | "plugin.resume">>(
@@ -355,6 +387,7 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
         scope: "dependency",
         reasonCode: "dependency_missing",
         recommendedRecoveryAction: "reconcile",
+        audit: command.audit,
       });
     }
 
@@ -366,6 +399,7 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
         scope: "dependency",
         reasonCode: "dependency_cycle",
         recommendedRecoveryAction: "reconcile",
+        audit: command.audit,
       });
     }
 
@@ -411,6 +445,7 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
       scope: "plugin",
       reasonCode: "not_installed",
       recommendedRecoveryAction: "install",
+      audit: command.audit,
     });
   }
 
@@ -434,7 +469,7 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
   };
   const invalidation = buildPluginTags(record.id, extraTags);
 
-  return {
+  return successResult({
     resultSummary,
     invalidation,
     emittedEvents: [
@@ -443,8 +478,9 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
         commandType,
         invalidationTags: invalidation.tags,
         resultSummary,
+        audit: command.audit,
       }),
-      {
+      withAudit({
         eventType: "plugin.lifecycle.changed",
         category: "domain",
         aggregateType: "plugin",
@@ -456,9 +492,9 @@ async function executeLifecycleTransition<TType extends Extract<PlatformCommandT
           reasonCode: reason,
           transitionCounter: input.attemptNumber,
         },
-      },
+      }, command.audit),
     ],
-  };
+  });
 }
 
 async function executeKillSwitchSet(input: ExecutionInput<KillSwitchCommand>): Promise<ExecutionResult> {
@@ -481,7 +517,7 @@ async function executeKillSwitchSet(input: ExecutionInput<KillSwitchCommand>): P
   };
   const invalidation = buildPluginTags(record.id);
 
-  return {
+  return successResult({
     resultSummary,
     invalidation,
     emittedEvents: [
@@ -490,8 +526,9 @@ async function executeKillSwitchSet(input: ExecutionInput<KillSwitchCommand>): P
         commandType: command.type,
         invalidationTags: invalidation.tags,
         resultSummary,
+        audit: command.audit,
       }),
-      {
+      withAudit({
         eventType: "plugin.kill_switch.changed",
         category: "domain",
         aggregateType: "plugin",
@@ -502,9 +539,9 @@ async function executeKillSwitchSet(input: ExecutionInput<KillSwitchCommand>): P
           reasonCode: command.payload.reason,
           toggleCounter: input.attemptNumber,
         },
-      },
+      }, command.audit),
     ],
-  };
+  });
 }
 
 async function executeUninstallPreflight(input: ExecutionInput<UninstallPreflightCommand>): Promise<ExecutionResult> {
@@ -528,7 +565,7 @@ async function executeUninstallPreflight(input: ExecutionInput<UninstallPrefligh
     }),
   };
 
-  return {
+  return successResult({
     resultSummary,
     invalidation: { tags: [] },
     emittedEvents: [
@@ -537,9 +574,10 @@ async function executeUninstallPreflight(input: ExecutionInput<UninstallPrefligh
         commandType: command.type,
         invalidationTags: [],
         resultSummary,
+        audit: command.audit,
       }),
     ],
-  };
+  });
 }
 
 async function executeUninstall(input: ExecutionInput<UninstallCommand>): Promise<ExecutionResult> {
@@ -553,6 +591,7 @@ async function executeUninstall(input: ExecutionInput<UninstallCommand>): Promis
       scope: "operator",
       reasonCode: "cleanup_confirmation_required",
       recommendedRecoveryAction: "confirm_cleanup",
+      audit: command.audit,
     });
   }
 
@@ -574,7 +613,7 @@ async function executeUninstall(input: ExecutionInput<UninstallCommand>): Promis
   };
   const invalidation = buildPluginTags(command.scope.pluginId);
 
-  return {
+  return successResult({
     resultSummary,
     invalidation,
     emittedEvents: [
@@ -583,9 +622,10 @@ async function executeUninstall(input: ExecutionInput<UninstallCommand>): Promis
         commandType: command.type,
         invalidationTags: invalidation.tags,
         resultSummary,
+        audit: command.audit,
       }),
     ],
-  };
+  });
 }
 
 async function loadRetriedCommand(commandId: string) {
@@ -615,6 +655,7 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
       scope: "operator",
       reasonCode: "retry_identity_mismatch",
       recommendedRecoveryAction: "retry",
+      audit: command.audit,
     });
   }
 
@@ -643,7 +684,7 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         commandContext,
       }));
 
-      return {
+      return successResult({
         resultSummary: {
           commandType: "plugin.retry",
           retriedCommandType: existing.commandType,
@@ -666,8 +707,9 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
               pluginId: record.id,
               lifecycleState: record.lifecycleState,
             },
+            audit: command.audit,
           }),
-          {
+          withAudit({
             eventType: "plugin.installed",
             category: "domain",
             aggregateType: "plugin",
@@ -678,9 +720,9 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
               installSource: record.installSource,
               lifecycleState: record.lifecycleState,
             },
-          },
+          }, command.audit),
         ],
-      };
+      });
     }
     case "plugin.enable":
     case "plugin.disable":
@@ -725,7 +767,7 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         };
       const invalidation = buildPluginTags(record.id);
 
-      return {
+      return successResult({
         resultSummary,
         invalidation,
         emittedEvents: [
@@ -734,8 +776,9 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
             commandType: command.type,
             invalidationTags: invalidation.tags,
             resultSummary,
+            audit: command.audit,
           }),
-          {
+          withAudit({
             eventType: "plugin.lifecycle.changed",
             category: "domain",
             aggregateType: "plugin",
@@ -747,9 +790,9 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
               reasonCode: typeof reason === "string" ? reason : "retry",
               transitionCounter: attemptNumber,
             },
-          },
+          }, command.audit),
         ],
-      };
+      });
     }
     case "plugin.uninstall": {
       await db.transaction(async (tx) => uninstallPluginWithTx({
@@ -775,7 +818,7 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         };
       const invalidation = buildPluginTags(pluginId);
 
-      return {
+      return successResult({
         resultSummary,
         invalidation,
         emittedEvents: [
@@ -784,9 +827,10 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
             commandType: command.type,
             invalidationTags: invalidation.tags,
             resultSummary,
+            audit: command.audit,
           }),
         ],
-      };
+      });
     }
     case "plugin.kill_switch.set": {
       const record = await db.transaction(async (tx) => setPluginKillSwitchWithTx({
@@ -809,7 +853,7 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
         };
       const invalidation = buildPluginTags(record.id);
 
-      return {
+      return successResult({
         resultSummary,
         invalidation,
         emittedEvents: [
@@ -818,8 +862,9 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
             commandType: command.type,
             invalidationTags: invalidation.tags,
             resultSummary,
+            audit: command.audit,
           }),
-          {
+          withAudit({
             eventType: "plugin.kill_switch.changed",
             category: "domain",
             aggregateType: "plugin",
@@ -830,9 +875,9 @@ async function executeRetry(input: ExecutionInput<RetryCommand>): Promise<Execut
               reasonCode: command.payload.reason,
               toggleCounter: attemptNumber,
             },
-          },
+          }, command.audit),
         ],
-      };
+      });
     }
     default:
       throw new Error("PLATFORM_COMMAND_RETRY_UNSUPPORTED_COMMAND_TYPE");
