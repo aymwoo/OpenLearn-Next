@@ -1866,6 +1866,6 @@ export const pluginOwnedBusinessData = sqliteTable(
     updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
   (table) => [
-    index("plugin_owned_biz_school_plugin_key_idx").on(table.schoolId, table.pluginId, table.key),
+    uniqueIndex("plugin_owned_biz_school_plugin_key_unique").on(table.schoolId, table.pluginId, table.key),
   ]
 );

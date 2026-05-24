@@ -15,6 +15,13 @@
       "when": 1779435870469,
       "tag": "0012_phase53_platform_event_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1779590978824,
+      "tag": "0002_daffy_xavin",
+      "breakpoints": true
     }
   ]
 }

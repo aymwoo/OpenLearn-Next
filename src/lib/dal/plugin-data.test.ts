@@ -136,6 +136,7 @@ async function bootstrapPhase45CascadeSchema(databaseUrl: string) {
       FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
       FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade
     )`,
+    `CREATE UNIQUE INDEX plugin_owned_biz_school_plugin_key_unique ON plugin_owned_business_data (schoolId, pluginId, key)`,
   ];
 
   for (const statement of statements) {
@@ -201,8 +202,8 @@ describe("Phase 45 Drizzle Schema Physical Analysis (Static Verification)", () =
     expect(schemaSource).toContain('uniqueIndex("plugin_ext_lesson_step_school_plugin_entity_unique").on(table.schoolId, table.pluginId, table.lessonStepId)');
     expect(schemaSource).toContain('uniqueIndex("plugin_ext_resource_school_plugin_entity_unique").on(table.schoolId, table.pluginId, table.resourceId)');
     
-    // 自有业务表联合常规查询索引检查
-    expect(schemaSource).toContain('index("plugin_owned_biz_school_plugin_key_idx").on(table.schoolId, table.pluginId, table.key)');
+    // 自有业务表联合唯一索引检查
+    expect(schemaSource).toContain('uniqueIndex("plugin_owned_biz_school_plugin_key_unique").on(table.schoolId, table.pluginId, table.key)');
   });
 });
 
@@ -379,6 +380,29 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       ).rejects.toThrow("SCHOOL_CROSS_BOUNDARY_FORBIDDEN");
     });
 
+    it("should forbid lesson extension access when the course owner differs from the actor", async () => {
+      const limitFn = vi.fn();
+      limitFn
+        .mockResolvedValueOnce([{ schoolId: "school-1", manifestJson: { permissions: ["lesson:write"] } }])
+        .mockResolvedValueOnce([{ schoolId: "school-1", ownerId: "teacher-2" }]);
+
+      const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
+      const innerJoin1 = vi.fn().mockReturnValue({ where: whereFn });
+      const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
+      mockSelect.mockReturnValue({ from: fromFn } as any);
+
+      await expect(
+        upsertPluginExtension({
+          actorId: "teacher-1",
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          entityType: "lesson",
+          entityId: "lesson-1",
+          payloadJson: { key: "val" },
+        })
+      ).rejects.toThrow("TEACHER_AUTH_REQUIRED");
+    });
+
     it("should forbid execution if the target core entity (LessonStep) belongs to a different school", async () => {
       const limitFn = vi.fn();
       limitFn
@@ -402,6 +426,29 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
         })
       ).rejects.toThrow("SCHOOL_CROSS_BOUNDARY_FORBIDDEN");
     });
+
+    it("should forbid step extension access when the parent course owner differs from the actor", async () => {
+      const limitFn = vi.fn();
+      limitFn
+        .mockResolvedValueOnce([{ schoolId: "school-1" }])
+        .mockResolvedValueOnce([{ schoolId: "school-1", ownerId: "teacher-2" }]);
+
+      const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
+      const innerJoin2 = vi.fn().mockReturnValue({ where: whereFn });
+      const innerJoin1 = vi.fn().mockReturnValue({ innerJoin: innerJoin2, where: whereFn });
+      const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
+      mockSelect.mockReturnValue({ from: fromFn } as any);
+
+      await expect(
+        getPluginExtension({
+          actorId: "teacher-1",
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          entityType: "step",
+          entityId: "step-1",
+        })
+      ).rejects.toThrow("TEACHER_AUTH_REQUIRED");
+    });
   });
 
   describe("C. CRUD Operations & Idempotency", () => {
@@ -409,7 +456,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const limitFn = vi.fn();
       limitFn
         .mockResolvedValueOnce([{ schoolId: "school-1" }]) // pluginRegistrations schoolId check
-        .mockResolvedValueOnce([{ schoolId: "school-1" }]) // lessons schoolId check
+        .mockResolvedValueOnce([{ schoolId: "school-1", ownerId: "teacher-1" }]) // lessons schoolId check
         .mockResolvedValueOnce([{ payloadJson: { test: "data" } }]); // target record select
 
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
@@ -432,7 +479,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const limitFn = vi.fn();
       limitFn
         .mockResolvedValueOnce([{ schoolId: "school-1", manifestJson: { permissions: ["lesson:write"] } }]) // pluginRegistrations schoolId check
-        .mockResolvedValueOnce([{ schoolId: "school-1" }]) // lessons schoolId check
+        .mockResolvedValueOnce([{ schoolId: "school-1", ownerId: "teacher-1" }]) // lessons schoolId check
         .mockResolvedValueOnce([]); // select target (empty = insert)
 
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
@@ -465,7 +512,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const limitFn = vi.fn();
       limitFn
         .mockResolvedValueOnce([{ schoolId: "school-1", manifestJson: { permissions: ["lesson:write"] } }]) // pluginRegistrations schoolId
-        .mockResolvedValueOnce([{ schoolId: "school-1" }]) // lessons schoolId
+        .mockResolvedValueOnce([{ schoolId: "school-1", ownerId: "teacher-1" }]) // lessons schoolId
         .mockResolvedValueOnce([{ id: "existing-uuid", schoolId: "school-1" }]); // select target
 
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
@@ -494,13 +541,15 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
 
     it("should upsert plugin owned business data correctly with exact key query", async () => {
       const limitFn = vi.fn();
-      limitFn
-        .mockResolvedValueOnce([{ schoolId: "school-1", manifestJson: { permissions: ["plugin:owned:write"] } }]) // pluginRegistrations schoolId check
-        .mockResolvedValueOnce([]); // empty owned biz data (insert)
+      limitFn.mockResolvedValueOnce([
+        { schoolId: "school-1", manifestJson: { permissions: ["plugin:owned:write"] } },
+      ]);
 
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const fromFn = vi.fn().mockReturnValue({ where: whereFn });
       mockSelect.mockReturnValue({ from: fromFn } as any);
+      const insertOnConflictDoUpdate = vi.fn().mockResolvedValue(undefined);
+      insertValues.mockReturnValue({ onConflictDoUpdate: insertOnConflictDoUpdate } as any);
 
       await upsertPluginOwnedBusinessData({
         actorId: "teacher-1",
@@ -519,6 +568,17 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
           payloadJson: { rule: "daily" },
         })
       );
+      expect(insertOnConflictDoUpdate).toHaveBeenCalledWith({
+        target: [
+          pluginOwnedBusinessData.schoolId,
+          pluginOwnedBusinessData.pluginId,
+          pluginOwnedBusinessData.key,
+        ],
+        set: expect.objectContaining({
+          payloadJson: { rule: "daily" },
+          updatedAt: expect.any(Date),
+        }),
+      });
     });
 
     it("should read plugin owned business data correctly", async () => {
@@ -555,7 +615,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const limitFn = vi.fn();
       limitFn
         .mockResolvedValueOnce([{ schoolId: "school-1", manifestJson: { permissions: ["some:other:permission"] } }]) // manifest
-        .mockResolvedValueOnce([{ schoolId: "school-1" }]); // entity belongs to school
+        .mockResolvedValueOnce([{ schoolId: "school-1", ownerId: "teacher-1" }]); // entity belongs to school
 
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const innerJoin1 = vi.fn().mockReturnValue({ where: whereFn });
@@ -578,7 +638,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const limitFn = vi.fn();
       limitFn
         .mockResolvedValueOnce([{ schoolId: "school-1", manifestJson: { permissions: ["lesson:write"] } }]) // manifest
-        .mockResolvedValueOnce([{ schoolId: "school-1" }]) // entity check
+        .mockResolvedValueOnce([{ schoolId: "school-1", ownerId: "teacher-1" }]) // entity check
         .mockResolvedValueOnce([]) // existing check (empty = insert)
         .mockResolvedValueOnce([{ courseId: "course-123" }]); // lesson courseId retrieve in cache revalidation
 
@@ -606,7 +666,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const limitFn = vi.fn();
       limitFn
         .mockResolvedValueOnce([{ schoolId: "school-1", manifestJson: { permissions: ["lesson:write"] } }]) // manifest
-        .mockResolvedValueOnce([{ schoolId: "school-1" }]) // entity check
+        .mockResolvedValueOnce([{ schoolId: "school-1", ownerId: "teacher-1" }]) // entity check
         .mockResolvedValueOnce([]) // existing check (empty = insert)
         .mockResolvedValueOnce([{ courseId: "course-123" }]); // cache retrieve
 

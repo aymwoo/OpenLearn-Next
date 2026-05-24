@@ -48,9 +48,10 @@ async function assertTeacherManagerScope(actorId: string, schoolId: string) {
 }
 
 /**
- * 断言目标物理核心实体是否确实属于传入的学校租户，严防跨校越界注入
+ * 断言目标物理核心实体是否确实属于传入的学校租户，并在 lesson/step 上复用 authoring owner 边界
  * 
  * Args:
+ *   scope: 已完成教师鉴权的操作者范围
  *   schoolId: 学校租户 ID
  *   entityType: 核心实体类型 ("lesson" | "step" | "resource")
  *   entityId: 核心实体唯一标识 ID
@@ -60,13 +61,14 @@ async function assertTeacherManagerScope(actorId: string, schoolId: string) {
  *   Error("INVALID_ENTITY_TYPE"): 传入不支持的实体类型时抛出
  */
 async function assertEntityBelongsToSchool(
+  scope: Awaited<ReturnType<typeof assertTeacherManagerScope>>,
   schoolId: string,
   entityType: "lesson" | "step" | "resource",
   entityId: string,
 ) {
   if (entityType === "lesson") {
     const [result] = await db
-      .select({ schoolId: courses.schoolId })
+      .select({ schoolId: courses.schoolId, ownerId: courses.ownerId })
       .from(lessons)
       .innerJoin(courses, eq(lessons.courseId, courses.id))
       .where(eq(lessons.id, entityId))
@@ -75,9 +77,13 @@ async function assertEntityBelongsToSchool(
     if (!result || result.schoolId !== schoolId) {
       throw new Error("SCHOOL_CROSS_BOUNDARY_FORBIDDEN");
     }
+
+    if (result.ownerId !== scope.userId) {
+      throw new Error("TEACHER_AUTH_REQUIRED");
+    }
   } else if (entityType === "step") {
     const [result] = await db
-      .select({ schoolId: courses.schoolId })
+      .select({ schoolId: courses.schoolId, ownerId: courses.ownerId })
       .from(lessonSteps)
       .innerJoin(lessons, eq(lessonSteps.lessonId, lessons.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
@@ -86,6 +92,10 @@ async function assertEntityBelongsToSchool(
 
     if (!result || result.schoolId !== schoolId) {
       throw new Error("SCHOOL_CROSS_BOUNDARY_FORBIDDEN");
+    }
+
+    if (result.ownerId !== scope.userId) {
+      throw new Error("TEACHER_AUTH_REQUIRED");
     }
   } else if (entityType === "resource") {
     const [result] = await db
@@ -173,11 +183,11 @@ export async function upsertPluginExtension(input: UpsertExtensionInput): Promis
   const { actorId, schoolId, pluginId, entityType, entityId, payloadJson } = input;
 
   // 1. 教师权限鉴权
-  await assertTeacherManagerScope(actorId, schoolId);
+  const scope = await assertTeacherManagerScope(actorId, schoolId);
 
   // 2. 多租户跨校物理安全边界拦截与 Manifest 捞取
   const manifestJson = await assertPluginBelongsToSchoolAndGetManifest(schoolId, pluginId);
-  await assertEntityBelongsToSchool(schoolId, entityType, entityId);
+  await assertEntityBelongsToSchool(scope, schoolId, entityType, entityId);
 
   // 3. 插件自声明权限校验 (Manifest Permissions Check)
   const permissions = (manifestJson?.permissions || []) as string[];
@@ -379,11 +389,11 @@ export async function getPluginExtension(input: GetExtensionInput): Promise<Reco
   const { actorId, schoolId, pluginId, entityType, entityId } = input;
 
   // 1. 教师权限鉴权
-  await assertTeacherManagerScope(actorId, schoolId);
+  const scope = await assertTeacherManagerScope(actorId, schoolId);
 
   // 2. 多租户安全隔离拦截
   await assertPluginBelongsToSchool(schoolId, pluginId);
-  await assertEntityBelongsToSchool(schoolId, entityType, entityId);
+  await assertEntityBelongsToSchool(scope, schoolId, entityType, entityId);
 
   // 3. 执行查询
   if (entityType === "lesson") {
@@ -480,34 +490,25 @@ export async function upsertPluginOwnedBusinessData(input: UpsertOwnedBusinessDa
 
   // 4. 执行物理事务 (Drizzle Transaction)
   await db.transaction(async (tx) => {
-    const existing = await tx
-      .select()
-      .from(pluginOwnedBusinessData)
-      .where(
-        and(
-          eq(pluginOwnedBusinessData.schoolId, schoolId),
-          eq(pluginOwnedBusinessData.pluginId, pluginId),
-          eq(pluginOwnedBusinessData.key, key),
-        ),
-      )
-      .limit(1);
-
-    if (existing.length > 0) {
-      await tx
-        .update(pluginOwnedBusinessData)
-        .set({
-          payloadJson,
-          updatedAt: new Date(),
-        })
-        .where(eq(pluginOwnedBusinessData.id, existing[0].id));
-    } else {
-      await tx.insert(pluginOwnedBusinessData).values({
+    await tx
+      .insert(pluginOwnedBusinessData)
+      .values({
         schoolId,
         pluginId,
         key,
         payloadJson,
+      })
+      .onConflictDoUpdate({
+        target: [
+          pluginOwnedBusinessData.schoolId,
+          pluginOwnedBusinessData.pluginId,
+          pluginOwnedBusinessData.key,
+        ],
+        set: {
+          payloadJson,
+          updatedAt: new Date(),
+        },
       });
-    }
 
     // 写入物理审计日志 pluginActionAudits
     await tx.insert(pluginActionAudits).values({

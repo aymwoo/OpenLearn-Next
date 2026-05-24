@@ -48,6 +48,27 @@ function runVitest(paths: readonly string[], label: string): void {
   run("pnpm", ["exec", "vitest", "--run", ...paths], label);
 }
 
+async function assertIndex(
+  client: ReturnType<typeof createClient>,
+  tableName: string,
+  indexName: string,
+  isUnique: boolean,
+) {
+  const indexList = await client.execute(`PRAGMA index_list(${tableName})`);
+  const indexRow = indexList.rows.find((row) => String(row.name) === indexName);
+
+  if (!indexRow) {
+    throw new Error(`Physical SQLite validation failed: Index '${indexName}' is missing on '${tableName}' table.`);
+  }
+
+  const uniqueFlag = Number(indexRow.unique ?? 0) === 1;
+  if (uniqueFlag !== isUnique) {
+    throw new Error(
+      `Physical SQLite validation failed: Index '${indexName}' on '${tableName}' expected unique=${isUnique} but received unique=${uniqueFlag}.`,
+    );
+  }
+}
+
 // 核心系统表白名单
 const CORE_SYSTEM_TABLES = new Set([
   "user",
@@ -142,22 +163,22 @@ async function runVerification() {
       {
         name: "plugin_ext_lesson",
         columns: ["id", "schoolId", "pluginId", "lessonId", "payloadJson"],
-        indexes: ["plugin_ext_lesson_school_plugin_entity_unique"],
+        indexes: [{ name: "plugin_ext_lesson_school_plugin_entity_unique", unique: true }],
       },
       {
         name: "plugin_ext_lesson_step",
         columns: ["id", "schoolId", "pluginId", "lessonStepId", "payloadJson"],
-        indexes: ["plugin_ext_lesson_step_school_plugin_entity_unique"],
+        indexes: [{ name: "plugin_ext_lesson_step_school_plugin_entity_unique", unique: true }],
       },
       {
         name: "plugin_ext_resource",
         columns: ["id", "schoolId", "pluginId", "resourceId", "payloadJson"],
-        indexes: ["plugin_ext_resource_school_plugin_entity_unique"],
+        indexes: [{ name: "plugin_ext_resource_school_plugin_entity_unique", unique: true }],
       },
       {
         name: "plugin_owned_business_data",
         columns: ["id", "schoolId", "pluginId", "key", "payloadJson"],
-        indexes: ["plugin_owned_biz_school_plugin_key_idx"],
+        indexes: [{ name: "plugin_owned_biz_school_plugin_key_unique", unique: true }],
       },
     ];
 
@@ -178,17 +199,8 @@ async function runVerification() {
       }
 
       // 检查物理索引是否存在
-      const indexResult = await client.execute(
-        `SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = '${table.name}'`
-      );
-      const indexes = indexResult.rows.map((row) => String(row.name));
-
       for (const reqIdx of table.indexes) {
-        if (!indexes.includes(reqIdx)) {
-          throw new Error(
-            `Physical SQLite validation failed: Index '${reqIdx}' is missing on '${table.name}' table.`
-          );
-        }
+        await assertIndex(client, table.name, reqIdx.name, reqIdx.unique);
       }
       console.log(`  ✓ Table '${table.name}' and indexes verified successfully.`);
     }

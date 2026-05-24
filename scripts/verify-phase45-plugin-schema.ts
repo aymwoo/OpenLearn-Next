@@ -92,6 +92,27 @@ function cleanupSqliteArtifacts(databasePath: string): void {
   }
 }
 
+async function assertIndex(
+  client: ReturnType<typeof createClient>,
+  tableName: string,
+  indexName: string,
+  isUnique: boolean,
+) {
+  const indexList = await client.execute(`PRAGMA index_list(${tableName})`);
+  const indexRow = indexList.rows.find((row) => String(row.name) === indexName);
+
+  if (!indexRow) {
+    throw new Error(`Physical SQLite validation failed: Index '${indexName}' is missing on '${tableName}' table.`);
+  }
+
+  const uniqueFlag = Number(indexRow.unique ?? 0) === 1;
+  if (uniqueFlag !== isUnique) {
+    throw new Error(
+      `Physical SQLite validation failed: Index '${indexName}' on '${tableName}' expected unique=${isUnique} but received unique=${uniqueFlag}.`,
+    );
+  }
+}
+
 async function bootstrapPhase45ProofDatabase(databaseUrl: string) {
   const client = createClient({ url: databaseUrl });
 
@@ -279,22 +300,22 @@ async function runVerification() {
       {
         name: "plugin_ext_lesson",
         columns: ["id", "schoolId", "pluginId", "lessonId", "payloadJson"],
-        indexes: ["plugin_ext_lesson_school_plugin_entity_unique"],
+        indexes: [{ name: "plugin_ext_lesson_school_plugin_entity_unique", unique: true }],
       },
       {
         name: "plugin_ext_lesson_step",
         columns: ["id", "schoolId", "pluginId", "lessonStepId", "payloadJson"],
-        indexes: ["plugin_ext_lesson_step_school_plugin_entity_unique"],
+        indexes: [{ name: "plugin_ext_lesson_step_school_plugin_entity_unique", unique: true }],
       },
       {
         name: "plugin_ext_resource",
         columns: ["id", "schoolId", "pluginId", "resourceId", "payloadJson"],
-        indexes: ["plugin_ext_resource_school_plugin_entity_unique"],
+        indexes: [{ name: "plugin_ext_resource_school_plugin_entity_unique", unique: true }],
       },
       {
         name: "plugin_owned_business_data",
         columns: ["id", "schoolId", "pluginId", "key", "payloadJson"],
-        indexes: ["plugin_owned_biz_school_plugin_key_idx"],
+        indexes: [{ name: "plugin_owned_biz_school_plugin_key_unique", unique: true }],
       },
     ];
 
@@ -315,17 +336,8 @@ async function runVerification() {
       }
 
       // 检查索引是否存在
-      const indexResult = await client.execute(
-        `SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = '${table.name}'`
-      );
-      const indexes = indexResult.rows.map((row) => String(row.name));
-
       for (const reqIdx of table.indexes) {
-        if (!indexes.includes(reqIdx)) {
-          throw new Error(
-            `Physical SQLite validation failed: Index '${reqIdx}' is missing on '${table.name}' table.`
-          );
-        }
+        await assertIndex(client, table.name, reqIdx.name, reqIdx.unique);
       }
       console.log(`  ✓ Table '${table.name}' and indexes verified successfully.`);
     }
@@ -374,7 +386,8 @@ async function runVerification() {
       passed:
         schemaSource.includes('uniqueIndex("plugin_ext_lesson_school_plugin_entity_unique").on(table.schoolId, table.pluginId, table.lessonId)') &&
         schemaSource.includes('uniqueIndex("plugin_ext_lesson_step_school_plugin_entity_unique").on(table.schoolId, table.pluginId, table.lessonStepId)') &&
-        schemaSource.includes('uniqueIndex("plugin_ext_resource_school_plugin_entity_unique").on(table.schoolId, table.pluginId, table.resourceId)'),
+        schemaSource.includes('uniqueIndex("plugin_ext_resource_school_plugin_entity_unique").on(table.schoolId, table.pluginId, table.resourceId)') &&
+        schemaSource.includes('uniqueIndex("plugin_owned_biz_school_plugin_key_unique").on(table.schoolId, table.pluginId, table.key)'),
     },
     {
       label: "src/lib/dal/plugin-data.ts exports universal plugin-data DAL APIs",
@@ -385,11 +398,18 @@ async function runVerification() {
         nonCommentIncludes(dalSource, "export async function getPluginOwnedBusinessData"),
     },
     {
-      label: "src/lib/dal/plugin-data.ts embeds active teacher assertion & cross-school isolation",
+      label: "src/lib/dal/plugin-data.ts embeds active teacher assertion, owner-aware lesson scope, and cross-school isolation",
       passed:
         nonCommentIncludes(dalSource, "assertTeacherManagerScope") &&
         nonCommentIncludes(dalSource, "assertEntityBelongsToSchool") &&
-        nonCommentIncludes(dalSource, "assertPluginBelongsToSchool"),
+        nonCommentIncludes(dalSource, "assertPluginBelongsToSchool") &&
+        nonCommentIncludes(dalSource, 'if (result.ownerId !== scope.userId)'),
+    },
+    {
+      label: "src/lib/dal/plugin-data.ts upserts plugin-owned business data atomically",
+      passed:
+        nonCommentIncludes(dalSource, ".onConflictDoUpdate({") &&
+        nonCommentIncludes(dalSource, "pluginOwnedBusinessData.key"),
     },
     {
       label: "scripts/verify-phase45-plugin-schema.ts includes temp SQLite cascade proof with PRAGMA foreign_key_check",
