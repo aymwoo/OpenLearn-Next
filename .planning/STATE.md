@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v3.0
-milestone_name: Teaching Orchestration & Classroom Intelligence
-status: verifying
-stopped_at: Completed 54-ai-native-contract-exposure-04-PLAN.md
-last_updated: "2026-05-22T14:48:56Z"
-last_activity: 2026-05-22 -- Completed Phase 54 plan 04
+milestone_name: AI Native Educational OS Upgrade
+status: milestone_complete
+stopped_at: Milestone v3.0 archived and awaiting next milestone planning
+last_updated: "2026-05-23T15:54:01Z"
+last_activity: 2026-05-23 -- Archived milestone v3.0
 progress:
   total_phases: 5
   completed_phases: 5
@@ -21,17 +21,17 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-21)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 54 — ai-native-contract-exposure
+**Current focus:** Planning the next milestone
 
 ## Current Position
 
-Milestone: v3.0 -- AI Native Educational OS Upgrade
-Phase: 54 (ai-native-contract-exposure) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-05-22 -- Completed Phase 54 plan 04
+Milestone: v3.0 -- AI Native Educational OS Upgrade (ARCHIVED)
+Phase: None
+Plan: complete
+Status: Milestone complete — awaiting `/gsd-new-milestone`
+Last activity: 2026-05-23 -- Archived milestone v3.0
 Progress: [██████████] 100%
-Next queued phase: 54 -- AI-Native Contract Exposure
+Next queued phase: none
 
 ## Performance Metrics
 
@@ -107,9 +107,8 @@ None currently.
 
 ### Blockers/Concerns
 
-- No active blocker for entering Phase 51 planning/execution.
-- Phase 51 must consume only the frozen vocabulary, ownership map, and deferred wall from Phase 50.
-- Legacy seams remain adapter-only / DAL-only / catalog-only posture until future phases replace them.
+- v3.0 milestone blockers are closed; residual warning is tracked in milestone archive tech debt.
+- Next milestone should decide whether to tighten the no-scope AI discoverability fallback before expanding new AI surfaces.
 
 ## Deferred Items
 
@@ -120,9 +119,14 @@ None currently.
 | proof_gap | missing-phase39-verification-artifact | accepted-risk | 2026-05-20 |
 | proof_gap | missing-phase40-verification-and-script-entry | accepted-risk | 2026-05-20 |
 | proof_gap | missing-phase41-verification-artifact | accepted-risk | 2026-05-20 |
+| quick_task | 260515-9yu-phase-14-01-publish-unpublish-archive-1- | accepted-risk | 2026-05-23 |
+| quick_task | 260515-ac7-phase-14-03-course-05-guardrail-1-eligib | accepted-risk | 2026-05-23 |
+| quick_task | 260517-e35-full-suite-teacher-course-center-surface | accepted-risk | 2026-05-23 |
+| quick_task | 260517-gnb-student-runtime-host-bootstrap-productio | accepted-risk | 2026-05-23 |
+| quick_task | 260517-k2u-auth-localhost-untrustedhost | accepted-risk | 2026-05-23 |
 
 ## Session Continuity
 
-Last session: 2026-05-22T14:48:56Z
-Stopped at: Completed 54-ai-native-contract-exposure-04-PLAN.md
+Last session: 2026-05-23T15:54:01Z
+Stopped at: Milestone v3.0 archived and awaiting next milestone planning
 Resume file: None

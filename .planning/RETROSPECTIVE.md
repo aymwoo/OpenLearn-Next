@@ -2,6 +2,40 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v3.0 — AI Native Educational OS Upgrade
+
+**Shipped:** 2026-05-23
+**Phases:** 5 | **Plans:** 22 | **Sessions:** not tracked in repo artifacts
+
+### What Was Built
+- Platform-core first-stage upgrade: vocabulary freeze, authoritative ownership map, deferred wall, and a unified Command Bus with durable command truth.
+- Governed action registry, formal plugin lifecycle semantics, `plugin.reconcile`, persisted platform event ledger, and `/settings/labs` operator execution observability.
+- Machine-readable AI-native command/action/capability descriptors, delegated audit metadata, and a minimal governed discoverability surface.
+
+### What Worked
+- 把 milestone blocker 压缩成 phase verifiers + milestone audit，让 close gate 最终可以通过可执行证据而不是口头解释完成。
+- 持续坚持 SQLite + DAL 为 canonical truth，让 Command Bus、event bus 和 AI discoverability 都能在低 blast radius 下演进。
+- 把 plugin governance、operator surface 和 AI discoverability 都接回同一套 governed read model，减少了“局部正确、端到端断裂”的风险。
+
+### What Was Inefficient
+- planning artifact 与代码真实状态在 close 前一度漂移，导致 Phase 53/54 verifier 通过后还需要额外补 verification 和 milestone audit 文档。
+- `REQUIREMENTS.md` 没有随 phase close 自动更新，close 时还需要一次状态回填。
+- `audit-open` 暴露出 5 个遗留 quick task，虽然不阻断本 milestone，但说明轻量工作项的生命周期管理还不够收口。
+
+### Patterns Established
+- 先跑 phase verifier，再跑 milestone audit，再刷新 planning artifact，最后执行 milestone close。
+- 对跨 phase blocker，优先修真实产品链路，再把 verification / milestone audit artifact 同步到真实状态。
+- operator-facing observability 和 AI discoverability 应复用已有 settings/labs surface，而不是另造一个新控制台入口。
+
+### Key Lessons
+1. 如果 verification artifact 不和代码同步推进，milestone close 会退化成一次“文档取证”工作，而不是纯归档动作。
+2. scope-aware governed read path 一旦成立，就应该尽快收紧 scope-less fallback，避免未来新调用方绕回静态 truth。
+
+### Cost Observations
+- Model mix: not tracked in repo artifacts
+- Sessions: not tracked in repo artifacts
+- Notable: 平台内核升级可以在不重开主产品 blast radius 的前提下完成，只要 authoritative truth 和 adapter posture 始终保持清晰。
+
 ## Milestone: v2.3 — Async Task Platform
 
 **Shipped:** 2026-05-20
@@ -77,6 +111,7 @@
 
 | Milestone | Sessions | Phases | Key Change |
 |-----------|----------|--------|------------|
+| v3.0 | not tracked | 5 | Established the first-stage AI-native platform core: command bus, governed action and lifecycle model, persisted platform events, and machine-readable contracts. |
 | v2.3 | not tracked | 5 | Established a reusable async task platform and exposed the difference between platform wiring and real product-trigger proof. |
 | v2.0 | not tracked | 6 | Established runtime-platform foundations inside the main repo without a big-bang rewrite. |
 | v2.1 | not tracked | 3 | Reframed milestone close around safety gates and honest backlog partition. |
@@ -86,6 +121,7 @@
 
 | Milestone | Tests | Coverage | Zero-Dep Additions |
 |-----------|-------|----------|-------------------|
+| v3.0 | focused suites + `verify:phase52/53/54` + milestone audit | not tracked | not tracked |
 | v2.3 | focused suites + `42/43-VERIFICATION` + milestone audit | not tracked | not tracked |
 | v2.0 | focused suites + phase verifiers | not tracked | not tracked |
 | v2.1 | focused suites + `verify:phase35` | not tracked | not tracked |

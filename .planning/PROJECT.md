@@ -12,6 +12,8 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ## Current State
 
+- `v3.0 AI Native Educational OS Upgrade` 已于 2026-05-23 归档；第一阶段平台内核升级已经完成，当前仓库已具备统一 Command Bus、governed action registry、plugin lifecycle governance、persisted platform event bus、operator execution observability 与 machine-readable AI-native contracts。
+- 当前 milestone close blocker 已清零；唯一 residual warning 是 AI discoverability 的无 scope helper 仍保留静态 fallback，这已作为 follow-up tech debt 记录在 v3.0 milestone audit 中。
 - `v2.2 WebSocket Classroom Transport Cutover` 已于 2026-05-18 归档，课堂实时链路现已进入 WebSocket-first posture。
 - `ioredis` fanout 已作为 optional、deploy-authoritative 的 delivery capability 落地；Redis degraded posture 会在 `/settings`、runtime inspector 与 teacher `/classroom` 中显式暴露。
 - `verify:phase38` 已成为当前可重复 rerun 的 transport close gate；SSE rollback surface 仍保留并被文档化。
@@ -21,7 +23,21 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - `v2.4 Plugin Data Architecture & Default Plugins` 在 Phase 44-48 planning / partial execution 后被冻结，作为输入上下文保留，但不再是当前 committed milestone。
 - 当前 planning 主问题切换为 `v3.0 AI Native Educational OS Upgrade`：在现有课堂闭环、插件骨架与 async/runtime 基础上，先落第一阶段平台内核升级。
 
-## Most Recently Archived Milestone: v2.3 Async Task Platform
+## Most Recently Archived Milestone: v3.0 AI Native Educational OS Upgrade
+
+**Archive status:** Archived 2026-05-23 with milestone audit `passed` and one residual warning recorded as tech debt.
+
+**Delivered scope:**
+- Phase 50-54, 22 plans
+- platform vocabulary freeze + authoritative ownership map + deferred wall
+- unified Command Bus + durable dual-ledger command truth + shared plugin governance producer seam
+- governed action registry + formal plugin lifecycle + typed platform event ledger + operator execution observability
+- machine-readable AI-native contracts + delegated audit metadata + minimal governed discoverability surface
+
+**Residual warning at close:**
+- AI discoverability still retains a no-scope static fallback helper path; current `/settings/labs` shipped flow is governed, but future callers should stay on scope-aware reads.
+
+## Previously Archived Milestone: v2.3 Async Task Platform
 
 **Archive status:** Archived 2026-05-20 with accepted gaps from the milestone audit.
 
@@ -48,10 +64,10 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ## Next Milestone Goals
 
-- 先落 `openlearn_next_upgrade_plan.md` 第一阶段的低 blast radius 核心：Command Bus、Dynamic Action Registry、Plugin Lifecycle、Event Bus。
-- 让“Everything is Plugin / Command / Event / Capability / Observable / Agent-callable”先落到可实现的系统内核 contract，而不是停留在宣言层。
-- 延续“单体内平台化”路线：SQLite + DAL 持有 durable truth；新增平台层不会绕过主应用的 migration、authz、DTO、cache discipline 与 Node runtime 边界。
-- 把 `v2.4` 未完成内容视为依赖输入和历史 planning context，而不是自动继承为 `v3.0` committed scope。
+- 通过 `/gsd-new-milestone` 定义下一轮 milestone，而不是继续沿用 v3.0 的 requirements/roadmap 文本。
+- 决定是否把 AI discoverability 的无 scope static fallback 收口为更严格的 governed-only read path。
+- 评估下一阶段是继续平台内核深化，还是回到更明确的产品/agent/runtime 交付面。
+- 延续“单体内平台化”路线：SQLite + DAL 持有 durable truth；新增平台层继续遵守 migration、authz、DTO、cache discipline 与 Node runtime 边界。
 
 <details>
 <summary>Archived v2.2 milestone context</summary>
@@ -160,9 +176,9 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 | milestone audit 必须区分“真实产品闭环缺口”和“proof artifact 缺口” | 避免把代码 blocker 与文档/verification debt 混成一个模糊结论 | ✓ Good |
 | 插件数据模型优先采用 extension table + plugin-owned table，而不是 core table 污染或 runtime DDL | 在 SQLite-first 单体里兼顾灵活扩展、可迁移性和治理边界 | — Pending |
 | 默认插件必须复用正式插件数据治理模型，而不是继续依赖 built-in 特例 | 只有系统模块自己走通这套模型，插件架构才算真实成立 | — Pending |
-| `v3.0` 采用 `openlearn_next_upgrade_plan.md` 作为新的平台升级蓝图 | 需要把当前系统从“已有功能闭环”推进到“AI Native Educational OS” 的正式平台演进路径 | — Pending |
-| `v3.0` 第一阶段先做 Command Bus、Dynamic Action Registry、Plugin Lifecycle、Event Bus | 这些是低 blast radius 且能支撑后续 Agent / Skill / Capability / Observability 演进的内核能力 | — Pending |
-| 未完成的 `v2.4` 冻结为历史 planning context，而不是自动并入 `v3.0` committed scope | 避免把插件数据治理尾项与更大平台升级混成单个失控 milestone | — Pending |
+| `v3.0` 采用 `openlearn_next_upgrade_plan.md` 作为新的平台升级蓝图 | 需要把当前系统从“已有功能闭环”推进到“AI Native Educational OS” 的正式平台演进路径 | ✓ Good |
+| `v3.0` 第一阶段先做 Command Bus、Dynamic Action Registry、Plugin Lifecycle、Event Bus | 这些是低 blast radius 且能支撑后续 Agent / Skill / Capability / Observability 演进的内核能力 | ✓ Good |
+| 未完成的 `v2.4` 冻结为历史 planning context，而不是自动并入 `v3.0` committed scope | 避免把插件数据治理尾项与更大平台升级混成单个失控 milestone | ✓ Good |
 
 ## Evolution
 
@@ -182,4 +198,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-21 after starting milestone v3.0 AI Native Educational OS Upgrade*
+*Last updated: 2026-05-23 after archiving milestone v3.0 AI Native Educational OS Upgrade*

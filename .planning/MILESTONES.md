@@ -1,5 +1,41 @@
 # Milestones
 
+## v3.0 AI Native Educational OS Upgrade (Shipped: 2026-05-23)
+
+**Phases completed:** 5 phases, 22 plans, 42 tasks
+
+**Known deferred items at close:** 5 quick tasks acknowledged in `STATE.md -> Deferred Items`
+
+**Key accomplishments:**
+
+- 冻结 platform vocabulary、canonical truth posture 与 platform-core authoritative ownership map，供 Phase 51-53 直接引用。
+- `platform-core` 现在有最小 contract-only authority anchor，且四个 legacy seams 已被代码级注释冻结为 adapter、DAL、catalog、runtime transport posture。
+- Phase 50 现在有点名式 deferred wall 和面向 Phase 51-54 的 handoff guardrails，后续规划不能再用模糊措辞把高风险能力偷带进 v3.0。
+- 显式插件治理命令合同、SQLite 双层 command ledger、以及 validate→authorize→execute→record 的 Command Bus shell 已落地。
+- Plugin governance 通过显式 command handler family 接入 dual-ledger bus，并把 retry 固化为同一 commandId 的新 attempt。
+- 真实 plugin mutation ingress 已迁到共享 command producer seam：Server Actions、host governance path、以及 bootstrap 非 UI producer 都不再直连旧 DAL mutation helper。
+- 统一 action descriptor contract、可执行 catalog / blocked diagnostic DTO 分视图，以及基于主仓库静态实现输入的 descriptor source 与 duplicate-key 拒绝规则。
+- 固定 external five-state lifecycle vocabulary，并交付 dependency ordering、failure attribution 与 retain/cleanup uninstall governance projection。
+- 统一 action registry read model、operator 双视图治理界面与 `verify:phase52`
+
+回归闸门，把插件生命周期治理真正接到 host、server action 与 UI。
+
+- 插件 uninstall retain/cleanup 服务端真闭环、reason-code 恢复门禁与 dependency-aware lifecycle 写路径落地，并由 phase52 verifier 封口验证。
+- Settings/operator UI 现已直接消费 governance dashboard bundle，并由 phase52 verifier 持续阻止回退到 raw plugin DTO 本地推断。
+- retain uninstall 元数据已接入治理读模型，`uninstalled` 成为真实外部生命周期状态，并在 operator diagnostics 中以纯审计态呈现。
+- `plugin.reconcile` 现在是可执行治理命令，并已贯通 command bus、server action、host recovery gate 与 focused regression tests。
+- operator diagnostics 现在会按 recommendation 显式触发 enable、retry、resume、reconcile，并由强化后的 `verify:phase52` 持续守住 `uninstalled` 与 `plugin.reconcile` 真相。
+- Phase 53 的 platform event truth contract 已立住：typed event envelopes、独立 SQLite ledger/outbox foundation、以及 command summary carrying fields 都已落地并通过 focused tests。
+- plugin governance command path 现在会显式产生 typed platform events，并在 `dispatchPlatformCommand()` 内完成 persist-then-notify 接线。
+- platform events 现在有真实的 persisted-event subscriber seam：command bus 交出 persisted batch ids，platform event bus 从 SQLite ledger 读取 truth，再通过 in-process adapter 执行订阅分发。
+- Phase 53 已收口：真实 producer composition 现在会把 persisted-event publication port 注入 command bus，operator 可以在 `/settings/labs` 先看 command summary，再下钻 event timeline，并且 `verify:phase53` 会自动守住 truth ownership 与 scope boundary。
+- Shared command/action/capability descriptor shell with ActionDescriptor-backed action truth and outward DTO export for AI discovery.
+- Server-side command/action/capability discovery registry projected from existing platform contracts with unified list APIs for future AI and operator consumers.
+- Delegated actor audit metadata and summary-only approval references added to platform command/event contracts without implicit authority elevation.
+- 最小 AI contract discoverability panel 与 `verify:phase54` focused regression gate，一起完成 Phase 54 close posture。
+
+---
+
 ## v2.3 Async Task Platform (Archived: 2026-05-20)
 
 **Closure scope:** Phase 39-43 only
