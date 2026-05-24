@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { createClient } from "@libsql/client";
+
+import { cleanupSqliteArtifacts, materializeDrizzleMigrations } from "./lib/sqlite-migration-proof";
 
 type StaticCheck = {
   label: string;
@@ -61,6 +63,15 @@ function run(command: string, args: readonly string[], label: string): void {
   }
 }
 
+function runWithEnv(command: string, args: readonly string[], label: string, env: NodeJS.ProcessEnv): void {
+  try {
+    execFileSync(command, [...args], { stdio: "inherit", env: { ...process.env, ...env } });
+  } catch (error) {
+    console.error(`Phase 45 verification failed while running: ${label}`);
+    throw error;
+  }
+}
+
 /**
  * Dispatches vitest run for a set of target test paths.
  *
@@ -84,14 +95,6 @@ function runVitest(paths: readonly string[], label: string): void {
   run("pnpm", ["exec", "vitest", "--run", ...paths], label);
 }
 
-function cleanupSqliteArtifacts(databasePath: string): void {
-  for (const filePath of [databasePath, `${databasePath}-shm`, `${databasePath}-wal`]) {
-    if (existsSync(filePath)) {
-      rmSync(filePath, { force: true });
-    }
-  }
-}
-
 async function assertIndex(
   client: ReturnType<typeof createClient>,
   tableName: string,
@@ -113,186 +116,16 @@ async function assertIndex(
   }
 }
 
-async function bootstrapPhase45PhysicalProofDatabase(databaseUrl: string) {
-  const client = createClient({ url: databaseUrl });
-
-  await client.execute("PRAGMA foreign_keys = ON");
-
-  const statements = [
-    `CREATE TABLE school (id TEXT PRIMARY KEY NOT NULL)`,
-    `CREATE TABLE pluginRegistration (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE course (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE lesson (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      courseId TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (courseId) REFERENCES course(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE lessonStep (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      lessonId TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE resource (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE plugin_ext_lesson (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      pluginId TEXT NOT NULL,
-      lessonId TEXT NOT NULL,
-      payloadJson TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
-      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
-    )`,
-    `CREATE UNIQUE INDEX plugin_ext_lesson_school_plugin_entity_unique ON plugin_ext_lesson (schoolId, pluginId, lessonId)`,
-    `CREATE TABLE plugin_ext_lesson_step (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      pluginId TEXT NOT NULL,
-      lessonStepId TEXT NOT NULL,
-      payloadJson TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
-      FOREIGN KEY (lessonStepId) REFERENCES lessonStep(id) ON DELETE cascade
-    )`,
-    `CREATE UNIQUE INDEX plugin_ext_lesson_step_school_plugin_entity_unique ON plugin_ext_lesson_step (schoolId, pluginId, lessonStepId)`,
-    `CREATE TABLE plugin_ext_resource (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      pluginId TEXT NOT NULL,
-      resourceId TEXT NOT NULL,
-      payloadJson TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
-      FOREIGN KEY (resourceId) REFERENCES resource(id) ON DELETE cascade
-    )`,
-    `CREATE UNIQUE INDEX plugin_ext_resource_school_plugin_entity_unique ON plugin_ext_resource (schoolId, pluginId, resourceId)`,
-    `CREATE TABLE plugin_owned_business_data (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      pluginId TEXT NOT NULL,
-      key TEXT NOT NULL,
-      payloadJson TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade
-    )`,
-    `CREATE UNIQUE INDEX plugin_owned_biz_school_plugin_key_unique ON plugin_owned_business_data (schoolId, pluginId, key)`,
-  ];
-
-  for (const statement of statements) {
-    await client.execute(statement);
-  }
-
-  return client;
-}
-
-async function bootstrapPhase45ProofDatabase(databaseUrl: string) {
-  const client = createClient({ url: databaseUrl });
-
-  await client.execute("PRAGMA foreign_keys = ON");
-
-  const statements = [
-    `CREATE TABLE school (id TEXT PRIMARY KEY NOT NULL)`,
-    `CREATE TABLE pluginRegistration (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE course (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE lesson (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      courseId TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (courseId) REFERENCES course(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE lessonStep (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      lessonId TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE resource (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE plugin_ext_lesson (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      pluginId TEXT NOT NULL,
-      lessonId TEXT NOT NULL,
-      payloadJson TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
-      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE plugin_ext_lesson_step (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      pluginId TEXT NOT NULL,
-      lessonStepId TEXT NOT NULL,
-      payloadJson TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
-      FOREIGN KEY (lessonStepId) REFERENCES lessonStep(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE plugin_ext_resource (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      pluginId TEXT NOT NULL,
-      resourceId TEXT NOT NULL,
-      payloadJson TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
-      FOREIGN KEY (resourceId) REFERENCES resource(id) ON DELETE cascade
-    )`,
-    `CREATE TABLE plugin_owned_business_data (
-      id TEXT PRIMARY KEY NOT NULL,
-      schoolId TEXT NOT NULL,
-      pluginId TEXT NOT NULL,
-      key TEXT NOT NULL,
-      payloadJson TEXT NOT NULL,
-      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
-      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade
-    )`,
-  ];
-
-  for (const statement of statements) {
-    await client.execute(statement);
-  }
-
-  return client;
-}
-
 async function seedPhase45ProofFixtures(client: ReturnType<typeof createClient>) {
   const seedStatements = [
-    `INSERT INTO school (id) VALUES ('school-1')`,
-    `INSERT INTO pluginRegistration (id, schoolId) VALUES ('plugin-1', 'school-1')`,
-    `INSERT INTO course (id, schoolId) VALUES ('course-1', 'school-1'), ('course-2', 'school-1')`,
-    `INSERT INTO lesson (id, schoolId, courseId) VALUES ('lesson-1', 'school-1', 'course-1'), ('lesson-2', 'school-1', 'course-2')`,
-    `INSERT INTO lessonStep (id, schoolId, lessonId) VALUES ('step-1', 'school-1', 'lesson-1'), ('step-2', 'school-1', 'lesson-2')`,
-    `INSERT INTO resource (id, schoolId) VALUES ('resource-1', 'school-1'), ('resource-2', 'school-1')`,
+    `INSERT INTO user (id, name, email, studentNumber, gender, emailVerified, password, image) VALUES ('teacher-1', 'Teacher One', 'teacher-1@example.com', NULL, NULL, NULL, NULL, NULL)`,
+    `INSERT INTO school (id, name, createdAt) VALUES ('school-1', 'School One', 0)`,
+    `INSERT INTO pluginRegistration (id, schoolId, name, manifestJson, pluginKey, dbNamespace, sourceType, installSource, enabled, killSwitchEnabled, lifecycleState, uninstalledAt, uninstallRetentionMode, createdAt, updatedAt) VALUES ('plugin-1', 'school-1', 'Plugin One', '{"permissions":["plugin:write"]}', 'vendor/plugin-1', 'plugin_vendor_plugin_1', 'default', 'manual', 1, 0, 'enabled', NULL, NULL, 0, 0)`,
+    `INSERT INTO course (id, schoolId, ownerId, title, subject, grade, status, createdAt, updatedAt) VALUES ('course-1', 'school-1', 'teacher-1', 'Course One', 'math', 'grade-1', 'draft', 0, 0), ('course-2', 'school-1', 'teacher-1', 'Course Two', 'science', 'grade-1', 'draft', 0, 0)`,
+    `INSERT INTO lesson (id, courseId, createdById, title, objective, status, revision, publishedVersionId, createdAt, updatedAt) VALUES ('lesson-1', 'course-1', 'teacher-1', 'Lesson One', 'Objective One', 'draft', 1, 'pub-1', 0, 0), ('lesson-2', 'course-2', 'teacher-1', 'Lesson Two', 'Objective Two', 'draft', 1, 'pub-2', 0, 0)`,
+    `INSERT INTO publishedLessonVersion (id, lessonId, version, snapshotJson, publishedById, publishedAt) VALUES ('pub-1', 'lesson-1', 1, '{"lesson":{"payloadJson":{"vendor/plugin-1":{"kind":"primary"}}}}', 'teacher-1', 0), ('pub-2', 'lesson-2', 1, '{"lesson":{"payloadJson":{"vendor/plugin-1":{"kind":"secondary"}}}}', 'teacher-1', 0)`,
+    `INSERT INTO lessonStep (id, lessonId, type, title, rank, payloadJson, archivedAt, createdAt, updatedAt) VALUES ('step-1', 'lesson-1', 'task', 'Step One', 'a', '{"vendor/plugin-1":{"kind":"primary"}}', NULL, 0, 0), ('step-2', 'lesson-2', 'task', 'Step Two', 'b', '{"vendor/plugin-1":{"kind":"secondary"}}', NULL, 0, 0)`,
+    `INSERT INTO resource (id, schoolId, ownerId, courseId, title, visibility, classification, ragEligible, url, content, createdAt, updatedAt) VALUES ('resource-1', 'school-1', 'teacher-1', 'course-1', 'Resource One', 'private', 'document', 0, NULL, '{"vendor/plugin-1":{"kind":"primary"}}', 0, 0), ('resource-2', 'school-1', 'teacher-1', 'course-2', 'Resource Two', 'private', 'document', 0, NULL, '{"vendor/plugin-1":{"kind":"secondary"}}', 0, 0)`,
     `INSERT INTO plugin_ext_lesson (id, schoolId, pluginId, lessonId, payloadJson) VALUES ('ext-lesson-1', 'school-1', 'plugin-1', 'lesson-1', '{"kind":"primary"}'), ('ext-lesson-2', 'school-1', 'plugin-1', 'lesson-2', '{"kind":"secondary"}')`,
     `INSERT INTO plugin_ext_lesson_step (id, schoolId, pluginId, lessonStepId, payloadJson) VALUES ('ext-step-1', 'school-1', 'plugin-1', 'step-1', '{"kind":"primary"}'), ('ext-step-2', 'school-1', 'plugin-1', 'step-2', '{"kind":"secondary"}')`,
     `INSERT INTO plugin_ext_resource (id, schoolId, pluginId, resourceId, payloadJson) VALUES ('ext-resource-1', 'school-1', 'plugin-1', 'resource-1', '{"kind":"primary"}'), ('ext-resource-2', 'school-1', 'plugin-1', 'resource-2', '{"kind":"secondary"}')`,
@@ -324,7 +157,7 @@ async function assertRowCount(
 async function runBehaviorProof(): Promise<void> {
   const databasePath = path.join("/tmp/opencode", `phase45-verify-${randomUUID()}.db`);
   const databaseUrl = `file:${databasePath}`;
-  const client = await bootstrapPhase45ProofDatabase(databaseUrl);
+  const client = await materializeDrizzleMigrations(databaseUrl);
 
   try {
     await seedPhase45ProofFixtures(client);
@@ -382,7 +215,7 @@ async function runVerification() {
   console.log("\n[2/5] Running physical database schema verification...");
   const physicalDatabasePath = path.join("/tmp/opencode", `phase45-physical-${randomUUID()}.db`);
   const physicalDatabaseUrl = `file:${physicalDatabasePath}`;
-  const client = await bootstrapPhase45PhysicalProofDatabase(physicalDatabaseUrl);
+  const client = await materializeDrizzleMigrations(physicalDatabaseUrl);
 
   try {
     const tablesToCheck = [
@@ -529,12 +362,22 @@ async function runVerification() {
 
   // 5. 向前级联安全验证 (Cascading Regression Verification)
   console.log("\n[5/5] Running cascading regression verifications for preceding Phase 44...");
-  run(
-    "node",
-    ["--require", "./scripts/server-only-node-shim.cjs", "--import", "tsx", "scripts/verify-phase44-plugin-identity.ts"],
-    "Phase 44 Regression"
-  );
-  console.log("  ✓ Cascading Phase 44 regression verifications passed successfully.");
+  const phase44DatabasePath = path.join("/tmp/opencode", `phase44-regression-${randomUUID()}.db`);
+  const phase44DatabaseUrl = `file:${phase44DatabasePath}`;
+  const phase44Client = await materializeDrizzleMigrations(phase44DatabaseUrl);
+
+  try {
+    await (phase44Client as { close?: () => Promise<void> | void }).close?.();
+    runWithEnv(
+      "node",
+      ["--require", "./scripts/server-only-node-shim.cjs", "--import", "tsx", "scripts/verify-phase44-plugin-identity.ts"],
+      "Phase 44 Regression",
+      { DB_FILE_NAME: phase44DatabaseUrl },
+    );
+    console.log("  ✓ Cascading Phase 44 regression verifications passed successfully.");
+  } finally {
+    cleanupSqliteArtifacts(phase44DatabasePath);
+  }
 
   console.log("\n==================================================");
   console.log("🎉 Phase 45 closeout verification successfully PASSED!");
