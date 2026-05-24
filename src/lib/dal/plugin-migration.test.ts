@@ -1,208 +1,279 @@
-import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createClient } from "@libsql/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { db } from "@/db";
-import {
-  courses,
-  lessons,
-  lessonSteps,
-  pluginLessonExtensions,
-  pluginLessonStepExtensions,
-  pluginOwnedBusinessData,
-  pluginRegistrations,
-  pluginResourceExtensions,
-  publishedLessonVersions,
-  resources,
-} from "@/db/schema";
-import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
-import {
-  backfillPluginJsonToSchema,
-  cutoverPluginJsonToSchema,
-  verifyBackfillData,
-} from "./plugin-migration";
+import { cleanupSqliteArtifacts, materializeDrizzleMigrations } from "../../../scripts/lib/sqlite-migration-proof";
 
-// 1. Mock "server-only" 以避免 Node 测试环境报错
 vi.mock("server-only", () => ({}));
 
-// 2. Mock 教师权限断言
+const assertActiveTeacher = vi.fn();
+
 vi.mock("@/lib/dal/lesson-authoring", () => ({
-  assertActiveTeacher: vi.fn(),
+  assertActiveTeacher,
 }));
 
-// 3. Mock 数据库客户端
-vi.mock("@/db", () => ({
-  db: {
-    insert: vi.fn(),
-    update: vi.fn(),
-    select: vi.fn(),
-    transaction: vi.fn(),
-  },
-}));
+const pluginsSource = readFileSync("src/lib/dal/plugins.ts", "utf8");
 
-// 定义全局的测试行变量
-let mockPluginRegRows: any[] = [];
-let mockLessonRows: any[] = [];
-let mockPublishedLessonVersionRows: any[] = [];
-let mockStepRows: any[] = [];
-let mockResourceRows: any[] = [];
-let mockLessonExtRows: any[] = [];
-let mockStepExtRows: any[] = [];
-let mockResourceExtRows: any[] = [];
+type MigrationModule = typeof import("./plugin-migration");
+type DbModule = typeof import("@/db");
 
-// 统一的 Mock spies
-const mockInsert = vi.mocked(db.insert);
-const mockUpdate = vi.mocked(db.update);
-const mockSelect = vi.mocked(db.select);
-const mockTransaction = vi.mocked(db.transaction);
-const mockAssertActiveTeacher = vi.mocked(assertActiveTeacher);
+async function seedBaseFixtures(client: ReturnType<typeof createClient>) {
+  const statements = [
+    `INSERT INTO user (id, name, email, studentNumber, gender, emailVerified, password, image) VALUES ('teacher-1', 'Teacher One', 'teacher-1@example.com', NULL, NULL, NULL, NULL, NULL), ('teacher-2', 'Teacher Two', 'teacher-2@example.com', NULL, NULL, NULL, NULL, NULL)`,
+    `INSERT INTO school (id, name, createdAt) VALUES ('school-1', 'School One', 0), ('school-2', 'School Two', 0)`,
+    `INSERT INTO course (id, schoolId, ownerId, title, subject, grade, status, createdAt, updatedAt) VALUES ('course-1', 'school-1', 'teacher-1', 'Course One', 'math', 'grade-1', 'draft', 0, 0), ('course-2', 'school-2', 'teacher-2', 'Course Two', 'science', 'grade-1', 'draft', 0, 0)`,
+    `INSERT INTO pluginRegistration (id, schoolId, name, manifestJson, pluginKey, dbNamespace, sourceType, installSource, enabled, killSwitchEnabled, lifecycleState, uninstalledAt, uninstallRetentionMode, createdAt, updatedAt) VALUES ('plugin-1', 'school-1', 'Plugin One', '{"permissions":["plugin:write"]}', 'vendor/plugin-1', 'plugin_vendor_plugin_1_school_1', 'default', 'manual', 1, 0, 'enabled', NULL, NULL, 0, 0), ('plugin-2', 'school-2', 'Plugin Two', '{"permissions":["plugin:write"]}', 'vendor/plugin-1', 'plugin_vendor_plugin_1_school_2', 'default', 'manual', 1, 0, 'enabled', NULL, NULL, 0, 0)`,
+  ];
 
-const insertValues = vi.fn();
-const updateSet = vi.fn();
-const updateWhere = vi.fn();
-
-// 统一链式 Drizzle Mock
-class MockChain {
-  constructor(public rows: any[] = []) {}
-  from() { return this; }
-  innerJoin(table: any) {
-    if (table === publishedLessonVersions) {
-      this.rows = this.rows.map((row) => {
-        const published = mockPublishedLessonVersionRows.find((item) => item.id === row.publishedVersionId);
-
-        return published
-          ? {
-              ...row,
-              snapshotJson: published.snapshotJson,
-            }
-          : row;
-      });
-    }
-
-    return this;
-  }
-  where(...args: any[]) { updateWhere(...args); return this; }
-  limit() { return this; }
-  values(val: any) { insertValues(val); return this; }
-  set(val: any) { updateSet(val); return this; }
-  then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any) {
-    return Promise.resolve(this.rows).then(onfulfilled, onrejected);
+  for (const statement of statements) {
+    await client.execute(statement);
   }
 }
 
+async function seedLesson(
+  client: ReturnType<typeof createClient>,
+  input: {
+    lessonId: string;
+    publishedVersionId: string;
+    courseId: string;
+    createdById: string;
+    pluginKeyPayload?: unknown;
+    extraPayload?: Record<string, unknown>;
+  },
+) {
+  const payloadJson = {
+    ...(input.extraPayload ?? {}),
+    ...(input.pluginKeyPayload === undefined ? {} : { "vendor/plugin-1": input.pluginKeyPayload }),
+  };
+
+  await client.execute(
+    `INSERT INTO lesson (id, courseId, createdById, title, objective, status, revision, publishedVersionId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, 'draft', 1, ?, 0, 0)`,
+    [input.lessonId, input.courseId, input.createdById, `${input.lessonId} title`, `${input.lessonId} objective`, input.publishedVersionId],
+  );
+  await client.execute(
+    `INSERT INTO publishedLessonVersion (id, lessonId, version, snapshotJson, publishedById, publishedAt) VALUES (?, ?, 1, ?, ?, 0)`,
+    [input.publishedVersionId, input.lessonId, JSON.stringify({ lesson: { payloadJson } }), input.createdById],
+  );
+}
+
+async function seedLessonStep(
+  client: ReturnType<typeof createClient>,
+  input: {
+    stepId: string;
+    lessonId: string;
+    pluginKeyPayload?: unknown;
+    extraPayload?: Record<string, unknown>;
+  },
+) {
+  const payloadJson = {
+    ...(input.extraPayload ?? {}),
+    ...(input.pluginKeyPayload === undefined ? {} : { "vendor/plugin-1": input.pluginKeyPayload }),
+  };
+
+  await client.execute(
+    `INSERT INTO lessonStep (id, lessonId, type, title, rank, payloadJson, archivedAt, createdAt, updatedAt) VALUES (?, ?, 'task', ?, ?, ?, NULL, 0, 0)`,
+    [input.stepId, input.lessonId, `${input.stepId} title`, input.stepId, JSON.stringify(payloadJson)],
+  );
+}
+
+async function seedResource(
+  client: ReturnType<typeof createClient>,
+  input: {
+    resourceId: string;
+    schoolId: string;
+    ownerId: string;
+    courseId: string;
+    content: string | null;
+  },
+) {
+  await client.execute(
+    `INSERT INTO resource (id, schoolId, ownerId, courseId, title, visibility, classification, ragEligible, url, content, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, 'private', 'document', 0, NULL, ?, 0, 0)`,
+    [input.resourceId, input.schoolId, input.ownerId, input.courseId, `${input.resourceId} title`, input.content],
+  );
+}
+
+async function insertLessonExtension(
+  client: ReturnType<typeof createClient>,
+  lessonId: string,
+  payloadJson: unknown,
+  pluginId = "plugin-1",
+  schoolId = "school-1",
+) {
+  await client.execute(
+    `INSERT INTO plugin_ext_lesson (id, schoolId, pluginId, lessonId, payloadJson, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, 0, 0)`,
+    [randomUUID(), schoolId, pluginId, lessonId, JSON.stringify(payloadJson)],
+  );
+}
+
+async function insertStepExtension(
+  client: ReturnType<typeof createClient>,
+  lessonStepId: string,
+  payloadJson: unknown,
+  pluginId = "plugin-1",
+  schoolId = "school-1",
+) {
+  await client.execute(
+    `INSERT INTO plugin_ext_lesson_step (id, schoolId, pluginId, lessonStepId, payloadJson, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, 0, 0)`,
+    [randomUUID(), schoolId, pluginId, lessonStepId, JSON.stringify(payloadJson)],
+  );
+}
+
+async function insertResourceExtension(
+  client: ReturnType<typeof createClient>,
+  resourceId: string,
+  payloadJson: unknown,
+  pluginId = "plugin-1",
+  schoolId = "school-1",
+) {
+  await client.execute(
+    `INSERT INTO plugin_ext_resource (id, schoolId, pluginId, resourceId, payloadJson, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, 0, 0)`,
+    [randomUUID(), schoolId, pluginId, resourceId, JSON.stringify(payloadJson)],
+  );
+}
+
+async function getCount(client: ReturnType<typeof createClient>, tableName: string) {
+  const result = await client.execute(`SELECT COUNT(*) AS count FROM ${tableName}`);
+  return Number(result.rows[0]?.count ?? 0);
+}
+
+async function getLessonExtensionRows(client: ReturnType<typeof createClient>) {
+  const result = await client.execute(
+    `SELECT schoolId, pluginId, lessonId, payloadJson FROM plugin_ext_lesson ORDER BY lessonId ASC`,
+  );
+
+  return result.rows.map((row) => ({
+    schoolId: String(row.schoolId),
+    pluginId: String(row.pluginId),
+    lessonId: String(row.lessonId),
+    payloadJson: JSON.parse(String(row.payloadJson)),
+  }));
+}
+
+async function getStepExtensionRows(client: ReturnType<typeof createClient>) {
+  const result = await client.execute(
+    `SELECT schoolId, pluginId, lessonStepId, payloadJson FROM plugin_ext_lesson_step ORDER BY lessonStepId ASC`,
+  );
+
+  return result.rows.map((row) => ({
+    schoolId: String(row.schoolId),
+    pluginId: String(row.pluginId),
+    lessonStepId: String(row.lessonStepId),
+    payloadJson: JSON.parse(String(row.payloadJson)),
+  }));
+}
+
+async function getResourceExtensionRows(client: ReturnType<typeof createClient>) {
+  const result = await client.execute(
+    `SELECT schoolId, pluginId, resourceId, payloadJson FROM plugin_ext_resource ORDER BY resourceId ASC`,
+  );
+
+  return result.rows.map((row) => ({
+    schoolId: String(row.schoolId),
+    pluginId: String(row.pluginId),
+    resourceId: String(row.resourceId),
+    payloadJson: JSON.parse(String(row.payloadJson)),
+  }));
+}
+
+async function getPublishedLessonPayload(client: ReturnType<typeof createClient>, publishedVersionId: string) {
+  const result = await client.execute(
+    `SELECT snapshotJson FROM publishedLessonVersion WHERE id = ?`,
+    [publishedVersionId],
+  );
+  const snapshotJson = JSON.parse(String(result.rows[0]?.snapshotJson ?? "null"));
+  return snapshotJson.lesson.payloadJson as Record<string, unknown>;
+}
+
+async function loadSubject() {
+  const [{ db }, migrationModule] = await Promise.all([import("@/db"), import("./plugin-migration")]);
+  return { db, migrationModule } as { db: DbModule["db"]; migrationModule: MigrationModule };
+}
+
 describe("Phase 46 DAL Migration & Backfill Service", () => {
-  beforeEach(() => {
+  let databasePath: string;
+  let databaseUrl: string;
+  let client: ReturnType<typeof createClient>;
+
+  beforeEach(async () => {
+    vi.resetModules();
     vi.clearAllMocks();
 
-    // 默认 Drizzle Mock 行为
-    mockInsert.mockImplementation(() => new MockChain() as any);
-    mockUpdate.mockImplementation(() => new MockChain() as any);
-    
-    mockSelect.mockImplementation(() => {
-      return {
-        from: vi.fn().mockImplementation((table) => {
-          let rows: any[] = [];
-          if (table === pluginRegistrations) {
-            rows = mockPluginRegRows;
-          } else if (table === lessons) {
-            rows = mockLessonRows;
-          } else if (table === publishedLessonVersions) {
-            rows = mockPublishedLessonVersionRows;
-          } else if (table === lessonSteps) {
-            rows = mockStepRows;
-          } else if (table === resources) {
-            rows = mockResourceRows;
-          } else if (table === pluginLessonExtensions) {
-            rows = mockLessonExtRows;
-          } else if (table === pluginLessonStepExtensions) {
-            rows = mockStepExtRows;
-          } else if (table === pluginResourceExtensions) {
-            rows = mockResourceExtRows;
-          }
-          return new MockChain(rows);
-        }),
-      } as any;
-    });
+    databasePath = join("/tmp/opencode", `plugin-migration-${randomUUID()}.db`);
+    databaseUrl = `file:${databasePath}`;
+    process.env.DB_FILE_NAME = databaseUrl;
 
-    mockTransaction.mockImplementation(async (cb: any) => {
-      return cb(db as any);
-    });
+    client = await materializeDrizzleMigrations(databaseUrl);
+    await seedBaseFixtures(client);
 
-    // 默认教师角色与学校范围断言通过
-    mockAssertActiveTeacher.mockResolvedValue({
+    assertActiveTeacher.mockResolvedValue({
       userId: "teacher-1",
       schoolIds: ["school-1"],
     });
+  });
 
-    // 默认重置 Mock 数据数据行
-    mockPluginRegRows = [{ pluginKey: "vendor/plugin-1", schoolId: "school-1" }];
-    mockLessonRows = [];
-    mockPublishedLessonVersionRows = [];
-    mockStepRows = [];
-    mockResourceRows = [];
-    mockLessonExtRows = [];
-    mockStepExtRows = [];
-    mockResourceExtRows = [];
+  afterEach(async () => {
+    await (client as { close?: () => Promise<void> | void }).close?.();
+    if (existsSync(databasePath)) {
+      rmSync(databasePath, { force: true });
+    }
+    cleanupSqliteArtifacts(databasePath);
   });
 
   describe("A. Authentication & Tenancy Scopes", () => {
     it("should reject anonymous actor ID immediately", async () => {
+      const { migrationModule } = await loadSubject();
+
       await expect(
-        backfillPluginJsonToSchema("  ", "school-1", "plugin-1", "lesson")
+        migrationModule.backfillPluginJsonToSchema("  ", "school-1", "plugin-1", "lesson"),
       ).rejects.toThrow("PLUGIN_ACTOR_REQUIRED");
     });
 
     it("should reject non-active or cross-school teachers", async () => {
-      mockAssertActiveTeacher.mockResolvedValueOnce({
+      const { migrationModule } = await loadSubject();
+
+      assertActiveTeacher.mockResolvedValueOnce({
         userId: "teacher-different",
         schoolIds: ["school-different"],
       });
 
       await expect(
-        backfillPluginJsonToSchema("teacher-different", "school-1", "plugin-1", "lesson")
+        migrationModule.backfillPluginJsonToSchema("teacher-different", "school-1", "plugin-1", "lesson"),
       ).rejects.toThrow("TEACHER_AUTH_REQUIRED");
     });
 
     it("should reject cross-school plugin metadata access", async () => {
-      // 插件属于 school-different
-      mockPluginRegRows = [{ pluginKey: "vendor/plugin-1", schoolId: "school-different" }];
+      const { migrationModule } = await loadSubject();
 
       await expect(
-        backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson")
+        migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-2", "lesson"),
       ).rejects.toThrow("SCHOOL_CROSS_BOUNDARY_FORBIDDEN");
     });
   });
 
   describe("B. Phase 46-01: Backfill Operations", () => {
-    it("should correctly identify, parse and idempotent-upsert lesson JSON configurations", async () => {
-      // 旧 payloadJson 包含了 vendor/plugin-1 的私有属性
-      mockLessonRows = [
-        {
-          id: "lesson-1",
-          publishedVersionId: "pub-1",
-        },
-      ];
-      mockPublishedLessonVersionRows = [
-        {
-          id: "pub-1",
-          snapshotJson: {
-            lesson: {
-              payloadJson: {
-                someCoreConfig: true,
-                "vendor/plugin-1": {
-                  reminderRule: "daily",
-                  alertTime: "08:00",
-                },
-              },
-            },
-          },
-        },
-      ];
+    it("should write lesson plugin payloads with real tenant filtering semantics", async () => {
+      const { migrationModule } = await loadSubject();
 
-      // 首次 backfill，对应的物理扩展记录不存在
-      mockLessonExtRows = [];
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+        pluginKeyPayload: { reminderRule: "daily", alertTime: "08:00" },
+        extraPayload: { coreConfig: true },
+      });
+      await seedLesson(client, {
+        lessonId: "lesson-2",
+        publishedVersionId: "pub-2",
+        courseId: "course-2",
+        createdById: "teacher-2",
+        pluginKeyPayload: { reminderRule: "weekly" },
+      });
 
-      const result = await backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson");
+      const result = await migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson");
 
       expect(result).toEqual({
         processed: 1,
@@ -210,293 +281,318 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
         failed: 0,
         errors: [],
       });
-
-      // 断言调用了 db.insert 写入物理扩展表
-      expect(mockInsert).toHaveBeenCalledWith(pluginLessonExtensions);
-      expect(insertValues).toHaveBeenCalledWith(
-        expect.objectContaining({
+      await expect(getLessonExtensionRows(client)).resolves.toEqual([
+        {
           schoolId: "school-1",
           pluginId: "plugin-1",
           lessonId: "lesson-1",
-          payloadJson: {
-            reminderRule: "daily",
-            alertTime: "08:00",
-          },
-        })
-      );
+          payloadJson: { reminderRule: "daily", alertTime: "08:00" },
+        },
+      ]);
     });
 
-    it("should update physical extensions if they already exist during backfill", async () => {
-      mockLessonRows = [
+    it("should keep lesson backfill idempotent and concurrency-safe via atomic upsert", async () => {
+      const { migrationModule } = await loadSubject();
+
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+        pluginKeyPayload: { reminderRule: "daily" },
+      });
+
+      const [first, second] = await Promise.all([
+        migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson"),
+        migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson"),
+      ]);
+
+      expect(first.failed).toBe(0);
+      expect(second.failed).toBe(0);
+      await expect(getCount(client, "plugin_ext_lesson")).resolves.toBe(1);
+      await expect(getLessonExtensionRows(client)).resolves.toEqual([
         {
-          id: "lesson-1",
-          publishedVersionId: "pub-1",
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          lessonId: "lesson-1",
+          payloadJson: { reminderRule: "daily" },
         },
-      ];
-      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { "vendor/plugin-1": { reminderRule: "weekly" } } } } }];
-
-      // 已有扩展记录，触发 update
-      mockLessonExtRows = [{ id: "ext-1", schoolId: "school-1", lessonId: "lesson-1" }];
-
-      const result = await backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson");
-
-      expect(result.succeeded).toBe(1);
-      expect(mockUpdate).toHaveBeenCalledWith(pluginLessonExtensions);
-      expect(updateSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          payloadJson: { reminderRule: "weekly" },
-        })
-      );
+      ]);
     });
 
-    it("should handle step backfill correctly", async () => {
-      mockStepRows = [
+    it("should backfill step payloads through real where filtering", async () => {
+      const { migrationModule } = await loadSubject();
+
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+      });
+      await seedLesson(client, {
+        lessonId: "lesson-2",
+        publishedVersionId: "pub-2",
+        courseId: "course-2",
+        createdById: "teacher-2",
+      });
+      await seedLessonStep(client, {
+        stepId: "step-1",
+        lessonId: "lesson-1",
+        pluginKeyPayload: { stepConfig: "interactive" },
+      });
+      await seedLessonStep(client, {
+        stepId: "step-2",
+        lessonId: "lesson-2",
+        pluginKeyPayload: { stepConfig: "other-school" },
+      });
+
+      const result = await migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "step");
+
+      expect(result).toEqual({
+        processed: 1,
+        succeeded: 1,
+        failed: 0,
+        errors: [],
+      });
+      await expect(getStepExtensionRows(client)).resolves.toEqual([
         {
-          id: "step-1",
-          payloadJson: {
-            "vendor/plugin-1": { stepConfig: "interactive" },
-          },
-        },
-      ];
-      mockStepExtRows = [];
-
-      const result = await backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "step");
-
-      expect(result.succeeded).toBe(1);
-      expect(mockInsert).toHaveBeenCalledWith(pluginLessonStepExtensions);
-      expect(insertValues).toHaveBeenCalledWith(
-        expect.objectContaining({
           schoolId: "school-1",
           pluginId: "plugin-1",
           lessonStepId: "step-1",
           payloadJson: { stepConfig: "interactive" },
-        })
-      );
+        },
+      ]);
     });
 
-    it("should handle resource backfill correctly", async () => {
-      mockResourceRows = [
-        {
-          id: "res-1",
-          content: JSON.stringify({
-            "vendor/plugin-1": { downloadLimit: 5 },
-          }),
-        },
-      ];
-      mockResourceExtRows = [];
+    it("should backfill structured resource content and ignore plain text content", async () => {
+      const { migrationModule } = await loadSubject();
 
-      const result = await backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "resource");
+      await seedResource(client, {
+        resourceId: "resource-1",
+        schoolId: "school-1",
+        ownerId: "teacher-1",
+        courseId: "course-1",
+        content: JSON.stringify({ "vendor/plugin-1": { downloadLimit: 5 }, core: true }),
+      });
+      await seedResource(client, {
+        resourceId: "resource-2",
+        schoolId: "school-1",
+        ownerId: "teacher-1",
+        courseId: "course-1",
+        content: "plain text resource body",
+      });
 
-      expect(result.succeeded).toBe(1);
-      expect(mockInsert).toHaveBeenCalledWith(pluginResourceExtensions);
-      expect(insertValues).toHaveBeenCalledWith(
-        expect.objectContaining({
-          schoolId: "school-1",
-          pluginId: "plugin-1",
-          resourceId: "res-1",
-          payloadJson: { downloadLimit: 5 },
-        })
-      );
-    });
-
-    it("should skip resource rows whose content is not legacy plugin JSON", async () => {
-      mockResourceRows = [
-        {
-          id: "res-1",
-          content: "plain text resource body",
-        },
-      ];
-
-      const result = await backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "resource");
+      const result = await migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "resource");
 
       expect(result).toEqual({
-        processed: 0,
-        succeeded: 0,
+        processed: 1,
+        succeeded: 1,
         failed: 0,
         errors: [],
       });
-      expect(mockInsert).not.toHaveBeenCalledWith(pluginResourceExtensions);
+      await expect(getResourceExtensionRows(client)).resolves.toEqual([
+        {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          resourceId: "resource-1",
+          payloadJson: { downloadLimit: 5 },
+        },
+      ]);
     });
   });
 
   describe("C. Phase 46-01: Deep Verification (verifyBackfillData)", () => {
     it("should return matches: true if legacy and physical config match exactly", async () => {
-      mockLessonRows = [
-        {
-          id: "lesson-1",
-          publishedVersionId: "pub-1",
-        },
-      ];
-      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { "vendor/plugin-1": { nested: { a: 1, b: [1, 2] } } } } } }];
+      const { migrationModule } = await loadSubject();
 
-      // 物理表存储的内容跟旧 JSON 完全一致
-      mockLessonExtRows = [
-        {
-          payloadJson: { nested: { a: 1, b: [1, 2] } },
-        },
-      ];
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+        pluginKeyPayload: { nested: { a: 1, b: [1, 2] } },
+      });
+      await insertLessonExtension(client, "lesson-1", { nested: { a: 1, b: [1, 2] } });
 
-      const res = await verifyBackfillData("teacher-1", "school-1", "plugin-1", "lesson");
-      expect(res.matches).toBe(true);
-      expect(res.mismatches).toHaveLength(0);
+      await expect(
+        migrationModule.verifyBackfillData("teacher-1", "school-1", "plugin-1", "lesson"),
+      ).resolves.toEqual({
+        matches: true,
+        mismatches: [],
+      });
     });
 
-    it("should return matches: false if a record has mismatched properties", async () => {
-      mockLessonRows = [
-        {
-          id: "lesson-1",
-          publishedVersionId: "pub-1",
-        },
-      ];
-      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { "vendor/plugin-1": { nested: { a: 1, b: [1, 2] } } } } } }];
+    it("should return matches: false if physical data diverges", async () => {
+      const { migrationModule } = await loadSubject();
 
-      // 物理表内容被篡改/不同
-      mockLessonExtRows = [
-        {
-          payloadJson: { nested: { a: 1, b: [1, 999] } },
-        },
-      ];
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+        pluginKeyPayload: { nested: { a: 1, b: [1, 2] } },
+      });
+      await insertLessonExtension(client, "lesson-1", { nested: { a: 1, b: [1, 999] } });
 
-      const res = await verifyBackfillData("teacher-1", "school-1", "plugin-1", "lesson");
-      expect(res.matches).toBe(false);
-      expect(res.mismatches).toContain("lesson-1");
+      await expect(
+        migrationModule.verifyBackfillData("teacher-1", "school-1", "plugin-1", "lesson"),
+      ).resolves.toEqual({
+        matches: false,
+        mismatches: ["lesson-1"],
+      });
     });
   });
 
   describe("D. Phase 46-01: Transactional Cutover (cutoverPluginJsonToSchema)", () => {
     it("should abort immediately and not touch core JSON if verification fails", async () => {
-      mockLessonRows = [
-        {
-          id: "lesson-1",
-          publishedVersionId: "pub-1",
-        },
-      ];
-      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { "vendor/plugin-1": { nested: { a: 1 } } } } } }];
-      // Mismatched
-      mockLessonExtRows = [
-        {
-          payloadJson: { nested: { a: 999 } },
-        },
-      ];
+      const { migrationModule } = await loadSubject();
+
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+        pluginKeyPayload: { reminderRule: "daily" },
+      });
+      await insertLessonExtension(client, "lesson-1", { reminderRule: "weekly" });
 
       await expect(
-        cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson")
+        migrationModule.cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson"),
       ).rejects.toThrow("CUTOVER_ABORTED");
 
-      expect(mockUpdate).not.toHaveBeenCalled();
+      await expect(getPublishedLessonPayload(client, "pub-1")).resolves.toEqual({
+        "vendor/plugin-1": { reminderRule: "daily" },
+      });
     });
 
     it("should erase designated plugin key in a transaction and preserve other fields", async () => {
-      mockLessonRows = [
-        {
-          id: "lesson-1",
-          publishedVersionId: "pub-1",
-        },
-      ];
-      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { coreConfig: "keep-me", "vendor/plugin-1": { reminderRule: "daily" } } } } }];
-      
-      // Matching physical extension row
-      mockLessonExtRows = [
-        {
-          payloadJson: { reminderRule: "daily" },
-        },
-      ];
+      const { migrationModule } = await loadSubject();
 
-      const result = await cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson");
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+        pluginKeyPayload: { reminderRule: "daily" },
+        extraPayload: { coreConfig: "keep-me" },
+      });
+      await insertLessonExtension(client, "lesson-1", { reminderRule: "daily" });
 
-      expect(result.succeeded).toBe(1);
+      const result = await migrationModule.cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson");
 
-      // 验证在 transaction 中发起了 update 并擦除了 "vendor/plugin-1" 键
-      expect(mockUpdate).toHaveBeenCalledWith(publishedLessonVersions);
-      expect(updateSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          snapshotJson: {
-            lesson: {
-              payloadJson: { coreConfig: "keep-me" },
-            },
-          },
-        })
-      );
+      expect(result).toEqual({
+        processed: 1,
+        succeeded: 1,
+        failed: 0,
+        errors: [],
+      });
+      await expect(getPublishedLessonPayload(client, "pub-1")).resolves.toEqual({
+        coreConfig: "keep-me",
+      });
     });
 
-    it("should roll back atomically on any database exception during cutover", async () => {
-      mockLessonRows = [
-        {
-          id: "lesson-1",
-          publishedVersionId: "pub-1",
-        },
-      ];
-      mockPublishedLessonVersionRows = [{ id: "pub-1", snapshotJson: { lesson: { payloadJson: { "vendor/plugin-1": { reminderRule: "daily" } } } } }];
-      mockLessonExtRows = [
-        {
-          payloadJson: { reminderRule: "daily" },
-        },
-      ];
+    it("should roll back the whole transaction if in-transaction verification detects drift", async () => {
+      const { db, migrationModule } = await loadSubject();
 
-      // 让 update 抛错以模拟数据库异常
-      mockUpdate.mockImplementationOnce(() => {
-        throw new Error("MOCK_DB_FAIL");
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+        pluginKeyPayload: { reminderRule: "daily" },
+        extraPayload: { coreConfig: "keep-me" },
+      });
+      await seedLesson(client, {
+        lessonId: "lesson-3",
+        publishedVersionId: "pub-3",
+        courseId: "course-1",
+        createdById: "teacher-1",
+        pluginKeyPayload: { reminderRule: "weekly" },
+        extraPayload: { coreConfig: "also-keep" },
+      });
+      await insertLessonExtension(client, "lesson-1", { reminderRule: "daily" });
+      await insertLessonExtension(client, "lesson-3", { reminderRule: "weekly" });
+
+      const originalTransaction = db.transaction.bind(db);
+      const transactionSpy = vi.spyOn(db, "transaction").mockImplementation(async (callback) => {
+        await client.execute(
+          `UPDATE plugin_ext_lesson SET payloadJson = '{"reminderRule":"tampered"}' WHERE lessonId = 'lesson-3'`,
+        );
+        return originalTransaction(callback);
       });
 
       await expect(
-        cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson")
-      ).rejects.toThrow("CUTOVER_FAILED_TRANSACTION_ROLLBACK: MOCK_DB_FAIL");
-    });
+        migrationModule.cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson"),
+      ).rejects.toThrow("CUTOVER_FAILED_TRANSACTION_ROLLBACK: CUTOVER_VERIFY_MISMATCH:lesson-3:vendor/plugin-1");
 
-    it("should re-verify physical lesson payload inside transaction before erasing legacy JSON", async () => {
-      mockLessonRows = [
-        {
-          id: "lesson-1",
-          publishedVersionId: "pub-1",
-        },
-      ];
-      mockPublishedLessonVersionRows = [
-        {
-          id: "pub-1",
-          snapshotJson: { lesson: { payloadJson: { coreConfig: "keep-me", "vendor/plugin-1": { reminderRule: "daily" } } } },
-        },
-      ];
-      mockLessonExtRows = [
-        {
-          payloadJson: { reminderRule: "daily" },
-        },
-      ];
-
-      let lessonExtReads = 0;
-      mockSelect.mockImplementation(() => {
-        return {
-          from: vi.fn().mockImplementation((table) => {
-            let rows: any[] = [];
-            if (table === pluginRegistrations) {
-              rows = mockPluginRegRows;
-            } else if (table === lessons) {
-              rows = mockLessonRows;
-            } else if (table === publishedLessonVersions) {
-              rows = mockPublishedLessonVersionRows;
-            } else if (table === pluginLessonExtensions) {
-              lessonExtReads += 1;
-              rows = lessonExtReads === 1
-                ? mockLessonExtRows
-                : [{ payloadJson: { reminderRule: "changed-after-verify" } }];
-            }
-            return new MockChain(rows);
-          }),
-        } as any;
+      await expect(getPublishedLessonPayload(client, "pub-1")).resolves.toEqual({
+        coreConfig: "keep-me",
+        "vendor/plugin-1": { reminderRule: "daily" },
+      });
+      await expect(getPublishedLessonPayload(client, "pub-3")).resolves.toEqual({
+        coreConfig: "also-keep",
+        "vendor/plugin-1": { reminderRule: "weekly" },
       });
 
-      await expect(
-        cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson"),
-      ).rejects.toThrow("CUTOVER_FAILED_TRANSACTION_ROLLBACK: CUTOVER_VERIFY_MISMATCH:lesson-1:vendor/plugin-1");
+      transactionSpy.mockRestore();
+    });
 
-      expect(mockUpdate).not.toHaveBeenCalledWith(publishedLessonVersions);
+    it("should cut over step and resource payloads with real transaction semantics", async () => {
+      const { migrationModule } = await loadSubject();
+
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+      });
+      await seedLessonStep(client, {
+        stepId: "step-1",
+        lessonId: "lesson-1",
+        pluginKeyPayload: { stepConfig: "interactive" },
+        extraPayload: { titleColor: "blue" },
+      });
+      await seedResource(client, {
+        resourceId: "resource-1",
+        schoolId: "school-1",
+        ownerId: "teacher-1",
+        courseId: "course-1",
+        content: JSON.stringify({ "vendor/plugin-1": { downloadLimit: 5 }, core: true }),
+      });
+      await insertStepExtension(client, "step-1", { stepConfig: "interactive" });
+      await insertResourceExtension(client, "resource-1", { downloadLimit: 5 });
+
+      await expect(
+        migrationModule.cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "step"),
+      ).resolves.toEqual({
+        processed: 1,
+        succeeded: 1,
+        failed: 0,
+        errors: [],
+      });
+      await expect(
+        migrationModule.cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "resource"),
+      ).resolves.toEqual({
+        processed: 1,
+        succeeded: 1,
+        failed: 0,
+        errors: [],
+      });
+
+      const stepRows = await client.execute(`SELECT payloadJson FROM lessonStep WHERE id = 'step-1'`);
+      const resourceRows = await client.execute(`SELECT content FROM resource WHERE id = 'resource-1'`);
+
+      expect(JSON.parse(String(stepRows.rows[0]?.payloadJson))).toEqual({
+        titleColor: "blue",
+      });
+      expect(JSON.parse(String(resourceRows.rows[0]?.content))).toEqual({
+        core: true,
+      });
     });
   });
 
   describe("E. Static Verification & DDL Runtime Prevention Audit", () => {
     it("proves plugin lifecycle and reconcile code is 100% free of raw execution/run DDL commands", () => {
-      const pluginsSource = readFileSync("src/lib/dal/plugins.ts", "utf8");
-      
-      // 插件运行时应当仅使用 Drizzle 的 DML 操作，绝不能执行动态 SQL 执行器来修改结构
       expect(pluginsSource).not.toContain("db.execute(");
       expect(pluginsSource).not.toContain("db.run(");
       expect(pluginsSource).not.toContain("CREATE TABLE");

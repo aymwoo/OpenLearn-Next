@@ -139,35 +139,25 @@ export async function backfillPluginJsonToSchema(
         result.processed++;
         try {
           const extracted = payload[pluginKey];
-          // 物理幂等 upsert 写入扩展表
-          const existing = await db
-            .select()
-            .from(pluginLessonExtensions)
-            .where(
-              and(
-                eq(pluginLessonExtensions.schoolId, schoolId),
-                eq(pluginLessonExtensions.pluginId, pluginId),
-                eq(pluginLessonExtensions.lessonId, item.id),
-              ),
-            )
-            .limit(1);
-
-          if (existing.length > 0) {
-            await db
-              .update(pluginLessonExtensions)
-              .set({
-                payloadJson: extracted,
-                updatedAt: new Date(),
-              })
-              .where(eq(pluginLessonExtensions.id, existing[0].id));
-          } else {
-            await db.insert(pluginLessonExtensions).values({
+          await db
+            .insert(pluginLessonExtensions)
+            .values({
               schoolId,
               pluginId,
               lessonId: item.id,
               payloadJson: extracted,
+            })
+            .onConflictDoUpdate({
+              target: [
+                pluginLessonExtensions.schoolId,
+                pluginLessonExtensions.pluginId,
+                pluginLessonExtensions.lessonId,
+              ],
+              set: {
+                payloadJson: extracted,
+                updatedAt: new Date(),
+              },
             });
-          }
           result.succeeded++;
         } catch (err: any) {
           result.failed++;
@@ -189,34 +179,25 @@ export async function backfillPluginJsonToSchema(
         result.processed++;
         try {
           const extracted = payload[pluginKey];
-          const existing = await db
-            .select()
-            .from(pluginLessonStepExtensions)
-            .where(
-              and(
-                eq(pluginLessonStepExtensions.schoolId, schoolId),
-                eq(pluginLessonStepExtensions.pluginId, pluginId),
-                eq(pluginLessonStepExtensions.lessonStepId, item.id),
-              ),
-            )
-            .limit(1);
-
-          if (existing.length > 0) {
-            await db
-              .update(pluginLessonStepExtensions)
-              .set({
-                payloadJson: extracted,
-                updatedAt: new Date(),
-              })
-              .where(eq(pluginLessonStepExtensions.id, existing[0].id));
-          } else {
-            await db.insert(pluginLessonStepExtensions).values({
+          await db
+            .insert(pluginLessonStepExtensions)
+            .values({
               schoolId,
               pluginId,
               lessonStepId: item.id,
               payloadJson: extracted,
+            })
+            .onConflictDoUpdate({
+              target: [
+                pluginLessonStepExtensions.schoolId,
+                pluginLessonStepExtensions.pluginId,
+                pluginLessonStepExtensions.lessonStepId,
+              ],
+              set: {
+                payloadJson: extracted,
+                updatedAt: new Date(),
+              },
             });
-          }
           result.succeeded++;
         } catch (err: any) {
           result.failed++;
@@ -236,34 +217,25 @@ export async function backfillPluginJsonToSchema(
         result.processed++;
         try {
           const extracted = payload[pluginKey];
-          const existing = await db
-            .select()
-            .from(pluginResourceExtensions)
-            .where(
-              and(
-                eq(pluginResourceExtensions.schoolId, schoolId),
-                eq(pluginResourceExtensions.pluginId, pluginId),
-                eq(pluginResourceExtensions.resourceId, item.id),
-              ),
-            )
-            .limit(1);
-
-          if (existing.length > 0) {
-            await db
-              .update(pluginResourceExtensions)
-              .set({
-                payloadJson: extracted,
-                updatedAt: new Date(),
-              })
-              .where(eq(pluginResourceExtensions.id, existing[0].id));
-          } else {
-            await db.insert(pluginResourceExtensions).values({
+          await db
+            .insert(pluginResourceExtensions)
+            .values({
               schoolId,
               pluginId,
               resourceId: item.id,
               payloadJson: extracted,
+            })
+            .onConflictDoUpdate({
+              target: [
+                pluginResourceExtensions.schoolId,
+                pluginResourceExtensions.pluginId,
+                pluginResourceExtensions.resourceId,
+              ],
+              set: {
+                payloadJson: extracted,
+                updatedAt: new Date(),
+              },
             });
-          }
           result.succeeded++;
         } catch (err: any) {
           result.failed++;
