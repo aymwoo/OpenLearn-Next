@@ -151,7 +151,7 @@ export async function PluginMarketplaceSurface() {
                 </div>
               </div>
               <ul className="mt-4 grid gap-3 text-sm leading-7 text-on-surface-variant">
-                <li className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-3">先展示“系统内置”“默认开启”，再展示 registry id。</li>
+                <li className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-3">先展示“系统内置”“默认开启”，再展示 `pluginKey`、`dbNamespace`、`sourceType`。</li>
                 <li className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-3">仅提供启用 / 停用切换，不展示删除按钮。</li>
                 <li className="rounded-[1.25rem] bg-surface-container-lowest px-4 py-3">停用后仍保留可见性，避免与第三方扩展混淆。</li>
               </ul>

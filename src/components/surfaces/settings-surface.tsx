@@ -899,6 +899,9 @@ async function LabsSettingsSurface({
                   <p className="mt-2 text-lg font-semibold text-on-surface">
                     按学校启停安全插件
                   </p>
+                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                    生命周期卡片直接展示 `pluginKey`、`dbNamespace`、`sourceType`、`installSource` 四项正式字段，避免维护者继续依赖旧 JSON 身份字段判断插件真相。
+                  </p>
                 </div>
                 <Badge className="bg-surface-container-lowest text-on-surface-variant">
                   实验室

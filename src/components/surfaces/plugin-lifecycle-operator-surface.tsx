@@ -78,6 +78,10 @@ function getPrimaryActionLabel(
     return "解除挂起";
   }
 
+  if (row.lifecycleState === "enabled") {
+    return "停用插件";
+  }
+
   return row.lifecycleState === "active" ? "停用插件" : "启用插件";
 }
 
@@ -90,7 +94,7 @@ function showPrimaryLifecycleAction(
 function shouldEnablePlugin(
   row: GovernanceDashboardBundle["pluginLifecycleRows"][number],
 ) {
-  return row.lifecycleState !== "active";
+  return row.lifecycleState !== "active" && row.lifecycleState !== "enabled";
 }
 
 function getRecoveryReason(
@@ -114,6 +118,24 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
     () => dashboard.pluginLifecycleRows.find((plugin) => plugin.pluginId === dialogPluginId) ?? null,
     [dashboard.pluginLifecycleRows, dialogPluginId],
   );
+  const dialogPreflight = dialogPlugin
+    ? preflightResults[dialogPlugin.pluginId] ?? {
+        pluginId: dialogPlugin.pluginId,
+        schoolId: schoolId ?? "",
+        blocked: dialogPlugin.uninstall.blocked,
+        reason: dialogPlugin.uninstall.reasonCode,
+        lessonExtCount: dialogPlugin.uninstall.preflightSummary.lessonExtCount,
+        stepExtCount: dialogPlugin.uninstall.preflightSummary.stepExtCount,
+        resourceExtCount: dialogPlugin.uninstall.preflightSummary.resourceExtCount,
+        ownedBusinessCount: dialogPlugin.uninstall.preflightSummary.ownedBusinessCount,
+        totalCount: dialogPlugin.uninstall.preflightSummary.totalCount,
+        impactedLessonIds: [],
+        impactedLessonStepIds: [],
+        impactedResourceIds: [],
+        impactedBusinessKeys: [],
+        cleanupConfirmationToken: dialogPlugin.uninstall.cleanupConfirmationToken,
+      } satisfies PreflightUninstallPluginResult
+    : null;
 
   const executablePlugins = useMemo(
     () => dashboard.pluginLifecycleRows.filter((plugin) => plugin.executableActionCatalog.length > 0),
@@ -166,9 +188,9 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
     startTransition(async () => {
       const reason = getRecoveryReason(plugin);
 
-      const result = plugin.recommendedRecoveryAction === "enable"
-        ? await setPluginEnabledAction({
-            pluginId: plugin.pluginId,
+        const result = plugin.recommendedRecoveryAction === "enable"
+          ? await setPluginEnabledAction({
+              pluginId: plugin.pluginId,
             schoolId,
             enabled: true,
           })
@@ -186,14 +208,18 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
                 commandId: `plugin.retry:${plugin.pluginId}`,
                 reason,
               })
-            : plugin.recommendedRecoveryAction === "reconcile"
+          : plugin.recommendedRecoveryAction === "reconcile"
               ? await reconcilePluginAction({
                   pluginId: plugin.pluginId,
                   schoolId,
                   reason,
                   targetState: "enabled",
                 })
-              : { success: false, error: "PLUGIN_RECOVERY_ACTION_UNSUPPORTED" };
+              : await setPluginEnabledAction({
+                  pluginId: plugin.pluginId,
+                  schoolId,
+                  enabled: shouldEnablePlugin(plugin),
+                });
 
       if (!result.success) {
         setInlineError((current) => ({
@@ -273,14 +299,14 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
     }
 
     startTransition(async () => {
-      const result = await uninstallPluginAction({
-        pluginId: dialogPlugin.pluginId,
-        schoolId,
-        retentionMode: wantsCleanup ? "cleanup" : "retain",
-        confirmationToken: wantsCleanup
-          ? dialogPlugin.uninstall.cleanupConfirmationToken
-          : undefined,
-      });
+        const result = await uninstallPluginAction({
+          pluginId: dialogPlugin.pluginId,
+          schoolId,
+          retentionMode: wantsCleanup ? "cleanup" : "retain",
+          confirmationToken: wantsCleanup
+            ? dialogPreflight?.cleanupConfirmationToken
+            : undefined,
+        });
 
       if (!result.success) {
         setInlineError((current) => ({
@@ -363,6 +389,18 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
                     当前 badge、action badge 与治理状态全部来自统一 read model，不再回退到 raw plugin DTO 本地推断。
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge className="bg-surface-container-low text-on-surface-variant">
+                      owner: {plugin.pluginKey}
+                    </Badge>
+                    <Badge className="bg-surface-container-low text-on-surface-variant">
+                      namespace: {plugin.dbNamespace}
+                    </Badge>
+                    <Badge className="bg-surface-container-low text-on-surface-variant">
+                      source: {plugin.sourceType}
+                    </Badge>
+                    <Badge className="bg-surface-container-low text-on-surface-variant">
+                      install: {plugin.installSource}
+                    </Badge>
                     {plugin.executableActionCatalog.map((action) => (
                       <Badge
                         key={`${plugin.pluginId}-${action.actionKey}`}
@@ -426,6 +464,15 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
                       </Badge>
                       <Badge className="bg-surface-container-low text-on-surface-variant">
                         owner: {plugin.pluginKey}
+                      </Badge>
+                      <Badge className="bg-surface-container-low text-on-surface-variant">
+                        namespace: {plugin.dbNamespace}
+                      </Badge>
+                      <Badge className="bg-surface-container-low text-on-surface-variant">
+                        source: {plugin.sourceType}
+                      </Badge>
+                      <Badge className="bg-surface-container-low text-on-surface-variant">
+                        install: {plugin.installSource}
                       </Badge>
                       <Badge className="bg-surface-container-low text-on-surface-variant">
                         lifecycle: {plugin.lifecycleState}
@@ -569,13 +616,16 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
                 {dialogPlugin.sourceType} · {dialogPlugin.pluginKey}
               </p>
               <p className="mt-2">
-                依赖总数：{dialogPlugin.uninstall.preflightSummary.totalCount}
+                namespace: {dialogPlugin.dbNamespace} · install: {dialogPlugin.installSource}
               </p>
               <p className="mt-2">
-                lesson: {dialogPlugin.uninstall.preflightSummary.lessonExtCount} · lesson step: {dialogPlugin.uninstall.preflightSummary.stepExtCount}
+                依赖总数：{dialogPreflight?.totalCount ?? dialogPlugin.uninstall.preflightSummary.totalCount}
               </p>
               <p className="mt-2">
-                resource: {dialogPlugin.uninstall.preflightSummary.resourceExtCount} · plugin-owned data: {dialogPlugin.uninstall.preflightSummary.ownedBusinessCount}
+                lesson: {dialogPreflight?.lessonExtCount ?? dialogPlugin.uninstall.preflightSummary.lessonExtCount} · lesson step: {dialogPreflight?.stepExtCount ?? dialogPlugin.uninstall.preflightSummary.stepExtCount}
+              </p>
+              <p className="mt-2">
+                resource: {dialogPreflight?.resourceExtCount ?? dialogPlugin.uninstall.preflightSummary.resourceExtCount} · plugin-owned data: {dialogPreflight?.ownedBusinessCount ?? dialogPlugin.uninstall.preflightSummary.ownedBusinessCount}
               </p>
 
               <div className="mt-4 rounded-[1rem] bg-surface-container-lowest px-4 py-4">

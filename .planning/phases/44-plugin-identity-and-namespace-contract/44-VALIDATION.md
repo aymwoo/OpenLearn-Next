@@ -1,7 +1,7 @@
 ---
 phase: 44
 slug: plugin-identity-and-namespace-contract
-status: draft
+status: completed
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-05-20
@@ -28,7 +28,7 @@ built-in dispatch + operator surfaces all consume the same canonical contract.
 | **Framework** | Vitest + phase verifier script + SQLite schema checks |
 | **Config file** | `vitest.config.ts` |
 | **Quick run command** | task-local `pnpm exec vitest --run ...` or static schema check from the active plan |
-| **Full suite command** | `pnpm verify:phase44` |
+| **Full suite command** | `pnpm run verify:phase44` |
 | **Estimated runtime** | quick ~20-45 seconds, full ~90 seconds |
 
 ## Sampling Rate
@@ -37,11 +37,11 @@ built-in dispatch + operator surfaces all consume the same canonical contract.
 - **After Wave 1:** Run `pnpm db:migrate` plus the Phase 44 schema/static checks from `44-01`.
 - **After Wave 2:** Run `pnpm exec vitest --run src/lib/dal/plugins.test.ts src/actions/plugin-actions.test.ts`.
 - **After Wave 3:** Run `pnpm exec vitest --run src/lib/dal/plugins.builtins.test.ts scripts/bootstrap-dev-db.test.ts`.
-- **After Wave 4 and at phase close:** Run `pnpm verify:phase44`.
-- **Before `/gsd-verify-work`:** `pnpm verify:phase44` must be green.
+- **After Wave 4 and at phase close:** Run `pnpm run verify:phase44`.
+- **Before `/gsd-verify-work`:** `pnpm run verify:phase44` must be green.
 - **Max feedback latency:** 90 seconds.
 
-`pnpm verify:phase44` is the single external close gate for this phase. It must statically
+`pnpm run verify:phase44` is the single external close gate for this phase. It must statically
 guard schema, DAL, bootstrap, registry, and UI identity drift, and then run the focused
 Phase 44 suites in one command.
 
@@ -49,18 +49,18 @@ Phase 44 suites in one command.
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 44-01-00 | 01 | 1 | PLUG-01, PLUG-02, PLUG-03 | preflight | GitNexus impact analysis is recorded before editing schema/DTO symbols | manual-summary | `Read 44-01-SUMMARY.md for gitnexus impact + detect_changes log` | ✅ planned | ⬜ pending |
-| 44-01-01 | 01 | 1 | PLUG-01, PLUG-02, PLUG-03 | T-44-01 / T-44-02 / T-44-03 | plugin registration rows gain durable `pluginKey`, `dbNamespace`, provenance columns, and school-scoped unique truth | static + schema | `python - <<'PY' ...` static check from `44-01-PLAN.md` | ✅ planned | ⬜ pending |
-| 44-01-02 | 01 | 1 | PLUG-01, PLUG-02, PLUG-03 | T-44-02 / T-44-03 | migration-first DB flow applies the contract to SQLite and exposes new columns/indexes via `PRAGMA` / `sqlite_master` | integration | `pnpm db:migrate && node --input-type=module --import tsx -e "...PRAGMA table_info..."` | ✅ planned | ⬜ pending |
-| 44-02-00 | 02 | 2 | PLUG-01, PLUG-02, PLUG-03, PLUG-04 | preflight | GitNexus impact analysis is recorded before editing DAL/action identity seams | manual-summary | `Read 44-02-SUMMARY.md for gitnexus impact + detect_changes log` | ✅ planned | ⬜ pending |
-| 44-02-01 | 02 | 2 | PLUG-01, PLUG-02, PLUG-03, PLUG-04 | T-44-05 / T-44-06 / T-44-08 | DAL install/reconcile seam writes canonical identity, preserves frozen namespace, and rejects school conflicts with explicit tokens | unit | `pnpm exec vitest --run src/lib/dal/plugins.test.ts` | ✅ planned | ⬜ pending |
-| 44-02-02 | 02 | 2 | PLUG-01, PLUG-02, PLUG-03, PLUG-04 | T-44-07 / T-44-09 | Server Actions stay thin, delegate to DAL, and preserve cache invalidation plus conflict surfacing | integration | `pnpm exec vitest --run src/actions/plugin-actions.test.ts src/lib/dal/plugins.test.ts` | ✅ planned | ⬜ pending |
-| 44-03-00 | 03 | 3 | PLUG-04 | preflight | GitNexus impact analysis is recorded before editing bootstrap and built-in dispatch symbols | manual-summary | `Read 44-03-SUMMARY.md for gitnexus impact + detect_changes log` | ✅ planned | ⬜ pending |
-| 44-03-01 | 03 | 3 | PLUG-04 | T-44-10 / T-44-11 / T-44-13 | default plugin bootstrap moves to the shared reconcile seam and preserves stable `pluginId` for historical lesson payloads | unit | `pnpm exec vitest --run scripts/bootstrap-dev-db.test.ts` | ✅ planned | ⬜ pending |
-| 44-03-02 | 03 | 3 | PLUG-04 | T-44-12 / T-44-13 | built-in teaching definitions resolve by canonical key instead of `pluginName`, while display copy survives | unit | `pnpm exec vitest --run src/lib/dal/plugins.builtins.test.ts scripts/bootstrap-dev-db.test.ts` | ✅ planned | ⬜ pending |
-| 44-04-00 | 04 | 4 | PLUG-01, PLUG-02, PLUG-04 | preflight | GitNexus impact analysis is recorded before editing operator surfaces and verifier entrypoints | manual-summary | `Read 44-04-SUMMARY.md for gitnexus impact + detect_changes log` | ✅ planned | ⬜ pending |
-| 44-04-01 | 04 | 4 | PLUG-01, PLUG-02, PLUG-04 | T-44-14 | settings and marketplace surfaces render formal plugin metadata without regressing existing product semantics | component | `pnpm exec vitest --run src/components/surfaces/settings-surface.test.tsx src/components/surfaces/plugin-marketplace-surface.test.tsx` | ✅ planned | ⬜ pending |
-| 44-04-02 | 04 | 4 | PLUG-01, PLUG-02, PLUG-03, PLUG-04 | T-44-15 / T-44-16 | `verify:phase44` becomes the single close gate and catches schema/DAL/bootstrap/registry/UI drift in one command | script | `node --import tsx scripts/verify-phase44-plugin-identity.ts` | ✅ planned | ⬜ pending |
+| 44-01-00 | 01 | 1 | PLUG-01, PLUG-02, PLUG-03 | preflight | GitNexus impact analysis is recorded before editing schema/DTO symbols | manual-summary | `Read 44-01-SUMMARY.md for gitnexus impact + detect_changes log` | ✅ | ✅ green |
+| 44-01-01 | 01 | 1 | PLUG-01, PLUG-02, PLUG-03 | T-44-01 / T-44-02 / T-44-03 | plugin registration rows gain durable `pluginKey`, `dbNamespace`, provenance columns, and school-scoped unique truth | static + schema | `python - <<'PY' ...` static check from `44-01-PLAN.md` | ✅ | ✅ green |
+| 44-01-02 | 01 | 1 | PLUG-01, PLUG-02, PLUG-03 | T-44-02 / T-44-03 | migration-first DB flow applies the contract to SQLite and exposes new columns/indexes via `PRAGMA` / `sqlite_master` | integration | `pnpm db:migrate && node --input-type=module --import tsx -e "...PRAGMA table_info..."` | ✅ | ✅ green |
+| 44-02-00 | 02 | 2 | PLUG-01, PLUG-02, PLUG-03, PLUG-04 | preflight | GitNexus impact analysis is recorded before editing DAL/action identity seams | manual-summary | `Read 44-02-SUMMARY.md for gitnexus impact + detect_changes log` | ✅ | ✅ green |
+| 44-02-01 | 02 | 2 | PLUG-01, PLUG-02, PLUG-03, PLUG-04 | T-44-05 / T-44-06 / T-44-08 | DAL install/reconcile seam writes canonical identity, preserves frozen namespace, and rejects school conflicts with explicit tokens | unit | `pnpm exec vitest --run src/lib/dal/plugins.test.ts` | ✅ | ✅ green |
+| 44-02-02 | 02 | 2 | PLUG-01, PLUG-02, PLUG-03, PLUG-04 | T-44-07 / T-44-09 | Server Actions stay thin, delegate to DAL, and preserve cache invalidation plus conflict surfacing | integration | `pnpm exec vitest --run src/actions/plugin-actions.test.ts src/lib/dal/plugins.test.ts` | ✅ | ✅ green |
+| 44-03-00 | 03 | 3 | PLUG-04 | preflight | GitNexus impact analysis is recorded before editing bootstrap and built-in dispatch symbols | manual-summary | `Read 44-03-SUMMARY.md for gitnexus impact + detect_changes log` | ✅ | ✅ green |
+| 44-03-01 | 03 | 3 | PLUG-04 | T-44-10 / T-44-11 / T-44-13 | default plugin bootstrap moves to the shared reconcile seam and preserves stable `pluginId` for historical lesson payloads | unit | `pnpm exec vitest --run scripts/bootstrap-dev-db.test.ts` | ✅ | ✅ green |
+| 44-03-02 | 03 | 3 | PLUG-04 | T-44-12 / T-44-13 | built-in teaching definitions resolve by canonical key instead of `pluginName`, while display copy survives | unit | `pnpm exec vitest --run src/lib/dal/plugins.builtins.test.ts scripts/bootstrap-dev-db.test.ts` | ✅ | ✅ green |
+| 44-04-00 | 04 | 4 | PLUG-01, PLUG-02, PLUG-04 | preflight | GitNexus impact analysis is recorded before editing operator surfaces and verifier entrypoints | manual-summary | `Read 44-04-SUMMARY.md for gitnexus impact + detect_changes log` | ✅ | ✅ green |
+| 44-04-01 | 04 | 4 | PLUG-01, PLUG-02, PLUG-04 | T-44-14 | settings and marketplace surfaces render formal plugin metadata without regressing existing product semantics | component | `node "node_modules/vitest/vitest.mjs" --run src/components/surfaces/settings-surface.test.tsx src/components/surfaces/plugin-marketplace-surface.test.tsx src/components/surfaces/plugin-lifecycle-operator-surface.test.tsx` | ✅ | ✅ green |
+| 44-04-02 | 04 | 4 | PLUG-01, PLUG-02, PLUG-03, PLUG-04 | T-44-15 / T-44-16 | `verify:phase44` becomes the single close gate and catches schema/DAL/bootstrap/registry/UI drift in one command | script | `node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase44-plugin-identity.ts` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠ flaky*
 
@@ -71,8 +71,8 @@ Phase 44 suites in one command.
 - [x] `src/lib/dal/plugins.builtins.test.ts` exists and can prove built-in dispatch contract behavior.
 - [x] `scripts/bootstrap-dev-db.test.ts` exists and can prove default plugin bootstrap posture.
 - [x] `src/components/surfaces/settings-surface.test.tsx` exists and can prove operator-facing metadata rendering.
-- [ ] `src/components/surfaces/plugin-marketplace-surface.test.tsx` will be added by `44-04` and then becomes required by the close gate.
-- [ ] `scripts/verify-phase44-plugin-identity.ts` will be added by `44-04` and then becomes the canonical full verifier.
+- [x] `src/components/surfaces/plugin-marketplace-surface.test.tsx` exists and is required by the close gate.
+- [x] `scripts/verify-phase44-plugin-identity.ts` exists and serves as the canonical full verifier.
 
 ## Validation Architecture
 
@@ -109,7 +109,7 @@ Phase 44 uses a layered validation stack:
 
 - `pluginRegistrations` rows can be upgraded and read as formal plugin identity truth without JSON fallbacks.
 - DAL/action/bootstrap/registry/UI all consume the same canonical Phase 44 contract.
-- `pnpm verify:phase44` is the only external automated close command for the phase.
+- `pnpm run verify:phase44` is the only external automated close command for the phase.
 - The operator-facing surfaces expose the formal metadata while keeping existing product semantics and design language intact.
 
-**Approval:** planning-stage validation strategy drafted on 2026-05-20; execution evidence pending.
+**Approval:** execution evidence refreshed on 2026-05-24; all Phase 44 verification rows are green.

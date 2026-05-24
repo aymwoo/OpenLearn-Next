@@ -47,6 +47,9 @@ describe("plugin marketplace surface", () => {
     render(await PluginMarketplaceSurface());
 
     expect(screen.getByText("仅启用 / 停用，无删除语义")).toBeTruthy();
+    expect(screen.getByText("Key: builtin/direct-instruction")).toBeTruthy();
+    expect(screen.getByText("NS: builtin_direct_instruction")).toBeTruthy();
+    expect(screen.getByText("Type: default")).toBeTruthy();
     expect(screen.queryByText("紧急挂起")).toBeNull();
     expect(screen.queryByText("查看卸载影响")).toBeNull();
     expect(screen.queryByText("确认卸载插件")).toBeNull();

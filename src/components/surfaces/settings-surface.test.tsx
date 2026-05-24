@@ -182,6 +182,10 @@ describe("settings and plugin entry surfaces", () => {
     expect(settingsSurfaceSource).toContain("Platform Event Operator");
     expect(settingsSurfaceSource).toContain("先看 command summary，再下钻 event timeline");
     expect(settingsSurfaceSource).toContain("Delegation / Approval");
+    expect(settingsSurfaceSource).toContain("pluginKey");
+    expect(settingsSurfaceSource).toContain("dbNamespace");
+    expect(settingsSurfaceSource).toContain("sourceType");
+    expect(settingsSurfaceSource).toContain("installSource");
     expect(settingsSurfaceSource).toContain('href={`/settings/labs?commandId=${encodeURIComponent(summary.commandId)}`}');
     expect(settingsSurfaceSource).toContain('href="/settings/labs/async-tasks"');
     expect(settingsSurfaceSource).toContain('href="/settings/labs/runtime-inspector"');

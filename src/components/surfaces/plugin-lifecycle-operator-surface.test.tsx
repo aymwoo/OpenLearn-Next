@@ -78,8 +78,10 @@ const dashboardBundle: GovernanceDashboardBundle = {
     {
       pluginId: "plugin-mounted",
       pluginKey: "vendor/mounted",
+      dbNamespace: "vendor_mounted",
       name: "挂载插件",
       sourceType: "external",
+      installSource: "manual",
       lifecycleState: "active",
       internalLifecycleSubstate: "mounted",
       reasonCode: null,
@@ -124,8 +126,10 @@ const dashboardBundle: GovernanceDashboardBundle = {
     {
       pluginId: "plugin-ready",
       pluginKey: "vendor/ready",
+      dbNamespace: "vendor_ready",
       name: "就绪插件",
       sourceType: "external",
+      installSource: "manual",
       lifecycleState: "active",
       internalLifecycleSubstate: "ready",
       reasonCode: null,
@@ -156,8 +160,10 @@ const dashboardBundle: GovernanceDashboardBundle = {
     {
       pluginId: "plugin-default",
       pluginKey: "builtin/default",
+      dbNamespace: "builtin_default",
       name: "默认插件",
       sourceType: "default",
+      installSource: "bootstrap",
       lifecycleState: "enabled",
       internalLifecycleSubstate: "enabled",
       reasonCode: null,
@@ -205,8 +211,10 @@ const dashboardBundle: GovernanceDashboardBundle = {
     {
       pluginId: "plugin-ext",
       pluginKey: "vendor/ext",
+      dbNamespace: "vendor_ext",
       name: "外部插件",
       sourceType: "external",
+      installSource: "manual",
       lifecycleState: "installed",
       internalLifecycleSubstate: "disabled",
       reasonCode: "not_enabled",
@@ -222,13 +230,13 @@ const dashboardBundle: GovernanceDashboardBundle = {
         blocked: false,
         reasonCode: null,
         recommendedRecoveryAction: null,
-        cleanupConfirmationToken: "cleanup:plugin-ext:1:2:1:3:7",
+        cleanupConfirmationToken: "cleanup:plugin-ext:0:0:0:0:0",
         preflightSummary: {
-          lessonExtCount: 1,
-          stepExtCount: 2,
-          resourceExtCount: 1,
-          ownedBusinessCount: 3,
-          totalCount: 7,
+          lessonExtCount: 0,
+          stepExtCount: 0,
+          resourceExtCount: 0,
+          ownedBusinessCount: 0,
+          totalCount: 0,
         },
       },
       executableActionCatalog: [],
@@ -254,8 +262,10 @@ const dashboardBundle: GovernanceDashboardBundle = {
     {
       pluginId: "plugin-enabled",
       pluginKey: "vendor/enabled",
+      dbNamespace: "vendor_enabled",
       name: "运行中插件",
       sourceType: "external",
+      installSource: "manual",
       lifecycleState: "active",
       internalLifecycleSubstate: "ready",
       reasonCode: null,
@@ -303,8 +313,10 @@ const dashboardBundle: GovernanceDashboardBundle = {
     {
       pluginId: "plugin-kill-switch",
       pluginKey: "vendor/kill-switch",
+      dbNamespace: "vendor_kill_switch",
       name: "挂起插件",
       sourceType: "external",
+      installSource: "repair",
       lifecycleState: "suspended",
       internalLifecycleSubstate: "ready",
       reasonCode: "kill_switch",
@@ -352,8 +364,10 @@ const dashboardBundle: GovernanceDashboardBundle = {
     {
       pluginId: "plugin-dependency-blocked",
       pluginKey: "vendor/dependency-blocked",
+      dbNamespace: "vendor_dependency_blocked",
       name: "依赖阻塞插件",
       sourceType: "external",
+      installSource: "repair",
       lifecycleState: "enabled",
       internalLifecycleSubstate: "enabled",
       reasonCode: "dependency_missing",
@@ -401,8 +415,10 @@ const dashboardBundle: GovernanceDashboardBundle = {
     {
       pluginId: "plugin-activation-failed",
       pluginKey: "vendor/activation-failed",
+      dbNamespace: "vendor_activation_failed",
       name: "激活失败插件",
       sourceType: "external",
+      installSource: "seed",
       lifecycleState: "enabled",
       internalLifecycleSubstate: "failed",
       reasonCode: "activation_failed",
@@ -450,8 +466,10 @@ const dashboardBundle: GovernanceDashboardBundle = {
     {
       pluginId: "plugin-uninstalled",
       pluginKey: "vendor/uninstalled",
+      dbNamespace: "vendor_uninstalled",
       name: "审计卸载插件",
       sourceType: "external",
+      installSource: "manual",
       lifecycleState: "uninstalled",
       internalLifecycleSubstate: "disabled",
       reasonCode: "not_installed",
@@ -524,6 +542,10 @@ describe("plugin lifecycle operator surface", () => {
     expect(screen.getAllByText("运行中").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "查看治理诊断" })).toBeTruthy();
     expect(screen.getByText("action: createNotificationStub")).toBeTruthy();
+    expect(screen.getByText("owner: vendor/mounted")).toBeTruthy();
+    expect(screen.getByText("namespace: vendor_mounted")).toBeTruthy();
+    expect(screen.getByText("source: external")).toBeTruthy();
+    expect(screen.getByText("install: manual")).toBeTruthy();
     expect(screen.queryByText(/internal diagnostic only/)).toBeNull();
   });
 
@@ -543,9 +565,15 @@ describe("plugin lifecycle operator surface", () => {
     expect(screen.queryByRole("button", { name: "确认卸载插件" })).toBeNull();
     expect(screen.getAllByText(/reason code:/).length).toBeGreaterThan(0);
     expect(screen.queryByText("action: createNotificationStub")).toBeNull();
+    expect(screen.getByText("namespace: builtin_default")).toBeTruthy();
+    expect(screen.getByText("install: bootstrap")).toBeTruthy();
 
     const externalPluginCard = screen.getByText("外部插件").closest("article");
     expect(externalPluginCard).toBeTruthy();
+    expect(within(externalPluginCard!).getByText("owner: vendor/ext")).toBeTruthy();
+    expect(within(externalPluginCard!).getByText("namespace: vendor_ext")).toBeTruthy();
+    expect(within(externalPluginCard!).getByText("source: external")).toBeTruthy();
+    expect(within(externalPluginCard!).getByText("install: manual")).toBeTruthy();
 
     fireEvent.click(within(externalPluginCard!).getByRole("button", { name: "查看卸载影响" }));
 
@@ -560,6 +588,8 @@ describe("plugin lifecycle operator surface", () => {
       expect(screen.getByRole("checkbox", { name: "改为 cleanup 卸载" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "确认卸载插件" }).hasAttribute("disabled")).toBe(false);
     });
+    expect(screen.getByText("namespace: vendor_ext · install: manual")).toBeTruthy();
+    expect(screen.getByText("依赖总数：7")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "确认卸载插件" }));
 
@@ -591,6 +621,71 @@ describe("plugin lifecycle operator surface", () => {
         schoolId: "school-1",
         retentionMode: "cleanup",
         confirmationToken: "cleanup:plugin-ext:1:2:1:3:7",
+      });
+    });
+  });
+
+  it("uses disable action instead of re-enabling rows already in enabled state", async () => {
+    const { PluginLifecycleOperatorSurface } = await import("./plugin-lifecycle-operator-surface");
+
+    render(
+      <PluginLifecycleOperatorSurface
+        schoolId="school-1"
+        dashboard={{
+          ...dashboardBundle,
+          pluginLifecycleRows: [
+            ...dashboardBundle.pluginLifecycleRows,
+            {
+              pluginId: "plugin-enabled-no-recovery",
+              pluginKey: "vendor/enabled-no-recovery",
+              dbNamespace: "vendor_enabled_no_recovery",
+              name: "已启用插件",
+              sourceType: "external",
+              installSource: "manual",
+              lifecycleState: "enabled",
+              internalLifecycleSubstate: "enabled",
+              reasonCode: null,
+              recommendedRecoveryAction: null,
+              builtIn: false,
+              defaultEnabled: false,
+              nonDeletable: false,
+              killSwitchEnabled: false,
+              blocked: true,
+              uninstall: {
+                posture: "retain",
+                cleanupRequested: false,
+                blocked: false,
+                reasonCode: null,
+                recommendedRecoveryAction: null,
+                cleanupConfirmationToken: "cleanup:plugin-enabled-no-recovery:0:0:0:0:0",
+                preflightSummary: {
+                  lessonExtCount: 0,
+                  stepExtCount: 0,
+                  resourceExtCount: 0,
+                  ownedBusinessCount: 0,
+                  totalCount: 0,
+                },
+              },
+              executableActionCatalog: [],
+              blockedActionDiagnostics: [],
+            },
+          ],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "查看治理诊断" }));
+
+    const pluginCard = screen.getByText("已启用插件", { selector: "p" }).closest("article");
+    expect(pluginCard).toBeTruthy();
+
+    fireEvent.click(within(pluginCard!).getByRole("button", { name: "停用插件" }));
+
+    await waitFor(() => {
+      expect(pluginActionMocks.setPluginEnabledAction).toHaveBeenCalledWith({
+        pluginId: "plugin-enabled-no-recovery",
+        schoolId: "school-1",
+        enabled: false,
       });
     });
   });

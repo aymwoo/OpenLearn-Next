@@ -179,13 +179,20 @@ async function runVerification() {
       passed:
         nonCommentIncludes(dalSource, "export async function getPluginIdentityMetadataForSchool") &&
         nonCommentIncludes(dalSource, "PluginIdentityMetadata") &&
-        nonCommentIncludes(dalSource, "assertTeacherManagerScope"),
+        nonCommentIncludes(dalSource, "assertTeacherManagerScope") &&
+        nonCommentIncludes(dalSource, "installOrReconcilePlugin") &&
+        nonCommentIncludes(dalSource, "deriveDbNamespace") &&
+        nonCommentIncludes(dalSource, "PLUGIN_KEY_CONFLICT") &&
+        nonCommentIncludes(dalSource, "PLUGIN_DB_NAMESPACE_CONFLICT") &&
+        nonCommentIncludes(dalSource, "PLUGIN_DB_NAMESPACE_FROZEN"),
     },
     {
-      label: "scripts/bootstrap-dev-db.ts uses installOrReconcilePlugin to register and align plugins",
+      label: "scripts/bootstrap-dev-db.ts routes default plugin bootstrap through the governed install command seam",
       passed:
-        nonCommentIncludes(bootstrapSource, "installOrReconcilePlugin") &&
-        !nonCommentIncludes(bootstrapSource, ".insert(pluginRegistrations)"),
+        nonCommentIncludes(bootstrapSource, "producePluginInstallCommand") &&
+        nonCommentIncludes(bootstrapSource, 'installSource: "bootstrap"') &&
+        nonCommentIncludes(bootstrapSource, 'installSource: "seed"') &&
+        !nonCommentIncludes(bootstrapSource, "eq(pluginRegistrations.name, definition.name)"),
     },
     {
       label: "src/server/plugins/registry.ts utilizes prioritized lookup maps by Key, BuiltInKey, and Name",
@@ -196,12 +203,13 @@ async function runVerification() {
         nonCommentIncludes(registrySource, "resolveBuiltInTeachingStep"),
     },
     {
-      label: "settings-surface.tsx strips manifestJson.id and displays formal identity badges",
+      label: "settings-surface.tsx delegates plugin identity rendering to the formal lifecycle operator surface",
       passed:
-        nonCommentIncludes(settingsSurfaceSource, "plugin.pluginKey") &&
-        nonCommentIncludes(settingsSurfaceSource, "plugin.dbNamespace") &&
-        nonCommentIncludes(settingsSurfaceSource, "plugin.sourceType") &&
-        nonCommentIncludes(settingsSurfaceSource, "plugin.installSource") &&
+        nonCommentIncludes(settingsSurfaceSource, "PluginLifecycleOperatorSurface") &&
+        nonCommentIncludes(settingsSurfaceSource, "pluginKey") &&
+        nonCommentIncludes(settingsSurfaceSource, "dbNamespace") &&
+        nonCommentIncludes(settingsSurfaceSource, "sourceType") &&
+        nonCommentIncludes(settingsSurfaceSource, "installSource") &&
         !nonCommentIncludes(settingsSurfaceSource, "manifestJson.id"),
     },
     {
@@ -252,9 +260,12 @@ async function runVerification() {
   runVitest(
     [
       "src/lib/dal/plugins.test.ts",
+      "src/actions/plugin-actions.test.ts",
       "src/lib/dal/plugins.builtins.test.ts",
+      "scripts/bootstrap-dev-db.test.ts",
       "src/components/surfaces/settings-surface.test.tsx",
       "src/components/surfaces/plugin-marketplace-surface.test.tsx",
+      "src/components/surfaces/plugin-lifecycle-operator-surface.test.tsx",
     ],
     "Phase 44 Unit Test Suites"
   );

@@ -35,7 +35,9 @@ export type PluginGovernanceLifecycleReadModel = {
   schoolId: string;
   name: string;
   pluginKey: string;
+  dbNamespace: string;
   sourceType: PluginRegistrationDTO["sourceType"];
+  installSource: PluginRegistrationDTO["installSource"];
   lifecycleState: ExecutableActionCatalogRow["lifecycleState"];
   blocked: boolean;
   killSwitchEnabled: boolean;
@@ -63,8 +65,10 @@ export type PluginGovernanceLifecycleReadModel = {
 export type GovernanceDashboardPluginLifecycleRow = {
   pluginId: string;
   pluginKey: string;
+  dbNamespace: string;
   name: string;
   sourceType: PluginRegistrationDTO["sourceType"];
+  installSource: PluginRegistrationDTO["installSource"];
   builtIn: boolean;
   defaultEnabled: boolean;
   nonDeletable: boolean;
@@ -229,8 +233,10 @@ function projectGovernanceDashboardBundle(bundle: RegistryProjectionBundle): Gov
       return [{
         pluginId: plugin.id,
         pluginKey: plugin.pluginKey,
+        dbNamespace: plugin.dbNamespace,
         name: plugin.name,
         sourceType: plugin.sourceType,
+        installSource: plugin.installSource,
         builtIn: plugin.builtIn,
         defaultEnabled: plugin.defaultEnabled,
         nonDeletable: plugin.nonDeletable,
@@ -292,7 +298,9 @@ export async function readPluginGovernanceLifecycle(
     schoolId: input.schoolId,
     name: plugin.name,
     pluginKey: plugin.pluginKey,
+    dbNamespace: plugin.dbNamespace,
     sourceType: plugin.sourceType,
+    installSource: plugin.installSource,
     lifecycleState: plugin.lifecycleState,
     blocked: plugin.blocked,
     killSwitchEnabled: plugin.killSwitchEnabled,
