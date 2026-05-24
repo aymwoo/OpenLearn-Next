@@ -442,6 +442,54 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
         cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson")
       ).rejects.toThrow("CUTOVER_FAILED_TRANSACTION_ROLLBACK: MOCK_DB_FAIL");
     });
+
+    it("should re-verify physical lesson payload inside transaction before erasing legacy JSON", async () => {
+      mockLessonRows = [
+        {
+          id: "lesson-1",
+          publishedVersionId: "pub-1",
+        },
+      ];
+      mockPublishedLessonVersionRows = [
+        {
+          id: "pub-1",
+          snapshotJson: { lesson: { payloadJson: { coreConfig: "keep-me", "vendor/plugin-1": { reminderRule: "daily" } } } },
+        },
+      ];
+      mockLessonExtRows = [
+        {
+          payloadJson: { reminderRule: "daily" },
+        },
+      ];
+
+      let lessonExtReads = 0;
+      mockSelect.mockImplementation(() => {
+        return {
+          from: vi.fn().mockImplementation((table) => {
+            let rows: any[] = [];
+            if (table === pluginRegistrations) {
+              rows = mockPluginRegRows;
+            } else if (table === lessons) {
+              rows = mockLessonRows;
+            } else if (table === publishedLessonVersions) {
+              rows = mockPublishedLessonVersionRows;
+            } else if (table === pluginLessonExtensions) {
+              lessonExtReads += 1;
+              rows = lessonExtReads === 1
+                ? mockLessonExtRows
+                : [{ payloadJson: { reminderRule: "changed-after-verify" } }];
+            }
+            return new MockChain(rows);
+          }),
+        } as any;
+      });
+
+      await expect(
+        cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson"),
+      ).rejects.toThrow("CUTOVER_FAILED_TRANSACTION_ROLLBACK: CUTOVER_VERIFY_MISMATCH:lesson-1:vendor/plugin-1");
+
+      expect(mockUpdate).not.toHaveBeenCalledWith(publishedLessonVersions);
+    });
   });
 
   describe("E. Static Verification & DDL Runtime Prevention Audit", () => {

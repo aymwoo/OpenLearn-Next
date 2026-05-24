@@ -87,6 +87,17 @@ function extractResourcePluginPayload(content: string | null, pluginKey: string)
   }
 }
 
+function physicalPayloadMatches(
+  legacyPayload: unknown,
+  physicalPayload: unknown,
+  entityId: string,
+  pluginKey: string,
+) {
+  if (!deepEquals(legacyPayload, physicalPayload)) {
+    throw new Error(`CUTOVER_VERIFY_MISMATCH:${entityId}:${pluginKey}`);
+  }
+}
+
 /**
  * 1. Backfill 阶段：智能提取核心表 JSON 属性中的插件特征数据，并幂等写入至 plugin_ext_ 物理扩展表中。
  */
@@ -432,6 +443,21 @@ export async function cutoverPluginJsonToSchema(
         if (payload && typeof payload === "object" && pluginKey in payload) {
           result.processed++;
           try {
+            const legacyVal = payload[pluginKey];
+            const [physicalRow] = await tx
+              .select({ payloadJson: pluginLessonExtensions.payloadJson })
+              .from(pluginLessonExtensions)
+              .where(
+                and(
+                  eq(pluginLessonExtensions.schoolId, schoolId),
+                  eq(pluginLessonExtensions.pluginId, pluginId),
+                  eq(pluginLessonExtensions.lessonId, item.id),
+                ),
+              )
+              .limit(1);
+
+            physicalPayloadMatches(legacyVal, physicalRow?.payloadJson, item.id, pluginKey);
+
             const snapshot = structuredClone(item.snapshotJson as {
               lesson?: { payloadJson?: Record<string, any> };
             });
@@ -475,6 +501,21 @@ export async function cutoverPluginJsonToSchema(
         if (payload && typeof payload === "object" && pluginKey in payload) {
           result.processed++;
           try {
+            const legacyVal = payload[pluginKey];
+            const [physicalRow] = await tx
+              .select({ payloadJson: pluginLessonStepExtensions.payloadJson })
+              .from(pluginLessonStepExtensions)
+              .where(
+                and(
+                  eq(pluginLessonStepExtensions.schoolId, schoolId),
+                  eq(pluginLessonStepExtensions.pluginId, pluginId),
+                  eq(pluginLessonStepExtensions.lessonStepId, item.id),
+                ),
+              )
+              .limit(1);
+
+            physicalPayloadMatches(legacyVal, physicalRow?.payloadJson, item.id, pluginKey);
+
             const newPayload = { ...payload };
             delete newPayload[pluginKey];
 
@@ -505,6 +546,21 @@ export async function cutoverPluginJsonToSchema(
         if (payload && typeof payload === "object" && pluginKey in payload) {
           result.processed++;
           try {
+            const legacyVal = payload[pluginKey];
+            const [physicalRow] = await tx
+              .select({ payloadJson: pluginResourceExtensions.payloadJson })
+              .from(pluginResourceExtensions)
+              .where(
+                and(
+                  eq(pluginResourceExtensions.schoolId, schoolId),
+                  eq(pluginResourceExtensions.pluginId, pluginId),
+                  eq(pluginResourceExtensions.resourceId, item.id),
+                ),
+              )
+              .limit(1);
+
+            physicalPayloadMatches(legacyVal, physicalRow?.payloadJson, item.id, pluginKey);
+
             const newPayload = { ...payload };
             delete newPayload[pluginKey];
 
