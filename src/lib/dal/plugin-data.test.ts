@@ -1,6 +1,10 @@
-import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createClient } from "@libsql/client";
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidateTag } from "next/cache";
 
 import { db } from "@/db";
@@ -49,6 +53,132 @@ vi.mock("@/lib/dal/lesson-authoring", () => ({
 // 读取 schema 源码进行物理结构静态校验
 const schemaSource = readFileSync("src/db/schema.ts", "utf8");
 
+function cleanupSqliteArtifacts(databasePath: string) {
+  for (const filePath of [databasePath, `${databasePath}-shm`, `${databasePath}-wal`]) {
+    if (existsSync(filePath)) {
+      rmSync(filePath, { force: true });
+    }
+  }
+}
+
+async function bootstrapPhase45CascadeSchema(databaseUrl: string) {
+  const client = createClient({ url: databaseUrl });
+
+  await client.execute("PRAGMA foreign_keys = ON");
+
+  const statements = [
+    `CREATE TABLE school (id TEXT PRIMARY KEY NOT NULL)`,
+    `CREATE TABLE pluginRegistration (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE course (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE lesson (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      courseId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (courseId) REFERENCES course(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE lessonStep (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      lessonId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE resource (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE plugin_ext_lesson (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      lessonId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE plugin_ext_lesson_step (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      lessonStepId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (lessonStepId) REFERENCES lessonStep(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE plugin_ext_resource (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      resourceId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (resourceId) REFERENCES resource(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE plugin_owned_business_data (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      key TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade
+    )`,
+  ];
+
+  for (const statement of statements) {
+    await client.execute(statement);
+  }
+
+  return client;
+}
+
+async function seedPhase45CascadeFixtures(client: ReturnType<typeof createClient>) {
+  const seedStatements = [
+    `INSERT INTO school (id) VALUES ('school-1')`,
+    `INSERT INTO pluginRegistration (id, schoolId) VALUES ('plugin-1', 'school-1')`,
+    `INSERT INTO course (id, schoolId) VALUES ('course-1', 'school-1'), ('course-2', 'school-1')`,
+    `INSERT INTO lesson (id, schoolId, courseId) VALUES ('lesson-1', 'school-1', 'course-1'), ('lesson-2', 'school-1', 'course-2')`,
+    `INSERT INTO lessonStep (id, schoolId, lessonId) VALUES ('step-1', 'school-1', 'lesson-1'), ('step-2', 'school-1', 'lesson-2')`,
+    `INSERT INTO resource (id, schoolId) VALUES ('resource-1', 'school-1'), ('resource-2', 'school-1')`,
+    `INSERT INTO plugin_ext_lesson (id, schoolId, pluginId, lessonId, payloadJson) VALUES ('ext-lesson-1', 'school-1', 'plugin-1', 'lesson-1', '{"kind":"primary"}'), ('ext-lesson-2', 'school-1', 'plugin-1', 'lesson-2', '{"kind":"secondary"}')`,
+    `INSERT INTO plugin_ext_lesson_step (id, schoolId, pluginId, lessonStepId, payloadJson) VALUES ('ext-step-1', 'school-1', 'plugin-1', 'step-1', '{"kind":"primary"}'), ('ext-step-2', 'school-1', 'plugin-1', 'step-2', '{"kind":"secondary"}')`,
+    `INSERT INTO plugin_ext_resource (id, schoolId, pluginId, resourceId, payloadJson) VALUES ('ext-resource-1', 'school-1', 'plugin-1', 'resource-1', '{"kind":"primary"}'), ('ext-resource-2', 'school-1', 'plugin-1', 'resource-2', '{"kind":"secondary"}')`,
+    `INSERT INTO plugin_owned_business_data (id, schoolId, pluginId, key, payloadJson) VALUES ('owned-1', 'school-1', 'plugin-1', 'reminders', '{"enabled":true}')`,
+  ];
+
+  for (const statement of seedStatements) {
+    await client.execute(statement);
+  }
+}
+
+async function getRowCount(client: ReturnType<typeof createClient>, tableName: string) {
+  const result = await client.execute(`SELECT COUNT(*) AS count FROM ${tableName}`);
+  return Number(result.rows[0]?.count ?? 0);
+}
+
+async function getIds(client: ReturnType<typeof createClient>, tableName: string) {
+  const result = await client.execute(`SELECT id FROM ${tableName} ORDER BY id`);
+  return result.rows.map((row) => String(row.id));
+}
+
+async function expectNoForeignKeyViolations(client: ReturnType<typeof createClient>) {
+  const result = await client.execute("PRAGMA foreign_key_check");
+  expect(result.rows).toHaveLength(0);
+}
+
 describe("Phase 45 Drizzle Schema Physical Analysis (Static Verification)", () => {
   it("must define four designated tables with correct names and prefixes", () => {
     expect(schemaSource).toContain('export const pluginLessonExtensions = sqliteTable(\n  "plugin_ext_lesson"');
@@ -57,14 +187,12 @@ describe("Phase 45 Drizzle Schema Physical Analysis (Static Verification)", () =
     expect(schemaSource).toContain('export const pluginOwnedBusinessData = sqliteTable(\n  "plugin_owned_business_data"');
   });
 
-  it("must enforce strictly cascading foreign keys on delete for all relational layers", () => {
-    // 提取新增表相关的定义区
-    const extensionSection = schemaSource.slice(schemaSource.indexOf("export const pluginLessonExtensions"));
-    
-    // 我们定义了 11 个 references（每个扩展表 3 个，自有表 2 个），全部必须显式绑定 onDelete: "cascade"
-    const cascades = extensionSection.match(/onDelete:\s*"cascade"/g);
-    expect(cascades).not.toBeNull();
-    expect(cascades!.length).toBeGreaterThanOrEqual(11);
+  it("must declare exact cascade foreign keys for the four phase 45 plugin tables", () => {
+    expect(schemaSource).toContain('references(() => schools.id, { onDelete: "cascade" })');
+    expect(schemaSource).toContain('references(() => pluginRegistrations.id, { onDelete: "cascade" })');
+    expect(schemaSource).toContain('references(() => lessons.id, { onDelete: "cascade" })');
+    expect(schemaSource).toContain('references(() => lessonSteps.id, { onDelete: "cascade" })');
+    expect(schemaSource).toContain('references(() => resources.id, { onDelete: "cascade" })');
   });
 
   it("must declare necessary physical unique composite indexes for single instance conflict prevention", () => {
@@ -75,6 +203,69 @@ describe("Phase 45 Drizzle Schema Physical Analysis (Static Verification)", () =
     
     // 自有业务表联合常规查询索引检查
     expect(schemaSource).toContain('index("plugin_owned_biz_school_plugin_key_idx").on(table.schoolId, table.pluginId, table.key)');
+  });
+});
+
+describe("Phase 45 real SQLite cascade regression", () => {
+  let databasePath: string;
+  let databaseUrl: string;
+  let client: Awaited<ReturnType<typeof bootstrapPhase45CascadeSchema>>;
+
+  beforeEach(async () => {
+    databasePath = join("/tmp/opencode", `phase45-plugin-data-${randomUUID()}.db`);
+    databaseUrl = `file:${databasePath}`;
+    client = await bootstrapPhase45CascadeSchema(databaseUrl);
+    await seedPhase45CascadeFixtures(client);
+  });
+
+  afterEach(async () => {
+    await (client as { close?: () => Promise<void> | void })?.close?.();
+    cleanupSqliteArtifacts(databasePath);
+  });
+
+  it("deletes all plugin extension and owned rows when pluginRegistration is removed", async () => {
+    expect(await getRowCount(client, "plugin_ext_lesson")).toBe(2);
+    expect(await getRowCount(client, "plugin_ext_lesson_step")).toBe(2);
+    expect(await getRowCount(client, "plugin_ext_resource")).toBe(2);
+    expect(await getRowCount(client, "plugin_owned_business_data")).toBe(1);
+
+    await client.execute("DELETE FROM pluginRegistration WHERE id = 'plugin-1'");
+
+    expect(await getRowCount(client, "plugin_ext_lesson")).toBe(0);
+    expect(await getRowCount(client, "plugin_ext_lesson_step")).toBe(0);
+    expect(await getRowCount(client, "plugin_ext_resource")).toBe(0);
+    expect(await getRowCount(client, "plugin_owned_business_data")).toBe(0);
+    await expectNoForeignKeyViolations(client);
+  });
+
+  it("deletes only the matching lesson extension rows while preserving owned data until plugin delete", async () => {
+    await client.execute("DELETE FROM lesson WHERE id = 'lesson-1'");
+
+    expect(await getIds(client, "plugin_ext_lesson")).toEqual(["ext-lesson-2"]);
+    expect(await getIds(client, "plugin_ext_lesson_step")).toEqual(["ext-step-2"]);
+    expect(await getRowCount(client, "plugin_owned_business_data")).toBe(1);
+
+    await client.execute("DELETE FROM pluginRegistration WHERE id = 'plugin-1'");
+
+    expect(await getRowCount(client, "plugin_owned_business_data")).toBe(0);
+    await expectNoForeignKeyViolations(client);
+  });
+
+  it("deletes only the matching lessonStep extension rows while preserving owned data", async () => {
+    await client.execute("DELETE FROM lessonStep WHERE id = 'step-1'");
+
+    expect(await getIds(client, "plugin_ext_lesson_step")).toEqual(["ext-step-2"]);
+    expect(await getIds(client, "plugin_ext_lesson")).toEqual(["ext-lesson-1", "ext-lesson-2"]);
+    expect(await getRowCount(client, "plugin_owned_business_data")).toBe(1);
+    await expectNoForeignKeyViolations(client);
+  });
+
+  it("deletes only the matching resource extension rows while preserving owned data", async () => {
+    await client.execute("DELETE FROM resource WHERE id = 'resource-1'");
+
+    expect(await getIds(client, "plugin_ext_resource")).toEqual(["ext-resource-2"]);
+    expect(await getRowCount(client, "plugin_owned_business_data")).toBe(1);
+    await expectNoForeignKeyViolations(client);
   });
 });
 
