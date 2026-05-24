@@ -9,7 +9,6 @@ import {
   lessonSteps,
   pluginLessonExtensions,
   pluginLessonStepExtensions,
-  pluginOwnedBusinessData,
   pluginRegistrations,
   pluginResourceExtensions,
   publishedLessonVersions,
@@ -31,6 +30,10 @@ async function assertTeacherManagerScope(actorId: string, schoolId: string) {
   }
 
   return scope;
+}
+
+function ownedCourseScope(scope: Awaited<ReturnType<typeof assertTeacherManagerScope>>, schoolId: string) {
+  return and(eq(courses.schoolId, schoolId), eq(courses.ownerId, scope.userId));
 }
 
 export interface MigrationResult {
@@ -108,7 +111,7 @@ export async function backfillPluginJsonToSchema(
   entityType: "lesson" | "step" | "resource",
 ): Promise<MigrationResult> {
   // 1. 鉴权
-  await assertTeacherManagerScope(actorId, schoolId);
+  const scope = await assertTeacherManagerScope(actorId, schoolId);
 
   // 2. 捞取插件登记稳定身份
   const [pluginReg] = await db
@@ -131,7 +134,7 @@ export async function backfillPluginJsonToSchema(
       .from(lessons)
       .innerJoin(publishedLessonVersions, eq(lessons.publishedVersionId, publishedLessonVersions.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
-      .where(eq(courses.schoolId, schoolId));
+      .where(ownedCourseScope(scope, schoolId));
 
     for (const item of list) {
       const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey) as Record<string, any> | null;
@@ -171,7 +174,7 @@ export async function backfillPluginJsonToSchema(
       .from(lessonSteps)
       .innerJoin(lessons, eq(lessonSteps.lessonId, lessons.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
-      .where(eq(courses.schoolId, schoolId));
+      .where(ownedCourseScope(scope, schoolId));
 
     for (const item of list) {
       const payload = item.payloadJson as Record<string, any>;
@@ -258,7 +261,7 @@ export async function verifyBackfillData(
   entityType: "lesson" | "step" | "resource",
 ): Promise<{ matches: boolean; mismatches: string[] }> {
   // 1. 鉴权
-  await assertTeacherManagerScope(actorId, schoolId);
+  const scope = await assertTeacherManagerScope(actorId, schoolId);
 
   const [pluginReg] = await db
     .select({ pluginKey: pluginRegistrations.pluginKey, schoolId: pluginRegistrations.schoolId })
@@ -279,7 +282,7 @@ export async function verifyBackfillData(
       .from(lessons)
       .innerJoin(publishedLessonVersions, eq(lessons.publishedVersionId, publishedLessonVersions.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
-      .where(eq(courses.schoolId, schoolId));
+      .where(ownedCourseScope(scope, schoolId));
 
     for (const item of list) {
       const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey) as Record<string, any> | null;
@@ -308,7 +311,7 @@ export async function verifyBackfillData(
       .from(lessonSteps)
       .innerJoin(lessons, eq(lessonSteps.lessonId, lessons.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
-      .where(eq(courses.schoolId, schoolId));
+      .where(ownedCourseScope(scope, schoolId));
 
     for (const item of list) {
       const payload = item.payloadJson as Record<string, any>;
@@ -377,7 +380,7 @@ export async function cutoverPluginJsonToSchema(
   entityType: "lesson" | "step" | "resource",
 ): Promise<MigrationResult> {
   // 1. 鉴权
-  await assertTeacherManagerScope(actorId, schoolId);
+  const scope = await assertTeacherManagerScope(actorId, schoolId);
 
   // 2. 前置校验数据完整性 (Verify)
   const verifyRes = await verifyBackfillData(actorId, schoolId, pluginId, entityType);
@@ -408,7 +411,7 @@ export async function cutoverPluginJsonToSchema(
         .from(lessons)
         .innerJoin(publishedLessonVersions, eq(lessons.publishedVersionId, publishedLessonVersions.id))
         .innerJoin(courses, eq(lessons.courseId, courses.id))
-        .where(eq(courses.schoolId, schoolId));
+        .where(ownedCourseScope(scope, schoolId));
 
       for (const item of list) {
         const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey) as Record<string, any> | null;
@@ -466,7 +469,7 @@ export async function cutoverPluginJsonToSchema(
         .from(lessonSteps)
         .innerJoin(lessons, eq(lessonSteps.lessonId, lessons.id))
         .innerJoin(courses, eq(lessons.courseId, courses.id))
-        .where(eq(courses.schoolId, schoolId));
+        .where(ownedCourseScope(scope, schoolId));
 
       for (const item of list) {
         const payload = item.payloadJson as Record<string, any>;

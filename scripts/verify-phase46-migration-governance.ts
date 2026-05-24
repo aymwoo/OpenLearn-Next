@@ -11,6 +11,14 @@ type StaticCheck = {
   passed: boolean;
 };
 
+type GovernedTableDefinition = {
+  exportName: string;
+  physicalName: string;
+  expectedColumns: string[];
+  expectedUniqueIndexName: string;
+  expectedUniqueColumns: string[];
+};
+
 /**
  * Reads the content of a file if it exists, otherwise returns an empty string.
  */
@@ -76,28 +84,210 @@ function hasGovernedPluginPrefix(name: string) {
   return name.startsWith("plugin_ext_") || name.startsWith("plugin_owned_");
 }
 
-function getGovernedPluginTableDefinitions(schemaSource: string) {
+function getGovernedPluginTableDefinitions(schemaSource: string): GovernedTableDefinition[] {
   const blockRegex = /export const\s+(\w+)\s*=\s*sqliteTable\(\s*["']([^"']+)["'][\s\S]*?(?=\nexport const\s+\w+\s*=\s*sqliteTable|$)/g;
-  const governedEntityColumns = ["lessonId", "lessonStepId", "resourceId", "key"];
-  const tableDefinitions: Array<{ exportName: string; physicalName: string }> = [];
+  const tableDefinitions: GovernedTableDefinition[] = [];
   let match: RegExpExecArray | null;
 
   while ((match = blockRegex.exec(schemaSource)) !== null) {
     const fullBlock = match[0];
     const exportName = match[1]!;
     const physicalName = match[2]!;
-    const hasPluginPayloadShape =
-      fullBlock.includes("pluginId:")
-      && fullBlock.includes("schoolId:")
-      && fullBlock.includes("payloadJson:")
-      && governedEntityColumns.some((column) => fullBlock.includes(`${column}:`));
+    if (exportName === "pluginLessonExtensions") {
+      tableDefinitions.push({
+        exportName,
+        physicalName,
+        expectedColumns: ["id", "schoolId", "pluginId", "lessonId", "payloadJson", "createdAt", "updatedAt"],
+        expectedUniqueIndexName: "plugin_ext_lesson_school_plugin_entity_unique",
+        expectedUniqueColumns: ["schoolId", "pluginId", "lessonId"],
+      });
+      continue;
+    }
 
-    if (hasGovernedPluginPrefix(physicalName) || hasPluginPayloadShape) {
-      tableDefinitions.push({ exportName, physicalName });
+    if (exportName === "pluginLessonStepExtensions") {
+      tableDefinitions.push({
+        exportName,
+        physicalName,
+        expectedColumns: ["id", "schoolId", "pluginId", "lessonStepId", "payloadJson", "createdAt", "updatedAt"],
+        expectedUniqueIndexName: "plugin_ext_lesson_step_school_plugin_entity_unique",
+        expectedUniqueColumns: ["schoolId", "pluginId", "lessonStepId"],
+      });
+      continue;
+    }
+
+    if (exportName === "pluginResourceExtensions") {
+      tableDefinitions.push({
+        exportName,
+        physicalName,
+        expectedColumns: ["id", "schoolId", "pluginId", "resourceId", "payloadJson", "createdAt", "updatedAt"],
+        expectedUniqueIndexName: "plugin_ext_resource_school_plugin_entity_unique",
+        expectedUniqueColumns: ["schoolId", "pluginId", "resourceId"],
+      });
+      continue;
+    }
+
+    if (exportName === "pluginOwnedBusinessData") {
+      tableDefinitions.push({
+        exportName,
+        physicalName,
+        expectedColumns: ["id", "schoolId", "pluginId", "key", "payloadJson", "createdAt", "updatedAt"],
+        expectedUniqueIndexName: "plugin_owned_biz_school_plugin_key_unique",
+        expectedUniqueColumns: ["schoolId", "pluginId", "key"],
+      });
+      continue;
+    }
+
+    if (hasGovernedPluginPrefix(physicalName)) {
+      throw new Error(`Physical SQLite validation failed: unclassified governed plugin table symbol '${exportName}'.`);
     }
   }
 
   return tableDefinitions;
+}
+
+async function assertIndexColumns(
+  client: ReturnType<typeof createClient>,
+  indexName: string,
+  expectedColumns: readonly string[],
+) {
+  const indexInfo = await client.execute(`PRAGMA index_info(${indexName})`);
+  const actualColumns = indexInfo.rows
+    .slice()
+    .sort((left, right) => Number(left.seqno ?? 0) - Number(right.seqno ?? 0))
+    .map((row) => String(row.name));
+
+  if (actualColumns.length !== expectedColumns.length) {
+    throw new Error(
+      `Physical SQLite validation failed: Index '${indexName}' expected ${expectedColumns.length} columns but received ${actualColumns.length}.`,
+    );
+  }
+
+  for (const [index, column] of expectedColumns.entries()) {
+    if (actualColumns[index] !== column) {
+      throw new Error(
+        `Physical SQLite validation failed: Index '${indexName}' expected column #${index + 1} to be '${column}' but received '${actualColumns[index] ?? "<missing>"}'.`,
+      );
+    }
+  }
+}
+
+async function assertInstallReconcileUsesDmlOnly(databaseUrl: string) {
+  const previousDbFile = process.env.DB_FILE_NAME;
+  process.env.DB_FILE_NAME = databaseUrl;
+  const beforeClients = [
+    clientFor(databaseUrl),
+    clientFor(databaseUrl),
+    clientFor(databaseUrl),
+    clientFor(databaseUrl),
+  ];
+
+  try {
+    const [{ db }, { installOrReconcilePluginWithTx }, { PluginManifestSchema }] = await Promise.all([
+      import("@/db"),
+      import("@/lib/dal/plugins"),
+      import("@/lib/dto/resource-ai"),
+    ]);
+
+    const manifest = PluginManifestSchema.parse({
+      id: "vendor/phase46-proof-plugin",
+      version: "1.0.0",
+      manifestVersion: 1,
+      permissions: [],
+      anchors: ["dashboard.widget"],
+      actions: ["addStepSuggestion"],
+      builtIn: false,
+      defaultEnabled: false,
+      nonDeletable: false,
+    });
+
+    const ddlSentinelsBefore = await Promise.all([
+      beforeClients[0].execute(`SELECT COUNT(*) AS count FROM plugin_ext_lesson`),
+      beforeClients[1].execute(`SELECT COUNT(*) AS count FROM plugin_ext_lesson_step`),
+      beforeClients[2].execute(`SELECT COUNT(*) AS count FROM plugin_ext_resource`),
+      beforeClients[3].execute(`SELECT COUNT(*) AS count FROM plugin_owned_business_data`),
+    ]);
+
+    const dbClient = clientFor(databaseUrl);
+    const schemaObjectsBefore = await dbClient.execute(
+      `SELECT type, name, tbl_name AS tableName, sql FROM sqlite_master WHERE type IN ('table', 'index') AND name NOT LIKE 'sqlite_%' ORDER BY type, name`,
+    );
+
+    const created = await db.transaction(async (tx) => installOrReconcilePluginWithTx({
+      actorId: "teacher-1",
+      schoolId: "school-1",
+      name: "Phase 46 Proof Plugin",
+      manifestJson: manifest,
+      installSource: "manual",
+      tx,
+      actorScope: "system",
+    }));
+
+    if (created.pluginKey !== manifest.id) {
+      throw new Error("Runtime DDL prevention failed: install/reconcile returned unexpected plugin key.");
+    }
+
+    if (created.schoolId !== "school-1") {
+      throw new Error("Runtime DDL prevention failed: install/reconcile returned unexpected school scope.");
+    }
+
+    const schemaObjectsAfter = await dbClient.execute(
+      `SELECT type, name, tbl_name AS tableName, sql FROM sqlite_master WHERE type IN ('table', 'index') AND name NOT LIKE 'sqlite_%' ORDER BY type, name`,
+    );
+
+    if (JSON.stringify(schemaObjectsBefore.rows) !== JSON.stringify(schemaObjectsAfter.rows)) {
+      throw new Error("Runtime DDL prevention failed: install/reconcile mutated sqlite_master schema objects.");
+    }
+
+    const ddlSentinelsAfter = await Promise.all([
+      dbClient.execute(`SELECT COUNT(*) AS count FROM plugin_ext_lesson`),
+      dbClient.execute(`SELECT COUNT(*) AS count FROM plugin_ext_lesson_step`),
+      dbClient.execute(`SELECT COUNT(*) AS count FROM plugin_ext_resource`),
+      dbClient.execute(`SELECT COUNT(*) AS count FROM plugin_owned_business_data`),
+    ]);
+
+    for (let index = 0; index < ddlSentinelsBefore.length; index++) {
+      const before = Number(ddlSentinelsBefore[index]!.rows[0]?.count ?? 0);
+      const after = Number(ddlSentinelsAfter[index]!.rows[0]?.count ?? 0);
+      if (before !== after) {
+        throw new Error("Runtime DDL prevention failed: install/reconcile wrote governed plugin data rows.");
+      }
+    }
+
+    const registrationCount = await dbClient.execute(`SELECT COUNT(*) AS count FROM pluginRegistration WHERE id = ?`, [created.id]);
+    const transitionCount = await dbClient.execute(`SELECT COUNT(*) AS count FROM pluginLifecycleTransition WHERE pluginId = ?`, [created.id]);
+
+    if (Number(registrationCount.rows[0]?.count ?? 0) !== 1) {
+      throw new Error("Runtime DDL prevention failed: install/reconcile did not persist plugin registration row.");
+    }
+
+    if (Number(transitionCount.rows[0]?.count ?? 0) !== 1) {
+      throw new Error("Runtime DDL prevention failed: install/reconcile did not persist lifecycle transition row.");
+    }
+
+    await dbClient.close();
+  } finally {
+    await Promise.all(beforeClients.map((client) => client.close()));
+    if (previousDbFile === undefined) {
+      delete process.env.DB_FILE_NAME;
+    } else {
+      process.env.DB_FILE_NAME = previousDbFile;
+    }
+  }
+}
+
+function clientFor(databaseUrl: string) {
+  return createClient({ url: databaseUrl });
+}
+
+async function seedVerificationFixtures(client: ReturnType<typeof createClient>) {
+  const statements = [
+    `INSERT INTO user (id, name, email, studentNumber, gender, emailVerified, password, image) VALUES ('teacher-1', 'Teacher One', 'teacher-1@example.com', NULL, NULL, NULL, NULL, NULL)`,
+    `INSERT INTO school (id, name, createdAt) VALUES ('school-1', 'School One', 0)`,
+  ];
+
+  for (const statement of statements) {
+    await client.execute(statement);
+  }
 }
 
 async function runVerification() {
@@ -126,12 +316,8 @@ async function runVerification() {
       }
 
       const columns = tableInfoResult.rows.map((row) => String(row.name));
-      const requiredColumns = ["id", "schoolId", "pluginId", "payloadJson"];
-      if (table.exportName.endsWith("OwnedBusinessData")) {
-        requiredColumns.push("key");
-      }
 
-      for (const reqCol of requiredColumns) {
+      for (const reqCol of table.expectedColumns) {
         if (!columns.includes(reqCol)) {
           throw new Error(
             `Physical SQLite validation failed: Column '${reqCol}' not found in '${table.physicalName}' table.`
@@ -143,19 +329,27 @@ async function runVerification() {
         (row) => !String(row.name ?? "").startsWith("sqlite_autoindex"),
       );
 
-      if (explicitIndexes.length === 0) {
-        throw new Error(`Physical SQLite validation failed: Governed plugin data table '${table.physicalName}' has no explicit indexes.`);
+      if (explicitIndexes.length !== 1) {
+        throw new Error(
+          `Physical SQLite validation failed: Governed plugin data table '${table.physicalName}' expected exactly 1 explicit index but received ${explicitIndexes.length}.`,
+        );
       }
 
-      for (const indexRow of explicitIndexes) {
-        const indexName = String(indexRow.name ?? "");
-        if (!hasGovernedPluginPrefix(indexName)) {
-          throw new Error(
-            `Physical SQLite validation failed: Governed plugin data index '${indexName}' on '${table.physicalName}' must start with plugin_ext_ or plugin_owned_.`,
-          );
-        }
-        await assertIndex(client, table.physicalName, indexName, Number(indexRow.unique ?? 0) === 1);
+      const indexName = String(explicitIndexes[0]?.name ?? "");
+      if (indexName !== table.expectedUniqueIndexName) {
+        throw new Error(
+          `Physical SQLite validation failed: Governed plugin data table '${table.physicalName}' expected index '${table.expectedUniqueIndexName}' but found '${indexName}'.`,
+        );
       }
+
+      if (!hasGovernedPluginPrefix(indexName)) {
+        throw new Error(
+          `Physical SQLite validation failed: Governed plugin data index '${indexName}' on '${table.physicalName}' must start with plugin_ext_ or plugin_owned_.`,
+        );
+      }
+
+      await assertIndex(client, table.physicalName, indexName, true);
+      await assertIndexColumns(client, indexName, table.expectedUniqueColumns);
 
       console.log(`  ✓ Table '${table.physicalName}' and governed indexes verified successfully.`);
     }
@@ -214,19 +408,24 @@ async function runVerification() {
   const packageSource = read("package.json");
   const dalSource = read("src/lib/dal/plugin-migration.ts");
   const pluginsDalSource = read("src/lib/dal/plugins.ts");
+  const runtimeDatabasePath = path.join("/tmp/opencode", `phase46-runtime-${randomUUID()}.db`);
+  const runtimeDatabaseUrl = `file:${runtimeDatabasePath}`;
 
-  // 2-3. DDL 运行时预防检查
+  const runtimeClient = await materializeDrizzleMigrations(runtimeDatabaseUrl);
+  try {
+    await seedVerificationFixtures(runtimeClient);
+  } finally {
+    await (runtimeClient as { close?: () => Promise<void> | void }).close?.();
+  }
+
+  await assertInstallReconcileUsesDmlOnly(runtimeDatabaseUrl);
+  cleanupSqliteArtifacts(runtimeDatabasePath);
+
   const runtimePreventionPassed =
     !pluginsDalSource.includes("db.execute(") &&
     !pluginsDalSource.includes("db.run(") &&
-    !pluginsDalSource.includes("CREATE TABLE") &&
-    !pluginsDalSource.includes("ALTER TABLE") &&
-    !pluginsDalSource.includes("DROP TABLE") &&
     !dalSource.includes("db.execute(") &&
-    !dalSource.includes("db.run(") &&
-    !dalSource.includes("CREATE TABLE") &&
-    !dalSource.includes("ALTER TABLE") &&
-    !dalSource.includes("DROP TABLE");
+    !dalSource.includes("db.run(");
 
   const staticChecks: StaticCheck[] = [
     {

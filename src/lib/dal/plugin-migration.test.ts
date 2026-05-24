@@ -6,16 +6,50 @@ import { createClient } from "@libsql/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cleanupSqliteArtifacts, materializeDrizzleMigrations } from "../../../scripts/lib/sqlite-migration-proof";
+import type { PluginManifest } from "@/lib/dto/resource-ai";
 
 vi.mock("server-only", () => ({}));
 
 const assertActiveTeacher = vi.fn();
+const getUserMembershipsDTO = vi.fn();
+const registerThemeTokens = vi.fn();
+const dispatchPluginAction = vi.fn();
 
 vi.mock("@/lib/dal/lesson-authoring", () => ({
   assertActiveTeacher,
 }));
 
+vi.mock("@/lib/dal/membership", () => ({
+  getUserMembershipsDTO,
+}));
+
+vi.mock("@/lib/dal/themes", () => ({
+  registerThemeTokens,
+}));
+
+vi.mock("@/server/plugins/registry", () => ({
+  dispatchPluginAction,
+  PLUGIN_ACTION_PERMISSION_REQUIREMENTS: {
+    addStepSuggestion: "lesson:write:suggestion",
+  },
+}));
+
 const pluginsSource = readFileSync("src/lib/dal/plugins.ts", "utf8");
+
+function createManifest(overrides: Partial<PluginManifest> = {}): PluginManifest {
+  return {
+    id: "vendor/plugin-name",
+    version: "1.0.0",
+    manifestVersion: 1,
+    permissions: [],
+    anchors: ["dashboard.widget"],
+    actions: ["addStepSuggestion"],
+    builtIn: false,
+    defaultEnabled: false,
+    nonDeletable: false,
+    ...overrides,
+  };
+}
 
 type MigrationModule = typeof import("./plugin-migration");
 type DbModule = typeof import("@/db");
@@ -139,6 +173,19 @@ async function getCount(client: ReturnType<typeof createClient>, tableName: stri
   return Number(result.rows[0]?.count ?? 0);
 }
 
+async function getSchemaObjects(client: ReturnType<typeof createClient>) {
+  const result = await client.execute(
+    `SELECT type, name, tbl_name AS tableName, sql FROM sqlite_master WHERE type IN ('table', 'index') AND name NOT LIKE 'sqlite_%' ORDER BY type, name`,
+  );
+
+  return result.rows.map((row) => ({
+    type: String(row.type),
+    name: String(row.name),
+    tableName: String(row.tableName),
+    sql: row.sql == null ? null : String(row.sql),
+  }));
+}
+
 async function getLessonExtensionRows(client: ReturnType<typeof createClient>) {
   const result = await client.execute(
     `SELECT schoolId, pluginId, lessonId, payloadJson FROM plugin_ext_lesson ORDER BY lessonId ASC`,
@@ -212,6 +259,9 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       userId: "teacher-1",
       schoolIds: ["school-1"],
     });
+    getUserMembershipsDTO.mockResolvedValue([{ schoolId: "school-1", status: "active" }]);
+    registerThemeTokens.mockResolvedValue({ id: "theme-1" });
+    dispatchPluginAction.mockResolvedValue({ proposalType: "unknown", payload: {}, denied: true });
   });
 
   afterEach(async () => {
@@ -320,6 +370,45 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       ]);
     });
 
+    it("should only backfill lessons owned by the acting teacher inside the same school", async () => {
+      const { migrationModule } = await loadSubject();
+
+      await client.execute(
+        `INSERT INTO course (id, schoolId, ownerId, title, subject, grade, status, createdAt, updatedAt) VALUES ('course-3', 'school-1', 'teacher-2', 'Course Three', 'math', 'grade-1', 'draft', 0, 0)`,
+      );
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+        pluginKeyPayload: { reminderRule: "daily" },
+      });
+      await seedLesson(client, {
+        lessonId: "lesson-3",
+        publishedVersionId: "pub-3",
+        courseId: "course-3",
+        createdById: "teacher-2",
+        pluginKeyPayload: { reminderRule: "manager-only" },
+      });
+
+      const result = await migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson");
+
+      expect(result).toEqual({
+        processed: 1,
+        succeeded: 1,
+        failed: 0,
+        errors: [],
+      });
+      await expect(getLessonExtensionRows(client)).resolves.toEqual([
+        {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          lessonId: "lesson-1",
+          payloadJson: { reminderRule: "daily" },
+        },
+      ]);
+    });
+
     it("should backfill step payloads through real where filtering", async () => {
       const { migrationModule } = await loadSubject();
 
@@ -344,6 +433,53 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
         stepId: "step-2",
         lessonId: "lesson-2",
         pluginKeyPayload: { stepConfig: "other-school" },
+      });
+
+      const result = await migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "step");
+
+      expect(result).toEqual({
+        processed: 1,
+        succeeded: 1,
+        failed: 0,
+        errors: [],
+      });
+      await expect(getStepExtensionRows(client)).resolves.toEqual([
+        {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          lessonStepId: "step-1",
+          payloadJson: { stepConfig: "interactive" },
+        },
+      ]);
+    });
+
+    it("should only backfill steps whose parent lesson belongs to the acting teacher", async () => {
+      const { migrationModule } = await loadSubject();
+
+      await client.execute(
+        `INSERT INTO course (id, schoolId, ownerId, title, subject, grade, status, createdAt, updatedAt) VALUES ('course-3', 'school-1', 'teacher-2', 'Course Three', 'math', 'grade-1', 'draft', 0, 0)`,
+      );
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+      });
+      await seedLesson(client, {
+        lessonId: "lesson-3",
+        publishedVersionId: "pub-3",
+        courseId: "course-3",
+        createdById: "teacher-2",
+      });
+      await seedLessonStep(client, {
+        stepId: "step-1",
+        lessonId: "lesson-1",
+        pluginKeyPayload: { stepConfig: "interactive" },
+      });
+      await seedLessonStep(client, {
+        stepId: "step-3",
+        lessonId: "lesson-3",
+        pluginKeyPayload: { stepConfig: "manager-only" },
       });
 
       const result = await migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "step");
@@ -589,10 +725,78 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
         core: true,
       });
     });
+
+    it("should not cut over lessons owned by another teacher in the same school", async () => {
+      const { migrationModule } = await loadSubject();
+
+      await client.execute(
+        `INSERT INTO course (id, schoolId, ownerId, title, subject, grade, status, createdAt, updatedAt) VALUES ('course-3', 'school-1', 'teacher-2', 'Course Three', 'math', 'grade-1', 'draft', 0, 0)`,
+      );
+      await seedLesson(client, {
+        lessonId: "lesson-1",
+        publishedVersionId: "pub-1",
+        courseId: "course-1",
+        createdById: "teacher-1",
+        pluginKeyPayload: { reminderRule: "daily" },
+      });
+      await seedLesson(client, {
+        lessonId: "lesson-3",
+        publishedVersionId: "pub-3",
+        courseId: "course-3",
+        createdById: "teacher-2",
+        pluginKeyPayload: { reminderRule: "manager-only" },
+      });
+      await insertLessonExtension(client, "lesson-1", { reminderRule: "daily" });
+      await insertLessonExtension(client, "lesson-3", { reminderRule: "manager-only" });
+
+      const result = await migrationModule.cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson");
+
+      expect(result).toEqual({
+        processed: 1,
+        succeeded: 1,
+        failed: 0,
+        errors: [],
+      });
+      await expect(getPublishedLessonPayload(client, "pub-1")).resolves.toEqual({});
+      await expect(getPublishedLessonPayload(client, "pub-3")).resolves.toEqual({
+        "vendor/plugin-1": { reminderRule: "manager-only" },
+      });
+    });
   });
 
-  describe("E. Static Verification & DDL Runtime Prevention Audit", () => {
-    it("proves plugin lifecycle and reconcile code is 100% free of raw execution/run DDL commands", () => {
+  describe("E. Runtime DDL Prevention Audit", () => {
+    it("proves install/reconcile writes plugin metadata and lifecycle audit rows without creating governed plugin data rows", async () => {
+      const { installOrReconcilePlugin } = await import("./plugins");
+
+      const schemaBefore = await getSchemaObjects(client);
+      const baselineCounts = {
+        registrations: await getCount(client, "pluginRegistration"),
+        lifecycleTransitions: await getCount(client, "pluginLifecycleTransition"),
+        lessonExt: await getCount(client, "plugin_ext_lesson"),
+        stepExt: await getCount(client, "plugin_ext_lesson_step"),
+        resourceExt: await getCount(client, "plugin_ext_resource"),
+        ownedBusiness: await getCount(client, "plugin_owned_business_data"),
+      };
+
+      const created = await installOrReconcilePlugin({
+        actorId: "teacher-1",
+        schoolId: "school-1",
+        name: "Plugin Three",
+        manifestJson: createManifest({ id: "vendor/plugin-three" }),
+        installSource: "manual",
+      });
+
+      expect(created.pluginKey).toBe("vendor/plugin-three");
+      await expect(getSchemaObjects(client)).resolves.toEqual(schemaBefore);
+      await expect(getCount(client, "pluginRegistration")).resolves.toBe(baselineCounts.registrations + 1);
+      await expect(getCount(client, "pluginLifecycleTransition")).resolves.toBe(baselineCounts.lifecycleTransitions + 1);
+      await expect(getCount(client, "plugin_ext_lesson")).resolves.toBe(baselineCounts.lessonExt);
+      await expect(getCount(client, "plugin_ext_lesson_step")).resolves.toBe(baselineCounts.stepExt);
+      await expect(getCount(client, "plugin_ext_resource")).resolves.toBe(baselineCounts.resourceExt);
+      await expect(getCount(client, "plugin_owned_business_data")).resolves.toBe(baselineCounts.ownedBusiness);
+    });
+
+    it("keeps plugin lifecycle DAL free of raw DDL execution calls", () => {
       expect(pluginsSource).not.toContain("db.execute(");
       expect(pluginsSource).not.toContain("db.run(");
       expect(pluginsSource).not.toContain("CREATE TABLE");
