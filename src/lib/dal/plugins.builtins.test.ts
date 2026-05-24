@@ -270,6 +270,57 @@ describe("built-in plugin template resolution", () => {
     });
   });
 
+  it("supports the classroom voting built-in teaching definition with a strict authoring contract", async () => {
+    const { BUILT_IN_TEACHING_STEP_DEFINITIONS } = await import("@/lib/dto/resource-ai");
+
+    const definition = BUILT_IN_TEACHING_STEP_DEFINITIONS.find((item) => item.builtInKey === "classroomVoting");
+
+    expect(definition).toBeTruthy();
+    expect(definition?.stepType).toBe("quiz");
+    expect(definition?.authoringContract).toMatchObject({
+      kind: "classroom-voting",
+      contractVersion: "v1",
+      runtimeContractVersion: "v2",
+      publicMetadata: {
+        builtInKey: "classroomVoting",
+        pluginKey: "builtin-teaching-step-classroom-voting",
+        pluginName: "课堂投票",
+        stepType: "quiz",
+      },
+    });
+    expect(definition?.authoringContract?.defaultConfig.options).toHaveLength(3);
+  });
+
+  it("hides the classroom voting built-in when the plugin contract version is incompatible", async () => {
+    const votingPlugin = createBuiltInPlugin({
+      id: "plugin-voting",
+      name: "课堂投票",
+      pluginKey: "builtin-teaching-step-classroom-voting",
+      manifestJson: {
+        id: "builtin-teaching-step-classroom-voting",
+        version: "1.0.0",
+        manifestVersion: 1,
+        anchors: ["lesson.sidebar"],
+        permissions: ["lesson:write:suggestion"],
+        actions: ["suggestBuiltInTeachingStep", "insertBuiltInTeachingStepTemplate"],
+        builtIn: true,
+        defaultEnabled: true,
+        nonDeletable: true,
+      },
+    });
+
+    findManyPluginRegistrations.mockResolvedValue([votingPlugin]);
+
+    const { listBuiltInTeachingStepTemplates } = await import("./plugins");
+    const templates = await listBuiltInTeachingStepTemplates({
+      actorId: "teacher-1",
+      schoolId: "school-1",
+    });
+
+    expect(templates).toEqual([]);
+    expect(dispatchPluginAction).not.toHaveBeenCalled();
+  });
+
   it("rejects manifest v2 runtime entries that point to remote bootstrap URLs", async () => {
     const { PluginManifestSchema } = await import("@/lib/dto/resource-ai");
 

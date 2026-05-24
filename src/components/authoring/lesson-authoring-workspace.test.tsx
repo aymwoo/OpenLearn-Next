@@ -7,12 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LessonAuthoringWorkspace } from "./lesson-authoring-workspace";
 
-const { reorderLessonStepAction } = vi.hoisted(() => ({
+const { addLessonStepAction, reorderLessonStepAction } = vi.hoisted(() => ({
+  addLessonStepAction: vi.fn(),
   reorderLessonStepAction: vi.fn(),
 }));
 
 vi.mock("@/actions/lesson-authoring-actions", () => ({
-  addLessonStepAction: vi.fn(),
+  addLessonStepAction,
   archiveLessonStepAction: vi.fn(),
   duplicateLessonStepAction: vi.fn(),
   reorderLessonStepAction,
@@ -31,6 +32,89 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("inserts classroom voting through the existing quiz step shell with only public built-in metadata", async () => {
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [],
+        } as any}
+        builtInTemplates={[
+          {
+            id: "plugin-voting",
+            pluginId: "plugin-voting",
+            builtInKey: "classroomVoting",
+            pluginName: "课堂投票",
+            title: "课堂投票",
+            summary: "发起单题课堂投票，快速收集全班选择并冻结正式配置。",
+            stepType: "quiz",
+            initialTitle: "课堂投票",
+            initialPayload: {
+              type: "quiz",
+              question: "你认为本题最合理的答案是？",
+              options: ["选项 A", "选项 B", "选项 C", "我还不确定"],
+              explanation: "这是课堂投票样板，不预设正确答案。",
+              allowRetry: false,
+              retryPolicy: "none",
+              revealCorrectAnswer: false,
+            },
+            authoringContract: {
+              kind: "classroom-voting",
+              contractVersion: "v1",
+              runtimeContractVersion: "v2",
+              publicMetadata: {
+                builtInKey: "classroomVoting",
+                pluginKey: "builtin-teaching-step-classroom-voting",
+                pluginName: "课堂投票",
+                stepType: "quiz",
+              },
+              defaultConfig: {
+                prompt: "请选择你当前更认可的判断。",
+                options: [
+                  { id: "option-a", label: "我支持方案 A" },
+                  { id: "option-b", label: "我支持方案 B" },
+                  { id: "option-c", label: "我还想再讨论" },
+                ],
+                allowMultiple: false,
+                anonymousResults: true,
+                showLiveResults: true,
+                participationWindowSeconds: 90,
+                resultsDisplay: "bar",
+              },
+              teacherSummary: "默认生成 3 个投票选项、90 秒作答窗口、匿名且展示实时结果。",
+            },
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "课堂投票" }));
+
+    await waitFor(() => {
+      expect(addLessonStepAction).toHaveBeenCalledWith({
+        lessonId: "lesson-1",
+        type: "quiz",
+        title: "课堂投票",
+        payload: {
+          type: "quiz",
+          question: "你认为本题最合理的答案是？",
+          options: ["选项 A", "选项 B", "选项 C", "我还不确定"],
+          explanation: "这是课堂投票样板，不预设正确答案。",
+          allowRetry: false,
+          retryPolicy: "none",
+          revealCorrectAnswer: false,
+          builtInSource: {
+            pluginId: "plugin-voting",
+            builtInKey: "classroomVoting",
+            pluginName: "课堂投票",
+          },
+        },
+      });
+    });
   });
 
   it("only renders enabled built-in teaching steps from the injected template list", () => {
