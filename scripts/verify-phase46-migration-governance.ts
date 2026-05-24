@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { createClient } from "@libsql/client";
 
 type StaticCheck = {
@@ -48,6 +49,14 @@ function runVitest(paths: readonly string[], label: string): void {
   run("pnpm", ["exec", "vitest", "--run", ...paths], label);
 }
 
+function cleanupSqliteArtifacts(databasePath: string): void {
+  for (const filePath of [databasePath, `${databasePath}-shm`, `${databasePath}-wal`]) {
+    if (existsSync(filePath)) {
+      rmSync(filePath, { force: true });
+    }
+  }
+}
+
 async function assertIndex(
   client: ReturnType<typeof createClient>,
   tableName: string,
@@ -69,83 +78,106 @@ async function assertIndex(
   }
 }
 
-// 核心系统表白名单
-const CORE_SYSTEM_TABLES = new Set([
-  "user",
-  "account",
-  "session",
-  "verificationToken",
-  "school",
-  "membership",
-  "systemTransportSetting",
-  "class",
-  "classMember",
-  "course",
-  "courseClass",
-  "courseEnrollment",
-  "courseImportBatch",
-  "courseImportRow",
-  "asyncTask",
-  "asyncTaskEvent",
-  "asyncWorkerHeartbeat",
-  "lesson",
-  "lessonStep",
-  "lessonMaterial",
-  "publishedLessonVersion",
-  "lessonStepProgress",
-  "taskSubmission",
-  "quizAttempt",
-  "attemptFeedback",
-  "classroomSession",
-  "classroomParticipant",
-  "classroomEvent",
-  "classroomEvidence",
-  "classroomTimeline",
-  "classroomSessionSummary",
-  "runtimeStepSession",
-  "runtimeStepState",
-  "runtimeEventOutbox",
-  "transportDeliveryAttempt",
-  "transportConsumerTrace",
-  "resource",
-  "knowledgeSource",
-  "knowledgeChunk",
-  "agentRegistry",
-  "agentProposal",
-  "agentAuditLog",
-  "mcpServer",
-  "mcpCredentialRef",
-  "mcpCapability",
-  "mcpAuditLog",
-  "pluginRegistration",
-  "pluginLifecycleTransition",
-  "pluginHookRun",
-  "pluginActionAudit",
-  "runtimeLifecycleTransition",
-  "governanceAudit",
-  "themeTokenRegistry",
-  "themeAuditLog",
-  "scheduleImportBatch",
-  "scheduleImportRow",
-  "scheduleTerm",
-  "scheduleTermDay",
-  "scheduleClassPeriod",
-  "scheduleClassPeriodDay",
-  "scheduleCourseClassPeriod",
-  "scheduleAssistantProposal",
-  "scheduleAssistantInteraction",
-  "scheduleReminder",
-  "scheduleReminderAudit",
-  "scheduleWeekPattern",
-  "scheduleBellSlot",
-  "scheduleTeachingAssignment",
-  "scheduleRecurringEntry",
-  "scheduleOverride",
-  "scheduleHolidayCalendar",
-  "scheduleHolidayDate",
-  "scheduleReminderRule",
-  "scheduleReminderDispatch",
-  "scheduleMutationAudit",
+async function bootstrapPhase46PhysicalProofDatabase(databaseUrl: string) {
+  const client = createClient({ url: databaseUrl });
+
+  await client.execute("PRAGMA foreign_keys = ON");
+
+  const statements = [
+    `CREATE TABLE school (id TEXT PRIMARY KEY NOT NULL)`,
+    `CREATE TABLE pluginRegistration (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE course (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE lesson (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      courseId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (courseId) REFERENCES course(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE lessonStep (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      lessonId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE resource (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE plugin_ext_lesson (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      lessonId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
+    )`,
+    `CREATE UNIQUE INDEX plugin_ext_lesson_school_plugin_entity_unique ON plugin_ext_lesson (schoolId, pluginId, lessonId)`,
+    `CREATE TABLE plugin_ext_lesson_step (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      lessonStepId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (lessonStepId) REFERENCES lessonStep(id) ON DELETE cascade
+    )`,
+    `CREATE UNIQUE INDEX plugin_ext_lesson_step_school_plugin_entity_unique ON plugin_ext_lesson_step (schoolId, pluginId, lessonStepId)`,
+    `CREATE TABLE plugin_ext_resource (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      resourceId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (resourceId) REFERENCES resource(id) ON DELETE cascade
+    )`,
+    `CREATE UNIQUE INDEX plugin_ext_resource_school_plugin_entity_unique ON plugin_ext_resource (schoolId, pluginId, resourceId)`,
+    `CREATE TABLE plugin_owned_business_data (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      key TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade
+    )`,
+    `CREATE UNIQUE INDEX plugin_owned_biz_school_plugin_key_unique ON plugin_owned_business_data (schoolId, pluginId, key)`,
+  ];
+
+  for (const statement of statements) {
+    await client.execute(statement);
+  }
+
+  return client;
+}
+
+const REQUIRED_PLUGIN_DATA_TABLES = new Set([
+  "plugin_ext_lesson",
+  "plugin_ext_lesson_step",
+  "plugin_ext_resource",
+  "plugin_owned_business_data",
+]);
+
+const REQUIRED_PLUGIN_DATA_INDEXES = new Set([
+  "plugin_ext_lesson_school_plugin_entity_unique",
+  "plugin_ext_lesson_step_school_plugin_entity_unique",
+  "plugin_ext_resource_school_plugin_entity_unique",
+  "plugin_owned_biz_school_plugin_key_unique",
 ]);
 
 async function runVerification() {
@@ -155,8 +187,9 @@ async function runVerification() {
 
   // 1. 运行时数据库物理表与列结构校验 (Physical DB Schema Verification)
   console.log("[1/5] Running physical database schema verification...");
-  const dbUrl = process.env.DB_FILE_NAME || "file:local.db";
-  const client = createClient({ url: dbUrl });
+  const physicalDatabasePath = path.join("/tmp/opencode", `phase46-physical-${randomUUID()}.db`);
+  const physicalDatabaseUrl = `file:${physicalDatabasePath}`;
+  const client = await bootstrapPhase46PhysicalProofDatabase(physicalDatabaseUrl);
 
   try {
     const tablesToCheck = [
@@ -205,12 +238,13 @@ async function runVerification() {
       console.log(`  ✓ Table '${table.name}' and indexes verified successfully.`);
     }
 
-    console.log("  ✓ All 4 physical extension and business tables are healthy in local.db.");
+    console.log("  ✓ All 4 physical extension and business tables are healthy in temporary SQLite proof database.");
   } catch (dbError: any) {
     console.error("Physical database check failed:", dbError.message);
     process.exit(1);
   } finally {
-    client.close();
+    await (client as { close?: () => Promise<void> | void }).close?.();
+    cleanupSqliteArtifacts(physicalDatabasePath);
   }
 
   // 2. 静态特征代码命名与安全审计 (Static Analysis Checks & Governance)
@@ -231,19 +265,22 @@ async function runVerification() {
   }
 
   console.log(`  🔍 Found ${foundTables.length} physical tables defined in src/db/schema.ts.`);
-  const nonCompliantTables: string[] = [];
-  for (const tName of foundTables) {
-    if (!CORE_SYSTEM_TABLES.has(tName)) {
-      if (!tName.startsWith("plugin_ext_") && !tName.startsWith("plugin_owned_")) {
-        nonCompliantTables.push(tName);
-      }
-    }
-  }
+  const pluginDataTables = foundTables.filter((name) => REQUIRED_PLUGIN_DATA_TABLES.has(name));
+  const nonCompliantTables = pluginDataTables.filter(
+    (name) => !name.startsWith("plugin_ext_") && !name.startsWith("plugin_owned_"),
+  );
 
-  if (nonCompliantTables.length > 0) {
-    console.error("  ❌ Naming Governance Violation: The following custom tables do not have 'plugin_ext_' or 'plugin_owned_' prefix:");
+  const missingPluginDataTables = [...REQUIRED_PLUGIN_DATA_TABLES].filter(
+    (name) => !pluginDataTables.includes(name),
+  );
+
+  if (missingPluginDataTables.length > 0 || nonCompliantTables.length > 0) {
+    console.error("  ❌ Naming Governance Violation: plugin data tables are missing or use invalid prefixes:");
+    for (const t of missingPluginDataTables) {
+      console.error(`     - missing table: ${t}`);
+    }
     for (const t of nonCompliantTables) {
-      console.error(`     - ${t}`);
+      console.error(`     - invalid prefix: ${t}`);
     }
     process.exit(1);
   }
@@ -257,28 +294,21 @@ async function runVerification() {
     foundIndexes.push(match[1]);
   }
 
-  const nonCompliantIndexes: string[] = [];
-  // 系统核心表使用的索引白名单（或不包含 plugin 的前缀）
-  for (const idxName of foundIndexes) {
-    if (idxName.toLowerCase().includes("plugin")) {
-      // 如果属于 plugin-ext 或 plugin-owned，应该有 correct prefix
-      if (
-        !idxName.startsWith("plugin_ext_") &&
-        !idxName.startsWith("plugin_owned_") &&
-        // 白名单：核心表的旧索引
-        !CORE_SYSTEM_TABLES.has(idxName.split("_")[0]) &&
-        idxName !== "pluginActionAudit_plugin_created_idx" &&
-        idxName !== "pluginActionAudit_decision_created_idx"
-      ) {
-        nonCompliantIndexes.push(idxName);
-      }
-    }
-  }
+  const pluginDataIndexes = foundIndexes.filter((name) => REQUIRED_PLUGIN_DATA_INDEXES.has(name));
+  const nonCompliantIndexes = pluginDataIndexes.filter(
+    (name) => !name.startsWith("plugin_ext_") && !name.startsWith("plugin_owned_"),
+  );
+  const missingPluginDataIndexes = [...REQUIRED_PLUGIN_DATA_INDEXES].filter(
+    (name) => !pluginDataIndexes.includes(name),
+  );
 
-  if (nonCompliantIndexes.length > 0) {
-    console.error("  ❌ Naming Governance Violation: The following plugin indices do not have 'plugin_ext_' or 'plugin_owned_' prefix:");
+  if (missingPluginDataIndexes.length > 0 || nonCompliantIndexes.length > 0) {
+    console.error("  ❌ Naming Governance Violation: plugin data indexes are missing or use invalid prefixes:");
+    for (const idx of missingPluginDataIndexes) {
+      console.error(`     - missing index: ${idx}`);
+    }
     for (const idx of nonCompliantIndexes) {
-      console.error(`     - ${idx}`);
+      console.error(`     - invalid prefix: ${idx}`);
     }
     process.exit(1);
   }

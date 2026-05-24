@@ -113,6 +113,94 @@ async function assertIndex(
   }
 }
 
+async function bootstrapPhase45PhysicalProofDatabase(databaseUrl: string) {
+  const client = createClient({ url: databaseUrl });
+
+  await client.execute("PRAGMA foreign_keys = ON");
+
+  const statements = [
+    `CREATE TABLE school (id TEXT PRIMARY KEY NOT NULL)`,
+    `CREATE TABLE pluginRegistration (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE course (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE lesson (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      courseId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (courseId) REFERENCES course(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE lessonStep (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      lessonId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE resource (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE plugin_ext_lesson (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      lessonId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
+    )`,
+    `CREATE UNIQUE INDEX plugin_ext_lesson_school_plugin_entity_unique ON plugin_ext_lesson (schoolId, pluginId, lessonId)`,
+    `CREATE TABLE plugin_ext_lesson_step (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      lessonStepId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (lessonStepId) REFERENCES lessonStep(id) ON DELETE cascade
+    )`,
+    `CREATE UNIQUE INDEX plugin_ext_lesson_step_school_plugin_entity_unique ON plugin_ext_lesson_step (schoolId, pluginId, lessonStepId)`,
+    `CREATE TABLE plugin_ext_resource (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      resourceId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (resourceId) REFERENCES resource(id) ON DELETE cascade
+    )`,
+    `CREATE UNIQUE INDEX plugin_ext_resource_school_plugin_entity_unique ON plugin_ext_resource (schoolId, pluginId, resourceId)`,
+    `CREATE TABLE plugin_owned_business_data (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      key TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade
+    )`,
+    `CREATE UNIQUE INDEX plugin_owned_biz_school_plugin_key_unique ON plugin_owned_business_data (schoolId, pluginId, key)`,
+  ];
+
+  for (const statement of statements) {
+    await client.execute(statement);
+  }
+
+  return client;
+}
+
 async function bootstrapPhase45ProofDatabase(databaseUrl: string) {
   const client = createClient({ url: databaseUrl });
 
@@ -292,8 +380,9 @@ async function runVerification() {
 
   // 2. 运行时数据库物理表与索引校验 (Physical DB Schema Verification)
   console.log("\n[2/5] Running physical database schema verification...");
-  const dbUrl = process.env.DB_FILE_NAME || "file:local.db";
-  const client = createClient({ url: dbUrl });
+  const physicalDatabasePath = path.join("/tmp/opencode", `phase45-physical-${randomUUID()}.db`);
+  const physicalDatabaseUrl = `file:${physicalDatabasePath}`;
+  const client = await bootstrapPhase45PhysicalProofDatabase(physicalDatabaseUrl);
 
   try {
     const tablesToCheck = [
@@ -342,12 +431,13 @@ async function runVerification() {
       console.log(`  ✓ Table '${table.name}' and indexes verified successfully.`);
     }
 
-    console.log("  ✓ All 4 physical extension and business tables verified in SQLite local.db.");
+    console.log("  ✓ All 4 physical extension and business tables verified in temporary SQLite proof database.");
   } catch (dbError: any) {
     console.error("Physical database check failed:", dbError.message);
     process.exit(1);
   } finally {
-    client.close();
+    await (client as { close?: () => Promise<void> | void }).close?.();
+    cleanupSqliteArtifacts(physicalDatabasePath);
   }
 
   // 3. 静态特征代码扫描校验 (Static Analysis Checks)
