@@ -11,6 +11,7 @@ import {
 
 import { PluginManifestGovernanceV2Schema } from "@/features/runtime-platform/contracts/descriptors";
 import { PluginPermissionSchema, PluginLifecycleStateSchema } from "@/features/runtime-platform/contracts/permissions";
+import { RUNTIME_CONTRACT_VERSION } from "@/features/runtime-platform/contracts/version";
 import { BuiltInTeachingStepKeySchema, lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
 import {
   TEACHER_THEME_ROUTE_KEYS,
@@ -410,6 +411,38 @@ export type PluginProposalType = z.infer<typeof PluginProposalTypeSchema>;
 
 export type BuiltInTeachingStepKey = z.infer<typeof BuiltInTeachingStepKeySchema>;
 
+export const ClassroomVotingOptionSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+});
+export type ClassroomVotingOption = z.infer<typeof ClassroomVotingOptionSchema>;
+
+export const ClassroomVotingAuthoringConfigSchema = z.object({
+  prompt: z.string().min(1),
+  options: z.array(ClassroomVotingOptionSchema).min(2).max(6),
+  allowMultiple: z.boolean().default(false),
+  anonymousResults: z.boolean().default(true),
+  showLiveResults: z.boolean().default(true),
+  participationWindowSeconds: z.number().int().min(15).max(600).default(90),
+  resultsDisplay: z.enum(["bar", "column", "compact"]).default("bar"),
+}).strict();
+export type ClassroomVotingAuthoringConfig = z.infer<typeof ClassroomVotingAuthoringConfigSchema>;
+
+export const ClassroomVotingAuthoringContractSchema = z.object({
+  kind: z.literal("classroom-voting"),
+  contractVersion: z.literal("v1").default("v1"),
+  runtimeContractVersion: z.literal(RUNTIME_CONTRACT_VERSION).default(RUNTIME_CONTRACT_VERSION),
+  publicMetadata: z.object({
+    builtInKey: z.literal("classroomVoting"),
+    pluginKey: z.string().min(1),
+    pluginName: z.string().min(1),
+    stepType: z.literal("quiz"),
+  }).strict(),
+  defaultConfig: ClassroomVotingAuthoringConfigSchema,
+  teacherSummary: z.string().min(1),
+}).strict();
+export type ClassroomVotingAuthoringContract = z.infer<typeof ClassroomVotingAuthoringContractSchema>;
+
 export const BuiltInTeachingStepTemplatePayloadSchema = z.object({
   builtInKey: BuiltInTeachingStepKeySchema,
   pluginKey: z.string().nullable().optional(),
@@ -419,6 +452,7 @@ export const BuiltInTeachingStepTemplatePayloadSchema = z.object({
   stepType: z.enum(["content", "task", "quiz"]),
   initialTitle: z.string(),
   initialPayload: lessonStepPayloadSchema,
+  authoringContract: ClassroomVotingAuthoringContractSchema.optional(),
 });
 export type BuiltInTeachingStepTemplatePayload = z.infer<typeof BuiltInTeachingStepTemplatePayloadSchema>;
 
@@ -508,6 +542,49 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
           "runtime:submission:create",
         ],
       },
+    },
+  },
+  {
+    builtInKey: "classroomVoting",
+    pluginKey: "builtin-teaching-step-classroom-voting",
+    pluginName: "课堂投票",
+    title: "课堂投票",
+    summary: "发起单题课堂投票，快速收集全班选择并冻结正式配置。",
+    stepType: "quiz",
+    initialTitle: "课堂投票",
+    initialPayload: {
+      type: "quiz",
+      question: "你认为本题最合理的答案是？",
+      options: ["选项 A", "选项 B", "选项 C", "我还不确定"],
+      explanation: "这是课堂投票样板，不预设正确答案。",
+      allowRetry: false,
+      retryPolicy: "none",
+      revealCorrectAnswer: false,
+    },
+    authoringContract: {
+      kind: "classroom-voting",
+      contractVersion: "v1",
+      runtimeContractVersion: RUNTIME_CONTRACT_VERSION,
+      publicMetadata: {
+        builtInKey: "classroomVoting",
+        pluginKey: "builtin-teaching-step-classroom-voting",
+        pluginName: "课堂投票",
+        stepType: "quiz",
+      },
+      defaultConfig: {
+        prompt: "请选择你当前更认可的判断。",
+        options: [
+          { id: "option-a", label: "我支持方案 A" },
+          { id: "option-b", label: "我支持方案 B" },
+          { id: "option-c", label: "我还想再讨论" },
+        ],
+        allowMultiple: false,
+        anonymousResults: true,
+        showLiveResults: true,
+        participationWindowSeconds: 90,
+        resultsDisplay: "bar",
+      },
+      teacherSummary: "默认生成 3 个投票选项、90 秒作答窗口、匿名且展示实时结果。",
     },
   },
   {

@@ -6,6 +6,7 @@ const builtInTeachingStepKeys = [
   "directInstruction",
   "markdownDeck",
   "htmlCourseware",
+  "classroomVoting",
   "survey",
   "inquiry",
   "inClassQuiz",

@@ -71,7 +71,7 @@ const stepComposerActions = [
   },
 ] as const;
 
-const builtInTeachingStepButtonOrder = ["教师讲授", "问卷调查", "学生探究", "课堂测验", "评价"] as const;
+const builtInTeachingStepButtonOrder = ["教师讲授", "课堂投票", "问卷调查", "学生探究", "课堂测验", "评价"] as const;
 const libraryFilters = [
   { id: "all", label: "全部" },
   { id: "generic", label: "普通步骤" },
@@ -155,14 +155,25 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
     await addLessonStepAction({ lessonId: lesson.lesson.id, type, title: type === "content" ? "新内容" : type === "task" ? "新任务" : "新测验", payload });
   }
 
-  async function addBuiltInStep(definition: Pick<BuiltInTeachingStepTemplatePayload, "stepType" | "initialTitle" | "initialPayload">) {
+  async function addBuiltInStep(definition: BuiltInTemplateForAuthoring) {
     if (!lesson) return;
+
+    const payload = definition.authoringContract?.kind === "classroom-voting"
+      ? {
+          ...definition.initialPayload,
+          builtInSource: {
+            pluginId: definition.pluginId,
+            builtInKey: definition.builtInKey,
+            pluginName: definition.pluginName,
+          },
+        }
+      : definition.initialPayload;
 
     await addLessonStepAction({
       lessonId: lesson.lesson.id,
       type: definition.stepType,
       title: definition.initialTitle,
-      payload: definition.initialPayload,
+      payload,
     });
   }
 

@@ -20,6 +20,7 @@ import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { PluginActionInput, PluginActionResult, PluginManifest, PluginManifestSchema, PluginRegistrationDTO, PluginRegistrationDTOSchema } from "@/lib/dto/resource-ai";
 import { dispatchPluginAction, PLUGIN_ACTION_PERMISSION_REQUIREMENTS } from "@/server/plugins/registry";
 import { registerThemeTokens } from "@/lib/dal/themes";
+import { RUNTIME_CONTRACT_VERSION } from "@/features/runtime-platform/contracts/version";
 
 import type { PluginGovernanceProjectionInput } from "@/features/platform-core/plugins/governance-projection";
 
@@ -1284,16 +1285,30 @@ export async function runPluginHook(input: RunPluginHookInput) {
 }
 
 const BUILT_IN_TEMPLATE_ACTION = "insertBuiltInTeachingStepTemplate" as const;
+const VOTING_TEMPLATE_PLUGIN_KEY = "builtin-teaching-step-classroom-voting" as const;
 
 function canResolveBuiltInTemplate(plugin: PluginRegistrationDTO) {
   return plugin.builtIn && plugin.enabled && plugin.manifestJson.actions.includes(BUILT_IN_TEMPLATE_ACTION);
+}
+
+function isBuiltInTemplateCompatible(plugin: PluginRegistrationDTO) {
+  if (!canResolveBuiltInTemplate(plugin)) {
+    return false;
+  }
+
+  if (plugin.pluginKey !== VOTING_TEMPLATE_PLUGIN_KEY) {
+    return true;
+  }
+
+  return plugin.manifestJson.manifestVersion === 2
+    && plugin.manifestJson.governance?.contractVersion === RUNTIME_CONTRACT_VERSION;
 }
 
 export async function listBuiltInTeachingStepTemplates(input: PluginManagerScopeInput) {
   const plugins = await listPluginsForSchool(input);
 
   const templates = await Promise.all(
-    plugins.filter(canResolveBuiltInTemplate).map(async (plugin) => {
+    plugins.filter(isBuiltInTemplateCompatible).map(async (plugin) => {
       const result = await runPluginHook({
         actorId: input.actorId,
         pluginId: plugin.id,
@@ -1323,7 +1338,7 @@ export async function listBuiltInTeachingStepTemplates(input: PluginManagerScope
 
 export async function getBuiltInTeachingStepTemplateForSchool(input: PluginBySchoolInput) {
   const plugin = await getPluginForSchool(input);
-  if (!plugin || !canResolveBuiltInTemplate(plugin)) {
+  if (!plugin || !isBuiltInTemplateCompatible(plugin)) {
     return null;
   }
 
