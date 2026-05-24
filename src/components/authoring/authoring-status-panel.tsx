@@ -23,6 +23,10 @@ const issueLabels: Record<LessonPublishIssueDTO["code"], string> = {
   NO_ACTIVE_STEPS: "没有有效步骤",
   STEP_PAYLOAD_INVALID: "步骤内容结构无效",
   BUILT_IN_PLUGIN_UNAVAILABLE: "内置教学环节当前不可用",
+  VOTING_PLUGIN_CONFIG_MISSING: "课堂投票缺少可发布配置",
+  VOTING_PLUGIN_CONFIG_INVALID: "课堂投票配置不合法",
+  VOTING_PLUGIN_DISABLED: "课堂投票插件当前已停用",
+  VOTING_PLUGIN_INCOMPATIBLE: "课堂投票插件版本不兼容",
 };
 
 const preparationIssueLabels: Record<LessonPreparationIssueDTO["code"], string> = {
@@ -31,6 +35,10 @@ const preparationIssueLabels: Record<LessonPreparationIssueDTO["code"], string> 
   NO_ACTIVE_STEPS: "没有有效步骤",
   STEP_PAYLOAD_INVALID: "步骤内容结构无效",
   BUILT_IN_PLUGIN_UNAVAILABLE: "内置教学环节当前不可用",
+  VOTING_PLUGIN_CONFIG_MISSING: "课堂投票缺少可发布配置",
+  VOTING_PLUGIN_CONFIG_INVALID: "课堂投票配置不合法",
+  VOTING_PLUGIN_DISABLED: "课堂投票插件当前已停用",
+  VOTING_PLUGIN_INCOMPATIBLE: "课堂投票插件版本不兼容",
   TEACHING_DESIGN_NEEDS_REFINEMENT: "教学设计仍需完善",
   TEACHING_DESIGN_INFERRED: "仍在使用默认推断",
   MATERIAL_CUES_MISSING: "缺少材料提示",

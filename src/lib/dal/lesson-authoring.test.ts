@@ -132,6 +132,7 @@ describe("lesson authoring DAL boundary", () => {
       {
         id: "plugin-1",
         schoolId: "school-1",
+        pluginKey: "builtin-teaching-step-direct-instruction",
         name: "教师讲授",
         enabled: true,
         killSwitchEnabled: false,
@@ -179,7 +180,7 @@ describe("lesson authoring DAL boundary", () => {
     expect(source).toContain("url: asset.resourceId");
     expect(source).toContain("note: input.payload.markdown.renderMode");
     expect(source).toContain("materials: editor.materials");
-    expect(source).toContain("steps: editor.steps.filter((step) => !step.archivedAt)");
+    expect(source).toContain("const frozenSteps = editor.steps.filter((step) => !step.archivedAt).map((step) => {");
   });
 
   it("persists updated lesson step payloads and bumps lesson revision", () => {
@@ -468,10 +469,11 @@ describe("lesson authoring DAL boundary", () => {
 
     findManyLessonSteps.mockResolvedValue(votingStep ? [votingStep] : []);
 
-    findManyPluginRegistrations.mockResolvedValueOnce([
+    findManyPluginRegistrations.mockResolvedValue([
       {
         id: "plugin-voting",
         schoolId: "school-1",
+        pluginKey: "builtin-teaching-step-classroom-voting",
         name: "课堂投票",
         enabled: true,
         killSwitchEnabled: false,
@@ -483,7 +485,7 @@ describe("lesson authoring DAL boundary", () => {
         },
       },
     ]);
-    listPluginStepExtensions.mockResolvedValueOnce([]);
+    listPluginStepExtensions.mockResolvedValue([]);
 
     const missingConfig = await (dal.getLessonPublishReadinessDTO as (input: { lessonId: string }) => Promise<{
       canPublish: boolean;
@@ -497,10 +499,11 @@ describe("lesson authoring DAL boundary", () => {
       ])
     );
 
-    findManyPluginRegistrations.mockResolvedValueOnce([
+    findManyPluginRegistrations.mockResolvedValue([
       {
         id: "plugin-voting",
         schoolId: "school-1",
+        pluginKey: "builtin-teaching-step-classroom-voting",
         name: "课堂投票",
         enabled: true,
         killSwitchEnabled: false,
@@ -512,7 +515,7 @@ describe("lesson authoring DAL boundary", () => {
         },
       },
     ]);
-    listPluginStepExtensions.mockResolvedValueOnce([
+    listPluginStepExtensions.mockResolvedValue([
       {
         lessonStepId: "step-voting",
         payloadJson: {
@@ -539,10 +542,11 @@ describe("lesson authoring DAL boundary", () => {
       ])
     );
 
-    findManyPluginRegistrations.mockResolvedValueOnce([
+    findManyPluginRegistrations.mockResolvedValue([
       {
         id: "plugin-voting",
         schoolId: "school-1",
+        pluginKey: "builtin-teaching-step-classroom-voting",
         name: "课堂投票",
         enabled: false,
         killSwitchEnabled: true,
@@ -554,7 +558,7 @@ describe("lesson authoring DAL boundary", () => {
         },
       },
     ]);
-    listPluginStepExtensions.mockResolvedValueOnce([
+    listPluginStepExtensions.mockResolvedValue([
       {
         lessonStepId: "step-voting",
         payloadJson: {
@@ -589,10 +593,11 @@ describe("lesson authoring DAL boundary", () => {
       ])
     );
 
-    findManyPluginRegistrations.mockResolvedValueOnce([
+    findManyPluginRegistrations.mockResolvedValue([
       {
         id: "plugin-voting",
         schoolId: "school-1",
+        pluginKey: "builtin-teaching-step-classroom-voting",
         name: "课堂投票",
         enabled: true,
         killSwitchEnabled: false,
@@ -603,7 +608,7 @@ describe("lesson authoring DAL boundary", () => {
         },
       },
     ]);
-    listPluginStepExtensions.mockResolvedValueOnce([
+    listPluginStepExtensions.mockResolvedValue([
       {
         lessonStepId: "step-voting",
         payloadJson: {
@@ -668,15 +673,12 @@ describe("lesson authoring DAL boundary", () => {
       },
     ];
 
-    findManyLessonSteps
-      .mockResolvedValueOnce(votingStepRows)
-      .mockResolvedValueOnce(votingStepRows)
-      .mockResolvedValueOnce(votingStepRows)
-      .mockResolvedValueOnce(votingStepRows);
+    findManyLessonSteps.mockResolvedValue(votingStepRows);
     findManyPluginRegistrations.mockResolvedValue([
       {
         id: "plugin-voting",
         schoolId: "school-1",
+        pluginKey: "builtin-teaching-step-classroom-voting",
         name: "课堂投票",
         enabled: true,
         killSwitchEnabled: false,

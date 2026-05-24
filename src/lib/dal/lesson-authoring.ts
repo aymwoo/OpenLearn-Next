@@ -18,6 +18,8 @@ import {
 } from "@/db/schema";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
+import { listPluginStepExtensions, type PluginStepExtensionRecord } from "@/lib/dal/plugin-data";
+import { ClassroomVotingAuthoringConfigSchema } from "@/lib/dto/resource-ai";
 import { resolveTeachingDesignInput } from "@/lib/teaching-design";
 import {
   AutosaveResultDTOSchema,
@@ -292,8 +294,11 @@ function buildPreparationIssue(input: LessonPreparationIssueDTO): LessonPreparat
 function getBuiltInPluginAvailabilityMap(
   plugins: Array<{
     id: string;
+    pluginKey?: string;
+    name?: string;
     enabled: boolean;
     killSwitchEnabled: boolean;
+    lifecycleState?: string | null;
     manifestJson?: { builtIn?: boolean } | null;
   }>,
 ) {
@@ -307,10 +312,217 @@ async function getBuiltInPluginRegistryForLesson(scope: TeacherScope, schoolId: 
 
   const plugins = await db.query.pluginRegistrations.findMany({
     where: eq(pluginRegistrations.schoolId, schoolId),
-    columns: { id: true, enabled: true, killSwitchEnabled: true, manifestJson: true },
+    columns: { id: true, pluginKey: true, name: true, enabled: true, killSwitchEnabled: true, lifecycleState: true, manifestJson: true },
   });
 
   return getBuiltInPluginAvailabilityMap(plugins as Parameters<typeof getBuiltInPluginAvailabilityMap>[0]);
+}
+
+const VOTING_TEMPLATE_PLUGIN_KEY = "builtin-teaching-step-classroom-voting" as const;
+const ACTIVE_PLUGIN_STATES = new Set(["enabled", "mounted", "ready"] as const);
+
+type PublishPluginRegistryEntry = {
+  id: string;
+  pluginKey: string | null;
+  name: string | null;
+  enabled: boolean;
+  killSwitchEnabled: boolean;
+  lifecycleState: string | null;
+  manifestJson?: {
+    builtIn?: boolean;
+    manifestVersion?: number;
+    governance?: { contractVersion?: string | null } | null;
+  } | null;
+};
+
+type VotingExecutableContract = {
+  kind: "classroom-voting";
+  contractVersion: "v1";
+  runtimeContractVersion: "v2";
+  pluginId: string;
+  publicMetadata: {
+    builtInKey: "classroomVoting";
+    pluginKey: string;
+    pluginName: string;
+    stepType: "quiz";
+  };
+  executableConfig: ReturnType<typeof ClassroomVotingAuthoringConfigSchema.parse>;
+};
+
+function isVotingBuiltInSource(payload: LessonStepPayload) {
+  return payload.builtInSource?.builtInKey === "classroomVoting";
+}
+
+function isVotingPluginCompatible(plugin: PublishPluginRegistryEntry) {
+  return plugin.manifestJson?.manifestVersion === 2
+    && plugin.manifestJson?.governance?.contractVersion === "v2";
+}
+
+function isVotingPluginActive(plugin: PublishPluginRegistryEntry) {
+  return plugin.enabled && !plugin.killSwitchEnabled && ACTIVE_PLUGIN_STATES.has((plugin.lifecycleState ?? "disabled") as never);
+}
+
+function resolveVotingExecutableContract(input: {
+  stepId: string;
+  payload: LessonStepPayload;
+  plugin: PublishPluginRegistryEntry | null;
+  extension: PluginStepExtensionRecord | null;
+}):
+  | { ok: true; contract: VotingExecutableContract }
+  | { ok: false; issue: LessonPublishIssueDTO } {
+  const builtInSource = input.payload.builtInSource;
+  if (!builtInSource || builtInSource.builtInKey !== "classroomVoting") {
+    return {
+      ok: false,
+      issue: buildIssue({
+        code: "VOTING_PLUGIN_CONFIG_MISSING",
+        message: "课堂投票步骤缺少已绑定的插件来源，无法冻结发布配置。",
+        stepId: input.stepId,
+      }),
+    };
+  }
+
+  if (!input.extension) {
+    return {
+      ok: false,
+      issue: buildIssue({
+        code: "VOTING_PLUGIN_CONFIG_MISSING",
+        message: "课堂投票步骤还没有保存正式配置，请先完成投票问题与选项设置后再发布。",
+        stepId: input.stepId,
+        pluginId: builtInSource.pluginId,
+        builtInKey: builtInSource.builtInKey,
+        pluginName: builtInSource.pluginName,
+      }),
+    };
+  }
+
+  const parsedConfig = ClassroomVotingAuthoringConfigSchema.safeParse(
+    (input.extension.payloadJson as { executableConfig?: unknown } | null)?.executableConfig,
+  );
+
+  if (!parsedConfig.success) {
+    return {
+      ok: false,
+      issue: buildIssue({
+        code: "VOTING_PLUGIN_CONFIG_INVALID",
+        message: "课堂投票配置不完整或格式错误，请检查题目、选项和作答窗口后再发布。",
+        stepId: input.stepId,
+        pluginId: builtInSource.pluginId,
+        builtInKey: builtInSource.builtInKey,
+        pluginName: builtInSource.pluginName,
+      }),
+    };
+  }
+
+  if (!input.plugin || !isVotingPluginActive(input.plugin)) {
+    return {
+      ok: false,
+      issue: buildIssue({
+        code: "VOTING_PLUGIN_DISABLED",
+        message: `课堂投票插件“${builtInSource.pluginName}”当前已停用、被 kill switch 阻断或尚未就绪，请恢复插件后再发布。`,
+        stepId: input.stepId,
+        pluginId: builtInSource.pluginId,
+        builtInKey: builtInSource.builtInKey,
+        pluginName: builtInSource.pluginName,
+      }),
+    };
+  }
+
+  if (!isVotingPluginCompatible(input.plugin)) {
+    return {
+      ok: false,
+      issue: buildIssue({
+        code: "VOTING_PLUGIN_INCOMPATIBLE",
+        message: `课堂投票插件“${builtInSource.pluginName}”版本与当前课堂 contract 不兼容，请切换到受支持版本后再发布。`,
+        stepId: input.stepId,
+        pluginId: builtInSource.pluginId,
+        builtInKey: builtInSource.builtInKey,
+        pluginName: builtInSource.pluginName,
+      }),
+    };
+  }
+
+  return {
+    ok: true,
+    contract: {
+      kind: "classroom-voting",
+      contractVersion: "v1",
+      runtimeContractVersion: "v2",
+      pluginId: builtInSource.pluginId,
+      publicMetadata: {
+        builtInKey: "classroomVoting",
+        pluginKey: input.plugin.pluginKey ?? VOTING_TEMPLATE_PLUGIN_KEY,
+        pluginName: builtInSource.pluginName,
+        stepType: "quiz",
+      },
+      executableConfig: parsedConfig.data,
+    },
+  };
+}
+
+async function getVotingPluginContext(input: {
+  actorId: string;
+  schoolId: string;
+  stepRows: Array<typeof lessonSteps.$inferSelect>;
+  stepDtos?: Array<{ id: string; payload: LessonStepPayload }>;
+}) {
+  const votingSteps = input.stepDtos
+    ? input.stepDtos.flatMap((step) =>
+        isVotingBuiltInSource(step.payload) ? [{ stepId: step.id, pluginId: step.payload.builtInSource!.pluginId }] : [],
+      )
+    : input.stepRows
+        .filter((step) => !step.archivedAt)
+        .flatMap((step) => {
+          const parsed = parseStepPayloadWithIssues(step);
+          return parsed.ok && isVotingBuiltInSource(parsed.payload)
+            ? [{ stepId: step.id, pluginId: parsed.payload.builtInSource!.pluginId }]
+            : [];
+        });
+
+  if (votingSteps.length === 0) {
+    return {
+      pluginById: new Map<string, PublishPluginRegistryEntry>(),
+      extensionByStepId: new Map<string, PluginStepExtensionRecord>(),
+    };
+  }
+
+  const pluginRows = await db.query.pluginRegistrations.findMany({
+    where: eq(pluginRegistrations.schoolId, input.schoolId),
+    columns: {
+      id: true,
+      pluginKey: true,
+      name: true,
+      enabled: true,
+      killSwitchEnabled: true,
+      lifecycleState: true,
+      manifestJson: true,
+    },
+  });
+
+  const stepIdsByPluginId = new Map<string, string[]>();
+  for (const votingStep of votingSteps) {
+    const list = stepIdsByPluginId.get(votingStep.pluginId) ?? [];
+    list.push(votingStep.stepId);
+    stepIdsByPluginId.set(votingStep.pluginId, list);
+  }
+
+  const extensionRows = (
+    await Promise.all(
+      [...stepIdsByPluginId.entries()].map(async ([pluginId, lessonStepIds]) =>
+        listPluginStepExtensions({
+          actorId: input.actorId,
+          schoolId: input.schoolId,
+          pluginId,
+          lessonStepIds,
+        }).catch(() => []),
+      ),
+    )
+  ).flat();
+
+  return {
+    pluginById: new Map(pluginRows.map((plugin) => [plugin.id, plugin as PublishPluginRegistryEntry])),
+    extensionByStepId: new Map(extensionRows.map((extension) => [extension.lessonStepId, extension])),
+  };
 }
 
 function parseStepPayloadWithIssues(
@@ -472,6 +684,11 @@ export async function getLessonPublishReadinessDTO(input: { lessonId: string }) 
     orderBy: (step, { asc }) => [asc(step.rank)],
   });
   const pluginAvailability = await getBuiltInPluginRegistryForLesson(scope, course.schoolId);
+  const votingContext = await getVotingPluginContext({
+    actorId: scope.userId,
+    schoolId: course.schoolId,
+    stepRows,
+  });
   const blockingIssues: LessonPublishIssueDTO[] = [];
   let activeValidStepCount = 0;
 
@@ -501,6 +718,21 @@ export async function getLessonPublishReadinessDTO(input: { lessonId: string }) 
     }
 
     BuiltInTeachingStepKeySchema.parse(builtInSource.builtInKey);
+
+    if (builtInSource.builtInKey === "classroomVoting") {
+      const votingContract = resolveVotingExecutableContract({
+        stepId: step.id,
+        payload: parsedStep.payload,
+        plugin: votingContext.pluginById.get(builtInSource.pluginId) ?? null,
+        extension: votingContext.extensionByStepId.get(step.id) ?? null,
+      });
+
+      if (!votingContract.ok) {
+        blockingIssues.push(votingContract.issue);
+      }
+
+      continue;
+    }
 
     if (!pluginAvailability.get(builtInSource.pluginId)) {
       blockingIssues.push(
@@ -913,7 +1145,7 @@ export async function reorderLessonStep(input: ReorderLessonStepInput): Promise<
 
 export async function publishLesson(input: { lessonId: string; expectedRevision?: number }): Promise<PublishResultDTO> {
   const scope = await assertActiveTeacher();
-  const { lesson } = await getScopedLesson(input.lessonId, scope);
+  const { lesson, course } = await getScopedLesson(input.lessonId, scope);
 
   if (input.expectedRevision && input.expectedRevision !== lesson.revision) {
     throw new Error("CONFLICT");
@@ -925,15 +1157,46 @@ export async function publishLesson(input: { lessonId: string; expectedRevision?
   }
 
   const editor = await getLessonEditorDTO(input.lessonId);
+  const stepRows = await db.query.lessonSteps.findMany({
+    where: eq(lessonSteps.lessonId, lesson.id),
+    orderBy: (step, { asc }) => [asc(step.rank)],
+  });
+  const votingContext = await getVotingPluginContext({
+    actorId: scope.userId,
+    schoolId: course.schoolId,
+    stepRows,
+    stepDtos: editor.steps.filter((step) => !step.archivedAt).map((step) => ({ id: step.id, payload: step.payload })),
+  });
   const latestVersion = await db
     .select({ value: sql<number>`coalesce(max(${publishedLessonVersions.version}), 0)` })
     .from(publishedLessonVersions)
     .where(eq(publishedLessonVersions.lessonId, input.lessonId));
   const version = (latestVersion[0]?.value ?? 0) + 1;
+  const frozenSteps = editor.steps.filter((step) => !step.archivedAt).map((step) => {
+    if (!isVotingBuiltInSource(step.payload)) {
+      return step;
+    }
+
+    const contract = resolveVotingExecutableContract({
+      stepId: step.id,
+      payload: step.payload,
+      plugin: votingContext.pluginById.get(step.payload.builtInSource!.pluginId) ?? null,
+      extension: votingContext.extensionByStepId.get(step.id) ?? null,
+    });
+
+    if (!contract.ok) {
+      throw new Error("PUBLISH_BLOCKED");
+    }
+
+    return {
+      ...step,
+      pluginContract: contract.contract,
+    };
+  });
   const snapshotJson = {
     lesson: editor.lesson,
     course: editor.course,
-    steps: editor.steps.filter((step) => !step.archivedAt),
+    steps: frozenSteps,
     materials: editor.materials,
     publishedAt: new Date().toISOString(),
   };

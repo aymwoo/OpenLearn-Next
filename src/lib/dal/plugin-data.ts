@@ -170,6 +170,13 @@ export interface GetExtensionInput {
   entityId: string;
 }
 
+export interface PluginStepExtensionRecord {
+  lessonStepId: string;
+  pluginId: string;
+  payloadJson: Record<string, any>;
+  updatedAt: Date | number | null;
+}
+
 /**
  * 统一的核心实体扩展数据 upsert 接口，实现严格多维度隔离权限防范与幂等性
  * 
@@ -437,6 +444,49 @@ export async function getPluginExtension(input: GetExtensionInput): Promise<Reco
     return row ? (row.payloadJson as Record<string, any>) : null;
   }
   return null;
+}
+
+export async function listPluginStepExtensions(input: {
+  actorId: string;
+  schoolId: string;
+  pluginId: string;
+  lessonStepIds: string[];
+}): Promise<PluginStepExtensionRecord[]> {
+  if (input.lessonStepIds.length === 0) {
+    return [];
+  }
+
+  const scope = await assertTeacherManagerScope(input.actorId, input.schoolId);
+  await assertPluginBelongsToSchool(input.schoolId, input.pluginId);
+
+  await Promise.all(
+    input.lessonStepIds.map((lessonStepId) => assertEntityBelongsToSchool(scope, input.schoolId, "step", lessonStepId)),
+  );
+
+  const rows = await db
+    .select({
+      lessonStepId: pluginLessonStepExtensions.lessonStepId,
+      pluginId: pluginLessonStepExtensions.pluginId,
+      payloadJson: pluginLessonStepExtensions.payloadJson,
+      updatedAt: pluginLessonStepExtensions.updatedAt,
+    })
+    .from(pluginLessonStepExtensions)
+    .where(
+      and(
+        eq(pluginLessonStepExtensions.schoolId, input.schoolId),
+        eq(pluginLessonStepExtensions.pluginId, input.pluginId),
+      ),
+    );
+
+  const allowedIds = new Set(input.lessonStepIds);
+  return rows
+    .filter((row) => allowedIds.has(row.lessonStepId))
+    .map((row) => ({
+      lessonStepId: row.lessonStepId,
+      pluginId: row.pluginId,
+      payloadJson: row.payloadJson as Record<string, any>,
+      updatedAt: row.updatedAt,
+    }));
 }
 
 export interface UpsertOwnedBusinessDataInput {
