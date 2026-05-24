@@ -1,6 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
+
 import { createClient } from "@libsql/client";
 
 type StaticCheck = {
@@ -82,13 +84,193 @@ function runVitest(paths: readonly string[], label: string): void {
   run("pnpm", ["exec", "vitest", "--run", ...paths], label);
 }
 
+function cleanupSqliteArtifacts(databasePath: string): void {
+  for (const filePath of [databasePath, `${databasePath}-shm`, `${databasePath}-wal`]) {
+    if (existsSync(filePath)) {
+      rmSync(filePath, { force: true });
+    }
+  }
+}
+
+async function bootstrapPhase45ProofDatabase(databaseUrl: string) {
+  const client = createClient({ url: databaseUrl });
+
+  await client.execute("PRAGMA foreign_keys = ON");
+
+  const statements = [
+    `CREATE TABLE school (id TEXT PRIMARY KEY NOT NULL)`,
+    `CREATE TABLE pluginRegistration (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE course (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE lesson (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      courseId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (courseId) REFERENCES course(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE lessonStep (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      lessonId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE resource (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE plugin_ext_lesson (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      lessonId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (lessonId) REFERENCES lesson(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE plugin_ext_lesson_step (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      lessonStepId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (lessonStepId) REFERENCES lessonStep(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE plugin_ext_resource (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      resourceId TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade,
+      FOREIGN KEY (resourceId) REFERENCES resource(id) ON DELETE cascade
+    )`,
+    `CREATE TABLE plugin_owned_business_data (
+      id TEXT PRIMARY KEY NOT NULL,
+      schoolId TEXT NOT NULL,
+      pluginId TEXT NOT NULL,
+      key TEXT NOT NULL,
+      payloadJson TEXT NOT NULL,
+      FOREIGN KEY (schoolId) REFERENCES school(id) ON DELETE cascade,
+      FOREIGN KEY (pluginId) REFERENCES pluginRegistration(id) ON DELETE cascade
+    )`,
+  ];
+
+  for (const statement of statements) {
+    await client.execute(statement);
+  }
+
+  return client;
+}
+
+async function seedPhase45ProofFixtures(client: ReturnType<typeof createClient>) {
+  const seedStatements = [
+    `INSERT INTO school (id) VALUES ('school-1')`,
+    `INSERT INTO pluginRegistration (id, schoolId) VALUES ('plugin-1', 'school-1')`,
+    `INSERT INTO course (id, schoolId) VALUES ('course-1', 'school-1'), ('course-2', 'school-1')`,
+    `INSERT INTO lesson (id, schoolId, courseId) VALUES ('lesson-1', 'school-1', 'course-1'), ('lesson-2', 'school-1', 'course-2')`,
+    `INSERT INTO lessonStep (id, schoolId, lessonId) VALUES ('step-1', 'school-1', 'lesson-1'), ('step-2', 'school-1', 'lesson-2')`,
+    `INSERT INTO resource (id, schoolId) VALUES ('resource-1', 'school-1'), ('resource-2', 'school-1')`,
+    `INSERT INTO plugin_ext_lesson (id, schoolId, pluginId, lessonId, payloadJson) VALUES ('ext-lesson-1', 'school-1', 'plugin-1', 'lesson-1', '{"kind":"primary"}'), ('ext-lesson-2', 'school-1', 'plugin-1', 'lesson-2', '{"kind":"secondary"}')`,
+    `INSERT INTO plugin_ext_lesson_step (id, schoolId, pluginId, lessonStepId, payloadJson) VALUES ('ext-step-1', 'school-1', 'plugin-1', 'step-1', '{"kind":"primary"}'), ('ext-step-2', 'school-1', 'plugin-1', 'step-2', '{"kind":"secondary"}')`,
+    `INSERT INTO plugin_ext_resource (id, schoolId, pluginId, resourceId, payloadJson) VALUES ('ext-resource-1', 'school-1', 'plugin-1', 'resource-1', '{"kind":"primary"}'), ('ext-resource-2', 'school-1', 'plugin-1', 'resource-2', '{"kind":"secondary"}')`,
+    `INSERT INTO plugin_owned_business_data (id, schoolId, pluginId, key, payloadJson) VALUES ('owned-1', 'school-1', 'plugin-1', 'reminders', '{"enabled":true}')`,
+  ];
+
+  for (const statement of seedStatements) {
+    await client.execute(statement);
+  }
+}
+
+async function getRowCount(client: ReturnType<typeof createClient>, tableName: string): Promise<number> {
+  const result = await client.execute(`SELECT COUNT(*) AS count FROM ${tableName}`);
+  return Number(result.rows[0]?.count ?? 0);
+}
+
+async function assertRowCount(
+  client: ReturnType<typeof createClient>,
+  tableName: string,
+  expected: number,
+  label: string
+): Promise<void> {
+  const actual = await getRowCount(client, tableName);
+  if (actual !== expected) {
+    throw new Error(`${label}: expected ${tableName} count ${expected}, got ${actual}`);
+  }
+}
+
+async function runBehaviorProof(): Promise<void> {
+  const databasePath = path.join("/tmp/opencode", `phase45-verify-${randomUUID()}.db`);
+  const databaseUrl = `file:${databasePath}`;
+  const client = await bootstrapPhase45ProofDatabase(databaseUrl);
+
+  try {
+    await seedPhase45ProofFixtures(client);
+
+    await assertRowCount(client, "plugin_ext_lesson", 2, "seed proof");
+    await assertRowCount(client, "plugin_ext_lesson_step", 2, "seed proof");
+    await assertRowCount(client, "plugin_ext_resource", 2, "seed proof");
+    await assertRowCount(client, "plugin_owned_business_data", 1, "seed proof");
+
+    await client.execute("DELETE FROM lesson WHERE id = 'lesson-1'");
+    await assertRowCount(client, "plugin_ext_lesson", 1, "lesson delete cascade proof");
+    await assertRowCount(client, "plugin_ext_lesson_step", 1, "lesson delete step cascade proof");
+    await assertRowCount(client, "plugin_owned_business_data", 1, "lesson delete owned data preservation proof");
+
+    await client.execute("DELETE FROM lessonStep WHERE id = 'step-2'");
+    await assertRowCount(client, "plugin_ext_lesson_step", 0, "lessonStep delete cascade proof");
+    await assertRowCount(client, "plugin_ext_lesson", 1, "lessonStep delete non-target preservation proof");
+
+    await client.execute("DELETE FROM resource WHERE id = 'resource-1'");
+    await assertRowCount(client, "plugin_ext_resource", 1, "resource delete cascade proof");
+    await assertRowCount(client, "plugin_owned_business_data", 1, "resource delete owned data preservation proof");
+
+    await client.execute("DELETE FROM pluginRegistration WHERE id = 'plugin-1'");
+    await assertRowCount(client, "plugin_ext_lesson", 0, "plugin delete lesson cascade proof");
+    await assertRowCount(client, "plugin_ext_lesson_step", 0, "plugin delete step cascade proof");
+    await assertRowCount(client, "plugin_ext_resource", 0, "plugin delete resource cascade proof");
+    await assertRowCount(client, "plugin_owned_business_data", 0, "plugin delete owned data cascade proof");
+
+    const foreignKeyCheck = await client.execute("PRAGMA foreign_key_check");
+    if (foreignKeyCheck.rows.length !== 0) {
+      throw new Error(`foreign_key_check reported ${foreignKeyCheck.rows.length} violation(s)`);
+    }
+  } finally {
+    await (client as { close?: () => Promise<void> | void }).close?.();
+    cleanupSqliteArtifacts(databasePath);
+  }
+}
+
 async function runVerification() {
   console.log("==================================================");
   console.log("Starting Phase 45 Close Gate Verification...");
   console.log("==================================================");
 
-  // 1. 运行时数据库物理表与索引校验 (Physical DB Schema Verification)
-  console.log("[1/5] Running physical database schema verification...");
+  // 1. 行为优先的临时 SQLite 级联证明
+  console.log("[1/5] Running behavior-first SQLite cascade proof...");
+  try {
+    await runBehaviorProof();
+    console.log("  ✓ Temporary SQLite delete/assert proof and PRAGMA foreign_key_check passed.");
+  } catch (error: any) {
+    console.error("Behavior-first SQLite cascade proof failed:", error.message);
+    process.exit(1);
+  }
+
+  // 2. 运行时数据库物理表与索引校验 (Physical DB Schema Verification)
+  console.log("\n[2/5] Running physical database schema verification...");
   const dbUrl = process.env.DB_FILE_NAME || "file:local.db";
   const client = createClient({ url: dbUrl });
 
@@ -156,8 +338,8 @@ async function runVerification() {
     client.close();
   }
 
-  // 2. 静态特征代码扫描校验 (Static Analysis Checks)
-  console.log("\n[2/5] Running static analysis checks across codebase...");
+  // 3. 静态特征代码扫描校验 (Static Analysis Checks)
+  console.log("\n[3/5] Running static analysis checks across codebase...");
 
   const packageSource = read("package.json");
   const schemaSource = read("src/db/schema.ts");
@@ -209,6 +391,15 @@ async function runVerification() {
         nonCommentIncludes(dalSource, "assertEntityBelongsToSchool") &&
         nonCommentIncludes(dalSource, "assertPluginBelongsToSchool"),
     },
+    {
+      label: "scripts/verify-phase45-plugin-schema.ts includes temp SQLite cascade proof with PRAGMA foreign_key_check",
+      passed:
+        nonCommentIncludes(read("scripts/verify-phase45-plugin-schema.ts"), "PRAGMA foreign_key_check") &&
+        nonCommentIncludes(read("scripts/verify-phase45-plugin-schema.ts"), "DELETE FROM pluginRegistration") &&
+        nonCommentIncludes(read("scripts/verify-phase45-plugin-schema.ts"), "DELETE FROM lesson") &&
+        nonCommentIncludes(read("scripts/verify-phase45-plugin-schema.ts"), "DELETE FROM lessonStep") &&
+        nonCommentIncludes(read("scripts/verify-phase45-plugin-schema.ts"), "DELETE FROM resource"),
+    },
   ];
 
   const failedChecks = staticChecks.filter((check) => !check.passed);
@@ -219,15 +410,15 @@ async function runVerification() {
     }
     process.exit(1);
   }
-  console.log("  ✓ All 6 static code patterns checked and aligned perfectly.");
+  console.log(`  ✓ All ${staticChecks.length} static code patterns checked and aligned perfectly.`);
 
-  // 3. 自动化测试套件回归 (Vitest Integration Runner)
-  console.log("\n[3/5] Running core vitest suites for plugin extension data...");
+  // 4. 自动化测试套件回归 (Vitest Integration Runner)
+  console.log("\n[4/5] Running core vitest suites for plugin extension data...");
   runVitest(["src/lib/dal/plugin-data.test.ts"], "Phase 45 DAL Unit Test Suite");
   console.log("  ✓ Core vitest suites passed successfully.");
 
-  // 4. 向前级联安全验证 (Cascading Regression Verification)
-  console.log("\n[4/5] Running cascading regression verifications for preceding Phase 44...");
+  // 5. 向前级联安全验证 (Cascading Regression Verification)
+  console.log("\n[5/5] Running cascading regression verifications for preceding Phase 44...");
   run(
     "node",
     ["--require", "./scripts/server-only-node-shim.cjs", "--import", "tsx", "scripts/verify-phase44-plugin-identity.ts"],
@@ -237,6 +428,7 @@ async function runVerification() {
 
   console.log("\n==================================================");
   console.log("🎉 Phase 45 closeout verification successfully PASSED!");
+  console.log("- Behavior-first temporary SQLite proof verified delete cascades before metadata checks.");
   console.log("- Physical SQLite extension structures and cascade rules are fully secured.");
   console.log("- Multi-tenant safe-scoping DAL endpoints are aligned perfectly.");
   console.log("- Preceding architectural features are green-light regression free.");
