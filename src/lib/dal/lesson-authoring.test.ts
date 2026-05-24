@@ -15,6 +15,7 @@ const findManyCourseClasses = vi.fn();
 const findManyClasses = vi.fn();
 const findManyClassMembers = vi.fn();
 const findManyPluginRegistrations = vi.fn();
+const listPluginStepExtensions = vi.fn();
 const selectCourseClassNames = vi.fn();
 const selectWhere = vi.fn();
 const insertReturning = vi.fn();
@@ -84,6 +85,10 @@ vi.mock("@/lib/dal/membership", () => ({
   getUserMembershipsDTO,
 }));
 
+vi.mock("@/lib/dal/plugin-data", () => ({
+  listPluginStepExtensions,
+}));
+
 const source = readFileSync("src/lib/dal/lesson-authoring.ts", "utf8");
 const dtoSource = readFileSync("src/lib/dto/lesson-authoring.ts", "utf8");
 
@@ -127,11 +132,14 @@ describe("lesson authoring DAL boundary", () => {
       {
         id: "plugin-1",
         schoolId: "school-1",
+        name: "教师讲授",
         enabled: true,
         killSwitchEnabled: false,
-        manifestJson: { builtIn: true },
+        lifecycleState: "ready",
+        manifestJson: { builtIn: true, manifestVersion: 2, governance: { contractVersion: "v2" } },
       },
     ]);
+    listPluginStepExtensions.mockResolvedValue([]);
     selectCourseClassNames.mockResolvedValue([{ className: "七年级一班" }]);
     selectWhere.mockResolvedValue([{ value: 0 }]);
     insertReturning.mockResolvedValue([
@@ -428,6 +436,318 @@ describe("lesson authoring DAL boundary", () => {
         expect.objectContaining({ code: "STEP_PAYLOAD_INVALID", stepId: "step-invalid" }),
         expect.objectContaining({ code: "BUILT_IN_PLUGIN_UNAVAILABLE", stepId: "step-built-in" }),
       ])
+    );
+  });
+
+  it("blocks publish when classroom voting config is missing, invalid, disabled, or incompatible", async () => {
+    const dal = (await import("./lesson-authoring")) as Record<string, unknown>;
+
+    const votingStep = {
+      id: "step-voting",
+      lessonId: "lesson-owned",
+      type: "quiz",
+      title: "课堂投票",
+      rank: "a1",
+      payloadJson: {
+        type: "quiz",
+        question: "你更支持哪种方案？",
+        options: ["方案 A", "方案 B", "需要更多信息"],
+        explanation: "请根据课堂讨论选择。",
+        allowRetry: false,
+        retryPolicy: "none",
+        revealCorrectAnswer: false,
+        builtInSource: {
+          pluginId: "plugin-voting",
+          builtInKey: "classroomVoting",
+          pluginName: "课堂投票",
+        },
+      },
+      archivedAt: null,
+      updatedAt: new Date("2026-05-24T10:00:00.000Z"),
+    };
+
+    findManyLessonSteps.mockResolvedValue(votingStep ? [votingStep] : []);
+
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      {
+        id: "plugin-voting",
+        schoolId: "school-1",
+        name: "课堂投票",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "ready",
+        manifestJson: {
+          builtIn: true,
+          manifestVersion: 2,
+          governance: { contractVersion: "v2" },
+        },
+      },
+    ]);
+    listPluginStepExtensions.mockResolvedValueOnce([]);
+
+    const missingConfig = await (dal.getLessonPublishReadinessDTO as (input: { lessonId: string }) => Promise<{
+      canPublish: boolean;
+      blockingIssues: Array<{ code: string; stepId?: string | null }>;
+    }> )({ lessonId: "lesson-owned" });
+
+    expect(missingConfig.canPublish).toBe(false);
+    expect(missingConfig.blockingIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "VOTING_PLUGIN_CONFIG_MISSING", stepId: "step-voting" }),
+      ])
+    );
+
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      {
+        id: "plugin-voting",
+        schoolId: "school-1",
+        name: "课堂投票",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "ready",
+        manifestJson: {
+          builtIn: true,
+          manifestVersion: 2,
+          governance: { contractVersion: "v2" },
+        },
+      },
+    ]);
+    listPluginStepExtensions.mockResolvedValueOnce([
+      {
+        lessonStepId: "step-voting",
+        payloadJson: {
+          kind: "classroom-voting",
+          contractVersion: "v1",
+          runtimeContractVersion: "v2",
+          executableConfig: {
+            prompt: "",
+            options: [{ id: "a", label: "A" }],
+          },
+        },
+      },
+    ]);
+
+    const invalidConfig = await (dal.getLessonPublishReadinessDTO as (input: { lessonId: string }) => Promise<{
+      canPublish: boolean;
+      blockingIssues: Array<{ code: string; stepId?: string | null }>;
+    }> )({ lessonId: "lesson-owned" });
+
+    expect(invalidConfig.canPublish).toBe(false);
+    expect(invalidConfig.blockingIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "VOTING_PLUGIN_CONFIG_INVALID", stepId: "step-voting" }),
+      ])
+    );
+
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      {
+        id: "plugin-voting",
+        schoolId: "school-1",
+        name: "课堂投票",
+        enabled: false,
+        killSwitchEnabled: true,
+        lifecycleState: "suspended",
+        manifestJson: {
+          builtIn: true,
+          manifestVersion: 2,
+          governance: { contractVersion: "v2" },
+        },
+      },
+    ]);
+    listPluginStepExtensions.mockResolvedValueOnce([
+      {
+        lessonStepId: "step-voting",
+        payloadJson: {
+          kind: "classroom-voting",
+          contractVersion: "v1",
+          runtimeContractVersion: "v2",
+          executableConfig: {
+            prompt: "请选择你的判断",
+            options: [
+              { id: "a", label: "方案 A" },
+              { id: "b", label: "方案 B" },
+            ],
+            allowMultiple: false,
+            anonymousResults: true,
+            showLiveResults: true,
+            participationWindowSeconds: 90,
+            resultsDisplay: "bar",
+          },
+        },
+      },
+    ]);
+
+    const disabledPlugin = await (dal.getLessonPublishReadinessDTO as (input: { lessonId: string }) => Promise<{
+      canPublish: boolean;
+      blockingIssues: Array<{ code: string; stepId?: string | null }>;
+    }> )({ lessonId: "lesson-owned" });
+
+    expect(disabledPlugin.canPublish).toBe(false);
+    expect(disabledPlugin.blockingIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "VOTING_PLUGIN_DISABLED", stepId: "step-voting" }),
+      ])
+    );
+
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      {
+        id: "plugin-voting",
+        schoolId: "school-1",
+        name: "课堂投票",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "ready",
+        manifestJson: {
+          builtIn: true,
+          manifestVersion: 1,
+        },
+      },
+    ]);
+    listPluginStepExtensions.mockResolvedValueOnce([
+      {
+        lessonStepId: "step-voting",
+        payloadJson: {
+          kind: "classroom-voting",
+          contractVersion: "v1",
+          runtimeContractVersion: "v2",
+          executableConfig: {
+            prompt: "请选择你的判断",
+            options: [
+              { id: "a", label: "方案 A" },
+              { id: "b", label: "方案 B" },
+            ],
+            allowMultiple: false,
+            anonymousResults: true,
+            showLiveResults: true,
+            participationWindowSeconds: 90,
+            resultsDisplay: "bar",
+          },
+        },
+      },
+    ]);
+
+    const incompatiblePlugin = await (dal.getLessonPublishReadinessDTO as (input: { lessonId: string }) => Promise<{
+      canPublish: boolean;
+      blockingIssues: Array<{ code: string; stepId?: string | null }>;
+    }> )({ lessonId: "lesson-owned" });
+
+    expect(incompatiblePlugin.canPublish).toBe(false);
+    expect(incompatiblePlugin.blockingIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "VOTING_PLUGIN_INCOMPATIBLE", stepId: "step-voting" }),
+      ])
+    );
+  });
+
+  it("freezes classroom voting executable config into the published snapshot instead of rereading draft extensions", async () => {
+    const { publishLesson } = await import("./lesson-authoring");
+
+    const votingStepRows = [
+      {
+        id: "step-voting",
+        lessonId: "lesson-owned",
+        type: "quiz",
+        title: "课堂投票",
+        rank: "a1",
+        payloadJson: {
+          type: "quiz",
+          question: "你更支持哪种方案？",
+          options: ["方案 A", "方案 B", "需要更多信息"],
+          explanation: "请根据课堂讨论选择。",
+          allowRetry: false,
+          retryPolicy: "none",
+          revealCorrectAnswer: false,
+          builtInSource: {
+            pluginId: "plugin-voting",
+            builtInKey: "classroomVoting",
+            pluginName: "课堂投票",
+          },
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-24T10:00:00.000Z"),
+      },
+    ];
+
+    findManyLessonSteps
+      .mockResolvedValueOnce(votingStepRows)
+      .mockResolvedValueOnce(votingStepRows)
+      .mockResolvedValueOnce(votingStepRows)
+      .mockResolvedValueOnce(votingStepRows);
+    findManyPluginRegistrations.mockResolvedValue([
+      {
+        id: "plugin-voting",
+        schoolId: "school-1",
+        name: "课堂投票",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "ready",
+        manifestJson: {
+          builtIn: true,
+          manifestVersion: 2,
+          governance: { contractVersion: "v2" },
+        },
+      },
+    ]);
+    listPluginStepExtensions.mockResolvedValue([
+      {
+        lessonStepId: "step-voting",
+        payloadJson: {
+          kind: "classroom-voting",
+          contractVersion: "v1",
+          runtimeContractVersion: "v2",
+          executableConfig: {
+            prompt: "请选择你当前更认可的判断。",
+            options: [
+              { id: "option-a", label: "我支持方案 A" },
+              { id: "option-b", label: "我支持方案 B" },
+              { id: "option-c", label: "我还想再讨论" },
+            ],
+            allowMultiple: false,
+            anonymousResults: true,
+            showLiveResults: true,
+            participationWindowSeconds: 90,
+            resultsDisplay: "bar",
+          },
+        },
+      },
+    ]);
+    insertReturning.mockResolvedValueOnce([
+      {
+        id: "published-version-voting",
+        publishedAt: new Date("2026-05-24T10:10:00.000Z"),
+      },
+    ]);
+
+    await publishLesson({ lessonId: "lesson-owned" });
+
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        snapshotJson: expect.objectContaining({
+          steps: [
+            expect.objectContaining({
+              id: "step-voting",
+              pluginContract: {
+                kind: "classroom-voting",
+                contractVersion: "v1",
+                runtimeContractVersion: "v2",
+                pluginId: "plugin-voting",
+                publicMetadata: {
+                  builtInKey: "classroomVoting",
+                  pluginKey: "builtin-teaching-step-classroom-voting",
+                  pluginName: "课堂投票",
+                  stepType: "quiz",
+                },
+                executableConfig: expect.objectContaining({
+                  prompt: "请选择你当前更认可的判断。",
+                  options: expect.arrayContaining([
+                    expect.objectContaining({ id: "option-a", label: "我支持方案 A" }),
+                  ]),
+                }),
+              },
+            }),
+          ],
+        }),
+      })
     );
   });
 
