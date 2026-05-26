@@ -578,6 +578,27 @@ describe("plugin lifecycle operator surface", () => {
     expect(pluginSurfaceSource).toContain("section.content");
     expect(pluginSurfaceSource).toContain("reason code: {plugin.reasonCode ?? \"none\"} · 恢复动作：");
     expect(pluginSurfaceSource).toContain("degraded honesty");
+    expect(pluginSurfaceSource).toContain("focusedPluginId");
+    expect(pluginSurfaceSource).toContain("focusedActionKey");
+  });
+
+  it("filters focused mode down to one plugin and one action context", async () => {
+    const { PluginLifecycleOperatorSurface } = await import("./plugin-lifecycle-operator-surface");
+
+    render(
+      <PluginLifecycleOperatorSurface
+        schoolId="school-1"
+        dashboard={dashboardBundle}
+        focusedPluginId="plugin-ext"
+        focusedActionKey="createNotificationStub"
+      />,
+    );
+
+    expect(screen.getByText("外部插件")).toBeTruthy();
+    expect(screen.queryByText("挂载插件")).toBeNull();
+    expect(screen.queryByText("挂起插件")).toBeNull();
+    expect(screen.getByText(/reason code:/)).toBeTruthy();
+    expect(screen.getByText("action key: createNotificationStub")).toBeTruthy();
   });
 
   it("defaults to executable catalog and hides internal mounted ready lifecycle labels", async () => {

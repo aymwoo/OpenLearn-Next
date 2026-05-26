@@ -28,6 +28,8 @@ import { cn } from "@/lib/utils";
 type Props = {
   schoolId: string | null;
   dashboard: GovernanceDashboardBundle;
+  focusedPluginId?: string;
+  focusedActionKey?: string;
 };
 
 const lifecycleBadgeTone = {
@@ -105,14 +107,19 @@ function getRecoveryReason(
   return row.reasonCode ?? row.recommendedRecoveryAction ?? "operator_recovery";
 }
 
-export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
+export function PluginLifecycleOperatorSurface({
+  schoolId,
+  dashboard,
+  focusedPluginId,
+  focusedActionKey,
+}: Props) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isPending, startTransition] = useTransition();
   const [inlineError, setInlineError] = useState<Record<string, string | null>>({});
   const [preflightResults, setPreflightResults] = useState<Record<string, PreflightUninstallPluginResult>>({});
   const [dialogPluginId, setDialogPluginId] = useState<string | null>(null);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(Boolean(focusedPluginId));
   const [cleanupIntent, setCleanupIntent] = useState<Record<string, boolean>>({});
   const [cleanupConfirmed, setCleanupConfirmed] = useState<Record<string, boolean>>({});
   const [detailConfirm, setDetailConfirm] = useState<{
@@ -143,15 +150,31 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
       } satisfies PreflightUninstallPluginResult
     : null;
 
+  const visiblePluginRows = useMemo(() => {
+    if (!focusedPluginId) {
+      return dashboard.pluginLifecycleRows;
+    }
+
+    return dashboard.pluginLifecycleRows.filter((plugin) => plugin.pluginId === focusedPluginId);
+  }, [dashboard.pluginLifecycleRows, focusedPluginId]);
+
   const executablePlugins = useMemo(
-    () => dashboard.pluginLifecycleRows.filter((plugin) => plugin.executableActionCatalog.length > 0),
-    [dashboard.pluginLifecycleRows],
+    () => visiblePluginRows.filter((plugin) => plugin.executableActionCatalog.length > 0),
+    [visiblePluginRows],
   );
   const diagnosticPlugins = useMemo(
-    () => dashboard.pluginLifecycleRows.filter(
-      (plugin) => plugin.blockedActionDiagnostics.length > 0 || plugin.blocked,
-    ),
-    [dashboard.pluginLifecycleRows],
+    () => visiblePluginRows
+      .map((plugin) => ({
+        ...plugin,
+        executableActionCatalog: focusedActionKey
+          ? plugin.executableActionCatalog.filter((action) => action.actionKey === focusedActionKey)
+          : plugin.executableActionCatalog,
+        blockedActionDiagnostics: focusedActionKey
+          ? plugin.blockedActionDiagnostics.filter((action) => action.actionKey === focusedActionKey)
+          : plugin.blockedActionDiagnostics,
+      }))
+      .filter((plugin) => plugin.blockedActionDiagnostics.length > 0 || plugin.blocked),
+    [focusedActionKey, visiblePluginRows],
   );
 
   const closeDialog = () => {
@@ -366,7 +389,7 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
     });
   };
 
-  if (!dashboard.pluginLifecycleRows.length) {
+  if (!visiblePluginRows.length) {
     return (
       <div className={cn(teacherSurfaceRhythm.cardInset, "p-4 text-sm leading-6 text-on-surface-variant")}>
         还没有可治理的插件。完成插件注册或默认插件 reconcile 后，这里会显示可执行 actions、生命周期状态与阻塞原因。下一步先安装插件，或运行默认插件同步。
