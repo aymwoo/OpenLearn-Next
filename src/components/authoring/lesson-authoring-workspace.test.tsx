@@ -57,6 +57,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               type: "quiz",
               question: "你认为本题最合理的答案是？",
               options: ["选项 A", "选项 B", "选项 C", "我还不确定"],
+              materialRefs: [],
               explanation: "这是课堂投票样板，不预设正确答案。",
               allowRetry: false,
               retryPolicy: "none",
@@ -103,6 +104,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
           type: "quiz",
           question: "你认为本题最合理的答案是？",
           options: ["选项 A", "选项 B", "选项 C", "我还不确定"],
+          materialRefs: [],
           explanation: "这是课堂投票样板，不预设正确答案。",
           allowRetry: false,
           retryPolicy: "none",
@@ -111,6 +113,60 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
             pluginId: "plugin-voting",
             builtInKey: "classroomVoting",
             pluginName: "课堂投票",
+          },
+        },
+      });
+    });
+  });
+
+  it("preserves built-in provenance for non-voting built-ins too", async () => {
+    render(
+      <LessonAuthoringWorkspace
+        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
+        lesson={{
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [],
+        } as any}
+        builtInTemplates={[
+          {
+            id: "plugin-direct",
+            pluginId: "plugin-direct",
+            builtInKey: "directInstruction",
+            pluginName: "教师讲授",
+            title: "教师讲授",
+            summary: "面向全班进行重点讲授。",
+            stepType: "content",
+            initialTitle: "教师讲授",
+            initialPayload: {
+              type: "content",
+              title: "教师讲授",
+              body: "聚焦本课重点。",
+              teacherNotes: "突出关键概念。",
+              materialRefs: [],
+            },
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "教师讲授" }));
+
+    await waitFor(() => {
+      expect(addLessonStepAction).toHaveBeenCalledWith({
+        lessonId: "lesson-1",
+        type: "content",
+        title: "教师讲授",
+        payload: {
+          type: "content",
+          title: "教师讲授",
+          body: "聚焦本课重点。",
+          teacherNotes: "突出关键概念。",
+          materialRefs: [],
+          builtInSource: {
+            pluginId: "plugin-direct",
+            builtInKey: "directInstruction",
+            pluginName: "教师讲授",
           },
         },
       });
@@ -213,6 +269,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               type: "quiz",
               question: "以下哪项最符合本节课重点？",
               options: ["A", "B"],
+              materialRefs: [],
               explanation: "核对课堂要点。",
               allowRetry: true,
               retryPolicy: "once",

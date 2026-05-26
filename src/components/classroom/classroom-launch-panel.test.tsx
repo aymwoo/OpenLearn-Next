@@ -68,6 +68,8 @@ describe("ClassroomLaunchPanel", () => {
                   id: "step-1",
                   order: 1,
                   title: "开场导入",
+                  pluginKey: "classroomVoting",
+                  pluginLabel: "课堂投票插件",
                   family: "教师讲授",
                   summary: "老师先带学生整体感知文本。",
                   activityIntent: "explain",
@@ -143,6 +145,8 @@ describe("ClassroomLaunchPanel", () => {
                   id: "step-1",
                   order: 1,
                   title: "开场导入",
+                  pluginKey: "classroomVoting",
+                  pluginLabel: "课堂投票插件",
                   family: "教师讲授",
                   summary: "老师先带学生整体感知文本。",
                   activityIntent: "explain",
@@ -161,10 +165,20 @@ describe("ClassroomLaunchPanel", () => {
               attentionIssues: [{
                 code: "TEACHING_DESIGN_INFERRED",
                 message: "1 个环节仍在使用默认推断，不会阻断开课，但建议教师先过一遍课堂节奏。",
+                stepId: "step-1",
+                stepTitle: "开场导入",
+                pluginKey: "classroomVoting",
+                pluginLabel: "课堂投票插件",
+                severityCopy: "课堂仍会按已发布快照启动，本项不会阻断开课。",
               }],
               advisoryIssues: [{
                 code: "EVIDENCE_CUES_REVIEW",
                 message: "1 个环节的采证提醒仍需教师确认，建议开课前明确要观察或收集什么。",
+                stepId: "step-1",
+                stepTitle: "开场导入",
+                pluginKey: "classroomVoting",
+                pluginLabel: "课堂投票插件",
+                severityCopy: "建议在开课前补齐这些信息，减少课堂内临时处理。",
               }],
             },
           },
@@ -189,8 +203,10 @@ describe("ClassroomLaunchPanel", () => {
 
     await waitFor(() => {
       expect(document.body.textContent).toContain("默认推断");
-      expect(document.body.textContent).toContain("课堂仍会按已发布快照启动，本期不会因为默认推断而阻断开课。");
+      expect(document.body.textContent).toContain("课堂仍会按已发布快照启动，本项不会阻断开课。");
     });
+    expect(document.body.textContent).toContain("开场导入");
+    expect(document.body.textContent).toContain("课堂投票插件");
     expect(document.body.textContent).toContain("整班摘要");
     expect(document.body.textContent).not.toContain("排除学生");
     expect(document.body.textContent).not.toContain("子集启动");
@@ -239,6 +255,8 @@ describe("ClassroomLaunchPanel", () => {
                 id: "step-1",
                 order: 1,
                 title: "开场导入",
+                pluginKey: "classroomVoting",
+                pluginLabel: "课堂投票插件",
                 family: "教师讲授",
                 summary: "老师先带学生整体感知文本。",
                 activityIntent: "explain",
@@ -253,8 +271,8 @@ describe("ClassroomLaunchPanel", () => {
             },
             launchReadiness: {
               blockingIssues: [],
-              attentionIssues: [{ code: "TEACHING_DESIGN_INFERRED", message: "1 个环节仍在使用默认推断，不会阻断开课，但建议教师先过一遍课堂节奏。" }],
-              advisoryIssues: [{ code: "MATERIAL_CUES_MISSING", message: "1 个环节还没有明确材料提示，建议开课前补齐讲义、链接或设备准备。" }],
+              attentionIssues: [{ code: "TEACHING_DESIGN_INFERRED", message: "1 个环节仍在使用默认推断，不会阻断开课，但建议教师先过一遍课堂节奏。", stepId: 'step-1', stepTitle: '开场导入', pluginKey: 'classroomVoting', pluginLabel: '课堂投票插件', severityCopy: '课堂仍会按已发布快照启动，本项不会阻断开课。' }],
+              advisoryIssues: [{ code: "MATERIAL_CUES_MISSING", message: "1 个环节还没有明确材料提示，建议开课前补齐讲义、链接或设备准备。", stepId: 'step-1', stepTitle: '开场导入', pluginKey: 'classroomVoting', pluginLabel: '课堂投票插件', severityCopy: '建议在开课前补齐这些信息，减少课堂内临时处理。' }],
             },
           },
         ]}
@@ -271,6 +289,9 @@ describe("ClassroomLaunchPanel", () => {
     expect(screen.getByText('当前没有阻断项，可以继续选择整班并开启课堂。')).toBeTruthy()
     expect(screen.getByText('1 个环节仍在使用默认推断，不会阻断开课，但建议教师先过一遍课堂节奏。')).toBeTruthy()
     expect(screen.getByText('1 个环节还没有明确材料提示，建议开课前补齐讲义、链接或设备准备。')).toBeTruthy()
+    expect(screen.getAllByText('课堂投票插件').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('开场导入').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('课堂仍会按已发布快照启动，本项不会阻断开课。').length).toBeGreaterThan(0)
     expect(screen.getByText('当前只支持整班启动；选择班级后会在这里展示名册规模与启动范围说明。')).toBeTruthy()
 
     await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2))

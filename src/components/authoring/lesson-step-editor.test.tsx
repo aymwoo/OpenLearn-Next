@@ -23,10 +23,17 @@ const { RevealMock } = vi.hoisted(() => {
 });
 
 const autosaveLessonStepAction = vi.fn();
+const saveVotingLessonStepAction = vi.fn();
 const uploadLessonMarkdownAssetAction = vi.fn();
+const refresh = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+}));
 
 vi.mock("@/actions/lesson-authoring-actions", () => ({
   autosaveLessonStepAction: (...args: unknown[]) => autosaveLessonStepAction(...args),
+  saveVotingLessonStepAction: (...args: unknown[]) => saveVotingLessonStepAction(...args),
   uploadLessonMarkdownAssetAction: (...args: unknown[]) => uploadLessonMarkdownAssetAction(...args),
 }));
 
@@ -61,8 +68,11 @@ describe("lesson step editor persistence", () => {
 
   beforeEach(() => {
     autosaveLessonStepAction.mockReset();
+    saveVotingLessonStepAction.mockReset();
     uploadLessonMarkdownAssetAction.mockReset();
+    refresh.mockReset();
     autosaveLessonStepAction.mockResolvedValue({ ok: true, data: { lessonId: "lesson-1", stepId: "step-1" } });
+    saveVotingLessonStepAction.mockResolvedValue({ ok: true, data: { lessonId: "lesson-1", stepId: "step-1", publishState: { blockingIssues: [] } } });
     uploadLessonMarkdownAssetAction.mockResolvedValue({ ok: true, data: { id: "resource-md-1" } });
   });
 
@@ -191,6 +201,7 @@ describe("lesson step editor persistence", () => {
         type: "quiz",
         question: "原始题目",
         options: ["A", "B"],
+        materialRefs: [],
         correctOptionIndex: 1,
         explanation: "原始说明",
         allowRetry: true,
@@ -227,6 +238,7 @@ describe("lesson step editor persistence", () => {
         type: "quiz",
         question: "新的题目",
         options: ["选项一", "选项二", "选项三"],
+        materialRefs: [],
         correctOptionIndex: 2,
         explanation: "新的说明",
         allowRetry: true,
@@ -367,5 +379,223 @@ describe("lesson step editor persistence", () => {
         markdown: expect.anything(),
       }),
     });
+  });
+
+  it("renders dedicated classroom voting editor, hydrates defaults, validates locally, and echoes server errors", async () => {
+    const step = makeStep({
+      id: "step-voting",
+      lessonId: "lesson-1",
+      type: "quiz",
+      title: "课堂投票",
+      rank: "a6",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      pluginAuthoring: {
+        persistedConfigJson: null,
+        fallbackMessage: null,
+      },
+      payload: {
+        type: "quiz",
+        question: "旧题目",
+        options: ["A", "B"],
+        materialRefs: [],
+        allowRetry: false,
+        retryPolicy: "none",
+        revealCorrectAnswer: false,
+        builtInSource: {
+          pluginId: "plugin-voting",
+          builtInKey: "classroomVoting",
+          pluginName: "课堂投票",
+        },
+      },
+    });
+
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
+        <LessonStepEditor step={step} />
+      </div>,
+    );
+
+    expect(screen.getByLabelText("课堂投票配置")).toBeTruthy();
+    expect(screen.queryByLabelText("正确答案序号")).toBeNull();
+    expect(screen.queryByLabelText("答案说明")).toBeNull();
+    expect(screen.getByText("已载入课堂投票默认配置，可按本节课需要修改。")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("投票题目"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("投票选项 1"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("参与时长（秒）"), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存投票配置" }));
+
+    expect(saveVotingLessonStepAction).not.toHaveBeenCalled();
+
+    saveVotingLessonStepAction.mockResolvedValueOnce({
+      ok: false,
+      error: "VALIDATION_ERROR",
+      message: "配置未通过校验，请先修正红色标记字段。",
+      fieldErrors: {
+        "executableConfig.prompt": ["请填写投票题目。"],
+      },
+    });
+
+    fireEvent.change(screen.getByLabelText("投票题目"), { target: { value: "新的投票题目" } });
+    fireEvent.change(screen.getByLabelText("投票选项 1"), { target: { value: "选项一" } });
+    fireEvent.change(screen.getByLabelText("投票选项 2"), { target: { value: "选项二" } });
+    fireEvent.change(screen.getByLabelText("参与时长（秒）"), { target: { value: "90" } });
+    await waitFor(() => expect(screen.queryByText("配置未通过校验，请先修正红色标记字段。")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: /保存投票配置|正在保存投票配置/ }));
+
+    await waitFor(() => expect(saveVotingLessonStepAction).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("请填写投票题目。")).toBeTruthy();
+    expect(saveVotingLessonStepAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedUpdatedAt: step.updatedAt,
+      }),
+    );
+  });
+
+  it("maps server option row fieldErrors back to the matching option row", async () => {
+    const step = makeStep({
+      id: "step-voting-row-error",
+      lessonId: "lesson-1",
+      type: "quiz",
+      title: "课堂投票",
+      rank: "a9",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      pluginAuthoring: {
+        persistedConfigJson: null,
+        fallbackMessage: null,
+      },
+      payload: {
+        type: "quiz",
+        question: "旧题目",
+        options: ["A", "B"],
+        materialRefs: [],
+        allowRetry: false,
+        retryPolicy: "none",
+        revealCorrectAnswer: false,
+        builtInSource: {
+          pluginId: "plugin-voting",
+          builtInKey: "classroomVoting",
+          pluginName: "课堂投票",
+        },
+      },
+    });
+
+    saveVotingLessonStepAction.mockResolvedValueOnce({
+      ok: false,
+      error: "VALIDATION_ERROR",
+      message: "配置未通过校验，请先修正红色标记字段。",
+      fieldErrors: {
+        "executableConfig.options.1.label": ["第 2 个选项不能为空。"],
+      },
+    });
+
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
+        <LessonStepEditor step={step} />
+      </div>,
+    );
+
+    fireEvent.change(screen.getByLabelText("投票题目"), { target: { value: "新的投票题目" } });
+    fireEvent.change(screen.getByLabelText("投票选项 1"), { target: { value: "选项一" } });
+    fireEvent.change(screen.getByLabelText("投票选项 2"), { target: { value: "选项二" } });
+    fireEvent.change(screen.getByLabelText("参与时长（秒）"), { target: { value: "90" } });
+    fireEvent.click(screen.getByRole("button", { name: /保存投票配置|正在保存投票配置/ }));
+
+    await waitFor(() => expect(saveVotingLessonStepAction).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("第 2 个选项不能为空。")).toBeTruthy();
+  });
+
+  it("refreshes route after successful voting save", async () => {
+    const step = makeStep({
+      id: "step-voting-success",
+      lessonId: "lesson-1",
+      type: "quiz",
+      title: "课堂投票",
+      rank: "a8",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      pluginAuthoring: {
+        persistedConfigJson: null,
+        fallbackMessage: null,
+      },
+      payload: {
+        type: "quiz",
+        question: "旧题目",
+        options: ["A", "B"],
+        materialRefs: [],
+        allowRetry: false,
+        retryPolicy: "none",
+        revealCorrectAnswer: false,
+        builtInSource: {
+          pluginId: "plugin-voting",
+          builtInKey: "classroomVoting",
+          pluginName: "课堂投票",
+        },
+      },
+    });
+
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
+        <LessonStepEditor step={step} />
+      </div>,
+    );
+
+    saveVotingLessonStepAction.mockResolvedValueOnce({
+      ok: true,
+      data: { lessonId: "lesson-1", stepId: "step-voting-success", publishState: { blockingIssues: [] } },
+    });
+    fireEvent.change(screen.getByLabelText("投票题目"), { target: { value: "新的投票题目" } });
+    fireEvent.change(screen.getByLabelText("投票选项 1"), { target: { value: "选项一" } });
+    fireEvent.change(screen.getByLabelText("投票选项 2"), { target: { value: "选项二" } });
+    fireEvent.change(screen.getByLabelText("参与时长（秒）"), { target: { value: "90" } });
+    fireEvent.click(screen.getByRole("button", { name: /保存投票配置|正在保存投票配置/ }));
+    await waitFor(() => expect(saveVotingLessonStepAction).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it("falls back to default voting config when persisted config is invalid", () => {
+    const step = makeStep({
+      id: "step-voting-invalid",
+      lessonId: "lesson-1",
+      type: "quiz",
+      title: "课堂投票",
+      rank: "a7",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      pluginAuthoring: {
+        persistedConfigJson: {
+          executableConfig: {
+            prompt: "",
+            options: [{ id: "a", label: "A" }],
+          },
+        },
+        fallbackMessage: "当前投票配置无法解析，已回退到默认值，请重新确认并保存。",
+      },
+      payload: {
+        type: "quiz",
+        question: "旧题目",
+        options: ["A", "B"],
+        materialRefs: [],
+        allowRetry: false,
+        retryPolicy: "none",
+        revealCorrectAnswer: false,
+        builtInSource: {
+          pluginId: "plugin-voting",
+          builtInKey: "classroomVoting",
+          pluginName: "课堂投票",
+        },
+      },
+    });
+
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
+        <LessonStepEditor step={step} />
+      </div>,
+    );
+
+    expect(screen.getByText("当前投票配置无法解析，已回退到默认值，请重新确认并保存。")).toBeTruthy();
+    expect((screen.getByLabelText("投票题目") as HTMLTextAreaElement).value).toBe("请选择你当前更认可的判断。");
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { publishLessonAction } from "@/actions/lesson-authoring-actions";
 import { dispatchLessonStepEditorCommand, lessonStepEditorSaveRequestEvent } from "@/components/authoring/editor-command-events";
@@ -49,11 +49,32 @@ export function AuthoringStatusPanel({ lesson }: AuthoringStatusPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [publishMessage, setPublishMessage] = useState<string | null>(null);
-  const [publishIssues, setPublishIssues] = useState<LessonPublishIssueDTO[]>(lesson?.publishState.blockingIssues ?? []);
-  const blockingIssues = publishIssues;
+  const blockingIssues = lesson?.publishState.blockingIssues ?? [];
   const warnings = lesson?.publishState.warnings ?? [];
   const canPublish = Boolean(lesson && blockingIssues.length === 0 && lesson.publishState.canPublish);
   const preparationSummary = lesson?.preparationSummary;
+  const previousLessonSnapshotRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const nextSnapshot = lesson
+      ? JSON.stringify({
+          revision: lesson.lesson.revision,
+          canPublish: lesson.publishState.canPublish,
+          blockingIssues: lesson.publishState.blockingIssues,
+        })
+      : null;
+
+    if (
+      publishMessage === "正在保存当前打开的教学环节。"
+      && previousLessonSnapshotRef.current
+      && nextSnapshot
+      && previousLessonSnapshotRef.current !== nextSnapshot
+    ) {
+      setPublishMessage("正在刷新发布检查...");
+    }
+
+    previousLessonSnapshotRef.current = nextSnapshot;
+  }, [lesson, publishMessage]);
 
   function saveDraft() {
     const saveHandled = dispatchLessonStepEditorCommand(lessonStepEditorSaveRequestEvent);
@@ -75,15 +96,14 @@ export function AuthoringStatusPanel({ lesson }: AuthoringStatusPanelProps) {
       const result = await publishLessonAction({ lessonId: lesson.lesson.id, expectedRevision: lesson.lesson.revision });
 
       if (result.ok) {
-        setPublishIssues([]);
         setPublishMessage("发布成功，学生端将读取最新已发布版本。");
+        router.refresh();
         return;
       }
 
       if (result.error === "PUBLISH_BLOCKED") {
-        const nextIssues = Array.isArray(result.issues) ? (result.issues as LessonPublishIssueDTO[]) : [];
-        setPublishIssues(nextIssues);
         setPublishMessage("发布前检查未通过，请先处理以下阻断项。");
+        router.refresh();
         return;
       }
 
@@ -119,7 +139,7 @@ export function AuthoringStatusPanel({ lesson }: AuthoringStatusPanelProps) {
         <p className="mt-4 text-sm text-on-surface-variant">学生将读取已发布版本，草稿仅教师可见。</p>
         {publishMessage ? <p className="mt-3 rounded-3xl bg-surface-container-lowest px-4 py-3 text-sm text-on-surface">{publishMessage}</p> : null}
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button type="button" onClick={publish} disabled={!lesson || isPending} className="min-h-10 px-4 text-sm">{isPending ? "正在发布..." : "发布课时"}</Button>
+          <Button type="button" onClick={publish} disabled={!lesson || isPending || !canPublish} className="min-h-10 px-4 text-sm">{isPending ? "正在发布..." : "发布课时"}</Button>
           <Button type="button" variant="secondary" onClick={saveDraft} className="min-h-10 px-4 text-sm">保存草稿</Button>
         </div>
       </div>

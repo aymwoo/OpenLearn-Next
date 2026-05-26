@@ -158,16 +158,14 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
   async function addBuiltInStep(definition: BuiltInTemplateForAuthoring) {
     if (!lesson) return;
 
-    const payload = definition.authoringContract?.kind === "classroom-voting"
-      ? {
-          ...definition.initialPayload,
-          builtInSource: {
-            pluginId: definition.pluginId,
-            builtInKey: definition.builtInKey,
-            pluginName: definition.pluginName,
-          },
-        }
-      : definition.initialPayload;
+    const payload = {
+      ...definition.initialPayload,
+      builtInSource: {
+        pluginId: definition.pluginId,
+        builtInKey: definition.builtInKey,
+        pluginName: definition.pluginName,
+      },
+    };
 
     await addLessonStepAction({
       lessonId: lesson.lesson.id,

@@ -143,6 +143,10 @@ const personal: StudentPlayerPersonalDTO = {
     latestRuntime: null,
     latestRuntimeStateSummary: {},
     runtimeRecoveryStatus: 'unavailable',
+    waitingForTeacher: false,
+    roundEnded: false,
+    roundStatusCopy: null,
+    latestVotingSubmission: null,
   },
   canRetryTask: false,
   canRetryQuiz: false,
@@ -298,5 +302,135 @@ describe('ClassroomRuntimeClient websocket consumer', () => {
     await waitFor(() => {
       expect(classroomActionMocks.touchClassroomPresenceAction).toHaveBeenCalled()
     })
+  })
+
+  it('shows voting round status after teacher starts the round through durable snapshot parity', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        sessionId: 'session-1',
+        lessonId: 'lesson-1',
+        publishedVersionId: 'pub-1',
+        classId: 'class-1',
+        className: '一班',
+        teacherId: 'teacher-1',
+        lessonTitle: '古诗导读',
+        activeStepId: 'step-1',
+        locked: false,
+        status: 'live',
+        version: 5,
+        updatedAt: '2026-05-18T09:00:00.000Z',
+        participants: [],
+        monitoringSummary: {
+          connectedCount: 1,
+          reconnectingCount: 0,
+          offlineCount: 0,
+          needsAttentionCount: 0,
+          submittedCount: 0,
+        },
+        steps: [],
+        slideState: null,
+        currentVotingRound: {
+          status: 'live',
+          stepId: 'step-1',
+          stepTitle: '互动 Runtime',
+          startedAt: '2026-05-18T09:02:00.000Z',
+          endedAt: null,
+          submittedCount: 0,
+          remainingCount: 0,
+          isFrozen: false,
+        },
+        teacherTimeline: [],
+        copy: {
+          staleRefreshRequired: 'stale',
+          pendingAction: 'pending',
+          reconnecting: 'reconnecting',
+          restored: 'restored',
+        },
+      }),
+    })) as unknown as typeof fetch)
+
+    render(<ClassroomRuntimeClient shell={shell} personal={personal} />)
+
+    MockWebSocket.instances[0]?.emit('message', {
+      messageId: 'msg-4',
+      sessionId: 'session-1',
+      actor: { userId: 'teacher-1', scope: 'teacher', schoolId: 'school-1' },
+      kind: 'classroom.snapshot',
+      sentAt: '2026-05-18T09:02:00.000Z',
+      correlation: { correlationId: 'corr-4', truthPersisted: true },
+      payload: {
+        snapshot: {
+          sessionId: 'session-1',
+          lessonId: 'lesson-1',
+          publishedVersionId: 'pub-1',
+          classId: 'class-1',
+          className: '一班',
+          teacherId: 'teacher-1',
+          lessonTitle: '古诗导读',
+          activeStepId: 'step-1',
+          locked: false,
+          status: 'live',
+          version: 5,
+          updatedAt: '2026-05-18T09:02:00.000Z',
+          participants: [],
+          monitoringSummary: {
+            connectedCount: 1,
+            reconnectingCount: 0,
+            offlineCount: 0,
+            needsAttentionCount: 0,
+            submittedCount: 0,
+          },
+          steps: [],
+          slideState: null,
+          currentVotingRound: {
+            status: 'live',
+            stepId: 'step-1',
+            stepTitle: '互动 Runtime',
+            startedAt: '2026-05-18T09:02:00.000Z',
+            endedAt: null,
+            submittedCount: 0,
+            remainingCount: 0,
+            isFrozen: false,
+          },
+          teacherTimeline: [],
+          copy: {
+            staleRefreshRequired: 'stale',
+            pendingAction: 'pending',
+            reconnecting: 'reconnecting',
+            restored: 'restored',
+          },
+        },
+      },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('本轮进行中')).toBeTruthy()
+    })
+  })
+
+  it('shows submitted-waiting copy without auto-leaving the current voting step', async () => {
+    render(
+      <ClassroomRuntimeClient
+        shell={shell}
+        personal={{
+          ...personal,
+          runtime: {
+            ...personal.runtime,
+            waitingForTeacher: true,
+            roundStatusCopy: '已提交，等待老师结束本轮投票',
+            latestVotingSubmission: {
+              stepId: 'step-1',
+              submittedAt: '2026-05-18T09:03:00.000Z',
+              summary: '已提交，等待老师结束本轮投票',
+              payload: { selectedOptionId: 'A' },
+            },
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('已提交，等待老师结束本轮投票')).toBeTruthy()
+    expect(screen.getAllByRole('heading', { name: '互动 Runtime' }).length).toBeGreaterThan(0)
   })
 })

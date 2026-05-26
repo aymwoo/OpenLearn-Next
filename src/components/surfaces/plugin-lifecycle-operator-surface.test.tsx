@@ -24,9 +24,12 @@ const pluginActionDetailRouteSource = readFileSync(
 
 const pluginActionMocks = vi.hoisted(() => ({
   setPluginEnabledAction: vi.fn().mockResolvedValue({ success: true }),
+  setPluginEnabledForOperatorAction: vi.fn().mockResolvedValue({ success: true }),
   retryPluginAction: vi.fn().mockResolvedValue({ success: true }),
+  retryPluginForOperatorAction: vi.fn().mockResolvedValue({ success: true }),
   transitionPluginLifecycleAction: vi.fn().mockResolvedValue({ success: true }),
   reconcilePluginAction: vi.fn().mockResolvedValue({ success: true }),
+  reconcilePluginForOperatorAction: vi.fn().mockResolvedValue({ success: true }),
   setPluginKillSwitchAction: vi.fn().mockResolvedValue({ success: true }),
   preflightUninstallPluginAction: vi.fn().mockResolvedValue({
     success: true,
@@ -770,7 +773,7 @@ describe("plugin lifecycle operator surface", () => {
     fireEvent.click(within(pluginCard!).getByRole("button", { name: "停用插件" }));
 
     await waitFor(() => {
-      expect(pluginActionMocks.setPluginEnabledAction).toHaveBeenCalledWith({
+      expect(pluginActionMocks.setPluginEnabledForOperatorAction).toHaveBeenCalledWith({
         pluginId: "plugin-enabled-no-recovery",
         schoolId: "school-1",
         enabled: false,
@@ -831,14 +834,14 @@ describe("plugin lifecycle operator surface", () => {
     fireEvent.click(within(pluginCard!).getByRole("button", { name: "运行 reconcile" }));
 
     await waitFor(() => {
-      expect(pluginActionMocks.reconcilePluginAction).toHaveBeenCalledWith({
+      expect(pluginActionMocks.reconcilePluginForOperatorAction).toHaveBeenCalledWith({
         pluginId: "plugin-dependency-blocked",
         schoolId: "school-1",
         reason: "dependency_missing",
         targetState: "enabled",
       });
     });
-    expect(pluginActionMocks.setPluginEnabledAction).not.toHaveBeenCalledWith(
+    expect(pluginActionMocks.setPluginEnabledForOperatorAction).not.toHaveBeenCalledWith(
       expect.objectContaining({ pluginId: "plugin-dependency-blocked" }),
     );
   });
@@ -861,7 +864,7 @@ describe("plugin lifecycle operator surface", () => {
     fireEvent.click(within(pluginCard!).getByRole("button", { name: "重试恢复" }));
 
     await waitFor(() => {
-      expect(pluginActionMocks.retryPluginAction).toHaveBeenCalledWith({
+      expect(pluginActionMocks.retryPluginForOperatorAction).toHaveBeenCalledWith({
         pluginId: "plugin-activation-failed",
         schoolId: "school-1",
         commandId: "plugin.retry:plugin-activation-failed",
@@ -900,7 +903,7 @@ describe("plugin lifecycle operator surface", () => {
         revalidatePaths: ["/settings/labs/plugins/plugin-kill-switch", "/settings/labs"],
       });
     });
-    expect(pluginActionMocks.setPluginEnabledAction).not.toHaveBeenCalledWith(
+    expect(pluginActionMocks.setPluginEnabledForOperatorAction).not.toHaveBeenCalledWith(
       expect.objectContaining({ pluginId: "plugin-kill-switch" }),
     );
   });

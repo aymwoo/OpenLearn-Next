@@ -1,9 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Clock3, Eye, FileText } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
-import { autosaveLessonStepAction, uploadLessonMarkdownAssetAction } from "@/actions/lesson-authoring-actions";
+import { autosaveLessonStepAction, saveVotingLessonStepAction, uploadLessonMarkdownAssetAction } from "@/actions/lesson-authoring-actions";
 import {
   lessonStepEditorResetRequestEvent,
   lessonStepEditorSaveRequestEvent,
@@ -12,6 +13,7 @@ import { MarkdownRenderer } from "@/components/markdown/markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { lessonStepPayloadSchema, type LessonStepDTO, type LessonStepPayload } from "@/lib/dto/lesson-authoring";
+import { BUILT_IN_TEACHING_STEP_DEFINITIONS, ClassroomVotingAuthoringConfigSchema } from "@/lib/dto/resource-ai";
 
 type LessonStepEditorProps = {
   step: LessonStepDTO | null;
@@ -55,7 +57,124 @@ type EditorState = {
   correctOptionIndex: string;
   explanation: string;
   materialRefsText: string;
+  votingPrompt: string;
+  votingOptions: Array<{ id: string; label: string }>;
+  votingAllowMultiple: boolean;
+  votingAnonymousResults: boolean;
+  votingShowLiveResults: boolean;
+  votingParticipationWindowSeconds: string;
+  votingResultsDisplay: "bar" | "column" | "compact";
 };
+
+type VotingValidationState = {
+  general: string | null;
+  fallback: string | null;
+  fields: {
+    prompt?: string;
+    options?: string;
+    optionLabels?: Record<number, string>;
+    participationWindowSeconds?: string;
+  };
+};
+
+const classroomVotingDefinition = BUILT_IN_TEACHING_STEP_DEFINITIONS.find((item) => item.builtInKey === "classroomVoting");
+const classroomVotingDefaultConfig = classroomVotingDefinition?.authoringContract?.defaultConfig;
+
+if (!classroomVotingDefaultConfig || !classroomVotingDefinition?.authoringContract) {
+  throw new Error("Classroom voting authoring contract missing");
+}
+
+const guaranteedVotingDefaultConfig = ClassroomVotingAuthoringConfigSchema.parse(classroomVotingDefaultConfig);
+
+function isClassroomVotingStep(step: LessonStepDTO) {
+  return step.type === "quiz"
+    && step.payload.type === "quiz"
+    && step.payload.builtInSource?.builtInKey === "classroomVoting";
+}
+
+function getPersistedVotingConfig(step: LessonStepDTO) {
+  const persisted = step.pluginAuthoring?.persistedConfigJson as { executableConfig?: unknown } | undefined;
+  const parsed = ClassroomVotingAuthoringConfigSchema.safeParse(persisted?.executableConfig);
+  if (parsed.success) {
+    return { config: parsed.data, fallback: null as string | null };
+  }
+
+  return {
+    config: classroomVotingDefaultConfig,
+    fallback: step.pluginAuthoring?.fallbackMessage ?? null,
+  };
+}
+
+function resolveVotingSeed(step: LessonStepDTO) {
+  const seed = isClassroomVotingStep(step)
+    ? getPersistedVotingConfig(step).config
+    : guaranteedVotingDefaultConfig;
+
+  if (!seed) {
+    throw new Error("Voting seed missing");
+  }
+
+  return seed;
+}
+
+function buildVotingValidation(state: EditorState): VotingValidationState {
+  const optionLabels: Record<number, string> = {};
+  state.votingOptions.forEach((option, index) => {
+    if (!option.label.trim()) optionLabels[index] = "请填写选项内容。";
+  });
+
+  const validOptions = state.votingOptions.filter((option) => option.label.trim()).length;
+  const windowValue = Number(state.votingParticipationWindowSeconds);
+
+  return {
+    general: null,
+    fallback: null,
+    fields: {
+      prompt: state.votingPrompt.trim() ? undefined : "请填写投票题目。",
+      options: validOptions >= 2 && state.votingOptions.length <= 6 ? undefined : "请先填写投票题目和至少 2 个选项。",
+      optionLabels: Object.keys(optionLabels).length > 0 ? optionLabels : undefined,
+      participationWindowSeconds:
+        Number.isFinite(windowValue) && windowValue >= 15 && windowValue <= 600
+          ? undefined
+          : "参与时长需在 15 到 600 秒之间。",
+    },
+  };
+}
+
+function hasVotingValidationErrors(validation: VotingValidationState) {
+  return Boolean(
+    validation.fields.prompt
+      || validation.fields.options
+      || validation.fields.participationWindowSeconds
+      || (validation.fields.optionLabels && Object.keys(validation.fields.optionLabels).length > 0),
+  );
+}
+
+function getFieldError(fieldErrors: Record<string, string[] | undefined>, ...keys: string[]) {
+  for (const key of keys) {
+    const message = fieldErrors[key]?.[0];
+    if (message) {
+      return message;
+    }
+  }
+
+  return undefined;
+}
+
+function getOptionLabelFieldErrors(fieldErrors: Record<string, string[] | undefined>) {
+  const optionLabels: Record<number, string> = {};
+
+  for (const [key, messages] of Object.entries(fieldErrors)) {
+    const match = key.match(/(?:^|\.)options\.(\d+)\.label$/);
+    if (!match || !messages?.[0]) {
+      continue;
+    }
+
+    optionLabels[Number(match[1])] = messages[0];
+  }
+
+  return Object.keys(optionLabels).length > 0 ? optionLabels : undefined;
+}
 
 function materialRefsToText(step: LessonStepDTO) {
   const refs = "materialRefs" in step.payload ? step.payload.materialRefs : [];
@@ -63,6 +182,8 @@ function materialRefsToText(step: LessonStepDTO) {
 }
 
 function buildInitialState(step: LessonStepDTO): EditorState {
+  const votingSeed = resolveVotingSeed(step);
+
   return {
     title: step.title,
     contentBody: step.payload.type === "content" ? step.payload.body : "",
@@ -83,6 +204,13 @@ function buildInitialState(step: LessonStepDTO): EditorState {
       : "",
     explanation: step.payload.type === "quiz" ? step.payload.explanation ?? "" : "",
     materialRefsText: materialRefsToText(step),
+    votingPrompt: votingSeed.prompt,
+    votingOptions: votingSeed.options.map((option) => ({ ...option })),
+    votingAllowMultiple: votingSeed.allowMultiple,
+    votingAnonymousResults: votingSeed.anonymousResults,
+    votingShowLiveResults: votingSeed.showLiveResults,
+    votingParticipationWindowSeconds: String(votingSeed.participationWindowSeconds),
+    votingResultsDisplay: votingSeed.resultsDisplay,
   };
 }
 
@@ -164,6 +292,7 @@ function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayloa
     type: "quiz",
     question: state.quizQuestion.trim(),
     options,
+    materialRefs,
     correctOptionIndex: state.correctOptionIndex.trim() ? Number(state.correctOptionIndex.trim()) : undefined,
     explanation: state.explanation.trim() || undefined,
     allowRetry: step.payload.type === "quiz" ? step.payload.allowRetry : undefined,
@@ -174,9 +303,11 @@ function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayloa
 }
 
 export function LessonStepEditor({ step, schoolId, courseId, className, onCancel }: LessonStepEditorProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [status, setStatus] = useState<string | null>(null);
   const [stateByStepId, setStateByStepId] = useState<Record<string, EditorState>>({});
+  const [votingValidationByStepId, setVotingValidationByStepId] = useState<Record<string, VotingValidationState>>({});
 
   const stepTypeLabel = useMemo(() => {
     if (!step) return "";
@@ -198,6 +329,11 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
 
   const activeStep = step;
   const activeState = stateByStepId[step.id] ?? buildInitialState(step);
+  const activeVotingValidation = votingValidationByStepId[step.id] ?? {
+    general: null,
+    fallback: isClassroomVotingStep(step) ? getPersistedVotingConfig(step).fallback : null,
+    fields: {},
+  };
   const previewMaterialRefs = parsePreviewMaterialRefs(activeState.materialRefsText);
   const previewTitle = activeState.title.trim() || activeStep.title;
   const previewDescription = getPreviewDescription(activeStep, activeState);
@@ -214,12 +350,35 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
         [key]: value,
       },
     }));
+
+    if (isClassroomVotingStep(activeStep)) {
+      setVotingValidationByStepId((prev) => ({
+        ...prev,
+        [activeStep.id]: {
+          ...((prev[activeStep.id] ?? {
+            general: null,
+            fallback: activeVotingValidation.fallback,
+            fields: {},
+          }) as VotingValidationState),
+          general: null,
+          fields: {},
+        },
+      }));
+    }
+  }
+
+  function updateVotingValidation(next: VotingValidationState) {
+    setVotingValidationByStepId((prev) => ({
+      ...prev,
+      [activeStep.id]: next,
+    }));
   }
 
   function saveStep() {
     setStatus(savingCopy);
     startTransition(async () => {
       let nextState = activeState;
+      const isVotingStep = isClassroomVotingStep(activeStep);
 
       if (
         activeStep.type === 'content' &&
@@ -249,6 +408,59 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
           ...prev,
           [activeStep.id]: nextState,
         }))
+      }
+
+      if (isVotingStep) {
+        const clientValidation = buildVotingValidation(nextState);
+        clientValidation.fallback = activeVotingValidation.fallback;
+        if (hasVotingValidationErrors(clientValidation)) {
+          clientValidation.general = "配置未通过校验，请先修正红色标记字段。";
+          updateVotingValidation(clientValidation);
+          setStatus("配置未通过校验，请先修正红色标记字段。");
+          return;
+        }
+
+        const result = await saveVotingLessonStepAction({
+          stepId: activeStep.id,
+          title: nextState.title.trim(),
+          pluginId: activeStep.payload.builtInSource!.pluginId,
+          expectedUpdatedAt: activeStep.updatedAt,
+          executableConfig: {
+            prompt: nextState.votingPrompt.trim(),
+            options: nextState.votingOptions.map((option) => ({ id: option.id, label: option.label.trim() })),
+            allowMultiple: nextState.votingAllowMultiple,
+            anonymousResults: nextState.votingAnonymousResults,
+            showLiveResults: nextState.votingShowLiveResults,
+            participationWindowSeconds: Number(nextState.votingParticipationWindowSeconds),
+            resultsDisplay: nextState.votingResultsDisplay,
+          },
+        });
+
+        if (result.ok) {
+          updateVotingValidation({ general: null, fallback: null, fields: {} });
+          setStatus("投票配置已保存，发布检查已同步刷新。");
+          router.refresh();
+          return;
+        }
+
+        const nextValidation: VotingValidationState = {
+          general: result.message || "配置未通过校验，请先修正红色标记字段。",
+          fallback: activeVotingValidation.fallback,
+          fields: {},
+        };
+        if (result.fieldErrors) {
+          nextValidation.fields.prompt = getFieldError(result.fieldErrors, "executableConfig.prompt", "prompt");
+          nextValidation.fields.options = getFieldError(result.fieldErrors, "executableConfig.options", "options");
+          nextValidation.fields.optionLabels = getOptionLabelFieldErrors(result.fieldErrors);
+          nextValidation.fields.participationWindowSeconds = getFieldError(
+            result.fieldErrors,
+            "executableConfig.participationWindowSeconds",
+            "participationWindowSeconds",
+          );
+        }
+        updateVotingValidation(nextValidation);
+        setStatus(result.error === "CONFLICT" ? "检测到更新冲突，请刷新课时后重新应用修改。" : (result.message || validationCopy));
+        return;
       }
 
       const nextPayload = buildPayload(nextState, activeStep)
@@ -475,6 +687,120 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
                 )}
 
                 {activeStep.type === "quiz" && activeStep.payload.type === "quiz" && (
+                  isClassroomVotingStep(activeStep) ? (
+                    <div className="grid gap-3 rounded-none bg-surface-container-low p-4" aria-label="课堂投票配置">
+                      <div>
+                        <h3 className="text-sm font-semibold uppercase tracking-wide text-on-surface">课堂投票配置</h3>
+                        <p className="mt-1 text-sm text-on-surface-variant">
+                          {activeVotingValidation.fallback
+                            ? activeVotingValidation.fallback
+                            : step.pluginAuthoring?.persistedConfigJson
+                              ? "已载入已保存的课堂投票配置。"
+                              : "已载入课堂投票默认配置，可按本节课需要修改。"}
+                        </p>
+                        {activeVotingValidation.general ? <p className="mt-2 text-sm text-[#b31b25]">{activeVotingValidation.general}</p> : null}
+                      </div>
+                      <label className="grid gap-2" htmlFor="lesson-step-voting-prompt">
+                        <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">投票题目</span>
+                        <textarea
+                          id="lesson-step-voting-prompt"
+                          className={`${fieldClassName} min-h-24`}
+                          value={activeState.votingPrompt}
+                          onChange={(event) => updateField("votingPrompt", event.target.value)}
+                        />
+                        {activeVotingValidation.fields.prompt ? <span className="text-sm text-[#b31b25]">{activeVotingValidation.fields.prompt}</span> : null}
+                      </label>
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">投票选项</span>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="px-3"
+                            onClick={() => updateField("votingOptions", [...activeState.votingOptions, { id: crypto.randomUUID(), label: "" }].slice(0, 6))}
+                            disabled={activeState.votingOptions.length >= 6}
+                          >
+                            新增选项
+                          </Button>
+                        </div>
+                        {activeState.votingOptions.map((option, index) => (
+                          <div key={option.id} className="grid gap-2">
+                            <div className="flex gap-2">
+                              <input
+                                aria-label={`投票选项 ${index + 1}`}
+                                className={fieldClassName}
+                                value={option.label}
+                                onChange={(event) => updateField("votingOptions", activeState.votingOptions.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item))}
+                              />
+                              <Button
+                                type="button"
+                                variant="tertiary"
+                                className="px-3"
+                                disabled={activeState.votingOptions.length <= 2}
+                                onClick={() => updateField("votingOptions", activeState.votingOptions.filter((_, itemIndex) => itemIndex !== index))}
+                              >
+                                删除
+                              </Button>
+                            </div>
+                            {activeVotingValidation.fields.optionLabels?.[index] ? <span className="text-sm text-[#b31b25]">{activeVotingValidation.fields.optionLabels[index]}</span> : null}
+                          </div>
+                        ))}
+                        {activeVotingValidation.fields.options ? <span className="text-sm text-[#b31b25]">{activeVotingValidation.fields.options}</span> : null}
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="flex items-center gap-3 rounded-none bg-surface-container-high px-4 py-3 text-sm text-on-surface">
+                          <input
+                            type="checkbox"
+                            checked={activeState.votingAllowMultiple}
+                            onChange={(event) => updateField("votingAllowMultiple", event.target.checked)}
+                          />
+                          允许多选
+                        </label>
+                        <label className="grid gap-2" htmlFor="lesson-step-voting-window">
+                          <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">参与时长（秒）</span>
+                          <input
+                            id="lesson-step-voting-window"
+                            inputMode="numeric"
+                            className={fieldClassName}
+                            value={activeState.votingParticipationWindowSeconds}
+                            onChange={(event) => updateField("votingParticipationWindowSeconds", event.target.value)}
+                          />
+                          {activeVotingValidation.fields.participationWindowSeconds ? <span className="text-sm text-[#b31b25]">{activeVotingValidation.fields.participationWindowSeconds}</span> : null}
+                        </label>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <label className="flex items-center gap-3 rounded-none bg-surface-container-high px-4 py-3 text-sm text-on-surface">
+                          <input
+                            type="checkbox"
+                            checked={activeState.votingAnonymousResults}
+                            onChange={(event) => updateField("votingAnonymousResults", event.target.checked)}
+                          />
+                          匿名结果
+                        </label>
+                        <label className="flex items-center gap-3 rounded-none bg-surface-container-high px-4 py-3 text-sm text-on-surface">
+                          <input
+                            type="checkbox"
+                            checked={activeState.votingShowLiveResults}
+                            onChange={(event) => updateField("votingShowLiveResults", event.target.checked)}
+                          />
+                          实时结果
+                        </label>
+                        <label className="grid gap-2" htmlFor="lesson-step-voting-results-display">
+                          <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">结果展示</span>
+                          <select
+                            id="lesson-step-voting-results-display"
+                            className={fieldClassName}
+                            value={activeState.votingResultsDisplay}
+                            onChange={(event) => updateField("votingResultsDisplay", event.target.value as EditorState["votingResultsDisplay"])}
+                          >
+                            <option value="bar">bar</option>
+                            <option value="column">column</option>
+                            <option value="compact">compact</option>
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
                   <>
                     <label className="grid gap-2" htmlFor="lesson-step-quiz-question">
                       <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">题目</span>
@@ -514,6 +840,7 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
                       />
                     </label>
                   </>
+                  )
                 )}
 
                 <label className="grid gap-2" htmlFor="lesson-step-materials">
@@ -537,7 +864,7 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
                 取消
               </Button>
               <Button type="button" onClick={saveStep} disabled={isPending} className="px-6">
-                {isPending ? savingCopy : "保存步骤"}
+                {isPending ? (isClassroomVotingStep(activeStep) ? "正在保存投票配置..." : savingCopy) : (isClassroomVotingStep(activeStep) ? "保存投票配置" : "保存步骤")}
               </Button>
             </div>
           </div>
@@ -641,6 +968,10 @@ function getPreviewDescription(step: LessonStepDTO, state: EditorState) {
     return state.taskPrompt.trim() || "描述学生需要完成的任务、提交要求与课堂互动节奏。";
   }
 
+  if (isClassroomVotingStep(step)) {
+    return state.votingPrompt.trim() || "系统已载入默认投票模板。请补充题目和至少 2 个选项后保存。";
+  }
+
   return state.quizQuestion.trim() || "填写测验题目后，右侧会即时展示题目摘要与作答提示。";
 }
 
@@ -651,6 +982,12 @@ function getPreviewSupport(step: LessonStepDTO, state: EditorState) {
 
   if (step.type === "task") {
     return state.successCriteria.trim() || `提交方式：${submissionTypeLabels[state.submissionType]}`;
+  }
+
+  if (isClassroomVotingStep(step)) {
+    const optionCount = state.votingOptions.filter((option) => option.label.trim()).length;
+    const selectionMode = state.votingAllowMultiple ? "多选" : "单选";
+    return `${optionCount} 个选项 · ${selectionMode} · ${state.votingParticipationWindowSeconds || "90"} 秒`;
   }
 
   const optionCount = state.quizOptions.split("\n").map((line) => line.trim()).filter(Boolean).length;

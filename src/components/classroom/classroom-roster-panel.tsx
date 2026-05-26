@@ -4,15 +4,17 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import type { ClassroomParticipantMonitoringDTO, ClassroomRosterSummaryDTO } from '@/lib/dto/classroom'
+import type { ClassroomParticipantMonitoringDTO, ClassroomRosterSummaryDTO, ClassroomVotingRoundDTO } from '@/lib/dto/classroom'
 
 export function ClassroomRosterPanel({
   participants,
   monitoringSummary,
+  currentVotingRound,
   sessionId,
 }: {
   participants: ClassroomParticipantMonitoringDTO[]
   monitoringSummary: ClassroomRosterSummaryDTO
+  currentVotingRound?: ClassroomVotingRoundDTO | null
   sessionId?: string
 }) {
   const pathname = usePathname()
@@ -85,6 +87,24 @@ export function ClassroomRosterPanel({
           )
         })}
       </div>
+
+      {currentVotingRound ? (
+        <div className="mt-5 rounded-[1.4rem] bg-surface-container-lowest p-5 shadow-ambient">
+          <p className="text-sm font-semibold text-on-surface">未完成名单</p>
+          {currentVotingRound.incompleteStudents.length > 0 ? (
+            <div className="mt-3 grid gap-2">
+              {currentVotingRound.incompleteStudents.map((student) => (
+                <div key={student.studentId} className="flex items-center justify-between rounded-[1rem] bg-surface-container-low px-3 py-2 text-sm text-on-surface">
+                  <span>{student.studentName}</span>
+                  <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-xs text-on-surface-variant">{student.statusToken}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-on-surface-variant">全班已提交，可由老师决定何时结束本轮投票。</p>
+          )}
+        </div>
+      ) : null}
 
       <div className="mt-5 rounded-[1.4rem] bg-surface-container-lowest p-5 shadow-ambient">
         <Activity className="mb-3 size-6 text-primary" aria-hidden />

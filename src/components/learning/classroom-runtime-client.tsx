@@ -387,8 +387,12 @@ export function ClassroomRuntimeClient({
     let forcedStepId = null
     let teacherRecommendedStepId = null
     const locked = Boolean(snapshot.locked)
+    const currentVotingRound = snapshot.currentVotingRound
 
-    if (locked) {
+    if (currentVotingRound?.stepId) {
+      forcedStepId = currentVotingRound.stepId
+      teacherRecommendedStepId = currentVotingRound.stepId
+    } else if (locked) {
       forcedStepId = snapshot.activeStepId
     } else {
       teacherRecommendedStepId = snapshot.activeStepId
@@ -405,6 +409,13 @@ export function ClassroomRuntimeClient({
       connectionState: state,
       teacherRecommendedStepId,
       disabledReason: locked ? "老师已开启锁定跟随，你将停留在当前步骤。" : null,
+      waitingForTeacher: currentVotingRound?.status === 'live',
+      roundEnded: currentVotingRound?.status === 'closed',
+      roundStatusCopy: currentVotingRound?.status === 'live'
+        ? '老师已开始本轮投票，请在当前环节完成提交并等待老师结束本轮。'
+        : currentVotingRound?.status === 'closed'
+          ? '老师已结束本轮投票，当前结果已冻结。'
+          : null,
     }))
   }
 
@@ -497,7 +508,21 @@ export function ClassroomRuntimeClient({
       <div aria-live="polite" className="sr-only">
         {snapshotStatusCopy}
       </div>
-      
+
+      {player.runtime.roundStatusCopy ? (
+        <div className="mb-5 rounded-[var(--radius-shell)] bg-primary-container/20 p-4 shadow-ambient transition-colors duration-150">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Badge variant="accent">{player.runtime.roundEnded ? '本轮已结束' : '本轮进行中'}</Badge>
+              <span className="text-sm font-semibold text-primary">{player.runtime.roundStatusCopy}</span>
+            </div>
+          </div>
+          {player.runtime.waitingForTeacher && player.runtime.latestVotingSubmission ? (
+            <p className="mt-3 text-sm text-on-surface-variant">老师结束前，你可以更新本次选择。</p>
+          ) : null}
+        </div>
+      ) : null}
+
       {sessionId && (snapshotStatusCopy || runtime.connectionState === 'snapshot_fallback') && (
         <div className="mb-5 rounded-[var(--radius-shell)] bg-surface-container-low p-4 shadow-ambient transition-colors duration-150">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

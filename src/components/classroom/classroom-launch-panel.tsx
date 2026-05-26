@@ -12,6 +12,7 @@ import { ghostSelectFieldClassName } from '@/components/ui/ghost-field'
 import type {
   ClassroomLaunchLessonOptionDTO,
   ClassroomLaunchPreviewEmptyStateDTO,
+  ClassroomLaunchReadinessIssueDTO,
 } from '@/lib/dto/classroom'
 import { AlertTriangle, BookOpen, CheckCircle2, TriangleAlert, Users } from 'lucide-react'
 
@@ -196,6 +197,7 @@ export function ClassroomLaunchPanel({
             title="需关注"
             issues={selectedLesson?.launchReadiness.attentionIssues ?? []}
             emptyLabel="当前没有需关注的问题。"
+            helperCopy="课堂仍会按已发布快照启动，本项不会阻断开课。"
             icon={<TriangleAlert className="size-4" aria-hidden />}
             tone="attention"
           />
@@ -235,12 +237,14 @@ function ReadinessGroup({
   title,
   issues,
   emptyLabel,
+  helperCopy,
   icon,
   tone,
 }: {
   title: string
-  issues: Array<{ message: string }>
+  issues: ClassroomLaunchReadinessIssueDTO[]
   emptyLabel: string
+  helperCopy?: string
   icon: React.ReactNode
   tone: 'blocking' | 'attention' | 'advisory'
 }) {
@@ -263,13 +267,19 @@ function ReadinessGroup({
         <ul className="mt-3 space-y-2" aria-label={title}>
           {issues.map((issue, index) => (
             <li key={`${title}-${index}`} className="rounded-[1rem] bg-surface-container-low px-3 py-3 text-sm leading-6 text-on-surface-variant">
-              {issue.message}
+              <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-on-surface">
+                <span>{issue.stepTitle ?? (issue.stepId ? `step:${issue.stepId}` : '课堂级别')}</span>
+                {issue.pluginLabel ? <span className="rounded-full bg-surface-container-high px-2 py-1">{issue.pluginLabel}</span> : null}
+              </div>
+              <p className="mt-2">{issue.message}</p>
+              {issue.severityCopy ? <p className="mt-2 text-xs text-on-surface-variant">{issue.severityCopy}</p> : null}
             </li>
           ))}
         </ul>
       ) : (
         <p className="mt-3 rounded-[1rem] bg-surface-container-low px-3 py-3 text-sm leading-6 text-on-surface-variant">{emptyLabel}</p>
       )}
+      {issues.length > 0 && helperCopy ? <p className="mt-3 text-sm text-on-surface-variant">{helperCopy}</p> : null}
     </section>
   )
 }

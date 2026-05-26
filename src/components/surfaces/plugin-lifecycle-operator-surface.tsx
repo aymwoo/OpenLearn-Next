@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 
 import {
   preflightUninstallPluginAction,
-  reconcilePluginAction,
-  retryPluginAction,
-  setPluginEnabledAction,
+  reconcilePluginForOperatorAction,
+  retryPluginForOperatorAction,
+  setPluginEnabledForOperatorAction,
   setPluginKillSwitchAction,
   transitionPluginLifecycleAction,
   uninstallPluginAction,
@@ -191,7 +191,7 @@ export function PluginLifecycleOperatorSurface({
 
     setInlineError((current) => ({ ...current, [plugin.pluginId]: null }));
     startTransition(async () => {
-      const result = await setPluginEnabledAction({
+      const result = await setPluginEnabledForOperatorAction({
         pluginId: plugin.pluginId,
         schoolId,
         enabled: shouldEnablePlugin(plugin),
@@ -223,11 +223,11 @@ export function PluginLifecycleOperatorSurface({
       const reason = getRecoveryReason(plugin);
 
         const result = plugin.recommendedRecoveryAction === "enable"
-          ? await setPluginEnabledAction({
+          ? await setPluginEnabledForOperatorAction({
               pluginId: plugin.pluginId,
-            schoolId,
-            enabled: true,
-          })
+              schoolId,
+              enabled: true,
+            })
         : plugin.recommendedRecoveryAction === "resume"
           ? await transitionPluginLifecycleAction({
               pluginId: plugin.pluginId,
@@ -236,20 +236,20 @@ export function PluginLifecycleOperatorSurface({
               reason,
             })
           : plugin.recommendedRecoveryAction === "retry"
-            ? await retryPluginAction({
+            ? await retryPluginForOperatorAction({
                 pluginId: plugin.pluginId,
                 schoolId,
                 commandId: `plugin.retry:${plugin.pluginId}`,
                 reason,
               })
           : plugin.recommendedRecoveryAction === "reconcile"
-              ? await reconcilePluginAction({
+              ? await reconcilePluginForOperatorAction({
                   pluginId: plugin.pluginId,
                   schoolId,
                   reason,
                   targetState: "enabled",
                 })
-              : await setPluginEnabledAction({
+              : await setPluginEnabledForOperatorAction({
                   pluginId: plugin.pluginId,
                   schoolId,
                   enabled: shouldEnablePlugin(plugin),

@@ -100,6 +100,24 @@ const snapshot: ClassroomSnapshotDTO = {
     degraded: false,
     degradedReason: null,
   },
+  currentVotingRound: {
+    status: "live",
+    stepId: "step-2",
+    stepTitle: "随堂测验",
+    startedAt: "2026-05-12T10:02:00.000Z",
+    endedAt: null,
+    submittedCount: 1,
+    remainingCount: 1,
+    optionResults: [{ optionId: "a", optionLabel: "A", count: 1, percentage: 100, isLeading: true }],
+    incompleteStudents: [{ studentId: "student-2", studentName: "韩梅梅", statusToken: "离线" }],
+    namedResults: [{ studentId: "student-1", studentName: "李雷", selectedOptionIds: ["a"], selectedOptionLabels: ["A"], submittedAt: "2026-05-12T10:03:00.000Z" }],
+    failureCount: 0,
+    namedResultsFoldedByDefault: true,
+    roundStatusCopy: "投票进行中",
+    failureCopy: null,
+    recoveryActions: [],
+    isFrozen: false,
+  },
   teacherTimeline: [],
   copy: {
     staleRefreshRequired: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",
@@ -116,10 +134,11 @@ describe("ClassroomRosterPanel", () => {
 
   it("shows monitoring cards and attention-first participant signals", () => {
     render(
-      <ClassroomRosterPanel
-        participants={participants}
-        monitoringSummary={snapshot.monitoringSummary}
-      />,
+        <ClassroomRosterPanel
+          participants={participants}
+          monitoringSummary={snapshot.monitoringSummary}
+          currentVotingRound={snapshot.currentVotingRound}
+        />,
     );
 
     expect(screen.getByText("课堂名册、进度与课堂回应概览")).toBeTruthy();
@@ -145,14 +164,54 @@ describe("ClassroomRosterPanel", () => {
 
   it("adds a same-route entry action for opening student detail state", () => {
     render(
-      <ClassroomRosterPanel
-        participants={participants}
-        monitoringSummary={snapshot.monitoringSummary}
-      />,
+        <ClassroomRosterPanel
+          participants={participants}
+          monitoringSummary={snapshot.monitoringSummary}
+          currentVotingRound={snapshot.currentVotingRound}
+        />,
     );
 
     fireEvent.click(screen.getAllByRole('button', { name: '查看证据与评价' })[0]!);
 
     expect(pushMock).toHaveBeenCalledWith('/classroom?sessionId=session-1&studentId=student-1&detailTab=evidence');
+  });
+
+  it("shows incomplete roster tokens for the current voting round", () => {
+    render(
+      <ClassroomRosterPanel
+        participants={participants}
+        monitoringSummary={snapshot.monitoringSummary}
+        currentVotingRound={{
+          ...snapshot.currentVotingRound!,
+          incompleteStudents: [
+            { studentId: "student-2", studentName: "韩梅梅", statusToken: "离线" },
+            { studentId: "student-3", studentName: "小明", statusToken: "重新连接中" },
+            { studentId: "student-4", studentName: "小红", statusToken: "未提交" },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText("未完成名单")[0]).toBeTruthy();
+    expect(screen.getAllByText("韩梅梅").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("离线").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("重新连接中").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("未提交").length).toBeGreaterThan(0);
+  });
+
+  it("shows positive empty state when everyone has submitted", () => {
+    render(
+      <ClassroomRosterPanel
+        participants={participants}
+        monitoringSummary={snapshot.monitoringSummary}
+        currentVotingRound={{
+          ...snapshot.currentVotingRound!,
+          remainingCount: 0,
+          incompleteStudents: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("全班已提交，可由老师决定何时结束本轮投票。")).toBeTruthy();
   });
 });
