@@ -4,6 +4,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GovernanceDashboardBundle } from "@/features/platform-core/actions/registry";
 
+const operatorRecoveryActionMock = vi.hoisted(() => vi.fn().mockResolvedValue({ success: true }));
+
 const pluginActionMocks = vi.hoisted(() => ({
   setPluginEnabledAction: vi.fn().mockResolvedValue({ success: true }),
   retryPluginAction: vi.fn().mockResolvedValue({ success: true }),
@@ -33,6 +35,9 @@ const pluginActionMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/actions/plugin-actions", () => pluginActionMocks);
+vi.mock("@/actions/operator-posture-recovery-actions", () => ({
+  runOperatorPostureRecoveryAction: (...args: unknown[]) => operatorRecoveryActionMock(...args),
+}));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -527,6 +532,7 @@ describe("plugin lifecycle operator surface", () => {
     HTMLDialogElement.prototype.close = vi.fn(function close(this: HTMLDialogElement) {
       this.removeAttribute("open");
     });
+    operatorRecoveryActionMock.mockClear();
   });
 
   it("defaults to executable catalog and hides internal mounted ready lifecycle labels", async () => {
@@ -705,12 +711,22 @@ describe("plugin lifecycle operator surface", () => {
     const pluginCard = screen.getByText("运行中插件", { selector: "p" }).closest("article");
     expect(pluginCard).toBeTruthy();
 
-    fireEvent.click(within(pluginCard!).getByRole("button", { name: "紧急挂起" }));
+    fireEvent.click(within(pluginCard!).getByRole("button", { name: "切换到降级姿态" }));
+
+    expect(screen.getByText("影响范围")).toBeTruthy();
+    expect(screen.getByText("姿态变化")).toBeTruthy();
+    expect(screen.getByText("将写入的审计记录")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "确认切换到降级姿态" }));
 
     await waitFor(() => {
-      expect(pluginActionMocks.setPluginKillSwitchAction).toHaveBeenCalledWith({
+      expect(operatorRecoveryActionMock).toHaveBeenCalledWith({
+        scope: "plugin",
         pluginId: "plugin-enabled",
-        killSwitchEnabled: true,
+        schoolId: "school-1",
+        recoveryAction: "fallback",
+        reason: "operator_fallback",
+        revalidatePaths: ["/settings/labs/plugins/plugin-enabled", "/settings/labs"],
       });
     });
   });
@@ -788,13 +804,18 @@ describe("plugin lifecycle operator surface", () => {
     expect(pluginCard).toBeTruthy();
 
     fireEvent.click(within(pluginCard!).getByRole("button", { name: "解除挂起" }));
+    expect(screen.getByText("影响范围")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "确认解除挂起" }));
 
     await waitFor(() => {
-      expect(pluginActionMocks.transitionPluginLifecycleAction).toHaveBeenCalledWith({
+      expect(operatorRecoveryActionMock).toHaveBeenCalledWith({
+        scope: "plugin",
         pluginId: "plugin-kill-switch",
         schoolId: "school-1",
-        targetState: "enabled",
+        recoveryAction: "resume",
         reason: "kill_switch",
+        revalidatePaths: ["/settings/labs/plugins/plugin-kill-switch", "/settings/labs"],
       });
     });
     expect(pluginActionMocks.setPluginEnabledAction).not.toHaveBeenCalledWith(

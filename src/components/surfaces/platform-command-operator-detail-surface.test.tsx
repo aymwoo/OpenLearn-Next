@@ -1,10 +1,16 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PlatformCommandOperatorDetailSurface } from "./platform-command-operator-detail-surface";
 import type { PlatformCommandOperatorDetailDTO } from "@/features/platform-core/observability/dto";
+
+const operatorRecoveryActionMock = vi.fn().mockResolvedValue({ success: true });
+
+vi.mock("@/actions/operator-posture-recovery-actions", () => ({
+  runOperatorPostureRecoveryAction: (...args: unknown[]) => operatorRecoveryActionMock(...args),
+}));
 
 const detail: PlatformCommandOperatorDetailDTO = {
   command: {
@@ -68,10 +74,41 @@ const detail: PlatformCommandOperatorDetailDTO = {
 };
 
 describe("PlatformCommandOperatorDetailSurface", () => {
+  beforeEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it("gates high-risk posture changes behind a confirmation panel with impact, posture change, and audit copy", async () => {
+    render(<PlatformCommandOperatorDetailSurface detail={detail} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "恢复运行姿态" }));
+
+    expect(screen.getByText("影响范围")).toBeTruthy();
+    expect(screen.getByText("姿态变化")).toBeTruthy();
+    expect(screen.getByText("将写入的审计记录")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "确认恢复运行姿态" }));
+
+    await waitFor(() => {
+      expect(operatorRecoveryActionMock).toHaveBeenCalledWith({
+        scope: "plugin",
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        recoveryAction: "resume",
+        reason: "activation_failed",
+        revalidatePaths: [
+          "/settings/labs/commands/command-1",
+          "/settings/labs",
+        ],
+      });
+    });
+  });
+
   it("renders command summary, delegation / approval, and event dispatch timeline", () => {
     render(<PlatformCommandOperatorDetailSurface detail={detail} />);
 
-    expect(screen.getByText(/plugin\.resume · plugin-1/)).toBeTruthy();
+    expect(screen.getAllByText(/plugin\.resume · plugin-1/).length).toBeGreaterThan(0);
     expect(screen.getByText("Delegation / Approval")).toBeTruthy();
     expect(screen.getAllByText(/Teacher approved delegated command/).length).toBeGreaterThan(0);
     expect(screen.getByText("event dispatch timeline")).toBeTruthy();
@@ -89,5 +126,25 @@ describe("PlatformCommandOperatorDetailSurface", () => {
     );
 
     expect(screen.getByText("未找到命令详情")).toBeTruthy();
+  });
+
+  it("keeps high-risk actions visible but disabled when current command is still running", () => {
+    render(
+      <PlatformCommandOperatorDetailSurface
+        detail={{
+          ...detail,
+          command: detail.command
+            ? {
+                ...detail.command,
+                status: "running",
+                statusLabel: "执行中",
+              }
+            : null,
+        }}
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: "恢复运行姿态" }).some((button) => button.hasAttribute("disabled"))).toBe(true);
+    expect(screen.getByText(/当前 command 仍在执行中，需等待稳定结果后再做高风险姿态变更/)).toBeTruthy();
   });
 });

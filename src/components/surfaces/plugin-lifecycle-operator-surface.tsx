@@ -12,6 +12,7 @@ import {
   transitionPluginLifecycleAction,
   uninstallPluginAction,
 } from "@/actions/plugin-actions";
+import { runOperatorPostureRecoveryAction } from "@/actions/operator-posture-recovery-actions";
 import type { GovernanceDashboardBundle } from "@/features/platform-core/actions/registry";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,10 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [cleanupIntent, setCleanupIntent] = useState<Record<string, boolean>>({});
   const [cleanupConfirmed, setCleanupConfirmed] = useState<Record<string, boolean>>({});
+  const [detailConfirm, setDetailConfirm] = useState<{
+    pluginId: string;
+    action: "resume" | "suspend" | "fallback";
+  } | null>(null);
 
   const dialogPlugin = useMemo(
     () => dashboard.pluginLifecycleRows.find((plugin) => plugin.pluginId === dialogPluginId) ?? null,
@@ -184,6 +189,11 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
   ) => {
     if (!schoolId || !plugin.recommendedRecoveryAction) return;
 
+    if (plugin.recommendedRecoveryAction === "resume") {
+      setDetailConfirm({ pluginId: plugin.pluginId, action: "resume" });
+      return;
+    }
+
     setInlineError((current) => ({ ...current, [plugin.pluginId]: null }));
     startTransition(async () => {
       const reason = getRecoveryReason(plugin);
@@ -229,6 +239,40 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
       } else {
         router.refresh();
       }
+    });
+  };
+
+  const submitHighRiskRecoveryAction = (
+    plugin: GovernanceDashboardBundle["pluginLifecycleRows"][number],
+    action: "resume" | "suspend" | "fallback",
+  ) => {
+    if (!schoolId) return;
+
+    setInlineError((current) => ({ ...current, [plugin.pluginId]: null }));
+    startTransition(async () => {
+      const result = await runOperatorPostureRecoveryAction({
+        scope: "plugin",
+        pluginId: plugin.pluginId,
+        schoolId,
+        recoveryAction: action,
+        reason: action === "resume"
+          ? getRecoveryReason(plugin)
+          : action === "suspend"
+            ? "operator_suspend"
+            : "operator_fallback",
+        revalidatePaths: [`/settings/labs/plugins/${plugin.pluginId}`, "/settings/labs"],
+      });
+
+      if (!result.success) {
+        setInlineError((current) => ({
+          ...current,
+          [plugin.pluginId]: result.error,
+        }));
+        return;
+      }
+
+      setDetailConfirm(null);
+      router.refresh();
     });
   };
 
@@ -441,6 +485,7 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
               cleanupConfirmationToken: plugin.uninstall.cleanupConfirmationToken,
             } satisfies PreflightUninstallPluginResult;
             const canOpenDialog = !preflight.blocked;
+            const activeDetailConfirm = detailConfirm?.pluginId === plugin.pluginId ? detailConfirm : null;
 
             return (
               <article key={plugin.pluginId} className={cn(teacherSurfaceRhythm.cardInset, "p-4")}>
@@ -524,12 +569,71 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
                         type="button"
                         variant="secondary"
                         className="min-h-10 px-4 text-sm shadow-none"
-                        onClick={() => submitKillSwitch(plugin, true)}
+                        onClick={() => setDetailConfirm({ pluginId: plugin.pluginId, action: "fallback" })}
                         disabled={isPending}
                       >
-                        紧急挂起
+                        切换到降级姿态
                       </Button>
                     ) : null}
+                  </div>
+                ) : null}
+
+                {activeDetailConfirm ? (
+                  <div className="mt-4 rounded-[1.25rem] bg-surface-container-low px-4 py-4">
+                    <h3 className="text-sm font-semibold text-on-surface">
+                      {activeDetailConfirm.action === "resume"
+                        ? "恢复运行姿态"
+                        : activeDetailConfirm.action === "suspend"
+                          ? "暂停当前姿态"
+                          : "切换到降级姿态"}
+                    </h3>
+                    <div className="mt-3 grid gap-3 text-sm leading-6 text-on-surface-variant">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.16em]">影响范围</p>
+                        <p className="mt-1">
+                          {activeDetailConfirm.action === "resume"
+                            ? "会让当前插件重新进入可执行姿态，并刷新当前 detail surface 与治理列表。"
+                            : activeDetailConfirm.action === "suspend"
+                              ? "会把当前插件切换到 suspended posture，阻止继续放大异常影响。"
+                              : "会打开 kill switch，强制 operator 改走降级路径继续观察系统状态。"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.16em]">姿态变化</p>
+                        <p className="mt-1">
+                          {activeDetailConfirm.action === "resume"
+                            ? "姿态变化：恢复到 enabled。"
+                            : activeDetailConfirm.action === "suspend"
+                              ? "姿态变化：切换到 suspended。"
+                              : "姿态变化：切换到 fallback / kill-switch posture。"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.16em]">将写入的审计记录</p>
+                        <p className="mt-1">
+                          {activeDetailConfirm.action === "fallback"
+                            ? "将写入的审计记录：plugin.kill_switch.set command、recovery audit 与 task history。"
+                            : `将写入的审计记录：plugin.${activeDetailConfirm.action} command、recovery audit 与 task history。`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Button
+                        type="button"
+                        onClick={() => submitHighRiskRecoveryAction(plugin, activeDetailConfirm.action)}
+                        disabled={isPending || !schoolId}
+                      >
+                        {`确认${activeDetailConfirm.action === "resume"
+                          ? "解除挂起"
+                          : activeDetailConfirm.action === "suspend"
+                            ? "暂停当前姿态"
+                            : "切换到降级姿态"}`}
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={() => setDetailConfirm(null)}>
+                        取消
+                      </Button>
+                    </div>
                   </div>
                 ) : null}
 
