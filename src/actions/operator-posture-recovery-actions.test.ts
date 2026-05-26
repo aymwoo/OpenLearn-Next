@@ -4,8 +4,8 @@ const updateTag = vi.fn();
 const revalidatePath = vi.fn();
 
 const pluginActionMocks = vi.hoisted(() => ({
-  transitionPluginLifecycleAction: vi.fn(),
-  setPluginKillSwitchAction: vi.fn(),
+  transitionPluginLifecycleForOperatorAction: vi.fn(),
+  setPluginKillSwitchForOperatorAction: vi.fn(),
 }));
 
 const classroomActionMocks = vi.hoisted(() => ({
@@ -24,8 +24,8 @@ describe("operator-posture-recovery-actions", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    pluginActionMocks.transitionPluginLifecycleAction.mockResolvedValue({ success: true });
-    pluginActionMocks.setPluginKillSwitchAction.mockResolvedValue({ success: true });
+    pluginActionMocks.transitionPluginLifecycleForOperatorAction.mockResolvedValue({ success: true });
+    pluginActionMocks.setPluginKillSwitchForOperatorAction.mockResolvedValue({ success: true });
     classroomActionMocks.runCurrentVotingRecoveryAction.mockResolvedValue({ ok: true, data: {} });
   });
 
@@ -42,7 +42,7 @@ describe("operator-posture-recovery-actions", () => {
     });
 
     expect(result).toEqual({ success: true });
-    expect(pluginActionMocks.transitionPluginLifecycleAction).toHaveBeenCalledWith({
+    expect(pluginActionMocks.transitionPluginLifecycleForOperatorAction).toHaveBeenCalledWith({
       pluginId: "plugin-1",
       schoolId: "school-1",
       targetState: "enabled",
@@ -50,6 +50,9 @@ describe("operator-posture-recovery-actions", () => {
     });
     expect(updateTag).toHaveBeenCalledWith("plugin:registry");
     expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
+    expect(revalidatePath).toHaveBeenCalledWith("/settings/labs");
+    expect(revalidatePath).toHaveBeenCalledWith("/settings/labs/plugins/plugin-1");
+    expect(revalidatePath).toHaveBeenCalledWith("/settings/labs/plugins/plugin-1/actions/resume");
     expect(revalidatePath).toHaveBeenCalledWith("/settings/labs/commands/command-1");
     expect(revalidatePath).toHaveBeenCalledWith("/settings/labs/plugins/plugin-1");
   });
@@ -67,12 +70,16 @@ describe("operator-posture-recovery-actions", () => {
     });
 
     expect(result).toEqual({ success: true });
-    expect(pluginActionMocks.setPluginKillSwitchAction).toHaveBeenCalledWith({
+    expect(pluginActionMocks.setPluginKillSwitchForOperatorAction).toHaveBeenCalledWith({
       pluginId: "plugin-1",
+      schoolId: "school-1",
       killSwitchEnabled: true,
     });
     expect(updateTag).toHaveBeenCalledWith("plugin:registry");
     expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
+    expect(revalidatePath).toHaveBeenCalledWith("/settings/labs");
+    expect(revalidatePath).toHaveBeenCalledWith("/settings/labs/plugins/plugin-1");
+    expect(revalidatePath).toHaveBeenCalledWith("/settings/labs/plugins/plugin-1/actions/fallback");
     expect(revalidatePath).toHaveBeenCalledWith("/settings/labs/plugins/plugin-1");
   });
 
@@ -102,7 +109,7 @@ describe("operator-posture-recovery-actions", () => {
   it("returns seam errors without pretending success", async () => {
     const { runOperatorPostureRecoveryAction } = await import("./operator-posture-recovery-actions");
 
-    pluginActionMocks.transitionPluginLifecycleAction.mockResolvedValueOnce({
+    pluginActionMocks.transitionPluginLifecycleForOperatorAction.mockResolvedValueOnce({
       success: false,
       error: "PLUGIN_LIFECYCLE_TRANSITION_FAILED",
     });

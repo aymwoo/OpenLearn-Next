@@ -5,8 +5,8 @@ import { z } from "zod";
 
 import { runCurrentVotingRecoveryAction } from "@/actions/classroom-actions";
 import {
-  setPluginKillSwitchAction,
-  transitionPluginLifecycleAction,
+  setPluginKillSwitchForOperatorAction,
+  transitionPluginLifecycleForOperatorAction,
 } from "@/actions/plugin-actions";
 import { cacheTags } from "@/lib/cache-policy";
 
@@ -54,11 +54,12 @@ export async function runOperatorPostureRecoveryAction(
 
   if (parsed.data.scope === "plugin") {
     const result = parsed.data.recoveryAction === "fallback"
-      ? await setPluginKillSwitchAction({
+      ? await setPluginKillSwitchForOperatorAction({
           pluginId: parsed.data.pluginId,
+          schoolId: parsed.data.schoolId,
           killSwitchEnabled: true,
         })
-      : await transitionPluginLifecycleAction({
+      : await transitionPluginLifecycleForOperatorAction({
           pluginId: parsed.data.pluginId,
           schoolId: parsed.data.schoolId,
           targetState: parsed.data.recoveryAction === "resume" ? "enabled" : "suspended",
@@ -71,6 +72,9 @@ export async function runOperatorPostureRecoveryAction(
 
     updateTag(cacheTags.pluginRegistry);
     updateTag(cacheTags.plugin(parsed.data.pluginId));
+    revalidatePath("/settings/labs");
+    revalidatePath(`/settings/labs/plugins/${parsed.data.pluginId}`);
+    revalidatePath(`/settings/labs/plugins/${parsed.data.pluginId}/actions/${parsed.data.recoveryAction}`);
     revalidateAll(parsed.data.revalidatePaths);
     return { success: true };
   }

@@ -15,6 +15,10 @@ type Phase58StaticSources = {
   incidentSurfaceSource: string;
   classroomControlPanelSource: string;
   operatorRecoveryActionSource: string;
+  pluginActionSource: string;
+  pluginHandlerSource: string;
+  pluginDetailRouteSource: string;
+  pluginActionRouteSource: string;
   classroomActionsSource: string;
   runtimeInspectorSurfaceSource: string;
   asyncTaskOperatorSurfaceSource: string;
@@ -23,6 +27,8 @@ type Phase58StaticSources = {
   proofSource: string;
   runbookSource: string;
   commandDetailRouteExists: boolean;
+  pluginDetailRouteExists: boolean;
+  pluginActionRouteExists: boolean;
 };
 
 export const PHASE_58_VERIFY_SCRIPT =
@@ -32,10 +38,13 @@ export const PHASE_58_PROOF_SCRIPT =
 
 export function getPhase58VerificationSuitePaths() {
   return [
+    "src/features/platform-core/commands/handlers/plugins.test.ts",
+    "src/actions/plugin-actions.test.ts",
+    "src/actions/operator-posture-recovery-actions.test.ts",
+    "scripts/verify-phase58-operator-recovery-and-surfaces.test.ts",
     "src/components/surfaces/settings-surface.test.tsx",
     "src/components/surfaces/classroom-incident-operator-surface.test.tsx",
     "src/components/classroom/classroom-control-panel.test.tsx",
-    "src/actions/operator-classroom-recovery-actions.test.ts",
     "src/components/surfaces/runtime-inspector-surface.test.tsx",
     "src/components/surfaces/async-task-operator-surface.test.tsx",
     "src/components/surfaces/plugin-lifecycle-operator-surface.test.tsx",
@@ -147,6 +156,20 @@ export function evaluatePhase58StaticChecks(sources: Phase58StaticSources): Stat
       passed: sources.commandDetailRouteExists,
     },
     {
+      label: "plugin detail and action detail routes exist and mount PluginLifecycleOperatorSurface",
+      passed:
+        sources.pluginDetailRouteExists
+        && sources.pluginActionRouteExists
+        && includesAll(sources.pluginDetailRouteSource, [
+          "PluginLifecycleOperatorSurface",
+          "getPluginLifecycleOperatorDetailDTO",
+        ])
+        && includesAll(sources.pluginActionRouteSource, [
+          "PluginLifecycleOperatorSurface",
+          "getPluginActionLifecycleOperatorDetailDTO",
+        ]),
+    },
+    {
       label: "classroom shell keeps only retry or reconcile quick actions and sends detail-only guidance for high-risk actions",
       passed:
         includesAll(sources.classroomControlPanelSource, [
@@ -163,9 +186,13 @@ export function evaluatePhase58StaticChecks(sources: Phase58StaticSources): Stat
       passed:
         includesAll(sources.operatorRecoveryActionSource, [
           "runCurrentVotingRecoveryAction",
-          "getClassroomSnapshotDTO",
-          "revalidatePath(\"/settings/labs/incidents\")",
+          "transitionPluginLifecycleForOperatorAction",
+          "setPluginKillSwitchForOperatorAction",
+          'revalidatePath("/settings/labs")',
+          "revalidatePath(",
         ])
+        && !sources.operatorRecoveryActionSource.includes("transitionPluginLifecycleAction(")
+        && !sources.operatorRecoveryActionSource.includes("setPluginKillSwitchAction(")
         && !sources.operatorRecoveryActionSource.includes("@/db")
         && !sources.operatorRecoveryActionSource.includes("db.")
         && includesAll(sources.classroomActionsSource, [
@@ -175,6 +202,21 @@ export function evaluatePhase58StaticChecks(sources: Phase58StaticSources): Stat
         ])
         && !sources.classroomActionsSource.includes("db surgery")
         && !sources.classroomActionsSource.includes("sqlite>"),
+    },
+    {
+      label: "plugin operator recovery path enforces actorScope operator and handler operator authz branch",
+      passed:
+        includesAll(sources.pluginActionSource, [
+          'actorScope: "operator"',
+          "transitionPluginLifecycleForOperatorAction",
+          "setPluginKillSwitchForOperatorAction",
+          "resolveOperatorSchoolId",
+        ])
+        && includesAll(sources.pluginHandlerSource, [
+          'command.actor.actorScope === "operator"',
+          "getUserMembershipsDTO",
+          "OPERATOR_AUTH_REQUIRED",
+        ]),
     },
     {
       label: "runtime or async or plugin surfaces share the fixed honesty helper",
@@ -224,7 +266,11 @@ export async function runPhase58Verification() {
     settingsLabsIncidentsPageSource: read("src/app/settings/labs/incidents/page.tsx"),
     incidentSurfaceSource: read("src/components/surfaces/classroom-incident-operator-surface.tsx"),
     classroomControlPanelSource: read("src/components/classroom/classroom-control-panel.tsx"),
-    operatorRecoveryActionSource: read("src/actions/operator-classroom-recovery-actions.ts"),
+    operatorRecoveryActionSource: read("src/actions/operator-posture-recovery-actions.ts"),
+    pluginActionSource: read("src/actions/plugin-actions.ts"),
+    pluginHandlerSource: read("src/features/platform-core/commands/handlers/plugins.ts"),
+    pluginDetailRouteSource: read("src/app/settings/labs/plugins/[pluginId]/page.tsx"),
+    pluginActionRouteSource: read("src/app/settings/labs/plugins/[pluginId]/actions/[actionKey]/page.tsx"),
     classroomActionsSource: read("src/actions/classroom-actions.ts"),
     runtimeInspectorSurfaceSource: read("src/components/surfaces/runtime-inspector-surface.tsx"),
     asyncTaskOperatorSurfaceSource: read("src/components/surfaces/async-task-operator-surface.tsx"),
@@ -236,6 +282,12 @@ export async function runPhase58Verification() {
     ),
     commandDetailRouteExists: existsSync(
       path.join(process.cwd(), "src/app/settings/labs/commands/[commandId]/page.tsx"),
+    ),
+    pluginDetailRouteExists: existsSync(
+      path.join(process.cwd(), "src/app/settings/labs/plugins/[pluginId]/page.tsx"),
+    ),
+    pluginActionRouteExists: existsSync(
+      path.join(process.cwd(), "src/app/settings/labs/plugins/[pluginId]/actions/[actionKey]/page.tsx"),
     ),
   });
 

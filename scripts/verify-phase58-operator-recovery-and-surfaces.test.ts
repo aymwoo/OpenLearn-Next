@@ -23,10 +23,13 @@ describe("verify-phase58 operator recovery gate", () => {
 
   it("locks the focused suite list and proof hard-gate scenario ids", () => {
     expect(getPhase58VerificationSuitePaths()).toEqual([
+      "src/features/platform-core/commands/handlers/plugins.test.ts",
+      "src/actions/plugin-actions.test.ts",
+      "src/actions/operator-posture-recovery-actions.test.ts",
+      "scripts/verify-phase58-operator-recovery-and-surfaces.test.ts",
       "src/components/surfaces/settings-surface.test.tsx",
       "src/components/surfaces/classroom-incident-operator-surface.test.tsx",
       "src/components/classroom/classroom-control-panel.test.tsx",
-      "src/actions/operator-classroom-recovery-actions.test.ts",
       "src/components/surfaces/runtime-inspector-surface.test.tsx",
       "src/components/surfaces/async-task-operator-surface.test.tsx",
       "src/components/surfaces/plugin-lifecycle-operator-surface.test.tsx",
@@ -75,8 +78,29 @@ describe("verify-phase58 operator recovery gate", () => {
       `,
       operatorRecoveryActionSource: `
         runCurrentVotingRecoveryAction
-        getClassroomSnapshotDTO
-        revalidatePath("/settings/labs/incidents")
+        transitionPluginLifecycleForOperatorAction
+        setPluginKillSwitchForOperatorAction
+        revalidatePath("/settings/labs")
+        revalidatePath(PLUGIN_DETAIL_TOKEN)
+      `,
+      pluginActionSource: `
+        actorScope: "operator"
+        transitionPluginLifecycleForOperatorAction
+        setPluginKillSwitchForOperatorAction
+        resolveOperatorSchoolId
+      `,
+      pluginHandlerSource: `
+        command.actor.actorScope === "operator"
+        getUserMembershipsDTO
+        OPERATOR_AUTH_REQUIRED
+      `,
+      pluginDetailRouteSource: `
+        PluginLifecycleOperatorSurface
+        getPluginLifecycleOperatorDetailDTO
+      `,
+      pluginActionRouteSource: `
+        PluginLifecycleOperatorSurface
+        getPluginActionLifecycleOperatorDetailDTO
       `,
       classroomActionsSource: `
         recordRuntimeTeacherControl
@@ -109,9 +133,19 @@ describe("verify-phase58 operator recovery gate", () => {
         课堂事件
       `,
       commandDetailRouteExists: true,
+      pluginDetailRouteExists: true,
+      pluginActionRouteExists: true,
     });
 
-    expect(checks).toHaveLength(8);
+    expect(checks).toHaveLength(10);
+    expect(
+      checks.find((check) => check.label === "plugin detail and action detail routes exist and mount PluginLifecycleOperatorSurface")
+        ?.passed,
+    ).toBe(true);
+    expect(
+      checks.find((check) => check.label === "plugin operator recovery path enforces actorScope operator and handler operator authz branch")
+        ?.passed,
+    ).toBe(true);
     expect(checks.every((check) => check.passed)).toBe(true);
   });
 });
