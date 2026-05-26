@@ -2,23 +2,13 @@ import { Suspense } from 'react'
 
 import { SettingsSurface } from '@/components/surfaces/settings-surface'
 
-type SettingsLabsPageSearchParams = {
-  commandId?: string;
-}
-
 export default async function SettingsLabsPage({
-  searchParams,
 }: {
-  searchParams?: Promise<SettingsLabsPageSearchParams>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const resolvedSearchParams = searchParams ? await searchParams : {};
-
   return (
     <Suspense fallback={null}>
-      <SettingsSurface
-        mode="labs"
-        selectedCommandId={resolvedSearchParams.commandId ?? null}
-      />
+      <SettingsSurface mode="labs" />
     </Suspense>
   )
 }

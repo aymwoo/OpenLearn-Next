@@ -3,33 +3,22 @@ import {
   Bell,
   ChevronRight,
   Cpu,
-  Globe,
-  Palette,
   Lock,
+  Palette,
+  ShieldAlert,
+  Globe,
   Shield,
   SunMedium,
 } from "lucide-react";
 
-import {
-  setPluginEnabledAction,
-} from "@/actions/plugin-actions";
-import {
-  readGovernanceDashboardBundle,
-  type GovernanceDashboardBundle,
-} from "@/features/platform-core/actions/registry";
-import {
-  getPlatformCommandWithTimeline,
-  listOperatorVisiblePlatformCommands,
-} from "@/features/platform-core/observability/operator-read-model";
-import { readPlatformAiDescriptorCatalog } from "@/features/platform-core/ai-contracts/read-model";
-import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { setSystemTransportModeAction } from "@/actions/system-transport-settings-actions";
 import { setActiveThemeAction } from "@/actions/theme-actions";
+import { ClassroomIncidentListSurface } from "@/components/surfaces/classroom-incident-list-surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PluginLifecycleOperatorSurface } from "@/components/surfaces/plugin-lifecycle-operator-surface";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import { surfaceWidths } from "@/components/surfaces/surface-widths";
+import { getClassroomIncidentListDTO } from "@/lib/dal/classroom-incident-list";
 import { getCurrentUserSchoolIds } from "@/lib/dal/auth";
 import { getSystemTransportSettings } from "@/lib/dal/system-transport-settings";
 import { getValidThemesForSchool } from "@/lib/dal/themes";
@@ -38,7 +27,6 @@ import { cn } from "@/lib/utils";
 
 type SettingsSurfaceProps = {
   mode: "general" | "labs";
-  selectedCommandId?: string | null;
 };
 
 const settingsSections = [
@@ -74,18 +62,12 @@ function getThemeStructureSummary(
 
 export async function SettingsSurface({
   mode,
-  selectedCommandId = null,
 }: SettingsSurfaceProps) {
   const schoolIds = await getCurrentUserSchoolIds();
   const schoolId = schoolIds[0] ?? null;
 
   if (mode === "labs") {
-    return (
-      <LabsSettingsSurface
-        schoolId={schoolId}
-        selectedCommandId={selectedCommandId}
-      />
-    );
+    return <LabsSettingsSurface schoolId={schoolId} />;
   }
 
   return <GeneralSettingsSurface schoolId={schoolId} />;
@@ -423,70 +405,19 @@ async function GeneralSettingsSurface({
 
 async function LabsSettingsSurface({
   schoolId,
-  selectedCommandId,
 }: {
   schoolId: string | null;
-  selectedCommandId: string | null;
 }) {
-  const emptyDashboard: GovernanceDashboardBundle = {
-    executableActionCatalog: [],
-    blockedActionDiagnostics: [],
-    pluginLifecycleRows: [],
-  };
-  let dashboard = emptyDashboard;
-  let pluginLoadError: string | null = null;
-  let operatorLoadError: string | null = null;
-  let commandSummaries = [] as Awaited<
-    ReturnType<typeof listOperatorVisiblePlatformCommands>
-  >;
-  let aiDescriptorCatalog = await readPlatformAiDescriptorCatalog();
-  let selectedCommand = null as Awaited<
-    ReturnType<typeof getPlatformCommandWithTimeline>
-  > | null;
+  let incidentList = null;
+  let incidentListError: string | null = null;
 
-  if (schoolId) {
-    try {
-      const actor = await getCurrentUserDTO();
-
-      if (!actor?.id) {
-        pluginLoadError = "AUTH_REQUIRED";
-      } else {
-        dashboard = await readGovernanceDashboardBundle({
-          actorId: actor.id,
-          schoolId,
-        });
-        aiDescriptorCatalog = await readPlatformAiDescriptorCatalog({
-          actorId: actor.id,
-          schoolId,
-        });
-      }
-    } catch (error) {
-      pluginLoadError = error instanceof Error ? error.message : "PLUGIN_LIST_FAILED";
-    }
-
-    try {
-      commandSummaries = await listOperatorVisiblePlatformCommands({
-        schoolIds: [schoolId],
-        limit: 6,
-      });
-
-      if (selectedCommandId) {
-        const detail = await getPlatformCommandWithTimeline({
-          commandId: selectedCommandId,
-          schoolIds: [schoolId],
-        });
-
-        if (detail.command) {
-          selectedCommand = detail;
-        } else {
-          operatorLoadError = "PLATFORM_COMMAND_NOT_FOUND";
-        }
-      }
-    } catch (error) {
-      operatorLoadError =
-        error instanceof Error ? error.message : "PLATFORM_OPERATOR_LOAD_FAILED";
-    }
+  try {
+    incidentList = schoolId ? await getClassroomIncidentListDTO() : null;
+  } catch (error) {
+    incidentListError =
+      error instanceof Error ? error.message : "CLASSROOM_INCIDENT_LIST_FAILED";
   }
+
   return (
     <main className="min-h-screen bg-surface px-4 py-6 text-on-surface sm:px-6 lg:px-8">
       <div className={cn(surfaceWidths.workspace, teacherSurfaceRhythm.stack, "flex flex-col")}>
@@ -494,10 +425,10 @@ async function LabsSettingsSurface({
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className={surfaceWidths.heroTitle}>
               <Badge variant="accent" className="bg-surface-container-lowest">
-                实验室布局管理
+                Settings Labs
               </Badge>
               <h1 className="mt-4 text-[2.3rem] font-semibold tracking-[-0.02em]">
-                204 机房
+                没有 classroom deep link 时，先从课堂事件进入
               </h1>
               <p
                 className={cn(
@@ -505,420 +436,53 @@ async function LabsSettingsSurface({
                   "mt-3 leading-8 text-on-surface-variant",
                 )}
               >
-                面向高密度机房的座位布局、设备状态和批量操作面板。保留大块留白和
-                tonal layering，避免传统表格分割线。
+                Settings Labs 继续承接跨课堂排障，但默认第一屏不再是工具目录。
+                operator 先看 classroom incidents，再决定是否进入 Runtime Inspector、
+                Async Operator 或 Plugin Governance。
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Button variant="secondary" className="text-base shadow-none">
-                自动分配
-              </Button>
-              <Button className="text-base">保存布局</Button>
+            <div className="rounded-[var(--radius-shell)] bg-surface-container-lowest p-5 shadow-ambient lg:max-w-[22rem]">
+              <div className="flex items-start gap-3">
+                <div className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
+                  <ShieldAlert className="size-5" aria-hidden />
+                </div>
+                <div>
+                  <p className="text-sm text-on-surface-variant">incident-first fallback entry</p>
+                  <p className="mt-2 text-lg font-semibold text-on-surface">
+                    先回答这堂课现在发生了什么
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                    classroom-first stacked cards 只保留 posture、原因摘要、影响范围、更新时间与下一跳，避免回退成 dense admin table。
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className={teacherSurfaceRhythm.section}>
-            <div className={cn(teacherSurfaceRhythm.cardInset, "p-5")}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm text-on-surface-variant">讲台区域</p>
-                  <h2 className="mt-2 text-2xl font-semibold">
-                    教师主控与学生终端布局
-                  </h2>
-                </div>
-                <Link
-                  href="/settings"
-                  className="rounded-full bg-surface-container-low px-4 py-2 text-sm font-medium text-primary"
-                >
-                  返回设置中心
-                </Link>
-              </div>
-
-              <div
-                className={cn(
-                  teacherSurfaceRhythm.card,
-                  "mt-6 bg-surface-container-low p-4 sm:p-5",
-                )}
-              >
-                <div
-                  className={cn(
-                    teacherSurfaceRhythm.cardInset,
-                    "mb-4 p-4 text-center text-sm font-semibold text-primary",
-                  )}
-                >
-                  讲台区域
-                </div>
-                <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-6">
-                  {labRows.flatMap((row, rowIndex) =>
-                    labColumns.map((column, columnIndex) => {
-                      const status =
-                        rowIndex === 0 && columnIndex === 3
-                          ? "fault"
-                          : rowIndex === 5 && columnIndex > 5
-                            ? "idle"
-                            : "online";
-                      const label = `${row}-${String(column).padStart(2, "0")}`;
-                      return (
-                        <SeatCard key={label} label={label} status={status} />
-                      );
-                    }),
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <aside className="grid gap-4 self-start">
-            <section className="rounded-[var(--radius-shell)] bg-surface-container-lowest p-5 shadow-ambient">
-              <p className="text-sm text-on-surface-variant">状态概览</p>
-              <div className="mt-4 grid gap-4">
-                {[
-                  ["总座位数", "48"],
-                  ["在线状态", "42"],
-                  ["离线 / 空闲", "4"],
-                  ["设备维护", "2"],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className={cn(
-                      teacherSurfaceRhythm.card,
-                      "bg-surface-container-low p-4",
-                    )}
-                  >
-                    <p className="text-sm text-on-surface-variant">{label}</p>
-                    <p className="mt-2 text-2xl font-semibold">{value}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
-              <p className="text-sm text-on-surface-variant">图例说明</p>
-              <div className="mt-4 grid gap-3">
-                <LegendItem
-                  label="学生已登录在线"
-                  tone="bg-primary/15 text-primary"
-                />
-                <LegendItem
-                  label="空闲未分配"
-                  tone="bg-surface-container-lowest text-on-surface-variant"
-                />
-                <LegendItem
-                  label="设备故障报修"
-                  tone="bg-[#fff2df] text-[#bc6c25]"
-                />
-              </div>
-            </section>
-
-            <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
-              <p className="text-sm text-on-surface-variant">快速操作</p>
-              <div className="mt-4 grid gap-3">
-                <button className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-left font-medium text-on-surface shadow-ambient">
-                  导出考勤报告
-                </button>
-                <button className="rounded-[1.5rem] bg-[#fff1f2] px-4 py-4 text-left font-medium text-[#b31b25] shadow-ambient">
-                  一键关机全实验室
-                </button>
-              </div>
-            </section>
-
-            <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
-              <p className="text-sm text-on-surface-variant">运行排查</p>
-              <div className="mt-4 grid gap-3">
-                <QuickLink
-                  href="/settings/labs/runtime-inspector"
-                  title="Runtime Inspector"
-                  description="查看 transport timeline、degraded fallback 与当前 fanout topology。"
-                />
-                <QuickLink
-                  href="/settings/labs/async-tasks"
-                  title="Async Operator"
-                  description="查看 worker、queue、backlog、问题任务，并继续下钻到单任务恢复详情。"
-                />
-              </div>
-            </section>
-
-            <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm text-on-surface-variant">Platform Event Operator</p>
-                  <p className="mt-2 text-lg font-semibold text-on-surface">
-                    先看 command summary，再下钻 event timeline
-                  </p>
-                </div>
-                <Badge className="bg-surface-container-lowest text-on-surface-variant">
-                  Phase 53
-                </Badge>
-              </div>
-
-              {operatorLoadError ? (
-                <div className="mt-4 rounded-[1.5rem] bg-error-container px-4 py-4 text-sm leading-6 text-on-error-container">
-                  平台事件视图加载失败：{operatorLoadError}
-                </div>
-              ) : (
-                <>
-                  <div className="mt-4 grid gap-3">
-                    {commandSummaries.length === 0 ? (
-                      <div className="rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-sm leading-6 text-on-surface-variant shadow-ambient">
-                        当前还没有可供 operator 查看的 platform command 执行记录。
-                      </div>
-                    ) : (
-                      commandSummaries.map((summary) => {
-                        const isSelected = selectedCommand?.command?.commandId === summary.commandId;
-
-                        return (
-                          <Link
-                            key={summary.commandId}
-                            href={`/settings/labs?commandId=${encodeURIComponent(summary.commandId)}`}
-                            className={cn(
-                              teacherSurfaceRhythm.card,
-                              "bg-surface-container-lowest px-4 py-4 shadow-ambient transition hover:bg-surface-container-lowest/90",
-                              isSelected ? "ring-2 ring-primary/30" : null,
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <Badge className={getPlatformCommandStatusTone(summary.status)}>
-                                    {summary.statusLabel}
-                                  </Badge>
-                                  <Badge className="bg-surface-container-low text-on-surface-variant">
-                                    {summary.commandType}
-                                  </Badge>
-                                </div>
-                                <p className="mt-3 font-semibold text-on-surface">
-                                  {summary.pluginId ?? summary.commandId}
-                                </p>
-                                <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                                  {summary.failureSummaryLabel ?? summary.resultSummaryLabel}
-                                </p>
-                                 <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
-                                   invalidation: {summary.invalidationIntent.label}
-                                 </p>
-                                 {summary.auditSummaryLabel ? (
-                                   <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
-                                     delegation / approval: {summary.auditSummaryLabel}
-                                   </p>
-                                 ) : null}
-                               </div>
-                               <ChevronRight className="mt-1 size-4 text-primary" aria-hidden />
-                             </div>
-                          </Link>
-                        );
-                      })
-                    )}
-                  </div>
-
-                  {selectedCommand?.command ? (
-                    <div className="mt-5 rounded-[1.5rem] bg-surface-container-lowest p-4 shadow-ambient">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm text-on-surface-variant">Execution Detail</p>
-                          <p className="mt-2 font-semibold text-on-surface">
-                            {selectedCommand.command.commandType} · {selectedCommand.command.pluginId ?? selectedCommand.command.commandId}
-                          </p>
-                        </div>
-                        <Link
-                          href="/settings/labs"
-                          className="rounded-full bg-surface-container-low px-3 py-2 text-xs font-medium text-primary"
-                        >
-                          清除选择
-                        </Link>
-                      </div>
-
-                      <div className="mt-4 grid gap-3">
-                        <div className="rounded-[1.25rem] bg-surface-container-low px-4 py-4">
-                          <p className="text-xs uppercase tracking-[0.16em] text-on-surface-variant">
-                            Result Summary
-                          </p>
-                          <p className="mt-2 text-sm leading-6 text-on-surface">
-                            {selectedCommand.command.failureSummaryLabel ?? selectedCommand.command.resultSummaryLabel}
-                          </p>
-                        </div>
-                        <div className="rounded-[1.25rem] bg-surface-container-low px-4 py-4">
-                          <p className="text-xs uppercase tracking-[0.16em] text-on-surface-variant">
-                            Invalidation Intent
-                          </p>
-                          <p className="mt-2 text-sm leading-6 text-on-surface">
-                            {selectedCommand.command.invalidationIntent.label}
-                          </p>
-                        </div>
-                        {selectedCommand.command.auditSummaryLabel ? (
-                          <div className="rounded-[1.25rem] bg-surface-container-low px-4 py-4">
-                            <p className="text-xs uppercase tracking-[0.16em] text-on-surface-variant">
-                              Delegation / Approval
-                            </p>
-                            <p className="mt-2 text-sm leading-6 text-on-surface">
-                              {selectedCommand.command.auditSummaryLabel}
-                            </p>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="mt-5 grid gap-3">
-                        {selectedCommand.timeline.length === 0 ? (
-                          <div className="rounded-[1.25rem] bg-surface-container-low px-4 py-4 text-sm leading-6 text-on-surface-variant">
-                            当前 command 还没有持久化 event timeline。
-                          </div>
-                        ) : (
-                          selectedCommand.timeline.map((event) => (
-                            <div
-                              key={event.id}
-                              className="rounded-[1.25rem] bg-surface-container-low px-4 py-4"
-                            >
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Badge className="bg-surface-container-lowest text-on-surface-variant">
-                                  attempt #{event.attemptNumber}
-                                </Badge>
-                                <Badge className="bg-surface-container-lowest text-on-surface-variant">
-                                  {event.eventType}
-                                </Badge>
-                              </div>
-                              <p className="mt-3 text-sm leading-6 text-on-surface">
-                                {event.payloadSummaryLabel}
-                              </p>
-                              {event.auditSummaryLabel ? (
-                                <p className="mt-2 text-xs leading-6 text-on-surface-variant">
-                                  delegation / approval: {event.auditSummaryLabel}
-                                </p>
-                              ) : null}
-                               <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
-                                 {new Date(event.occurredAt).toLocaleString()}
-                               </p>
-                              {event.dispatches.length > 0 ? (
-                                <div className="mt-3 grid gap-2">
-                                  {event.dispatches.map((dispatch) => (
-                                    <div
-                                      key={dispatch.dispatchId}
-                                      className="rounded-[1rem] bg-surface-container-lowest px-3 py-3 text-xs leading-6 text-on-surface-variant"
-                                    >
-                                      <p className="uppercase tracking-[0.16em]">
-                                        dispatch {dispatch.channel} · {dispatch.status}
-                                      </p>
-                                      {dispatch.adapterId ? (
-                                        <p className="mt-1">adapter: {dispatch.adapterId}</p>
-                                      ) : null}
-                                      {dispatch.failureReason ? (
-                                        <p className="mt-1">failure: {dispatch.failureReason}</p>
-                                      ) : null}
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : null}
-                             </div>
-                           ))
-                         )}
-                      </div>
-                    </div>
-                  ) : commandSummaries.length > 0 ? (
-                    <div className="mt-5 rounded-[1.5rem] bg-surface-container-lowest px-4 py-4 text-sm leading-6 text-on-surface-variant shadow-ambient">
-                      选择一条 execution summary 查看 event timeline。
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </section>
-
-            <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm text-on-surface-variant">AI Contract Discoverability</p>
-                  <p className="mt-2 text-lg font-semibold text-on-surface">
-                    最小 discoverability surface
-                  </p>
-                </div>
-                <Badge className="bg-surface-container-lowest text-on-surface-variant">
-                  Phase 54
-                </Badge>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-                只暴露 command/action/capability 摘要，帮助 operator 快速确认
-                delegationPosture、approvalPosture 与 contract 边界；这里不是完整运行控制台。
-              </p>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                {[
-                  ["commands", aiDescriptorCatalog.filter((item) => item.kind === "command").length],
-                  ["actions", aiDescriptorCatalog.filter((item) => item.kind === "action").length],
-                  ["capabilities", aiDescriptorCatalog.filter((item) => item.kind === "capability").length],
-                ].map(([label, count]) => (
-                  <div
-                    key={label}
-                    className={cn(
-                      teacherSurfaceRhythm.card,
-                      "bg-surface-container-lowest px-4 py-4 shadow-ambient",
-                    )}
-                  >
-                    <p className="text-xs uppercase tracking-[0.16em] text-on-surface-variant">
-                      {label}
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-on-surface">{count}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                {aiDescriptorCatalog.slice(0, 4).map((descriptor) => (
-                  <div
-                    key={descriptor.key}
-                    className={cn(
-                      teacherSurfaceRhythm.card,
-                      "bg-surface-container-lowest px-4 py-4 shadow-ambient",
-                    )}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge className="bg-surface-container-low text-on-surface-variant">
-                        {descriptor.kind}
-                      </Badge>
-                      <Badge className="bg-primary/10 text-primary">
-                        {descriptor.delegationPosture}
-                      </Badge>
-                      <Badge className="bg-surface-container-low text-on-surface-variant">
-                        {descriptor.approvalPosture}
-                      </Badge>
-                    </div>
-                    <p className="mt-3 font-semibold text-on-surface">{descriptor.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                      {descriptor.description}
-                    </p>
-                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-on-surface-variant">
-                      {descriptor.key}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-[var(--radius-shell)] bg-surface-container-low p-5 shadow-ambient">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm text-on-surface-variant">插件管理</p>
-                  <p className="mt-2 text-lg font-semibold text-on-surface">
-                    按学校启停安全插件
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                    生命周期卡片直接展示 `pluginKey`、`dbNamespace`、`sourceType`、`installSource` 四项正式字段，避免维护者继续依赖旧 JSON 身份字段判断插件真相。
-                  </p>
-                </div>
-                <Badge className="bg-surface-container-lowest text-on-surface-variant">
-                  实验室
-                </Badge>
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                {pluginLoadError ? (
-                  <div className="rounded-[1.5rem] bg-error-container px-4 py-4 text-sm leading-6 text-on-error-container">
-                    插件列表加载失败：{pluginLoadError}
-                  </div>
-                ) : (
-                  <PluginLifecycleOperatorSurface schoolId={schoolId} dashboard={dashboard} />
-                )}
-              </div>
-            </section>
-          </aside>
+        <section className={teacherSurfaceRhythm.section}>
+          <ClassroomIncidentListSurface
+            list={incidentList}
+            error={incidentListError}
+            nextHops={[
+              {
+                title: "Runtime Inspector",
+                description: "查看 transport timeline、degraded fallback 与当前 fanout / runtime posture。",
+                href: "/settings/labs/runtime-inspector",
+              },
+              {
+                title: "Async Operator",
+                description: "查看 worker、queue、backlog、问题任务，并继续下钻到单任务恢复详情。",
+                href: "/settings/labs/async-tasks",
+              },
+              {
+                title: "Plugin Governance",
+                description: "进入插件治理入口，继续查看 blocked diagnostics 与推荐恢复动作。",
+                href: "/settings/plugins",
+              },
+            ]}
+          />
         </section>
       </div>
     </main>
@@ -1003,58 +567,5 @@ function QuickLink({
         <ChevronRight className="mt-1 size-4 text-primary" aria-hidden />
       </div>
     </Link>
-  );
-}
-
-function getPlatformCommandStatusTone(status: string) {
-  switch (status) {
-    case "succeeded":
-      return "bg-primary/15 text-primary";
-    case "failed":
-      return "bg-[#fff1f2] text-[#b31b25]";
-    case "running":
-      return "bg-[#eef6ff] text-[#1d4ed8]";
-    default:
-      return "bg-surface-container-low text-on-surface-variant";
-  }
-}
-
-function SeatCard({
-  label,
-  status,
-}: {
-  label: string;
-  status: "online" | "idle" | "fault";
-}) {
-  const tone =
-    status === "online"
-      ? "bg-primary/10 text-primary"
-      : status === "fault"
-        ? "bg-[#fff2df] text-[#bc6c25]"
-        : "bg-surface-container-lowest text-on-surface-variant";
-
-  return (
-    <div
-      className={cn(
-        teacherSurfaceRhythm.card,
-        `px-3 py-4 text-center shadow-ambient ${tone}`,
-      )}
-    >
-      <p className="text-xs uppercase tracking-[0.18em]">座位</p>
-      <p className="mt-2 text-lg font-semibold">{label}</p>
-    </div>
-  );
-}
-
-function LegendItem({ label, tone }: { label: string; tone: string }) {
-  return (
-    <div
-      className={cn(
-        teacherSurfaceRhythm.card,
-        `px-4 py-4 text-sm font-medium ${tone}`,
-      )}
-    >
-      {label}
-    </div>
   );
 }
