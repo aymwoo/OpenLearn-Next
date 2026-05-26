@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { createOperatorHonestyCard, type OperatorHonestyCard } from "@/lib/dto/operator-honesty";
 import {
   AsyncTaskEnqueueIntentStatusSchema,
   AsyncTaskProgressSnapshotSchema,
@@ -152,3 +153,18 @@ export type AsyncTaskOperatorOverviewDTO = z.infer<
 export type AsyncTaskOperatorDetailDTO = z.infer<
   typeof AsyncTaskOperatorDetailDTOSchema
 >;
+
+export function toAsyncTaskOperatorHonestyCard(
+  backlog: z.infer<typeof AsyncTaskOperatorBacklogPostureDTOSchema>,
+): OperatorHonestyCard {
+  return createOperatorHonestyCard({
+    title: backlog.level === "critical"
+      ? "当前不能把 operator 首页当作完全健康"
+      : "当前 async posture 需要继续观察",
+    tone: backlog.level === "critical" ? "failed" : "degraded",
+    trustedFacts: backlog.trustedFacts,
+    untrustedFacts: backlog.caution,
+    impactScope: "影响范围：当前课堂及共享 worker 的关联任务。",
+    nextStep: backlog.nextStep,
+  });
+}

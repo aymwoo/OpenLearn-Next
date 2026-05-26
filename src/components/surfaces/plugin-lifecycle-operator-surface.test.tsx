@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
 
+import { existsSync } from "node:fs";
+
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GovernanceDashboardBundle } from "@/features/platform-core/actions/registry";
+import * as operatorHonestyDto from "@/lib/dto/operator-honesty";
 
 const operatorRecoveryActionMock = vi.hoisted(() => vi.fn().mockResolvedValue({ success: true }));
 
@@ -533,6 +536,34 @@ describe("plugin lifecycle operator surface", () => {
       this.removeAttribute("open");
     });
     operatorRecoveryActionMock.mockClear();
+  });
+
+  it("normalizes blocked plugin posture into the shared three-part honesty contract", () => {
+    const plugin = dashboardBundle.pluginLifecycleRows.find((row) => row.pluginId === "plugin-activation-failed");
+
+    expect(plugin).toBeTruthy();
+
+    expect(existsSync("src/lib/dto/operator-honesty.ts")).toBe(true);
+
+    expect("toPluginLifecycleHonestyCard" in operatorHonestyDto).toBe(true);
+
+    const toPluginLifecycleHonestyCard = (operatorHonestyDto as Record<string, unknown>)
+      .toPluginLifecycleHonestyCard as (
+      input: GovernanceDashboardBundle["pluginLifecycleRows"][number],
+    ) => { sections: Array<{ id: string; label: string; content: string }> } | null;
+
+    const honesty = toPluginLifecycleHonestyCard(plugin!);
+
+    expect(honesty).not.toBeNull();
+    expect(honesty?.sections.map((section) => section.id)).toEqual([
+      "trustBoundary",
+      "impactScope",
+      "nextStep",
+    ]);
+    expect(honesty?.sections[0]?.content).toContain("仍可信什么：");
+    expect(honesty?.sections[0]?.content).toContain("已不可信什么：");
+    expect(honesty?.sections[1]?.content).toContain("当前课堂");
+    expect(honesty?.sections[2]?.content).toContain("插件治理详情");
   });
 
   it("defaults to executable catalog and hides internal mounted ready lifecycle labels", async () => {

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { asyncTaskRegistry } from "@/features/async-tasks/server/registry";
+import * as asyncTaskOperatorDto from "@/lib/dto/async-task-operator";
 
 const overviewPageSource = readFileSync(
   "src/app/settings/labs/async-tasks/page.tsx",
@@ -83,5 +84,38 @@ describe("async task operator surfaces", () => {
     expect(detailSurfaceSource).toContain("AsyncTaskOperatorRetryAction");
     expect(retryActionSource).toContain("重试此任务");
     expect(retryActionSource).toContain("当前任务暂时不能重试");
+  });
+
+  it("normalizes backlog posture into the shared three-part honesty contract", () => {
+    expect("toAsyncTaskOperatorHonestyCard" in asyncTaskOperatorDto).toBe(true);
+
+    const honesty = (asyncTaskOperatorDto as Record<string, unknown>).toAsyncTaskOperatorHonestyCard as
+      | ((input: Record<string, unknown>) => {
+          sections: Array<{ id: string; label: string; content: string }>;
+        })
+      | undefined;
+
+    const normalized = honesty?.({
+      level: "critical",
+      reason: "worker heartbeat stale",
+      queuedCount: 9,
+      retryingCount: 3,
+      runningCount: 1,
+      oldestActiveAgeMinutes: 18,
+      staleHeartbeat: true,
+      trustedFacts: "任务 ledger 与已完成结果仍可信。",
+      caution: "队列处理时效与刚触发立即生效的假设当前不可依赖。",
+      nextStep: "查看 Async Operator。",
+    });
+
+    expect(normalized?.sections.map((section) => section.id)).toEqual([
+      "trustBoundary",
+      "impactScope",
+      "nextStep",
+    ]);
+    expect(normalized?.sections[0]?.content).toContain("仍可信什么：任务 ledger 与已完成结果仍可信。");
+    expect(normalized?.sections[0]?.content).toContain("已不可信什么：队列处理时效与刚触发立即生效的假设当前不可依赖。");
+    expect(normalized?.sections[1]?.content).toContain("当前课堂及共享 worker 的关联任务");
+    expect(normalized?.sections[2]?.content).toContain("查看 Async Operator");
   });
 });
