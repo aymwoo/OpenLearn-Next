@@ -3,6 +3,7 @@ set -euo pipefail
 
 SQLITE_BIN=${SQLITE_BIN:-sqlite3}
 CURL_BIN=${CURL_BIN:-curl}
+CURL_NOPROXY=${CURL_NOPROXY:-*}
 
 usage() {
   cat <<'EOF'
@@ -89,10 +90,10 @@ if [[ -n "$FOREIGN_KEY_OUTPUT" ]]; then
 fi
 echo "[verify-restore] foreign_key_check=ok"
 
-HEALTH_OUTPUT=$($CURL_BIN -fsS "$BASE_URL/api/health" 2>&1) || fail_blocker "health" "$HEALTH_OUTPUT"
+HEALTH_OUTPUT=$($CURL_BIN --noproxy "$CURL_NOPROXY" -fsS "$BASE_URL/api/health" 2>&1) || fail_blocker "health" "$HEALTH_OUTPUT"
 echo "[verify-restore] health=$HEALTH_OUTPUT"
 
-READY_OUTPUT=$($CURL_BIN -fsS "$BASE_URL/api/ready" 2>&1) || fail_blocker "ready" "$READY_OUTPUT"
+READY_OUTPUT=$($CURL_BIN --noproxy "$CURL_NOPROXY" -fsS "$BASE_URL/api/ready" 2>&1) || fail_blocker "ready" "$READY_OUTPUT"
 echo "[verify-restore] ready=$READY_OUTPUT"
 
 SMOKE_OUTPUT=$(bash -lc "$SMOKE_COMMAND" 2>&1) || fail_blocker "sample_smoke" "$SMOKE_OUTPUT"
