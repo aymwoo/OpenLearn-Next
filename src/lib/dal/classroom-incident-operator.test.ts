@@ -423,6 +423,12 @@ describe("classroom incident contracts and read model", () => {
       "command",
       "task",
     ]);
+    expect(detail.relatedCards.find((card) => card.kind === "plugin")?.href).toBe(
+      "/settings/labs/plugins/plugin-1",
+    );
+    expect(detail.relatedCards.find((card) => card.kind === "action")?.href).toBe(
+      "/settings/labs/plugins/plugin-1/actions/addStepSuggestion",
+    );
     expect(detail.lightActions.map((action) => action.action)).toEqual([
       "retry",
       "reconcile",

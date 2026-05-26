@@ -13,6 +13,14 @@ const pluginSurfaceSource = readFileSync(
   "src/components/surfaces/plugin-lifecycle-operator-surface.tsx",
   "utf8",
 );
+const pluginDetailRouteSource = readFileSync(
+  "src/app/settings/labs/plugins/[pluginId]/page.tsx",
+  "utf8",
+);
+const pluginActionDetailRouteSource = readFileSync(
+  "src/app/settings/labs/plugins/[pluginId]/actions/[actionKey]/page.tsx",
+  "utf8",
+);
 
 const pluginActionMocks = vi.hoisted(() => ({
   setPluginEnabledAction: vi.fn().mockResolvedValue({ success: true }),
@@ -599,6 +607,14 @@ describe("plugin lifecycle operator surface", () => {
     expect(screen.queryByText("挂起插件")).toBeNull();
     expect(screen.getByText(/reason code:/)).toBeTruthy();
     expect(screen.getByText("action key: createNotificationStub")).toBeTruthy();
+  });
+
+  it("mounts the governance surface on formal plugin detail routes", () => {
+    expect(pluginDetailRouteSource).toContain("PluginLifecycleOperatorSurface");
+    expect(pluginDetailRouteSource).toContain("getPluginLifecycleOperatorDetailDTO");
+    expect(pluginActionDetailRouteSource).toContain("PluginLifecycleOperatorSurface");
+    expect(pluginActionDetailRouteSource).toContain("getPluginActionLifecycleOperatorDetailDTO");
+    expect(pluginActionDetailRouteSource).toContain("focusedActionKey={detail.focusedActionKey}");
   });
 
   it("defaults to executable catalog and hides internal mounted ready lifecycle labels", async () => {
