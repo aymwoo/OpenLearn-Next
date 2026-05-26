@@ -51,7 +51,7 @@
 
 - [x] **ENVR-01**: 环境变量必须通过正式 env schema 与 `.env.example` 收敛，避免手改常量上线。 Phase: 59
 - [ ] **ENVR-02**: CI/CD 必须覆盖 lint、typecheck、test、build、migrate 与 health-check gate。 Phase: 59
-- [ ] **ENVR-03**: 发布必须具备 release traceability、rollout checklist 与 rollback checklist。 Phase: 59, 60
+- [x] **ENVR-03**: 发布必须具备 release traceability、rollout checklist 与 rollback checklist。 Phase: 59, 60
 
 ### SAFE
 

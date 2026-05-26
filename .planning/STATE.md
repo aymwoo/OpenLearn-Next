@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Single-School Pilot Production Readiness (Plugin-First)
 status: executing
-last_updated: "2026-05-26T10:08:30.000Z"
-last_activity: 2026-05-26 -- Completed Phase 59 Plan 01 env contract baseline
+last_updated: "2026-05-26T10:40:40.041Z"
+last_activity: 2026-05-26
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 26
-  completed_plans: 19
+  completed_plans: 20
   percent: 50
 ---
 
@@ -26,10 +26,10 @@ See: `.planning/PROJECT.md` (updated 2026-05-24)
 
 Milestone: v3.1 -- Single-School Pilot Production Readiness (Plugin-First)
 Phase: 59 (deploy-release-recovery-baseline) — EXECUTING
-Plan: 2 of 5
-Status: Executing Phase 59
-Last activity: 2026-05-26 -- Completed Phase 59 Plan 01 env contract baseline
-Progress: [███████░░░] 73%
+Plan: 4 of 5
+Status: Ready to execute
+Last activity: 2026-05-26
+Progress: [████████░░] 77%
 Next queued phase: 59
 
 ## Performance Metrics
@@ -49,6 +49,7 @@ Next queued phase: 59
 **Recent execution:**
 
 - 2026-05-26 — `59-01` completed in 5 min, 2 tasks, 3 files (`.env.example`, `src/lib/ops/env.server.ts`, `src/lib/ops/env.server.test.ts`)
+- 2026-05-26 — `59-02` completed in 6 min, 3 tasks, 6 files (`src/lib/ops/release-status.ts`, `src/lib/ops/release-status.test.ts`, `src/app/api/health/route.ts`, `src/app/api/ready/route.ts`, `src/app/api/release/route.ts`, `src/app/api/ops-routes.test.ts`)
 
 ## Accumulated Context
 
@@ -65,6 +66,9 @@ Recent decisions affecting current work:
 - [Milestone v3.1]: operator recovery, deploy/release, backup/restore, and load/degrade rehearsal are committed scope because they are required for pilot production use.
 - [Phase 59-01]: env parsing is centralized in `src/lib/ops/env.server.ts` before broader runtime adoption.
 - [Phase 59-01]: BullMQ readiness and fanout capability are modeled as separate Redis postures to prevent a single shared readiness toggle.
+- [Phase 59-02]: health/ready/release contracts are centralized in `src/lib/ops/release-status.ts` so routes, deploy scripts, and restore verification share one honesty vocabulary.
+- [Phase 59-02]: `/api/release` reads only canonical `current.json` and `green.json` pointers, never scans the manifests directory for the “latest” file.
+- [Phase 59-02]: readiness remains blocked by DB/web/worker posture while fanout degraded stays explicit but non-blocking.
 
 ### Pending Todos
 
@@ -93,6 +97,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-26T10:06:28.487Z
-Stopped at: Completed 59-01-PLAN.md
+Last session: 2026-05-26T10:40:40.035Z
+Stopped at: Completed 59-02-PLAN.md
 Resume file: None
