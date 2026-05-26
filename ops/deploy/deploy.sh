@@ -153,6 +153,7 @@ MANIFEST_PATH="$RELEASE_MANIFESTS_DIR/${RELEASE_ID}.json"
 PREVIOUS_GREEN_RELEASE_ID=""
 PREVIOUS_GREEN_MANIFEST_PATH=""
 ROLLBACK_REASON="migration_or_ready_failed"
+RELEASED_AT=""
 
 declare -A GATE_STATUSES=(
   [lint]="pending"
@@ -224,6 +225,25 @@ print(data.get("manifestPath", ""))
 PY
 )
   fi
+}
+
+sync_manifest_env() {
+  if [[ -z "$RELEASED_AT" ]]; then
+    RELEASED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  fi
+
+  export RELEASE_ID GIT_SHA ENVIRONMENT ACTOR RELEASE_DIR SCHOOL_ID CLASSROOM_SESSION_ID \
+    LESSON_VERSION_ID PLUGIN_ID ACTION_KEY COMMAND_ID TASK_ID PREVIOUS_GREEN_RELEASE_ID RELEASED_AT
+  export GATE_LINT=${GATE_STATUSES[lint]}
+  export GATE_TYPECHECK=${GATE_STATUSES[typecheck]}
+  export GATE_TEST=${GATE_STATUSES[test]}
+  export GATE_BUILD=${GATE_STATUSES[build]}
+  export GATE_MIGRATE=${GATE_STATUSES[migrate]}
+  export GATE_VERIFY57=${GATE_STATUSES[verifyPhase57]}
+  export GATE_VERIFY58=${GATE_STATUSES[verifyPhase58]}
+  export GATE_VERIFY59=${GATE_STATUSES[verifyPhase59]}
+  export GATE_HEALTH=${GATE_STATUSES[health]}
+  export GATE_READY=${GATE_STATUSES[ready]}
 }
 
 write_manifest() {
@@ -349,6 +369,7 @@ reset_current_to_previous_green() {
 }
 
 trigger_failure_rollback() {
+  sync_manifest_env
   write_manifest
 
   if [[ -z "$PREVIOUS_GREEN_RELEASE_ID" ]]; then
@@ -410,20 +431,7 @@ fi
 run_step health "$CURL_BIN" -fsS "$BASE_URL/api/health" >/dev/null || trigger_failure_rollback
 run_step ready "$CURL_BIN" -fsS "$BASE_URL/api/ready" >/dev/null || trigger_failure_rollback
 
-export RELEASE_ID GIT_SHA ENVIRONMENT ACTOR RELEASE_DIR SCHOOL_ID CLASSROOM_SESSION_ID \
-  LESSON_VERSION_ID PLUGIN_ID ACTION_KEY COMMAND_ID TASK_ID PREVIOUS_GREEN_RELEASE_ID
-export RELEASED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-export GATE_LINT=${GATE_STATUSES[lint]}
-export GATE_TYPECHECK=${GATE_STATUSES[typecheck]}
-export GATE_TEST=${GATE_STATUSES[test]}
-export GATE_BUILD=${GATE_STATUSES[build]}
-export GATE_MIGRATE=${GATE_STATUSES[migrate]}
-export GATE_VERIFY57=${GATE_STATUSES[verifyPhase57]}
-export GATE_VERIFY58=${GATE_STATUSES[verifyPhase58]}
-export GATE_VERIFY59=${GATE_STATUSES[verifyPhase59]}
-export GATE_HEALTH=${GATE_STATUSES[health]}
-export GATE_READY=${GATE_STATUSES[ready]}
-
+sync_manifest_env
 write_manifest
 write_pointer_from_manifest "$CURRENT_POINTER"
 write_pointer_from_manifest "$GREEN_POINTER"
