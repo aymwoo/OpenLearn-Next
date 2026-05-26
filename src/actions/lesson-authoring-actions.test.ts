@@ -12,6 +12,7 @@ const mockDuplicateLesson = vi.fn();
 const mockArchiveLesson = vi.fn();
 const mockAddLessonStep = vi.fn();
 const mockReorderLessonStep = vi.fn();
+const mockSaveVotingLessonStepConfig = vi.fn();
 
 vi.mock("server-only", () => ({}));
 
@@ -35,6 +36,7 @@ vi.mock("@/lib/dal/lesson-authoring", () => ({
   getLessonPublishReadinessDTO,
   publishLesson,
   reorderLessonStep: mockReorderLessonStep,
+  saveVotingLessonStepConfig: mockSaveVotingLessonStepConfig,
   updateLessonDraft: vi.fn(),
   updateLessonStep: vi.fn(),
 }));
@@ -44,6 +46,7 @@ describe("lesson authoring Server Actions — extended", () => {
     vi.resetModules();
     vi.clearAllMocks();
     assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
+    mockSaveVotingLessonStepConfig.mockReset();
   });
 
   // ── createLessonDraftAction ────────────────────────────────────────────────
@@ -410,5 +413,177 @@ describe("lesson authoring Server Actions — extended", () => {
     expect(updateTag).toHaveBeenCalledWith("lesson:lesson-1");
     expect(updateTag).toHaveBeenCalledWith("steps:lesson-1");
     expect(updateTag).not.toHaveBeenCalledWith("teacher-courses:teacher-1");
+  });
+
+  it("returns structured fieldErrors for invalid voting config payload", async () => {
+    const { saveVotingLessonStepAction } = await import("./lesson-authoring-actions");
+
+    const result = await saveVotingLessonStepAction({
+      stepId: "step-1",
+      title: "课堂投票",
+      pluginId: "plugin-voting",
+      expectedUpdatedAt: "2026-05-25T00:00:00.000Z",
+      executableConfig: {
+        prompt: "",
+        options: [{ id: "a", label: "A" }],
+        allowMultiple: false,
+        anonymousResults: true,
+        showLiveResults: true,
+        participationWindowSeconds: 10,
+        resultsDisplay: "bar",
+      },
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "VALIDATION_ERROR",
+      message: "配置未通过校验，请先修正红色标记字段。",
+    });
+    if (result.ok) throw new Error("expected validation failure");
+    expect(result.fieldErrors).toBeTruthy();
+  });
+
+  it("returns publishState after saving voting config", async () => {
+    const { saveVotingLessonStepAction } = await import("./lesson-authoring-actions");
+
+    mockSaveVotingLessonStepConfig.mockResolvedValueOnce({
+      ok: true,
+      lessonId: "lesson-1",
+      courseId: "course-1",
+      stepId: "step-1",
+      savedAt: new Date().toISOString(),
+      publishState: {
+        lessonId: "lesson-1",
+        courseId: "course-1",
+        canPublish: false,
+        blockingIssues: [{ code: "VOTING_PLUGIN_CONFIG_INVALID", message: "invalid" }],
+      },
+    });
+
+    const result = await saveVotingLessonStepAction({
+      stepId: "step-1",
+      title: "课堂投票",
+      pluginId: "plugin-voting",
+      expectedUpdatedAt: "2026-05-25T00:00:00.000Z",
+      executableConfig: {
+        prompt: "题目",
+        options: [{ id: "a", label: "A" }, { id: "b", label: "B" }],
+        allowMultiple: false,
+        anonymousResults: true,
+        showLiveResults: true,
+        participationWindowSeconds: 90,
+        resultsDisplay: "bar",
+      },
+    });
+
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) throw new Error("expected success");
+    expect((result.data as { publishState: { blockingIssues: unknown[] } }).publishState.blockingIssues).toHaveLength(1);
+  });
+
+  it("maps disabled and incompatible voting plugin errors to structured contract", async () => {
+    const { saveVotingLessonStepAction } = await import("./lesson-authoring-actions");
+
+    mockSaveVotingLessonStepConfig.mockRejectedValueOnce(new Error("VOTING_PLUGIN_DISABLED"));
+    const disabled = await saveVotingLessonStepAction({
+      stepId: "step-1",
+      title: "课堂投票",
+      pluginId: "plugin-voting",
+      expectedUpdatedAt: "2026-05-25T00:00:00.000Z",
+      executableConfig: {
+        prompt: "题目",
+        options: [{ id: "a", label: "A" }, { id: "b", label: "B" }],
+        allowMultiple: false,
+        anonymousResults: true,
+        showLiveResults: true,
+        participationWindowSeconds: 90,
+        resultsDisplay: "bar",
+      },
+    });
+
+    expect(disabled).toMatchObject({ ok: false, error: "PLUGIN_DISABLED", message: "课堂投票插件当前不可用，暂时无法继续发布。" });
+
+    mockSaveVotingLessonStepConfig.mockRejectedValueOnce(new Error("VOTING_PLUGIN_INCOMPATIBLE"));
+    const incompatible = await saveVotingLessonStepAction({
+      stepId: "step-1",
+      title: "课堂投票",
+      pluginId: "plugin-voting",
+      expectedUpdatedAt: "2026-05-25T00:00:00.000Z",
+      executableConfig: {
+        prompt: "题目",
+        options: [{ id: "a", label: "A" }, { id: "b", label: "B" }],
+        allowMultiple: false,
+        anonymousResults: true,
+        showLiveResults: true,
+        participationWindowSeconds: 90,
+        resultsDisplay: "bar",
+      },
+    });
+
+    expect(incompatible).toMatchObject({ ok: false, error: "INCOMPATIBLE", message: "课堂投票插件版本不兼容，请刷新页面或联系管理员。" });
+  });
+
+  it("forwards expectedUpdatedAt into the DAL voting save chain", async () => {
+    const { saveVotingLessonStepAction } = await import("./lesson-authoring-actions");
+
+    mockSaveVotingLessonStepConfig.mockResolvedValueOnce({
+      ok: true,
+      lessonId: "lesson-1",
+      courseId: "course-1",
+      stepId: "step-1",
+      savedAt: "2026-05-25T00:00:01.000Z",
+      publishState: {
+        lessonId: "lesson-1",
+        courseId: "course-1",
+        canPublish: true,
+        blockingIssues: [],
+      },
+    });
+
+    await saveVotingLessonStepAction({
+      stepId: "step-1",
+      title: "课堂投票",
+      pluginId: "plugin-voting",
+      expectedUpdatedAt: "2026-05-25T00:00:00.000Z",
+      executableConfig: {
+        prompt: "题目",
+        options: [{ id: "a", label: "A" }, { id: "b", label: "B" }],
+        allowMultiple: false,
+        anonymousResults: true,
+        showLiveResults: true,
+        participationWindowSeconds: 90,
+        resultsDisplay: "bar",
+      },
+    });
+
+    expect(mockSaveVotingLessonStepConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedUpdatedAt: "2026-05-25T00:00:00.000Z",
+      }),
+    );
+  });
+
+  it("returns nested option row fieldErrors for invalid voting config payload", async () => {
+    const { saveVotingLessonStepAction } = await import("./lesson-authoring-actions");
+
+    const result = await saveVotingLessonStepAction({
+      stepId: "step-1",
+      title: "课堂投票",
+      pluginId: "plugin-voting",
+      expectedUpdatedAt: "2026-05-25T00:00:00.000Z",
+      executableConfig: {
+        prompt: "有效题目",
+        options: [{ id: "a", label: "A" }, { id: "b", label: "" }],
+        allowMultiple: false,
+        anonymousResults: true,
+        showLiveResults: true,
+        participationWindowSeconds: 90,
+        resultsDisplay: "bar",
+      },
+    });
+
+    expect(result).toMatchObject({ ok: false, error: "VALIDATION_ERROR" });
+    if (result.ok) throw new Error("expected validation failure");
+    expect(result.fieldErrors?.["executableConfig.options.1.label"]).toEqual(["Too small: expected string to have >=1 characters"]);
   });
 });

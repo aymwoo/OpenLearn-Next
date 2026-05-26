@@ -36,6 +36,7 @@ const mockRecordStudentQuickResponse = vi.fn();
 const mockRefreshClassroomSnapshot = vi.fn();
 const mockRecordRuntimeReady = vi.fn();
 const mockUpdateClassroomParticipantConnection = vi.fn();
+const mockRecordRuntimeTeacherControl = vi.fn();
 const actionSource = readFileSync("src/actions/classroom-actions.ts", "utf8");
 
 vi.mock("@/lib/dal/classroom", () => ({
@@ -50,6 +51,7 @@ vi.mock("@/lib/dal/classroom", () => ({
   recordStudentQuickResponse: mockRecordStudentQuickResponse,
   refreshClassroomSnapshot: mockRefreshClassroomSnapshot,
   recordRuntimeReady: mockRecordRuntimeReady,
+  recordRuntimeTeacherControl: mockRecordRuntimeTeacherControl,
   updateClassroomParticipantConnection: mockUpdateClassroomParticipantConnection,
 }));
 
@@ -770,6 +772,31 @@ describe("classroom-actions", () => {
       expect(actionSource).toContain("updateTag(cacheTags.progress(result.lessonId, result.actorId))");
       expect(actionSource).toContain("updateTag(cacheTags.submission(result.lessonId, result.actorId))");
       expect(actionSource).toContain("updateTag(cacheTags.teacherReview(result.lessonId))");
+    });
+
+    it("dispatches current-round recovery actions through runtime teacher control and invalidates classroom tags", async () => {
+      mockRecordRuntimeTeacherControl.mockResolvedValue({ sessionId: "session-1", applied: true });
+
+      const { runCurrentVotingRecoveryAction } = await import("./classroom-actions");
+      const result = await runCurrentVotingRecoveryAction({
+        sessionId: "session-1",
+        stepId: "step-1",
+        recoveryAction: "retry",
+      });
+
+      expect(result).toEqual({ ok: true, data: { sessionId: "session-1", applied: true } });
+      expect(mockRecordRuntimeTeacherControl).toHaveBeenCalledWith(expect.objectContaining({
+        kind: "runtime-teacher-control",
+        payload: expect.objectContaining({
+          classroomSessionId: "session-1",
+          stepId: "step-1",
+          command: "broadcast-preset",
+          payload: expect.objectContaining({
+            recoveryAction: "retry",
+          }),
+        }),
+      }));
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
     });
   });
 });

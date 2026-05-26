@@ -44,8 +44,11 @@ import {
   TouchClassroomPresenceInputSchema,
 } from "@/lib/dto/classroom";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
+import { createRuntimeBridgeMessageId } from "@/features/runtime-platform/host/runtime-host-bridge";
+import { RUNTIME_CONTRACT_VERSION } from "@/features/runtime-platform/contracts/version";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; message: string; latest?: unknown; attemptedAction?: unknown };
+type VotingRecoveryAction = "retry" | "reconcile" | "suspend" | "fallback";
 
 const validationMessage = "输入内容不完整，请检查后重试。";
 const launchMessage = "正在创建课堂，请稍候。";
@@ -377,6 +380,55 @@ export async function recordRuntimeTeacherControlAction(input: FormData | Record
   try {
     const result = await recordRuntimeTeacherControl(parsed.data);
     updateTag(cacheTags.classroom(parsed.data.payload.classroomSessionId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function runCurrentVotingRecoveryAction(input: {
+  sessionId: string;
+  stepId: string;
+  recoveryAction: VotingRecoveryAction;
+}): Promise<ActionResult<unknown>> {
+  if (!input.sessionId || !input.stepId || !input.recoveryAction) {
+    return validationError();
+  }
+
+  const command = input.recoveryAction === "retry"
+    ? "broadcast-preset"
+    : input.recoveryAction === "reconcile"
+      ? "reset-session"
+      : "broadcast-preset";
+
+  try {
+    const result = await recordRuntimeTeacherControl({
+      version: RUNTIME_CONTRACT_VERSION,
+      messageId: createRuntimeBridgeMessageId(),
+      correlationId: createRuntimeBridgeMessageId(),
+      runtimeInstanceId: `teacher-runtime-${input.sessionId}-${input.stepId}`,
+      sentAt: new Date().toISOString(),
+      capabilityContext: {
+        actorId: "teacher-recovery",
+        actorScope: "teacher",
+        grantedCapabilities: ["runtime:host-action:request"],
+        sessionId: input.sessionId,
+      },
+      kind: "runtime-teacher-control",
+      payload: {
+        classroomSessionId: input.sessionId,
+        lessonId: input.sessionId,
+        publishedVersionId: input.sessionId,
+        stepId: input.stepId,
+        command,
+        payload: {
+          source: "classroom-voting-recovery",
+          recoveryAction: input.recoveryAction,
+        },
+      },
+    });
+
+    updateTag(cacheTags.classroom(input.sessionId));
     return { ok: true, data: result };
   } catch (error) {
     return handleClassroomActionError(error);

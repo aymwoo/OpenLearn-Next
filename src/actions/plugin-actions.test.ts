@@ -389,6 +389,34 @@ describe("plugin-actions", () => {
   });
 
   describe("operator-scoped plugin recovery actions", () => {
+    it("dispatches plugin.enable with actorScope operator for admin memberships", async () => {
+      const actions = await import("./plugin-actions");
+      const operatorToggle = (actions as typeof actions & {
+        setPluginEnabledForOperatorAction: typeof actions.setPluginEnabledAction;
+      }).setPluginEnabledForOperatorAction;
+
+      getUserMembershipsDTOMock.mockResolvedValueOnce([
+        { schoolId: "school-1", status: "active", role: "admin" },
+      ]);
+      mockPluginDAL.getPluginForSchool.mockResolvedValueOnce(mockPluginDTO);
+
+      const result = await operatorToggle({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        enabled: true,
+      });
+
+      expect(result).toMatchObject({ success: true });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.enable",
+        actor: { actorId: "user-1", actorScope: "operator" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: { schoolId: "school-1", pluginId: "plugin-1", enabledBy: "user-1" },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.operator-toggle" },
+      });
+    });
+
     it("dispatches plugin.resume with actorScope operator for admin memberships", async () => {
       const actions = await import("./plugin-actions");
       const operatorTransition = (actions as typeof actions & {
@@ -452,6 +480,74 @@ describe("plugin-actions", () => {
         },
         source: "server-action",
         correlation: { producer: "plugin-actions.operator-kill-switch" },
+      });
+    });
+
+    it("dispatches plugin.reconcile with actorScope operator for admin memberships", async () => {
+      const actions = await import("./plugin-actions");
+      const operatorReconcile = (actions as typeof actions & {
+        reconcilePluginForOperatorAction: typeof actions.reconcilePluginAction;
+      }).reconcilePluginForOperatorAction;
+
+      getUserMembershipsDTOMock.mockResolvedValueOnce([
+        { schoolId: "school-1", status: "active", role: "admin" },
+      ]);
+      mockPluginDAL.getPluginForSchool.mockResolvedValueOnce(mockPluginDTO);
+
+      const result = await operatorReconcile({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        reason: "dependency recovery",
+        targetState: "ready",
+      });
+
+      expect(result).toMatchObject({ success: true });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.reconcile",
+        actor: { actorId: "user-1", actorScope: "operator" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          reason: "dependency recovery",
+          targetState: "ready",
+        },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.operator-reconcile" },
+      });
+    });
+
+    it("dispatches plugin.retry with actorScope operator for admin memberships", async () => {
+      const actions = await import("./plugin-actions");
+      const operatorRetry = (actions as typeof actions & {
+        retryPluginForOperatorAction: typeof actions.retryPluginAction;
+      }).retryPluginForOperatorAction;
+
+      getUserMembershipsDTOMock.mockResolvedValueOnce([
+        { schoolId: "school-1", status: "active", role: "admin" },
+      ]);
+      mockPluginDAL.getPluginForSchool.mockResolvedValueOnce(mockPluginDTO);
+
+      const result = await operatorRetry({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        commandId: "command-original",
+        reason: "activation_failed",
+      });
+
+      expect(result).toMatchObject({ success: true });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.retry",
+        actor: { actorId: "user-1", actorScope: "operator" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          commandId: "command-original",
+          reason: "activation_failed",
+        },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.operator-retry" },
       });
     });
 

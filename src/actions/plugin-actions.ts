@@ -345,6 +345,111 @@ export async function retryPluginAction(data: z.infer<typeof RetryPluginSchema>)
   }
 }
 
+export async function setPluginEnabledForOperatorAction(data: z.infer<typeof SetEnabledSchema>) {
+  const parsed = SetEnabledSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveOperatorSchoolId(actorId, parsed.data.pluginId, parsed.data.schoolId);
+    const result = parsed.data.enabled
+      ? await dispatchPluginGovernanceCommand({
+          type: "plugin.enable",
+          actor: { actorId, actorScope: "operator" },
+          scope: { schoolId, pluginId: parsed.data.pluginId },
+          payload: { schoolId, pluginId: parsed.data.pluginId, enabledBy: actorId },
+          source: "server-action",
+          correlation: { producer: "plugin-actions.operator-toggle" },
+        })
+      : await dispatchPluginGovernanceCommand({
+          type: "plugin.disable",
+          actor: { actorId, actorScope: "operator" },
+          scope: { schoolId, pluginId: parsed.data.pluginId },
+          payload: { schoolId, pluginId: parsed.data.pluginId, disabledBy: actorId },
+          source: "server-action",
+          correlation: { producer: "plugin-actions.operator-toggle" },
+        });
+
+    updateTag(cacheTags.pluginRegistry);
+    updateTag(cacheTags.plugin(parsed.data.pluginId));
+
+    const registeredThemeId = (result.data as { registeredThemeId?: string | null } | null)?.registeredThemeId;
+
+    if (registeredThemeId) {
+      updateTag(cacheTags.themeRegistry);
+      updateTag(cacheTags.theme(registeredThemeId));
+    }
+
+    updateInferredTags(result.invalidationTags.filter((tag) => {
+      if (tag === cacheTags.pluginRegistry || tag === cacheTags.plugin(parsed.data.pluginId)) return false;
+      if (registeredThemeId && (tag === cacheTags.themeRegistry || tag === cacheTags.theme(registeredThemeId))) return false;
+      return true;
+    }));
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_SET_ENABLED_FAILED") };
+  }
+}
+
+export async function reconcilePluginForOperatorAction(data: z.infer<typeof ReconcilePluginSchema>) {
+  const parsed = ReconcilePluginSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveOperatorSchoolId(actorId, parsed.data.pluginId, parsed.data.schoolId);
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.reconcile",
+      actor: { actorId, actorScope: "operator" },
+      scope: { schoolId, pluginId: parsed.data.pluginId },
+      payload: {
+        schoolId,
+        pluginId: parsed.data.pluginId,
+        reason: parsed.data.reason,
+        targetState: parsed.data.targetState,
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.operator-reconcile" },
+    });
+    updateTag(cacheTags.pluginRegistry);
+    updateTag(cacheTags.plugin(parsed.data.pluginId));
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId)));
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_RECONCILE_FAILED") };
+  }
+}
+
+export async function retryPluginForOperatorAction(data: z.infer<typeof RetryPluginSchema>) {
+  const parsed = RetryPluginSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveOperatorSchoolId(actorId, parsed.data.pluginId, parsed.data.schoolId);
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.retry",
+      actor: { actorId, actorScope: "operator" },
+      scope: { schoolId, pluginId: parsed.data.pluginId },
+      payload: {
+        schoolId,
+        pluginId: parsed.data.pluginId,
+        commandId: parsed.data.commandId,
+        reason: parsed.data.reason,
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.operator-retry" },
+    });
+    updateTag(cacheTags.pluginRegistry);
+    updateTag(cacheTags.plugin(parsed.data.pluginId));
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId)));
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_RETRY_FAILED") };
+  }
+}
+
 export async function setPluginKillSwitchAction(data: z.infer<typeof KillSwitchSchema>) {
   const parsed = KillSwitchSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.message };

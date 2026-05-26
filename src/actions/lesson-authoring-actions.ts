@@ -14,10 +14,12 @@ import {
   getLessonPublishReadinessDTO,
   publishLesson,
   reorderLessonStep,
+  saveVotingLessonStepConfig,
   updateLessonDraft,
   updateLessonStep,
 } from "@/lib/dal/lesson-authoring";
 import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
+import { ClassroomVotingAuthoringConfigSchema } from "@/lib/dto/resource-ai";
 import { createTeacherResource } from "@/lib/dal/resources";
 import { cacheTags } from "@/lib/cache-policy";
 
@@ -67,9 +69,17 @@ const uploadMarkdownAssetSchema = z.object({
   source: z.string().min(1),
 });
 
+const votingSaveSchema = z.object({
+  stepId: z.string().min(1),
+  title: z.string().min(1),
+  pluginId: z.string().min(1),
+  expectedUpdatedAt: z.string().datetime(),
+  executableConfig: ClassroomVotingAuthoringConfigSchema,
+});
+
 type ActionResult<T> =
   | { ok: true; data: T }
-  | { ok: false; error: string; message: string; issues?: unknown[] };
+  | { ok: false; error: string; message: string; issues?: unknown[]; fieldErrors?: Record<string, string[] | undefined>; publishState?: unknown };
 
 function normalizeInput(input: FormData | Record<string, unknown>) {
   if (!(input instanceof FormData)) {
@@ -81,6 +91,32 @@ function normalizeInput(input: FormData | Record<string, unknown>) {
 
 function validationError() {
   return { ok: false as const, error: "VALIDATION_ERROR", message: "输入内容不完整，请检查后再保存。" };
+}
+
+function votingValidationError(error: z.ZodError) {
+  const flattenedFieldErrors = error.flatten().fieldErrors;
+  const issueFieldErrors = error.issues.reduce<Record<string, string[]>>((acc, issue) => {
+    const key = issue.path.map((segment) => String(segment)).join(".");
+
+    if (!key) {
+      return acc;
+    }
+
+    acc[key] ??= [];
+    acc[key].push(issue.message);
+    return acc;
+  }, {});
+
+  return {
+    ok: false as const,
+    error: "VALIDATION_ERROR",
+    message: "配置未通过校验，请先修正红色标记字段。",
+    issues: error.issues,
+    fieldErrors: {
+      ...flattenedFieldErrors,
+      ...issueFieldErrors,
+    },
+  };
 }
 
 function invalidateLessonAuthoringTags(actorId: string, courseId: string, lessonId: string) {
@@ -205,6 +241,59 @@ export async function autosaveLessonStepAction(input: FormData | Record<string, 
     }
     return { ok: true, data: result };
   } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function saveVotingLessonStepAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = votingSaveSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return votingValidationError(parsed.error);
+
+  try {
+    const actor = await assertActiveTeacher();
+    const result = await saveVotingLessonStepConfig(parsed.data);
+    if (result.lessonId && result.courseId) {
+      invalidateLessonAuthoringTags(actor.userId, result.courseId, result.lessonId);
+    }
+    return { ok: true, data: result };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return votingValidationError(error);
+    }
+
+    if (error instanceof Error) {
+      if (error.message === "CONFLICT") {
+        return { ok: false, error: "CONFLICT", message: "检测到更新冲突，请刷新课时后重新应用修改。" };
+      }
+
+      if (["VOTING_STEP_NOT_QUIZ", "VOTING_STEP_NOT_CLASSROOM_VOTING", "VOTING_PLUGIN_MISMATCH", "STEP_NOT_FOUND", "LESSON_NOT_FOUND"].includes(error.message)) {
+        return {
+          ok: false,
+          error: "VALIDATION_ERROR",
+          message: "配置未通过校验，请先修正红色标记字段。",
+          issues: [{ code: error.message }],
+        };
+      }
+
+      if (error.message === "VOTING_PLUGIN_DISABLED") {
+        return {
+          ok: false,
+          error: "PLUGIN_DISABLED",
+          message: "课堂投票插件当前不可用，暂时无法继续发布。",
+          issues: [{ code: error.message }],
+        };
+      }
+
+      if (error.message === "VOTING_PLUGIN_INCOMPATIBLE") {
+        return {
+          ok: false,
+          error: "INCOMPATIBLE",
+          message: "课堂投票插件版本不兼容，请刷新页面或联系管理员。",
+          issues: [{ code: error.message }],
+        };
+      }
+    }
+
     return handleActionError(error);
   }
 }
