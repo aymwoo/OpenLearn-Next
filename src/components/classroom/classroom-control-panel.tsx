@@ -339,7 +339,7 @@ export function ClassroomControlPanel({
                   <Link href={incidentHref}>查看课堂事件</Link>
                 </Button>
                 <Button asChild variant="secondary" className="min-h-[44px] px-5">
-                  <Link href={runtimeInspectorHref ?? '/settings/labs/runtime-inspector'}>查看运行轨迹</Link>
+                  <Link href={runtimeInspectorHref ?? '/settings/labs/runtime-inspector'}>查看 Runtime Inspector</Link>
                 </Button>
               </div>
             </div>
