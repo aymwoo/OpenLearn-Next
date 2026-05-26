@@ -277,6 +277,7 @@ describe("release status helper", () => {
 
     expect(payload.available).toBe(false);
     expect(payload.ok).toBe(false);
+    expect(payload.gitSha).toBeNull();
     expect(payload.currentRelease).toBeNull();
     expect(payload.greenRelease?.releaseId).toBe("release-122");
     expect(payload.reason).toContain("current.json");
@@ -288,6 +289,9 @@ describe("release status helper", () => {
     const payload = await getReleasePayload();
 
     expect(payload.available).toBe(true);
+    expect(payload.releaseId).toBe("release-123");
+    expect(payload.gitSha).toBe("abc1234");
+    expect(payload.rollbackTarget).toBe("release-122");
     expect(payload.currentRelease?.releaseId).toBe("release-123");
     expect(payload.greenRelease?.releaseId).toBe("release-122");
     expect(payload.currentRelease?.gitSha).toBe("abc1234");

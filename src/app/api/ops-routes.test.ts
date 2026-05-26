@@ -73,6 +73,12 @@ describe("ops probe routes", () => {
       ok: false,
       available: false,
       checkedAt: "2026-05-26T09:00:00.000Z",
+      releaseId: null,
+      gitSha: null,
+      environment: null,
+      releasedAt: null,
+      rollbackTarget: null,
+      manifestPath: null,
       currentRelease: null,
       greenRelease: null,
       migration: null,
@@ -103,6 +109,7 @@ describe("ops probe routes", () => {
     expect(response.status).toBe(503);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.available).toBe(false);
+    expect(body.gitSha).toBeNull();
     expect(routeSource).not.toContain("readdir");
   });
 
@@ -113,6 +120,12 @@ describe("ops probe routes", () => {
       ok: true,
       available: true,
       checkedAt: "2026-05-26T09:00:00.000Z",
+      releaseId: "release-123",
+      gitSha: "abc1234",
+      environment: "pilot-single-school",
+      releasedAt: "2026-05-26T09:10:00.000Z",
+      rollbackTarget: "release-122",
+      manifestPath: "/srv/openlearn/manifests/release-123.json",
       currentRelease: {
         releaseId: "release-123",
         gitSha: "abc1234",
@@ -153,8 +166,8 @@ describe("ops probe routes", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(body.currentRelease.gitSha).toBe("abc1234");
-    expect(body.currentRelease.rollbackTarget).toBe("release-122");
+    expect(body.gitSha).toBe("abc1234");
+    expect(body.rollbackTarget).toBe("release-122");
     expect(body.greenRelease.releaseId).toBe("release-122");
     expect(body.operatorCorrelation.taskId.id).toBe("task-1");
   });
