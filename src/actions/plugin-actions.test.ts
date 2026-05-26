@@ -388,6 +388,115 @@ describe("plugin-actions", () => {
     });
   });
 
+  describe("operator-scoped plugin recovery actions", () => {
+    it("dispatches plugin.resume with actorScope operator for admin memberships", async () => {
+      const actions = await import("./plugin-actions");
+      const operatorTransition = (actions as typeof actions & {
+        transitionPluginLifecycleForOperatorAction: typeof actions.transitionPluginLifecycleAction;
+      }).transitionPluginLifecycleForOperatorAction;
+
+      getUserMembershipsDTOMock.mockResolvedValueOnce([
+        { schoolId: "school-1", status: "active", role: "admin" },
+      ]);
+      mockPluginDAL.getPluginForSchool.mockResolvedValueOnce(mockPluginDTO);
+
+      const result = await operatorTransition({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        targetState: "enabled",
+        reason: "operator_resume",
+      });
+
+      expect(result).toMatchObject({ success: true });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.resume",
+        actor: { actorId: "user-1", actorScope: "operator" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          reason: "operator_resume",
+          targetState: "enabled",
+        },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.operator-transition" },
+      });
+    });
+
+    it("dispatches kill switch mutations with actorScope operator for developer memberships", async () => {
+      const actions = await import("./plugin-actions");
+      const operatorKillSwitch = (actions as typeof actions & {
+        setPluginKillSwitchForOperatorAction: typeof actions.setPluginKillSwitchAction;
+      }).setPluginKillSwitchForOperatorAction;
+
+      getUserMembershipsDTOMock.mockResolvedValueOnce([
+        { schoolId: "school-1", status: "active", role: "developer" },
+      ]);
+      mockPluginDAL.getPluginForSchool.mockResolvedValueOnce(mockPluginDTO);
+
+      const result = await operatorKillSwitch({
+        pluginId: "plugin-1",
+        killSwitchEnabled: true,
+      });
+
+      expect(result).toMatchObject({ success: true });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.kill_switch.set",
+        actor: { actorId: "user-1", actorScope: "operator" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          enabled: true,
+          reason: "kill-switch-enabled",
+        },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.operator-kill-switch" },
+      });
+    });
+
+    it("rejects operator-scoped recovery when current user lacks admin or developer membership", async () => {
+      const actions = await import("./plugin-actions");
+      const operatorTransition = (actions as typeof actions & {
+        transitionPluginLifecycleForOperatorAction: typeof actions.transitionPluginLifecycleAction;
+      }).transitionPluginLifecycleForOperatorAction;
+
+      getUserMembershipsDTOMock.mockResolvedValueOnce([
+        { schoolId: "school-1", status: "active", role: "teacher" },
+      ]);
+
+      const result = await operatorTransition({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        targetState: "suspended",
+        reason: "operator_suspend",
+      });
+
+      expect(result).toMatchObject({ success: false, error: "OPERATOR_AUTH_REQUIRED" });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).not.toHaveBeenCalled();
+    });
+
+    it("rejects operator-scoped recovery for foreign-school plugins outside operator scope", async () => {
+      const actions = await import("./plugin-actions");
+      const operatorKillSwitch = (actions as typeof actions & {
+        setPluginKillSwitchForOperatorAction: typeof actions.setPluginKillSwitchAction;
+      }).setPluginKillSwitchForOperatorAction;
+
+      getUserMembershipsDTOMock.mockResolvedValueOnce([
+        { schoolId: "school-1", status: "active", role: "admin" },
+      ]);
+      mockPluginDAL.getPluginForSchool.mockResolvedValueOnce(null);
+
+      const result = await operatorKillSwitch({
+        pluginId: "plugin-foreign",
+        killSwitchEnabled: true,
+      });
+
+      expect(result).toMatchObject({ success: false, error: "PLUGIN_NOT_FOUND" });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).not.toHaveBeenCalled();
+    });
+  });
+
   describe("reconcilePluginAction", () => {
     it("dispatches explicit plugin.reconcile and invalidates plugin governance tags", async () => {
       const { reconcilePluginAction } = await import("./plugin-actions");

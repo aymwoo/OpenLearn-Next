@@ -5,6 +5,8 @@ vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
   assertActiveTeacher: vi.fn(),
+  getCurrentUserDTO: vi.fn(),
+  getUserMembershipsDTO: vi.fn(),
   installOrReconcilePluginWithTx: vi.fn(),
   listPluginsForSchool: vi.fn(),
   transitionPluginLifecycleWithTx: vi.fn(),
@@ -30,6 +32,14 @@ vi.mock("@/lib/dal/lesson-authoring", () => ({
   assertActiveTeacher: mocks.assertActiveTeacher,
 }));
 
+vi.mock("@/lib/dal/auth", () => ({
+  getCurrentUserDTO: mocks.getCurrentUserDTO,
+}));
+
+vi.mock("@/lib/dal/membership", () => ({
+  getUserMembershipsDTO: mocks.getUserMembershipsDTO,
+}));
+
 vi.mock("@/lib/dal/plugins", () => ({
   installOrReconcilePluginWithTx: mocks.installOrReconcilePluginWithTx,
   listPluginsForSchool: mocks.listPluginsForSchool,
@@ -49,6 +59,11 @@ vi.mock("@/features/platform-core/plugins/dependency-graph", () => ({
 
 import { platformCommandRegistry } from "../registry";
 
+const baseAudit = {
+  delegatedActor: null,
+  approval: null,
+};
+
 function createCommand(type: "plugin.install", payload: {
   schoolId: string;
   pluginId: string;
@@ -63,12 +78,18 @@ function createCommand(type: "plugin.install", payload: {
   scope: { schoolId: string; pluginId: string };
   payload: typeof payload;
   correlation: { correlationId: string; causationId: null; producer: string };
+  audit: {
+    delegatedActor: null;
+    approval: null;
+  };
 };
 function createCommand(type: "plugin.enable", payload: { schoolId: string; pluginId: string; enabledBy: string }): any;
 function createCommand(type: "plugin.resume", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): any;
 function createCommand(type: "plugin.reconcile", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): any;
 function createCommand(type: "plugin.retry", payload: { schoolId: string; pluginId: string; commandId: string; reason: string }): any;
 function createCommand(type: "plugin.uninstall.preflight", payload: { schoolId: string; pluginId: string }): any;
+function createCommand(type: "plugin.suspend", payload: { schoolId: string; pluginId: string; reason: string }): any;
+function createCommand(type: "plugin.kill_switch.set", payload: { schoolId: string; pluginId: string; enabled: boolean; reason: string }): any;
 function createCommand(type: string, payload: Record<string, unknown>) {
   return {
     id: type === "plugin.retry" ? "command-existing" : `command-${type}`,
@@ -87,6 +108,7 @@ function createCommand(type: string, payload: Record<string, unknown>) {
       causationId: null,
       producer: "test-suite",
     },
+    audit: baseAudit,
   };
 }
 
@@ -99,6 +121,12 @@ describe("platform plugin command registry", () => {
       userId: "teacher-1",
       schoolIds: ["school-1"],
     });
+    mocks.getCurrentUserDTO.mockResolvedValue({
+      id: "operator-1",
+    });
+    mocks.getUserMembershipsDTO.mockResolvedValue([
+      { schoolId: "school-1", status: "active", role: "admin" },
+    ]);
     mocks.installOrReconcilePluginWithTx.mockResolvedValue({
       id: "plugin-1",
       schoolId: "school-1",
@@ -260,6 +288,71 @@ describe("platform plugin command registry", () => {
     expect(mocks.installOrReconcilePluginWithTx).toHaveBeenCalledWith(expect.objectContaining({
       actorScope: "system",
     }));
+  });
+
+  it("authorizes operator-scoped governance commands for active admin memberships in school scope", async () => {
+    const command = {
+      ...createCommand("plugin.resume", {
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        reason: "operator resume",
+      }),
+      actor: {
+        actorId: "operator-1",
+        actorScope: "operator",
+      },
+    } as any;
+
+    await expect(platformCommandRegistry["plugin.resume"].authorize({ command })).resolves.toBeUndefined();
+
+    expect(mocks.getCurrentUserDTO).toHaveBeenCalledTimes(1);
+    expect(mocks.getUserMembershipsDTO).toHaveBeenCalledWith("operator-1");
+    expect(mocks.assertActiveTeacher).not.toHaveBeenCalled();
+  });
+
+  it("rejects operator-scoped governance commands when operator memberships do not cover the target school", async () => {
+    const command = {
+      ...createCommand("plugin.suspend", {
+        schoolId: "school-foreign",
+        pluginId: "plugin-1",
+        reason: "operator suspend",
+      }),
+      scope: {
+        schoolId: "school-foreign",
+        pluginId: "plugin-1",
+      },
+      actor: {
+        actorId: "operator-1",
+        actorScope: "operator",
+      },
+    } as any;
+
+    await expect(platformCommandRegistry["plugin.suspend"].authorize({ command })).rejects.toThrow(
+      "OPERATOR_AUTH_REQUIRED",
+    );
+  });
+
+  it("rejects operator-scoped governance commands when current user lacks admin or developer membership", async () => {
+    const command = {
+      ...createCommand("plugin.kill_switch.set", {
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        enabled: true,
+        reason: "kill-switch-enabled",
+      }),
+      actor: {
+        actorId: "operator-1",
+        actorScope: "operator",
+      },
+    } as any;
+
+    mocks.getUserMembershipsDTO.mockResolvedValueOnce([
+      { schoolId: "school-1", status: "active", role: "teacher" },
+    ]);
+
+    await expect(platformCommandRegistry["plugin.kill_switch.set"].authorize({ command })).rejects.toThrow(
+      "OPERATOR_AUTH_REQUIRED",
+    );
   });
 
   it("retries against the same failed command identity instead of creating a fresh business command", async () => {

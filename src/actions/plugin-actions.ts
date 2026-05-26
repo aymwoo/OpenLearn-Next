@@ -121,6 +121,36 @@ async function resolvePluginSchoolId(actorId: string, pluginId: string) {
   throw new Error("PLUGIN_NOT_FOUND");
 }
 
+async function resolveOperatorSchoolId(actorId: string, pluginId: string, explicitSchoolId?: string) {
+  const memberships = (await getUserMembershipsDTO(actorId)).filter(
+    (membership) =>
+      membership.status === "active"
+      && (membership.role === "admin" || membership.role === "developer"),
+  );
+
+  if (memberships.length === 0) {
+    throw new Error("OPERATOR_AUTH_REQUIRED");
+  }
+
+  const candidateSchoolIds = explicitSchoolId
+    ? memberships.filter((membership) => membership.schoolId === explicitSchoolId).map((membership) => membership.schoolId)
+    : memberships.map((membership) => membership.schoolId);
+
+  for (const schoolId of [...new Set(candidateSchoolIds)]) {
+    const plugin = await getPluginForSchool({
+      actorId,
+      schoolId,
+      pluginId,
+    });
+
+    if (plugin) {
+      return schoolId;
+    }
+  }
+
+  throw new Error("PLUGIN_NOT_FOUND");
+}
+
 function updateInferredTags(tags: string[]) {
   for (const tag of tags) {
     updateTag(tag);
@@ -334,6 +364,94 @@ export async function setPluginKillSwitchAction(data: z.infer<typeof KillSwitchS
       },
       source: "server-action",
       correlation: { producer: "plugin-actions.kill-switch" },
+    });
+    updateTag(cacheTags.pluginRegistry);
+    updateTag(cacheTags.plugin(parsed.data.pluginId));
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId)));
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_KILL_SWITCH_FAILED") };
+  }
+}
+
+export async function transitionPluginLifecycleForOperatorAction(
+  data: z.infer<typeof TransitionPluginLifecycleSchema>,
+) {
+  const parsed = TransitionPluginLifecycleSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveOperatorSchoolId(actorId, parsed.data.pluginId, parsed.data.schoolId);
+    const commandType = parsed.data.targetState === "suspended"
+      ? "plugin.suspend"
+      : parsed.data.targetState === "enabled" || parsed.data.targetState === "mounted" || parsed.data.targetState === "ready"
+        ? "plugin.resume"
+        : "plugin.disable";
+    const result = commandType === "plugin.disable"
+      ? await dispatchPluginGovernanceCommand({
+          type: "plugin.disable",
+          actor: { actorId, actorScope: "operator" },
+          scope: { schoolId, pluginId: parsed.data.pluginId },
+          payload: { schoolId, pluginId: parsed.data.pluginId, disabledBy: actorId },
+          source: "server-action",
+          correlation: { producer: "plugin-actions.operator-transition" },
+        })
+      : commandType === "plugin.suspend"
+        ? await dispatchPluginGovernanceCommand({
+            type: "plugin.suspend",
+            actor: { actorId, actorScope: "operator" },
+            scope: { schoolId, pluginId: parsed.data.pluginId },
+            payload: { schoolId, pluginId: parsed.data.pluginId, reason: parsed.data.reason },
+            source: "server-action",
+            correlation: { producer: "plugin-actions.operator-transition" },
+          })
+        : await dispatchPluginGovernanceCommand({
+            type: "plugin.resume",
+            actor: { actorId, actorScope: "operator" },
+            scope: { schoolId, pluginId: parsed.data.pluginId },
+            payload: {
+              schoolId,
+              pluginId: parsed.data.pluginId,
+              reason: parsed.data.reason,
+              targetState: parsed.data.targetState === "mounted" || parsed.data.targetState === "ready"
+                ? parsed.data.targetState
+                : "enabled",
+            },
+            source: "server-action",
+            correlation: { producer: "plugin-actions.operator-transition" },
+          });
+
+    updateTag(cacheTags.pluginRegistry);
+    updateTag(cacheTags.plugin(parsed.data.pluginId));
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId)));
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_LIFECYCLE_TRANSITION_FAILED") };
+  }
+}
+
+export async function setPluginKillSwitchForOperatorAction(
+  data: z.infer<typeof KillSwitchSchema> & { schoolId?: string },
+) {
+  const parsed = KillSwitchSchema.extend({ schoolId: z.string().min(1).optional() }).safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveOperatorSchoolId(actorId, parsed.data.pluginId, parsed.data.schoolId);
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.kill_switch.set",
+      actor: { actorId, actorScope: "operator" },
+      scope: { schoolId, pluginId: parsed.data.pluginId },
+      payload: {
+        schoolId,
+        pluginId: parsed.data.pluginId,
+        enabled: parsed.data.killSwitchEnabled,
+        reason: parsed.data.killSwitchEnabled ? "kill-switch-enabled" : "kill-switch-disabled",
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.operator-kill-switch" },
     });
     updateTag(cacheTags.pluginRegistry);
     updateTag(cacheTags.plugin(parsed.data.pluginId));

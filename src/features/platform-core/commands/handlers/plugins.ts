@@ -22,7 +22,9 @@ import {
   transitionPluginLifecycleWithTx,
   uninstallPluginWithTx,
 } from "@/lib/dal/plugins";
+import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
+import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { registerThemeTokens } from "@/lib/dal/themes";
 
 import {
@@ -58,6 +60,28 @@ type ExecutionResult = Awaited<ReturnType<PlatformCommandDefinition["execute"]>>
 
 async function authorizePluginGovernanceCommand(command: PlatformCommand) {
   if (command.actor.actorScope === "system") {
+    return;
+  }
+
+  if (command.actor.actorScope === "operator") {
+    const user = await getCurrentUserDTO();
+    if (!user || user.id !== command.actor.actorId) {
+      throw new Error("OPERATOR_AUTH_REQUIRED");
+    }
+
+    const memberships = await getUserMembershipsDTO(user.id);
+    const activeMemberships = memberships.filter((membership) => membership.status === "active");
+    const operatorMemberships = activeMemberships.filter(
+      (membership) => membership.role === "admin" || membership.role === "developer",
+    );
+
+    if (
+      operatorMemberships.length === 0
+      || !operatorMemberships.some((membership) => membership.schoolId === command.scope.schoolId)
+    ) {
+      throw new Error("OPERATOR_AUTH_REQUIRED");
+    }
+
     return;
   }
 

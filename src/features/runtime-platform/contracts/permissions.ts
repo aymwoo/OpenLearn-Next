@@ -27,7 +27,7 @@ export const HostActionPermissionValues = [
   "host:plugin:lifecycle:write",
 ] as const;
 
-export const RuntimeActorScopeValues = ["host", "teacher", "student", "plugin", "system"] as const;
+export const RuntimeActorScopeValues = ["host", "teacher", "student", "plugin", "operator", "system"] as const;
 export const GovernanceDecisionValues = ["allowed", "denied"] as const;
 export const GovernanceDeniedReasonValues = [
   "not_allowlisted",
