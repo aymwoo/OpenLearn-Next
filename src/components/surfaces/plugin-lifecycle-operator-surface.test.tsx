@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +9,10 @@ import type { GovernanceDashboardBundle } from "@/features/platform-core/actions
 import * as operatorHonestyDto from "@/lib/dto/operator-honesty";
 
 const operatorRecoveryActionMock = vi.hoisted(() => vi.fn().mockResolvedValue({ success: true }));
+const pluginSurfaceSource = readFileSync(
+  "src/components/surfaces/plugin-lifecycle-operator-surface.tsx",
+  "utf8",
+);
 
 const pluginActionMocks = vi.hoisted(() => ({
   setPluginEnabledAction: vi.fn().mockResolvedValue({ success: true }),
@@ -564,6 +569,15 @@ describe("plugin lifecycle operator surface", () => {
     expect(honesty?.sections[0]?.content).toContain("已不可信什么：");
     expect(honesty?.sections[1]?.content).toContain("当前课堂");
     expect(honesty?.sections[2]?.content).toContain("插件治理详情");
+  });
+
+  it("renders plugin degraded honesty from the shared helper instead of reason-code-only copy", () => {
+    expect(pluginSurfaceSource).toContain("toPluginLifecycleHonestyCard");
+    expect(pluginSurfaceSource).toContain("honestyCard.sections.map");
+    expect(pluginSurfaceSource).toContain("section.label");
+    expect(pluginSurfaceSource).toContain("section.content");
+    expect(pluginSurfaceSource).toContain("reason code: {plugin.reasonCode ?? \"none\"} · 恢复动作：");
+    expect(pluginSurfaceSource).toContain("degraded honesty");
   });
 
   it("defaults to executable catalog and hides internal mounted ready lifecycle labels", async () => {

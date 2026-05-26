@@ -79,4 +79,12 @@ describe("runtime inspector surface", () => {
     expect(normalized?.sections[1]?.label).toBe("影响范围");
     expect(normalized?.sections[2]?.label).toBe("推荐下一步");
   });
+
+  it("renders the degraded runtime card from the shared honesty helper instead of ad-hoc copy", () => {
+    expect(source).toContain("toRuntimeInspectorHonestyCard");
+    expect(source).toContain("honestyCard.sections.map");
+    expect(source).toContain("section.label");
+    expect(source).toContain("section.content");
+    expect(source).not.toContain("当前 transport topology：");
+  });
 });

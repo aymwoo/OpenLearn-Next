@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import { surfaceWidths } from "@/components/surfaces/surface-widths";
-import type { AsyncTaskOperatorOverviewDTO } from "@/lib/dto/async-task-operator";
+import { toAsyncTaskOperatorHonestyCard, type AsyncTaskOperatorOverviewDTO } from "@/lib/dto/async-task-operator";
 import { cn } from "@/lib/utils";
 
 export function AsyncTaskOperatorSurface({
@@ -15,6 +15,8 @@ export function AsyncTaskOperatorSurface({
 }: {
   overview: AsyncTaskOperatorOverviewDTO;
 }) {
+  const backlogHonesty = toAsyncTaskOperatorHonestyCard(overview.platformHealth.backlog);
+
   return (
     <div className={cn(surfaceWidths.workspace, teacherSurfaceRhythm.stack, "p-4 sm:p-5 lg:p-6")}>
       <section className={teacherSurfaceRhythm.hero}>
@@ -79,16 +81,15 @@ export function AsyncTaskOperatorSurface({
         {overview.platformHealth.backlog.level !== "healthy" ? (
           <Card className="mt-6 bg-[#fff7ed] p-5 text-[#9a3412] sm:p-6">
             <p className="text-xs uppercase tracking-[0.2em]">degraded</p>
-            <h2 className="mt-2 text-[1.1rem] font-semibold">当前不能把 operator 首页当作“完全健康”</h2>
-            <p className="mt-2 text-sm leading-6">
-              当前不能信任什么：{overview.platformHealth.backlog.caution}
-            </p>
-            <p className="mt-2 text-sm leading-6">
-              仍可信什么：{overview.platformHealth.backlog.trustedFacts}
-            </p>
-            <p className="mt-2 text-sm leading-6">
-              下一步去哪里排查：{overview.platformHealth.backlog.nextStep}
-            </p>
+            <h2 className="mt-2 text-[1.1rem] font-semibold">{backlogHonesty.title}</h2>
+            <div className="mt-3 grid gap-3 text-sm leading-6">
+              {backlogHonesty.sections.map((section) => (
+                <p key={section.id}>
+                  <span className="font-medium">{section.label}：</span>
+                  {section.content}
+                </p>
+              ))}
+            </div>
           </Card>
         ) : null}
       </section>

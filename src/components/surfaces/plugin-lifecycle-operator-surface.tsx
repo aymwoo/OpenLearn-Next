@@ -22,6 +22,7 @@ import {
   useNativeDialogBackdropClose,
 } from "@/components/ui/native-dialog";
 import type { PreflightUninstallPluginResult } from "@/lib/dal/plugins";
+import { toPluginLifecycleHonestyCard } from "@/lib/dto/operator-honesty";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -489,6 +490,25 @@ export function PluginLifecycleOperatorSurface({ schoolId, dashboard }: Props) {
 
             return (
               <article key={plugin.pluginId} className={cn(teacherSurfaceRhythm.cardInset, "p-4")}>
+                {(() => {
+                  const honestyCard = toPluginLifecycleHonestyCard(plugin);
+
+                  return honestyCard ? (
+                    <div className="mb-4 rounded-[1.25rem] bg-[#fff7ed] px-4 py-4 text-[#9a3412]">
+                      <p className="text-xs uppercase tracking-[0.18em]">degraded honesty</p>
+                      <h3 className="mt-2 text-sm font-semibold">{honestyCard.title}</h3>
+                      <div className="mt-3 grid gap-3 text-sm leading-6">
+                        {honestyCard.sections.map((section) => (
+                          <p key={section.id}>
+                            <span className="font-medium">{section.label}：</span>
+                            {section.content}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">

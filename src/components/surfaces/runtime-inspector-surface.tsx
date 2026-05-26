@@ -6,10 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { surfaceWidths } from "@/components/surfaces/surface-widths";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
-import type { RuntimeInspectorDTO } from "@/lib/dto/runtime-inspector";
+import { toRuntimeInspectorHonestyCard, type RuntimeInspectorDTO } from "@/lib/dto/runtime-inspector";
 import { cn } from "@/lib/utils";
 
 export function RuntimeInspectorSurface({ inspector }: { inspector: RuntimeInspectorDTO }) {
+  const honestyCard = inspector.health ? toRuntimeInspectorHonestyCard(inspector.health) : null;
+
   if (inspector.emptyState) {
     return (
       <div className={cn(surfaceWidths.workspace, teacherSurfaceRhythm.stack, "p-4 sm:p-5 lg:p-6")}>
@@ -62,14 +64,18 @@ export function RuntimeInspectorSurface({ inspector }: { inspector: RuntimeInspe
           </div>
         ) : null}
 
-        {inspector.health?.degraded ? (
+        {honestyCard ? (
           <Card className="mt-6 bg-[#fff7ed] p-5 text-[#9a3412] sm:p-6">
             <p className="text-xs uppercase tracking-[0.2em]">Redis degraded</p>
-            <h2 className="mt-2 text-[1.15rem] font-semibold">跨实例 fanout 当前未完全健康</h2>
-            <p className="mt-2 text-sm leading-6">
-              当前 transport topology：{inspector.health.transportTopology}。
-              {inspector.health.degradedReason ? ` 原因：${inspector.health.degradedReason}` : " 当前仅能确认本实例 fallback 仍在工作。"}
-            </p>
+            <h2 className="mt-2 text-[1.15rem] font-semibold">{honestyCard.title}</h2>
+            <div className="mt-3 grid gap-3 text-sm leading-6">
+              {honestyCard.sections.map((section) => (
+                <p key={section.id}>
+                  <span className="font-medium">{section.label}：</span>
+                  {section.content}
+                </p>
+              ))}
+            </div>
           </Card>
         ) : null}
       </section>

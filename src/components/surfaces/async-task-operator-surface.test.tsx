@@ -118,4 +118,12 @@ describe("async task operator surfaces", () => {
     expect(normalized?.sections[1]?.content).toContain("当前课堂及共享 worker 的关联任务");
     expect(normalized?.sections[2]?.content).toContain("查看 Async Operator");
   });
+
+  it("renders degraded async posture from the shared honesty helper in fixed section order", () => {
+    expect(overviewSurfaceSource).toContain("toAsyncTaskOperatorHonestyCard");
+    expect(overviewSurfaceSource).toContain("backlogHonesty.sections.map");
+    expect(overviewSurfaceSource).toContain("section.label");
+    expect(overviewSurfaceSource).toContain("section.content");
+    expect(overviewSurfaceSource).not.toContain("当前不能信任什么：");
+  });
 });
