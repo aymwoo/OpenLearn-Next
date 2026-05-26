@@ -1,6 +1,9 @@
+import { connection } from "next/server";
+
 import { getReadyPayload } from "@/lib/ops/release-status";
 
 export async function GET() {
+  await connection();
   const payload = await getReadyPayload();
   const blockingComponents = [
     payload.components.db,
