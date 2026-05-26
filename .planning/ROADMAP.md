@@ -82,7 +82,7 @@ Plans:
 **Goal**: 单校试点环境可以被重复部署、验证、备份、恢复，并具备 release traceability。
 **Depends on**: Phase 58
 **Requirements**: ENVR-01, ENVR-02, ENVR-03, SAFE-03, OPS-01
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 Plans:
 - [x] `59-01-PLAN.md` — 固化 pilot env schema、`.env.example` 与 blocking/non-blocking Redis posture。 (completed 2026-05-26)
 - [x] `59-02-PLAN.md` — 交付 `/api/health`、`/api/ready`、`/api/release` honest status surfaces。 (completed 2026-05-26)
@@ -113,7 +113,7 @@ Plans:
 | 56. Voting Plugin Contract & Authoring Integration | v3.1 | 5/5 | Complete | 2026-05-25 |
 | 57. Classroom Runtime Sample Chain | v3.1 | 5/5 | Complete | 2026-05-25 |
 | 58. Operator Recovery & Production Surfaces | v3.1 | 8/8 | Complete    | 2026-05-26 |
-| 59. Deploy, Release & Recovery Baseline | v3.1 | 2/5 | In Progress|  |
+| 59. Deploy, Release & Recovery Baseline | v3.1 | 3/5 | In Progress|  |
 | 60. Load, Degrade & Pilot Rehearsal | v3.1 | 0 | Planned | - |
 
 ## Frozen Historical Context

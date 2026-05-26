@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Single-School Pilot Production Readiness (Plugin-First)
 status: executing
-last_updated: "2026-05-26T10:40:40.041Z"
+last_updated: "2026-05-26T11:12:18.229Z"
 last_activity: 2026-05-26
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 26
-  completed_plans: 20
+  completed_plans: 21
   percent: 50
 ---
 
@@ -26,10 +26,10 @@ See: `.planning/PROJECT.md` (updated 2026-05-24)
 
 Milestone: v3.1 -- Single-School Pilot Production Readiness (Plugin-First)
 Phase: 59 (deploy-release-recovery-baseline) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-05-26
-Progress: [████████░░] 77%
+Progress: [████████░░] 81%
 Next queued phase: 59
 
 ## Performance Metrics
@@ -69,6 +69,8 @@ Recent decisions affecting current work:
 - [Phase 59-02]: health/ready/release contracts are centralized in `src/lib/ops/release-status.ts` so routes, deploy scripts, and restore verification share one honesty vocabulary.
 - [Phase 59-02]: `/api/release` reads only canonical `current.json` and `green.json` pointers, never scans the manifests directory for the “latest” file.
 - [Phase 59-02]: readiness remains blocked by DB/web/worker posture while fanout degraded stays explicit but non-blocking.
+- [Phase 59]: verify:phase59 now locks required deploy/release artifacts and focused suites before later rollout and restore plans fill them. — Phase 59 needs a repo-local hard gate before shell/systemd/restore artifacts land.
+- [Phase 59]: pilot-release workflow treats BullMQ Redis as blocking while preserving fanout as optional via REDIS_FANOUT_ENABLED=false. — This preserves D-59-07 and D-59-08 hard-gate honesty without promoting optional fanout into a release blocker.
 
 ### Pending Todos
 
@@ -94,9 +96,10 @@ Recent decisions affecting current work:
 | quick_task | 260517-e35-full-suite-teacher-course-center-surface | accepted-risk | 2026-05-23 |
 | quick_task | 260517-gnb-student-runtime-host-bootstrap-productio | accepted-risk | 2026-05-23 |
 | quick_task | 260517-k2u-auth-localhost-untrustedhost | accepted-risk | 2026-05-23 |
+| Phase 59 P03 | 0 min | 2 tasks | 4 files |
 
 ## Session Continuity
 
-Last session: 2026-05-26T10:40:40.035Z
+Last session: 2026-05-26T11:11:22.548Z
 Stopped at: Completed 59-02-PLAN.md
 Resume file: None
