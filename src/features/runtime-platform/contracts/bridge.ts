@@ -66,7 +66,7 @@ export const RuntimeSubmitRequestSchema = RuntimeSaveRequestSchema.extend({
 });
 
 export const RuntimeTeacherControlRequestSchema = TeachingBridgeStepReferenceSchema.extend({
-  command: z.enum(["lock", "unlock", "focus-step", "broadcast-preset", "reset-session"]),
+  command: z.enum(["lock", "unlock", "focus-step", "broadcast-preset", "reset-session", "start-voting-round", "end-voting-round"]),
   targetActorId: z.string().min(1).optional(),
   payload: z.record(z.string(), z.unknown()).default({}),
 });

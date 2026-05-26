@@ -107,4 +107,25 @@ describe("runtime session service", () => {
     expect(source).toContain("kind: eventType");
     expect(source).not.toContain("sseRuntimeTransportAdapter.deliver");
   });
+
+  it("adds voting round-aware cutoff and same-payload dedupe to runtime submit", () => {
+    expect(source).toContain("function stableSerializeRuntimePayload");
+    expect(source).toContain("function isVotingRuntimeStep");
+    expect(source).toContain("function getCurrentVotingRoundState");
+    expect(source).toContain("function getLatestVotingRuntimeSubmission");
+    expect(source).toContain("throw new Error(\"本轮投票已结束，无法再提交。\")");
+    expect(source).toContain("latestVotingSubmission.payloadFingerprint === payloadFingerprint");
+    expect(source).toContain("samePayload: true");
+  });
+
+  it("returns existing latest truth on duplicate voting payload before any new durable write", () => {
+    const submitStart = source.indexOf("export async function submitRuntimeState");
+    const teacherControlStart = source.indexOf("export async function recordTeacherControlEvent");
+    const submitSource = source.slice(submitStart, teacherControlStart);
+
+    expect(submitSource).toContain("const votingRoundState = await getCurrentVotingRoundState");
+    expect(submitSource).toContain("getLatestVotingRuntimeSubmission({");
+    expect(submitSource).toContain("if (latestVotingSubmission && latestVotingSubmission.payloadFingerprint === payloadFingerprint)");
+    expect(submitSource).toContain("samePayload: true");
+  });
 });

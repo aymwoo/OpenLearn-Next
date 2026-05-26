@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import {
+  classroomEvidence,
   classroomSessions,
   governanceAudits,
   lessons,
@@ -66,6 +67,7 @@ type ActorLike = {
 
 type StateRecord = typeof runtimeStepStates.$inferSelect;
 type RuntimeSessionRecord = typeof runtimeStepSessions.$inferSelect;
+type LessonStepPayload = z.infer<typeof lessonStepPayloadSchema>;
 
 const RAW_INTERACTION_PATTERNS = ["click", "pointer", "mouse", "keydown", "keyup", "dom", "hover", "focus"];
 
@@ -136,6 +138,199 @@ function buildRuntimeSubmitProofSummary(input: {
   };
 }
 
+function stableSerializeRuntimePayload(value: unknown): string {
+  const normalize = (input: unknown): unknown => {
+    if (Array.isArray(input)) {
+      return input.map((entry) => normalize(entry));
+    }
+
+    if (input && typeof input === "object") {
+      return Object.fromEntries(
+        Object.keys(input as Record<string, unknown>)
+          .sort((left, right) => left.localeCompare(right))
+          .flatMap((key) => {
+            const normalized = normalize((input as Record<string, unknown>)[key]);
+            return normalized === undefined ? [] : [[key, normalized]];
+          }),
+      );
+    }
+
+    return input;
+  };
+
+  return JSON.stringify(normalize(value));
+}
+
+function isVotingRuntimeStep(stepPayload: LessonStepPayload) {
+  return stepPayload.builtInSource?.builtInKey === "classroomVoting";
+}
+
+function extractVotingRoundArtifact(payload: unknown) {
+  const record = (payload ?? {}) as {
+    kind?: unknown;
+    openedAt?: unknown;
+    closedAt?: unknown;
+  };
+
+  if (record.kind !== "voting-round-opened" && record.kind !== "voting-round-closed") {
+    return null;
+  }
+
+  return {
+    kind: record.kind,
+    openedAt: typeof record.openedAt === "string" && record.openedAt.length > 0 ? record.openedAt : null,
+    closedAt: typeof record.closedAt === "string" && record.closedAt.length > 0 ? record.closedAt : null,
+  };
+}
+
+async function getCurrentVotingRoundState(input: {
+  classroomSessionId: string;
+  stepId: string;
+}) {
+  const rows = await db.query.classroomEvidence.findMany({
+    where: and(
+      eq(classroomEvidence.sessionId, input.classroomSessionId),
+      eq(classroomEvidence.stepId, input.stepId),
+      eq(classroomEvidence.sourceType, "system"),
+      eq(classroomEvidence.evidenceType, "artifact"),
+    ),
+    orderBy: [desc(classroomEvidence.createdAt)],
+  });
+
+  let latestOpened: { openedAt: string | null; createdAt: string } | null = null;
+  let latestClosed: { closedAt: string | null; createdAt: string } | null = null;
+
+  for (const row of rows) {
+    const artifact = extractVotingRoundArtifact(row.payloadJson);
+    if (!artifact) {
+      continue;
+    }
+
+    if (artifact.kind === "voting-round-opened" && !latestOpened) {
+      latestOpened = {
+        openedAt: artifact.openedAt,
+        createdAt: toIso(row.createdAt),
+      };
+      continue;
+    }
+
+    if (artifact.kind === "voting-round-closed" && !latestClosed) {
+      latestClosed = {
+        closedAt: artifact.closedAt,
+        createdAt: toIso(row.createdAt),
+      };
+    }
+
+    if (latestOpened && latestClosed) {
+      break;
+    }
+  }
+
+  if (!latestOpened && !latestClosed) {
+    return {
+      status: "idle" as const,
+      startedAt: null,
+      endedAt: null,
+    };
+  }
+
+  if (
+    latestClosed
+    && (!latestOpened || Date.parse(latestClosed.closedAt ?? latestClosed.createdAt) >= Date.parse(latestOpened.openedAt ?? latestOpened.createdAt))
+  ) {
+    return {
+      status: "closed" as const,
+      startedAt: latestOpened?.openedAt ?? latestOpened?.createdAt ?? null,
+      endedAt: latestClosed.closedAt ?? latestClosed.createdAt,
+    };
+  }
+
+  return {
+    status: "live" as const,
+    startedAt: latestOpened?.openedAt ?? latestOpened?.createdAt ?? null,
+    endedAt: null,
+  };
+}
+
+function parseVotingSubmissionPayload(payload: unknown) {
+  const record = (payload ?? {}) as {
+    runtimeSessionId?: unknown;
+    submittedAt?: unknown;
+    stateVersion?: unknown;
+    state?: unknown;
+    proofSummary?: unknown;
+    payloadFingerprint?: unknown;
+  };
+
+  if (typeof record.runtimeSessionId !== "string" || record.runtimeSessionId.length === 0) {
+    return null;
+  }
+
+  return {
+    runtimeSessionId: record.runtimeSessionId,
+    submittedAt: typeof record.submittedAt === "string" && record.submittedAt.length > 0 ? record.submittedAt : null,
+    stateVersion: typeof record.stateVersion === "number" && Number.isFinite(record.stateVersion) ? record.stateVersion : 1,
+    state: record.state && typeof record.state === "object" ? (record.state as Record<string, unknown>) : {},
+    proofSummary: (record.proofSummary ?? {
+      title: "已提交",
+      submittedStateLabel: "已完成互动证明",
+      bridgeTargets: ["classroom-evidence"],
+      summary: {},
+    }) as {
+      title: string;
+      submittedStateLabel: string;
+      bridgeTargets: string[];
+      inspectorHref?: string;
+      summary: Record<string, unknown>;
+    },
+    payloadFingerprint:
+      typeof record.payloadFingerprint === "string" && record.payloadFingerprint.length > 0
+        ? record.payloadFingerprint
+        : stableSerializeRuntimePayload(record.state),
+  };
+}
+
+async function getLatestVotingRuntimeSubmission(input: {
+  classroomSessionId: string;
+  stepId: string;
+  studentId: string;
+  startedAt: string | null;
+}) {
+  const rows = await db.query.classroomEvidence.findMany({
+    where: and(
+      eq(classroomEvidence.sessionId, input.classroomSessionId),
+      eq(classroomEvidence.stepId, input.stepId),
+      eq(classroomEvidence.studentId, input.studentId),
+      eq(classroomEvidence.sourceType, "student-submission"),
+    ),
+    orderBy: [desc(classroomEvidence.createdAt)],
+  });
+
+  for (const row of rows) {
+    const submittedAt = toIso(row.createdAt);
+    if (input.startedAt && Date.parse(submittedAt) < Date.parse(input.startedAt)) {
+      continue;
+    }
+
+    const payload = parseVotingSubmissionPayload(row.payloadJson);
+    if (!payload) {
+      continue;
+    }
+
+    return {
+      runtimeSessionId: payload.runtimeSessionId,
+      submittedAt: payload.submittedAt ?? submittedAt,
+      stateVersion: payload.stateVersion,
+      proofSummary: payload.proofSummary,
+      payloadFingerprint: payload.payloadFingerprint,
+      payload: payload.state,
+      persistedAt: submittedAt,
+    };
+  }
+
+  return null;
+}
+
 async function getRuntimeStepContext(input: {
   classroomSessionId: string;
   stepId: string;
@@ -176,6 +371,7 @@ async function getRuntimeStepContext(input: {
     lesson,
     published,
     stepRow,
+    stepPayload: payload,
     stepType: payload.type,
     stepTitle: snapshotStep.title,
     runtime: payload.runtime,
@@ -745,6 +941,45 @@ export async function submitRuntimeState(input: {
     classroomSessionId: payload.classroomSessionId,
     stepId: payload.stepId,
   });
+  const bridgeTargets = normalizeBridgeTargets(context.runtime, context.stepType);
+  const payloadFingerprint = stableSerializeRuntimePayload(payload.state);
+
+  if (input.actor.actorScope === "student" && isVotingRuntimeStep(context.stepPayload)) {
+    const votingRoundState = await getCurrentVotingRoundState({
+      classroomSessionId: context.session.id,
+      stepId: context.stepRow.id,
+    });
+
+    if (votingRoundState.status === "closed") {
+      throw new Error("本轮投票已结束，无法再提交。");
+    }
+
+    const latestVotingSubmission = votingRoundState.status === "idle"
+      ? null
+      : await getLatestVotingRuntimeSubmission({
+          classroomSessionId: context.session.id,
+          stepId: context.stepRow.id,
+          studentId: input.actor.actorId,
+          startedAt: votingRoundState.startedAt,
+        });
+
+    if (latestVotingSubmission && latestVotingSubmission.payloadFingerprint === payloadFingerprint) {
+      return {
+        sessionId: latestVotingSubmission.runtimeSessionId,
+        runtimeSessionId: latestVotingSubmission.runtimeSessionId,
+        classroomSessionId: context.session.id,
+        lessonId: context.session.lessonId,
+        actorId: input.actor.actorId,
+        stateVersion: latestVotingSubmission.stateVersion,
+        bridgeTargets,
+        submittedAt: latestVotingSubmission.submittedAt,
+        proofSummary: latestVotingSubmission.proofSummary,
+        persistedAt: latestVotingSubmission.persistedAt,
+        samePayload: true,
+      };
+    }
+  }
+
   const runtimeSession = await createOrResumeRuntimeSession({
     classroomSessionId: context.session.id,
     publishedVersionId: context.published.id,
@@ -764,7 +999,6 @@ export async function submitRuntimeState(input: {
     state: payload.state,
     summary: payload.summary,
   });
-  const bridgeTargets = normalizeBridgeTargets(context.runtime, context.stepType);
   const submittedAt = payload.submittedAt ?? toIso(state.createdAt);
   const proofSummary = buildRuntimeSubmitProofSummary({
     stepTitle: context.stepTitle,
@@ -789,6 +1023,7 @@ export async function submitRuntimeState(input: {
         submittedAt,
         stateVersion: state.stateVersion,
         state: payload.state,
+        payloadFingerprint,
         proofSummary,
         summary: payload.summary,
       },
@@ -915,6 +1150,34 @@ export async function recordTeacherControlEvent(input: {
   runtimeInstanceId: string;
 }) {
   const payload = RuntimeTeacherControlRequestSchema.parse(input.payload);
+  const context = await getRuntimeStepContext({
+    classroomSessionId: payload.classroomSessionId,
+    stepId: payload.stepId,
+  });
+
+  if (payload.command === "start-voting-round" || payload.command === "end-voting-round") {
+    await recordRuntimeClassroomEvidence({
+      sessionId: context.session.id,
+      stepId: context.stepRow.id,
+      sourceType: "system",
+      evidenceType: "artifact",
+      capturedById: input.actor.actorId,
+      payload: {
+        kind: payload.command === "start-voting-round" ? "voting-round-opened" : "voting-round-closed",
+        sessionId: context.session.id,
+        lessonId: context.session.lessonId,
+        stepId: context.stepRow.id,
+        stepTitle: context.stepTitle,
+        version: context.session.version,
+        command: payload.command,
+        runtimeCommand: payload.command,
+        openedAt: payload.command === "start-voting-round" ? new Date().toISOString() : null,
+        closedAt: payload.command === "end-voting-round" ? new Date().toISOString() : null,
+        closedByTeacherId: payload.command === "end-voting-round" ? input.actor.actorId : null,
+      },
+    });
+  }
+
   const result = await appendRuntimeEvent({
     actor: input.actor,
     requestKind: "runtime-teacher-control",

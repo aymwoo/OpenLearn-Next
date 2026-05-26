@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -81,9 +81,9 @@ async function recordFanoutConsumerTrace(input: {
   traceType: "snapshot" | "runtime_event";
   detail: Record<string, unknown>;
 }) {
-  const findLatestAttempt = db.query.transportDeliveryAttempts?.findFirst;
-  const attempt = findLatestAttempt
-    ? await findLatestAttempt({
+  const transportDeliveryAttemptsQuery = db.query.transportDeliveryAttempts;
+  const attempt = transportDeliveryAttemptsQuery
+    ? await transportDeliveryAttemptsQuery.findFirst({
       where: and(
         eq(transportDeliveryAttempts.classroomSessionId, input.sessionId),
         eq(transportDeliveryAttempts.correlationId, input.correlationId),
@@ -370,10 +370,10 @@ class ClassroomRedisFanoutManager {
   }
 
   async getLatestDegradedReason(sessionId?: string | null) {
-    const findLatestAttempt = db.query.transportDeliveryAttempts?.findFirst;
+    const transportDeliveryAttemptsQuery = db.query.transportDeliveryAttempts;
 
-    if (sessionId && findLatestAttempt) {
-      const latestAttempt = await findLatestAttempt({
+    if (sessionId && transportDeliveryAttemptsQuery) {
+      const latestAttempt = await transportDeliveryAttemptsQuery.findFirst({
         where: and(
           eq(transportDeliveryAttempts.classroomSessionId, sessionId),
           eq(transportDeliveryAttempts.adapterMode, "websocket"),

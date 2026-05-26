@@ -119,4 +119,23 @@ describe("redis fanout manager", () => {
       }),
     );
   });
+
+  it("reads latest degraded reason from the delivery attempts query", async () => {
+    findFirstTransportDeliveryAttempts.mockResolvedValueOnce({
+      id: "attempt-2",
+      runtimeSessionId: "runtime-session-2",
+      payloadSummaryJson: {
+        degradedReason: "REDIS_PUBLISH_FAILED",
+      },
+      failureReason: null,
+    });
+
+    const { classroomRedisFanoutManager } = await import("./redis-fanout-manager");
+
+    await expect(
+      classroomRedisFanoutManager.getLatestDegradedReason("session-1"),
+    ).resolves.toBe("REDIS_PUBLISH_FAILED");
+
+    expect(findFirstTransportDeliveryAttempts).toHaveBeenCalledOnce();
+  });
 });

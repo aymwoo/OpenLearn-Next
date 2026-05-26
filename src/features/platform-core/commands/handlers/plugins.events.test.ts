@@ -5,6 +5,8 @@ vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
   assertActiveTeacher: vi.fn(),
+  getCurrentUserDTO: vi.fn(),
+  getUserMembershipsDTO: vi.fn(),
   installOrReconcilePluginWithTx: vi.fn(),
   listPluginsForSchool: vi.fn(),
   transitionPluginLifecycleWithTx: vi.fn(),
@@ -28,6 +30,14 @@ vi.mock("@/db", () => ({
 
 vi.mock("@/lib/dal/lesson-authoring", () => ({
   assertActiveTeacher: mocks.assertActiveTeacher,
+}));
+
+vi.mock("@/lib/dal/auth", () => ({
+  getCurrentUserDTO: mocks.getCurrentUserDTO,
+}));
+
+vi.mock("@/lib/dal/membership", () => ({
+  getUserMembershipsDTO: mocks.getUserMembershipsDTO,
 }));
 
 vi.mock("@/lib/dal/plugins", () => ({
@@ -107,6 +117,12 @@ describe("plugin command event emission", () => {
       userId: "teacher-1",
       schoolIds: ["school-1"],
     });
+    mocks.getCurrentUserDTO.mockResolvedValue({
+      id: "operator-1",
+    });
+    mocks.getUserMembershipsDTO.mockResolvedValue([
+      { schoolId: "school-1", status: "active", role: "admin" },
+    ]);
     mocks.installOrReconcilePluginWithTx.mockResolvedValue({
       id: "plugin-1",
       pluginKey: "vendor/plugin-1",
