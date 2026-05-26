@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
 
-import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction, recordRuntimeTeacherControlAction } from '@/actions/classroom-actions'
+import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction, recordRuntimeTeacherControlAction, runCurrentVotingRecoveryAction } from '@/actions/classroom-actions'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { RuntimeDescriptorSchema } from '@/features/runtime-platform/contracts/descriptors'
 import { createRuntimeBridgeMessageId } from '@/features/runtime-platform/host/runtime-host-bridge'
@@ -76,6 +76,10 @@ export function ClassroomControlPanel({
       ? `/settings/labs/runtime-inspector?runtimeSessionId=${primaryRuntimeProof.runtimeSessionId}`
       : null)
   const runtimeInstanceId = useMemo(() => `teacher-runtime-${currentSnapshot.sessionId}-${currentStep?.id ?? 'stage'}`, [currentSnapshot.sessionId, currentStep?.id])
+  const [namedResultsExpanded, setNamedResultsExpanded] = useState(false)
+  const incidentHref = `/settings/labs/incidents/${currentSnapshot.sessionId}`
+  const showEscalatedIncidentCta = currentSnapshot.transportStatus.degraded
+    || (currentSnapshot.currentVotingRound?.failureCount ?? 0) > 0
 
   useEffect(() => {
     const subscription = subscribeClassroomSocket({
@@ -112,7 +116,7 @@ export function ClassroomControlPanel({
     }) ?? { ok: false as const, reason: 'socket_unavailable' as const }
   }
 
-  const sendRuntimeCommand = () => {
+  const sendRuntimeCommand = (command: 'focus-step' | 'start-voting-round' | 'end-voting-round' = 'focus-step') => {
     if (!currentStep) {
       return { ok: false as const, reason: 'socket_unavailable' as const }
     }
@@ -122,7 +126,7 @@ export function ClassroomControlPanel({
       lessonId: currentSnapshot.lessonId,
       publishedVersionId: currentSnapshot.publishedVersionId,
       stepId: currentStep.id,
-      command: 'focus-step',
+      command,
       payload: {
         source: 'classroom-control-panel',
       },
@@ -138,7 +142,7 @@ export function ClassroomControlPanel({
     }) ?? { ok: false as const, reason: 'socket_unavailable' as const }
   }
 
-  const fallbackRuntimeCommand = async () => {
+  const fallbackRuntimeCommand = async (command: 'focus-step' | 'start-voting-round' | 'end-voting-round' = 'focus-step') => {
     if (!currentStep) return
 
     const requestId = createRuntimeBridgeMessageId()
@@ -151,7 +155,7 @@ export function ClassroomControlPanel({
         lessonId: currentSnapshot.lessonId,
         publishedVersionId: currentSnapshot.publishedVersionId,
         stepId: currentStep.id,
-        command: 'focus-step',
+        command,
         payload: {
           source: 'classroom-control-panel-fallback',
         },
@@ -264,6 +268,33 @@ export function ClassroomControlPanel({
     })
   }
 
+  const handleVotingRoundControl = (command: 'start-voting-round' | 'end-voting-round') => {
+    if (!currentStep || conflict || isPending) return
+
+    startTransition(async () => {
+      const wsResult = sendRuntimeCommand(command)
+      if (wsResult.ok) {
+        return
+      }
+
+      await fallbackRuntimeCommand(command)
+      router.refresh()
+    })
+  }
+
+  const handleVotingRecoveryAction = (recoveryAction: 'retry' | 'reconcile' | 'suspend' | 'fallback') => {
+    if (!currentSnapshot.currentVotingRound?.stepId || conflict || isPending) return
+
+    startTransition(async () => {
+      await runCurrentVotingRecoveryAction({
+        sessionId: currentSnapshot.sessionId,
+        stepId: currentSnapshot.currentVotingRound!.stepId!,
+        recoveryAction,
+      })
+      router.refresh()
+    })
+  }
+
   return (
     <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-5">
@@ -297,6 +328,19 @@ export function ClassroomControlPanel({
                 <StageMeta label="课程名称" value={currentSnapshot.lessonTitle} />
                 <StageMeta label="当前步骤" value={currentStep?.title ?? '待开始'} />
                 <StageMeta label="课堂状态" value={currentSnapshot.status === 'live' ? '进行中' : '已结束'} />
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  asChild
+                  variant={showEscalatedIncidentCta ? 'primary' : 'secondary'}
+                  className={showEscalatedIncidentCta ? 'min-h-[56px] rounded-[1.35rem] px-5' : 'min-h-[44px] px-5'}
+                >
+                  <Link href={incidentHref}>查看课堂事件</Link>
+                </Button>
+                <Button asChild variant="secondary" className="min-h-[44px] px-5">
+                  <Link href={runtimeInspectorHref ?? '/settings/labs/runtime-inspector'}>查看运行轨迹</Link>
+                </Button>
               </div>
             </div>
           </Card>
@@ -389,6 +433,107 @@ export function ClassroomControlPanel({
               )
             })}
           </div>
+
+          {currentStep && currentRuntimeDescriptor ? (
+            <div className="mt-5 rounded-[1.6rem] bg-surface-container-lowest p-4 shadow-ambient">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-on-surface-variant">本轮投票控制</p>
+                  <p className="mt-1 text-sm text-on-surface-variant">
+                    在当前 runtime 教学环节内开始或结束本轮投票，学生会沿既有课堂链路聚焦到当前环节。
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button type="button" className="min-h-[44px] px-5" disabled={isPending || !!conflict} onClick={() => handleVotingRoundControl('start-voting-round')}>
+                    开始本轮投票
+                  </Button>
+                  <Button type="button" variant="secondary" className="min-h-[44px] px-5" disabled={isPending || !!conflict} onClick={() => handleVotingRoundControl('end-voting-round')}>
+                    结束本轮投票
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {currentSnapshot.currentVotingRound ? (
+            <div className="mt-5 space-y-4 rounded-[1.6rem] bg-surface-container-lowest p-4 shadow-ambient">
+              <section>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-xl font-semibold text-on-surface">实时汇总</h3>
+                  <Badge variant={currentSnapshot.currentVotingRound.isFrozen ? 'success' : 'accent'}>
+                    {currentSnapshot.currentVotingRound.roundStatusCopy}
+                  </Badge>
+                </div>
+                <p className="mt-2 text-sm text-on-surface-variant">
+                  已提交 {currentSnapshot.currentVotingRound.submittedCount} 人，未完成 {currentSnapshot.currentVotingRound.remainingCount} 人
+                </p>
+                {currentSnapshot.currentVotingRound.failureCopy ? (
+                  <p className="mt-2 text-sm text-[#9a3412]">{currentSnapshot.currentVotingRound.failureCopy}</p>
+                ) : null}
+                <div className="mt-4 grid gap-3">
+                  {currentSnapshot.currentVotingRound.optionResults.map((result) => (
+                    <div key={result.optionId} className="rounded-[1.1rem] bg-surface-container-low p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-on-surface">{result.optionLabel}</span>
+                        <span className="text-sm text-on-surface-variant">{result.count} 人 · {Math.round(result.percentage)}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-xl font-semibold text-on-surface">未完成名单</h3>
+                {currentSnapshot.currentVotingRound.incompleteStudents.length > 0 ? (
+                  <div className="mt-3 grid gap-2">
+                    {currentSnapshot.currentVotingRound.incompleteStudents.map((student) => (
+                      <div key={student.studentId} className="flex items-center justify-between rounded-[1rem] bg-surface-container-low px-3 py-2 text-sm text-on-surface">
+                        <span>{student.studentName}</span>
+                        <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-xs text-on-surface-variant">{student.statusToken}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-on-surface-variant">全班已提交，可由老师决定何时结束本轮投票。</p>
+                )}
+              </section>
+
+              <section>
+                <Button type="button" variant="secondary" className="min-h-[40px] px-4" onClick={() => setNamedResultsExpanded((value) => !value)}>
+                  {namedResultsExpanded ? '收起实名结果' : '展开实名结果'}
+                </Button>
+                {namedResultsExpanded ? (
+                  <div className="mt-3 grid gap-2">
+                    {currentSnapshot.currentVotingRound.namedResults.map((result) => (
+                      <div key={result.studentId} className="rounded-[1rem] bg-surface-container-low px-3 py-3 text-sm text-on-surface">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-medium">{result.studentName}</span>
+                          <span className="text-xs text-on-surface-variant">{result.submittedAt ? new Date(result.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                        </div>
+                        <p className="mt-2 text-on-surface-variant">{result.selectedOptionLabels.join('、') || '未提交'}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+
+              <section>
+                <h3 className="text-xl font-semibold text-on-surface">恢复动作</h3>
+                <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                  当前 classroom shell 只保留轻确认恢复动作。resume、suspend、fallback 需前往课堂事件或 detail surface 进行强确认。
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {currentSnapshot.currentVotingRound.recoveryActions
+                    .filter((action) => action.action === 'retry' || action.action === 'reconcile')
+                    .map((action) => (
+                    <Button key={action.action} type="button" variant="secondary" className="min-h-[44px] px-5" disabled={isPending || !!conflict} onClick={() => handleVotingRecoveryAction(action.action)}>
+                      {action.label}
+                    </Button>
+                  ))}
+                </div>
+              </section>
+            </div>
+          ) : null}
         </Card>
 
         {showRuntimeProofFeedback ? (
@@ -430,14 +575,24 @@ export function ClassroomControlPanel({
                   当前仅保证本实例课堂同步
                 </h3>
                 <p className="mt-3 text-sm leading-7">
-                  当前 classroom session 目标模式为 {currentSnapshot.transportStatus.fanoutMode}。
+                  仍可信什么：SQLite canonical truth 与当前课堂 session 仍可作为教师控课锚点。
+                  已不可信什么：跨实例 fanout 与“所有实例已同步”的假设当前不可直接信任。
+                </p>
+                <p className="mt-3 text-sm leading-7">
+                  影响范围：当前课堂优先，多课堂可能受同类 transport posture 影响。
+                </p>
+                <p className="mt-3 text-sm leading-7">
+                  推荐下一步：查看课堂事件或继续进入 runtime inspector。
                   {currentSnapshot.transportStatus.degradedReason
-                    ? ` Redis fanout 失效原因：${currentSnapshot.transportStatus.degradedReason}`
-                    : " 跨实例 fanout 暂不可用，请优先按本实例继续控课。"}
+                    ? ` 当前 degraded reason：${currentSnapshot.transportStatus.degradedReason}`
+                    : ''}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-3">
+                <Button asChild className="min-h-[56px] rounded-[1.35rem] px-5">
+                  <Link href={incidentHref}>查看课堂事件</Link>
+                </Button>
                 <Button asChild variant="secondary" className="min-h-[44px] px-5">
                   <Link href="/settings">查看全局 transport 设置</Link>
                 </Button>
@@ -513,6 +668,7 @@ export function ClassroomControlPanel({
           sessionId={currentSnapshot.sessionId}
           participants={currentSnapshot.participants}
           monitoringSummary={currentSnapshot.monitoringSummary}
+          currentVotingRound={currentSnapshot.currentVotingRound}
         />
       </div>
     </section>

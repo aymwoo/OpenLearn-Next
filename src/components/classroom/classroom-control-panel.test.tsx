@@ -13,6 +13,7 @@ const classroomActionMocks = vi.hoisted(() => ({
   changeClassroomStepAction: vi.fn(),
   endClassroomSessionAction: vi.fn(),
   recordRuntimeTeacherControlAction: vi.fn(),
+  runCurrentVotingRecoveryAction: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -27,6 +28,7 @@ vi.mock('@/actions/classroom-actions', () => ({
   changeClassroomStepAction: classroomActionMocks.changeClassroomStepAction,
   endClassroomSessionAction: classroomActionMocks.endClassroomSessionAction,
   recordRuntimeTeacherControlAction: classroomActionMocks.recordRuntimeTeacherControlAction,
+  runCurrentVotingRecoveryAction: classroomActionMocks.runCurrentVotingRecoveryAction,
 }))
 
 vi.mock('@/components/markdown/markdown-renderer', () => ({
@@ -137,6 +139,37 @@ const snapshot: ClassroomSnapshotDTO = {
     degraded: false,
     degradedReason: null,
   },
+  currentVotingRound: {
+    status: 'live',
+    stepId: 'step-1',
+    stepTitle: '互动 Runtime',
+    startedAt: '2026-05-18T09:00:30.000Z',
+    endedAt: null,
+    submittedCount: 2,
+    remainingCount: 1,
+    optionResults: [
+      { optionId: 'option-a', optionLabel: '方案 A', count: 1, percentage: 50, isLeading: true },
+      { optionId: 'option-b', optionLabel: '方案 B', count: 1, percentage: 50, isLeading: true },
+    ],
+    incompleteStudents: [
+      { studentId: 'student-3', studentName: '小雨', statusToken: '未提交' },
+    ],
+    namedResults: [
+      { studentId: 'student-1', studentName: '李雷', selectedOptionIds: ['option-a'], selectedOptionLabels: ['方案 A'], submittedAt: '2026-05-18T09:01:30.000Z' },
+      { studentId: 'student-2', studentName: '韩梅梅', selectedOptionIds: ['option-b'], selectedOptionLabels: ['方案 B'], submittedAt: '2026-05-18T09:01:45.000Z' },
+    ],
+    failureCount: 1,
+    namedResultsFoldedByDefault: true,
+    roundStatusCopy: '投票进行中',
+    failureCopy: '有 1 名学生提交失败或状态异常，请先查看未完成名单。',
+    recoveryActions: [
+      { action: 'retry', label: '重试同步', description: '重新下发当前轮次同步指令。' },
+      { action: 'reconcile', label: '重新对账', description: '按当前课堂 truth 重新校对结果。' },
+      { action: 'suspend', label: '暂停本轮', description: '暂停当前轮次，避免继续接收异常写入。' },
+      { action: 'fallback', label: '切换到课堂内回退处理', description: '保留课堂内处理，不跳出当前课堂。' },
+    ],
+    isFrozen: false,
+  },
   teacherTimeline: [],
   copy: {
     staleRefreshRequired: 'stale',
@@ -223,6 +256,29 @@ describe('ClassroomControlPanel websocket cutover', () => {
     })
   })
 
+  it('renders voting round controls and falls back to canonical action when websocket is unavailable', async () => {
+    render(<ClassroomControlPanel initialSnapshot={snapshot} />)
+
+    expect(screen.getAllByRole('button', { name: '开始本轮投票' }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: '结束本轮投票' }).length).toBeGreaterThan(0)
+
+    for (const instance of MockWebSocket.instances) {
+      instance.readyState = 0
+    }
+    classroomActionMocks.recordRuntimeTeacherControlAction.mockResolvedValue({ ok: true, data: { sessionId: 'runtime-session-1' } })
+
+    fireEvent.click(screen.getAllByRole('button', { name: '开始本轮投票' })[0]!)
+
+    await waitFor(() => {
+      expect(classroomActionMocks.recordRuntimeTeacherControlAction).toHaveBeenCalledWith(expect.objectContaining({
+        payload: expect.objectContaining({
+          command: 'start-voting-round',
+        }),
+      }))
+      expect(refreshMock).toHaveBeenCalled()
+    })
+  })
+
   it('shows teacher-only degraded banner when transport falls back to local instance only', async () => {
     render(
       <ClassroomControlPanel
@@ -239,5 +295,109 @@ describe('ClassroomControlPanel websocket cutover', () => {
 
     expect(screen.getByText('当前仅保证本实例课堂同步')).toBeTruthy()
     expect(screen.getByText(/REDIS_SUBSCRIBER_CLOSED/)).toBeTruthy()
+  })
+
+  it('renders aggregate before incomplete roster and keeps named results folded by default', () => {
+    render(<ClassroomControlPanel initialSnapshot={snapshot} />)
+
+    const aggregateHeading = screen.getAllByRole('heading', { name: '实时汇总' })[0]!
+    const incompleteHeading = screen.getAllByRole('heading', { name: '未完成名单' })[0]!
+    const namedResultsToggle = screen.getAllByRole('button', { name: '展开实名结果' })[0]!
+
+    expect(aggregateHeading.compareDocumentPosition(incompleteHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(incompleteHeading.compareDocumentPosition(namedResultsToggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByText('李雷')).toBeNull()
+    expect(screen.getAllByText('有 1 名学生提交失败或状态异常，请先查看未完成名单。')[0]).toBeTruthy()
+  })
+
+  it('expands frozen named results on demand and shows round closed copy', () => {
+    render(
+      <ClassroomControlPanel
+        initialSnapshot={{
+          ...snapshot,
+          currentVotingRound: {
+            ...snapshot.currentVotingRound!,
+            status: 'closed',
+            endedAt: '2026-05-18T09:02:00.000Z',
+            roundStatusCopy: '本轮已结束',
+            isFrozen: true,
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('本轮已结束')).toBeTruthy()
+    fireEvent.click(screen.getAllByRole('button', { name: '展开实名结果' })[0]!)
+    expect(screen.getByText('李雷')).toBeTruthy()
+    expect(screen.getAllByText('方案 A').length).toBeGreaterThan(0)
+  })
+
+  it('dispatches current-round recovery actions through classroom action chain', async () => {
+    classroomActionMocks.runCurrentVotingRecoveryAction.mockResolvedValue({ ok: true, data: { sessionId: 'session-1' } })
+
+    render(<ClassroomControlPanel initialSnapshot={snapshot} />)
+
+    fireEvent.click(screen.getAllByRole('button', { name: '重试同步' })[0]!)
+
+    await waitFor(() => {
+      expect(classroomActionMocks.runCurrentVotingRecoveryAction).toHaveBeenCalledWith({
+        sessionId: 'session-1',
+        stepId: 'step-1',
+        recoveryAction: 'retry',
+      })
+      expect(refreshMock).toHaveBeenCalled()
+    })
+  })
+
+  it('always shows 查看课堂事件 entry and escalates it under degraded posture', () => {
+    const { rerender } = render(<ClassroomControlPanel initialSnapshot={snapshot} />)
+
+    const baseLink = screen.getAllByRole('link', { name: '查看课堂事件' })[0]!
+    expect(baseLink.getAttribute('href')).toBe('/settings/labs/incidents/session-1')
+    expect(baseLink.className).toContain('from-primary')
+
+    rerender(
+      <ClassroomControlPanel
+        initialSnapshot={{
+          ...snapshot,
+          transportStatus: {
+            fanoutMode: 'redis_fanout',
+            degraded: true,
+            degradedReason: 'REDIS_SUBSCRIBER_CLOSED',
+          },
+        }}
+      />,
+    )
+
+    const escalatedLink = screen.getAllByRole('link', { name: '查看课堂事件' })[0]!
+    expect(escalatedLink.className).toContain('from-primary')
+  })
+
+  it('renders degraded honesty as trusted boundary, impact scope, and next step', () => {
+    render(
+      <ClassroomControlPanel
+        initialSnapshot={{
+          ...snapshot,
+          transportStatus: {
+            fanoutMode: 'redis_fanout',
+            degraded: true,
+            degradedReason: 'REDIS_SUBSCRIBER_CLOSED',
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getAllByText(/仍可信什么：SQLite canonical truth 与当前课堂 session 仍可作为教师控课锚点/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/已不可信什么：跨实例 fanout 与“所有实例已同步”的假设当前不可直接信任/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/影响范围：当前课堂优先，多课堂可能受同类 transport posture 影响/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/推荐下一步：查看课堂事件或继续进入 runtime inspector/).length).toBeGreaterThan(0)
+  })
+
+  it('removes suspend and fallback from shell quick path but keeps detail guidance visible', () => {
+    render(<ClassroomControlPanel initialSnapshot={snapshot} />)
+
+    expect(screen.queryByRole('button', { name: '暂停本轮' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '切换到课堂内回退处理' })).toBeNull()
+    expect(screen.getAllByText(/resume、suspend、fallback 需前往课堂事件或 detail surface 进行强确认/).length).toBeGreaterThan(0)
   })
 })
