@@ -1,69 +1,51 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.0
-milestone_name: AI Native Educational OS Upgrade
-status: milestone_complete
-stopped_at: Milestone v3.0 archived and awaiting next milestone planning
-last_updated: "2026-05-24T02:28:59Z"
-last_activity: 2026-05-24 -- Historical Phase 45 verification passed after gap closure
+milestone: v3.1
+milestone_name: Single-School Pilot Production Readiness (Plugin-First)
+status: ready_to_plan
+last_updated: "2026-05-26T07:06:37+00:00"
+last_activity: 2026-05-26
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 22
-  completed_plans: 22
-  percent: 100
+  total_phases: 6
+  completed_phases: 4
+  total_plans: 21
+  completed_plans: 21
+  percent: 67
+stopped_at: Phase 58 complete (8/8) — ready to discuss Phase 59
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-05-21)
+See: `.planning/PROJECT.md` (updated 2026-05-24)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Planning the next milestone
+**Current focus:** Phase 59 — deploy, release & recovery baseline
 
 ## Current Position
 
-Milestone: v3.0 -- AI Native Educational OS Upgrade (ARCHIVED)
-Phase: None
-Plan: complete
-Status: Milestone complete — awaiting `/gsd-new-milestone`
-Last activity: 2026-05-24 -- Historical Phase 45 verification passed after gap closure
-Progress: [██████████] 100%
-Next queued phase: none
+Milestone: v3.1 -- Single-School Pilot Production Readiness (Plugin-First)
+Phase: 59
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-05-26
+Progress: [███████░░░] 67%
+Next queued phase: 59
 
 ## Performance Metrics
 
-**Velocity:**
+**Current milestone posture:**
 
-- Total plans completed: 15
-- Average duration: -
-- Total execution time: -
+- Planned phases: 6 (55-60)
+- Planned sample: classroom voting plugin
+- Target pilot capacity: 40 students per classroom, 5 simultaneous classrooms
 
-**By Phase:**
+**Historical reference:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 50 | 3 | 1 day | 0.3 day |
-| 52 | 8 | - | - |
-| 53 | 4 | - | - |
-
-**Recent Trend:**
-
-- Last 5 plans: 52-06, 52-07, 52-08, 53-04
-- Trend: Positive
-
-| Phase 52 P01 | 18 min | 2 tasks | 4 files |
-| Phase 52 P02 | 15 min | 2 tasks | 9 files |
-| Phase 52 P03 | 31min | 3 tasks | 14 files |
-| Phase 52 P06 | 9 min | 2 tasks | 6 files |
-| Phase 52 P07 | 4 min | 2 tasks | 9 files |
-| Phase 52 P08 | 7 min | 2 tasks | 5 files |
-| Phase 54 P01 | 1 min | 1 task | 3 files |
-| Phase 54 P02 | 8 min | 1 task | 4 files |
-| Phase 54 P03 | 4 min | 1 task | 4 files |
-| Phase 54-ai-native-contract-exposure P04 | 4 min | 1 tasks | 4 files |
+- Latest completed milestone: `v3.0 AI Native Educational OS Upgrade`
+- Archived on: 2026-05-23
+- Delivered scope: 5 phases, 22 plans
 
 ## Accumulated Context
 
@@ -72,43 +54,22 @@ Next queued phase: none
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Milestone v3.0]: roadmap scope is limited to first-stage platform core from research summary.
-- [Milestone v3.0]: phase numbering continues at 50; v2.4 phases 44-49 remain frozen historical context only.
-- [Milestone v3.0]: Command Bus is the first new authoritative mutation boundary; old seams may only survive as adapters.
-- [Milestone v3.0]: AI work in this milestone stops at machine-readable contracts and delegated metadata, not full Agent/Skill Runtime.
-- [Phase 52]: Action catalog keeps executable rows separate from blocked diagnostic rows so default consumers only see machine-readable runnable metadata.
-- [Phase 52]: Static action descriptors are projected from code-owned registry inputs and reject duplicate action keys instead of silently overriding them.
-- [Phase 52]: External lifecycle contract is fixed at installed/enabled/active/suspended/uninstalled while mounted/ready/failed remain diagnostic-only internals.
-- [Phase 52]: Dependency failures block only affected plugin chains and require explicit reconcile or retry actions instead of implicit recovery.
-- [Phase 52]: Uninstall governance defaults to retain posture and requires explicit cleanup confirmation before destructive cleanup.
-- [Phase 52]: Plan 03 routes executable catalog and blocked diagnostics through a single registry read model consumed by host, server actions, and operator UI.
-- [Phase 52]: Uninstall now defaults to retain and only enters cleanup after preflight plus explicit operator confirmation.
-- [Phase 52]: verify:phase52 is now the regression gate for registry, lifecycle, and operator governance semantics.
-- [Phase 52]: Retain uninstall metadata now flows through governance snapshot and projection as the only source of uninstalled lifecycle truth.
-- [Phase 52]: Operator diagnostics render uninstalled plugins as audit-only rows with no primary lifecycle action.
-- [Phase 52]: dependency_missing / dependency_cycle now route to executable plugin.reconcile across command bus, server actions, and host adapters.
-- [Phase 52]: reconcile reuses installOrReconcilePluginWithTx plus dependency activation replay and fails with PLUGIN_RECONCILE_BLOCKED when resolution remains impossible.
-- [Phase 52]: Operator diagnostics recovery now dispatches explicit enable, retry, resume, and reconcile actions by recommendation instead of a generic enable toggle.
-- [Phase 52]: verify:phase52 now statically guards plugin.reconcile wiring, retained uninstall projection, and reason-aware operator recovery dispatch.
-- [Phase 53]: persisted platform event truth now flows from command bus into a SQLite-backed event ledger plus ledger-first delivery adapters.
-- [Phase 53]: `/settings/labs` exposes command-summary-first execution observability with timeline drill-down instead of a raw event console.
-- [Phase 53]: `verify:phase53` is the regression gate for event truth ownership, invalidation summary-only posture, and Phase 54 scope isolation.
-- [Phase 54]: AI-native discovery now uses one shared descriptor shell, and action descriptors preserve ActionDescriptorSchema semantics through sourceDescriptor parity checks.
-- [Phase 54]: AI-native discovery command descriptors now project strictly from `PlatformPluginGovernanceCommandTypes` instead of importing executable registry handlers.
-- [Phase 54]: Plan 02 exposes server-only `listPlatformCommands` / `listPlatformActions` / `listPlatformCapabilities` APIs so UI consumers stay on DTO/read-model boundaries.
-- [Phase 54]: Delegated actor metadata now lives in a shared `audit` seam on commands/events so delegated execution never mutates actor authority implicitly.
-- [Phase 54]: Approval metadata is restricted to summary plus compact reference seams and rejects workflow snapshot objects.
-- [Phase 54]: `/settings/labs` exposes AI discoverability only as a minimal descriptor summary panel, not as a full agent console or runtime control surface.
-- [Phase 54]: `verify:phase54` now statically blocks authority reclaim, delegated privilege drift, and Agent Runtime / Skill Runtime / Workflow Engine scope creep before focused suites run.
+- [Milestone v3.1]: milestone scope is fixed as single-school pilot production readiness, not another platform abstraction wave.
+- [Milestone v3.1]: the sample plugin is fixed to classroom voting.
+- [Milestone v3.1]: the primary sample chain is fixed to teacher design -> publish -> launch -> student completion.
+- [Milestone v3.1]: pilot capacity is fixed to 40 students in one classroom and 5 concurrent classrooms.
+- [Milestone v3.1]: existing WebSocket-first transport, optional Redis fanout, BullMQ worker, and SQLite + DAL truth posture are baseline capabilities to reuse, not gaps to rebuild.
+- [Milestone v3.1]: operator recovery, deploy/release, backup/restore, and load/degrade rehearsal are committed scope because they are required for pilot production use.
 
 ### Pending Todos
 
-None currently.
+- Run `/gsd-plan-phase 59` using the updated Phase 59 context.
+- Before committing the Phase 58 closure batch, run GitNexus `detect-changes`.
 
 ### Blockers/Concerns
 
-- v3.0 milestone blockers are closed; residual warning is tracked in milestone archive tech debt.
-- Next milestone should decide whether to tighten the no-scope AI discoverability fallback before expanding new AI surfaces.
+- `gsd-sdk query phase.complete "58"` produced inconsistent `STATE.md` counters in the current dirty planning worktree; this file was hand-corrected to match `ROADMAP.md` and `58-VERIFICATION.md`.
+- Phase 59 planning has not started yet; `ROADMAP.md` and `58-VERIFICATION.md` are the authoritative closeout references.
 
 ## Deferred Items
 
@@ -127,6 +88,6 @@ None currently.
 
 ## Session Continuity
 
-Last session: 2026-05-23T15:54:01Z
-Stopped at: Milestone v3.0 archived and awaiting next milestone planning
+Last session: 2026-05-26T07:06:37+00:00
+Stopped at: Phase 58 verified and tracking corrected; next up Phase 59 planning
 Resume file: None

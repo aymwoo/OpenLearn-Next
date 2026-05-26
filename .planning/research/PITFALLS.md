@@ -1,65 +1,78 @@
-# Domain Pitfalls — v3.0 AI Native Educational OS Upgrade
+# Domain Pitfalls — v3.1 单校试点生产可用 / 插件能力先行
 
-**Domain:** 在现有 Next.js 16 + SQLite-first + DAL-only 单体内，为既有产品增量引入 Command Bus、Dynamic Action Registry、Formal Plugin Lifecycle、Event Bus、AI-native platform contracts  
-**Researched:** 2026-05-21  
+**Domain:** 在现有课堂闭环、WebSocket-first transport、SQLite + DAL durable truth、插件治理与 command/event 基础上，把系统推进到“单校试点可生产使用”，并以**课堂互动插件**与**教师设计 → 学生课堂完成**真实链路作为样板。  
+**Researched:** 2026-05-24  
 **Confidence:** HIGH
 
-## Recommended roadmap phases referenced below
+## 本 milestone 的判断前提
 
-| Phase | Focus |
-|------|-------|
-| Phase 1 | Platform boundary & vocabulary freeze |
-| Phase 2 | Command Bus + Dynamic Action Registry |
-| Phase 3 | Formal Plugin Lifecycle + install/enable/disable/uninstall semantics |
-| Phase 4 | Event Bus + audit/observability integration |
-| Phase 5 | AI-native contracts + capability delegation |
+- v3.0 已把 platform core 第一阶段打底完成；v3.1 不应再把主要价值写成抽象平台升级。
+- v3.1 的成败，不看“又补了多少内核名词”，而看**单校试点是否真能跑、真有人能用、真有 operator 能守住**。
+- 因此本 milestone 最危险的坑，不是“技术做不出来”，而是**方向做偏**：只做 infra、不做样板；只做 happy path、不做恢复；只谈生产化、不交付生产可操作性。
+
+## Recommended phase buckets referenced below
+
+| Phase Bucket | Focus |
+|---|---|
+| Phase A | 试点目标收敛与样板链路冻结 |
+| Phase B | 课堂互动插件 contract + authoring/runtime integration |
+| Phase C | 教师设计 → 发布/开课 → 学生参与/提交 → 课堂完成真实样板 |
+| Phase D | 恢复、回退、operator、support surfaces |
+| Phase E | Rollout、runbook、容量假设、试点验收 |
 
 ## Critical Pitfalls
 
-| Pitfall | Why dangerous here | Prevention / mitigation | Address in phase |
+| Pitfall | Why It Hurts | Prevention | Where To Address |
 |---|---|---|---|
-| Turning phase 1 into a platform rewrite | 当前系统已经有课堂闭环、WebSocket、async tasks、plugin skeleton。若把 Command/Event/AI contract 一次性与 DI、QuickJS、Extension Host、Postgres、Workflow engine 绑在一起，会直接失控并重开多个 blast radius。 | 明确 v3.0 第一阶段只做 command/action/lifecycle/event 核心 contract；把 QuickJS、Extension Host、Postgres、full agent runtime 继续标记 deferred。每个 phase 都写“不做什么”。 | Phase 1 |
-| Command Bus 变成“第二套 service layer” | 若旧 action/service path 继续保留，插件、Agent、后台任务会同时走旧入口和新入口，导致审计、权限、回放、缓存失效各做一半。 | 定义唯一执行边界：所有平台动作最终都要落到 Command Bus；旧入口只能作为 adapter 转发，不允许长期并存双写逻辑。 | Phase 2 |
-| Command 与 Event 语义混淆 | Command 是“请求动作”，Event 是“已发生事实”。一旦混用，就会把 event bus 当 RPC，用 event 直接改真相，最后无法追责、无法重放、也无法保证顺序。 | 先冻结术语：Command 可拒绝、可鉴权；Event 只记录已发生事实、不可承担主写入责任。禁止 “event handler 直接成为主业务写入入口”。 | Phase 1 |
-| 新平台层复制 durable truth | 现有项目已明确 SQLite + DAL 才是 durable truth。若把 command log、event log、task ledger、WebSocket session state、plugin runtime state 都做成“各自真相源”，会出现 truth duplication 和恢复歧义。 | 明确每类数据角色：SQLite core tables 为 canonical truth；command/event/audit 为派生记录；Redis/WebSocket/worker state 仅为 delivery 或 orchestration state。 | Phase 1 |
-| Dynamic Action Registry 只是“字符串到函数映射” | 如果 registry 没有 namespace、owner、version、capability、input/output schema、deprecation policy，后续插件/Agent 调用会变成不可治理的 magic string jungle。 | 为 action 定义正式 contract：`actionId`、namespace、owner plugin、schema、required capability、side-effect class、idempotency、deprecation metadata。 | Phase 2 |
-| 插件 lifecycle 只有 hook，没有 durable state machine | 在既有系统上新增 lifecycle 时，如果只写 `activate()` / `dispose()` 而没有 install/enable/disable/uninstall 的持久状态、失败恢复与幂等策略，插件会卡在半安装、半启用状态。 | 先建 lifecycle state model，再实现 hooks。install/enable/disable/uninstall 必须有持久状态、失败可重试、重复调用安全。 | Phase 3 |
-| 把 disable 当 uninstall | 学校或教师可能只想暂时停用插件。如果 disable 触发数据删除、action 注销、事件订阅清理过深，会造成不可逆数据损失。 | 严格区分语义：disable 停止执行；uninstall 才进入 cleanup/retention 流程。所有 destructive cleanup 必须显式确认并可审计。 | Phase 3 |
-| Plugin / Agent / internal module 继续绕过 DAL | 项目明确要求 DAL-only。若新 command handler、event subscriber、plugin lifecycle manager 直接碰 DB，就会把 authz、DTO、cache tag、audit 分散回各处。 | 规定 Command Handler 只能调 DAL/Core API，不可直连 DB。为平台层加 lint / code review rule，避免“临时特例”常态化。 | Phase 2 |
-| 权限校验只在注册时做，不在执行时做 | registry 阶段检查 manifest 不等于运行时 actor 有权执行。尤其是 Agent delegation、plugin action forwarding、background replay 时，最容易出现 capability escalation。 | 执行时双重校验：actor capability + action capability + resource scope。注册合法不代表每次执行都合法。 | Phase 5 |
-| Event Bus 被拿来做同步主流程 | 在现有单体里，如果关键写链路依赖异步 event subscriber 才完成，就会制造顺序不确定、局部成功、回滚困难，尤其对 SQLite-first 和课堂状态一致性很危险。 | 主业务写入仍走 command → handler → DAL transaction；event bus 只承接通知、投影、analytics、workflow trigger、非关键 side effects。 | Phase 4 |
-| 为“未来 AI Native”过早抽象成万能 contract | 如果现在就设计覆盖 Agent、Skill、Workflow、Plugin、Extension Host 的超级抽象，极易产出空泛接口，落不了地，且会反向绑死现有产品。 | 第一阶段只定义最小可执行 contract：discoverable action metadata、typed command envelope、typed event envelope、capability claims、audit correlation。 | Phase 5 |
+| 把“生产可用”写成泛化口号，而不是单校试点可验证标准 | 最常见结果是 roadmap 上全是 reliability、security、ops、governance、scale 等正确废话，但没人能回答：哪所学校、哪类课堂、哪种插件、哪条链路必须先跑通。范围会无限膨胀，最后既不生产，也不可验收。 | 把“生产可用”改写成**单校试点判定条件**：目标用户、日活课堂量、并发假设、允许的人工介入比例、必须可恢复的故障类型、必须出具的 operator/runbook/proof artifact。每个 phase 都绑定试点验收口径。 | Phase A |
+| 只做 infra，不做真实样板链路 | v3.0 已经证明 platform 内核可以持续推进。v3.1 如果继续主要交付 registry、contracts、capabilities、host seam，而不把“教师设计 → 学生课堂完成”打穿，就会再次得到“平台更完整，但学校仍不能试点”的结果。 | 把**真实样板链路**设成 milestone 主线，不是 demo 附件。要求每个基础设施任务都明确挂靠到样板链路上的一个具体节点，否则 defer。优先交付课堂互动插件的 authoring、launch、student runtime、evidence、operator visibility 全链路。 | Phase A / Phase C |
+| 只做 happy path，不做恢复/补偿/回退 | 教育场景最怕课上出错：教师误操作、学生断线、插件半安装、课堂状态漂移、提交重复、浏览器刷新、WebSocket 抖动。如果只验证“第一次顺利跑通”，试点时会直接在真实课堂暴露。 | 对每条主链路补齐恢复设计：断线重连、重复提交幂等、插件启停失败恢复、课堂锁定/解锁回放、发布后回滚、任务失败可重试、operator 可手动干预。验收必须包含故障注入，不接受只跑 happy path。 | Phase C / Phase D |
+| 把 Redis / WebSocket / worker memory 误当 durable truth | 当前项目已经反复强调 SQLite + DAL 才是业务真相源。v3.1 如果为了“更实时”“更快”而把课堂状态、插件运行态、任务结果、在线名单只留在 Redis/WebSocket/in-memory，会在重启、断连、多实例、回放时出现不可恢复分叉。 | 继续坚持：Redis/WebSocket 只做 delivery / fanout / ephemeral session state；canonical classroom truth、plugin state、submission/evidence、operator audit 必须可从 SQLite + DAL 重建。任何“实时状态”都要回答掉线后如何按 durable truth 恢复。 | Phase B / Phase C / Phase D |
+| 把插件先行理解成“先做插件框架”，而不是“先做插件价值样板” | 插件先行若落成纯框架工作，会继续堆 lifecycle、manifest、registry、diagnostics，却没有证明学校真正需要的互动插件能稳定上课、收证据、被教师理解。结果是架子更漂亮，插件能力更抽象，产品价值更远。 | 定义 1 个强样板插件类型，并按产品价值倒推能力：例如课堂互动问答/投票/抢答/即时反馈插件。先做它真正需要的 authoring schema、runtime contract、evidence read model、operator hooks，再回抽成通用能力。 | Phase B / Phase C |
+| operator 面只对研发友好，不对校内运营/实施友好 | 如果 operator surface 只暴露 command ids、event timelines、raw diagnostics、internal reason codes，研发能看懂，学校实施、教研管理员、客服 support 看不懂，试点就会高度依赖开发介入，无法称为生产可用。 | operator 面必须区分角色：研发诊断视图保留技术细节；试点运营视图提供“发生了什么、影响哪些课堂、现在建议做什么”的业务语言与可执行恢复动作。所有关键错误都要有面向非研发角色的 next step。 | Phase D |
+| 不做 rollout / runbook / oncall-like 操作手册 | 单校试点不是本地 demo。没有 rollout plan、回滚条件、灰度策略、课堂前检查单、故障应对步骤、值守分工，就会把每次上线都变成现场赌博。 | milestone 明确交付：pilot rollout plan、课前 checklist、插件启用/停用流程、降级矩阵、回滚路径、值守 runbook、验收 runbook。没有 runbook，不算 close。 | Phase D / Phase E |
+| 忽略 load / capacity 假设，只说“先单校，不会有量” | 单校不等于低压。真实试点可能同一节次几十个班并发、多个教师同时 launch、学生同时进课、插件同时广播/提交。若不预设容量模型，就会把性能问题留到试点当天。 | 明确最小容量假设：同时在线课堂数、单课堂人数、峰值提交频率、插件广播频次、operator 可接受延迟。基于这些假设做 targeted load test，而不是等以后“更大规模再说”。 | Phase E |
 
 ## Moderate Pitfalls
 
-| Pitfall | Why dangerous here | Prevention / mitigation | Address in phase |
+| Pitfall | Why It Hurts | Prevention | Where To Address |
 |---|---|---|---|
-| Action、Command、Event、Task 四套 ID 与审计链路断裂 | 当前已有 async tasks、WebSocket transport、plugin audit。若没有统一 correlation ID，后续很难回答“是谁通过什么命令触发了哪个插件、产生了哪些事件、排了哪些任务”。 | 统一 correlation / causation model，所有 command、event、task、audit、transport message 都带 trace identifiers。 | Phase 4 |
-| Cache invalidation 没有进入平台 contract | Next.js 16 显式缓存下，若 command handler 完成写入却没更新 tag，teacher/student/plugin 页面会读到旧 DTO，表现成“系统随机失败”。 | 在 action metadata 或 command handler contract 中声明影响的 cache tags；写入后统一 `updateTag` / `revalidateTag`。 | Phase 2 |
-| Registry 中 built-in 与 plugin action 双标 | 如果 built-in action 继续保留特权路径，而第三方插件必须走 registry，新平台只会形成“两套世界”，后续治理永远不收口。 | 让 built-in 也注册为正式 action/provider；平台规则先约束自己，再开放给插件/Agent。 | Phase 2 |
-| 生命周期缺少 dependency ordering 与 failure isolation | 插件互相依赖时，如果 activation 顺序不明确，单个插件失败会污染全局 registry、event subscription 和 UI 能力暴露。 | 建依赖图、循环检测、partial failure posture；单插件失败不应拖垮整个平台。 | Phase 3 |
-| 事件命名与 action 命名不稳定 | 一旦命名随实现细节漂移，Agent discovery、workflow trigger、审计查询都会脆弱；重命名成本会持续上升。 | 早期冻结 naming convention：过去式 event、祈使/动作式 command、命名带 namespace，不暴露临时实现词汇。 | Phase 1 |
-| 把 replay / undo 当第一阶段必做 | Command Bus 设计会诱惑团队顺手做 event sourcing、undo、full replay，但这会迅速放大存储、一致性和产品语义复杂度。 | 第一阶段只保证 commands 可审计、可幂等、关键动作可人工重试；undo/replay 仅为 contract 预留，不承诺全量实现。 | Phase 2 |
+| 样板链路定义不完整，只覆盖教师和学生，不覆盖发布/开课/结束/复盘 | 课堂闭环不是“能看到一个插件渲染出来”就算完成。缺发布、launch、课堂结束、证据回看、课后确认，会导致所谓样板只是局部功能拼接。 | 样板链路必须按真实生命周期冻结：教师设计 → 预览 → 发布 → launch/classroom → 学生加入/互动/提交 → 课堂完成 → evidence/summary/operator 可追。 | Phase A / Phase C |
+| 把插件 authoring 与 classroom runtime 当两套孤岛 | 很多系统能配插件，但配置结果无法稳定投射到学生课堂；或学生课堂行为回不来教师/评价/证据面。这样插件只是“编辑器里的选项”，不是课堂能力。 | authoring schema、published snapshot、runtime payload、student evidence、teacher review 必须共享同一 canonical contract。发布版本一旦冻结，课堂读取必须可重复重建。 | Phase B / Phase C |
+| 只验证单插件 happy case，不验证多插件共存和失败隔离 | 单个互动插件跑通不代表真实课堂可用。实际课堂会混合 content/task/quiz/plugin steps，甚至多个插件订阅同类事件。若没有隔离，单插件失败会拖垮整节课。 | 至少验证：单插件链路、插件与原生 step 混排、插件失败时课堂仍可继续、插件禁用/卸载后历史课堂证据可读。 | Phase B / Phase D |
+| 课堂实时体验优化压过正确性 | 为了“看起来快”，容易让前端本地状态、WebSocket event、临时缓存先行，最后教师看到已发布、学生看到未解锁、operator 看到另一套状态。 | 先保证 authoritative write/read path 正确，再做体验优化。所有 optimistic UI 都必须能被 durable truth 校正；关键课堂状态必须可刷新重建。 | Phase C |
+| 生产化工作只落在技术面，不落在产品约束面 | 如果只补 tracing、alerts、retries，却不限制教师能做什么、插件能何时启用、课堂前要完成哪些检查，系统仍会在真实使用中失控。 | 生产可用必须同时包含**产品 guardrails**：插件启用前置条件、课堂 readiness 检查、资源缺失提示、风险操作确认、教师端状态可见。 | Phase C / Phase D |
+| 缺少试点数据保留与清理边界 | 单校试点会积累真实课堂数据、提交、插件日志、operator 记录。若 retention/cleanup 语义模糊，后续会出现数据过多、隐私风险、试点环境污染。 | 为插件数据、课堂证据、operator audit、临时诊断日志定义 retention policy 与 cleanup 触发条件；cleanup 要保守且可审计。 | Phase D / Phase E |
+| 验收标准只看“功能已上线”，不看“support 成本” | 很多功能 technically available，但每次出问题都要研发手工查 DB、重放事件、帮教师恢复。这样的系统不能进入真实试点。 | 增加 supportability 指标：常见故障是否可由 operator/实施同学恢复；是否无需改代码即可定位；是否有用户可理解提示。 | Phase D / Phase E |
 
 ## Minor but recurring pitfalls
 
-| Pitfall | Why dangerous here | Prevention / mitigation | Address in phase |
+| Pitfall | Why It Hurts | Prevention | Where To Address |
 |---|---|---|---|
-| 过度暴露平台术语到教师产品面 | 当前项目已强调 business-entity-first。若 UI 直接暴露 command/event/task/platform wording，会破坏教育产品体验。 | 平台术语留在 operator/dev surfaces；教师端继续用 lesson/classroom/resource/product language。 | Phase 4 |
-| 把 observability 留到最后才补 | 没有 metrics/tracing 时，新增 platform core 会变成黑盒，出了问题只能猜。 | 第一阶段至少预埋审计与 trace 字段；第二轮再补完整 metrics/tracing UI。 | Phase 4 |
-| 把 AI contract 设计成默认高权限 | “Agent-callable” 很容易滑向“Agent 默认可执行全部动作”，这与学校场景和 capability security 正面冲突。 | 默认 deny；高风险 action 必须走 delegation / approval flow；Agent 只拿最小 capability。 | Phase 5 |
+| 把 proof artifact 当收尾文档，而不是 phase 设计输入 | 过去 milestone 已多次留下 verification/proof 缺口。若 v3.1 继续先做代码、最后补证明，close 时仍会失真。 | 每个 phase 启动时就定义 proof：要跑哪条样板链路、注入哪些故障、由谁执行、产出什么 artifact。 | Phase A onward |
+| 用研发内部词汇命名面向学校的概念 | “command replay”“transport degraded”“plugin reconcile” 这类词直接给学校方，会造成理解负担。 | 学校/教师/operator 面用业务语言；内部术语仅留在工程/诊断层。 | Phase D |
+| 过早承诺“可扩到多校/平台化 marketplace” | v3.1 的目标是单校试点生产可用，不是一次性证明多租户插件生态。过早承诺会把 scope 拉回泛平台。 | 所有叙述都加上试点边界：先把单校跑稳，再考虑跨校、多租户、开放 marketplace。 | Phase A |
+| 把容量测试做成 synthetic benchmark，不贴近课堂行为 | 单纯压接口 QPS 不能说明课堂是否可用。真实风险来自 join burst、同时提交、课堂广播、教师连续操作。 | 负载验证按课堂场景建模，而不是按裸 API。优先测关键交互序列。 | Phase E |
 
 ## Phase-specific warnings
 
-| Phase topic | Likely failure mode | Mitigation |
+| Phase Topic | Likely Pitfall | Mitigation |
 |---|---|---|
-| Phase 1 boundary freeze | 讨论过多、术语不稳、scope 不断膨胀 | 先出 vocabulary + responsibilities + out-of-scope doc，未经显式决策不得扩 scope |
-| Phase 2 command/action rollout | 旧入口与新入口长期并存 | 采用 adapter migration，逐步切换，但规定最终唯一入口 |
-| Phase 3 lifecycle formalization | 半安装状态、disable/uninstall 语义混乱 | 先做 state machine，再接 hooks 和 cleanup |
-| Phase 4 event integration | 事件驱动变成隐藏主流程 | 限定 event bus 只做 after-fact propagation，不承担主 truth mutation |
-| Phase 5 AI-native contracts | 为未来假想能力过度设计 | 只定义现在能被 plugin/agent 实际调用与审计的最小 contract |
+| Phase A 试点定义 | 范围写成“整体生产化升级”，没有单校样板和验收口径 | 先冻结试点学校画像、课堂样板、插件类型、容量假设、close gate |
+| Phase B 插件能力 | 只做通用框架，不做课堂互动插件真实能力 | 以样板插件倒推 contract、schema、runtime、evidence |
+| Phase C 样板链路 | 只打通设计和展示，不补发布、开课、提交、结束、证据闭环 | 按完整课堂生命周期做集成验证 |
+| Phase D 恢复与 operator | 只有研发能恢复，operator 无法处理真实故障 | 建双层 operator surface + runbook + 可执行恢复动作 |
+| Phase E rollout 与容量 | 没有灰度、回滚、容量边界，试点靠现场扛 | 上线前完成 rollout rehearsal、负载验证、故障演练 |
+
+## 对 roadmap 的直接含义
+
+1. **先定义样板，不先扩平台。** v3.1 的 phase 1 应该是“试点样板与 close gate 冻结”，不是再开一轮抽象平台规划。  
+2. **基础设施必须服务于真实插件链路。** 任何 plugin/runtime/operator 工作，若不能解释它改善了哪一段样板链路，应降级优先级。  
+3. **恢复与运营面不是 polish，而是生产定义本身。** 没有恢复、runbook、rollout、capacity 假设，不能称为“单校试点生产可用”。
 
 ## Sources
 
-- `.planning/PROJECT.md` — 当前 milestone 目标、现有系统约束、durable truth 原则、out-of-scope 边界。Confidence: HIGH.
-- `openlearn_next_upgrade_plan.md` — v3.x 升级蓝图、目标能力、优先级排序、Command/Event/Lifecycle/AI-native 方向。Confidence: HIGH.
+- `.planning/PROJECT.md` — 当前系统 durable truth、WebSocket-first、Redis optional delivery、plugin/platform 边界与下一 milestone 规划 posture。Confidence: HIGH.
+- `.planning/MILESTONES.md` — v2.2/v2.3/v3.0 的 close 方式、accepted gaps、proof artifact 缺口与 operator/rollout 经验。Confidence: HIGH.
+- `.planning/STATE.md` — 当前 milestone 已归档、下一轮需要重新定义 focus，且已有多项 deferred/proof lessons 可直接吸收。Confidence: HIGH.
+- `.planning/research/PITFALLS.md`（旧版 v3.0）— 提供 platform-first 阶段常见坑的历史基线，本次已据 v3.1 目标重写为 trial-production/sample-chain posture。Confidence: HIGH.

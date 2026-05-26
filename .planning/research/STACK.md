@@ -1,159 +1,377 @@
-# Technology Stack — v3.0 Platform Core Phase 1
+# Technology Stack — v3.1 单校试点生产可用 / 插件样板链路
 
 **Project:** OpenLearn Next  
-**Researched:** 2026-05-21  
-**Scope:** 只回答 v3.0 第一阶段平台内核升级：Command Bus、Dynamic Action Registry、Plugin Lifecycle、Event Bus，以及为后续 Agent / Skill / Capability / Observability 演进预留的低风险 stack 决策。
+**Milestone:** v3.1  
+**Researched:** 2026-05-24  
+**Scope:** 只研究 v3.1 为了“单校试点生产可用、插件能力先行、课堂互动插件 + 教师设计到学生课堂完成真实样板”还需要新增或调整的 stack。**不重复定义已经成立的主栈，不把既有能力误写成未完成。**
 
-## Executive Decision
+---
 
-v3.0 phase 1 **不需要引入新的“大平台框架”**。正确路线是：
+## Current Baseline
 
-- 继续以 **Next.js 16 + Node runtime + Drizzle + SQLite + DAL** 为主骨架
-- 在主仓库内新增 **typed platform core modules**，而不是上 Temporal / Kafka / Redis Streams / DI framework / sandbox runtime
-- 把 **command、event、action、lifecycle** 做成清晰 contract + durable ledger + adapter seam
+先说清楚：**v3.1 不是重做基础设施，而是在已成立的平台和课堂主链路上补生产化支撑。**
 
-结论：**这是一次平台内核收口，不是基础设施重建。**
+### 1) 已经够用、应继续沿用的基础栈
 
-## 1. Recommended Libraries / Platform Primitives
-
-### A. 必须新增或正式引入
-
-| Addition | Version | Use In v3.0 Phase 1 | Why |
-|---|---:|---|---|
-| `@opentelemetry/api` | `^1.x` | command / event / action / lifecycle correlation span API | 现在先加 API 层最合适，能为后续 observability 留出标准 tracing seam，又不会把本阶段拖进 exporter / collector / infra 配置泥潭。 |
-| Node `AsyncLocalStorage` | Node 20 built-in | correlationId / causationId / actor context propagation | Command Bus、Event Bus、plugin lifecycle 都需要贯穿一次执行链的上下文；直接用 Node 内建能力，避免额外依赖。 |
-
-### B. 必须复用并上升为平台正式原语
-
-| Reused Primitive | Current Version | v3.0 Role | Why |
-|---|---:|---|---|
-| `zod` | `^4.4.3` | command / event / action definition schema | 已是项目边界验证标准；继续作为 registry contract 的唯一 schema 语言。 |
-| `drizzle-orm` + `drizzle-kit` | `^0.45.2` / `^0.31.10` | command ledger / event ledger / lifecycle persistence | 现有 migration 治理已成立；新增平台表必须继续走 Drizzle。 |
-| SQLite / `@libsql/client` | `^0.17.3` | durable truth for commands/events | 项目已明确 SQLite-first；phase 1 不做 event infra 外置化。 |
-| `bullmq` | `^5.76.10` | deferred / async command execution bridge only | 已有 async task platform。只在“命令需要异步执行”时复用，不替代 Command Bus 本身。 |
-| `ioredis` | `^5.10.1` | optional event fanout adapter only | 已有 optional Redis posture。可作为非 durable delivery adapter，不能成为事实流真相源。 |
-| existing WebSocket transport (`ws`) | `^8.20.1` | classroom/runtime event delivery edge | 已完成 cutover；Event Bus 只需桥接，不应重写实时主链路。 |
-
-### C. 需要新增的内部平台原语（优先级高于加库）
-
-| Internal Primitive | Backing Stack | Notes |
+| 类别 | 当前基线 | v3.1 判断 |
 |---|---|---|
-| `CommandDefinition` / `CommandHandler` registry | TypeScript + Zod | 统一插件、工作流、Agent、后台任务的执行边界。 |
-| `ActionDefinition` registry | TypeScript + Zod + existing plugin manifests | 替换当前 hard-coded allowlist/switch 为声明式注册表。 |
-| `PlatformEventDefinition` + publisher | TypeScript + Zod + SQLite ledger | Event 是事实，不是异步命令。 |
-| `ExecutionContext` | AsyncLocalStorage + optional OTel API | 承载 `correlationId` / `causationId` / actor / school / plugin / command metadata。 |
-| durable `platformCommand*` tables | Drizzle + SQLite | 记录 command receipt / validation / execution / result / failure。 |
-| durable `platformEvent*` tables | Drizzle + SQLite | 记录 domain fact stream，供 replay / audit / future agent memory ingestion。 |
+| App framework | Next.js 16.2.4 + React 19.2.5 + Turbopack | **够用，继续沿用** |
+| Auth / DB | Auth.js v5 beta + Drizzle ORM + SQLite/libSQL | **够用，继续沿用** |
+| 数据边界 | DAL + Server Actions only | **必须保持，不可回退** |
+| 实时课堂 | `ws` WebSocket-first | **已落地，不重写** |
+| 多实例 fanout | `ioredis` optional fanout | **已存在，不可误写为缺失** |
+| 回退面 | SSE rollback surface | **已存在，继续保留** |
+| 异步平台 | BullMQ + 独立 worker + SQLite task ledger | **已落地，直接复用** |
+| 平台治理 | Command / Action / Event / Plugin lifecycle / operator observability | **已有内核，v3.1 只做产品化与生产化补强** |
+| E2E / 测试 | Playwright + Vitest | **够用，直接复用** |
 
-## 2. What Existing Stack Pieces Should Be Reused Instead of Replaced
+### 2) 代码库里已经存在、可直接作为 v3.1 支撑面的能力
 
-| Existing Piece | Reuse Decision | Why |
+- `/settings/labs` 已有 **Transport / Runtime Inspector / Async Operator / plugin lifecycle** 相关 operator 面。
+- `src/features/platform-core/observability/operator-read-model.ts` 已有 **platform command timeline** 读取模型。
+- `src/features/runtime-platform/seams/transport/redis-fanout-connection.ts` 已有 **Redis fanout capability + degraded health snapshot**。
+- `src/features/async-tasks/infra/connection.ts` 与 worker heartbeat 已有 **BullMQ 连接健康与 worker 心跳**。
+- `platformEvents` / `platformEventDispatches` / `platformCommands` 已是 **平台事件与命令真相链路**。
+
+### 3) 当前基线里明确还没补齐、会阻碍“单校试点生产可用”的地方
+
+这些不是“主链路没做完”，而是**生产运维支撑还不完整**：
+
+- 仓库里 **没有 `.github/workflows/`**，说明标准 CI/CD 工作流尚未落库。
+- 仓库里 **没有 Dockerfile / compose 文件 / `.env.example`**，说明交付与环境基线仍不够明确。
+- 代码中仍有多处 `console.error/warn/log`，**结构化日志尚未标准化**。
+- 没看到标准 `/health` / `/ready` route，**外部探活与发布门禁还不标准**。
+- 没看到正式的 **backup / restore / drill** 工具链与 runbook 落库。
+- 没看到面向课堂 WebSocket + teacher→student 样板链路的 **load test 基线**。
+
+---
+
+## Recommended Additions
+
+v3.1 推荐新增的是**生产化支撑栈**，不是业务大框架。
+
+### A. 多环境配置
+
+**推荐：不引入新 config framework，直接复用 `zod` 做 server env schema。**
+
+| 推荐项 | 技术 | 用途 | 边界 |
+|---|---|---|---|
+| 统一环境变量 schema | `zod`（复用现有） | 启动时校验 production/staging/local 必填项 | **不引入** `dotenv-flow`、Convict、大而全配置中心 |
+| `env.server.ts` / `env.public.ts` | 项目内模块 | 收敛 `process.env` 散点读取 | UI 不直接读敏感 env |
+| `.env.example` + 环境说明文档 | repo 文件 | 降低部署漂移 | 文档必须区分 single-node 与 multi-instance |
+
+**v3.1 必须显式定义的 env 族：**
+
+- `DB_FILE_NAME`
+- `AUTH_SECRET`
+- `NEXTAUTH_URL` / 对外 `APP_BASE_URL`
+- `REDIS_URL`
+- `REDIS_FANOUT_ENABLED`
+- `BULLMQ_REDIS_URL`
+- `ASYNC_TASKS_ENABLED`
+- `INSTANCE_ID` / `RUNTIME_INSTANCE_ID` / `WORKER_INSTANCE_ID`
+- `SENTRY_DSN` / `SENTRY_AUTH_TOKEN` / `SENTRY_ENVIRONMENT`（如采用 Sentry）
+- 对象存储相关变量（如采用 Litestream / S3-compatible backup）
+
+**判断：**这部分主要是工程纪律补齐，**不是新平台能力**。
+
+### B. CI / CD
+
+**推荐：GitHub Actions 作为最小可用 CI 基线。**
+
+官方文档明确支持 Node.js build/test workflow、依赖缓存与多 job 编排。对 v3.1 来说，这已经够了。  
+**推荐技术：**GitHub Actions（HIGH confidence，官方文档已核对）
+
+| 推荐项 | 技术 | 用途 | 为什么是现在 |
+|---|---|---|---|
+| CI workflow | GitHub Actions | `pnpm install` / `lint` / `typecheck` / `build` / 核心 verifier / test | 当前仓库无 workflow，属于生产门槛缺口 |
+| dependency cache | `actions/setup-node` cache + pnpm cache | 缩短 CI 时间 | 官方支持成熟 |
+| deploy artifact | GitHub Actions artifact / image build | 为单校试点发布提供可追踪产物 | 不先上复杂平台 |
+| release gate | 自定义 `verify:milestone-v3-1` | 样板链路作为发布前 gate | 比“只跑单元测试”更贴合本项目 |
+
+**建议 CI 最少分成 4 个 job：**
+
+1. `static`: lint + typecheck  
+2. `build`: Next build + worker boot smoke  
+3. `verification`: `verify:phase38`、`verify:phase52`、`verify:phase53`、v3.1 样板 verifier  
+4. `e2e`: Playwright 跑“教师设计 → 发布 → launch → 学生课堂完成 → operator 可见”
+
+**CD 边界：**
+
+- 单校试点只需要 **single-host / small multi-instance** 交付路径。
+- 推荐补 **Dockerfile + 简单 compose/部署脚本**，把 app / worker / Redis / backup sidecar 交付成可运行单元。
+- **不引入 Kubernetes / Helm / ArgoCD**。
+
+### C. 日志 / 监控 / 报警 / Trace
+
+#### 1. 结构化日志
+
+**推荐新增：`pino`**（HIGH confidence，官方 docs 已核对）
+
+| 推荐项 | 技术 | 用途 | 边界 |
+|---|---|---|---|
+| App / worker JSON 日志 | `pino` | request / command / event / task / transport structured log | 取代散落 `console.*` |
+| 敏感字段脱敏 | `pino` redaction | `authorization`、token、password、PII 脱敏 | 日志默认不能裸打学生/教师敏感信息 |
+| child logger | `pino.child()` | 按 `commandId` / `classroomSessionId` / `pluginId` 绑定上下文 | 不引入重量级 log pipeline SDK |
+
+**建议日志字段统一：**
+
+- `requestId`
+- `commandId`
+- `correlationId`
+- `taskId`
+- `classroomSessionId`
+- `runtimeSessionId`
+- `pluginId`
+- `schoolId`
+- `actorId`
+- `transportMode`
+- `workerInstanceId`
+
+#### 2. 错误监控 + Trace + 报警
+
+**推荐新增：`@sentry/nextjs`**（MEDIUM-HIGH confidence，官方 docs 已核对）
+
+原因很直接：v3.1 需要的是**尽快具备生产可观测性**，不是先搭一套 vendor-neutral observability platform。Sentry 在 Next.js、Server Actions、release、tracing、cron monitor 上都已经成熟，适合单校试点先行。
+
+| 推荐项 | 技术 | 用途 | 为什么推荐 |
+|---|---|---|---|
+| 应用错误追踪 | `@sentry/nextjs` | 捕获 route handler、Server Actions、RSC/客户端错误 | Next.js 集成成熟 |
+| 性能 tracing | Sentry tracing | 跟踪 teacher publish / plugin command / student submit / operator actions | v3.1 已有 command/event IDs，可天然接入 |
+| release tracking | Sentry release | 将错误与某次发布绑定 | 对试点回滚极其重要 |
+| cron / scheduled monitor | Sentry Cron Monitor | 监控 backup、restore-check、queue sweep 等定时任务 | 直接补报警能力 |
+
+**判断：**
+
+- v3.1 先上 `Sentry + Pino`，是最短路径。
+- **不建议本 milestone 直接上完整 OpenTelemetry collector / Prometheus / Grafana / Loki 全家桶。**
+- 若要保留未来可迁移性，可以只追加 `@opentelemetry/api` 作为内部 trace seam，但**不要把 v3.1 变成 observability 平台建设里程碑**。
+
+### D. Backup / Restore
+
+#### 1. SQLite 持久库
+
+**推荐新增：Litestream**（HIGH confidence，官方 docs 已核对）
+
+Litestream 官方能力正好适合 SQLite-first：持续复制 WAL 变化到对象存储，并支持 restore / point-in-time / integrity check。对单校试点非常匹配。
+
+| 推荐项 | 技术 | 用途 | 边界 |
+|---|---|---|---|
+| SQLite 持续复制 | Litestream | `local.db`/生产 SQLite 文件持续备份到 S3-compatible 存储 | 不改数据库，不引入 PostgreSQL |
+| 恢复演练 | `litestream restore` | 从最近快照或指定时间点恢复 | 必须配 restore drill |
+| 冷备 runbook | 项目脚本 + 文档 | 发布前/事故后手工恢复 | 必须验证可用，而非只“理论有备份” |
+
+#### 2. 文件 / 上传物 / 配置
+
+**推荐新增：restic**（HIGH confidence，官方 docs 已核对）
+
+用途不是替代 Litestream，而是补：
+
+- 上传资源目录
+- 备份配置
+- 导出 artifacts
+- 周期性校验 snapshot 仓库完整性
+
+官方 docs 支持 `backup`、`snapshots`、`check --read-data`，适合做**加密冷备 + 校验**。
+
+**推荐边界：**
+
+- SQLite 主恢复靠 Litestream。
+- 文件与附加资产靠 restic。
+- v3.1 至少要有：**每日自动备份 + 每周 restore drill + 每周完整性 check**。
+
+### E. Load Test
+
+**推荐新增：k6**（HIGH confidence，官方 docs 已核对）
+
+原因：v3.1 要证明的不只是 HTTP page load，而是**真实课堂链路在单校规模下可稳定运行**。
+
+| 推荐项 | 技术 | 用途 | 应测场景 |
+|---|---|---|---|
+| HTTP + API load | `k6` | 测 teacher editor/save/publish、student submit、operator read model | 典型课前/课中突发峰值 |
+| WebSocket scenario | `k6/ws` | 测 classroom session connect、broadcast、lock/unlock、step switch | 课堂同步稳定性 |
+| threshold gate | `checks` + `thresholds` | 把 SLO 写成自动失败门槛 | 作为 pre-pilot gate |
+
+**单校试点建议先定义 3 个基线场景：**
+
+1. `teacher-authoring-publish`  
+2. `classroom-live-40-students`  
+3. `plugin-sample-chain-end-to-end`
+
+**不建议引入：**JMeter、Locust、分布式压测平台。k6 足够。
+
+### F. Operator / Admin 面
+
+**判断：现有 operator foundation 已够，不要重做后台。应做的是“补生产运维视图”。**
+
+| 当前已有 | v3.1 动作 | 原因 |
 |---|---|---|
-| DAL-only data access | Keep | Command handlers 和 lifecycle handlers 仍必须调用 DAL，不允许绕过。 |
-| `pluginRegistrations` + `pluginLifecycleTransitions` + `governanceAudits` + `pluginActionAudits` | Extend, don’t replace | 这些表已经构成 plugin governance baseline；v3.0 要在其上补 command/event 账本，而不是另起一套审计体系。 |
-| current plugin manifest + lifecycle state model | Keep and formalize | 已有 installed/enabled/mounted/ready/... 状态，不应重做状态机。 |
-| current runtime event contracts | Reuse naming/envelope discipline | 现有 runtime event envelope 已有 type、actor、delivery metadata，可作为平台事件 contract 设计参考。 |
-| async task registry + enqueue boundary | Reuse as async execution backend | 某些 command handler 可选择 enqueue BullMQ，但“收到命令/鉴权/审计/发事实事件”仍应先在 Command Bus 完成。 |
-| Redis + WebSocket degraded posture | Keep optional | phase 1 只桥接，不扩大其 truth ownership。 |
+| `/settings/labs` | 扩展，不重写 | 已是 operator 聚合入口 |
+| Runtime Inspector | 扩展 transport / classroom health 信息 | 已有真实链路上下文 |
+| Async Operator | 扩展 queue / worker / stuck-job 视图 | 已有 durable truth |
+| Plugin settings / lifecycle surface | 扩展 installation/sample plugin 状态 | 已有治理模型 |
+| `/admin` shell | 保留最小 admin 面 | 单校试点不值得建第二套运营后台 |
 
-## 3. Concrete Stack Changes Needed in v3.0 Phase 1
+**v3.1 需要新增的不是 UI framework，而是 operator 数据面：**
 
-### Recommended schema additions
+- deploy version / release id
+- env posture 摘要（不暴露 secrets）
+- Redis fanout enabled/degraded state
+- BullMQ worker heartbeat / backlog
+- recent failed commands / failed tasks / failed event dispatches
+- sample plugin install status
+- backup last success / last restore drill result
+- load test latest report summary
 
-| Addition | Why |
-|---|---|
-| `platformCommands` | durable command receipt + actor + target + payload + status + correlation metadata |
-| `platformCommandAttempts` | 支持 retry / replay / deferred execution，而不污染单行 command record |
-| `platformEvents` | durable fact stream，明确 command 与 event 分离 |
-| optional `platformEventDeliveries` | 如需跟踪 websocket / redis / in-process 投递结果，可单独记录 delivery，不让 delivery 状态污染事实表 |
+### G. 插件样板链路支撑
 
-### Recommended package/config additions
+“课堂互动插件 + 教师设计到学生课堂完成”这条样板链路，v3.1 不缺主业务框架，缺的是**生产级验收与回归栈**。
 
-- 新增 `@opentelemetry/api`
-- 不新增 full telemetry exporter stack；先只埋 instrumentation seam
-- 不新增新的 queue / event broker / DI framework
-
-## 4. What NOT to Add in v3.0 Phase 1
-
-| Do Not Add | Why Not Now |
-|---|---|
-| Temporal | 这是 workflow runtime，不是 phase 1 command boundary 所必需；会把里程碑重心从“收口 contract”变成“引入新平台”。 |
-| Redis Streams / Kafka / NATS | 当前项目 durable truth 明确在 SQLite；这些 broker 会制造第二事实源。 |
-| CQRS / event-sourcing framework | 现阶段需要的是项目内可控 contract，不是教科书式框架迁移。 |
-| DI container (`inversify`, `awilix`, `tsyringe`) | phase 1 不需要容器；registry + explicit module wiring 足够，且更透明。 |
-| QuickJS / `isolated-vm` / `vm2` / Extension Host | 项目已明确 deferred；与“无任意插件代码执行”约束冲突。 |
-| PostgreSQL / pgvector | 不属于本阶段；也会破坏 SQLite-first 决策。 |
-| Yjs / Lumino / Monaco | 来自长期蓝图，但与本阶段平台核心无直接关系。 |
-| full `@opentelemetry/sdk-node` + exporters + collector rollout | 观测性会演进，但 phase 1 只需要 tracing API seam，不需要一次性上全套 infra。 |
-
-## 5. Integration Notes Specific to This Codebase
-
-### 5.1 Command Bus integration
-
-- 新 Command Bus 应放在新的平台 feature root 中，**不要**散落到 `src/server/plugins/registry.ts` 或单个 DAL 文件里。
-- 当前 `dispatchPluginAction()` 是 hard-coded switch；应重构为：
-  `plugin manifest / built-in definition -> ActionDefinition registry -> Command Bus handler dispatch`
-- Server Actions 不应直接做复杂平台逻辑；应改为：
-  `Server Action -> commandBus.execute() -> DAL/async bridge -> emit platform event`
-
-### 5.2 Event Bus integration
-
-- 现有 `src/features/runtime-platform/seams/event-bus/default-adapter.ts` 只是 in-process adapter，可保留为默认 delivery adapter。
-- v3.0 phase 1 应新增 **durable event ledger in SQLite**；in-process / websocket / redis 只负责 delivery。
-- classroom/runtime 现有 websocket 事件不应被“平台 Event Bus”替代；正确做法是**桥接**：平台 event -> transport adapter。
-
-### 5.3 Plugin lifecycle integration
-
-- 复用现有 `pluginRegistrations.lifecycleState` 与 `pluginLifecycleTransitions`。
-- 新 lifecycle service 负责 `register -> resolveDependencies -> activate -> running/ready -> deactivate -> dispose` 的 orchestration；
-  但 phase 1 仍应保持 **no arbitrary plugin code execution**，所以 activate/deactivate 本质上是注册表装配、权限决策、可运行性切换，不是执行第三方 JS。
-
-### 5.4 Async / deferred command integration
-
-- 某些命令可在 handler 内进入 BullMQ：例如耗时导入、批处理、AI 生成。
-- 但模式必须是：
-  `accept command -> validate/authz/audit -> persist command -> optionally enqueue -> emit accepted/scheduled event`
-- 不要让 BullMQ 直接变成“命令入口”。
-
-### 5.5 Observability integration
-
-- phase 1 先统一生成并传递：`commandId`、`correlationId`、`causationId`、`actorId`、`schoolId`、`pluginId?`
-- 这些字段同时进入：command ledger、event ledger、governance audit、async task linkage
-- OTel span 命名建议围绕：`command.execute`、`command.validate`、`command.authorize`、`event.publish`、`plugin.lifecycle.transition`
-
-## 6. Key Risks / Tradeoffs
-
-| Risk / Tradeoff | Impact | Mitigation |
+| 推荐项 | 技术 | 用途 |
 |---|---|---|
-| 把 Event Bus 直接建在 Redis/BullMQ 上 | 会引入第二事实源，违背当前 durable truth posture | 先 SQLite ledger，broker 只做 delivery/execution |
-| 把 Command Bus 做成“又一个 service helper” | 仍然无法统一 Agent / plugin / workflow 执行边界 | 强制所有跨平台动作走 `commandBus.execute()` |
-| 过早引入 DI / workflow / sandbox | 范围失控，phase 1 无法收口 | 保持 registry + explicit module wiring |
-| lifecycle 设计过度面向未来 runtime | 会暗中引入任意代码执行预期 | phase 1 明确 lifecycle = registration/governance/run-state，不是 JS plugin runtime |
-| command/event schema 设计太松 | 后续 agent-callable / replay / audit 都会变脆弱 | 所有 definition 必须用 Zod、显式 metadata、显式 actor/scope |
-| observability 完全延期 | 以后很难补 causation chain | 至少现在补 `@opentelemetry/api` + AsyncLocalStorage context seam |
+| milestone E2E gate | Playwright（复用现有） | 真正跑 teacher→publish→launch→student→operator evidence |
+| deterministic seed 数据 | TS seed scripts（复用 `tsx`） | 建立可重复试点演示与回归环境 |
+| sample plugin fixture | 项目内 built-in/default plugin fixture | 确保插件链路不是 demo-only 手工路径 |
+| synthetic monitoring | Sentry Cron / simple smoke job | 定时验证样板链路关键 API 和 classroom launch |
 
-## Recommended Bottom Line
+---
 
-**v3.0 phase 1 stack新增很少，平台原语新增很多。**
+## Production Gaps
 
-最推荐的组合是：
+下面是 v3.1 若不补，会直接影响“单校试点生产可用”的缺口。
 
-1. **继续使用** Next.js 16 / Node / Drizzle / SQLite / DAL / Zod / BullMQ / ioredis / WebSocket
-2. **新增** `@opentelemetry/api` + `AsyncLocalStorage` 作为 execution context / tracing seam
-3. **新增内部平台层**：Command Bus、Action Registry、Event Ledger、Lifecycle Orchestrator
-4. **明确禁止** Temporal、Redis Streams、Kafka、DI framework、QuickJS、PostgreSQL 等重型升级
+| 领域 | 当前状态 | 风险 | v3.1 应补什么 |
+|---|---|---|---|
+| 多环境配置 | `process.env` 读取分散 | 环境漂移、部署时漏变量 | Zod env schema + `.env.example` + 环境文档 |
+| CI | 仓库无 workflow | 回归靠人工 | GitHub Actions CI |
+| CD | 无标准交付件 | 发布不可重复 | Dockerfile + 部署脚本/compose + release 流程 |
+| 日志 | 仍有 `console.*` | 生产排障困难 | `pino` structured logging |
+| 错误报警 | 未见正式错误平台 | 线上故障只能看日志 | `@sentry/nextjs` |
+| Trace | 目前偏应用内 read model | 跨 publish→command→event→task→student submit 难追 | Sentry tracing（必要时加 OTel API seam） |
+| 探活 | 未见标准 health/ready route | 无法稳定接入外部探活与发布门禁 | `/api/health` + `/api/ready` |
+| Backup | 未见正式工具链 | SQLite 单点风险 | Litestream |
+| Restore drill | 未见 restore 验证 | “有备份但恢复不了” | restore script + 演练记录 |
+| 文件冷备 | 未见统一方案 | 上传/资源丢失无兜底 | restic |
+| Load test | 未见正式基线 | 单校试点前无容量把握 | k6 场景与阈值 |
+| Operator readiness | 分散存在、未形成生产 readiness bundle | 值班信息不完整 | 单页 readiness / health / backup / release 汇总 |
+| 样板链路验证 | 现有 verifier 偏 phase close | 试点演示链路回归不足 | Playwright + milestone-specific gate |
 
-这条路线最符合当前代码库：**低 blast radius、可审计、可演进、且不破坏既有 SQLite-first 与 DAL-only 纪律。**
+---
+
+## What Not To Add
+
+v3.1 目标是**试点可用**，不是“企业级基础设施大全”。以下技术不该在本 milestone 引入：
+
+| 不该新增 | 原因 | 用什么代替 |
+|---|---|---|
+| PostgreSQL / pgvector | 违背 SQLite-first；迁移 blast radius 过大 | 继续 SQLite + Litestream |
+| Kafka / NATS / Redis Streams | 当前 WebSocket-first + optional Redis fanout 已成立；会制造第二真相源 | 继续 SQLite truth + Redis delivery-only |
+| Kubernetes / Helm / ArgoCD | 单校试点过重 | Dockerfile + compose / 单机部署脚本 |
+| Prometheus + Grafana + Loki 全家桶 | v3.1 观测性目标过度膨胀 | Sentry + Pino 即可起步 |
+| ELK / OpenSearch 日志平台 | 对当前规模过重 | 先输出 JSON logs 到宿主平台/文件 |
+| Temporal / 工作流引擎 | 不是本 milestone 的主矛盾 | 继续 Command Bus + BullMQ |
+| 新 UI admin 框架 | 现有 `/settings/labs` / `/admin` 已可复用 | 扩展现有 operator 面 |
+| Cypress / 另一套 E2E 栈 | repo 已有 Playwright | 统一 Playwright |
+| Docker Swarm / service mesh | 单校试点完全过重 | 简单单机/双实例部署 |
+
+特别强调：
+
+- **不能把 WebSocket-first + optional Redis fanout 写成“待建设”**。
+- **不能把 BullMQ worker 写成“未来才需要”**；它已经是现有异步平台一部分。
+- **不能把 v3.1 变成多租户 SaaS infra rewrite**；本 milestone 是单校试点生产化。
+
+---
+
+## Notes For Requirements
+
+下面这些应直接转成 v3.1 requirements / roadmap 语言。
+
+### 1) 推荐写进 requirement 的 stack 决策
+
+1. **继续沿用当前主栈**：Next.js 16、React 19、Auth.js v5、Drizzle、SQLite、DAL、WebSocket-first、optional Redis fanout、BullMQ worker。  
+2. **新增生产化支撑栈**：
+   - `pino`：结构化日志
+   - `@sentry/nextjs`：错误监控、trace、release、报警基础
+   - Litestream：SQLite 持续备份/恢复
+   - restic：文件与配置冷备
+   - k6：负载测试
+3. **多环境配置不引入新框架**：复用 `zod` 构建 env schema。  
+4. **CI/CD 使用 GitHub Actions**，并以 milestone verifier + Playwright 样板链路作为发布 gate。  
+5. **operator/admin 扩展现有 surface，不新建第二后台。**
+
+### 2) 建议 requirement 显式写清的边界
+
+- 单校试点支持 **single-node** 为主；如部署为多实例，启用现有 `redis_fanout`。  
+- Redis 继续是 **delivery/orchestration-only**，不成为业务 truth。  
+- BullMQ 继续是 **async execution layer**，不成为业务 truth。  
+- SQLite 继续是 durable truth；通过 Litestream 提升可恢复性，而不是切库。  
+- 生产可用的定义里必须包含：**observability、backup/restore、load test、release gate、operator readiness**。  
+
+### 3) 建议 roadmap 单列的交付包
+
+**建议把 v3.1 stack 相关工作拆成 4 个交付包：**
+
+1. **Deploy & Env Baseline**  
+   env schema、`.env.example`、Dockerfile、部署脚本、health/ready route
+
+2. **Observability Baseline**  
+   Pino、Sentry、release tagging、关键 command/task/classroom tracing、报警接线
+
+3. **Recovery Baseline**  
+   Litestream、restic、backup policy、restore drill、operator backup status
+
+4. **Pilot Validation Baseline**  
+   GitHub Actions、Playwright 样板链路 gate、k6 基线、operator readiness summary
+
+---
+
+## Bottom Line
+
+v3.1 不需要换主栈。  
+**正确做法是：在当前已经成立的 WebSocket-first + optional Redis fanout + BullMQ + platform-core 基线上，补齐 production readiness stack。**
+
+最小且正确的新增组合是：
+
+- `pino`
+- `@sentry/nextjs`
+- Litestream
+- restic
+- k6
+- GitHub Actions workflow
+- Zod-based env schema
+- Dockerfile / compose-or-equivalent deployment baseline
+
+这套组合足以支撑：
+
+- 单校试点生产发布
+- 插件样板链路稳定演示
+- 出问题可观测
+- 数据可恢复
+- 课堂容量有基线
+
+而且**不会破坏当前项目已经成立的技术决策。**
+
+---
 
 ## Sources
 
-- `.planning/PROJECT.md` — v3.0 milestone constraints and validated baseline. Confidence: HIGH.
-- `openlearn_next_upgrade_plan.md` — target platform direction; phase 1 scope filtered against current constraints. Confidence: HIGH.
-- `package.json` — currently installed versions (`bullmq`, `ioredis`, `zod`, `drizzle-orm`, `ws`). Confidence: HIGH.
-- `src/lib/dal/plugins.ts` — existing plugin lifecycle/governance/audit baseline. Confidence: HIGH.
-- `src/db/schema.ts` — existing plugin lifecycle/audit tables already in SQLite truth path. Confidence: HIGH.
-- `src/features/runtime-platform/seams/event-bus/default-adapter.ts` and `contract.ts` — current in-process event bus adapter posture. Confidence: HIGH.
-- `src/features/async-tasks/server/enqueue.ts` and `server/registry.ts` — existing BullMQ-backed async execution boundary. Confidence: HIGH.
-- Context7 CLI `/taskforcesh/bullmq` — QueueEvents, retries, jobId/idempotency patterns. Confidence: HIGH.
-- Context7 CLI `/redis/ioredis/v5_4_0` — Pub/Sub and Streams capabilities; suitable as optional delivery adapter, not durable truth. Confidence: HIGH.
-- Context7 CLI `/open-telemetry/opentelemetry-js` — tracing API, context propagation, AsyncLocalStorage context manager patterns. Confidence: HIGH.
+### Project-local sources
+
+- `.planning/PROJECT.md` — 当前状态、约束、WebSocket-first 与 optional Redis fanout 已落地、BullMQ 已落地。**Confidence: HIGH**
+- `.planning/MILESTONES.md` — v2.2 / v2.3 / v3.0 已交付事实。**Confidence: HIGH**
+- `.planning/STATE.md` — 当前处于新 milestone planning。**Confidence: HIGH**
+- `package.json` — 当前依赖版本与已有脚本。**Confidence: HIGH**
+- `src/features/runtime-platform/seams/transport/redis-fanout-connection.ts` — Redis fanout capability 与 degraded health snapshot。**Confidence: HIGH**
+- `src/features/async-tasks/infra/connection.ts` — BullMQ 连接能力、worker instance、健康快照。**Confidence: HIGH**
+- `src/features/platform-core/observability/operator-read-model.ts` — operator 命令/事件可观测读取模型。**Confidence: HIGH**
+- `src/components/surfaces/settings-surface.tsx` — 现有 operator/labs surface 已覆盖 transport、runtime inspector、async operator 入口。**Confidence: HIGH**
+- 仓库 glob 检查：未发现 `.github/workflows/*`、Dockerfile、compose、`.env.example`。**Confidence: HIGH**
+
+### Documentation-verified sources
+
+- Context7 CLI `/websites/github_en_actions` — GitHub Actions Node.js build/test/cache workflow。**Confidence: HIGH**
+- Context7 CLI `/pinojs/pino` — structured logging、redaction、child logger。**Confidence: HIGH**
+- Context7 CLI `/getsentry/sentry-docs` — Next.js setup、Server Action instrumentation、tracing、cron monitor。**Confidence: MEDIUM-HIGH**
+- Context7 CLI `/grafana/k6-docs` — thresholds、checks、HTTP/load testing patterns。**Confidence: HIGH**
+- Context7 CLI `/benbjohnson/litestream` — SQLite continuous replication、restore、integrity check。**Confidence: HIGH**
+- Context7 CLI `/restic/restic` — backup、snapshots、repository check/restore verification。**Confidence: HIGH**

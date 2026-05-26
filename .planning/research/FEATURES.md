@@ -1,238 +1,285 @@
-# Feature Landscape — v3.0 AI Native Educational OS Upgrade
+# Feature Landscape — v3.1 单校试点生产可用 / 课堂互动插件样板
 
-**Milestone:** v3.0 first-stage platform core upgrade  
-**Domain:** Brownfield AI-native platform kernel for an existing education app  
-**Researched:** 2026-05-21  
+**Milestone:** v3.1  
+**主题:** 单校试点生产可用，插件能力先行，围绕“教师设计 → 发布 → 开课 → 课堂互动插件执行 → 学生完成 → 教师/运营验证”主链路交付真实样板  
+**Researched:** 2026-05-24  
 **Confidence:** HIGH
 
-## Scope Framing
+## Milestone Framing
 
-这一轮不是“把 Agent Runtime 做出来”，而是把现有系统升级成一个**可被 Agent、插件、工作流共同调用的正式平台内核**。
+这一轮不是“泛生产化补全清单”，也不是“把整个平台做成通用插件市场”。
 
-成熟系统里的共同模式很明确：
+这一轮要解决的是更具体的问题：
 
-- **VS Code**：command 是统一动作入口，activation/lifecycle 明确，避免扩展到处直接互调。
-- **JupyterLab**：plugin 通过 token/service 和 activation ordering 协作，先注册扩展点，再初始化宿主。
-- **Backstage**：extension point / module 明确区分“平台提供什么能力”和“扩展如何接入”，并要求先完成模块注册再启动插件。
+> **OpenLearn Next 是否已经能在单校试点场景里，以一个真实可用的课堂互动插件样板，稳定跑通教师端设计到学生端课堂完成的主链路，并且让运维/产品团队敢上线、敢观测、敢回滚、敢恢复。**
 
-对 OpenLearn Next 来说，第一阶段最有价值的不是新 runtime，而是先把下面五类 contract 做实：
+因此，本 milestone 的 feature 取舍必须服从下面三个判断：
 
-1. Command Bus
-2. Dynamic Action Registry
-3. Formal Plugin Lifecycle
-4. Event Bus（与 command 分离）
-5. Agent / Skill / Observability future-proof platform contracts
+1. **必须服务真实样板链路**，不是脱离产品主链路的抽象平台能力。
+2. **必须服务试点生产可用**，不是只在本地 demo 可跑。
+3. **必须优先让插件 action 真正可用**，不是只有 registry / descriptor / mock 调用。
 
----
+### 本轮真实样板主链路
 
-## Category 1 — Command Bus
+1. 教师创建/编辑一节课，配置课堂互动插件步骤
+2. 教师发布 lesson / classroom-ready 版本
+3. 教师发起课堂，会话与学生入班成功
+4. 课堂中插件 action 被真实触发，并能影响学生端体验/状态
+5. 学生完成互动、提交结果、进度落库
+6. 教师看到结果与课堂状态，运营能观测异常并排障
+7. 出现失败时，系统可以重试、补偿、恢复，而不是只能人工改库
 
-### 1. Table stakes
+### 本轮不应误入的方向
 
-- 所有系统级可变更动作都必须有统一 command envelope：`id`、`type`、`actor`、`target scope`、`payload`、`causation/correlation`、`timestamp`。
-- 执行链路固定为：**validate → authorize → execute → emit events → audit/result**。
-- command handler 必须是**唯一 authoritative write boundary**；插件、workflow、未来 agent 都不能绕过它直写核心服务。
-- command result 必须是 typed outcome，而不是散落的 boolean / throw-only 语义。
-- 至少覆盖第一批高价值 command families：`plugin.*`、`lesson.*` 中真正需要平台化的动作、以及 future-safe 的 `ai.*`/`workflow.*` 命名位。
-
-### 2. Differentiators worth doing now
-
-- **Command metadata 可发现**：让未来 agent 能 `listCommands()`、看到描述、输入 schema、所需 capability、是否产生 side effects。
-- **Idempotency / dedupe key**：对 install/enable/disable/retry 这类平台动作很值钱。
-- **Audit-ready causation chain**：能把“教师触发 / 插件触发 / agent delegated”串起来。
-
-### 3. Anti-features / defer
-
-- 不做完整 event sourcing。
-- 不做通用 undo/replay 引擎，只保留 command log / replay-ready metadata。
-- 不把所有现有 service 一次性强行迁移；优先收口平台级动作和新增动作。
-- 不引入跨进程命令总线或分布式 saga；当前单体内平台化足够。
-
-### 4. Complexity / dependency notes
-
-- 这是本 milestone 的 **P0**，其他几类都依赖它。
-- 依赖 Zod/DTO、capability check、DAL write path、audit schema。
-- 最大风险是“双轨执行”：新 command bus 和旧 ad-hoc action 同时长期存在。必须明确迁移名单。
+- 不做“全平台生产化百科全书”
+- 不做完整插件 marketplace 生态
+- 不做多校、多租户、大规模 SaaS 运维体系
+- 不做完整 workflow engine / agent runtime 扩张
+- 不重写课堂实时主链路，只验证它能承载真实插件样板
 
 ---
 
-## Category 2 — Dynamic Action Registry
+## Table Stakes
 
-### 1. Table stakes
+下面这些能力不是“锦上添花”，而是 v3.1 要称为“单校试点生产可用”时必须具备的基础面。
 
-- action registry 必须从 hard-coded built-ins 升级为**运行时可注册的 typed registry**。
-- 每个 action 必须声明：`actionKey`、owner plugin、输入 schema、输出 schema、capability requirement、side-effect class、stability/version。
-- registry 必须支持冲突检测，禁止相同 key 被静默覆盖。
-- action 只能作为 **command handler 内部可调用能力** 或 command-dispatch target，不能变成新的绕过边界入口。
+| Feature Category | Table Stakes | Why It Is Required | Complexity | Notes |
+|---|---|---|---|---|
+| 多环境配置 | 本地 / staging / pilot-prod 环境变量分层、插件开关、外部依赖连接策略清晰 | 没有环境分层就无法做试点演练、灰度、回滚 | 中 | 重点不是环境数量，而是配置边界清楚、不会手改常量上线 |
+| CI/CD | 最小可用发布流水线：lint/typecheck/test/build/migrate/deploy/health-check | 单校试点也需要可重复发布，不可依赖手工 SSH 发布 | 中 | 要支持数据库迁移前置检查和失败中止 |
+| 可观测性与运维 | 课堂会话、插件 action、Command Bus、异步任务、WebSocket/Redis degraded posture 可观测 | 样板能不能跑，不看主观感觉，要看日志、指标、审计与 operator surface | 中-高 | 必须能按 school/classroom/plugin/action 查问题 |
+| 备份恢复 | SQLite 文件/数据快照、恢复演练、恢复后最小校验 | 单校试点最怕一次误操作或部署事故直接丢课堂数据 | 中 | 先做可执行 runbook，不追求企业级灾备 |
+| 幂等/补偿 | 发布、开课、插件 action、异步后处理具备重复调用保护或补偿动作 | 课堂现场最常见问题不是代码报错，而是“点了两次”“网络抖动”“半成功” | 高 | 本轮至少覆盖样板主链路的关键写操作 |
+| 数据校验 | lesson/plugin config/student submission/operator input 都有强校验与错误分类 | 插件样板一旦配置脏数据，课堂现场无法救火 | 中 | 必须区分用户可修复 vs 系统异常 |
+| 高并发课堂压测 | 单课堂高并发学生加入、同步、互动提交、教师广播有可重复压测结果 | “单校试点”不等于低并发；一节公开课就能把链路压穿 | 高 | 重点是典型班级峰值与极端峰值，不是互联网级规模 |
+| 插件 action 真实可用 | 至少一类课堂互动插件 action 从教师配置到学生执行、结果写回完全真实 | 这是本 milestone 的样板核心，不成立则整轮偏题 | 高 | 不能只停留在 descriptor、catalog、governance UI |
 
-### 2. Differentiators worth doing now
+### Table Stakes 的产品/运维拆分
 
-- **Discoverability for planning**：支持列出 action catalog，给 future agent/tool router 用。
-- **Scoped availability**：按 plugin enabled state、school install state、feature flag 暴露 action。
-- **Built-in actions 与 plugin actions 同模型**：先消灭 built-in 特权通道。
+#### 产品侧必须成立
 
-### 3. Anti-features / defer
+- 教师能理解并完成插件步骤配置
+- 课堂前存在 readiness/preflight，能提前发现插件未启用、依赖缺失、配置非法
+- 学生端交互结果能形成明确完成态，而不是“看起来点过了”
+- 教师端能看到互动是否开始、是否完成、是否失败、失败了多少人
 
-- 不做任意第三方远程 action 下载。
-- 不做“用户自定义脚本即 action”。
-- 不做过度通用的 low-code action composer；先保证 typed registry 清晰可靠。
-- 不把 registry 直接做成 workflow engine。
+#### 运维侧必须成立
 
-### 4. Complexity / dependency notes
-
-- 依赖 plugin identity、plugin enabled/install state、command bus dispatch contract。
-- 与 capability security 强耦合；否则 action catalog 会变成安全漏洞目录。
-- 首批只需要支持**注册、解析、校验、执行前鉴权、冲突报错、列举**。
-
----
-
-## Category 3 — Formal Plugin Lifecycle
-
-### 1. Table stakes
-
-- lifecycle 至少要区分：`register`、`resolve dependencies`、`activate`、`running`、`deactivate`、`dispose`。
-- install state 与 runtime state 必须分开：**installed ≠ enabled ≠ active**。
-- lifecycle 必须有 dependency ordering；缺依赖插件不能半启动。
-- 插件停用默认保留数据，卸载才进入数据清理/保留策略。
-- 启动失败必须可归因到具体 plugin/module，而不是只表现为平台整体失败。
-
-### 2. Differentiators worth doing now
-
-- **Startup failure attribution**：参考 Backstage factory-style extension point 思路，把失败归因到模块/插件。
-- **Kill switch / suspend posture**：出问题时可全局停用某插件但不伤主系统。
-- **Built-in plugin 也走正式 lifecycle**：这是平台是否真实成立的试金石。
-
-### 3. Anti-features / defer
-
-- 不做 hot reload / live reload plugin runtime。
-- 不做独立 extension host / multi-process isolation。
-- 不做 sandbox execution；这属于后续阶段。
-- 不做复杂 marketplace distribution protocol。
-
-### 4. Complexity / dependency notes
-
-- 依赖 plugin manifest contract、dependency graph、registry bootstrap。
-- 需要和现有 plugin marketplace / governance audit 语义对齐，避免产品语义倒退。
-- 生命周期设计过大最容易失控；v1 先保证**deterministic startup/stop semantics**。
+- 能知道当前发布的是哪个版本、哪个 migration、哪个 plugin build
+- 能快速判断故障在配置、插件 action、课堂 transport、异步任务还是外部依赖
+- 能在不改库的前提下做 retry / reconcile / suspend / fallback
+- 能在试点学校现场提供最小可执行 runbook
 
 ---
 
-## Category 4 — Event Bus (distinct from command execution)
+## Sample-Chain Must-Haves
 
-### 1. Table stakes
+这部分不是通用 table stakes，而是**为了让真实样板链路成立**必须交付的功能簇。它们应该优先于泛化能力进入 roadmap。
 
-- 明确区分：**command = 请求动作**，**event = 已发生事实**。
-- event envelope 至少包含：`id`、`type`、`source`、`subject`、`payload`、`timestamp`、`causation/correlation`。
-- command 成功后才能发 domain event；禁止把 event bus 当 command bus 用。
-- 支持最小可用订阅模型：平台内插件监听、审计/分析监听、未来 workflow/agent 监听。
-- 事件命名必须事实化：如 `plugin.enabled`、`plugin.disabled`、`command.failed`、`lesson.published`。
+### 1. 教师设计链路必须具备的能力
 
-### 2. Differentiators worth doing now
+#### Must-Haves
 
-- **Outbox-friendly contract**：即使现在先做进程内 event bus，也保留未来接 Redis/BullMQ/analytics pipeline 的演进位。
-- **Typed event catalog**：给 observability、workflow、agent subscription 做统一入口。
-- **Policy hooks on events**：允许后续 approval / notification / analytics 直接接入。
+- **互动插件步骤可插入 lesson editor**，且与现有 step model 正常共存
+- **插件步骤配置表单**：有 schema 驱动校验、默认值、必填提示、错误回显
+- **插件能力可见性**：教师只能看到本校可用、已启用、当前版本兼容的插件 action
+- **预览/模拟执行**：教师在发布前至少能做最小预检，而不是上课才发现不能用
+- **发布前 preflight**：检查 plugin enabled state、action resolvable、配置合法、依赖完备
 
-### 3. Anti-features / defer
+#### Why must ship
 
-- 不做全量 event sourcing 存储模型。
-- 不做跨实例强一致事件系统。
-- 不做实时协作总线重写；课堂 WebSocket 主链路不在本轮 blast radius。
-- 不把 UI local events 和 platform domain events 混在一起。
+如果教师配置环节不稳，后面所有“生产可用”都只是运维替教师兜底。
 
-### 4. Complexity / dependency notes
+### 2. 发布与版本切换必须具备的能力
 
-- 强依赖 command bus 的 causation metadata。
-- 需要和现有 async task platform 对接，但不应被 BullMQ 反向绑架成“队列即事件总线”。
-- 最容易犯的错是事件过细、过噪，导致后续 agent/workflow 难以消费。
+#### Must-Haves
+
+- lesson publish 必须把插件配置固化进可执行版本，而不是课中读草稿态
+- publish / republish 必须具备 **幂等性**，避免重复发布产生多份模糊状态
+- 版本失败要有 **可解释错误**，不是统一的“发布失败”
+- migration 与 plugin compatibility 有最小门禁，避免旧配置上线后在运行期爆炸
+
+#### Why must ship
+
+试点阶段最危险的问题不是“不能发布”，而是“发布成功但课堂时才发现版本不一致”。
+
+### 3. 开课与课堂运行必须具备的能力
+
+#### Must-Haves
+
+- 教师发起课堂时，系统能验证本节课涉及的插件样板已 ready
+- classroom session 启动时，插件 runtime state 与 lesson version 对齐
+- 课堂中教师触发插件 action 时，有明确的 command/result/audit 记录
+- 插件 action 触发失败时，教师 UI 必须收到可理解反馈，operator 能看到失败原因
+- 课堂 transport 继续以既有 WebSocket-first posture 为主，但要验证插件样板不会破坏实时链路
+
+#### Why must ship
+
+“插件能力先行”的含义不是后台能装插件，而是**课堂里真的能用，而且不会把既有课堂链路打穿**。
+
+### 4. 学生完成链路必须具备的能力
+
+#### Must-Haves
+
+- 学生端能接收并渲染插件交互状态
+- 学生动作提交有输入校验、重复提交保护、超时/失败反馈
+- 插件结果能回写 canonical progress / submission / evidence 体系
+- 学生刷新、掉线、重连后，能恢复到合理状态，不因插件步骤直接丢失上下文
+- 教师可看到学生完成率、失败率、未响应名单或聚合结果
+
+#### Why must ship
+
+只有学生端真的完成并写回真相源，这条样板链路才有产品价值；否则只是教师端的“插件演示”。
+
+### 5. 运营与故障处理必须具备的能力
+
+#### Must-Haves
+
+- operator 可以看到：school、classroom、lesson version、plugin、action、command、task 的关联视图
+- 对可恢复故障提供显式动作：retry、reconcile、resume、suspend、fallback
+- 有最小告警/异常汇总面：例如 action failure spike、classroom join failure、submission timeout
+- 关键日志与审计信息可追溯到具体课堂与插件步骤
+- 有备份、恢复、试点现场排障 runbook
+
+#### Why must ship
+
+单校试点不是开发团队坐在本地盯控制台；它要求现场出问题时别人也能处理。
 
 ---
 
-## Category 5 — Future-proof Platform Contracts (Agent / Skill / Observability)
+## Deferred / Future
 
-### 1. Table stakes
+下面这些不是“不重要”，而是**不应该抢走 v3.1 对真实样板主链路的火力**。
 
-- 平台 contract 必须让未来能力**可发现、可校验、可授权、可审计**。
-- 至少定义这些基础描述对象：
-  - command descriptor
-  - action descriptor
-  - event descriptor
-  - plugin capability / permission descriptor
-- actor model 必须预留：human actor、system actor、plugin actor、delegated agent actor。
-- 所有 contract 都必须仍然走 SQLite + DAL + centralized migrations，不引入旁路 truth source。
+| Deferred / Future Item | Why Defer | What To Do Instead In v3.1 |
+|---|---|---|
+| 通用插件 marketplace、安装评分、商店工作流 | 会把样板验证变成生态建设 | 只交付受控内置/试点插件安装与启停治理 |
+| 多校多租户完整运营体系 | 当前目标是单校试点，不是 SaaS 扩张 | 把 school scope、数据隔离、operator 查询边界做干净 |
+| 全量平台生产化清单 | 范围太散，会淹没样板主链路 | 只围绕课堂互动插件样板所需的生产能力建设 |
+| 完整灾备/跨地域恢复 | 超出 SQLite-first 单校试点合理投入 | 做可执行备份恢复与恢复校验演练 |
+| 全面 OTel/Tracing 平台、复杂可视化运维中台 | 实施成本高，收益超前 | 先把 command/action/classroom/task 级日志、指标、审计打通 |
+| 通用工作流引擎/审批引擎 | 会把插件 action 样板拖入平台泛化 | 只保留最小 retry/reconcile/compensation 语义 |
+| Agent Runtime / Skill Runtime 真执行 | 与当前主题不匹配，风险高 | 仅保留 agent-callable descriptor 与审计位 |
+| 任意第三方插件远程执行 | 安全边界不可控 | 继续坚持声明式、受控 action、无 arbitrary code execution |
+| 大规模互联网级压测体系 | 与单校试点容量不匹配 | 做“单课堂峰值 + 多课堂有限并发”的定向压测 |
 
-### 2. Differentiators worth doing now
+### 本轮明确不该做的 anti-features
 
-- **Agent-callable but not agent-dependent**：现在先做 machine-readable contracts，不急着落完整 agent runtime。
-- **Observability-ready metadata**：trace/span ids、latency class、side-effect class、failure reason taxonomy 现在就预留。
-- **Capability delegation seam**：为未来“teacher approve → agent execute”留接口。
-
-### 3. Anti-features / defer
-
-- 不做完整 planner/memory/skill runtime。
-- 不做 QuickJS / Docker / remote sandbox matrix。
-- 不做全面 OTel 平台与 tracing UI，只先埋 contract 和最小 audit/metrics 位。
-- 不做 Temporal / full workflow runtime。
-
-### 4. Complexity / dependency notes
-
-- 这是架构边界项，不该演变成第二个大平台项目。
-- 关键是 descriptor schema 和 actor/capability semantics 要稳定，否则后续 Agent Runtime 会返工。
-- 该类 feature 的成功标准不是“能跑 AI”，而是“后续 AI 不必重写平台内核”。
+- 以“生产化”为名重开数据库、实时链路、插件执行沙箱三条大改造
+- 以“插件先行”为名交付一套只有 operator 能看懂、教师不会用的系统
+- 以“样板”为名只做 happy path，不做失败恢复、重复提交、重试补偿
+- 以“可观测性”为名只堆原始日志，不提供 classroom/plugin/action 维度定位能力
 
 ---
 
-## Recommended First-Milestone Scope Boundary
+## Notes For Requirement Categories
 
-### Must ship
+为了后续写 REQUIREMENTS / ROADMAP，建议按下面的 requirement categories 切，而不是按技术组件散写。
 
-1. **Command Bus v1**
-   - 统一 envelope、handler registry、validation/auth/audit pipeline
-   - 覆盖 plugin lifecycle 相关命令 + 少量平台级核心命令
-2. **Action Registry v1**
-   - typed registration、conflict detection、discoverability、enabled-state gating
-3. **Plugin Lifecycle v1**
-   - register/activate/deactivate/dispose semantics
-   - dependency ordering
-   - startup failure attribution
-4. **Event Bus v1**
-   - command-success emits fact events
-   - typed subscription for internal platform consumers
-5. **Platform descriptors v1**
-   - commands/actions/events/capabilities 可列举、可审计、可被 future agent 调用
+### 1. `SAMPLE-CHAIN`：样板主链路需求
 
-### Worth doing now if it stays small
+关注教师设计 → 发布 → 开课 → 插件互动 → 学生完成 → 教师验证这条链路本身。
 
-- command idempotency key
-- minimal command/event explorer for operators
-- plugin kill switch posture
-- actor delegation metadata
+建议包含：
 
-### Explicitly defer
+- 插件步骤 authoring
+- lesson versioning / publish preflight
+- classroom runtime readiness
+- student interaction completion
+- teacher evidence / summary visibility
 
-- Agent Runtime
-- Skill Runtime
-- Workflow Engine
-- QuickJS / Extension Host / sandbox isolation
-- PostgreSQL / pgvector cutover
-- classroom realtime rewrite
-- event sourcing / undo engine / distributed bus
+**判断标准：** 没有它，样板链路就断。
+
+### 2. `PLUGIN-PROD`：插件真实可用需求
+
+关注“插件 action 真能在产品里工作”，不是 registry 演示。
+
+建议包含：
+
+- action resolve / dispatch / result contract
+- plugin enabled/install/version compatibility
+- action input/output schema validation
+- action failure reason taxonomy
+- operator recovery actions
+
+**判断标准：** 没有它，插件只是平台能力，不是产品能力。
+
+### 3. `ENV-RELEASE`：多环境与发布安全需求
+
+关注从开发到试点环境的交付稳定性。
+
+建议包含：
+
+- env layering / secrets discipline
+- migration gate
+- build artifact/version traceability
+- staged deployment / rollback posture
+- release checklist / health-check
+
+**判断标准：** 没有它，就不该叫试点生产可用。
+
+### 4. `OPS-OBS`：可观测性与运维需求
+
+关注现场能否看得见、查得出、处理得了。
+
+建议包含：
+
+- command / plugin / classroom / task 关联观测
+- degraded posture honesty
+- operator diagnostics
+- runbook / alert surface
+- school/classroom/plugin/action drill-down
+
+**判断标准：** 没有它，出问题只能靠开发者猜。
+
+### 5. `DATA-SAFETY`：数据安全与恢复需求
+
+关注配置、课堂结果、提交真相源的正确性与可恢复性。
+
+建议包含：
+
+- schema/input validation
+- backup / restore / post-restore checks
+- append-only 或 canonical write discipline
+- idempotency key / dedupe / compensation
+- replay-safe mutation semantics
+
+**判断标准：** 没有它，试点越真实，风险越高。
+
+### 6. `PERF-LOAD`：课堂峰值与压测需求
+
+关注真实课堂容量，而不是理论扩展性。
+
+建议包含：
+
+- 单课堂加入峰值
+- 课堂内互动 action fanout
+- 学生提交高峰
+- reconnect / retry 行为
+- 压测基线与通过阈值
+
+**判断标准：** 没有它，样板一到公开课或年级演示就可能失真。
 
 ---
 
 ## MVP Recommendation
 
-如果只保一条最小闭环，应该保：
+v3.1 的 MVP 不是“插件平台更完整”，而是：
 
-**“插件和未来 Agent 的动作都能通过同一 command boundary 进入系统；系统能基于 registry 找到可执行能力；执行后产出事实事件与审计记录；插件生命周期不再是隐式约定。”**
+> **一所学校里，教师能稳定配置并发布一节含课堂互动插件的课；课堂中教师能真实触发插件 action；学生能完成互动并写回结果；运营能观测、重试、恢复并完成一次真实试点交付。**
 
-这才是把现有 app 升级成 AI-native platform core 的第一性门槛。
+优先顺序建议：
+
+1. **样板主链路打通**：教师设计 → 学生完成
+2. **插件 action 真可用**：不是 registry demo
+3. **上线/回滚/恢复能力**：试点生产可用底线
+4. **课堂峰值验证**：证明样板不是只适合小范围演示
+5. **再做泛化整理**：将经验沉淀回平台 contract
+
+---
 
 ## Sources
 
-- `.planning/PROJECT.md` — milestone goals, constraints, out-of-scope. Confidence: HIGH.
-- `openlearn_next_upgrade_plan.md` — target platform direction and staged priorities. Confidence: HIGH.
-- VS Code official docs, Commands — commands as discoverable execution surface and activation model. https://code.visualstudio.com/api/extension-guides/command Confidence: HIGH.
-- VS Code official docs, Activation Events — explicit activation/deactivation expectations for extensions. https://code.visualstudio.com/api/references/activation-events Confidence: HIGH.
-- JupyterLab official docs, Develop Extensions — plugin/service/token model, activation ordering, provider-consumer pattern. https://jupyterlab.readthedocs.io/en/stable/extension/extension_dev.html Confidence: HIGH.
-- Backstage official docs, Backend System Architecture / Extension Points / Modules — plugin/module boundary, extension point API design, module-before-plugin initialization. https://backstage.io/docs/backend-system/architecture/index/ https://backstage.io/docs/backend-system/architecture/extension-points https://backstage.io/docs/backend-system/architecture/modules Confidence: HIGH.
+- `/home/wuxf/Develop/OpenLearn-Next/.planning/PROJECT.md` — 当前产品定位、约束、既有能力、下一 milestone 边界。Confidence: HIGH.
+- `/home/wuxf/Develop/OpenLearn-Next/.planning/MILESTONES.md` — 已归档 milestone 的交付面与 deferred 边界，帮助识别 v3.1 不应重开的范围。Confidence: HIGH.
+- `/home/wuxf/Develop/OpenLearn-Next/.planning/STATE.md` — 当前处于 milestone planning 状态、遗留 tech debt 与 deferred items。Confidence: HIGH.
