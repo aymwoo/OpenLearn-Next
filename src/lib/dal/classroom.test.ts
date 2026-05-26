@@ -853,6 +853,185 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
     expect(source).toContain('eq(classroomEvidence.sourceType, "student-submission")');
     expect(source).not.toContain("classroomGradebook");
   });
+
+  it("builds current voting round aggregate, incomplete roster, folded named results, and failure consequence from authoritative classroom truth", async () => {
+    findFirstPublishedLessonVersions.mockResolvedValueOnce({
+      id: "pub-1",
+      snapshotJson: {
+        lesson: { title: "古诗导读" },
+        steps: [
+          {
+            id: "step-1",
+            lessonId: "lesson-in-scope",
+            type: "quiz",
+            title: "课堂投票",
+            rank: "a0",
+            payload: {
+              type: "quiz",
+              question: "你更认可哪种理解？",
+              options: ["我支持方案 A", "我支持方案 B", "我还想再讨论"],
+              builtInSource: {
+                pluginId: "plugin-voting",
+                builtInKey: "classroomVoting",
+                pluginName: "课堂投票",
+              },
+            },
+          },
+        ],
+      },
+    });
+    findFirstClassroomSessions.mockResolvedValueOnce({
+      id: "session-1",
+      lessonId: "lesson-in-scope",
+      publishedVersionId: "pub-1",
+      classId: "class-in-scope",
+      teacherId: "teacher-1",
+      activeStepId: "step-1",
+      locked: false,
+      status: "live",
+      version: 7,
+      updatedAt: new Date("2026-05-12T10:05:00Z"),
+    });
+    findManyClassroomParticipants.mockResolvedValueOnce([
+      {
+        sessionId: "session-1",
+        studentId: "student-1",
+        connectionState: "connected",
+        currentStepId: "step-1",
+        lastSeenAt: new Date("2026-05-12T10:03:00Z"),
+      },
+      {
+        sessionId: "session-1",
+        studentId: "student-2",
+        connectionState: "reconnecting",
+        currentStepId: "step-1",
+        lastSeenAt: new Date("2026-05-12T10:02:00Z"),
+      },
+      {
+        sessionId: "session-1",
+        studentId: "student-3",
+        connectionState: "offline",
+        currentStepId: "step-1",
+        lastSeenAt: new Date("2026-05-12T10:01:00Z"),
+      },
+    ]);
+    findManyUsers.mockResolvedValueOnce([
+      { id: "student-1", name: "李雷" },
+      { id: "student-2", name: "韩梅梅" },
+      { id: "student-3", name: "小明" },
+    ]);
+    findManyClassroomEvidence.mockResolvedValueOnce([
+      {
+        id: "round-opened",
+        sessionId: "session-1",
+        studentId: null,
+        stepId: "step-1",
+        sourceType: "system",
+        evidenceType: "artifact",
+        payloadJson: {
+          kind: "voting-round-opened",
+          stepId: "step-1",
+          stepTitle: "课堂投票",
+          openedAt: "2026-05-12T10:00:00.000Z",
+          version: 6,
+        },
+        capturedById: "teacher-1",
+        createdAt: new Date("2026-05-12T10:00:00Z"),
+      },
+      {
+        id: "submit-1",
+        sessionId: "session-1",
+        studentId: "student-1",
+        stepId: "step-1",
+        sourceType: "student-submission",
+        evidenceType: "quiz-response",
+        payloadJson: {
+          runtimeSessionId: "runtime-1",
+          submittedAt: "2026-05-12T10:01:00.000Z",
+          state: { selectedOptionId: "option-1" },
+          proofSummary: {
+            title: "已提交",
+            submittedStateLabel: "已完成互动证明",
+            inspectorHref: "/settings/labs/runtime-inspector?runtimeSessionId=runtime-1",
+          },
+        },
+        capturedById: "student-1",
+        createdAt: new Date("2026-05-12T10:01:00Z"),
+      },
+      {
+        id: "submit-2",
+        sessionId: "session-1",
+        studentId: "student-2",
+        stepId: "step-1",
+        sourceType: "student-submission",
+        evidenceType: "quiz-response",
+        payloadJson: {
+          runtimeSessionId: "runtime-2",
+          submittedAt: "2026-05-12T10:01:30.000Z",
+          state: { selectedOptionId: "option-2" },
+          proofSummary: {
+            title: "已提交",
+            submittedStateLabel: "提交异常，等待老师处理",
+            inspectorHref: "/settings/labs/runtime-inspector?runtimeSessionId=runtime-2",
+            status: "failed",
+          },
+        },
+        capturedById: "student-2",
+        createdAt: new Date("2026-05-12T10:01:30Z"),
+      },
+      {
+        id: "round-closed",
+        sessionId: "session-1",
+        studentId: null,
+        stepId: "step-1",
+        sourceType: "system",
+        evidenceType: "artifact",
+        payloadJson: {
+          kind: "voting-round-closed",
+          stepId: "step-1",
+          stepTitle: "课堂投票",
+          closedAt: "2026-05-12T10:02:00.000Z",
+          version: 7,
+        },
+        capturedById: "teacher-1",
+        createdAt: new Date("2026-05-12T10:02:00Z"),
+      },
+    ]);
+
+    const { getClassroomSnapshotDTO } = await import("./classroom");
+    const dto = await getClassroomSnapshotDTO({ sessionId: "session-1" });
+
+    expect(dto.currentVotingRound).toMatchObject({
+      status: "closed",
+      stepId: "step-1",
+      stepTitle: "课堂投票",
+      submittedCount: 2,
+      remainingCount: 1,
+      failureCount: 1,
+      namedResultsFoldedByDefault: true,
+      roundStatusCopy: "本轮已结束",
+      failureCopy: "有 1 名学生提交失败或状态异常，请先查看未完成名单。",
+      isFrozen: true,
+    });
+    expect(dto.currentVotingRound?.optionResults).toEqual([
+      expect.objectContaining({ optionLabel: "我支持方案 A", count: 1, percentage: 50 }),
+      expect.objectContaining({ optionLabel: "我支持方案 B", count: 1, percentage: 50 }),
+      expect.objectContaining({ optionLabel: "我还想再讨论", count: 0, percentage: 0 }),
+    ]);
+    expect(dto.currentVotingRound?.incompleteStudents).toEqual([
+      { studentId: "student-3", studentName: "小明", statusToken: "离线" },
+    ]);
+    expect(dto.currentVotingRound?.namedResults).toEqual([
+      expect.objectContaining({ studentId: "student-1", studentName: "李雷", selectedOptionLabels: ["我支持方案 A"] }),
+      expect.objectContaining({ studentId: "student-2", studentName: "韩梅梅", selectedOptionLabels: ["我支持方案 B"] }),
+    ]);
+    expect(dto.currentVotingRound?.recoveryActions).toEqual([
+      expect.objectContaining({ action: "retry", label: "重试同步" }),
+      expect.objectContaining({ action: "reconcile", label: "重新对账" }),
+      expect.objectContaining({ action: "suspend", label: "暂停本轮" }),
+      expect.objectContaining({ action: "fallback", label: "切换到课堂内回退处理" }),
+    ]);
+  });
 });
 
 describe("formative evaluation contracts", () => {

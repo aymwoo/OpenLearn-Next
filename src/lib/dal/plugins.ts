@@ -1288,7 +1288,11 @@ const BUILT_IN_TEMPLATE_ACTION = "insertBuiltInTeachingStepTemplate" as const;
 const VOTING_TEMPLATE_PLUGIN_KEY = "builtin-teaching-step-classroom-voting" as const;
 
 function canResolveBuiltInTemplate(plugin: PluginRegistrationDTO) {
-  return plugin.builtIn && plugin.enabled && plugin.manifestJson.actions.includes(BUILT_IN_TEMPLATE_ACTION);
+  return plugin.builtIn
+    && plugin.enabled
+    && !plugin.killSwitchEnabled
+    && isRunnablePluginState(plugin.lifecycleState)
+    && plugin.manifestJson.actions.includes(BUILT_IN_TEMPLATE_ACTION);
 }
 
 function isBuiltInTemplateCompatible(plugin: PluginRegistrationDTO) {

@@ -16,6 +16,7 @@ const findManyClasses = vi.fn();
 const findManyClassMembers = vi.fn();
 const findManyPluginRegistrations = vi.fn();
 const listPluginStepExtensions = vi.fn();
+const transaction = vi.fn();
 const selectCourseClassNames = vi.fn();
 const selectWhere = vi.fn();
 const insertReturning = vi.fn();
@@ -52,6 +53,7 @@ vi.mock("server-only", () => ({}));
 
 vi.mock("@/db", () => ({
   db: {
+    transaction,
     insert: () => ({ values: insertValues }),
     update: () => ({ set: updateSet }),
     select: () => ({
@@ -87,6 +89,9 @@ vi.mock("@/lib/dal/membership", () => ({
 
 vi.mock("@/lib/dal/plugin-data", () => ({
   listPluginStepExtensions,
+  upsertPluginStepExtensionWithTx: vi.fn(async ({ tx, schoolId, pluginId, lessonStepId, payloadJson }) => {
+    await tx.__upsertPluginStepExtensionWithTx?.({ schoolId, pluginId, lessonStepId, payloadJson });
+  }),
 }));
 
 const source = readFileSync("src/lib/dal/lesson-authoring.ts", "utf8");
@@ -151,6 +156,15 @@ describe("lesson authoring DAL boundary", () => {
       },
     ]);
     updateReturning.mockResolvedValue([]);
+    transaction.mockImplementation(async (callback: (tx: Record<string, unknown>) => Promise<unknown>) => {
+      const tx = {
+        update: () => ({ set: () => ({ where: vi.fn().mockResolvedValue(undefined) }) }),
+        select: () => ({ from: () => ({ where: () => ({ limit: vi.fn().mockResolvedValue([]) }) }) }),
+        insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
+        __upsertPluginStepExtensionWithTx: vi.fn().mockResolvedValue(undefined),
+      };
+      return callback(tx);
+    });
   });
 
   it("is server-only and enforces teacher authorization", () => {
@@ -1267,6 +1281,216 @@ describe("lesson authoring DAL boundary", () => {
       expect.arrayContaining([
         expect.objectContaining({ code: "TEACHING_DESIGN_INFERRED", stepId: "step-refine" }),
       ])
+    );
+  });
+
+  it("saves classroom voting config through quiz shell mirror plus idempotent extension upsert", async () => {
+    const { saveVotingLessonStepConfig } = await import("./lesson-authoring");
+
+    const txUpdateReturning = vi.fn().mockResolvedValue([{ id: "step-voting" }]);
+    findFirstLessonSteps.mockResolvedValueOnce({
+      id: "step-voting",
+      lessonId: "lesson-owned",
+      type: "quiz",
+      title: "课堂投票",
+      rank: "a1",
+      payloadJson: {
+        type: "quiz",
+        question: "旧题目",
+        options: ["旧A", "旧B"],
+        materialRefs: [],
+        allowRetry: false,
+        retryPolicy: "none",
+        revealCorrectAnswer: false,
+        builtInSource: {
+          pluginId: "plugin-voting",
+          builtInKey: "classroomVoting",
+          pluginName: "课堂投票",
+        },
+      },
+      archivedAt: null,
+      updatedAt: new Date("2026-05-25T00:00:00.000Z"),
+    });
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      {
+        id: "plugin-voting",
+        schoolId: "school-1",
+        pluginKey: "builtin-teaching-step-classroom-voting",
+        name: "课堂投票",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "ready",
+        manifestJson: { builtIn: true, manifestVersion: 2, governance: { contractVersion: "v2" } },
+      },
+    ]);
+    findManyLessonSteps.mockResolvedValue([
+      {
+        id: "step-voting",
+        lessonId: "lesson-owned",
+        type: "quiz",
+        title: "课堂投票",
+        rank: "a1",
+        payloadJson: {
+          type: "quiz",
+          question: "新题目",
+          options: ["选项 A", "选项 B"],
+          materialRefs: [],
+          allowRetry: false,
+          retryPolicy: "none",
+          revealCorrectAnswer: false,
+          builtInSource: {
+            pluginId: "plugin-voting",
+            builtInKey: "classroomVoting",
+            pluginName: "课堂投票",
+          },
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-25T00:00:00.000Z"),
+      },
+    ]);
+
+    transaction.mockImplementationOnce(async (callback: (tx: Record<string, unknown>) => Promise<unknown>) => {
+      const tx = {
+        update: () => ({ set: () => ({ where: () => ({ returning: txUpdateReturning }) }) }),
+        select: () => ({ from: () => ({ where: () => ({ limit: vi.fn().mockResolvedValue([]) }) }) }),
+        insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
+        __upsertPluginStepExtensionWithTx: vi.fn().mockResolvedValue(undefined),
+      };
+      return callback(tx);
+    });
+
+    const result = await saveVotingLessonStepConfig({
+      stepId: "step-voting",
+      title: "课堂投票",
+      pluginId: "plugin-voting",
+      expectedUpdatedAt: "2026-05-25T00:00:00.000Z",
+      executableConfig: {
+        prompt: "新题目",
+        options: [{ id: "a", label: "选项 A" }, { id: "b", label: "选项 B" }],
+        allowMultiple: false,
+        anonymousResults: true,
+        showLiveResults: true,
+        participationWindowSeconds: 90,
+        resultsDisplay: "bar",
+      },
+    });
+
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(txUpdateReturning).toHaveBeenCalledTimes(1);
+    expect(result.publishState.blockingIssues).toBeDefined();
+  });
+
+  it("throws CONFLICT when classroom voting save loses the optimistic concurrency race", async () => {
+    const { saveVotingLessonStepConfig } = await import("./lesson-authoring");
+
+    findFirstLessonSteps.mockResolvedValueOnce({
+      id: "step-voting",
+      lessonId: "lesson-owned",
+      type: "quiz",
+      title: "课堂投票",
+      rank: "a1",
+      payloadJson: {
+        type: "quiz",
+        question: "旧题目",
+        options: ["旧A", "旧B"],
+        materialRefs: [],
+        allowRetry: false,
+        retryPolicy: "none",
+        revealCorrectAnswer: false,
+        builtInSource: {
+          pluginId: "plugin-voting",
+          builtInKey: "classroomVoting",
+          pluginName: "课堂投票",
+        },
+      },
+      archivedAt: null,
+      updatedAt: new Date("2026-05-25T00:00:00.000Z"),
+    });
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      {
+        id: "plugin-voting",
+        schoolId: "school-1",
+        pluginKey: "builtin-teaching-step-classroom-voting",
+        name: "课堂投票",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "ready",
+        manifestJson: { builtIn: true, manifestVersion: 2, governance: { contractVersion: "v2" } },
+      },
+    ]);
+
+    transaction.mockImplementationOnce(async (callback: (tx: Record<string, unknown>) => Promise<unknown>) => {
+      const tx = {
+        update: () => ({ set: () => ({ where: () => ({ returning: vi.fn().mockResolvedValue([]) }) }) }),
+        select: () => ({ from: () => ({ where: () => ({ limit: vi.fn().mockResolvedValue([]) }) }) }),
+        insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
+        __upsertPluginStepExtensionWithTx: vi.fn().mockResolvedValue(undefined),
+      };
+      return callback(tx);
+    });
+
+    await expect(
+      saveVotingLessonStepConfig({
+        stepId: "step-voting",
+        title: "课堂投票",
+        pluginId: "plugin-voting",
+        expectedUpdatedAt: "2026-05-25T00:00:00.000Z",
+        executableConfig: {
+          prompt: "新题目",
+          options: [{ id: "a", label: "选项 A" }, { id: "b", label: "选项 B" }],
+          allowMultiple: false,
+          anonymousResults: true,
+          showLiveResults: true,
+          participationWindowSeconds: 90,
+          resultsDisplay: "bar",
+        },
+      }),
+    ).rejects.toThrow("CONFLICT");
+  });
+
+  it("keeps getLessonEditorDTO resilient when one persisted payload is invalid", async () => {
+    const { getLessonEditorDTO } = await import("./lesson-authoring");
+
+    findManyLessonSteps.mockResolvedValueOnce([
+      {
+        id: "step-invalid",
+        lessonId: "lesson-owned",
+        type: "content",
+        title: "坏数据步骤",
+        rank: "a0",
+        payloadJson: { type: "content", title: "", body: "" },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-09T08:31:00.000Z"),
+      },
+      {
+        id: "step-valid",
+        lessonId: "lesson-owned",
+        type: "task",
+        title: "有效步骤",
+        rank: "a1",
+        payloadJson: {
+          type: "task",
+          prompt: "记录你的发现",
+          submissionType: "text",
+          materialRefs: [],
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-05-09T08:32:00.000Z"),
+      },
+    ]);
+
+    const editor = await getLessonEditorDTO("lesson-owned");
+
+    expect(editor.steps.map((step) => step.id)).toEqual(["step-valid"]);
+    expect(editor.publishState.blockingIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "STEP_PAYLOAD_INVALID" }),
+      ]),
+    );
+    expect(editor.preparationSummary.blockingIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "STEP_PAYLOAD_INVALID" }),
+      ]),
     );
   });
 });

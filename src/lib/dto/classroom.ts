@@ -135,6 +135,8 @@ export const ClassroomLaunchPreviewStepDTOSchema = z.object({
   id: z.string(),
   order: z.number().int().positive(),
   title: z.string(),
+  pluginKey: z.string().nullable().default(null),
+  pluginLabel: z.string().nullable().default(null),
   family: z.string(),
   summary: z.string(),
   activityIntent: TeachingActivityIntentSchema,
@@ -172,6 +174,61 @@ export const ClassroomLaunchReadinessIssueDTOSchema = z.object({
   code: ClassroomLaunchReadinessIssueCodeSchema,
   message: z.string(),
   stepId: z.string().nullable().optional(),
+  stepTitle: z.string().nullable().default(null),
+  pluginKey: z.string().nullable().default(null),
+  pluginLabel: z.string().nullable().default(null),
+  severityCopy: z.string().default(""),
+});
+
+export const ClassroomVotingRoundStatusSchema = z.enum(["idle", "live", "closed"]);
+
+export const ClassroomVotingRoundRecoveryActionSchema = z.enum(["retry", "reconcile", "suspend", "fallback"]);
+
+export const ClassroomVotingRoundOptionResultDTOSchema = z.object({
+  optionId: z.string().min(1),
+  optionLabel: z.string().min(1),
+  count: z.number().int().nonnegative(),
+  percentage: z.number().nonnegative(),
+  isLeading: z.boolean().default(false),
+});
+
+export const ClassroomVotingRoundIncompleteStudentDTOSchema = z.object({
+  studentId: z.string().min(1),
+  studentName: z.string().min(1),
+  statusToken: z.enum(["未提交", "离线", "重新连接中"]),
+});
+
+export const ClassroomVotingRoundNamedResultDTOSchema = z.object({
+  studentId: z.string().min(1),
+  studentName: z.string().min(1),
+  selectedOptionIds: z.array(z.string().min(1)).default([]),
+  selectedOptionLabels: z.array(z.string().min(1)).default([]),
+  submittedAt: z.string().nullable().default(null),
+});
+
+export const ClassroomVotingRoundRecoveryActionDTOSchema = z.object({
+  action: ClassroomVotingRoundRecoveryActionSchema,
+  label: z.string().min(1),
+  description: z.string().min(1),
+});
+
+export const ClassroomVotingRoundDTOSchema = z.object({
+  status: ClassroomVotingRoundStatusSchema,
+  stepId: z.string().nullable().default(null),
+  stepTitle: z.string().nullable().default(null),
+  startedAt: z.string().nullable().default(null),
+  endedAt: z.string().nullable().default(null),
+  submittedCount: z.number().int().nonnegative().default(0),
+  remainingCount: z.number().int().nonnegative().default(0),
+  optionResults: z.array(ClassroomVotingRoundOptionResultDTOSchema).default([]),
+  incompleteStudents: z.array(ClassroomVotingRoundIncompleteStudentDTOSchema).default([]),
+  namedResults: z.array(ClassroomVotingRoundNamedResultDTOSchema).default([]),
+  failureCount: z.number().int().nonnegative().default(0),
+  namedResultsFoldedByDefault: z.boolean().default(true),
+  roundStatusCopy: z.string().default(""),
+  failureCopy: z.string().nullable().default(null),
+  recoveryActions: z.array(ClassroomVotingRoundRecoveryActionDTOSchema).default([]),
+  isFrozen: z.boolean().default(false),
 });
 
 export const ClassroomLaunchReadinessDTOSchema = z.object({
@@ -552,6 +609,7 @@ export const ClassroomSnapshotDTOSchema = z.object({
       degraded: false,
       degradedReason: null,
     }),
+  currentVotingRound: ClassroomVotingRoundDTOSchema.nullable().default(null),
   teacherTimeline: z.array(ClassroomTeacherTimelineEntryDTOSchema).default([]),
   copy: z.object({
     staleRefreshRequired: z.string().default("课堂状态已经被更新。请先恢复最新状态，再继续操作。"),
@@ -787,6 +845,7 @@ export type ClassroomTrendDetailDTO = z.infer<typeof ClassroomTrendDetailDTOSche
 export type ClassroomRecentSessionTrendDTO = z.infer<typeof ClassroomRecentSessionTrendDTOSchema>;
 export type ClassroomParticipantDTO = z.infer<typeof ClassroomParticipantDTOSchema>;
 export type ClassroomParticipantMonitoringDTO = z.infer<typeof ClassroomParticipantMonitoringDTOSchema>;
+export type ClassroomVotingRoundDTO = z.infer<typeof ClassroomVotingRoundDTOSchema>;
 export type ClassroomSnapshotDTO = z.infer<typeof ClassroomSnapshotDTOSchema>;
 export type ClassroomEventDTO = z.infer<typeof ClassroomEventDTOSchema>;
 export type RecordClassroomEvidenceInput = z.infer<typeof RecordClassroomEvidenceInputSchema>;

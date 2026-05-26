@@ -177,6 +177,44 @@ export interface PluginStepExtensionRecord {
   updatedAt: Date | number | null;
 }
 
+async function upsertPluginStepExtensionWithTx(input: {
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0];
+  schoolId: string;
+  pluginId: string;
+  lessonStepId: string;
+  payloadJson: Record<string, any>;
+}) {
+  const existing = await input.tx
+    .select()
+    .from(pluginLessonStepExtensions)
+    .where(
+      and(
+        eq(pluginLessonStepExtensions.schoolId, input.schoolId),
+        eq(pluginLessonStepExtensions.pluginId, input.pluginId),
+        eq(pluginLessonStepExtensions.lessonStepId, input.lessonStepId),
+      ),
+    )
+    .limit(1);
+
+  if (existing.length > 0) {
+    await input.tx
+      .update(pluginLessonStepExtensions)
+      .set({
+        payloadJson: input.payloadJson,
+        updatedAt: new Date(),
+      })
+      .where(eq(pluginLessonStepExtensions.id, existing[0].id));
+    return;
+  }
+
+  await input.tx.insert(pluginLessonStepExtensions).values({
+    schoolId: input.schoolId,
+    pluginId: input.pluginId,
+    lessonStepId: input.lessonStepId,
+    payloadJson: input.payloadJson,
+  });
+}
+
 /**
  * 统一的核心实体扩展数据 upsert 接口，实现严格多维度隔离权限防范与幂等性
  * 
@@ -249,34 +287,13 @@ export async function upsertPluginExtension(input: UpsertExtensionInput): Promis
         });
       }
     } else if (entityType === "step") {
-      const existing = await tx
-        .select()
-        .from(pluginLessonStepExtensions)
-        .where(
-          and(
-            eq(pluginLessonStepExtensions.schoolId, schoolId),
-            eq(pluginLessonStepExtensions.pluginId, pluginId),
-            eq(pluginLessonStepExtensions.lessonStepId, entityId),
-          ),
-        )
-        .limit(1);
-
-      if (existing.length > 0) {
-        await tx
-          .update(pluginLessonStepExtensions)
-          .set({
-            payloadJson,
-            updatedAt: new Date(),
-          })
-          .where(eq(pluginLessonStepExtensions.id, existing[0].id));
-      } else {
-        await tx.insert(pluginLessonStepExtensions).values({
-          schoolId,
-          pluginId,
-          lessonStepId: entityId,
-          payloadJson,
-        });
-      }
+      await upsertPluginStepExtensionWithTx({
+        tx,
+        schoolId,
+        pluginId,
+        lessonStepId: entityId,
+        payloadJson,
+      });
     } else if (entityType === "resource") {
       const existing = await tx
         .select()
@@ -382,6 +399,8 @@ export async function upsertPluginExtension(input: UpsertExtensionInput): Promis
     revalidateTag(cacheTags.resources(schoolId), "max");
   }
 }
+
+export { upsertPluginStepExtensionWithTx };
 
 /**
  * 统一的核心实体扩展数据读取查询接口

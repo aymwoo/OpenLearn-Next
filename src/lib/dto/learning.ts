@@ -51,6 +51,18 @@ export const RuntimeStepStateDTOSchema = z.object({
     .default(null),
   latestRuntimeStateSummary: z.record(z.string(), z.unknown()).default({}),
   runtimeRecoveryStatus: z.enum(["unavailable", "available", "restored"]).default("unavailable"),
+  waitingForTeacher: z.boolean().default(false),
+  roundEnded: z.boolean().default(false),
+  roundStatusCopy: z.string().nullable().default(null),
+  latestVotingSubmission: z
+    .object({
+      stepId: z.string(),
+      submittedAt: z.string(),
+      summary: z.string().nullable().default(null),
+      payload: z.unknown().optional(),
+    })
+    .nullable()
+    .default(null),
 });
 
 export const AttemptFeedbackDTOSchema = z.object({

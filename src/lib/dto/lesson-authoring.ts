@@ -144,6 +144,7 @@ export const quizStepPayloadSchema = z.object({
   allowRetry: z.boolean().optional(),
   retryPolicy: z.enum(["none", "once", "unlimited"]).optional(),
   revealCorrectAnswer: z.boolean().optional(),
+  materialRefs: z.array(materialRefSchema).default([]),
   runtime: RuntimeDescriptorSchema.optional(),
   teachingDesign: TeachingDesignInputSchema.optional(),
   builtInSource: builtInSourceSchema.optional(),
@@ -200,6 +201,10 @@ export const LessonStepDTOSchema = z.object({
   teachingDesignStatus: TeachingDesignStatusSchema,
   needsTeachingDesignRefinement: z.boolean(),
   teachingDesignFallbackReason: TeachingDesignFallbackReasonSchema.nullable(),
+  pluginAuthoring: z.object({
+    persistedConfigJson: z.record(z.string(), z.unknown()).nullable().optional(),
+    fallbackMessage: z.string().nullable().optional(),
+  }).optional(),
   archivedAt: z.string().nullable(),
   updatedAt: z.string(),
 });

@@ -18,8 +18,16 @@ import {
 } from "@/db/schema";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
-import { listPluginStepExtensions, type PluginStepExtensionRecord } from "@/lib/dal/plugin-data";
-import { ClassroomVotingAuthoringConfigSchema } from "@/lib/dto/resource-ai";
+import {
+  listPluginStepExtensions,
+  type PluginStepExtensionRecord,
+  upsertPluginStepExtensionWithTx,
+} from "@/lib/dal/plugin-data";
+import { ACTIVE_PLUGIN_STATES, isRunnablePluginState } from "@/lib/dal/plugins";
+import {
+  ClassroomVotingAuthoringConfigSchema,
+  BUILT_IN_TEACHING_STEP_DEFINITIONS,
+} from "@/lib/dto/resource-ai";
 import { resolveTeachingDesignInput } from "@/lib/teaching-design";
 import {
   AutosaveResultDTOSchema,
@@ -75,6 +83,63 @@ type UpdateLessonStepInput = {
   title: string;
   payload: LessonStepPayload;
 };
+
+type SaveVotingLessonStepConfigInput = {
+  stepId: string;
+  title: string;
+  pluginId: string;
+  expectedUpdatedAt: string;
+  executableConfig: ReturnType<typeof ClassroomVotingAuthoringConfigSchema.parse>;
+};
+
+type SaveVotingLessonStepConfigResult = AutosaveResultDTO & {
+  publishState: Awaited<ReturnType<typeof getLessonPublishReadinessDTO>>;
+};
+
+function getClassroomVotingAuthoringContract() {
+  const definition = BUILT_IN_TEACHING_STEP_DEFINITIONS.find((item) => item.builtInKey === "classroomVoting");
+  if (!definition?.authoringContract) {
+    throw new Error("VOTING_PLUGIN_CONTRACT_MISSING");
+  }
+
+  return definition.authoringContract;
+}
+
+function buildVotingExtensionPayload(input: {
+  pluginId: string;
+  executableConfig: ReturnType<typeof ClassroomVotingAuthoringConfigSchema.parse>;
+}) {
+  const contract = getClassroomVotingAuthoringContract();
+  return {
+    kind: "classroom-voting",
+    contractVersion: "v1",
+    runtimeContractVersion: "v2",
+    executableConfig: input.executableConfig,
+    builtInSource: {
+      pluginId: input.pluginId,
+      builtInKey: contract.publicMetadata.builtInKey,
+      pluginName: contract.publicMetadata.pluginName,
+    },
+  } as const;
+}
+
+function buildVotingQuizShell(input: {
+  currentPayload: Extract<LessonStepPayload, { type: "quiz" }>;
+  executableConfig: ReturnType<typeof ClassroomVotingAuthoringConfigSchema.parse>;
+}): Extract<LessonStepPayload, { type: "quiz" }> {
+  return {
+    ...input.currentPayload,
+    type: "quiz",
+    question: input.executableConfig.prompt,
+    options: input.executableConfig.options.map((option) => option.label),
+    correctOptionIndex: undefined,
+    explanation: undefined,
+    allowRetry: false,
+    retryPolicy: "none",
+    revealCorrectAnswer: false,
+    materialRefs: input.currentPayload.materialRefs ?? [],
+  };
+}
 
 async function syncMarkdownAssetForStep(input: {
   lessonId: string;
@@ -303,7 +368,16 @@ function getBuiltInPluginAvailabilityMap(
   }>,
 ) {
   return new Map(
-    plugins.map((plugin) => [plugin.id, Boolean(plugin.enabled && !plugin.killSwitchEnabled && plugin.manifestJson?.builtIn)]),
+    plugins.map((plugin) => [
+      plugin.id,
+      Boolean(
+        plugin.manifestJson?.builtIn === true
+          && plugin.enabled
+          && !plugin.killSwitchEnabled
+          && typeof plugin.lifecycleState === "string"
+          && isRunnablePluginState(plugin.lifecycleState as (typeof ACTIVE_PLUGIN_STATES)[number]),
+      ),
+    ]),
   );
 }
 
@@ -319,7 +393,6 @@ async function getBuiltInPluginRegistryForLesson(scope: TeacherScope, schoolId: 
 }
 
 const VOTING_TEMPLATE_PLUGIN_KEY = "builtin-teaching-step-classroom-voting" as const;
-const ACTIVE_PLUGIN_STATES = new Set(["enabled", "mounted", "ready"] as const);
 
 type PublishPluginRegistryEntry = {
   id: string;
@@ -358,8 +431,43 @@ function isVotingPluginCompatible(plugin: PublishPluginRegistryEntry) {
     && plugin.manifestJson?.governance?.contractVersion === "v2";
 }
 
+function assertVotingPluginWritable(input: {
+  stepId: string;
+  payload: LessonStepPayload;
+  plugin: PublishPluginRegistryEntry | null;
+  pluginId: string;
+}) {
+  if (input.payload.type !== "quiz") {
+    throw new Error("VOTING_STEP_NOT_QUIZ");
+  }
+
+  const builtInSource = input.payload.builtInSource;
+  if (!builtInSource || builtInSource.builtInKey !== "classroomVoting") {
+    throw new Error("VOTING_STEP_NOT_CLASSROOM_VOTING");
+  }
+
+  if (builtInSource.pluginId !== input.pluginId) {
+    throw new Error("VOTING_PLUGIN_MISMATCH");
+  }
+
+  if (!input.plugin) {
+    throw new Error("VOTING_PLUGIN_DISABLED");
+  }
+
+  if (!isVotingPluginActive(input.plugin)) {
+    throw new Error("VOTING_PLUGIN_DISABLED");
+  }
+
+  if (!isVotingPluginCompatible(input.plugin)) {
+    throw new Error("VOTING_PLUGIN_INCOMPATIBLE");
+  }
+}
+
 function isVotingPluginActive(plugin: PublishPluginRegistryEntry) {
-  return plugin.enabled && !plugin.killSwitchEnabled && ACTIVE_PLUGIN_STATES.has((plugin.lifecycleState ?? "disabled") as never);
+  return plugin.enabled
+    && !plugin.killSwitchEnabled
+    && typeof plugin.lifecycleState === "string"
+    && isRunnablePluginState(plugin.lifecycleState as (typeof ACTIVE_PLUGIN_STATES)[number]);
 }
 
 function resolveVotingExecutableContract(input: {
@@ -526,7 +634,7 @@ async function getVotingPluginContext(input: {
 }
 
 function parseStepPayloadWithIssues(
-  step: Pick<typeof lessonSteps.$inferSelect, "id" | "payloadJson">,
+  step: Pick<typeof lessonSteps.$inferSelect, "id" | "title" | "payloadJson">,
 ):
   | { ok: true; payload: LessonStepPayload }
   | { ok: false; issue: LessonPublishIssueDTO } {
@@ -537,7 +645,7 @@ function parseStepPayloadWithIssues(
       ok: false,
       issue: buildIssue({
         code: "STEP_PAYLOAD_INVALID",
-        message: "步骤内容结构无效，请重新编辑后再发布。",
+        message: `步骤“${step.title || step.id}”内容结构无效，请重新编辑后再发布。`,
         stepId: step.id,
       }),
     };
@@ -859,6 +967,11 @@ export async function getLessonEditorDTO(lessonId: string) {
     where: eq(publishedLessonVersions.lessonId, lesson.id),
     orderBy: desc(publishedLessonVersions.version),
   });
+  const votingContext = await getVotingPluginContext({
+    actorId: scope.userId,
+    schoolId: course.schoolId,
+    stepRows,
+  });
 
   const readiness = await getLessonPublishReadinessDTO({ lessonId });
   const preparationSummary = buildLessonPreparationSummary({
@@ -872,10 +985,37 @@ export async function getLessonEditorDTO(lessonId: string) {
     course: courseDto,
     classes: classDtos,
     lesson: await getLessonSummaryDTO(lesson),
-    steps: stepRows.map((step) => {
-      const hydrated = hydrateTeachingDesign(lessonStepPayloadSchema.parse(step.payloadJson));
+    steps: stepRows.flatMap((step) => {
+      const parsed = parseStepPayloadWithIssues(step);
+      if (!parsed.ok) {
+        return [];
+      }
 
-      return {
+      const hydrated = hydrateTeachingDesign(parsed.payload);
+      const pluginAuthoring = hydrated.payload.builtInSource?.builtInKey === "classroomVoting"
+        ? {
+            persistedConfigJson: votingContext.extensionByStepId.get(step.id)?.payloadJson ?? null,
+            fallbackMessage: resolveVotingExecutableContract({
+              stepId: step.id,
+              payload: hydrated.payload,
+              plugin: votingContext.pluginById.get(hydrated.payload.builtInSource.pluginId) ?? null,
+              extension: votingContext.extensionByStepId.get(step.id) ?? null,
+            }).ok
+              ? null
+              : ((() => {
+                  const extension = votingContext.extensionByStepId.get(step.id);
+                  if (!extension) return null;
+                  const parsedConfig = ClassroomVotingAuthoringConfigSchema.safeParse(
+                    (extension.payloadJson as { executableConfig?: unknown } | null)?.executableConfig,
+                  );
+                  return parsedConfig.success
+                    ? null
+                    : "当前投票配置无法解析，已回退到默认值，请重新确认并保存。";
+                })()),
+          }
+        : undefined;
+
+      return [{
         id: step.id,
         lessonId: step.lessonId,
         type: step.type,
@@ -885,9 +1025,10 @@ export async function getLessonEditorDTO(lessonId: string) {
         teachingDesignStatus: hydrated.teachingDesignStatus,
         needsTeachingDesignRefinement: hydrated.needsTeachingDesignRefinement,
         teachingDesignFallbackReason: hydrated.teachingDesignFallbackReason,
+        pluginAuthoring,
         archivedAt: nullableIso(step.archivedAt),
         updatedAt: toIso(step.updatedAt),
-      };
+      }];
     }),
     materials: materialRows.map((material) => ({
       id: material.id,
@@ -908,6 +1049,93 @@ export async function getLessonEditorDTO(lessonId: string) {
       warnings: [],
     },
   });
+}
+
+export async function saveVotingLessonStepConfig(input: SaveVotingLessonStepConfigInput): Promise<SaveVotingLessonStepConfigResult> {
+  const scope = await assertActiveTeacher();
+  const { step, lesson, course } = await getScopedStep(input.stepId, scope);
+  const expectedUpdatedAt = new Date(input.expectedUpdatedAt);
+  if (Number.isNaN(expectedUpdatedAt.getTime())) {
+    throw new Error("CONFLICT");
+  }
+
+  const payload = lessonStepPayloadSchema.parse(step.payloadJson);
+  if (payload.type !== "quiz") {
+    throw new Error("VOTING_STEP_NOT_QUIZ");
+  }
+  const executableConfig = ClassroomVotingAuthoringConfigSchema.parse(input.executableConfig);
+  const pluginRows = await db.query.pluginRegistrations.findMany({
+    where: eq(pluginRegistrations.schoolId, course.schoolId),
+    columns: {
+      id: true,
+      pluginKey: true,
+      name: true,
+      enabled: true,
+      killSwitchEnabled: true,
+      lifecycleState: true,
+      manifestJson: true,
+    },
+  });
+  const plugin = pluginRows.find((item) => item.id === input.pluginId) as PublishPluginRegistryEntry | undefined;
+
+  assertVotingPluginWritable({
+    stepId: input.stepId,
+    payload,
+    plugin: plugin ?? null,
+    pluginId: input.pluginId,
+  });
+
+  const nextPayload = buildVotingQuizShell({
+    currentPayload: payload,
+    executableConfig,
+  });
+  const extensionPayload = buildVotingExtensionPayload({
+    pluginId: input.pluginId,
+    executableConfig,
+  });
+
+  const savedAt = new Date();
+
+  await db.transaction(async (tx) => {
+    const updatedSteps = await tx
+      .update(lessonSteps)
+      .set({
+        title: input.title,
+        type: "quiz",
+        payloadJson: nextPayload,
+        updatedAt: savedAt,
+      })
+      .where(and(eq(lessonSteps.id, input.stepId), eq(lessonSteps.updatedAt, expectedUpdatedAt)))
+      .returning({ id: lessonSteps.id });
+
+    if (updatedSteps.length === 0) {
+      throw new Error("CONFLICT");
+    }
+
+    await upsertPluginStepExtensionWithTx({
+      tx,
+      schoolId: course.schoolId,
+      pluginId: input.pluginId,
+      lessonStepId: input.stepId,
+      payloadJson: extensionPayload,
+    });
+
+    await tx
+      .update(lessons)
+      .set({ revision: lesson.revision + 1, updatedAt: savedAt })
+      .where(eq(lessons.id, lesson.id));
+  });
+
+  const publishState = await getLessonPublishReadinessDTO({ lessonId: lesson.id });
+
+  return {
+    ok: true,
+    lessonId: lesson.id,
+    courseId: course.id,
+    stepId: input.stepId,
+    savedAt: toIso(savedAt),
+    publishState,
+  };
 }
 
 export async function createCourseForTeacher(input: CreateCourseInput) {

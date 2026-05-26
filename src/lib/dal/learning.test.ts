@@ -103,6 +103,15 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain('runtimeRecoveryStatus: latestRuntime ? (classroomSessionId ? "restored" : "available") : "unavailable"');
   });
 
+  it("restores latest voting submission and round-aware waiting status into the runtime DTO", () => {
+    expect(source).toContain("currentVotingRound");
+    expect(source).toContain("const latestVotingSubmissionRow");
+    expect(source).toContain("latestVotingSubmission:");
+    expect(source).toContain('roundStatusCopy = latestVotingSubmissionRow');
+    expect(source).toContain('"已提交，等待老师结束本轮投票"');
+    expect(source).toContain('"老师结束前，你可以更新本次选择。"');
+  });
+
   it("derives Chinese student activity guidance server-side without leaking teacher-only wording", () => {
     expect(source).toContain("activityGuidance");
     expect(source).toContain("expectedOutput");
@@ -200,6 +209,12 @@ describe("learning DAL progress, append-only attempts, and teacher review", () =
     expect(source).toContain("state: \"completed\"");
     expect(source).toContain("await tx.update(taskSubmissions)");
     expect(source).toContain("await tx.update(quizAttempts)");
+  });
+
+  it("keeps runtime-driven voting submit append-only while exposing duplicate payload as a no-op upstream concern", () => {
+    expect(source).toContain("export async function recordRuntimeTaskSubmission");
+    expect(source).toContain("export async function recordRuntimeQuizAttempt");
+    expect(source).not.toContain("payloadFingerprint");
   });
 
   it("keeps quiz outcomes server-controlled without gradebook terms", () => {

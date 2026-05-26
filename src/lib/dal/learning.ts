@@ -50,6 +50,7 @@ import {
   type StudentQuickResponseAttemptDTO,
   type TeacherReviewFilter,
 } from "@/lib/dto/learning";
+import { getClassroomSnapshotForActor } from "@/lib/dal/classroom";
 import { resolveTeachingDesignInput } from "@/lib/teaching-design";
 import { getLatestRuntimeRecoverySummary } from "@/features/runtime-platform/classroom/runtime-session";
 
@@ -751,12 +752,20 @@ export async function getStudentClassroomRuntime(input: { lessonId: string; scop
   const slideEvent = eventRows.find((event) => event.type === "slide_changed");
   const slidePayload = slideEvent?.payloadJson as { stepId?: string; slideIndex?: number } | undefined;
 
+  const snapshot = await getClassroomSnapshotForActor({
+    sessionId,
+    actorId: input.scope.userId,
+    actorScope: "student",
+    schoolId: input.scope.schoolIds[0] ?? "",
+  });
+
   return {
     sessionId,
     version,
     locked: Boolean(locked),
     activeStepId,
     slideIndex: slidePayload?.stepId === activeStepId && typeof slidePayload.slideIndex === "number" ? slidePayload.slideIndex : 0,
+    currentVotingRound: snapshot.currentVotingRound,
   };
 }
 
@@ -780,6 +789,9 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
   let classroomSessionId = null;
   let classroomVersion = null;
   let slideIndex: number | null = null;
+  let waitingForTeacher = false;
+  let roundEnded = false;
+  let roundStatusCopy: string | null = null;
 
   if (classroomRuntime) {
     classroomSessionId = classroomRuntime.sessionId;
@@ -792,6 +804,44 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
       teacherRecommendedStepId = classroomRuntime.activeStepId;
       locked = false;
     }
+
+    if (classroomRuntime.currentVotingRound?.stepId) {
+      forcedStepId = classroomRuntime.currentVotingRound.stepId;
+      teacherRecommendedStepId = classroomRuntime.currentVotingRound.stepId;
+      roundEnded = classroomRuntime.currentVotingRound.status === "closed";
+    }
+  }
+
+  const latestVotingSubmissionRows = classroomSessionId && classroomRuntime?.currentVotingRound?.stepId
+    ? await db.query.classroomEvidence.findMany({
+        where: and(
+          eq(classroomEvidence.sessionId, classroomSessionId),
+          eq(classroomEvidence.studentId, scope.userId),
+          eq(classroomEvidence.stepId, classroomRuntime.currentVotingRound.stepId),
+          eq(classroomEvidence.sourceType, "student-submission"),
+        ),
+        orderBy: desc(classroomEvidence.createdAt),
+      })
+    : [];
+  const latestVotingSubmissionRow = latestVotingSubmissionRows.find((row) => {
+    if (!classroomRuntime?.currentVotingRound?.startedAt) {
+      return true;
+    }
+
+    return Date.parse(toIso(row.createdAt)) >= Date.parse(classroomRuntime.currentVotingRound.startedAt);
+  }) ?? null;
+  const latestVotingPayload = latestVotingSubmissionRow?.payloadJson as {
+    submittedAt?: unknown;
+    state?: unknown;
+  } | undefined;
+
+  if (classroomRuntime?.currentVotingRound?.status === "live") {
+    waitingForTeacher = Boolean(latestVotingSubmissionRow);
+    roundStatusCopy = latestVotingSubmissionRow
+      ? "已提交，等待老师结束本轮投票"
+      : "老师结束前，你可以更新本次选择。";
+  } else if (classroomRuntime?.currentVotingRound?.status === "closed") {
+    roundStatusCopy = "老师已结束本轮投票，当前结果已冻结。";
   }
 
   // first incomplete is the default resume target; selectedStepId wins only when runtime is not locked.
@@ -869,6 +919,20 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
         : null,
       latestRuntimeStateSummary: latestRuntime?.summary ?? {},
       runtimeRecoveryStatus: latestRuntime ? (classroomSessionId ? "restored" : "available") : "unavailable",
+      waitingForTeacher,
+      roundEnded,
+      roundStatusCopy,
+      latestVotingSubmission: latestVotingSubmissionRow
+        ? {
+            stepId: latestVotingSubmissionRow.stepId ?? classroomRuntime?.currentVotingRound?.stepId ?? resumeStepId ?? "",
+            submittedAt:
+              typeof latestVotingPayload?.submittedAt === "string" && latestVotingPayload.submittedAt.length > 0
+                ? latestVotingPayload.submittedAt
+                : toIso(latestVotingSubmissionRow.createdAt),
+            summary: latestVotingSubmissionRow ? "已提交，等待老师结束本轮投票" : null,
+            payload: latestVotingPayload?.state,
+          }
+        : null,
     },
     canRetryTask: false,
     canRetryQuiz: false,

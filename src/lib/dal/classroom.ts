@@ -224,6 +224,7 @@ function extractRuntimeProofFromEvidence(input: {
       title?: unknown;
       submittedStateLabel?: unknown;
       inspectorHref?: unknown;
+      status?: unknown;
     };
   };
 
@@ -248,11 +249,213 @@ function extractRuntimeProofFromEvidence(input: {
     runtimeSessionId: payload.runtimeSessionId,
     runtimeInstanceId: typeof payload.runtimeInstanceId === "string" ? payload.runtimeInstanceId : null,
     submittedAt,
-    status: "submitted" as const,
+    status: payload.proofSummary?.status === "failed" ? "failed" as const : "submitted" as const,
     summaryTitle,
     summaryLabel,
     inspectorHref,
   };
+}
+
+function extractVotingRoundArtifact(input: {
+  payload: unknown;
+  createdAt: Date | number | null | undefined;
+}) {
+  const payload = (input.payload ?? {}) as {
+    kind?: unknown;
+    stepId?: unknown;
+    stepTitle?: unknown;
+    version?: unknown;
+    openedAt?: unknown;
+    closedAt?: unknown;
+    command?: unknown;
+  };
+
+  if (typeof payload.stepId !== "string" || payload.stepId.length === 0) {
+    return null;
+  }
+
+  const kind = payload.kind;
+  if (kind !== "voting-round-opened" && kind !== "voting-round-closed") {
+    return null;
+  }
+
+  return {
+    kind,
+    stepId: payload.stepId,
+    stepTitle: typeof payload.stepTitle === "string" && payload.stepTitle.length > 0 ? payload.stepTitle : null,
+    version: typeof payload.version === "number" && Number.isFinite(payload.version) ? payload.version : null,
+    openedAt:
+      typeof payload.openedAt === "string" && payload.openedAt.length > 0
+        ? payload.openedAt
+        : kind === "voting-round-opened"
+          ? toIso(input.createdAt)
+          : null,
+    closedAt:
+      typeof payload.closedAt === "string" && payload.closedAt.length > 0
+        ? payload.closedAt
+        : kind === "voting-round-closed"
+          ? toIso(input.createdAt)
+          : null,
+    command: typeof payload.command === "string" ? payload.command : null,
+  };
+}
+
+function parseVotingSubmissionState(payload: unknown) {
+  const record = (payload ?? {}) as {
+    runtimeSessionId?: unknown;
+    submittedAt?: unknown;
+    state?: unknown;
+    proofSummary?: { status?: unknown };
+  };
+
+  if (typeof record.runtimeSessionId !== "string" || record.runtimeSessionId.length === 0) {
+    return null;
+  }
+
+  const state = record.state && typeof record.state === "object" ? (record.state as Record<string, unknown>) : {};
+  const selectedOptionIds = Array.isArray(state.selectedOptionIds)
+    ? state.selectedOptionIds.filter((value): value is string => typeof value === "string" && value.length > 0)
+    : typeof state.selectedOptionId === "string" && state.selectedOptionId.length > 0
+      ? [state.selectedOptionId]
+      : [];
+
+  return {
+    runtimeSessionId: record.runtimeSessionId,
+    submittedAt: typeof record.submittedAt === "string" && record.submittedAt.length > 0 ? record.submittedAt : null,
+    selectedOptionIds,
+    failed: record.proofSummary?.status === "failed",
+  };
+}
+
+function buildVotingRoundState(input: {
+  step: ReturnType<typeof parseSnapshotSteps>[number] | undefined;
+  participants: Array<{
+    studentId: string;
+    studentName: string;
+    connectionState: "connected" | "reconnecting" | "offline";
+  }>;
+  evidenceRows: Array<typeof classroomEvidence.$inferSelect>;
+  latestVotingRoundArtifact: ReturnType<typeof extractVotingRoundArtifact>;
+}) {
+  if (!input.latestVotingRoundArtifact?.stepId) {
+    return null;
+  }
+
+  const roundRows = input.evidenceRows.filter((row) => row.stepId === input.latestVotingRoundArtifact?.stepId);
+  const artifactRows = roundRows
+    .filter((row) => row.sourceType === "system" && row.evidenceType === "artifact")
+    .map((row) => ({ row, artifact: extractVotingRoundArtifact({ payload: row.payloadJson, createdAt: row.createdAt }) }))
+    .filter((entry): entry is { row: typeof classroomEvidence.$inferSelect; artifact: NonNullable<ReturnType<typeof extractVotingRoundArtifact>> } => Boolean(entry.artifact));
+  const opened = artifactRows.find((entry) => entry.artifact.kind === "voting-round-opened") ?? null;
+  const closed = artifactRows.find((entry) => entry.artifact.kind === "voting-round-closed") ?? null;
+  const startedAt = opened?.artifact.openedAt ?? (opened ? toIso(opened.row.createdAt) : input.latestVotingRoundArtifact.openedAt);
+  const endedAt = closed?.artifact.closedAt ?? (closed ? toIso(closed.row.createdAt) : input.latestVotingRoundArtifact.closedAt);
+  const isFrozen = Boolean(closed);
+  const submissionRows = roundRows
+    .filter((row) => row.sourceType === "student-submission")
+    .sort((left, right) => Date.parse(toIso(right.createdAt)) - Date.parse(toIso(left.createdAt)));
+  const latestSubmissionByStudentId = new Map<string, ReturnType<typeof parseVotingSubmissionState>>();
+
+  for (const row of submissionRows) {
+    if (!row.studentId || latestSubmissionByStudentId.has(row.studentId)) {
+      continue;
+    }
+    const parsed = parseVotingSubmissionState(row.payloadJson);
+    if (!parsed) {
+      continue;
+    }
+    if (startedAt && Date.parse(parsed.submittedAt ?? toIso(row.createdAt)) < Date.parse(startedAt)) {
+      continue;
+    }
+    latestSubmissionByStudentId.set(row.studentId, parsed);
+  }
+
+  const quizPayload = input.step?.type === "quiz"
+    ? (input.step.payload as { options: string[] })
+    : null;
+  const optionLabels: string[] = quizPayload ? quizPayload.options : [];
+  const optionIds = optionLabels.map((label: string, index: number) => `option-${index + 1}`);
+  const optionCounts = new Map(optionIds.map((id) => [id, 0]));
+  let failureCount = 0;
+
+  for (const submission of latestSubmissionByStudentId.values()) {
+    if (!submission) {
+      continue;
+    }
+
+    if (submission.failed) {
+      failureCount += 1;
+    }
+    for (const optionId of submission.selectedOptionIds) {
+      optionCounts.set(optionId, Number(optionCounts.get(optionId) ?? 0) + 1);
+    }
+  }
+
+  const submittedCount = latestSubmissionByStudentId.size;
+  const remainingParticipants = input.participants.filter((participant) => !latestSubmissionByStudentId.has(participant.studentId));
+  const incompleteStudents = remainingParticipants.map((participant) => ({
+    studentId: participant.studentId,
+    studentName: participant.studentName,
+    statusToken:
+      participant.connectionState === "offline"
+        ? "离线"
+        : participant.connectionState === "reconnecting"
+          ? "重新连接中"
+          : "未提交",
+  }));
+  const maxCount = Math.max(0, ...Array.from(optionCounts.values()).map((value) => Number(value)));
+  const optionResults = optionLabels.map((label: string, index: number) => {
+    const optionId = optionIds[index] ?? `option-${index + 1}`;
+    const count = Number(optionCounts.get(optionId) ?? 0);
+    return {
+      optionId,
+      optionLabel: label,
+      count,
+      percentage: submittedCount > 0 ? (count / submittedCount) * 100 : 0,
+      isLeading: submittedCount > 0 && count === maxCount,
+    };
+  });
+  const namedResults = input.participants.flatMap((participant) => {
+    const submission = latestSubmissionByStudentId.get(participant.studentId);
+    if (!submission) {
+      return [];
+    }
+
+    return [{
+      studentId: participant.studentId,
+      studentName: participant.studentName,
+      selectedOptionIds: submission.selectedOptionIds,
+      selectedOptionLabels: submission.selectedOptionIds.map((optionId) => {
+        const index = optionIds.indexOf(optionId);
+        return index >= 0 ? optionLabels[index] ?? optionId : optionId;
+      }),
+      submittedAt: submission.submittedAt,
+    }];
+  });
+
+  return {
+    status: isFrozen ? "closed" : "live",
+    stepId: input.latestVotingRoundArtifact.stepId,
+    stepTitle: input.latestVotingRoundArtifact.stepTitle,
+    startedAt: startedAt ?? null,
+    endedAt: endedAt ?? null,
+    submittedCount,
+    remainingCount: incompleteStudents.length,
+    optionResults,
+    incompleteStudents,
+    namedResults,
+    failureCount,
+    namedResultsFoldedByDefault: true,
+    roundStatusCopy: isFrozen ? "本轮已结束" : "投票进行中",
+    failureCopy: failureCount > 0 ? `有 ${failureCount} 名学生提交失败或状态异常，请先查看未完成名单。` : null,
+    recoveryActions: [
+      { action: "retry", label: "重试同步", description: "重新下发当前轮次同步指令。" },
+      { action: "reconcile", label: "重新对账", description: "按当前课堂 truth 重新校对结果。" },
+      { action: "suspend", label: "暂停本轮", description: "暂停当前轮次，避免继续接收异常写入。" },
+      { action: "fallback", label: "切换到课堂内回退处理", description: "保留课堂内处理，不跳出当前课堂。" },
+    ],
+    isFrozen,
+  } as const;
 }
 
 function toParticipationLabel(level: "active" | "normal" | "attention" | null | undefined) {
@@ -690,6 +893,21 @@ function buildEvidenceSummary(teachingDesign: TeachingDesign, inferred: boolean)
   return `${prefix}：${teachingDesign.evidenceExpectation.prompt}${fallback}`;
 }
 
+function resolvePreviewPluginContext(payload: ReturnType<typeof lessonStepPayloadSchema.parse>) {
+  const builtInSource = payload.builtInSource;
+  if (builtInSource?.builtInKey) {
+    return {
+      pluginKey: builtInSource.builtInKey,
+      pluginLabel: builtInSource.pluginName,
+    };
+  }
+
+  return {
+    pluginKey: null,
+    pluginLabel: null,
+  };
+}
+
 function getMaterialCues(snapshot: PublishedSnapshot, stepId: string, payload: ReturnType<typeof lessonStepPayloadSchema.parse>) {
   const stepMaterials = (snapshot.materials ?? [])
     .filter((material) => !material.stepId || material.stepId === stepId)
@@ -706,6 +924,7 @@ function getMaterialCues(snapshot: PublishedSnapshot, stepId: string, payload: R
 function buildLaunchPreview(snapshot: PublishedSnapshot, fallbackLessonId: string, fallbackLessonTitle: string) {
   const steps = parseSnapshotSteps(snapshot, fallbackLessonId).map((step, index) => {
     const resolution = resolveTeachingDesign(step.payload);
+    const pluginContext = resolvePreviewPluginContext(step.payload);
     const family = resolution.teachingDesignStatus === "explicit"
       ? `${TEACHING_INTENT_LABELS[resolution.teachingDesign.activityIntent]} / ${resolution.teachingDesign.activityMode}`
       : STEP_FAMILY_LABELS[step.type];
@@ -723,6 +942,8 @@ function buildLaunchPreview(snapshot: PublishedSnapshot, fallbackLessonId: strin
       id: step.id,
       order: index + 1,
       title: step.title,
+      pluginKey: pluginContext.pluginKey,
+      pluginLabel: pluginContext.pluginLabel,
       family,
       summary,
       activityIntent: resolution.teachingDesign.activityIntent,
@@ -767,6 +988,11 @@ function buildLaunchReadiness(input: {
     ? [{
         code: "NO_LAUNCHABLE_CLASSES" as const,
         message: "当前课时还没有可直接开课的整班名单，请先确认已绑定班级且名单中有学生。",
+        stepId: null,
+        stepTitle: null,
+        pluginKey: null,
+        pluginLabel: null,
+        severityCopy: "当前必须先解决这个问题，才能开启课堂。",
       }]
     : [];
 
@@ -779,11 +1005,19 @@ function buildLaunchReadiness(input: {
     code: "TEACHING_DESIGN_NEEDS_REFINEMENT" | "TEACHING_DESIGN_INFERRED";
     message: string;
     stepId?: string | null;
+    stepTitle: string | null;
+    pluginKey: string | null;
+    pluginLabel: string | null;
+    severityCopy: string;
   }>;
   const advisoryIssues = [] as Array<{
     code: "MATERIAL_CUES_MISSING" | "EVIDENCE_CUES_REVIEW";
     message: string;
     stepId?: string | null;
+    stepTitle: string | null;
+    pluginKey: string | null;
+    pluginLabel: string | null;
+    severityCopy: string;
   }>;
 
   if (refinementSteps.length > 0) {
@@ -791,6 +1025,10 @@ function buildLaunchReadiness(input: {
       code: "TEACHING_DESIGN_NEEDS_REFINEMENT",
       message: `${refinementSteps.length} 个环节的教学设计仍需完善，建议开课前再确认活动方式与时间分配。`,
       stepId: refinementSteps[0]?.id ?? null,
+      stepTitle: refinementSteps[0]?.title ?? null,
+      pluginKey: refinementSteps[0]?.pluginKey ?? null,
+      pluginLabel: refinementSteps[0]?.pluginLabel ?? null,
+      severityCopy: "课堂仍会按已发布快照启动，本项不会阻断开课。",
     });
   }
 
@@ -799,6 +1037,10 @@ function buildLaunchReadiness(input: {
       code: "TEACHING_DESIGN_INFERRED",
       message: `${inferredSteps.length} 个环节仍在使用默认推断，不会阻断开课，但建议教师先过一遍课堂节奏。`,
       stepId: inferredSteps[0]?.id ?? null,
+      stepTitle: inferredSteps[0]?.title ?? null,
+      pluginKey: inferredSteps[0]?.pluginKey ?? null,
+      pluginLabel: inferredSteps[0]?.pluginLabel ?? null,
+      severityCopy: "课堂仍会按已发布快照启动，本项不会阻断开课。",
     });
   }
 
@@ -807,6 +1049,10 @@ function buildLaunchReadiness(input: {
       code: "MATERIAL_CUES_MISSING",
       message: `${missingMaterialSteps.length} 个环节还没有明确材料提示，建议开课前补齐讲义、链接或设备准备。`,
       stepId: missingMaterialSteps[0]?.id ?? null,
+      stepTitle: missingMaterialSteps[0]?.title ?? null,
+      pluginKey: missingMaterialSteps[0]?.pluginKey ?? null,
+      pluginLabel: missingMaterialSteps[0]?.pluginLabel ?? null,
+      severityCopy: "建议在开课前补齐这些信息，减少课堂内临时处理。",
     });
   }
 
@@ -815,6 +1061,10 @@ function buildLaunchReadiness(input: {
       code: "EVIDENCE_CUES_REVIEW",
       message: `${evidenceReviewSteps.length} 个环节的采证提醒仍需教师确认，建议开课前明确要观察或收集什么。`,
       stepId: evidenceReviewSteps[0]?.id ?? null,
+      stepTitle: evidenceReviewSteps[0]?.title ?? null,
+      pluginKey: evidenceReviewSteps[0]?.pluginKey ?? null,
+      pluginLabel: evidenceReviewSteps[0]?.pluginLabel ?? null,
+      severityCopy: "建议在开课前补齐这些信息，减少课堂内临时处理。",
     });
   }
 
@@ -989,7 +1239,8 @@ async function buildClassroomSnapshotDTOForActor(input: {
       eq(classroomEvidence.sessionId, session.id),
       or(
         eq(classroomEvidence.sourceType, "student-quick-response"),
-        eq(classroomEvidence.sourceType, "student-submission")
+        eq(classroomEvidence.sourceType, "student-submission"),
+        eq(classroomEvidence.sourceType, "system")
       )
     ),
   });
@@ -1008,8 +1259,25 @@ async function buildClassroomSnapshotDTOForActor(input: {
   const userMap = new Map(studentUsers.map((user) => [user.id, user.name]));
   const submissionCountByStudentId = new Map<string, number>();
   const runtimeProofByStudentId = new Map<string, ReturnType<typeof extractRuntimeProofFromEvidence>>();
+  let latestVotingRoundArtifact: ReturnType<typeof extractVotingRoundArtifact> = null;
 
   for (const evidence of evidenceRows) {
+    const votingRoundArtifact = evidence.sourceType === "system" && evidence.evidenceType === "artifact"
+      ? extractVotingRoundArtifact({
+          payload: evidence.payloadJson,
+          createdAt: evidence.createdAt,
+        })
+      : null;
+
+    if (votingRoundArtifact) {
+      const currentVersion = latestVotingRoundArtifact?.version ?? -1;
+      const nextVersion = votingRoundArtifact.version ?? -1;
+      if (!latestVotingRoundArtifact || nextVersion >= currentVersion) {
+        latestVotingRoundArtifact = votingRoundArtifact;
+      }
+      continue;
+    }
+
     if (!evidence.studentId || evidence.stepId !== session.activeStepId) {
       continue;
     }
@@ -1063,6 +1331,16 @@ async function buildClassroomSnapshotDTOForActor(input: {
     needsAttentionCount: participantDtos.filter((participant) => participant.needsAttention).length,
     submittedCount: participantDtos.filter((participant) => participant.submissionCount > 0).length,
   };
+  const currentVotingRound = buildVotingRoundState({
+    step: steps.find((step) => step.id === latestVotingRoundArtifact?.stepId),
+    participants: participantDtos.map((participant) => ({
+      studentId: participant.studentId,
+      studentName: participant.studentName,
+      connectionState: participant.connectionState,
+    })),
+    evidenceRows,
+    latestVotingRoundArtifact,
+  });
   const teacherTimeline = isTeacher
     ? buildTeacherTimeline({
         timelineRows,
@@ -1102,6 +1380,7 @@ async function buildClassroomSnapshotDTOForActor(input: {
       degraded: Boolean(transportDegradedReason),
       degradedReason: transportDegradedReason,
     },
+    currentVotingRound,
     teacherTimeline,
     copy: {
       staleRefreshRequired: "课堂状态已经被更新。请先恢复最新状态，再继续操作。",

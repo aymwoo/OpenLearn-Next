@@ -248,6 +248,39 @@ describe("built-in plugin template resolution", () => {
     });
   });
 
+  it("hides suspended, failed, and kill-switched built-ins from template lists", async () => {
+    findManyPluginRegistrations.mockResolvedValue([
+      createBuiltInPlugin({ id: "plugin-ready", name: "教师讲授" }),
+      createBuiltInPlugin({ id: "plugin-suspended", lifecycleState: "suspended", name: "停用插件" }),
+      createBuiltInPlugin({ id: "plugin-failed", lifecycleState: "failed", name: "失败插件" }),
+      createBuiltInPlugin({ id: "plugin-killed", killSwitchEnabled: true, name: "熔断插件" }),
+    ]);
+    dispatchPluginAction.mockImplementation(({ pluginId }: { pluginId: string }) => ({
+      proposalType: "builtInTeachingStepTemplate",
+      payload: {
+        builtInKey: pluginId === "plugin-ready" ? "directInstruction" : "survey",
+        pluginName: pluginId === "plugin-ready" ? "教师讲授" : "不可用插件",
+        title: pluginId === "plugin-ready" ? "教师讲授" : "不可用插件",
+        summary: "summary",
+        stepType: "content",
+        initialTitle: "title",
+        initialPayload: {
+          type: "content",
+          title: "title",
+          body: "body",
+          materialRefs: [],
+        },
+      },
+    }));
+
+    const { listBuiltInTeachingStepTemplates } = await import("./plugins");
+    const templates = await listBuiltInTeachingStepTemplates({ actorId: "teacher-1", schoolId: "school-1" });
+
+    expect(templates).toHaveLength(1);
+    expect(templates[0]?.pluginId).toBe("plugin-ready");
+    expect(dispatchPluginAction).toHaveBeenCalledTimes(1);
+  });
+
   it("supports the markdown built-in teaching definition", async () => {
     const { BUILT_IN_TEACHING_STEP_DEFINITIONS } = await import("@/lib/dto/resource-ai");
 
