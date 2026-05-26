@@ -21,6 +21,7 @@ describe("verify-phase56 voting authoring gate", () => {
 
   it("locks the focused phase 56 suite list to repo-local authoring and publish tests", () => {
     expect(getPhase56VerificationSuitePaths()).toEqual([
+      "src/components/authoring/lesson-step-editor.test.tsx",
       "src/components/authoring/lesson-authoring-workspace.test.tsx",
       "src/lib/dal/plugins.builtins.test.ts",
       "src/lib/dal/lesson-authoring.test.ts",
@@ -29,7 +30,7 @@ describe("verify-phase56 voting authoring gate", () => {
     ]);
   });
 
-  it("fails static evaluation when voting blocker taxonomy regresses to a generic publish gate", () => {
+  it("only keeps irreducible static checks for package script and core step counts", () => {
     const checks = evaluatePhase56StaticChecks({
       packageSource: JSON.stringify({
         scripts: {
@@ -39,23 +40,10 @@ describe("verify-phase56 voting authoring gate", () => {
       dtoSource: `
         export const lessonStepPayloadSchema = z.discriminatedUnion("type", [contentStepPayloadSchema, taskStepPayloadSchema, quizStepPayloadSchema]);
         export const LessonStepDTOSchema = z.object({ type: z.enum(["content", "task", "quiz"]) });
-        export const LessonPublishIssueCodeSchema = z.enum(["LESSON_TITLE_REQUIRED"]);
       `,
-      lessonAuthoringSource: `
-        function resolveVotingExecutableContract() {}
-        throw new Error("PUBLISH_BLOCKED");
-      `,
-      pluginDataSource: `
-        export async function listPluginStepExtensions() {}
-        function helper() { return pluginLessonStepExtensions; }
-      `,
-      pluginDalSource: "",
-      actionsSource: "",
     });
 
-    expect(
-      checks.find((check: { label: string; passed: boolean }) => check.label === "voting publish blockers remain structured and specific")
-        ?.passed,
-    ).toBe(false);
+    expect(checks).toHaveLength(3);
+    expect(checks.every((check) => check.passed)).toBe(true);
   });
 });

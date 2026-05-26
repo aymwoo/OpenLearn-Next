@@ -208,10 +208,22 @@ export function evaluatePhase58StaticChecks(sources: Phase58StaticSources): Stat
       passed:
         includesAll(sources.pluginActionSource, [
           'actorScope: "operator"',
+          "setPluginEnabledForOperatorAction",
+          "reconcilePluginForOperatorAction",
+          "retryPluginForOperatorAction",
           "transitionPluginLifecycleForOperatorAction",
           "setPluginKillSwitchForOperatorAction",
           "resolveOperatorSchoolId",
         ])
+        && includesAll(sources.pluginLifecycleSurfaceSource, [
+          "setPluginEnabledForOperatorAction",
+          "reconcilePluginForOperatorAction",
+          "retryPluginForOperatorAction",
+          "runOperatorPostureRecoveryAction",
+        ])
+        && !sources.pluginLifecycleSurfaceSource.includes("setPluginEnabledAction({")
+        && !sources.pluginLifecycleSurfaceSource.includes("reconcilePluginAction({")
+        && !sources.pluginLifecycleSurfaceSource.includes("retryPluginAction({")
         && includesAll(sources.pluginHandlerSource, [
           'command.actor.actorScope === "operator"',
           "getUserMembershipsDTO",

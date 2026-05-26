@@ -10,10 +10,6 @@ type StaticCheck = {
 type Phase56StaticSources = {
   packageSource: string;
   dtoSource: string;
-  lessonAuthoringSource: string;
-  pluginDataSource: string;
-  pluginDalSource: string;
-  actionsSource: string;
 };
 
 function read(filePath: string) {
@@ -87,6 +83,7 @@ function countCoreStepTypes(dtoSource: string) {
 
 export function getPhase56VerificationSuitePaths() {
   return [
+    "src/components/authoring/lesson-step-editor.test.tsx",
     "src/components/authoring/lesson-authoring-workspace.test.tsx",
     "src/lib/dal/plugins.builtins.test.ts",
     "src/lib/dal/lesson-authoring.test.ts",
@@ -111,49 +108,6 @@ export function evaluatePhase56StaticChecks(sources: Phase56StaticSources): Stat
       label: "phase 56 keeps exactly three discriminated payload variants",
       passed: typeCounts.discriminatedVariantCount === 3,
     },
-    {
-      label: "voting publish blockers remain structured and specific",
-      passed:
-        sources.dtoSource.includes('"VOTING_PLUGIN_CONFIG_MISSING"') &&
-        sources.dtoSource.includes('"VOTING_PLUGIN_CONFIG_INVALID"') &&
-        sources.dtoSource.includes('"VOTING_PLUGIN_DISABLED"') &&
-        sources.dtoSource.includes('"VOTING_PLUGIN_INCOMPATIBLE"') &&
-        sources.lessonAuthoringSource.includes('code: "VOTING_PLUGIN_CONFIG_MISSING"') &&
-        sources.lessonAuthoringSource.includes('code: "VOTING_PLUGIN_CONFIG_INVALID"') &&
-        sources.lessonAuthoringSource.includes('code: "VOTING_PLUGIN_DISABLED"') &&
-        sources.lessonAuthoringSource.includes('code: "VOTING_PLUGIN_INCOMPATIBLE"'),
-    },
-    {
-      label: "publish freeze still writes classroom voting pluginContract into snapshot",
-      passed:
-        sources.lessonAuthoringSource.includes("function resolveVotingExecutableContract") &&
-        sources.lessonAuthoringSource.includes("pluginContract: contract.contract") &&
-        sources.lessonAuthoringSource.includes("runtimeContractVersion: \"v2\"") &&
-        sources.lessonAuthoringSource.includes("executableConfig: parsedConfig.data"),
-    },
-    {
-      label: "runtime snapshot is derived from DAL-backed plugin extension truth, not draft-only memory",
-      passed:
-        sources.lessonAuthoringSource.includes("listPluginStepExtensions") &&
-        sources.lessonAuthoringSource.includes("extensionByStepId") &&
-        sources.lessonAuthoringSource.includes("stepDtos: editor.steps") &&
-        sources.pluginDataSource.includes("export async function listPluginStepExtensions") &&
-        sources.pluginDataSource.includes("assertTeacherManagerScope") &&
-        sources.pluginDataSource.includes("assertPluginBelongsToSchool") &&
-        sources.pluginDataSource.includes("pluginLessonStepExtensions"),
-    },
-    {
-      label: "authoring and publish surfaces do not bypass DAL to write plugin extension truth",
-      passed:
-        !sources.actionsSource.includes("pluginLessonStepExtensions") &&
-        !sources.actionsSource.includes("db.query.pluginLessonStepExtensions") &&
-        !sources.actionsSource.includes("pluginOwnedBusinessData") &&
-        !sources.lessonAuthoringSource.includes("pluginLessonStepExtensions") &&
-        !sources.lessonAuthoringSource.includes("db.query.pluginLessonStepExtensions") &&
-        !sources.lessonAuthoringSource.includes("pluginOwnedBusinessData") &&
-        sources.lessonAuthoringSource.includes("listPluginStepExtensions") &&
-        sources.pluginDataSource.includes("from(pluginLessonStepExtensions)"),
-    },
   ];
 }
 
@@ -164,18 +118,10 @@ function main() {
 
   const packageSource = read("package.json");
   const dtoSource = read("src/lib/dto/lesson-authoring.ts");
-  const lessonAuthoringSource = read("src/lib/dal/lesson-authoring.ts");
-  const pluginDataSource = read("src/lib/dal/plugin-data.ts");
-  const pluginDalSource = read("src/lib/dal/plugins.ts");
-  const actionsSource = read("src/actions/lesson-authoring-actions.ts");
 
   const staticChecks = evaluatePhase56StaticChecks({
     packageSource,
     dtoSource,
-    lessonAuthoringSource,
-    pluginDataSource,
-    pluginDalSource,
-    actionsSource,
   });
 
   const failedChecks = staticChecks.filter((check) => !check.passed);

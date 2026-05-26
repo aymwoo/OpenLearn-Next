@@ -85,6 +85,9 @@ describe("verify-phase58 operator recovery gate", () => {
       `,
       pluginActionSource: `
         actorScope: "operator"
+        setPluginEnabledForOperatorAction
+        reconcilePluginForOperatorAction
+        retryPluginForOperatorAction
         transitionPluginLifecycleForOperatorAction
         setPluginKillSwitchForOperatorAction
         resolveOperatorSchoolId
@@ -109,7 +112,14 @@ describe("verify-phase58 operator recovery gate", () => {
       `,
       runtimeInspectorSurfaceSource: `toRuntimeInspectorHonestyCard honestyCard.sections.map`,
       asyncTaskOperatorSurfaceSource: `toAsyncTaskOperatorHonestyCard backlogHonesty.sections.map`,
-      pluginLifecycleSurfaceSource: `toPluginLifecycleHonestyCard honestyCard.sections.map`,
+      pluginLifecycleSurfaceSource: `
+        toPluginLifecycleHonestyCard
+        honestyCard.sections.map
+        setPluginEnabledForOperatorAction
+        reconcilePluginForOperatorAction
+        retryPluginForOperatorAction
+        runOperatorPostureRecoveryAction
+      `,
       operatorHonestySource: `
         id: z.enum(["trustBoundary", "impactScope", "nextStep"])
         label: "仍可信什么 / 已不可信什么"
