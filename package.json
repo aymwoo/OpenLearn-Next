@@ -59,7 +59,9 @@
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
     "db:migrate": "tsx --import ./scripts/node-shim.js scripts/prepare-dev-db.ts",
     "db:bootstrap:dev": "pnpm db:migrate && tsx --import ./scripts/node-shim.js scripts/bootstrap-dev-db.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "verify:phase58": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase58-operator-recovery-and-surfaces.ts",
+    "proof:phase58": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/proof-phase58-operator-recovery.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
