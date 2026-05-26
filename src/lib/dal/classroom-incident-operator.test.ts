@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getCurrentUserDTO = vi.fn();
 const getUserMembershipsDTO = vi.fn();
 const listOperatorVisibleAsyncTasks = vi.fn();
+const listOperatorVisiblePlatformCommands = vi.fn();
 const readPluginGovernanceLifecycle = vi.fn();
 const runCurrentVotingRecoveryAction = vi.fn();
 
@@ -16,7 +17,6 @@ const findFirstPublishedLessonVersions = vi.fn();
 const findManyRuntimeStepSessions = vi.fn();
 const findManyGovernanceAudits = vi.fn();
 const findManyPluginActionAudits = vi.fn();
-const findManyPlatformCommands = vi.fn();
 
 vi.mock("server-only", () => ({}));
 
@@ -30,6 +30,10 @@ vi.mock("@/lib/dal/membership", () => ({
 
 vi.mock("@/features/async-tasks/server/operator-read-model", () => ({
   listOperatorVisibleAsyncTasks,
+}));
+
+vi.mock("@/features/platform-core/observability/operator-read-model", () => ({
+  listOperatorVisiblePlatformCommands,
 }));
 
 vi.mock("@/features/platform-core/actions/registry", () => ({
@@ -64,9 +68,6 @@ vi.mock("@/db", () => ({
       },
       pluginActionAudits: {
         findMany: findManyPluginActionAudits,
-      },
-      platformCommands: {
-        findMany: findManyPlatformCommands,
       },
     },
   },
@@ -162,22 +163,38 @@ describe("classroom incident contracts and read model", () => {
         createdAt: new Date("2026-05-26T00:57:00Z"),
       },
     ]);
-    findManyPlatformCommands.mockResolvedValue([
+    listOperatorVisiblePlatformCommands.mockResolvedValue([
       {
-        id: "command-1",
+        commandId: "command-1",
         schoolId: "school-1",
         commandType: "plugin.resume",
         status: "failed",
-        scopeJson: { pluginId: "plugin-1" },
-        correlationJson: { correlationId: "corr-1", producer: "plugin-actions" },
-        failureAttributionJson: {
+        statusLabel: "已失败",
+        latestAttemptNumber: 1,
+        pluginId: "plugin-1",
+        actorId: "teacher-1",
+        actorScope: "teacher",
+        correlationId: "corr-1",
+        causationId: null,
+        producer: "plugin-actions",
+        createdAt: "2026-05-26T00:57:00.000Z",
+        updatedAt: "2026-05-26T00:58:00.000Z",
+        completedAt: "2026-05-26T00:58:00.000Z",
+        resultSummary: null,
+        resultSummaryLabel: "无结果摘要",
+        auditSummary: null,
+        auditSummaryLabel: null,
+        failureAttribution: {
           scope: "plugin",
           pluginId: "plugin-1",
           reasonCode: "activation_failed",
           recommendedRecoveryAction: "retry",
         },
-        createdAt: new Date("2026-05-26T00:57:00Z"),
-        updatedAt: new Date("2026-05-26T00:58:00Z"),
+        failureSummaryLabel: "plugin:activation_failed -> retry",
+        invalidationIntent: {
+          tags: [],
+          label: "无 invalidation intent",
+        },
       },
     ]);
     listOperatorVisibleAsyncTasks.mockResolvedValue([
@@ -359,8 +376,12 @@ describe("classroom incident contracts and read model", () => {
     expect(detailSource).toContain('import "server-only"');
     expect(listSource).not.toContain('"support"');
     expect(detailSource).not.toContain('"support"');
-    expect(listSource).toContain("CLASSROOM_INCIDENT_LIST_NOT_IMPLEMENTED");
-    expect(detailSource).toContain("CLASSROOM_INCIDENT_OPERATOR_NOT_IMPLEMENTED");
+    expect(listSource).toContain("getUserMembershipsDTO");
+    expect(detailSource).toContain("getUserMembershipsDTO");
+    expect(listSource).toContain('scopeRole: "developer"');
+    expect(detailSource).toContain('scopeRole: "developer"');
+    expect(listSource).toContain('scopeRole: "admin"');
+    expect(detailSource).toContain('scopeRole: "admin"');
   });
 
   it("builds incident-first list and detail DTOs plus a light recovery seam from one truth source", async () => {
@@ -372,23 +393,61 @@ describe("classroom incident contracts and read model", () => {
       "./classroom-incident-operator-actions"
     );
 
-    const listPromise = getClassroomIncidentListDTO();
-    const detailPromise = getClassroomIncidentOperatorDTO({
+    const list = await getClassroomIncidentListDTO();
+    const detail = await getClassroomIncidentOperatorDTO({
       classroomSessionId: "session-1",
     });
 
-    await expect(listPromise).rejects.toThrow(
-      "CLASSROOM_INCIDENT_LIST_NOT_IMPLEMENTED",
-    );
-    await expect(detailPromise).rejects.toThrow(
-      "CLASSROOM_INCIDENT_OPERATOR_NOT_IMPLEMENTED",
-    );
+    expect(list.scopeRole).toBe("admin");
+    expect(list.rows).toHaveLength(1);
+    expect(list.rows[0]).toMatchObject({
+      classroomSessionId: "session-1",
+      lessonVersionLabel: "v3",
+      detailHref: "/settings/labs/incidents/session-1",
+      relationChips: [
+        expect.objectContaining({ kind: "plugin" }),
+        expect.objectContaining({ kind: "command" }),
+      ],
+    });
+
+    expect(detail.hero).toMatchObject({
+      classroomSessionId: "session-1",
+      lessonVersionLabel: "v3",
+      runtimeSessionId: "runtime-1",
+    });
+    expect(detail.metrics).toHaveLength(4);
+    expect(detail.relatedCards.map((card) => card.kind)).toEqual([
+      "runtime",
+      "plugin",
+      "action",
+      "command",
+      "task",
+    ]);
+    expect(detail.lightActions.map((action) => action.action)).toEqual([
+      "retry",
+      "reconcile",
+    ]);
+    expect(detail.guardedActions.every((action) => action.enabled === false)).toBe(true);
+
+    runCurrentVotingRecoveryAction.mockResolvedValueOnce({
+      ok: true,
+      data: { sessionId: "session-1", applied: true },
+    });
+
     await expect(
       runClassroomIncidentLightRecovery({
         classroomSessionId: "session-1",
         stepId: "step-1",
         action: "retry",
       }),
-    ).rejects.toThrow("CLASSROOM_INCIDENT_LIGHT_RECOVERY_NOT_IMPLEMENTED");
+    ).resolves.toEqual({
+      ok: true,
+      data: { sessionId: "session-1", applied: true },
+    });
+    expect(runCurrentVotingRecoveryAction).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      stepId: "step-1",
+      recoveryAction: "retry",
+    });
   });
 });
