@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Single-School Pilot Production Readiness (Plugin-First)
-status: executing
-last_updated: "2026-05-26T11:12:18.229Z"
+status: verifying
+last_updated: "2026-05-26T11:30:35.815Z"
 last_activity: 2026-05-26
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 26
-  completed_plans: 21
+  completed_plans: 22
   percent: 50
 ---
 
@@ -27,9 +27,9 @@ See: `.planning/PROJECT.md` (updated 2026-05-24)
 Milestone: v3.1 -- Single-School Pilot Production Readiness (Plugin-First)
 Phase: 59 (deploy-release-recovery-baseline) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-26
-Progress: [████████░░] 81%
+Progress: [█████████░] 85%
 Next queued phase: 59
 
 ## Performance Metrics
@@ -71,6 +71,9 @@ Recent decisions affecting current work:
 - [Phase 59-02]: readiness remains blocked by DB/web/worker posture while fanout degraded stays explicit but non-blocking.
 - [Phase 59]: verify:phase59 now locks required deploy/release artifacts and focused suites before later rollout and restore plans fill them. — Phase 59 needs a repo-local hard gate before shell/systemd/restore artifacts land.
 - [Phase 59]: pilot-release workflow treats BullMQ Redis as blocking while preserving fanout as optional via REDIS_FANOUT_ENABLED=false. — This preserves D-59-07 and D-59-08 hard-gate honesty without promoting optional fanout into a release blocker.
+- [Phase 59]: deploy manifest stores migration, gates, and OPS-01 correlation metadata as canonical release truth
+- [Phase 59]: deploy updates current.json and green.json only after post-restart health and ready succeed
+- [Phase 59]: dry-run deploy and rollback skip manifest and pointer writes while preserving release gate order
 
 ### Pending Todos
 
@@ -97,9 +100,10 @@ Recent decisions affecting current work:
 | quick_task | 260517-gnb-student-runtime-host-bootstrap-productio | accepted-risk | 2026-05-23 |
 | quick_task | 260517-k2u-auth-localhost-untrustedhost | accepted-risk | 2026-05-23 |
 | Phase 59 P03 | 0 min | 2 tasks | 4 files |
+| Phase 59 P04 | 2 min | 2 tasks | 8 files |
 
 ## Session Continuity
 
-Last session: 2026-05-26T11:11:22.548Z
+Last session: 2026-05-26T11:28:58.543Z
 Stopped at: Completed 59-02-PLAN.md
 Resume file: None
