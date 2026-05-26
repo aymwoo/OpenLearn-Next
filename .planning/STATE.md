@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Single-School Pilot Production Readiness (Plugin-First)
-status: ready_to_plan
-last_updated: "2026-05-26T07:06:37+00:00"
-last_activity: 2026-05-26
+status: executing
+last_updated: "2026-05-26T10:08:30.000Z"
+last_activity: 2026-05-26 -- Completed Phase 59 Plan 01 env contract baseline
 progress:
   total_phases: 6
-  completed_phases: 4
-  total_plans: 21
-  completed_plans: 21
-  percent: 67
-stopped_at: Phase 58 complete (8/8) — ready to discuss Phase 59
+  completed_phases: 3
+  total_plans: 26
+  completed_plans: 19
+  percent: 50
 ---
 
 # Project State
@@ -21,16 +20,16 @@ stopped_at: Phase 58 complete (8/8) — ready to discuss Phase 59
 See: `.planning/PROJECT.md` (updated 2026-05-24)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 59 — deploy, release & recovery baseline
+**Current focus:** Phase 59 — deploy-release-recovery-baseline
 
 ## Current Position
 
 Milestone: v3.1 -- Single-School Pilot Production Readiness (Plugin-First)
-Phase: 59
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-05-26
-Progress: [███████░░░] 67%
+Phase: 59 (deploy-release-recovery-baseline) — EXECUTING
+Plan: 2 of 5
+Status: Executing Phase 59
+Last activity: 2026-05-26 -- Completed Phase 59 Plan 01 env contract baseline
+Progress: [███████░░░] 73%
 Next queued phase: 59
 
 ## Performance Metrics
@@ -47,6 +46,10 @@ Next queued phase: 59
 - Archived on: 2026-05-23
 - Delivered scope: 5 phases, 22 plans
 
+**Recent execution:**
+
+- 2026-05-26 — `59-01` completed in 5 min, 2 tasks, 3 files (`.env.example`, `src/lib/ops/env.server.ts`, `src/lib/ops/env.server.test.ts`)
+
 ## Accumulated Context
 
 ### Decisions
@@ -60,6 +63,8 @@ Recent decisions affecting current work:
 - [Milestone v3.1]: pilot capacity is fixed to 40 students in one classroom and 5 concurrent classrooms.
 - [Milestone v3.1]: existing WebSocket-first transport, optional Redis fanout, BullMQ worker, and SQLite + DAL truth posture are baseline capabilities to reuse, not gaps to rebuild.
 - [Milestone v3.1]: operator recovery, deploy/release, backup/restore, and load/degrade rehearsal are committed scope because they are required for pilot production use.
+- [Phase 59-01]: env parsing is centralized in `src/lib/ops/env.server.ts` before broader runtime adoption.
+- [Phase 59-01]: BullMQ readiness and fanout capability are modeled as separate Redis postures to prevent a single shared readiness toggle.
 
 ### Pending Todos
 
@@ -88,6 +93,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-26T07:06:37+00:00
-Stopped at: Phase 58 verified and tracking corrected; next up Phase 59 planning
+Last session: 2026-05-26T10:06:28.487Z
+Stopped at: Completed 59-01-PLAN.md
 Resume file: None

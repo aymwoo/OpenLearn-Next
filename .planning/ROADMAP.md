@@ -82,6 +82,13 @@ Plans:
 **Goal**: 单校试点环境可以被重复部署、验证、备份、恢复，并具备 release traceability。
 **Depends on**: Phase 58
 **Requirements**: ENVR-01, ENVR-02, ENVR-03, SAFE-03, OPS-01
+**Plans:** 1/5 plans executed
+Plans:
+- [x] `59-01-PLAN.md` — 固化 pilot env schema、`.env.example` 与 blocking/non-blocking Redis posture。 (completed 2026-05-26)
+- [ ] `59-02-PLAN.md` — 交付 `/api/health`、`/api/ready`、`/api/release` honest status surfaces。
+- [ ] `59-03-PLAN.md` — 建立 `verify:phase59` 与 GitHub Actions release hard gate。
+- [ ] `59-04-PLAN.md` — 固化 single-node deploy/rollback scripts、systemd units 与 release checklists。
+- [ ] `59-05-PLAN.md` — 固化 backup/restore baseline、post-restore verification 与 restore drill artifact。
 **Success Criteria** (what must be TRUE):
   1. env schema、`.env.example`、Dockerfile/compose 或等价部署脚本会收敛试点环境配置纪律。
   2. CI/CD 会在 lint/typecheck/test/build/migrate/health-check 失败时中止发布。
@@ -106,7 +113,7 @@ Plans:
 | 56. Voting Plugin Contract & Authoring Integration | v3.1 | 5/5 | Complete | 2026-05-25 |
 | 57. Classroom Runtime Sample Chain | v3.1 | 5/5 | Complete | 2026-05-25 |
 | 58. Operator Recovery & Production Surfaces | v3.1 | 8/8 | Complete    | 2026-05-26 |
-| 59. Deploy, Release & Recovery Baseline | v3.1 | 0 | Planned | - |
+| 59. Deploy, Release & Recovery Baseline | v3.1 | 1/5 | In Progress|  |
 | 60. Load, Degrade & Pilot Rehearsal | v3.1 | 0 | Planned | - |
 
 ## Frozen Historical Context
