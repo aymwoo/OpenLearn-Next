@@ -5,13 +5,59 @@ import { readFileSync } from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ClassroomIncidentListSurface } from "./classroom-incident-list-surface";
 import { PluginMarketplaceSurface } from "./plugin-marketplace-surface";
+import type { ClassroomIncidentListDTO } from "@/lib/dto/classroom-incident-list";
 
 const settingsSurfaceSource = readFileSync(
   "src/components/surfaces/settings-surface.tsx",
   "utf8",
 );
+const settingsLabsPageSource = readFileSync(
+  "src/app/settings/labs/page.tsx",
+  "utf8",
+);
+const settingsLabsIncidentsPageSource = readFileSync(
+  "src/app/settings/labs/incidents/page.tsx",
+  "utf8",
+);
+const classroomIncidentListSurfaceSource = readFileSync(
+  "src/components/surfaces/classroom-incident-list-surface.tsx",
+  "utf8",
+);
 const packageJsonSource = readFileSync("package.json", "utf8");
+
+const classroomIncidentListFixture: ClassroomIncidentListDTO = {
+  scopeRole: "developer",
+  rows: [
+    {
+      classroomSessionId: "session-1",
+      classId: "class-1",
+      className: "高一（1）班",
+      lessonId: "lesson-1",
+      lessonTitle: "课堂投票：生态系统稳态",
+      lessonVersionLabel: "v7",
+      posture: "failed",
+      summary: "课堂投票插件当前不可继续执行，教师端结果汇总未完成。",
+      impactScope: "current_classroom",
+      updatedAt: "2026-05-26T03:12:00.000Z",
+      detailHref: "/settings/labs/incidents/session-1",
+      relationChips: [
+        {
+          kind: "plugin",
+          label: "课堂投票插件",
+          href: "/settings/labs/plugins/plugin-1",
+        },
+        {
+          kind: "command",
+          label: "plugin.resume · failed",
+          href: "/settings/labs/commands/command-1",
+        },
+      ],
+    },
+  ],
+  emptyState: null,
+};
 
 const pluginActionMocks = vi.hoisted(() => ({
   listPluginsAction: vi.fn(async () => ({
@@ -169,46 +215,16 @@ describe("settings and plugin entry surfaces", () => {
     cleanup();
   });
 
-  it("wires settings labs plugin management to operator lifecycle surface", () => {
-    expect(settingsSurfaceSource).toContain("PluginLifecycleOperatorSurface");
-    expect(settingsSurfaceSource).toContain("readGovernanceDashboardBundle");
-    expect(settingsSurfaceSource).toContain("listOperatorVisiblePlatformCommands");
-    expect(settingsSurfaceSource).toContain("getPlatformCommandWithTimeline");
-    expect(settingsSurfaceSource).toContain("auditSummaryLabel");
-    expect(settingsSurfaceSource).toContain("<PluginLifecycleOperatorSurface schoolId={schoolId} dashboard={dashboard} />");
-    expect(settingsSurfaceSource).not.toContain("listPluginsAction");
-    expect(settingsSurfaceSource).toContain("插件列表加载失败：{pluginLoadError}");
-    expect(settingsSurfaceSource).toContain("平台事件视图加载失败：{operatorLoadError}");
-    expect(settingsSurfaceSource).toContain("Platform Event Operator");
-    expect(settingsSurfaceSource).toContain("先看 command summary，再下钻 event timeline");
-    expect(settingsSurfaceSource).toContain("Delegation / Approval");
-    expect(settingsSurfaceSource).toContain("pluginKey");
-    expect(settingsSurfaceSource).toContain("dbNamespace");
-    expect(settingsSurfaceSource).toContain("sourceType");
-    expect(settingsSurfaceSource).toContain("installSource");
-    expect(settingsSurfaceSource).toContain('href={`/settings/labs?commandId=${encodeURIComponent(summary.commandId)}`}');
-    expect(settingsSurfaceSource).toContain('href="/settings/labs/async-tasks"');
-    expect(settingsSurfaceSource).toContain('href="/settings/labs/runtime-inspector"');
-    expect(settingsSurfaceSource).toContain('href="/settings/plugins"');
-  });
-
-  it("adds a minimal ai discoverability panel instead of a full agent console", () => {
-    expect(settingsSurfaceSource).toContain("AI Contract Discoverability");
-    expect(settingsSurfaceSource).toContain("最小 discoverability surface");
-    expect(settingsSurfaceSource).toContain("readPlatformAiDescriptorCatalog");
-    expect(settingsSurfaceSource).toContain("approvalPosture");
-    expect(settingsSurfaceSource).toContain("delegationPosture");
-    expect(settingsSurfaceSource).toContain("actorId: actor.id");
-    expect(settingsSurfaceSource).toContain("schoolId,");
-    expect(settingsSurfaceSource).not.toContain("Agent Console");
-    expect(settingsSurfaceSource).not.toContain("Workflow Console");
-    expect(settingsSurfaceSource).not.toContain("Skill Runtime Console");
-  });
-
-  it("renders event dispatch delivery details in the labs timeline", () => {
-    expect(settingsSurfaceSource).toContain("dispatch {dispatch.channel} · {dispatch.status}");
-    expect(settingsSurfaceSource).toContain("adapter: {dispatch.adapterId}");
-    expect(settingsSurfaceSource).toContain("failure: {dispatch.failureReason}");
+  it("keeps settings labs as an incident-first fallback instead of a mega dashboard", () => {
+    expect(settingsSurfaceSource).toContain("ClassroomIncidentListSurface");
+    expect(settingsSurfaceSource).toContain("getClassroomIncidentListDTO");
+    expect(settingsSurfaceSource).toContain("Settings Labs");
+    expect(settingsSurfaceSource).toContain("incident-first fallback entry");
+    expect(settingsSurfaceSource).toContain("Runtime Inspector");
+    expect(settingsSurfaceSource).toContain("Async Operator");
+    expect(settingsSurfaceSource).toContain("Plugin Governance");
+    expect(settingsSurfaceSource).not.toContain("Platform Event Operator");
+    expect(settingsSurfaceSource).not.toContain("AI Contract Discoverability");
   });
 
   it("registers verify:phase54 as the focused regression gate", () => {
@@ -219,6 +235,85 @@ describe("settings and plugin entry surfaces", () => {
     expect(pkg.scripts?.["verify:phase54"]).toBe(
       "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase54-ai-contracts.ts",
     );
+  });
+
+  it("makes settings labs incident-first before tool next hops", () => {
+    expect(settingsLabsPageSource).toContain("SettingsSurface mode=\"labs\"");
+    expect(settingsSurfaceSource).toContain("ClassroomIncidentListSurface");
+    expect(settingsSurfaceSource).toContain("getClassroomIncidentListDTO");
+    expect(settingsLabsIncidentsPageSource).toContain("getClassroomIncidentListDTO");
+    expect(settingsLabsIncidentsPageSource).toContain("ClassroomIncidentListSurface");
+    expect(settingsSurfaceSource).toContain("Runtime Inspector");
+    expect(settingsSurfaceSource).toContain("Async Operator");
+    expect(settingsSurfaceSource).toContain("Plugin Governance");
+
+    expect(settingsSurfaceSource.indexOf("ClassroomIncidentListSurface")).toBeLessThan(
+      settingsSurfaceSource.indexOf("Runtime Inspector"),
+    );
+  });
+
+  it("adds a dedicated incidents route that renders the classroom-first list surface", () => {
+    expect(settingsLabsIncidentsPageSource).toContain("getClassroomIncidentListDTO");
+    expect(settingsLabsIncidentsPageSource).toContain("ClassroomIncidentListSurface");
+    expect(settingsLabsIncidentsPageSource).not.toContain("Runtime Inspector");
+    expect(settingsLabsIncidentsPageSource).not.toContain("Async Operator");
+  });
+
+  it("renders classroom incidents as stacked cards with capped relation chips", () => {
+    render(<ClassroomIncidentListSurface list={classroomIncidentListFixture} />);
+
+    expect(screen.getByText("查看课堂事件")).toBeTruthy();
+    expect(screen.getByText("课堂投票：生态系统稳态")).toBeTruthy();
+    expect(screen.getByText("current classroom")).toBeTruthy();
+    expect(screen.getByText("课堂投票插件")).toBeTruthy();
+    expect(screen.getByText("plugin.resume · failed")).toBeTruthy();
+    expect(screen.queryByRole("table")).toBeNull();
+
+    const card = screen.getByTestId("incident-card-session-1");
+    const chips = within(card).getAllByTestId(/incident-chip-/);
+    expect(chips).toHaveLength(2);
+    expect(
+      within(card).getByRole("link", { name: "查看课堂事件" }).getAttribute("href"),
+    ).toBe("/settings/labs/incidents/session-1");
+  });
+
+  it("uses the UI-SPEC empty and error copy with operator next hops", () => {
+    const { rerender } = render(
+      <ClassroomIncidentListSurface
+        list={{ ...classroomIncidentListFixture, rows: [], emptyState: "当前没有需要 operator 介入的课堂事件" }}
+      />,
+    );
+
+    expect(screen.getByText("当前没有需要 operator 介入的课堂事件")).toBeTruthy();
+    expect(
+      screen.getAllByText(
+        "当前课堂、插件与异步链路保持可继续状态。若要主动巡检，请进入 Runtime Inspector 或 Async Operator。",
+      ).length,
+    ).toBeGreaterThan(0);
+
+    rerender(<ClassroomIncidentListSurface list={null} error="LOAD_FAILED" />);
+
+    expect(
+      screen.getAllByText(
+        "当前无法加载课堂事件关联真相。请先刷新页面；若仍失败，改从 Runtime Inspector、Async Operator 或插件治理详情继续排查。",
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "Runtime Inspector" }).getAttribute("href")).toBe(
+      "/settings/labs/runtime-inspector",
+    );
+    expect(screen.getByRole("link", { name: "Async Operator" }).getAttribute("href")).toBe(
+      "/settings/labs/async-tasks",
+    );
+    expect(screen.getByRole("link", { name: "Plugin Governance" }).getAttribute("href")).toBe(
+      "/settings/plugins",
+    );
+  });
+
+  it("keeps the list surface out of dense table and border-heavy patterns", () => {
+    expect(classroomIncidentListSurfaceSource).not.toContain("<table");
+    expect(classroomIncidentListSurfaceSource).not.toContain("grid-cols-12");
+    expect(classroomIncidentListSurfaceSource).not.toContain("divide-y");
+    expect(classroomIncidentListSurfaceSource).not.toContain("border-b");
   });
 
   it("renders built-in marketplace cards with runtime toggle controls", async () => {
