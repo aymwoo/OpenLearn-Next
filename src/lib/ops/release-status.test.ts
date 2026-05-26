@@ -338,4 +338,64 @@ describe("release status helper", () => {
     expect(payload.operatorCorrelationComplete).toBe(false);
     expect(payload.reason).toContain("operatorCorrelation");
   });
+
+  it("getReleasePayload accepts manifest operatorCorrelation objects with ids and href metadata", async () => {
+    mocks.readFile.mockImplementationOnce(async () =>
+      JSON.stringify({
+        releaseId: "release-123",
+        gitSha: "abc1234",
+        environment: "pilot-single-school",
+        releasedAt: "2026-05-26T09:10:00.000Z",
+        rollbackTarget: "release-122",
+        manifestPath: "/srv/openlearn/manifests/release-123.json",
+        migration: { command: "pnpm db:migrate", status: "passed" },
+        restoreDrill: { status: "not_run" },
+        operatorCorrelation: {
+          schoolId: { id: "school-1", href: null, hrefTemplate: null },
+          classroomSessionId: {
+            id: "session-1",
+            href: "/settings/labs/incidents/session-1",
+            hrefTemplate: "/settings/labs/incidents/[sessionId]",
+          },
+          lessonVersionId: { id: "lesson-version-1", href: null, hrefTemplate: null },
+          pluginId: {
+            id: "plugin-1",
+            href: "/settings/labs/plugins/plugin-1",
+            hrefTemplate: "/settings/labs/plugins/[pluginId]",
+          },
+          actionKey: {
+            id: "launchVote",
+            href: "/settings/labs/plugins/plugin-1/actions/launchVote",
+            hrefTemplate: "/settings/labs/plugins/[pluginId]/actions/[actionKey]",
+          },
+          commandId: {
+            id: "command-1",
+            href: "/settings/labs/commands/command-1",
+            hrefTemplate: "/settings/labs/commands/[commandId]",
+          },
+          taskId: {
+            id: "task-1",
+            href: "/settings/labs/async-tasks/task-1",
+            hrefTemplate: "/settings/labs/async-tasks/[taskId]",
+          },
+        },
+      }),
+    );
+
+    const { getReleasePayload } = await import("./release-status");
+
+    const payload = await getReleasePayload();
+
+    expect(payload.available).toBe(true);
+    expect(payload.operatorCorrelation.classroomSessionId.href).toBe(
+      "/settings/labs/incidents/session-1",
+    );
+    expect(payload.operatorCorrelation.pluginId.href).toBe(
+      "/settings/labs/plugins/plugin-1",
+    );
+    expect(payload.operatorCorrelation.actionKey.href).toBe(
+      "/settings/labs/plugins/plugin-1/actions/launchVote",
+    );
+    expect(payload.operatorCorrelationComplete).toBe(true);
+  });
 });

@@ -25,6 +25,15 @@ type CorrelationDimensionKey =
   | "commandId"
   | "taskId";
 
+type ReleaseManifestCorrelationEntry =
+  | string
+  | {
+      id?: string | null;
+      href?: string | null;
+      hrefTemplate?: string | null;
+    }
+  | null;
+
 type ReleaseManifest = {
   releaseId: string;
   gitSha: string;
@@ -34,7 +43,7 @@ type ReleaseManifest = {
   manifestPath: string | null;
   migration?: Record<string, unknown> | null;
   restoreDrill?: Record<string, unknown> | null;
-  operatorCorrelation?: Partial<Record<CorrelationDimensionKey, string | null>> | null;
+  operatorCorrelation?: Partial<Record<CorrelationDimensionKey, ReleaseManifestCorrelationEntry>> | null;
 };
 
 type CorrelationDimension = {
@@ -114,32 +123,75 @@ async function readManifestPointer(
 function buildOperatorCorrelation(
   correlation: ReleaseManifest["operatorCorrelation"],
 ) {
-  const normalized = {
-    schoolId: CORRELATION_BUILDERS.schoolId(correlation?.schoolId ?? null),
-    classroomSessionId: CORRELATION_BUILDERS.classroomSessionId(
-      correlation?.classroomSessionId ?? null,
-    ),
-    lessonVersionId: CORRELATION_BUILDERS.lessonVersionId(correlation?.lessonVersionId ?? null),
-    pluginId: CORRELATION_BUILDERS.pluginId(correlation?.pluginId ?? null),
-    actionKey: CORRELATION_BUILDERS.actionKey(correlation?.actionKey ?? null),
-    commandId: CORRELATION_BUILDERS.commandId(correlation?.commandId ?? null),
-    taskId: CORRELATION_BUILDERS.taskId(correlation?.taskId ?? null),
+  const readCorrelationEntry = (value: ReleaseManifestCorrelationEntry) => {
+    if (typeof value === "string") {
+      return {
+        id: value,
+        href: null,
+        hrefTemplate: null,
+      };
+    }
+
+    return {
+      id: value?.id ?? null,
+      href: value?.href ?? null,
+      hrefTemplate: value?.hrefTemplate ?? null,
+    };
+  };
+
+  const buildDimension = (
+    key: CorrelationDimensionKey,
+    value: ReleaseManifestCorrelationEntry,
+  ) => {
+    const entry = readCorrelationEntry(value);
+    const fallback = CORRELATION_BUILDERS[key](entry.id);
+
+    return {
+      id: entry.id,
+      href: entry.href ?? fallback.href,
+      hrefTemplate: entry.hrefTemplate ?? fallback.hrefTemplate,
+    };
+  };
+
+  const normalized: {
+    schoolId: CorrelationDimension;
+    classroomSessionId: CorrelationDimension;
+    lessonVersionId: CorrelationDimension;
+    pluginId: CorrelationDimension;
+    actionKey: CorrelationDimension;
+    commandId: CorrelationDimension;
+    taskId: CorrelationDimension;
+    runtimeInspector: { href: string | null; hrefTemplate: string | null };
+    pluginActionDetail: { href: string | null; hrefTemplate: string | null };
+  } = {
+    schoolId: buildDimension("schoolId", correlation?.schoolId ?? null),
+    classroomSessionId: buildDimension("classroomSessionId", correlation?.classroomSessionId ?? null),
+    lessonVersionId: buildDimension("lessonVersionId", correlation?.lessonVersionId ?? null),
+    pluginId: buildDimension("pluginId", correlation?.pluginId ?? null),
+    actionKey: buildDimension("actionKey", correlation?.actionKey ?? null),
+    commandId: buildDimension("commandId", correlation?.commandId ?? null),
+    taskId: buildDimension("taskId", correlation?.taskId ?? null),
     runtimeInspector: {
-      href: correlation?.classroomSessionId
-        ? `/settings/labs/runtime-inspector?runtimeSessionId=${encodeURIComponent(
-            correlation.classroomSessionId,
-          )}`
-        : null,
+      href: null,
       hrefTemplate: "/settings/labs/runtime-inspector?runtimeSessionId={classroomSessionId}",
     },
     pluginActionDetail: {
-      href:
-        correlation?.pluginId && correlation?.actionKey
-          ? `/settings/labs/plugins/${encodeURIComponent(correlation.pluginId)}/actions/${encodeURIComponent(correlation.actionKey)}`
-          : null,
+      href: null,
       hrefTemplate: "/settings/labs/plugins/[pluginId]/actions/[actionKey]",
     },
   };
+
+  const classroomSessionId = normalized.classroomSessionId.id;
+  const pluginId = normalized.pluginId.id;
+  const actionKey = normalized.actionKey.id;
+
+  normalized.runtimeInspector.href = classroomSessionId
+    ? `/settings/labs/runtime-inspector?runtimeSessionId=${encodeURIComponent(classroomSessionId)}`
+    : null;
+
+  normalized.pluginActionDetail.href = pluginId && actionKey
+    ? `/settings/labs/plugins/${encodeURIComponent(pluginId)}/actions/${encodeURIComponent(actionKey)}`
+    : null;
 
   const complete = Object.values({
     schoolId: normalized.schoolId.id,
