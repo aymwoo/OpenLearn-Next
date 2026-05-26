@@ -3,8 +3,12 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { getAsyncTaskOperatorOverviewDTO } from "@/lib/dal/async-task-operator";
-import { getSystemTransportSettings } from "@/lib/dal/system-transport-settings";
+import { getBullmqConnectionHealthSnapshot } from "@/features/async-tasks/infra/connection";
+import { listAsyncWorkerHeartbeats } from "@/features/async-tasks/infra/heartbeat";
+import {
+  getRedisFanoutConnectionHealthSnapshot,
+  probeRedisFanoutHealth,
+} from "@/features/runtime-platform/seams/transport/redis-fanout-connection";
 import { getServerEnv } from "@/lib/ops/env.server";
 
 type Posture = "green" | "degraded" | "failed";
@@ -95,6 +99,14 @@ function toPosture(input: { ok: boolean; degraded?: boolean }): Posture {
   }
 
   return input.degraded ? "degraded" : "failed";
+}
+
+function toIso(value: Date | number | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
 async function readManifestPointer(
@@ -232,15 +244,54 @@ export async function getHealthPayload() {
 
 export async function getReadyPayload() {
   const env = getServerEnv();
-  const [workerOverview, transport] = await Promise.all([
-    getAsyncTaskOperatorOverviewDTO(),
-    getSystemTransportSettings(),
+  const [workerConnectionHealth, workerHeartbeats] = await Promise.all([
+    Promise.resolve(getBullmqConnectionHealthSnapshot()),
+    listAsyncWorkerHeartbeats(),
   ]);
+  await probeRedisFanoutHealth();
+  const fanoutHealth = getRedisFanoutConnectionHealthSnapshot();
+
+  const latestHeartbeat = workerHeartbeats[0] ?? null;
+  const latestHeartbeatAt = latestHeartbeat?.lastSeenAt
+    ? new Date(latestHeartbeat.lastSeenAt).getTime()
+    : null;
+  const heartbeatFresh =
+    latestHeartbeatAt !== null && Number.isFinite(latestHeartbeatAt)
+      ? Date.now() - latestHeartbeatAt <= 45_000
+      : false;
 
   const dbOk = Boolean(env.DB_FILE_NAME && env.DB_FILE_NAME.trim().length > 0);
   const webOk = Boolean(env.OPENLEARN_DEPLOY_ENV && env.OPENLEARN_HEALTHCHECK_BASE_URL);
-  const workerOk = workerOverview.platformHealth.workerState === "ready";
-  const fanoutOk = !transport.degraded && transport.health.connectionState === "ready";
+  const workerOk =
+    workerConnectionHealth.asyncTasksEnabled
+    && workerConnectionHealth.redisConfigured
+    && workerConnectionHealth.redisReachable
+    && workerConnectionHealth.connectionStates.worker === "ready"
+    && heartbeatFresh;
+  const fanoutOk =
+    fanoutHealth.deployAllowsRedis
+    && fanoutHealth.redisReachable
+    && fanoutHealth.connectionState === "ready";
+
+  const workerReason = !workerConnectionHealth.asyncTasksEnabled
+    ? "ASYNC_TASKS_ENABLED=false 或 BULLMQ_REDIS_URL 缺失，worker 不能视为 ready。"
+    : !workerConnectionHealth.redisConfigured
+      ? "BULLMQ_REDIS_URL missing."
+      : !workerConnectionHealth.redisReachable
+        ? workerConnectionHealth.lastError ?? "BullMQ Redis is unreachable."
+        : workerConnectionHealth.connectionStates.worker !== "ready"
+          ? `BullMQ worker state is ${workerConnectionHealth.connectionStates.worker}.`
+          : !heartbeatFresh
+            ? "Worker heartbeat is stale or missing."
+            : "BullMQ worker posture is ready.";
+
+  const workerNextStep = workerOk
+    ? "Worker is safe for pilot traffic."
+    : !workerConnectionHealth.asyncTasksEnabled
+      ? "Enable async tasks and configure BULLMQ_REDIS_URL before release, rollout, or restore completion."
+      : !heartbeatFresh
+        ? "Restart the worker process or wait for a fresh heartbeat before receiving pilot traffic."
+        : "Repair Redis / BullMQ worker posture before receiving pilot traffic.";
 
   const components: Record<"db" | "web" | "worker" | "fanout", ReadyComponent> = {
     db: {
@@ -256,22 +307,28 @@ export async function getReadyPayload() {
       nextStep: webOk ? "Continue with readiness gate." : "Set OPENLEARN_DEPLOY_ENV and OPENLEARN_HEALTHCHECK_BASE_URL.",
     },
     worker: {
-      posture: toPosture({ ok: workerOk, degraded: workerOverview.platformHealth.workerState === "degraded" }),
+      posture: toPosture({
+        ok: workerOk,
+        degraded:
+          workerConnectionHealth.connectionStates.worker === "degraded"
+          || !heartbeatFresh,
+      }),
       blocking: true,
-      reason: workerOk
-        ? "BullMQ worker posture is ready."
-        : workerOverview.platformHealth.backlog.reason,
-      nextStep: workerOk
-        ? "Worker is safe for pilot traffic."
-        : workerOverview.platformHealth.backlog.nextStep,
+      reason: workerReason,
+      nextStep: workerNextStep,
     },
     fanout: {
-      posture: toPosture({ ok: fanoutOk, degraded: transport.degraded || transport.health.connectionState === "degraded" }),
+      posture: toPosture({
+        ok: fanoutOk,
+        degraded:
+          fanoutHealth.deployAllowsRedis
+          && (!fanoutHealth.redisReachable || fanoutHealth.connectionState === "degraded"),
+      }),
       blocking: false,
       reason:
         fanoutOk
           ? "Redis fanout is healthy."
-          : transport.degradedReason ?? transport.health.lastError ?? "Fanout transport is degraded.",
+          : fanoutHealth.lastError ?? "Fanout transport is degraded.",
       nextStep: fanoutOk
         ? "No operator action required."
         : "Treat fanout as optional degraded posture and inspect transport settings if classroom sync issues appear.",
@@ -297,6 +354,13 @@ export async function getReadyPayload() {
     nextStep: ok
       ? "Safe to receive pilot traffic."
       : "Resolve blocking DB/web/worker posture before release, rollout, or restore completion.",
+    evidence: {
+      workerInstanceId: workerConnectionHealth.instanceId,
+      workerLastHealthyAt: workerConnectionHealth.lastHealthyAt,
+      workerLastHeartbeatAt: toIso(latestHeartbeat?.lastSeenAt),
+      fanoutInstanceId: fanoutHealth.instanceId,
+      fanoutLastHealthyAt: fanoutHealth.lastHealthyAt,
+    },
   };
 }
 

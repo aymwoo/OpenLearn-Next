@@ -3,18 +3,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 const mocks = vi.hoisted(() => ({
-  getAsyncTaskOperatorOverviewDTO: vi.fn(),
-  getSystemTransportSettings: vi.fn(),
+  getBullmqConnectionHealthSnapshot: vi.fn(),
+  listAsyncWorkerHeartbeats: vi.fn(),
+  probeRedisFanoutHealth: vi.fn(),
+  getRedisFanoutConnectionHealthSnapshot: vi.fn(),
   getServerEnv: vi.fn(),
   readFile: vi.fn(),
 }));
 
-vi.mock("@/lib/dal/async-task-operator", () => ({
-  getAsyncTaskOperatorOverviewDTO: mocks.getAsyncTaskOperatorOverviewDTO,
+vi.mock("@/features/async-tasks/infra/connection", () => ({
+  getBullmqConnectionHealthSnapshot: mocks.getBullmqConnectionHealthSnapshot,
 }));
 
-vi.mock("@/lib/dal/system-transport-settings", () => ({
-  getSystemTransportSettings: mocks.getSystemTransportSettings,
+vi.mock("@/features/async-tasks/infra/heartbeat", () => ({
+  listAsyncWorkerHeartbeats: mocks.listAsyncWorkerHeartbeats,
+}));
+
+vi.mock("@/features/runtime-platform/seams/transport/redis-fanout-connection", () => ({
+  probeRedisFanoutHealth: mocks.probeRedisFanoutHealth,
+  getRedisFanoutConnectionHealthSnapshot: mocks.getRedisFanoutConnectionHealthSnapshot,
 }));
 
 vi.mock("@/lib/ops/env.server", () => ({
@@ -29,70 +36,45 @@ describe("release status helper", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-26T09:00:20.000Z"));
 
-    mocks.getAsyncTaskOperatorOverviewDTO.mockResolvedValue({
-      platformHealth: {
-        asyncTasksEnabled: true,
-        redisConfigured: true,
-        redisReachable: true,
-        prefix: "openlearn:async-tasks",
-        instanceId: "worker-1",
-        producerState: "ready",
-        workerState: "ready",
-        queueEventsState: "ready",
-        lastError: null,
-        lastHealthyAt: "2026-05-26T09:00:00.000Z",
-        backlog: {
-          level: "healthy",
-          reason: "worker heartbeat 与队列积压都在可接受范围内。",
-          queuedCount: 0,
-          retryingCount: 0,
-          runningCount: 1,
-          oldestActiveAgeMinutes: 1,
-          staleHeartbeat: false,
-          trustedFacts: "worker heartbeat 与 task ledger 仍可信。",
-          caution: "当前没有额外 caution。",
-          nextStep: "继续观察。",
-        },
-        workerHeartbeats: [
-          {
-            instanceId: "worker-1",
-            status: "ready",
-            queueNames: ["async-tasks"],
-            lastSeenAt: "2026-05-26T09:00:00.000Z",
-            startedAt: "2026-05-26T08:50:00.000Z",
-            stoppedAt: null,
-            lastSignal: null,
-          },
-        ],
+    mocks.getBullmqConnectionHealthSnapshot.mockReturnValue({
+      asyncTasksEnabled: true,
+      redisConfigured: true,
+      redisReachable: true,
+      prefix: "openlearn:async-tasks",
+      instanceId: "worker-1",
+      connectionStates: {
+        producer: "ready",
+        worker: "ready",
+        queue_events: "ready",
       },
-      problemTasks: [],
-      emptyState: null,
+      lastError: null,
+      lastHealthyAt: "2026-05-26T09:00:00.000Z",
     });
 
-    mocks.getSystemTransportSettings.mockResolvedValue({
-      classroomTransportMode: "redis_fanout",
-      effectiveMode: "redis_fanout",
-      deployStatus: "redis_enabled",
-      canManage: true,
+    mocks.listAsyncWorkerHeartbeats.mockResolvedValue([
+      {
+        instanceId: "worker-1",
+        status: "ready",
+        queueNamesJson: ["async-tasks"],
+        lastSeenAt: new Date("2026-05-26T09:00:00.000Z"),
+        startedAt: new Date("2026-05-26T08:50:00.000Z"),
+        stoppedAt: null,
+        lastSignal: null,
+      },
+    ]);
+
+    mocks.probeRedisFanoutHealth.mockResolvedValue(undefined);
+    mocks.getRedisFanoutConnectionHealthSnapshot.mockReturnValue({
       deployAllowsRedis: true,
       redisConfigured: true,
       redisReachable: true,
-      degraded: false,
-      degradedReason: null,
-      updatedById: "user-1",
-      updatedAt: "2026-05-26T09:00:00.000Z",
-      health: {
-        deployAllowsRedis: true,
-        redisConfigured: true,
-        redisReachable: true,
-        connectionState: "ready",
-        desiredTopicCount: 3,
-        subscribedTopicCount: 3,
-        lastError: null,
-        lastHealthyAt: "2026-05-26T09:00:00.000Z",
-        instanceId: "runtime-1",
-      },
+      connectionState: "ready",
+      lastError: null,
+      lastHealthyAt: "2026-05-26T09:00:00.000Z",
+      instanceId: "runtime-1",
     });
 
     mocks.getServerEnv.mockReturnValue({
@@ -181,6 +163,7 @@ describe("release status helper", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("getHealthPayload only reports process alive", async () => {
@@ -193,64 +176,47 @@ describe("release status helper", () => {
     expect(payload.process).toBe("alive");
     expect(payload.checkedAt).toEqual(expect.any(String));
     expect(payload).not.toHaveProperty("components");
-    expect(mocks.getAsyncTaskOperatorOverviewDTO).not.toHaveBeenCalled();
-    expect(mocks.getSystemTransportSettings).not.toHaveBeenCalled();
+    expect(mocks.getBullmqConnectionHealthSnapshot).not.toHaveBeenCalled();
+    expect(mocks.getRedisFanoutConnectionHealthSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("getReadyPayload reports green only when worker heartbeat and bullmq reachability are healthy", async () => {
+    const { getReadyPayload } = await import("./release-status");
+
+    const payload = await getReadyPayload();
+
+    expect(payload.ok).toBe(true);
+    expect(payload.kind).toBe("ready");
+    expect(payload.components.worker.posture).toBe("green");
+    expect(payload.components.fanout.blocking).toBe(false);
+    expect(payload.evidence.workerLastHeartbeatAt).toBe("2026-05-26T09:00:00.000Z");
+    expect(mocks.probeRedisFanoutHealth).toHaveBeenCalledTimes(1);
   });
 
   it("getReadyPayload blocks on worker degradation but keeps fanout non-blocking", async () => {
-    mocks.getAsyncTaskOperatorOverviewDTO.mockResolvedValueOnce({
-      platformHealth: {
-        asyncTasksEnabled: true,
-        redisConfigured: true,
-        redisReachable: false,
-        prefix: "openlearn:async-tasks",
-        instanceId: "worker-1",
-        producerState: "degraded",
-        workerState: "degraded",
-        queueEventsState: "degraded",
-        lastError: "redis down",
-        lastHealthyAt: null,
-        backlog: {
-          level: "critical",
-          reason: "worker heartbeat 已超过 45 秒未刷新。",
-          queuedCount: 5,
-          retryingCount: 2,
-          runningCount: 0,
-          oldestActiveAgeMinutes: 31,
-          staleHeartbeat: true,
-          trustedFacts: "SQLite task ledger 与最近一次 heartbeat 记录仍然可信。",
-          caution: "当前不能把页面上的 worker 在线态当作实时健康结论。",
-          nextStep: "先检查 worker 进程与 Redis 连接，再回到单任务详情确认是否需要 recovery。",
-        },
-        workerHeartbeats: [],
+    mocks.getBullmqConnectionHealthSnapshot.mockReturnValueOnce({
+      asyncTasksEnabled: true,
+      redisConfigured: true,
+      redisReachable: false,
+      prefix: "openlearn:async-tasks",
+      instanceId: "worker-1",
+      connectionStates: {
+        producer: "degraded",
+        worker: "degraded",
+        queue_events: "degraded",
       },
-      problemTasks: [],
-      emptyState: null,
+      lastError: "redis down",
+      lastHealthyAt: null,
     });
-
-    mocks.getSystemTransportSettings.mockResolvedValueOnce({
-      classroomTransportMode: "redis_fanout",
-      effectiveMode: "local_only",
-      deployStatus: "redis_degraded",
-      canManage: true,
+    mocks.listAsyncWorkerHeartbeats.mockResolvedValueOnce([]);
+    mocks.getRedisFanoutConnectionHealthSnapshot.mockReturnValueOnce({
       deployAllowsRedis: true,
       redisConfigured: true,
       redisReachable: false,
-      degraded: true,
-      degradedReason: "fanout redis unreachable",
-      updatedById: "user-1",
-      updatedAt: "2026-05-26T09:00:00.000Z",
-      health: {
-        deployAllowsRedis: true,
-        redisConfigured: true,
-        redisReachable: false,
-        connectionState: "degraded",
-        desiredTopicCount: 3,
-        subscribedTopicCount: 0,
-        lastError: "fanout redis unreachable",
-        lastHealthyAt: null,
-        instanceId: "runtime-1",
-      },
+      connectionState: "degraded",
+      lastError: "fanout redis unreachable",
+      lastHealthyAt: null,
+      instanceId: "runtime-1",
     });
 
     const { getReadyPayload } = await import("./release-status");
@@ -261,9 +227,11 @@ describe("release status helper", () => {
     expect(payload.kind).toBe("ready");
     expect(payload.components.worker.blocking).toBe(true);
     expect(payload.components.worker.posture).toBe("degraded");
+    expect(payload.components.worker.reason).toContain("redis down");
     expect(payload.components.fanout.blocking).toBe(false);
     expect(payload.components.fanout.posture).toBe("degraded");
     expect(payload.components.fanout.reason).toContain("fanout");
+    expect(payload.evidence.workerLastHeartbeatAt).toBeNull();
   });
 
   it("getReleasePayload returns empty state when canonical pointer is missing", async () => {
