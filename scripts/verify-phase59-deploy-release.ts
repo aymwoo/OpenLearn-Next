@@ -103,6 +103,10 @@ function tokensAppearInOrder(source: string, tokens: readonly string[]) {
   return true;
 }
 
+function containsShellHeredoc(source: string) {
+  return source.includes(["<<", "EOF"].join("")) || source.includes(["<<", " 'EOF'"] .join(""));
+}
+
 export function verifyPhase59PackageScripts(packageSource: string) {
   try {
     const pkg = JSON.parse(packageSource) as { scripts?: Record<string, string> };
@@ -134,8 +138,7 @@ export function evaluatePhase59StaticChecks(sources: Phase59StaticSources): Stat
           "getPhase59RequiredArtifacts()",
           "getPhase59FocusedSuitePaths()",
         ])
-        && !sources.verifierSource.includes("<<EOF")
-        && !sources.verifierSource.includes("<< 'EOF'"),
+        && !containsShellHeredoc(sources.verifierSource),
     },
     {
       label: "workflow locks release hard gate order, redis service, optional fanout posture, and health/ready curls",

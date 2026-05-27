@@ -26,7 +26,7 @@
 - [x] **Phase 56: Voting Plugin Contract & Authoring Integration** - 打通课堂投票插件的 authoring、schema validation、compatibility gating、publish preflight 与 version freeze。
 - [x] **Phase 57: Classroom Runtime Sample Chain** - 打通 launch readiness、teacher trigger、student participation、canonical result writes 与 teacher evidence。
 - [x] **Phase 58: Operator Recovery & Production Surfaces** - 交付 classroom/plugin/command/task 关联诊断面、degraded honesty 与可执行恢复动作。 (completed 2026-05-26)
-- [ ] **Phase 59: Deploy, Release & Recovery Baseline** - 交付 env discipline、CI/CD、health/ready、release traceability、backup/restore 与 restore drill。
+- [x] **Phase 59: Deploy, Release & Recovery Baseline** - 交付 env discipline、CI/CD、health/ready、release traceability、backup/restore 与 restore drill。 (completed 2026-05-27)
 - [ ] **Phase 60: Load, Degrade & Pilot Rehearsal** - 交付 k6/Playwright rehearsal、Redis degraded 与 worker backlog tests、rollout/rollback checklist。
 
 ## Phase Details
@@ -82,13 +82,13 @@ Plans:
 **Goal**: 单校试点环境可以被重复部署、验证、备份、恢复，并具备 release traceability。
 **Depends on**: Phase 58
 **Requirements**: ENVR-01, ENVR-02, ENVR-03, SAFE-03, OPS-01
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 Plans:
 - [x] `59-01-PLAN.md` — 固化 pilot env schema、`.env.example` 与 blocking/non-blocking Redis posture。 (completed 2026-05-26)
 - [x] `59-02-PLAN.md` — 交付 `/api/health`、`/api/ready`、`/api/release` honest status surfaces。 (completed 2026-05-26)
-- [ ] `59-03-PLAN.md` — 建立 `verify:phase59` 与 GitHub Actions release hard gate。
-- [ ] `59-04-PLAN.md` — 固化 single-node deploy/rollback scripts、systemd units 与 release checklists。
-- [ ] `59-05-PLAN.md` — 固化 backup/restore baseline、post-restore verification 与 restore drill artifact。
+- [x] `59-03-PLAN.md` — 建立 `verify:phase59` 与 GitHub Actions release hard gate。 (completed 2026-05-26)
+- [x] `59-04-PLAN.md` — 固化 single-node deploy/rollback scripts、systemd units 与 release checklists。 (completed 2026-05-26)
+- [x] `59-05-PLAN.md` — 固化 backup/restore baseline、post-restore verification 与 restore drill artifact。 (completed 2026-05-27)
 **Success Criteria** (what must be TRUE):
   1. env schema、`.env.example`、Dockerfile/compose 或等价部署脚本会收敛试点环境配置纪律。
   2. CI/CD 会在 lint/typecheck/test/build/migrate/health-check 失败时中止发布。
@@ -113,7 +113,7 @@ Plans:
 | 56. Voting Plugin Contract & Authoring Integration | v3.1 | 5/5 | Complete | 2026-05-25 |
 | 57. Classroom Runtime Sample Chain | v3.1 | 5/5 | Complete | 2026-05-25 |
 | 58. Operator Recovery & Production Surfaces | v3.1 | 8/8 | Complete    | 2026-05-26 |
-| 59. Deploy, Release & Recovery Baseline | v3.1 | 4/5 | In Progress|  |
+| 59. Deploy, Release & Recovery Baseline | v3.1 | 5/5 | Complete | 2026-05-27 |
 | 60. Load, Degrade & Pilot Rehearsal | v3.1 | 0 | Planned | - |
 
 ## Frozen Historical Context

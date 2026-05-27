@@ -96,7 +96,7 @@ echo "[verify-restore] health=$HEALTH_OUTPUT"
 READY_OUTPUT=$($CURL_BIN --noproxy "$CURL_NOPROXY" -fsS "$BASE_URL/api/ready" 2>&1) || fail_blocker "ready" "$READY_OUTPUT"
 echo "[verify-restore] ready=$READY_OUTPUT"
 
-SMOKE_OUTPUT=$(bash -lc "$SMOKE_COMMAND" 2>&1) || fail_blocker "sample_smoke" "$SMOKE_OUTPUT"
+SMOKE_OUTPUT=$(DB_FILE_NAME="file:$DB_FILE_PATH" PHASE57_PROOF_BASE_URL="$BASE_URL" bash -lc "$SMOKE_COMMAND" 2>&1) || fail_blocker "sample_smoke" "$SMOKE_OUTPUT"
 echo "[verify-restore] sample_smoke=$SMOKE_OUTPUT"
 
 echo "[verify-restore] completed"

@@ -57,7 +57,7 @@
 
 - [ ] **SAFE-01**: SQLite + DAL 必须继续作为唯一 durable truth；Redis、WebSocket、BullMQ 只能作为 delivery 或 orchestration substrate。 Phase: 56, 57
 - [x] **SAFE-02**: 样板链路中的关键写操作必须具备强校验、幂等/去重、补偿或 replay-safe 语义。 Phase: 56, 57, 58
-- [ ] **SAFE-03**: SQLite 与附加资产必须具备备份恢复、restore drill 与恢复后校验。 Phase: 59, 60
+- [x] **SAFE-03**: SQLite 与附加资产必须具备备份恢复、restore drill 与恢复后校验。 Phase: 59, 60
 
 ### LOAD
 
