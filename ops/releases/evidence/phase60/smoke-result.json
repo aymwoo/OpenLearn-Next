@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-05-28T11:26:55.716Z",
+  "proofScopeId": "phase60-load-rehearsal",
+  "classroomSessionId": "8957ff62-392b-45e6-8f0e-655b7026e7a1",
+  "designPublish": {
+    "status": "blocked",
+    "script": "pnpm verify:phase56"
+  },
+  "browserProof": {
+    "status": "blocked",
+    "reusedScript": "runPhase57BrowserProof"
+  },
+  "status": "blocked",
+  "blockingFailure": "Missing live target env: PHASE60_BASE_URL",
+  "nextStep": "Set PHASE60_BASE_URL on the live pilot target and rerun the real sample-smoke chain."
+}
