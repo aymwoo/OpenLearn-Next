@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Single-School Pilot Production Readiness (Plugin-First)
 status: executing
-last_updated: "2026-05-30T11:23:28.263Z"
-last_activity: 2026-05-30 -- Phase 60.1 execution started
+last_updated: "2026-05-30T12:03:34Z"
+last_activity: 2026-05-30 -- Completed 60.1-01 blocked live closeout
 progress:
   total_phases: 8
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 34
-  completed_plans: 30
-  percent: 75
+  completed_plans: 31
+  percent: 88
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: `.planning/PROJECT.md` (updated 2026-05-24)
 
 Milestone: v3.1 -- Single-School Pilot Production Readiness (Plugin-First)
 Phase: 60.1 (close-gap-pilot-03-load-01-load-02-replace-dry-run-phase60-p) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 60.1
-Last activity: 2026-05-30 -- Phase 60.1 execution started
-Progress: [████████░░] 83%
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-05-30 -- Completed 60.1-01 blocked live closeout
+Progress: [█████████░] 94%
 Next queued phase: 60.2
 
 ## Performance Metrics
@@ -84,16 +84,18 @@ Recent decisions affecting current work:
 - [Phase 59]: dry-run deploy and rollback skip manifest and pointer writes while preserving release gate order.
 - [Phase 59]: restore success is defined by integrity, foreign-key, health, ready, and sample-smoke gates all passing on a restored target.
 - [Phase 59]: the successful restore drill required explicit restored runtime env plus a reachable BullMQ Redis dependency; env.template alone is not a runnable contract.
+- [Phase 60.1-01]: live closeout must remain blocked when canonical deploy rehearsal fails, even if smoke/capacity/drill artifacts regenerate successfully on the pilot target.
+- [Phase 60.1-01]: `LOAD-01` can hold live evidence while `PILOT-03` and `LOAD-02` remain partial until rollout/rollback proof and manual transport fallback evidence are complete.
 
 ### Pending Todos
 
-- Run `/gsd-discuss-phase 60` to gather context for load, degrade, and pilot rehearsal.
-- Before committing Phase 59 closeout, run GitNexus `detect-changes --scope all` and stage only the intended closeout files.
+- Re-run canonical Phase 60 rollout/rollback rehearsal after fixing the pilot-host `SQLITE_BUSY` / Phase 57 browser-proof timeout.
+- Keep manual transport fallback evidence as a required closeout note before claiming `LOAD-02` or `PILOT-03` closed.
 
 ### Blockers/Concerns
 
-- Current worktree still contains unrelated source changes outside the Phase 59 closeout scope; commits must stage only the intended Phase 59 files.
-- Phase 60 has not started discussion/planning yet.
+- Phase 60.1 plan 01 regenerated live smoke/capacity/drill proof, but canonical deploy rehearsal failed on pilot host with `SQLITE_BUSY` and a Phase 57 browser timeout; close gate remains blocked.
+- Current working tree still contains many unrelated source changes; future commits must keep staging strictly scoped.
 
 ## Deferred Items
 
@@ -115,6 +117,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-28T00:57:27.787Z
-Stopped at: Phase 60 context gathered
-Resume file: .planning/phases/60-load-degrade-pilot-rehearsal/60-CONTEXT.md
+Last session: 2026-05-30T12:05:38.177Z
+Stopped at: Completed 60.1-01-PLAN.md
+Resume file: None

@@ -141,9 +141,9 @@ Plans:
 **Goal:** 用真实 target 上的 smoke/capacity/drills/rollout-rollback rehearsal 结果替换当前 dry-run evidence，并阻断 dry-run artifact 再次被当成 closeout proof。
 **Requirements**: PILOT-03, LOAD-01, LOAD-02
 **Depends on:** Phase 60
-**Plans:** 0/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] `PLAN.md` — 收紧 phase60 verifier 语义并在 live target 上执行真实 rehearsal evidence。 (blocked pending pilot-host/live target)
-- [ ] `60.1-02-PLAN.md` — 收紧 repo-local SQLite 并发姿态与 fixture busy blocker，避免 sample-smoke 被共享 `local.db` 卡死。
-- [ ] `60.1-03-PLAN.md` — 为 repo-local substitute proof 切 isolated SQLite，并在 verifier 中阻断 shared `local.db` 误用。
+- [x] `PLAN.md` — 收紧 phase60 verifier 语义并在 live target 上执行真实 rehearsal evidence。 (completed 2026-05-30; live smoke/capacity/drills regenerated, closeout still blocked by canonical deploy rehearsal failure)
+- [x] `60.1-02-PLAN.md` — 收紧 repo-local SQLite 并发姿态与 fixture busy blocker，避免 sample-smoke 被共享 `local.db` 卡死。 (completed 2026-05-29)
+- [x] `60.1-03-PLAN.md` — 为 repo-local substitute proof 切 isolated SQLite，并在 verifier 中阻断 shared `local.db` 误用。 (completed 2026-05-29)
