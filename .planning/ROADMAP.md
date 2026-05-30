@@ -99,6 +99,12 @@ Plans:
 **Goal**: 团队可以通过 rehearsal 证明课堂投票样板在单校试点容量与降级场景下可用，并具备 rollout/rollback 准备。
 **Depends on**: Phase 59
 **Requirements**: LOAD-01, LOAD-02, OPS-02, ENVR-03, SAFE-03
+**Plans:** 4 plans
+Plans:
+- [ ] `60-01-PLAN.md` — 锁定 Phase 60 hard gate、双轨顺序与四个数值 stop rules。
+- [ ] `60-02-PLAN.md` — 交付真实样板 smoke、40/5 classroom-affined fixtures 与容量 k6 gate。
+- [ ] `60-03-PLAN.md` — 自动化 Redis degraded、worker backlog、reconnect/retry 与 partial failure drills。
+- [ ] `60-04-PLAN.md` — 复用 Phase 59 deploy/rollback contract 完成 rehearsal 与 Phase 60 evidence bundle。
 **Success Criteria** (what must be TRUE):
   1. k6/Playwright 或等价 gate 会覆盖教师设计到学生完成的样板链路与 40/5 容量假设。
   2. Redis degraded、worker backlog、reconnect/retry、partial failure 场景有明确验证结果与可接受阈值。
@@ -119,3 +125,25 @@ Plans:
 ## Frozen Historical Context
 
 `v2.4 Plugin Data Architecture & Default Plugins`（Phases 44-49）保留为历史 planning input。它不是当前 milestone，也不会自动把未完成 scope 带入 `v3.1`；只有当 `v3.1` phase planning 证明某项能力是课堂投票样板与单校试点的直接依赖时，才按最小必要原则吸收。
+
+### Phase 60.2: Close gap: PLUG-01 / CHAIN-03 — wire frozen voting contract into launch and runtime (INSERTED)
+
+**Goal:** 让 publish 冻结后的 voting `pluginContract` 真正进入 launch/readiness、student submit 与 teacher result surface，而不是只停留在 snapshot freeze。
+**Requirements**: PLUG-01, CHAIN-03
+**Depends on:** Phase 60
+**Plans:** 1/1 plans executed
+
+Plans:
+- [x] `PLAN.md` — 把 frozen voting contract 接入 classroom/learning DTO、launch/readiness、teacher result surface 与 quiz-path submit。 (completed 2026-05-28)
+
+### Phase 60.1: Close gap: PILOT-03 / LOAD-01 / LOAD-02 — replace dry-run phase60 proof with live rehearsal evidence (INSERTED)
+
+**Goal:** 用真实 target 上的 smoke/capacity/drills/rollout-rollback rehearsal 结果替换当前 dry-run evidence，并阻断 dry-run artifact 再次被当成 closeout proof。
+**Requirements**: PILOT-03, LOAD-01, LOAD-02
+**Depends on:** Phase 60
+**Plans:** 0/3 plans executed
+
+Plans:
+- [ ] `PLAN.md` — 收紧 phase60 verifier 语义并在 live target 上执行真实 rehearsal evidence。 (blocked pending pilot-host/live target)
+- [ ] `60.1-02-PLAN.md` — 收紧 repo-local SQLite 并发姿态与 fixture busy blocker，避免 sample-smoke 被共享 `local.db` 卡死。
+- [ ] `60.1-03-PLAN.md` — 为 repo-local substitute proof 切 isolated SQLite，并在 verifier 中阻断 shared `local.db` 误用。

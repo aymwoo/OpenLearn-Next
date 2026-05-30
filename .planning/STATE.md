@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Single-School Pilot Production Readiness (Plugin-First)
-status: planning
-last_updated: "2026-05-27T05:04:09Z"
-last_activity: 2026-05-27 -- Phase 59 closeout completed
+status: executing
+last_updated: "2026-05-30T11:23:28.263Z"
+last_activity: 2026-05-30 -- Phase 60.1 execution started
 progress:
-  total_phases: 6
-  completed_phases: 5
-  total_plans: 26
-  completed_plans: 26
-  percent: 83
+  total_phases: 8
+  completed_phases: 6
+  total_plans: 34
+  completed_plans: 30
+  percent: 75
 ---
 
 # Project State
@@ -20,17 +20,17 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-24)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 60 — load-degrade-pilot-rehearsal
+**Current focus:** Phase 60.1 — close-gap-pilot-03-load-01-load-02-replace-dry-run-phase60-p
 
 ## Current Position
 
 Milestone: v3.1 -- Single-School Pilot Production Readiness (Plugin-First)
-Phase: 60 (load-degrade-pilot-rehearsal) — PLANNED
-Plan: 0 of 0
-Status: Phase 59 complete — next phase ready for discussion
-Last activity: 2026-05-27 -- Phase 59 closeout completed
+Phase: 60.1 (close-gap-pilot-03-load-01-load-02-replace-dry-run-phase60-p) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 60.1
+Last activity: 2026-05-30 -- Phase 60.1 execution started
 Progress: [████████░░] 83%
-Next queued phase: 60
+Next queued phase: 60.2
 
 ## Performance Metrics
 
@@ -55,6 +55,11 @@ Next queued phase: 60
 - 2026-05-27 — `59-05` completed with truth-first backup/restore artifacts and one successful real restore drill.
 
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 60.2 inserted after Phase 60: Close gap: PLUG-01 / CHAIN-03 — wire frozen voting contract into launch and runtime (URGENT)
+- Phase 60.1 inserted after Phase 60: Close gap: PILOT-03 / LOAD-01 / LOAD-02 — replace dry-run phase60 proof with live rehearsal evidence (URGENT)
 
 ### Decisions
 
@@ -110,6 +115,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-27T05:04:09Z
-Stopped at: Completed Phase 59 closeout and queued Phase 60 discussion
-Resume file: None
+Last session: 2026-05-28T00:57:27.787Z
+Stopped at: Phase 60 context gathered
+Resume file: .planning/phases/60-load-degrade-pilot-rehearsal/60-CONTEXT.md
