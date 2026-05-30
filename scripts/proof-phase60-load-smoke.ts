@@ -26,11 +26,12 @@ function getMissingPhase60SmokeEnv() {
   return PHASE60_SMOKE_REQUIRED_ENV.filter((envName) => !process.env[envName]?.trim());
 }
 
-function run(command: string, args: readonly string[], label: string) {
+function run(command: string, args: readonly string[], label: string, env?: NodeJS.ProcessEnv) {
   try {
     const output = execFileSync(command, [...args], {
       stdio: "pipe",
       encoding: "utf8",
+      env: env ?? process.env,
     });
 
     if (output) {
@@ -46,6 +47,13 @@ function run(command: string, args: readonly string[], label: string) {
   }
 }
 
+export function withPhase56VerificationEnv(env: NodeJS.ProcessEnv = process.env) {
+  return {
+    ...env,
+    NODE_ENV: "test",
+  } satisfies NodeJS.ProcessEnv;
+}
+
 function writeSmokeResult(payload: Record<string, unknown>) {
   mkdirSync(path.dirname(PHASE60_SMOKE_RESULT_PATH), { recursive: true });
   writeFileSync(PHASE60_SMOKE_RESULT_PATH, JSON.stringify(payload, null, 2));
@@ -53,8 +61,9 @@ function writeSmokeResult(payload: Record<string, unknown>) {
 
 async function runPhase57ProofForPhase60() {
   const phase60BaseUrl = process.env.PHASE60_BASE_URL?.trim();
+  const useIsolatedLocalProofServer = process.env.PHASE60_LOCAL_PROOF_MODE === "isolated-db";
 
-  if (!phase60BaseUrl) {
+  if (!phase60BaseUrl || useIsolatedLocalProofServer) {
     await runPhase57BrowserProof();
     return;
   }
@@ -122,7 +131,12 @@ export async function runPhase60LoadSmoke() {
   }
 
   try {
-    run("pnpm", ["verify:phase56"], "Phase 60 design/publish prerequisite");
+    run(
+      "pnpm",
+      ["verify:phase56"],
+      "Phase 60 design/publish prerequisite",
+      withPhase56VerificationEnv(),
+    );
     await runPhase57ProofForPhase60();
 
     const payload = {

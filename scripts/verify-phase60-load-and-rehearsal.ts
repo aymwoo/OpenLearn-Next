@@ -19,6 +19,9 @@ type Phase60StaticSources = {
 type Phase60StageResult = {
   status?: string;
   blockingFailure?: string | null;
+  manualRequired?: {
+    transportFallback?: boolean;
+  } | null;
 };
 
 const PHASE60_LIVE_ENV = [
@@ -30,6 +33,9 @@ const PHASE60_LIVE_ENV = [
 
 export const PHASE_60_VERIFY_SCRIPT =
   "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase60-load-and-rehearsal.ts";
+
+export const PHASE_60_LOCAL_VERIFY_SCRIPT =
+  "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase60-local.ts";
 
 export function getPhase60RequiredArtifacts() {
   return [
@@ -68,6 +74,36 @@ export function getPhase60StageOrder() {
 
 export function getPhase60MissingLiveEnv(env: NodeJS.ProcessEnv = process.env) {
   return PHASE60_LIVE_ENV.filter((name) => !env[name]?.trim());
+}
+
+function isLocalhostBaseUrl(baseUrl: string | undefined) {
+  if (!baseUrl?.trim()) {
+    return false;
+  }
+
+  try {
+    const url = new URL(baseUrl);
+    return url.hostname === "127.0.0.1" || url.hostname === "localhost";
+  } catch {
+    return false;
+  }
+}
+
+function isSharedLocalDbFile(dbFileName: string | undefined) {
+  const normalized = dbFileName?.trim() || "file:local.db";
+  return normalized === "file:local.db" || normalized === "file:./local.db";
+}
+
+export function getPhase60SharedLocalDbBlocker(env: NodeJS.ProcessEnv = process.env) {
+  if (!isLocalhostBaseUrl(env.PHASE60_BASE_URL)) {
+    return null;
+  }
+
+  if (!isSharedLocalDbFile(env.DB_FILE_NAME)) {
+    return null;
+  }
+
+  return "PHASE60_LOCAL_DB_SHARED_WITH_APP: rerun pnpm verify:phase60:local";
 }
 
 export function read(filePath: string) {
@@ -155,9 +191,42 @@ export function verifyPhase60PackageScripts(packageSource: string) {
   }
 }
 
+export function verifyPhase60LocalPackageScript(packageSource: string) {
+  try {
+    const pkg = JSON.parse(packageSource) as { scripts?: Record<string, string> };
+    return pkg.scripts?.["verify:phase60:local"] === PHASE_60_LOCAL_VERIFY_SCRIPT;
+  } catch {
+    return false;
+  }
+}
+
+export function withLoopbackNoProxy(env: NodeJS.ProcessEnv = process.env) {
+  const nextEnv = { ...env };
+  const additions = ["127.0.0.1", "localhost"];
+
+  for (const key of ["NO_PROXY", "no_proxy"] as const) {
+    const existing = nextEnv[key]?.trim();
+    const tokens = existing
+      ? existing.split(",").map((token) => token.trim()).filter(Boolean)
+      : [];
+
+    for (const addition of additions) {
+      if (!tokens.includes(addition)) {
+        tokens.push(addition);
+      }
+    }
+
+    nextEnv[key] = tokens.join(",");
+  }
+
+  return nextEnv;
+}
+
 export function resolvePhase60K6Invocation(scriptPath: string) {
+  const env = withLoopbackNoProxy(process.env);
+
   if (process.env.PHASE60_K6_MODE === "dry-run") {
-    return { mode: "dry-run" as const, command: "", args: [] as string[] };
+    return { mode: "dry-run" as const, command: "", args: [] as string[], env };
   }
 
   for (const candidate of [process.env.PHASE60_K6_BIN, "/usr/bin/k6", "/usr/local/bin/k6"]) {
@@ -166,9 +235,19 @@ export function resolvePhase60K6Invocation(scriptPath: string) {
         mode: "host" as const,
         command: candidate,
         args: ["run", scriptPath],
+        env,
       };
     }
   }
+
+  const dockerEnvArgs = [
+    "-e",
+    `PHASE60_BASE_URL=${env.PHASE60_BASE_URL ?? ""}`,
+    "-e",
+    `NO_PROXY=${env.NO_PROXY ?? ""}`,
+    "-e",
+    `no_proxy=${env.no_proxy ?? ""}`,
+  ];
 
   return {
     mode: "docker" as const,
@@ -176,8 +255,11 @@ export function resolvePhase60K6Invocation(scriptPath: string) {
     args: [
       "run",
       "--rm",
+      "--user",
+      `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`,
       "--network",
       "host",
+      ...dockerEnvArgs,
       "-v",
       `${process.cwd()}:/work`,
       "-w",
@@ -186,14 +268,17 @@ export function resolvePhase60K6Invocation(scriptPath: string) {
       "run",
       scriptPath,
     ],
+    env,
   };
 }
 
 export function evaluatePhase60StaticChecks(sources: Phase60StaticSources): StaticCheck[] {
   return [
     {
-      label: "package.json exposes exact verify:phase60 script",
-      passed: verifyPhase60PackageScripts(sources.packageSource),
+      label: "package.json exposes exact verify:phase60 and verify:phase60:local scripts",
+      passed:
+        verifyPhase60PackageScripts(sources.packageSource)
+        && verifyPhase60LocalPackageScript(sources.packageSource),
     },
     {
       label: "phase60 required artifacts exist on disk",
@@ -225,14 +310,29 @@ export function evaluatePhase60StaticChecks(sources: Phase60StaticSources): Stat
         && includesAll(sources.verifierSource, ['grafana/k6:latest', 'phase60-capacity.k6.js', 'phase60-drills.k6.js']),
     },
     {
-      label: "summary artifact still reads only the machine-readable phase60 result contracts",
+      label: "summary artifact still reads the machine-readable phase60 result contracts and keeps transport fallback manual-only",
       passed: includesAll(sources.summarySource, [
         'ops/releases/evidence/phase60/smoke-result.json',
         'ops/releases/evidence/phase60/capacity-result.json',
         'ops/releases/evidence/phase60/drill-results.json',
+        'ops/releases/evidence/phase60/transport-fallback-notes.md',
+        'manual evidence only',
+        'do not treat it as an automated pass bit',
       ]),
     },
   ];
+}
+
+export function validatePhase60SummarySource(summarySource: string) {
+  return includesAll(summarySource, [
+    'Go/No-Go',
+    'smoke-result.json',
+    'capacity-result.json',
+    'drill-results.json',
+    'transport-fallback-notes.md',
+    'manual evidence only',
+    'do not treat it as an automated pass bit',
+  ]);
 }
 
 export function assertPhase60LiveResult(label: string, result: Phase60StageResult | null) {
@@ -246,6 +346,14 @@ export function assertPhase60LiveResult(label: string, result: Phase60StageResul
 
   if (result.status === "blocked") {
     throw new Error(result.blockingFailure || `PHASE60_${label.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_BLOCKED`);
+  }
+
+  if (
+    label === "drills"
+    && result.status === "escalate"
+    && result.manualRequired?.transportFallback === true
+  ) {
+    return;
   }
 
   if (result.status !== "passed" && result.status !== "go") {
@@ -309,7 +417,7 @@ function runPhase60K6Stage(scriptPath: string, label: string) {
     return;
   }
 
-  run(invocation.command, invocation.args, label);
+  run(invocation.command, invocation.args, label, invocation.env);
 }
 
 async function runPhase60RehearsalStage() {
@@ -347,6 +455,11 @@ export async function runPhase60Verification() {
 
   console.log('  ✓ Static close-gate checks passed.');
 
+  const sharedLocalDbBlocker = getPhase60SharedLocalDbBlocker();
+  if (sharedLocalDbBlocker) {
+    throw new Error(sharedLocalDbBlocker);
+  }
+
   if (
     process.env.PHASE60_SMOKE_MODE !== 'dry-run'
     && process.env.PHASE60_K6_MODE !== 'dry-run'
@@ -375,7 +488,7 @@ export async function runPhase60Verification() {
 
   console.log('\n[6/6] summary artifact validation...');
   const summarySource = read('ops/releases/evidence/phase60/rehearsal-summary.md');
-  if (!includesAll(summarySource, ['Go/No-Go', 'smoke-result.json', 'capacity-result.json', 'drill-results.json'])) {
+  if (!validatePhase60SummarySource(summarySource)) {
     throw new Error('PHASE60_SUMMARY_ARTIFACT_INVALID');
   }
 

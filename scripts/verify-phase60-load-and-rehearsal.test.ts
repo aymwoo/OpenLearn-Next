@@ -6,10 +6,17 @@ import {
   getPhase60FocusedSuitePaths,
   getPhase60MissingLiveEnv,
   getPhase60RequiredArtifacts,
+  getPhase60SharedLocalDbBlocker,
   getPhase60StageOrder,
+  PHASE_60_LOCAL_VERIFY_SCRIPT,
   PHASE_60_VERIFY_SCRIPT,
+  resolvePhase60K6Invocation,
+  validatePhase60SummarySource,
+  verifyPhase60LocalPackageScript,
   verifyPhase60PackageScripts,
+  withLoopbackNoProxy,
 } from "./verify-phase60-load-and-rehearsal";
+import { withPhase56VerificationEnv } from "./proof-phase60-load-smoke";
 
 function asEnv(values: Record<string, string>): NodeJS.ProcessEnv {
   return {
@@ -19,12 +26,24 @@ function asEnv(values: Record<string, string>): NodeJS.ProcessEnv {
 }
 
 describe("verify-phase60 load/degrade/rehearsal gate", () => {
-  it("expects the dedicated verify:phase60 package script", () => {
+  it("expects the dedicated verify:phase60 and verify:phase60:local package scripts", () => {
     expect(
       verifyPhase60PackageScripts(
         JSON.stringify({
           scripts: {
             "verify:phase60": PHASE_60_VERIFY_SCRIPT,
+            "verify:phase60:local": PHASE_60_LOCAL_VERIFY_SCRIPT,
+          },
+        }),
+      ),
+    ).toBe(true);
+
+    expect(
+      verifyPhase60LocalPackageScript(
+        JSON.stringify({
+          scripts: {
+            "verify:phase60": PHASE_60_VERIFY_SCRIPT,
+            "verify:phase60:local": PHASE_60_LOCAL_VERIFY_SCRIPT,
           },
         }),
       ),
@@ -81,11 +100,82 @@ describe("verify-phase60 load/degrade/rehearsal gate", () => {
     ]);
   });
 
+  it("fails closed when localhost proof points back to the shared local.db", () => {
+    expect(
+      getPhase60SharedLocalDbBlocker(asEnv({
+        PHASE60_BASE_URL: "http://127.0.0.1:3000",
+        DB_FILE_NAME: "file:local.db",
+      })),
+    ).toBe("PHASE60_LOCAL_DB_SHARED_WITH_APP: rerun pnpm verify:phase60:local");
+
+    expect(
+      getPhase60SharedLocalDbBlocker(asEnv({
+        PHASE60_BASE_URL: "http://127.0.0.1:3000",
+        DB_FILE_NAME: "file:/tmp/opencode/phase60-local-proof/local.db",
+      })),
+    ).toBeNull();
+  });
+
+  it("adds loopback no-proxy entries for local phase60 load checks", () => {
+    expect(withLoopbackNoProxy(asEnv({}))).toMatchObject({
+      NO_PROXY: "127.0.0.1,localhost",
+      no_proxy: "127.0.0.1,localhost",
+    });
+
+    expect(
+      withLoopbackNoProxy(asEnv({
+        NO_PROXY: "example.com,127.0.0.1",
+        no_proxy: "example.com",
+      })),
+    ).toMatchObject({
+      NO_PROXY: "example.com,127.0.0.1,localhost",
+      no_proxy: "example.com,127.0.0.1,localhost",
+    });
+  });
+
+  it("forces nested Phase 56 verification to run under test env", () => {
+    expect(
+      withPhase56VerificationEnv(asEnv({
+        NODE_ENV: "production",
+        PHASE60_BASE_URL: "http://127.0.0.1:3000",
+      })),
+    ).toMatchObject({
+      NODE_ENV: "test",
+      PHASE60_BASE_URL: "http://127.0.0.1:3000",
+    });
+  });
+
+  it("passes the live base url and no-proxy env into docker k6 fallback", () => {
+    const previousEnv = process.env;
+    process.env = asEnv({
+      PHASE60_BASE_URL: "http://127.0.0.1:3060",
+      PATH: previousEnv.PATH || "",
+    });
+
+    try {
+      const invocation = resolvePhase60K6Invocation("scripts/load/phase60-capacity.k6.js");
+
+      expect(invocation.mode).toBe("docker");
+      expect(invocation.args).toContain("grafana/k6:latest");
+      expect(invocation.args).toContain("PHASE60_BASE_URL=http://127.0.0.1:3060");
+      expect(invocation.args).toContain("NO_PROXY=127.0.0.1,localhost");
+      expect(invocation.args).toContain("no_proxy=127.0.0.1,localhost");
+      expect(invocation.env).toMatchObject({
+        PHASE60_BASE_URL: "http://127.0.0.1:3060",
+        NO_PROXY: "127.0.0.1,localhost",
+        no_proxy: "127.0.0.1,localhost",
+      });
+    } finally {
+      process.env = previousEnv;
+    }
+  });
+
   it("keeps static checks focused on helper-based verifier wiring, required artifacts, and dry-run k6 contract", () => {
     const checks = evaluatePhase60StaticChecks({
       packageSource: JSON.stringify({
         scripts: {
           "verify:phase60": PHASE_60_VERIFY_SCRIPT,
+          "verify:phase60:local": PHASE_60_LOCAL_VERIFY_SCRIPT,
         },
       }),
       verifierSource: `
@@ -110,6 +200,9 @@ describe("verify-phase60 load/degrade/rehearsal gate", () => {
         ops/releases/evidence/phase60/smoke-result.json
         ops/releases/evidence/phase60/capacity-result.json
         ops/releases/evidence/phase60/drill-results.json
+        ops/releases/evidence/phase60/transport-fallback-notes.md
+        manual evidence only
+        do not treat it as an automated pass bit
       `,
     });
 
@@ -131,5 +224,34 @@ describe("verify-phase60 load/degrade/rehearsal gate", () => {
     );
 
     expect(() => assertPhase60LiveResult("drills", { status: "passed", blockingFailure: null })).not.toThrow();
+    expect(() => assertPhase60LiveResult("drills", {
+      status: "escalate",
+      blockingFailure: null,
+      manualRequired: { transportFallback: true },
+    })).not.toThrow();
+  });
+
+  it("requires the summary to keep transport fallback as manual evidence only", () => {
+    expect(
+      validatePhase60SummarySource(`
+        Go/No-Go
+        smoke-result.json
+        capacity-result.json
+        drill-results.json
+        transport-fallback-notes.md
+        manual evidence only
+        do not treat it as an automated pass bit
+      `),
+    ).toBe(true);
+
+    expect(
+      validatePhase60SummarySource(`
+        Go/No-Go
+        smoke-result.json
+        capacity-result.json
+        drill-results.json
+        transport-fallback-notes.md
+      `),
+    ).toBe(false);
   });
 });

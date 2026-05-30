@@ -59,6 +59,8 @@
     "proof:phase57": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/proof-phase57-classroom-runtime.ts",
     "verify:phase58": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase58-operator-recovery-and-surfaces.ts",
     "verify:phase59": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase59-deploy-release.ts",
+    "verify:phase60": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase60-load-and-rehearsal.ts",
+    "verify:phase60:local": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase60-local.ts",
     "proof:phase58": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/proof-phase58-operator-recovery.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
