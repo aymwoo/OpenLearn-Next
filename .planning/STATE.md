@@ -2,100 +2,82 @@
 gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Single-School Pilot Production Readiness (Plugin-First)
-status: executing
-last_updated: "2026-05-30T12:03:34Z"
-last_activity: 2026-05-30 -- Completed 60.1-01 blocked live closeout
+status: Awaiting next milestone
+last_updated: "2026-05-30T14:00:56.944Z"
+last_activity: 2026-05-30 -- Archived milestone v3.1 and reset planning entrypoint
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 34
-  completed_plans: 31
-  percent: 88
+  completed_plans: 34
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-05-24)
+See: `.planning/PROJECT.md` (updated 2026-05-30)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 60.1 — close-gap-pilot-03-load-01-load-02-replace-dry-run-phase60-p
+**Current focus:** Planning next milestone from archived `v3.1` baseline
 
 ## Current Position
 
-Milestone: v3.1 -- Single-School Pilot Production Readiness (Plugin-First)
-Phase: 60.1 (close-gap-pilot-03-load-01-load-02-replace-dry-run-phase60-p) — EXECUTING
-Plan: 2 of 3
-Status: Ready to execute
-Last activity: 2026-05-30 -- Completed 60.1-01 blocked live closeout
-Progress: [█████████░] 94%
-Next queued phase: 60.2
+Milestone: `v3.1` archived
+Phase: None
+Plan: —
+Status: Awaiting next milestone definition
+Last activity: 2026-05-30 -- Archived `v3.1` and rewrote planning entrypoint
+Progress: [██████████] 100%
+Next queued phase: None
 
 ## Performance Metrics
 
-**Current milestone posture:**
+**Current planning posture:**
 
-- Planned phases: 6 (55-60)
-- Planned sample: classroom voting plugin
-- Target pilot capacity: 40 students per classroom, 5 simultaneous classrooms
+- Active milestone: none
+- Latest archive: `v3.1 Single-School Pilot Production Readiness (Plugin-First)`
+- Delivered at close: 8 phases, 34 plans, 50 tasks
 
 **Historical reference:**
 
-- Latest completed milestone: `v3.0 AI Native Educational OS Upgrade`
-- Archived on: 2026-05-23
-- Delivered scope: 5 phases, 22 plans
+- Latest completed milestone: `v3.1 Single-School Pilot Production Readiness (Plugin-First)`
+- Archived on: 2026-05-30
+- Delivered scope: 8 phases, 34 plans
 
 **Recent execution:**
 
-- 2026-05-26 — `59-01` completed in 5 min, 2 tasks, 3 files (`.env.example`, `src/lib/ops/env.server.ts`, `src/lib/ops/env.server.test.ts`)
-- 2026-05-26 — `59-02` completed in 6 min, 3 tasks, 6 files (`src/lib/ops/release-status.ts`, `src/lib/ops/release-status.test.ts`, `src/app/api/health/route.ts`, `src/app/api/ready/route.ts`, `src/app/api/release/route.ts`, `src/app/api/ops-routes.test.ts`)
-- 2026-05-26 — `59-03` completed with repo-local `verify:phase59` gate and GitHub Actions pilot release workflow.
-- 2026-05-26 — `59-04` completed with deploy/rollback scripts, canonical release pointers, systemd units, and rollout/rollback runbooks.
-- 2026-05-27 — `59-05` completed with truth-first backup/restore artifacts and one successful real restore drill.
+- 2026-05-28 — Phase 60 delivered sample smoke, 40x5 capacity gate, degraded drills, and first rehearsal artifact bundle.
+- 2026-05-30 — Phase 60.1 replaced dry-run close proof with live rollout/rollback rehearsal evidence and removed repo-local SQLite contention blockers.
+- 2026-05-30 — Phase 60.2 wired frozen voting contract into runtime truth; milestone audit flipped to `passed` and `v3.1` was archived.
 
 ## Accumulated Context
 
 ### Roadmap Evolution
 
-- Phase 60.2 inserted after Phase 60: Close gap: PLUG-01 / CHAIN-03 — wire frozen voting contract into launch and runtime (URGENT)
-- Phase 60.1 inserted after Phase 60: Close gap: PILOT-03 / LOAD-01 / LOAD-02 — replace dry-run phase60 proof with live rehearsal evidence (URGENT)
+- `v3.1` 已归档到 `.planning/milestones/v3.1-ROADMAP.md`、`.planning/milestones/v3.1-REQUIREMENTS.md` 与 `.planning/milestones/v3.1-MILESTONE-AUDIT.md`。
+- 根级 `ROADMAP.md` 现在只保留 archive summary 与 next-milestone entrypoint，不再承载 `v3.1` 全量 phase details。
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Milestone v3.1]: milestone scope is fixed as single-school pilot production readiness, not another platform abstraction wave.
-- [Milestone v3.1]: the sample plugin is fixed to classroom voting.
-- [Milestone v3.1]: the primary sample chain is fixed to teacher design -> publish -> launch -> student completion.
-- [Milestone v3.1]: pilot capacity is fixed to 40 students in one classroom and 5 concurrent classrooms.
-- [Milestone v3.1]: existing WebSocket-first transport, optional Redis fanout, BullMQ worker, and SQLite + DAL truth posture are baseline capabilities to reuse, not gaps to rebuild.
-- [Milestone v3.1]: operator recovery, deploy/release, backup/restore, and load/degrade rehearsal are committed scope because they are required for pilot production use.
-- [Phase 59-01]: env parsing is centralized in `src/lib/ops/env.server.ts` before broader runtime adoption.
-- [Phase 59-01]: BullMQ readiness and fanout capability are modeled as separate Redis postures to prevent a single shared readiness toggle.
-- [Phase 59-02]: health/ready/release contracts are centralized in `src/lib/ops/release-status.ts` so routes, deploy scripts, and restore verification share one honesty vocabulary.
-- [Phase 59-02]: `/api/release` reads only canonical `current.json` and `green.json` pointers, never scans the manifests directory for the “latest” file.
-- [Phase 59-02]: readiness remains blocked by DB/web/worker posture while fanout degraded stays explicit but non-blocking.
-- [Phase 59]: verify:phase59 now locks required deploy/release artifacts and focused suites before later rollout and restore plans fill them. — Phase 59 needs a repo-local hard gate before shell/systemd/restore artifacts land.
-- [Phase 59]: pilot-release workflow treats BullMQ Redis as blocking while preserving fanout as optional via REDIS_FANOUT_ENABLED=false. — This preserves D-59-07 and D-59-08 hard-gate honesty without promoting optional fanout into a release blocker.
-- [Phase 59]: deploy manifest stores migration, gates, and OPS-01 correlation metadata as canonical release truth.
-- [Phase 59]: deploy updates current.json and green.json only after post-restart health and ready succeed.
-- [Phase 59]: dry-run deploy and rollback skip manifest and pointer writes while preserving release gate order.
-- [Phase 59]: restore success is defined by integrity, foreign-key, health, ready, and sample-smoke gates all passing on a restored target.
-- [Phase 59]: the successful restore drill required explicit restored runtime env plus a reachable BullMQ Redis dependency; env.template alone is not a runnable contract.
-- [Phase 60.1-01]: live closeout must remain blocked when canonical deploy rehearsal fails, even if smoke/capacity/drill artifacts regenerate successfully on the pilot target.
-- [Phase 60.1-01]: `LOAD-01` can hold live evidence while `PILOT-03` and `LOAD-02` remain partial until rollout/rollback proof and manual transport fallback evidence are complete.
+- [Milestone v3.1]: classroom voting sample chain, operator recovery, pilot release baseline, and 40/5 rehearsal are now validated baseline, not open scope.
+- [Milestone v3.1]: canonical close evidence must come from live rehearsal plus real deploy/rollback notes.
+- [Milestone v3.1]: transport fallback remains manual-only operator evidence by design.
+- [Post-archive]: next planning should begin with `/gsd-new-milestone`, not by reviving the deleted root `REQUIREMENTS.md`.
 
 ### Pending Todos
 
-- Re-run canonical Phase 60 rollout/rollback rehearsal after fixing the pilot-host `SQLITE_BUSY` / Phase 57 browser-proof timeout.
-- Keep manual transport fallback evidence as a required closeout note before claiming `LOAD-02` or `PILOT-03` closed.
+- Define the next milestone via `/gsd-new-milestone`.
+- Decide later whether to archive raw phase directories with `/gsd-cleanup`.
 
 ### Blockers/Concerns
 
-- Phase 60.1 plan 01 regenerated live smoke/capacity/drill proof, but canonical deploy rehearsal failed on pilot host with `SQLITE_BUSY` and a Phase 57 browser timeout; close gate remains blocked.
-- Current working tree still contains many unrelated source changes; future commits must keep staging strictly scoped.
+- No active milestone blocker remains.
+- Current working tree still contains unrelated source changes; any future commit/tag should stage only the intended archive and fix files.
 
 ## Deferred Items
 
@@ -111,12 +93,14 @@ Recent decisions affecting current work:
 | quick_task | 260517-e35-full-suite-teacher-course-center-surface | accepted-risk | 2026-05-23 |
 | quick_task | 260517-gnb-student-runtime-host-bootstrap-productio | accepted-risk | 2026-05-23 |
 | quick_task | 260517-k2u-auth-localhost-untrustedhost | accepted-risk | 2026-05-23 |
-| Phase 59 P03 | 0 min | 2 tasks | 4 files |
-| Phase 59 P04 | 2 min | 2 tasks | 8 files |
-| Phase 59 P05 | 1 session | 3 tasks | 6 files |
 
 ## Session Continuity
 
-Last session: 2026-05-30T12:05:38.177Z
-Stopped at: Completed 60.1-01-PLAN.md
+Last session: 2026-05-30T14:00:56.944Z
+Stopped at: Archived milestone v3.1 and reset planning entrypoint
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
+- Archive raw phase directories later with /gsd-cleanup if desired

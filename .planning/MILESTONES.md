@@ -1,5 +1,24 @@
 # Milestones
 
+## v3.1 Single-School Pilot Production Readiness (Plugin-First) (Shipped: 2026-05-30)
+
+**Phases completed:** 8 phases, 34 plans, 50 tasks
+
+**Milestone audit:** passed (`22/22` requirements; Phase 55-60 plus inserted close-gap phases `60.1` and `60.2` closed)
+
+**Key accomplishments:**
+
+- Phase 55 冻结了单校试点 contract：课堂投票样板、teacher design -> publish -> launch -> student completion 主链路、40/5 容量口径、proof inventory 与 failure/recovery matrix 都成为前置约束。
+- Phase 56 把课堂投票插件正式接入 lesson editor 与 publish path，补齐 schema validation、compatibility gating、preflight 与 frozen plugin config。
+- Phase 57 打通了真实 runtime sample chain：launch readiness、teacher round control、student submit dedupe/cutoff/reconnect、canonical result writes 与 teacher evidence surface。
+- Phase 58 交付了 operator-first classroom incident、degraded honesty、plugin/action detail 与 audited recovery actions，不再依赖人工改库排障。
+- Phase 59 建立了 pilot deploy baseline：env discipline、health/ready/release honesty、CI hard gate、single-node rollout/rollback、backup/restore 与 restore drill。
+- Phase 60 产出了 live smoke/capacity/drill evidence、canonical rollout/rollback rehearsal notes 与 `go` closeout verdict，同时保持 transport fallback 为 manual-only evidence lane。
+- Phase 60.1 用真实 rehearsal evidence 替换了 dry-run close artifacts，并清除了 repo-local `local.db` contention 对 sample smoke 的阻断。
+- Phase 60.2 把 frozen voting `pluginContract` 真正接入 launch/readiness、teacher result surface 与 quiz-path submit，最终关闭 `PLUG-01` 与 `CHAIN-03`。
+
+---
+
 ## v3.0 AI Native Educational OS Upgrade (Shipped: 2026-05-23)
 
 **Phases completed:** 5 phases, 22 plans, 42 tasks

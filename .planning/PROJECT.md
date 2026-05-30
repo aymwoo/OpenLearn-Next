@@ -12,18 +12,33 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ## Current State
 
+- `v3.1 Single-School Pilot Production Readiness (Plugin-First)` 已于 2026-05-30 归档，milestone audit 为 `passed`；仓库当前已经具备 classroom voting 样板链路、operator recovery、pilot deploy/release/restore 与 40/5 rehearsal close posture。
+- 当前 active planning 已清空，等待下一里程碑定义。后续规划必须把 `v3.1` 视为已验证 baseline，而不是待补缺口。
 - `v3.0 AI Native Educational OS Upgrade` 已于 2026-05-23 归档；第一阶段平台内核升级已经完成，当前仓库已具备统一 Command Bus、governed action registry、plugin lifecycle governance、persisted platform event bus、operator execution observability 与 machine-readable AI-native contracts。
-- 当前 active planning 已切换到 `v3.1 单校试点生产可用（插件先行）`，目标不是继续抽象平台，而是在既有骨架上交付可上线、可运维、可恢复的试点样板。
 - `v2.2 WebSocket Classroom Transport Cutover` 已于 2026-05-18 归档，课堂实时链路现已进入 WebSocket-first posture。
 - `ioredis` fanout 已作为 optional、deploy-authoritative 的 delivery capability 落地；Redis degraded posture 会在 `/settings`、runtime inspector 与 teacher `/classroom` 中显式暴露。
 - durable truth 继续由 SQLite + DAL + canonical classroom/runtime write path 持有，Redis、BullMQ 与 WebSocket 都不成为新的业务真相源。
 - `v2.3 Async Task Platform` 已于 2026-05-20 归档；typed task registry、统一 enqueue boundary、SQLite task ledger、dedicated worker、operator visibility 与 safe retry posture 已落地。
-- `v3.1` 的真实样板固定为“课堂投票插件”，主链路固定为“教师设计 -> 发布 -> 开课 -> 学生课堂完成 -> 教师与 operator 验证”。
-- `v3.1` 的试点容量口径固定为单课堂 40 名学生、同时 5 个课堂；production readiness 工作必须围绕这个口径建立 load、degrade 与 recovery gate。
+- `v3.1` 已证明真实样板固定为“课堂投票插件”，主链路固定为“教师设计 -> 发布 -> 开课 -> 学生课堂完成 -> 教师与 operator 验证”。
+- `v3.1` 已证明试点容量口径固定为单课堂 40 名学生、同时 5 个课堂；pilot release 与 rehearsal evidence 都围绕这个口径收口。
 - `v2.4 Plugin Data Architecture & Default Plugins` 在 Phase 44-48 planning / partial execution 后被冻结，作为输入上下文保留，但不再是当前 committed milestone。
-- 当前 planning 主问题不再是“平台内核是否存在”，而是“既有平台与课堂能力是否足以支撑单校试点上线、值守、回滚与恢复”。
+- 当前 planning 主问题不再是“平台内核是否存在”或“单校试点是否能上线”，而是下一轮 committed scope 要围绕哪条新用户价值切口推进，而不破坏已归档 baseline。
 
-## Most Recently Archived Milestone: v3.0 AI Native Educational OS Upgrade
+## Most Recently Archived Milestone: v3.1 Single-School Pilot Production Readiness (Plugin-First)
+
+**Archive status:** Archived 2026-05-30 with milestone audit `passed`.
+
+**Delivered scope:**
+- Phase 55-60 plus inserted close-gap phases 60.1 and 60.2, 34 plans
+- classroom voting sample chain from authoring -> publish -> launch -> student completion -> teacher/operator verification
+- operator recovery surfaces with honest degraded posture and audited recovery actions
+- pilot env/release baseline with canonical deploy/rollback, backup/restore, restore drill, and live rehearsal close evidence
+
+**Close posture:**
+- all 22 `v3.1` requirements marked complete
+- transport fallback remains manual-only operator evidence by design, not an automated green bit
+
+## Previously Archived Milestone: v3.0 AI Native Educational OS Upgrade
 
 **Archive status:** Archived 2026-05-23 with milestone audit `passed` and one residual warning recorded as tech debt.
 
@@ -52,22 +67,15 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - `ATP-23`: 第 4 类 workload 因产品触发闭环缺失，只能算 partial proof。
 - Phase 39 / 40 / 41 仍缺 `VERIFICATION.md` proof artifacts；Phase 40 还缺 `verify:phase40` npm entry。
 
-## Current Milestone: v3.1 Single-School Pilot Production Readiness (Plugin-First)
+## Planning Posture
 
-**Goal:** 在不重写现有 platform/runtime 主骨架的前提下，让“课堂投票插件”作为真实样板，在单校试点中跑通教师设计、发布、开课、学生课堂完成、operator 恢复与上线/回滚闭环。
+当前没有 active milestone。下一里程碑应从已归档的 `v3.1` truth 出发，选择新的 committed 用户价值切口，而不是重开已完成的 single-school pilot 基线。
 
-**Target features:**
-- 冻结单校试点口径：样板插件、主链路、容量目标、proof artifact 与 close gate 都要前置明确。
-- 让插件步骤 authoring、publish preflight、runtime launch readiness、student completion 与 teacher evidence 成为同一条真实产品链路。
-- 为课堂、插件、command、task 建立 operator 可读、可执行恢复动作的 production surfaces，而不是只保留研发诊断入口。
-- 补齐 env、release、backup/restore、degrade、load rehearsal 等单校试点必需层，但不把范围扩成多校 SaaS 或新平台重写。
-
-## Current Planning Goals
-
-- 用 `.planning/REQUIREMENTS.md` 和 `.planning/ROADMAP.md` 正式固定 `v3.1` scope，而不是继续沿用 “awaiting next milestone” 状态。
-- 以 Phase 55 冻结单校试点验收面：课堂投票插件、教师设计到学生完成的样板链路、40/5 容量口径、proof artifact 与恢复动作矩阵。
-- 保持既有 WebSocket-first、optional Redis fanout、BullMQ、SQLite + DAL truth posture，不把已完成能力重写成缺口。
-- 推迟多校多租户、通用 plugin marketplace、Agent Runtime 扩张、PostgreSQL/Kubernetes/重型 observability 平台迁移。
+**Next planning constraints:**
+- 把 classroom voting 样板链路、operator recovery、pilot deploy/release/restore 与 40/5 rehearsal 视为 validated baseline。
+- 保持既有 WebSocket-first、optional Redis fanout、BullMQ、SQLite + DAL truth posture，不把已交付能力重新描述为缺口。
+- 继续推迟多校多租户、通用 plugin marketplace、Agent Runtime 扩张、PostgreSQL/Kubernetes/重型 observability 平台迁移，除非新 milestone 明确承接。
+- 下一轮 scope 应通过 `/gsd-new-milestone` 正式建立，而不是直接恢复旧 `REQUIREMENTS.md`。
 
 <details>
 <summary>Archived v2.2 milestone context</summary>
@@ -106,14 +114,15 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - [x] 已建立可复用的 Async Task Platform，包括 typed task registry、统一 enqueue boundary、BullMQ worker bootstrap 与 SQLite task ledger。（Validated in Phases 39-43；Phase 39 proof artifact 仍是 accepted gap）
 - [x] 已让后台任务具备 retry/backoff、dead-letter、幂等、graceful shutdown 与 operator-visible failure posture。（Validated in Phases 40-43；Phase 40 proof artifact 仍是 accepted gap）
 - [x] 已让教师或 staff 能看到任务排队、运行、完成、失败与结果摘要，而不是只得到同步请求超时或模糊反馈。（Validated in Phases 41-43；Phase 41 proof artifact 仍是 accepted gap）
+- [x] 已冻结 `v3.1` 单校试点口径：课堂投票插件、教师设计到学生完成的样板链路、40/5 容量目标、proof artifact 与 close gate。（Validated in Phase 55 / v3.1）
+- [x] 已让课堂投票插件的 authoring、publish preflight、compatibility check、runtime launch readiness 与 student completion 成为真实可重复链路。（Validated in Phases 56-57 and close-gap Phase 60.2 / v3.1）
+- [x] 已为教师与 operator 提供课堂、插件、command、task 的关联观测与可执行恢复动作，而不是只暴露研发导向的原始诊断面。（Validated in Phase 58 / v3.1）
+- [x] 已补齐 env、release、health/ready、backup/restore、restore drill、load/degrade rehearsal 等单校试点上线必需层。（Validated in Phases 59-60 and close-gap Phase 60.1 / v3.1）
+- [x] 已保持 SQLite + DAL 作为唯一 durable truth，并在插件 action、课堂提交、异步后处理路径上补齐强校验、幂等、补偿与 replay-safe 语义。（Validated across Phases 56-60 / v3.1）
 
 ### Active
 
-- [ ] 冻结 `v3.1` 单校试点口径：课堂投票插件、教师设计到学生完成的样板链路、40/5 容量目标、proof artifact 与 close gate。
-- [ ] 让课堂投票插件的 authoring、publish preflight、compatibility check、runtime launch readiness 与 student completion 成为真实可重复链路。
-- [ ] 为教师与 operator 提供课堂、插件、command、task 的关联观测与可执行恢复动作，而不是只暴露研发导向的原始诊断面。
-- [ ] 补齐 env、release、health/ready、backup/restore、restore drill、load/degrade rehearsal 等单校试点上线必需层。
-- [ ] 保持 SQLite + DAL 作为唯一 durable truth，并在插件 action、课堂提交、异步后处理路径上补齐强校验、幂等、补偿与 replay-safe 语义。
+- [ ] 待下一里程碑定义。使用 `/gsd-new-milestone` 从已归档 `v3.1` baseline 出发建立新的 committed scope。
 
 ### Out of Scope
 
@@ -184,6 +193,10 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 | `v3.1` 主链路固定为“教师设计 -> 发布 -> 开课 -> 学生课堂完成” | 所有 production work 都必须挂靠真实课堂路径，避免 infra-first 漂移 | ✓ Good |
 | `v3.1` 容量口径固定为单课堂 40 学生、同时 5 个课堂 | 没有定量容量与 degraded 假设，就无法建立 load / rehearsal close gate | ✓ Good |
 | `v3.1` 继续复用 WebSocket-first、optional Redis fanout、BullMQ 与 SQLite + DAL truth posture | 已交付 baseline 不应被误写成缺口或被无必要重写 | ✓ Good |
+| `verify:phase59` 必须先收紧为 repo-local hard gate，再允许 rollout / rollback / restore 叠加进 release baseline | 先固定 honest release contract，避免 shell artifact 先行而 gate 语义漂移 | ✓ Good |
+| `/api/release` 只读取 canonical `current.json` / `green.json` 指针 | release identity 必须来自单一权威来源，不能靠扫描 manifest 目录猜测“最新版本” | ✓ Good |
+| canonical close evidence 只能记账 live rehearsal 与真实 deploy / rollback notes | single-school pilot close 不能再接受 dry-run artifact 伪装成 production proof | ✓ Good |
+| transport fallback 在 `v3.1` close 中继续保持 manual-only evidence | 当前需要诚实保留 operator lane，而不是为了自动化覆盖率牺牲 truthfulness | ✓ Good |
 
 ## Evolution
 
@@ -203,4 +216,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-24 after starting milestone v3.1 single-school pilot planning*
+*Last updated: 2026-05-30 after archiving milestone v3.1*
