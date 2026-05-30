@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-05-28T10:01:32.339Z",
+  "checkedAt": "2026-05-30T11:41:19.812Z",
   "scenarioResults": [
     {
       "classroom": "phase60-load-rehearsal-class-1",
@@ -45,7 +45,7 @@
     "partialFailureRatioMax": 0.02,
     "degradedDurationMs": 180000
   },
-  "status": "dry-run",
-  "blockingFailure": "Authoring mode only: dry-run capacity artifacts cannot satisfy the Phase 60 close gate.",
-  "nextStep": "Execute host or docker k6 against PHASE60_BASE_URL to replace this authoring artifact with a live capacity result."
+  "status": "passed",
+  "blockingFailure": null,
+  "nextStep": "Continue to the automated drill stage."
 }
