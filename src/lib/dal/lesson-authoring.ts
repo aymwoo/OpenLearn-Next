@@ -9,6 +9,7 @@ import {
   courseClasses,
   courseEnrollments,
   courses,
+  draftLessonVersions,
   lessonMaterials,
   lessons,
   lessonSteps,
@@ -1451,4 +1452,45 @@ export async function publishLesson(input: { lessonId: string; expectedRevision?
     publishedVersionId: published.id,
     publishedAt: toIso(published.publishedAt),
   });
+}
+
+/**
+ * 把命令传入的整课 steps 作为内联 snapshotJson 单条原子写入 draftLessonVersions。
+ *
+ * 不变式（DRAFT-01 / D-01）：本函数**只** insert(draftLessonVersions)，绝不
+ * insert/update live `lessons` 或 `lessonSteps`。授权由 Plan 04 handler 完成，DAL
+ * 接收已授权的 createdById（不自行解析 actor）。version 取同 lessonId 既有 draft 的
+ * max(version)+1（无既存从 1 起，仿 publishLesson）。source 硬编码 "ai"（D-04，本相位
+ * 只写 ai）。唯一约束 (lessonId, sourceCommandId) 冲突向上抛——DAL 不 try/catch 静默
+ * （DRAFT-02 幂等终判在 handler 层）。
+ */
+export async function persistDraftLessonVersion(input: {
+  lessonId: string;
+  steps: LessonStepPayload[];
+  sourceCommandId: string;
+  createdById: string;
+}): Promise<{ draftVersionId: string; version: number; stepCount: number }> {
+  const latestVersion = await db
+    .select({ value: sql<number>`coalesce(max(${draftLessonVersions.version}), 0)` })
+    .from(draftLessonVersions)
+    .where(eq(draftLessonVersions.lessonId, input.lessonId));
+  const version = (latestVersion[0]?.value ?? 0) + 1;
+
+  const [draft] = await db
+    .insert(draftLessonVersions)
+    .values({
+      lessonId: input.lessonId,
+      version,
+      source: "ai",
+      sourceCommandId: input.sourceCommandId,
+      createdById: input.createdById,
+      snapshotJson: { steps: input.steps },
+    })
+    .returning();
+
+  return {
+    draftVersionId: draft.id,
+    version,
+    stepCount: input.steps.length,
+  };
 }
