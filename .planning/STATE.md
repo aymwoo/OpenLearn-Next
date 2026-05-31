@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
 status: planning
-last_updated: "2026-05-31T02:53:14.666Z"
-last_activity: 2026-05-31 — v3.2 roadmap created (phases 61-65), 18/18 requirements mapped
+last_updated: "2026-05-31T03:40:00.000Z"
+last_activity: 2026-05-31 — Phase 61 planned (5 plans / 9 tasks / 4 waves), plan-checker APPROVED
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
+  total_plans: 5
   completed_plans: 0
   percent: 0
 ---
@@ -25,9 +25,9 @@ See: `.planning/PROJECT.md` (updated 2026-05-31)
 ## Current Position
 
 Phase: 61 of 65 (AI Provider Abstraction Layer)
-Plan: — (roadmap created, not yet planned)
-Status: Ready to plan
-Last activity: 2026-05-31 — v3.2 roadmap created (phases 61-65), 18/18 requirements mapped
+Plan: 5 plans planned (61-00..04), plan-checker APPROVED
+Status: Ready to execute
+Last activity: 2026-05-31 — Phase 61 planned (5 plans / 9 tasks / 4 waves), plan-checker APPROVED
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -70,7 +70,8 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Plan Phase 61 via `/gsd-plan-phase 61`.
+- Execute Phase 61 via `/gsd-execute-phase 61` — Wave 0 first (装 ai@6.0.193 + @ai-sdk/openai-compatible@2.0.48 + fixtures).
+- (optional) Fold plan-checker 的 1 MEDIUM + 2 LOW 清晰度建议进 61-02/61-03 plan 文案。
 
 ### Blockers/Concerns
 
@@ -94,11 +95,11 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-31T02:53:14.579Z
-Stopped at: Phase 61 context gathered
-Resume file: .planning/phases/61-ai-provider-abstraction-layer/61-CONTEXT.md
+Last session: 2026-05-31T03:40:00.000Z
+Stopped at: Phase 61 planned + plan-checker APPROVED; awaiting user go-ahead for execution
+Resume file: .planning/phases/61-ai-provider-abstraction-layer/61-00-PLAN.md
 
 ## Operator Next Steps
 
-- Plan the first phase with `/gsd-plan-phase 61`
+- Execute Phase 61 with `/gsd-execute-phase 61` (Wave 0 must run first — installs SDK + test fixtures)
 - Consider `/gsd-ui-phase 64` before executing the teacher review surface
