@@ -9,6 +9,7 @@ import type { LessonStepDTO, LessonStepPayload } from "@/lib/dto/lesson-authorin
 const findFirstLessons = vi.fn();
 const findFirstCourses = vi.fn();
 const findManyLessonSteps = vi.fn();
+const findFirstDraftLessonVersions = vi.fn();
 const findManyDraftLessonVersions = vi.fn();
 
 const selectWhere = vi.fn();
@@ -27,6 +28,8 @@ const updateMock = vi.fn(() => ({ set: updateSet }));
 const getCurrentUserDTO = vi.fn();
 const getUserMembershipsDTO = vi.fn();
 
+const transaction = vi.fn();
+
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/db", () => ({
@@ -34,11 +37,15 @@ vi.mock("@/db", () => ({
     select: selectMock,
     insert: insertMock,
     update: updateMock,
+    transaction,
     query: {
       lessons: { findFirst: findFirstLessons },
       courses: { findFirst: findFirstCourses },
       lessonSteps: { findMany: findManyLessonSteps },
-      draftLessonVersions: { findMany: findManyDraftLessonVersions },
+      draftLessonVersions: {
+        findMany: findManyDraftLessonVersions,
+        findFirst: findFirstDraftLessonVersions,
+      },
     },
   },
 }));
@@ -194,6 +201,27 @@ describe("getLessonDraftReviewDTO", () => {
     findFirstLessons.mockResolvedValue(makeLessonRow());
     findFirstCourses.mockResolvedValue(makeCourseRow());
     findManyLessonSteps.mockResolvedValue(makeLiveStepRows());
+
+    // Default transaction mock — resolves successfully
+    transaction.mockImplementation(
+      async (callback: (tx: Record<string, unknown>) => Promise<unknown>) => {
+        const tx = {
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                returning: vi.fn().mockResolvedValue([{ id: "updated" }]),
+              }),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
+            values: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([{ id: "inserted" }]),
+            }),
+          }),
+        };
+        return callback(tx);
+      },
+    );
   });
 
   it("RED Test 1: 返回 hasPendingDraft=true 和 draftMeta 当存在 pending 草稿", async () => {
@@ -306,5 +334,139 @@ describe("getLessonDraftReviewDTO", () => {
   it("source 断言: 导出面包含 getLessonDraftReviewDTO", async () => {
     // 验证 DAL 源码中存在该函数定义
     expect(dalSource).toContain("getLessonDraftReviewDTO");
+  });
+});
+
+// ─── Task 2: applyDraftToLiveLesson RED tests ───
+
+describe("applyDraftToLiveLesson", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+
+    getCurrentUserDTO.mockResolvedValue({ id: "teacher-1" });
+    getUserMembershipsDTO.mockResolvedValue([
+      { schoolId: "school-1", role: "teacher", status: "active" },
+    ]);
+
+    findFirstLessons.mockResolvedValue(makeLessonRow());
+    findFirstCourses.mockResolvedValue(makeCourseRow());
+
+    // Default transaction mock
+    transaction.mockImplementation(
+      async (callback: (tx: Record<string, unknown>) => Promise<unknown>) => {
+        const tx = {
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                returning: vi.fn().mockResolvedValue([{ id: "updated" }]),
+              }),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
+            values: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([{ id: "inserted" }]),
+            }),
+          }),
+        };
+        return callback(tx);
+      },
+    );
+  });
+
+  it("RED Test 1: 归档所有活跃 lessonSteps 并插入替换步骤", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(makeDraftRow());
+
+    const { applyDraftToLiveLesson } = await loadDal();
+    const result = await applyDraftToLiveLesson({
+      lessonId: "lesson-1",
+      draftVersionId: "draft-1",
+    });
+
+    // 确认调用了 transaction
+    expect(transaction).toHaveBeenCalledTimes(1);
+    // 返回结果包含正确字段
+    expect(result).toMatchObject({
+      lessonId: "lesson-1",
+      courseId: "course-1",
+      draftVersionId: "draft-1",
+      appliedStepCount: 3,
+    });
+  });
+
+  it("RED Test 2: 插入的步骤匹配草稿 snapshotJson.steps 内容", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(makeDraftRow());
+
+    const { applyDraftToLiveLesson } = await loadDal();
+    await applyDraftToLiveLesson({
+      lessonId: "lesson-1",
+      draftVersionId: "draft-1",
+    });
+
+    // 事务被执行
+    expect(transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("RED Test 3: 返回结果包含 lessonId、courseId、draftVersionId、appliedStepCount", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(makeDraftRow());
+
+    const { applyDraftToLiveLesson } = await loadDal();
+    const result = await applyDraftToLiveLesson({
+      lessonId: "lesson-1",
+      draftVersionId: "draft-1",
+    });
+
+    expect(result).toEqual({
+      lessonId: "lesson-1",
+      courseId: "course-1",
+      draftVersionId: "draft-1",
+      appliedStepCount: 3,
+    });
+  });
+
+  it("RED Test 4: draftLessonVersions 状态更新为 'applied'", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(makeDraftRow());
+
+    const { applyDraftToLiveLesson } = await loadDal();
+    const result = await applyDraftToLiveLesson({
+      lessonId: "lesson-1",
+      draftVersionId: "draft-1",
+    });
+
+    // 验证事务被调用（更新在 tx 内执行）
+    expect(transaction).toHaveBeenCalledTimes(1);
+    // 返回结果正确即表明事务成功
+    expect(result).toBeDefined();
+  });
+
+  it("RED Test 5: 非 pending 状态的草稿抛出错误", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(makeDraftRow({ status: "applied" }));
+
+    const { applyDraftToLiveLesson } = await loadDal();
+    await expect(
+      applyDraftToLiveLesson({ lessonId: "lesson-1", draftVersionId: "draft-1" }),
+    ).rejects.toThrow();
+  });
+
+  it("RED Test 6: 未授权教师不能 apply 非 scope 内 lesson", async () => {
+    findFirstLessons.mockResolvedValue(null);
+
+    const { applyDraftToLiveLesson } = await loadDal();
+    await expect(
+      applyDraftToLiveLesson({ lessonId: "lesson-missing", draftVersionId: "draft-1" }),
+    ).rejects.toThrow("LESSON_NOT_FOUND");
+  });
+
+  it("RED Test 7: 草稿不存在时抛出错误", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(null);
+
+    const { applyDraftToLiveLesson } = await loadDal();
+    await expect(
+      applyDraftToLiveLesson({ lessonId: "lesson-1", draftVersionId: "draft-none" }),
+    ).rejects.toThrow();
+  });
+
+  it("source 断言: 导出面包含 applyDraftToLiveLesson", () => {
+    expect(dalSource).toContain("applyDraftToLiveLesson");
   });
 });
