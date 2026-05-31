@@ -35,6 +35,7 @@ import {
   ApplyDraftResultDTOSchema,
   BuiltInTeachingStepKeySchema,
   CourseDTOSchema,
+  DiscardDraftResultDTOSchema,
   LessonDraftReviewDTOSchema,
   LessonEditorDTOSchema,
   LessonPublishReadinessDTOSchema,
@@ -49,6 +50,7 @@ import {
   type TeachingDesignStatus,
   type AutosaveResultDTO,
   type ApplyDraftResultDTO,
+  type DiscardDraftResultDTO,
   type LessonDraftReviewDTO,
   type LessonPreparationIssueDTO,
   type LessonPreparationSummaryDTO,
@@ -1721,6 +1723,48 @@ export async function applyDraftToLiveLesson(input: {
     courseId: course.id,
     draftVersionId: input.draftVersionId,
     appliedStepCount: draftStepsPayload.length,
+  });
+}
+
+/**
+ * Phase 64 Plan 02 — 安全丢弃 AI 草稿。
+ *
+ * 仅标记 draftLessonVersions 行（status='discarded', archivedAt=now），
+ * 绝不写入 lessonSteps 或 lessons 表（D-08）。
+ *
+ * 权限：必须通过 assertActiveTeacher + getScopedLesson 验证。
+ * 不接受非 pending 状态的草稿。
+ */
+export async function discardDraftLessonVersion(input: {
+  lessonId: string;
+  draftVersionId: string;
+}): Promise<DiscardDraftResultDTO> {
+  const scope = await assertActiveTeacher();
+  const { lesson } = await getScopedLesson(input.lessonId, scope);
+
+  // 加载指定 draft 行
+  const draft = await db.query.draftLessonVersions.findFirst({
+    where: eq(draftLessonVersions.id, input.draftVersionId),
+  });
+  if (!draft) {
+    throw new Error("DRAFT_NOT_FOUND");
+  }
+  if (draft.status !== "pending") {
+    throw new Error("DRAFT_NOT_PENDING");
+  }
+
+  const now = new Date();
+
+  // 仅更新 draftLessonVersions 行（不涉及 lessonSteps 或 lessons）
+  await db
+    .update(draftLessonVersions)
+    .set({ status: "discarded", archivedAt: now })
+    .where(eq(draftLessonVersions.id, input.draftVersionId));
+
+  return DiscardDraftResultDTOSchema.parse({
+    lessonId: lesson.id,
+    draftVersionId: input.draftVersionId,
+    discardedAt: toIso(now),
   });
 }
 
