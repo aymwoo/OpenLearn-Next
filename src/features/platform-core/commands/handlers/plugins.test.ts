@@ -580,6 +580,7 @@ describe("platform plugin command registry", () => {
       "plugin.uninstall",
       "plugin.kill_switch.set",
       "lesson.draft.run",
+      "lesson.draft.persist",
     ]);
     expect((platformCommandRegistry as Record<string, unknown>)["plugin.transition"]).toBeUndefined();
   });

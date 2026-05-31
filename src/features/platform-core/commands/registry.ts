@@ -90,4 +90,11 @@ export const platformCommandRegistry = {
     authorize: lessonDraftCommandHandlers["lesson.draft.run"].authorize,
     execute: lessonDraftCommandHandlers["lesson.draft.run"].execute,
   }),
+  "lesson.draft.persist": createPlatformCommandDefinition({
+    commandType: "lesson.draft.persist",
+    payloadSchema: PlatformCommandPayloadSchemas["lesson.draft.persist"],
+    dedupe: "required",    // 命令层幂等：bus 对同 dedupeKey 复用同一 command 记录（幂等双层之第一层）
+    authorize: lessonDraftCommandHandlers["lesson.draft.persist"].authorize,
+    execute: lessonDraftCommandHandlers["lesson.draft.persist"].execute,
+  }),
 } satisfies Record<PlatformCommandType, PlatformCommandDefinition>;
