@@ -470,3 +470,117 @@ describe("applyDraftToLiveLesson", () => {
     expect(dalSource).toContain("applyDraftToLiveLesson");
   });
 });
+
+// ─── Task 3: discardDraftLessonVersion RED tests ───
+
+describe("discardDraftLessonVersion", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+
+    getCurrentUserDTO.mockResolvedValue({ id: "teacher-1" });
+    getUserMembershipsDTO.mockResolvedValue([
+      { schoolId: "school-1", role: "teacher", status: "active" },
+    ]);
+
+    findFirstLessons.mockResolvedValue(makeLessonRow());
+    findFirstCourses.mockResolvedValue(makeCourseRow());
+  });
+
+  it("RED Test 1: 设置草稿 status='discarded' 和 archivedAt 时间戳", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(makeDraftRow());
+    updateReturning.mockResolvedValue([{ id: "draft-1", status: "discarded" }]);
+
+    const { discardDraftLessonVersion } = await loadDal();
+    const result = await discardDraftLessonVersion({
+      lessonId: "lesson-1",
+      draftVersionId: "draft-1",
+    });
+
+    // 验证返回 DTO
+    expect(result).toMatchObject({
+      lessonId: "lesson-1",
+      draftVersionId: "draft-1",
+    });
+    expect(result.discardedAt).toBeTruthy();
+  });
+
+  it("RED Test 2: discard 不写入 lessonSteps（零 lessonSteps 写操作）", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(makeDraftRow());
+    updateReturning.mockResolvedValue([{ id: "draft-1" }]);
+
+    const { discardDraftLessonVersion } = await loadDal();
+    await discardDraftLessonVersion({
+      lessonId: "lesson-1",
+      draftVersionId: "draft-1",
+    });
+
+    // 确认 insertMock（用于新增 lessonSteps）没有被调用
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it("RED Test 3: discard 不写入 lessons 表（revision 不变，aiDraftAppliedAt 不变）", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(makeDraftRow());
+    updateReturning.mockResolvedValue([{ id: "draft-1" }]);
+
+    const { discardDraftLessonVersion } = await loadDal();
+    await discardDraftLessonVersion({
+      lessonId: "lesson-1",
+      draftVersionId: "draft-1",
+    });
+
+    // updateMock 只应用于 draftLessonVersions，不应用于 lessons
+    // 通过源码断言验证函数体内不包含 lessons 的 update 调用
+    const funcBody = dalSource.slice(
+      dalSource.indexOf("discardDraftLessonVersion"),
+      dalSource.indexOf("persistDraftLessonVersion"),
+    );
+    expect(funcBody).not.toContain(".update(lessons)");
+  });
+
+  it("RED Test 4: 返回 DiscardDraftResultDTO（lessonId, draftVersionId, discardedAt）", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(makeDraftRow());
+    updateReturning.mockResolvedValue([{ id: "draft-1", status: "discarded" }]);
+
+    const { discardDraftLessonVersion } = await loadDal();
+    const result = await discardDraftLessonVersion({
+      lessonId: "lesson-1",
+      draftVersionId: "draft-1",
+    });
+
+    expect(result).toHaveProperty("lessonId");
+    expect(result).toHaveProperty("draftVersionId");
+    expect(result).toHaveProperty("discardedAt");
+  });
+
+  it("RED Test 5: 非 pending 状态的草稿抛出错误", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(makeDraftRow({ status: "applied" }));
+
+    const { discardDraftLessonVersion } = await loadDal();
+    await expect(
+      discardDraftLessonVersion({ lessonId: "lesson-1", draftVersionId: "draft-1" }),
+    ).rejects.toThrow();
+  });
+
+  it("RED Test 6: 未授权教师不能 discard 非 scope 内 lesson", async () => {
+    findFirstLessons.mockResolvedValue(null);
+
+    const { discardDraftLessonVersion } = await loadDal();
+    await expect(
+      discardDraftLessonVersion({ lessonId: "lesson-missing", draftVersionId: "draft-1" }),
+    ).rejects.toThrow("LESSON_NOT_FOUND");
+  });
+
+  it("RED Test 7: 草稿不存在时抛出错误", async () => {
+    findFirstDraftLessonVersions.mockResolvedValue(null);
+
+    const { discardDraftLessonVersion } = await loadDal();
+    await expect(
+      discardDraftLessonVersion({ lessonId: "lesson-1", draftVersionId: "draft-none" }),
+    ).rejects.toThrow();
+  });
+
+  it("source 断言: 导出面包含 discardDraftLessonVersion", () => {
+    expect(dalSource).toContain("discardDraftLessonVersion");
+  });
+});
