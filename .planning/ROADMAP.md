@@ -61,9 +61,9 @@
   3. 教师能针对一节目标课时触发 LessonAgent 起草，得到符合 `content`/`task`/`quiz` 原子步骤 schema 的步骤包。
   4. Agent 起草过程关键节点（开始、工具调用、完成、失败）作为 typed platform events 写入 v3.0 event bus，operator 可追溯。
 **Plans**: 4 plans
-- [ ] 62-01-PLAN.md — Wave 1：events/contracts.ts 新增三条 AI 域事件契约（lesson.draft.requested/tool.invoked/produced，`.strict()` summary-only）+ 契约单测（AGENT-04）
-- [ ] 62-02-PLAN.md — Wave 1：server/ai/tools `createDraftLessonStepTool` factory（teacherId 闭包注入、inputSchema 边界校验、只调 facade+只读 DAL）+ prompts + barrel + no-leak 静态证明（AGENT-01/02/03）
-- [ ] 62-03-PLAN.md — Wave 2：commands/contracts.ts 新增 `lesson.draft.run`（sentinel pluginId=core.lesson-agent，零改 scope/bus）+ handler（授权→调 tool→emit 三事件/失败抛错）+ registry 注册（AGENT-03/04）
+- [x] 62-01-PLAN.md — Wave 1：events/contracts.ts 新增三条 AI 域事件契约（lesson.draft.requested/tool.invoked/produced，`.strict()` summary-only）+ 契约单测（AGENT-04）
+- [x] 62-02-PLAN.md — Wave 1：server/ai/tools `createDraftLessonStepTool` factory（teacherId 闭包注入、inputSchema 边界校验、只调 facade+只读 DAL）+ prompts + barrel + no-leak 静态证明（AGENT-01/02/03）
+- [x] 62-03-PLAN.md — Wave 2：commands/contracts.ts 新增 `lesson.draft.run`（sentinel pluginId=core.lesson-agent，零改 scope/bus）+ handler（授权→调 tool→emit 三事件/失败抛错）+ registry 注册（AGENT-03/04）
 - [ ] 62-04-PLAN.md — Wave 3：server/ai/agents `draftLessonStep` 公共编排入口（构造 envelope→dispatchPlatformCommand→从 resultSummary 取回 step）+ 端到端集成测试（AGENT-03/04，闭合 SC3/SC4）
 
 ### Phase 63: AI Draft Chain into Draft Lesson Version
@@ -106,7 +106,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 61. AI Provider Abstraction Layer | v3.2 | 5/5 | Complete   | 2026-05-31 |
-| 62. LessonAgent Typed Tool Layer | v3.2 | 0/TBD | Not started | - |
+| 62. LessonAgent Typed Tool Layer | v3.2 | 3/4 | In Progress|  |
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 0/TBD | Not started | - |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 0/TBD | Not started | - |
 | 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 0/TBD | Not started | - |

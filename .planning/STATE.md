@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
 status: executing
-last_updated: "2026-05-31T07:29:53.872Z"
-last_activity: 2026-05-31 -- Phase 62 execution started
+last_updated: "2026-05-31T07:43:17.592Z"
+last_activity: 2026-05-31 -- 62-03 lesson.draft.run typed-tool command handler landed
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
   percent: 20
 ---
 
@@ -25,11 +25,11 @@ See: `.planning/PROJECT.md` (updated 2026-05-31)
 ## Current Position
 
 Phase: 62 (lessonagent-typed-tool-layer) — EXECUTING
-Plan: 62-01 complete (AI 域 typed events 契约层)
+Plan: 62-03 complete (lesson.draft.run typed-tool command handler)
 Status: Executing Phase 62
-Last activity: 2026-05-31 -- 62-01 AI-domain lesson draft typed events landed
+Last activity: 2026-05-31 -- 62-03 lesson.draft.run typed-tool command handler landed
 
-Progress: [████████░░] 78%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [████████░░] 78%
 | Phase 61 P02 | ~30min | 2 tasks | 3 files |
 | Phase 61 P03 | ~6min | 1 tasks | 2 files |
 | Phase 61 P04 | 20min | 2 tasks | 4 files |
+| Phase 62 P03 | ~45min | 1 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,9 @@ Recent decisions affecting current work:
 - [Phase 61]: 61-03: getLanguageModel(modelId?) 收口 createOpenAICompatible 唯一装配点，provider 模块级 memoize，导出面仅 getLanguageModel；刻意收敛单 provider（N=1），待 N>1 升级 Map-based registry
 - [Phase ?]: facade maxRetries 显式封顶为 2，本层不叠加自定义重试（缓解 retry-amplification）
 - [Phase ?]: AI provider 公共面经 index.ts 具名 barrel 收口，不导出 config/registry 内部（PROV-02）
+- [Phase 62]: 62-03: lesson.draft.run handler 严格只发 3 AI 域事件（无 succeeded），失败仅抛 PlatformCommandExecutionError 走 bus 唯一 generic platform.command.failed（D-53-07/08）；零改 scope schema / bus 失败路径
+- [Phase 62]: 62-03: teacherId 从授权 actor（assertActiveTeacher().userId）闭包注入 typed tool，绝不取自 LLM/payload；步骤包仅经 command resultSummary 回传，不写 lesson/draft version（归 Phase 63）
+- [Phase 62]: 62-03: plugins handler-map satisfies 由 Record<PlatformCommandType> 收窄为 Record<governance command types>，使新增 command 类型不被迫塞入 plugin handler map
 
 ### Pending Todos
 
@@ -110,7 +114,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-31T04:43:32.411Z
+Last session: 2026-05-31T07:43:17.587Z
 Stopped at: Completed 61-04-PLAN.md
 Resume file: None
 
