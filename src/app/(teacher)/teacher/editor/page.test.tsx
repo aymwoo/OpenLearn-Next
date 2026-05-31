@@ -29,6 +29,10 @@ vi.mock("@/lib/theme-cookie", () => ({
   getActiveThemeId: () => getActiveThemeId(),
 }));
 
+vi.mock("@/lib/dal/lesson-authoring", () => ({
+  getLessonDraftReviewDTO: () => null,
+}));
+
 vi.mock("@/components/surfaces/lesson-editor-surface", () => ({
   LessonEditorSurface: () => <div>lesson editor shell</div>,
 }));
