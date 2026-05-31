@@ -1,12 +1,14 @@
 ---
 phase: 64
 slug: teacher-review-accept-publish-surface
-status: approved
+status: draft
 shadcn_initialized: true
 preset: radix-nova
 created: 2026-05-31
-reviewed_at: 2026-05-31
+updated: 2026-05-31
 ---
+
+> **Revision note:** Updated to incorporate CONTEXT.md decisions D-01 through D-14 from the discuss-phase pass. Targeted edits: D-03 slide-in animation + type lock, D-10 prompt copy, D-12 session state preservation, D-14 per-step button sizing.
 
 # Phase 64 — UI Design Contract
 
@@ -33,12 +35,12 @@ Implementation must use existing project tokens from `src/app/globals.css` and l
 | Area | Contract |
 |------|----------|
 | Entry point | Embed review mode inside `/teacher/editor` behind `?mode=review`; keep the existing editor route and header context. |
-| Discovery prompt | When an unreviewed AI draft exists, show a dismissible glass prompt at the top of the editor content: `AI 已生成课时草稿，先审校再决定是否应用。` with CTA `进入审校`. The prompt may reset after refresh while the draft is still pending. |
+| Discovery prompt | When an unreviewed AI draft exists, show a dismissible glass prompt at the top of the editor content: `AI 已生成草稿，点击审校 →` with the trailing text as a link that enters review mode. The prompt is dismissible (per session) but reappears on next page load while the draft is still pending. |
 | Mode switch | Add a segmented control in the editor header: `编辑` and `审校`. The `审校` segment shows a compact pending count badge when a draft is waiting. |
 | Review layout | Collapse the resource/library panel in review mode. Render the diff list as the main full-width work area, with a fixed top action bar and an optional right-side edit panel. |
 | Primary visual anchor | The first visual focus is the fixed review action bar: draft source, changed-step count, `接受全部草稿`, `丢弃草稿`, and `返回编辑`. The second focus is the vertical diff list. |
 | Diff structure | Use one vertical step list aligned to the existing authoring timeline rhythm. Do not use split-screen before/after columns. |
-| Step edit panel | Selecting a changed step opens a right-side panel (`24rem` / `w-96` desktop) with title, description, and markdown content fields. The panel is not a modal and must not hide the diff list. |
+| Step edit panel | Selecting a changed step slides open a right-side panel (`24rem` / `w-96` desktop) with title, description, and markdown content fields. The panel uses a slide-in-from-right animation and must not hide the diff list. It is not a modal. The step `type` field is locked and immutable — the panel must not expose it as an editable field (AI-generated step types should not be altered during review). |
 | Responsive scope | Desktop-first for this phase. At widths below `1024px`, stack the edit panel below the selected step rather than forcing a cramped side panel. |
 
 ---
@@ -48,13 +50,14 @@ Implementation must use existing project tokens from `src/app/globals.css` and l
 | Interaction | Required behavior |
 |-------------|-------------------|
 | Compare draft | Compare `draftSteps[n]` to `liveSteps[n]` by index order and display `新增`, `修改`, `删除`, or unmarked unchanged state. |
-| Select a step | Clicking a step highlights it with tonal background shift and opens the edit panel. Selection must not reorder or persist anything. |
-| Edit a step | Permit editing only `title`, `description`, and `content`/markdown body. Do not expose step `type`, plugin config, poll config, or advanced runtime settings in this phase. |
-| Accept a step | Inline button label: `接受此步`. Accepted steps stay visibly included in the pending applied set until the teacher applies the whole draft. |
-| Discard a step | Inline button label: `丢弃此步`. Discarded draft steps remain visible with muted styling and a reversible local state while in the current review session. |
+| Select a step | Clicking a step highlights it with tonal background shift and slides open the right edit panel. Selection must not reorder or persist anything. |
+| Edit a step | Permit editing only `title`, `description`, and `content`/markdown body. The step `type` field is **immutable** — it must never be exposed as an editable field (D-03). Do not expose plugin config, poll config, or advanced runtime settings. |
+| Accept a step | Inline **small** primary button label: `接受此步`. Accepted steps stay visibly included in the pending applied set until the teacher applies the whole draft. |
+| Discard a step | Inline **small** tertiary button label: `丢弃此步`. Discarded draft steps remain visible with muted styling and a reversible local state while in the current review session. |
 | Accept all | Primary CTA label: `接受全部草稿`. This applies the chosen draft state to active lesson steps, then returns the teacher to normal edit mode for the existing publish flow. It must not auto-publish. |
 | Discard draft | Destructive secondary action label: `丢弃草稿`. This marks the draft row discarded and leaves active lesson steps untouched. |
 | Return edit | Tertiary action label: `返回编辑`. If local review edits exist, show a confirmation that they will be cleared before leaving review mode. |
+| Session state | When toggling from review to edit and back to review within the same page session, preserve locally accepted/discarded step state and any in-progress edit panel edits (client-only state, not persisted to DB). A full page refresh clears all unsubmitted review state. |
 | Feedback | Success toast after apply: `AI 草稿已应用到课时，你可以继续调整后发布。` Success toast after discard: `AI 草稿已丢弃，当前课时没有被修改。` |
 
 ---
@@ -63,12 +66,12 @@ Implementation must use existing project tokens from `src/app/globals.css` and l
 
 | State | Badge copy | Color role | Card treatment |
 |-------|------------|------------|----------------|
-| New | `新增` | tertiary / `--color-tertiary-container` | Normal text, subtle green-tonal badge, optional plus icon. |
-| Modified | `修改` | primary / `--color-primary-container` | Normal text, primary-tonal badge, changed fields surfaced as compact chips. |
-| Deleted | `删除` | error / `--color-error-container` | Muted card, title line-through, body opacity reduced, destructive badge. |
-| Unchanged | none | neutral surface | No badge; lower emphasis than changed rows. |
-| Locally accepted | `已选用` | primary | Keep row active, show local accepted chip, disable duplicate accept action. |
-| Locally discarded | `已舍弃` | surface-container-high | Muted row, keep undo affordance in the same card. |
+| New | `新增` | tertiary / `--color-tertiary-container` (green accent) | Normal text, green-tonal badge, optional plus icon (`+`). |
+| Modified | `修改` | primary / `--color-primary-container` (blue primary) | Normal text, primary-tonal badge, changed fields surfaced as compact chips. |
+| Deleted | `删除` | error / `--color-error-container` (red) | Muted card, title line-through, body opacity reduced, destructive badge. |
+| Unchanged | none | neutral surface | No badge; lower visual emphasis than changed rows. |
+| Locally accepted | `已选用` | primary | Row stays active, local accepted chip shown, accept action disabled (already picked). |
+| Locally discarded | `已舍弃` | surface-container-high | Muted row with reduced opacity, discard action replaced by undo affordance. |
 
 Do not use 1px separator lines between rows. Separate rows with spacing, tonal surface shifts, and hover backgrounds only.
 
@@ -117,11 +120,11 @@ Typography rules:
 |------|-------|-------|
 | Dominant (60%) | `--color-surface` `#f5f7f9` | Page background and editor shell surroundings |
 | Secondary (30%) | `--color-surface-container-low` `#eef1f3`, `--color-surface-container-lowest` `#ffffff` | Review toolbar, diff list cards, side edit panel, discovery prompt |
-| Accent (10%) | `--color-primary` `#0050d4`, `--color-primary-container` `#7b9cff` | Primary CTA, active `审校` segment, selected step glow, modified badge |
-| Semantic success/new | `--color-tertiary` `#386700`, `--color-tertiary-container` `#a4fd4c` | `新增` and `已选用` supportive signals only |
-| Destructive | `--color-error` `#b31b25`, `--color-error-container` `#fbe7e8` | `删除`, `丢弃此步`, `丢弃草稿`, overwrite warning |
+| Accent (10%) | `--color-primary` `#0050d4`, `--color-primary-container` `#7b9cff` | Primary CTA, active `审校` segment, selected step glow, `修改` (modified) badge |
+| Semantic success/new | `--color-tertiary` `#386700`, `--color-tertiary-container` `#a4fd4c` | `新增` (new) badge and `已选用` (locally accepted) chip — supportive/positive signals only |
+| Destructive | `--color-error` `#b31b25`, `--color-error-container` `#fbe7e8` | `删除` (deleted) badge, `丢弃此步`, `丢弃草稿`, overwrite warning |
 
-Accent reserved for: `接受全部草稿`, active review segment, selected diff row focus, modified-step badge, focus outline. Do not use accent for every link, every chip, or every card header.
+Accent reserved for: `接受全部草稿` (primary CTA), active review segment in mode switch, selected diff row focus ring, `修改` (modified) step badge, per-step `接受此步` button. Do not use accent for every link, every chip, or every card header.
 
 ---
 
@@ -129,11 +132,11 @@ Accent reserved for: `接受全部草稿`, active review segment, selected diff 
 
 | Component | Contract |
 |-----------|----------|
-| Buttons | Use existing `Button` variants: primary for `接受全部草稿`, secondary for `丢弃草稿`, tertiary for `返回编辑` and inline low-risk actions. Inline destructive action may use tertiary text plus error color. |
+| Buttons | Use existing `Button` variants. **Global actions:** primary for `接受全部草稿`, secondary for `丢弃草稿`, tertiary for `返回编辑`. **Per-step inline actions:** small (`size="sm"`) primary for `接受此步`, small tertiary for `丢弃此步`. Inline destructive actions may use tertiary text plus error color. |
 | Badges | Reuse local `Badge` where possible. Add state-specific classes for error and tertiary containers rather than adding a new badge library. |
 | Cards | Step diff cards use `rounded-[var(--radius-card)]`, `bg-surface-container-lowest`, and `shadow-ambient`. No nested card shells inside each row. |
 | Action bar | Use glass/tonal treatment: `bg-surface/85`, `backdrop-blur-xl`, `rounded-[var(--radius-shell)]`, `shadow-ambient`. Keep it sticky only within review content, not over global navigation. |
-| Side panel | Use `bg-surface-container-lowest`, `rounded-[var(--radius-shell)]`, `shadow-ambient`; inputs use `bg-surface-container-low` and focus outline from global `:focus-visible`. |
+| Side panel | Slide-in from right with `translate-x` or framer-motion spring. Use `bg-surface-container-lowest`, `rounded-[var(--radius-shell)]`, `shadow-ambient`; inputs use `bg-surface-container-low` and focus outline from global `:focus-visible`. |
 | Icons | Use lucide icons only where they improve scanning: sparkles/draft source, check for accept, trash/archive for discard, arrow-left for return. Icon-only controls require accessible labels. |
 
 ---
@@ -144,6 +147,7 @@ Accent reserved for: `接受全部草稿`, active review segment, selected diff 
 |---------|------|
 | Review mode title | `审校 AI 课时草稿` |
 | Review mode body | `逐步核对 AI 起草与当前课时的差异，确认后再应用到编辑器。` |
+| Discovery prompt (glass banner, edit mode) | `AI 已生成草稿，点击审校 →` (the trailing text is a clickable link that enters `?mode=review`) |
 | Primary CTA | `接受全部草稿` |
 | Secondary destructive CTA | `丢弃草稿` |
 | Tertiary navigation | `返回编辑` |
@@ -190,11 +194,11 @@ No third-party registry blocks are authorized for Phase 64.
 
 ## Checker Sign-Off
 
-- [x] Dimension 1 Copywriting: PASS
-- [x] Dimension 2 Visuals: PASS
-- [x] Dimension 3 Color: PASS
-- [x] Dimension 4 Typography: PASS
-- [x] Dimension 5 Spacing: PASS
-- [x] Dimension 6 Registry Safety: PASS
+- [ ] Dimension 1 Copywriting: PENDING
+- [ ] Dimension 2 Visuals: PENDING
+- [ ] Dimension 3 Color: PENDING
+- [ ] Dimension 4 Typography: PENDING
+- [ ] Dimension 5 Spacing: PENDING
+- [ ] Dimension 6 Registry Safety: PENDING
 
-**Approval:** approved 2026-05-31
+**Approval:** pending re-verification (updated for CONTEXT D-01–D-14)
