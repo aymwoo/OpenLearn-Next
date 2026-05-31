@@ -57,3 +57,16 @@ a {
   outline: 2px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-surface-container-lowest));
   outline-offset: 4px;
 }
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.25s ease-out;
+}
