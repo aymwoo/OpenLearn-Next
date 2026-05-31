@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
 status: executing
-last_updated: "2026-05-31T04:01:02.758Z"
+last_updated: "2026-05-31T04:11:26.415Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -25,11 +25,11 @@ See: `.planning/PROJECT.md` (updated 2026-05-31)
 ## Current Position
 
 Phase: 61 (ai-provider-abstraction-layer) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-05-31
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [██░░░░░░░░] 20%
 - Trend: New milestone
 
 | Phase 61 P00 | 25min | 2 tasks | 6 files |
+| Phase 61 P01 | 20min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ Recent decisions affecting current work:
 - [Milestone v3.2]: 多 Agent 编排、RAG/Qdrant、MCP、插件触达 AI 继续 deferred。
 - [Phase ?]: Pin ai/openai-compatible to ~minor (~6.0.193 / ~2.0.48); upgrades via dedicated PR
 - [Phase ?]: AI fixtures target actual @ai-sdk/provider@3.0.x structured finishReason/usage shapes, not PLAN flat interfaces block
+- [Phase 61]: Provider 错误模型用 discriminated-union（kind+retryable），跨包边界以 isInstance() 判型
+- [Phase 61]: AI env 读取收口于 getProviderConfig(server-only)，缺失抛 AI_PROVIDER_NOT_CONFIGURED
 
 ### Pending Todos
 
@@ -99,8 +102,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-31T04:01:02.753Z
-Stopped at: Completed 61-00-PLAN.md
+Last session: 2026-05-31T04:11:26.409Z
+Stopped at: Completed 61-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
