@@ -5,10 +5,12 @@ import { z } from "zod";
 
 import {
   addLessonStep,
+  applyDraftToLiveLesson,
   assertActiveTeacher,
   archiveLesson,
   archiveLessonStep,
   createLessonDraft,
+  discardDraftLessonVersion,
   duplicateLesson,
   duplicateLessonStep,
   getLessonPublishReadinessDTO,
@@ -67,6 +69,22 @@ const uploadMarkdownAssetSchema = z.object({
   courseId: z.string().min(1),
   title: z.string().min(1),
   source: z.string().min(1),
+});
+
+const applyDraftSchema = z.object({
+  lessonId: z.string().min(1),
+  draftVersionId: z.string().min(1),
+  editedSteps: z.array(z.object({
+    index: z.number().int().nonnegative(),
+    title: z.string().min(1),
+    description: z.string(),
+    content: z.string(),
+  })).optional(),
+});
+
+const discardDraftSchema = z.object({
+  lessonId: z.string().min(1),
+  draftVersionId: z.string().min(1),
 });
 
 const votingSaveSchema = z.object({
@@ -135,9 +153,16 @@ function handleActionError(error: unknown) {
     return { ok: false as const, error: "UNAUTHORIZED", message: "您没有权限执行此操作。" };
   }
 
+  if (error instanceof Error && error.message === "DRAFT_NOT_PENDING") {
+    return { ok: false as const, error: "DRAFT_NOT_PENDING", message: "该草稿已处理，请刷新后重试。" };
+  }
+
   if (
     error instanceof Error &&
-    (error.message === "COURSE_NOT_FOUND" || error.message === "LESSON_NOT_FOUND" || error.message === "STEP_NOT_FOUND")
+    (error.message === "COURSE_NOT_FOUND"
+      || error.message === "LESSON_NOT_FOUND"
+      || error.message === "STEP_NOT_FOUND"
+      || error.message === "DRAFT_NOT_FOUND")
   ) {
     return { ok: false as const, error: "NOT_FOUND", message: "当前课程、课时或步骤已不存在，请刷新后重试。" };
   }
@@ -401,6 +426,36 @@ export async function publishLessonAction(input: FormData | Record<string, unkno
       updateTag(cacheTags.lesson(parsed.data.lessonId));
       updateTag(cacheTags.steps(parsed.data.lessonId));
     }
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function applyDraftLessonVersionAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = applyDraftSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const actor = await assertActiveTeacher();
+    const result = await applyDraftToLiveLesson(parsed.data);
+    invalidateLessonAuthoringTags(actor.userId, result.courseId, result.lessonId);
+    updateTag(cacheTags.draftLesson(result.lessonId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function discardDraftLessonVersionAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = discardDraftSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    await assertActiveTeacher();
+    const result = await discardDraftLessonVersion(parsed.data);
+    updateTag(cacheTags.draftLesson(parsed.data.lessonId));
+    updateTag(cacheTags.lesson(parsed.data.lessonId));
     return { ok: true, data: result };
   } catch (error) {
     return handleActionError(error);

@@ -11,10 +11,26 @@ vi.mock("next/cache", () => ({
   updateTag,
 }));
 
+vi.mock("@/lib/dal/resources", () => ({
+  createTeacherResource: vi.fn(),
+}));
+
 vi.mock("@/lib/dal/lesson-authoring", () => ({
-  assertActiveTeacher,
+  addLessonStep: vi.fn(),
   applyDraftToLiveLesson: mockApplyDraftToLiveLesson,
+  assertActiveTeacher,
+  archiveLesson: vi.fn(),
+  archiveLessonStep: vi.fn(),
+  createLessonDraft: vi.fn(),
   discardDraftLessonVersion: mockDiscardDraftLessonVersion,
+  duplicateLesson: vi.fn(),
+  duplicateLessonStep: vi.fn(),
+  getLessonPublishReadinessDTO: vi.fn(),
+  publishLesson: vi.fn(),
+  reorderLessonStep: vi.fn(),
+  saveVotingLessonStepConfig: vi.fn(),
+  updateLessonDraft: vi.fn(),
+  updateLessonStep: vi.fn(),
 }));
 
 describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () => {
