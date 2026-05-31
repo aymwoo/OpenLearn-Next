@@ -97,4 +97,18 @@ export const platformCommandRegistry = {
     authorize: lessonDraftCommandHandlers["lesson.draft.persist"].authorize,
     execute: lessonDraftCommandHandlers["lesson.draft.persist"].execute,
   }),
+  "lesson.draft.accept": createPlatformCommandDefinition({
+    commandType: "lesson.draft.accept",
+    payloadSchema: PlatformCommandPayloadSchemas["lesson.draft.accept"],
+    dedupe: "required",
+    authorize: lessonDraftCommandHandlers["lesson.draft.accept"].authorize,
+    execute: lessonDraftCommandHandlers["lesson.draft.accept"].execute,
+  }),
+  "lesson.draft.discard": createPlatformCommandDefinition({
+    commandType: "lesson.draft.discard",
+    payloadSchema: PlatformCommandPayloadSchemas["lesson.draft.discard"],
+    dedupe: "required",
+    authorize: lessonDraftCommandHandlers["lesson.draft.discard"].authorize,
+    execute: lessonDraftCommandHandlers["lesson.draft.discard"].execute,
+  }),
 } satisfies Record<PlatformCommandType, PlatformCommandDefinition>;

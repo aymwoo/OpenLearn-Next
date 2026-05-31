@@ -246,6 +246,64 @@ export const LessonDraftPersistedEventSchema = z.object({
   }),
 }).strict();
 
+// Phase 64 — 教师审校接受草稿事件（summary-only）。
+const LessonDraftAcceptedPayloadSchema = z.object({
+  draftVersionId: z.string().min(1),
+  version: z.number().int().positive(),
+  appliedStepCount: z.number().int().nonnegative(),
+  source: z.literal("ai"),
+}).strict();
+
+export const LessonDraftAcceptedEventSchema = z.object({
+  eventType: z.literal("lesson.draft.accepted"),
+  category: z.literal("domain"),
+  aggregateType: z.literal("lesson"),
+  aggregateId: z.string().min(1),
+  payload: LessonDraftAcceptedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
+}).strict();
+
+// Phase 64 — 教师审校丢弃草稿事件（summary-only）。
+const LessonDraftDiscardedPayloadSchema = z.object({
+  draftVersionId: z.string().min(1),
+  version: z.number().int().positive(),
+}).strict();
+
+export const LessonDraftDiscardedEventSchema = z.object({
+  eventType: z.literal("lesson.draft.discarded"),
+  category: z.literal("domain"),
+  aggregateType: z.literal("lesson"),
+  aggregateId: z.string().min(1),
+  payload: LessonDraftDiscardedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
+}).strict();
+
+// Phase 64 — 草稿应用到活跃步骤事件（summary-only，CONTRACT-ONLY）。
+const LessonDraftAppliedPayloadSchema = z.object({
+  lessonId: z.string().min(1),
+  draftVersionId: z.string().min(1),
+  replacedStepCount: z.number().int().nonnegative(),
+  newStepCount: z.number().int().nonnegative(),
+}).strict();
+
+export const LessonDraftAppliedEventSchema = z.object({
+  eventType: z.literal("lesson.draft.applied"),
+  category: z.literal("domain"),
+  aggregateType: z.literal("lesson"),
+  aggregateId: z.string().min(1),
+  payload: LessonDraftAppliedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
+}).strict();
+
 export const PlatformEventSchema = z.discriminatedUnion("eventType", [
   PlatformSuccessEventSchema,
   PlatformFailureEventSchema,
@@ -256,6 +314,9 @@ export const PlatformEventSchema = z.discriminatedUnion("eventType", [
   LessonToolInvokedEventSchema,
   LessonDraftProducedEventSchema,
   LessonDraftPersistedEventSchema,
+  LessonDraftAcceptedEventSchema,
+  LessonDraftDiscardedEventSchema,
+  LessonDraftAppliedEventSchema,
 ]);
 
 export const PlatformDomainEventSchema = z.union([
@@ -266,6 +327,9 @@ export const PlatformDomainEventSchema = z.union([
   LessonToolInvokedEventSchema,
   LessonDraftProducedEventSchema,
   LessonDraftPersistedEventSchema,
+  LessonDraftAcceptedEventSchema,
+  LessonDraftDiscardedEventSchema,
+  LessonDraftAppliedEventSchema,
 ]);
 
 export const PlatformSuccessOrDomainEventSchema = z.union([
@@ -292,6 +356,12 @@ export type LessonToolInvokedEvent = z.infer<typeof LessonToolInvokedEventSchema
 export type LessonDraftProducedEvent = z.infer<typeof LessonDraftProducedEventSchema>;
 export type LessonDraftPersistedEvent = z.infer<typeof LessonDraftPersistedEventSchema>;
 export type LessonDraftPersistedPayload = z.infer<typeof LessonDraftPersistedPayloadSchema>;
+export type LessonDraftAcceptedEvent = z.infer<typeof LessonDraftAcceptedEventSchema>;
+export type LessonDraftAcceptedPayload = z.infer<typeof LessonDraftAcceptedPayloadSchema>;
+export type LessonDraftDiscardedEvent = z.infer<typeof LessonDraftDiscardedEventSchema>;
+export type LessonDraftDiscardedPayload = z.infer<typeof LessonDraftDiscardedPayloadSchema>;
+export type LessonDraftAppliedEvent = z.infer<typeof LessonDraftAppliedEventSchema>;
+export type LessonDraftAppliedPayload = z.infer<typeof LessonDraftAppliedPayloadSchema>;
 export type PlatformPersistedDispatchBatch = {
   commandId: string;
   attemptNumber: number;

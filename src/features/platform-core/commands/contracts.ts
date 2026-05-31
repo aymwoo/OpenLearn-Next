@@ -26,7 +26,7 @@ export const PlatformPluginGovernanceCommandTypes = [
 
 // AI LessonAgent 起草命令类型（AGENT-04）。复用既有 {schoolId, pluginId} scope，
 // scope.pluginId 携带保留 sentinel "core.lesson-agent"（内置系统 agent 身份）。
-export const LessonDraftCommandTypes = ["lesson.draft.run", "lesson.draft.persist"] as const;
+export const LessonDraftCommandTypes = ["lesson.draft.run", "lesson.draft.persist", "lesson.draft.accept", "lesson.draft.discard"] as const;
 
 export const PlatformCommandTypeSchema = z.enum([
   ...PlatformPluginGovernanceCommandTypes,
@@ -149,6 +149,26 @@ const LessonDraftPersistPayloadSchema = z.object({
   steps: z.array(lessonStepPayloadSchema).min(1),
 }).strict();
 
+// lesson.draft.accept payload —— 教师审校接受草稿命令（Phase 64）。
+// payload 仅 lessonId + draftVersionId + 可选逐步编辑；
+// teacherId/schoolId 绝不出现于 payload（authorize 阶段闭包注入）。
+const LessonDraftAcceptPayloadSchema = z.object({
+  lessonId: z.string().min(1),
+  draftVersionId: z.string().min(1),
+  editedSteps: z.array(z.object({
+    index: z.number().int().nonnegative(),
+    title: z.string().min(1),
+    description: z.string(),
+    content: z.string(),
+  })).optional(),
+}).strict();
+
+// lesson.draft.discard payload —— 教师审校丢弃草稿命令（Phase 64）。
+const LessonDraftDiscardPayloadSchema = z.object({
+  lessonId: z.string().min(1),
+  draftVersionId: z.string().min(1),
+}).strict();
+
 export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,
   "plugin.enable": PluginEnablePayloadSchema,
@@ -162,6 +182,8 @@ export const PlatformCommandPayloadSchemas = {
   "plugin.kill_switch.set": PluginKillSwitchSetPayloadSchema,
   "lesson.draft.run": LessonDraftRunPayloadSchema,
   "lesson.draft.persist": LessonDraftPersistPayloadSchema,
+  "lesson.draft.accept": LessonDraftAcceptPayloadSchema,
+  "lesson.draft.discard": LessonDraftDiscardPayloadSchema,
 } as const;
 
 export const PlatformCommandSchema = z.discriminatedUnion("type", [
@@ -212,6 +234,14 @@ export const PlatformCommandSchema = z.discriminatedUnion("type", [
   PlatformCommandEnvelopeSchema.extend({
     type: z.literal("lesson.draft.persist"),
     payload: LessonDraftPersistPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("lesson.draft.accept"),
+    payload: LessonDraftAcceptPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("lesson.draft.discard"),
+    payload: LessonDraftDiscardPayloadSchema,
   }),
 ]);
 

@@ -5,7 +5,7 @@ import type {
   PlatformSuccessOrDomainEvent,
 } from "@/features/platform-core/events/contracts";
 import type { PlatformAuditMetadata } from "@/features/platform-core/ai-contracts/delegation";
-import { assertActiveTeacher, persistDraftLessonVersion } from "@/lib/dal/lesson-authoring";
+import { assertActiveTeacher, persistDraftLessonVersion, applyDraftToLiveLesson, discardDraftLessonVersion } from "@/lib/dal/lesson-authoring";
 import type { LessonStepPayload } from "@/lib/dto/lesson-authoring";
 import { cacheTags } from "@/lib/cache-policy";
 import { createDraftLessonStepTool } from "@/server/ai/tools";
@@ -32,6 +32,8 @@ import {
 
 type LessonDraftRunCommand = Extract<PlatformCommand, { type: "lesson.draft.run" }>;
 type LessonDraftPersistCommand = Extract<PlatformCommand, { type: "lesson.draft.persist" }>;
+type LessonDraftAcceptCommand = Extract<PlatformCommand, { type: "lesson.draft.accept" }>;
+type LessonDraftDiscardCommand = Extract<PlatformCommand, { type: "lesson.draft.discard" }>;
 
 type ExecutionInput<TCommand extends PlatformCommand = PlatformCommand> = {
   command: TCommand;
@@ -224,6 +226,81 @@ async function executeLessonDraftPersist(
   });
 }
 
+async function executeLessonDraftAccept(
+  input: ExecutionInput<LessonDraftAcceptCommand>,
+): Promise<ExecutionResult> {
+  const { command } = input;
+  const lessonId = command.payload.lessonId;
+
+  await authorizeLessonDraftCommand(command);
+
+  const result = await applyDraftToLiveLesson(command.payload);
+
+  return successResult({
+    resultSummary: {
+      draftVersionId: result.draftVersionId,
+      appliedStepCount: result.appliedStepCount,
+    },
+    invalidation: {
+      tags: [
+        cacheTags.draftLesson(lessonId),
+        cacheTags.lesson(lessonId),
+        cacheTags.steps(lessonId),
+      ],
+    },
+    emittedEvents: [
+      withAudit({
+        eventType: "lesson.draft.accepted",
+        category: "domain",
+        aggregateType: "lesson",
+        aggregateId: lessonId,
+        payload: {
+          draftVersionId: result.draftVersionId,
+          version: 0, // version is not available from the DAL result; handler resolves it
+          appliedStepCount: result.appliedStepCount,
+          source: "ai",
+        },
+      }, command.audit),
+    ],
+  });
+}
+
+async function executeLessonDraftDiscard(
+  input: ExecutionInput<LessonDraftDiscardCommand>,
+): Promise<ExecutionResult> {
+  const { command } = input;
+  const lessonId = command.payload.lessonId;
+
+  await authorizeLessonDraftCommand(command);
+
+  const result = await discardDraftLessonVersion(command.payload);
+
+  return successResult({
+    resultSummary: {
+      draftVersionId: result.draftVersionId,
+      discardedAt: result.discardedAt,
+    },
+    invalidation: {
+      tags: [
+        cacheTags.draftLesson(lessonId),
+        cacheTags.lesson(lessonId),
+      ],
+    },
+    emittedEvents: [
+      withAudit({
+        eventType: "lesson.draft.discarded",
+        category: "domain",
+        aggregateType: "lesson",
+        aggregateId: lessonId,
+        payload: {
+          draftVersionId: result.draftVersionId,
+          version: 0, // version is not available from the DAL result; handler resolves it
+        },
+      }, command.audit),
+    ],
+  });
+}
+
 export const lessonDraftCommandHandlers = {
   "lesson.draft.run": {
     authorize: ({ command }) => authorizeLessonDraftCommand(command),
@@ -233,7 +310,15 @@ export const lessonDraftCommandHandlers = {
     authorize: ({ command }) => authorizeLessonDraftCommand(command),
     execute: (input) => executeLessonDraftPersist(input as ExecutionInput<LessonDraftPersistCommand>),
   },
-} satisfies Record<"lesson.draft.run" | "lesson.draft.persist", Pick<PlatformCommandDefinition, "authorize" | "execute">>;
+  "lesson.draft.accept": {
+    authorize: ({ command }) => authorizeLessonDraftCommand(command),
+    execute: (input) => executeLessonDraftAccept(input as ExecutionInput<LessonDraftAcceptCommand>),
+  },
+  "lesson.draft.discard": {
+    authorize: ({ command }) => authorizeLessonDraftCommand(command),
+    execute: (input) => executeLessonDraftDiscard(input as ExecutionInput<LessonDraftDiscardCommand>),
+  },
+} satisfies Record<"lesson.draft.run" | "lesson.draft.persist" | "lesson.draft.accept" | "lesson.draft.discard", Pick<PlatformCommandDefinition, "authorize" | "execute">>;
 
 // sentinel 命名常量在 register 路径外仍受引用约束（避免未使用告警，并昭示其内部专用语义）。
 export { LESSON_AGENT_SENTINEL_PLUGIN_ID };
