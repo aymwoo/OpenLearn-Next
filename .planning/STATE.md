@@ -20,13 +20,13 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-31)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 61 — ai-provider-abstraction-layer
+**Current focus:** Phase 62 — lessonagent-typed-tool-layer
 
 ## Current Position
 
-Phase: 61 (ai-provider-abstraction-layer) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
+Phase: 62 (lessonagent-typed-tool-layer) — PLANNED
+Plan: 0 of 4 executed
+Status: 4 plans written + validated（3 waves）— ready for /gsd-execute-phase 62
 Last activity: 2026-05-31
 
 Progress: [██████████] 100%
