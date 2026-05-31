@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { RuntimeActorScopeSchema } from "@/features/runtime-platform/contracts/permissions";
 import { PlatformAuditMetadataSchema } from "@/features/platform-core/ai-contracts/delegation";
+import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
 import {
   PlatformFailureAttributionSchema,
   PlatformFailureEventSchema,
@@ -25,7 +26,7 @@ export const PlatformPluginGovernanceCommandTypes = [
 
 // AI LessonAgent 起草命令类型（AGENT-04）。复用既有 {schoolId, pluginId} scope，
 // scope.pluginId 携带保留 sentinel "core.lesson-agent"（内置系统 agent 身份）。
-export const LessonDraftCommandTypes = ["lesson.draft.run"] as const;
+export const LessonDraftCommandTypes = ["lesson.draft.run", "lesson.draft.persist"] as const;
 
 export const PlatformCommandTypeSchema = z.enum([
   ...PlatformPluginGovernanceCommandTypes,
@@ -139,6 +140,15 @@ const LessonDraftRunPayloadSchema = z.object({
   intent: z.string().min(1),
 }).strict();
 
+// lesson.draft.persist payload —— 写型命令边界校验（T-63-06），承接整课已校验步骤包
+// （D-02 整课多步，复用 lessonStepPayloadSchema，不造第二套 step schema）。
+// teacherId/source 绝不出现于 payload（authorize 阶段闭包注入，见 Plan 04）；
+// idempotencyKey 经 envelope.dedupeKey 注入，payload 不重复携带。
+const LessonDraftPersistPayloadSchema = z.object({
+  lessonId: z.string().min(1),
+  steps: z.array(lessonStepPayloadSchema).min(1),
+}).strict();
+
 export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,
   "plugin.enable": PluginEnablePayloadSchema,
@@ -151,6 +161,7 @@ export const PlatformCommandPayloadSchemas = {
   "plugin.uninstall": PluginUninstallPayloadSchema,
   "plugin.kill_switch.set": PluginKillSwitchSetPayloadSchema,
   "lesson.draft.run": LessonDraftRunPayloadSchema,
+  "lesson.draft.persist": LessonDraftPersistPayloadSchema,
 } as const;
 
 export const PlatformCommandSchema = z.discriminatedUnion("type", [
@@ -197,6 +208,10 @@ export const PlatformCommandSchema = z.discriminatedUnion("type", [
   PlatformCommandEnvelopeSchema.extend({
     type: z.literal("lesson.draft.run"),
     payload: LessonDraftRunPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("lesson.draft.persist"),
+    payload: LessonDraftPersistPayloadSchema,
   }),
 ]);
 
