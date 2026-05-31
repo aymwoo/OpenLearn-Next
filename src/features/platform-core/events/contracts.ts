@@ -67,6 +67,67 @@ const PluginKillSwitchChangedPayloadSchema = z.object({
   toggleCounter: z.number().int().nonnegative(),
 }).strict();
 
+const LessonStepTypeSchema = z.enum(["content", "task", "quiz"]);
+
+// summary-only + strict 守卫：复用既有快照拒绝语义（字段名禁以 json 结尾，
+// 报 "must not include object snapshots"），并对未声明字段施加 strict 拒绝。
+// 用 passthrough + superRefine 以保证在剥离前即可命中 *Json 字段名检查。
+function summaryOnlyStrictPayload<Shape extends z.ZodRawShape>(shape: Shape) {
+  const allowedKeys = new Set(Object.keys(shape));
+  return z.object(shape).passthrough().superRefine((value, ctx) => {
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (key.toLowerCase().endsWith("json")) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Summary payload field '${key}' must not include object snapshots`,
+          path: [key],
+        });
+        continue;
+      }
+
+      if (!allowedKeys.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.unrecognized_keys,
+          keys: [key],
+          path: [],
+        });
+        continue;
+      }
+
+      if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+        for (const nestedKey of Object.keys(entry as Record<string, unknown>)) {
+          if (nestedKey.toLowerCase().endsWith("json")) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Summary payload field '${key}.${nestedKey}' must not include object snapshots`,
+              path: [key, nestedKey],
+            });
+          }
+        }
+      }
+    }
+  });
+}
+
+const LessonDraftRequestedPayloadSchema = summaryOnlyStrictPayload({
+  commandType: z.string().min(1),
+  stepType: LessonStepTypeSchema,
+  intentSummary: z.string().min(1),
+});
+
+const LessonToolInvokedPayloadSchema = summaryOnlyStrictPayload({
+  toolName: z.string().min(1),
+  stepType: LessonStepTypeSchema,
+  attempt: z.number().int().positive(),
+});
+
+const LessonDraftProducedPayloadSchema = summaryOnlyStrictPayload({
+  stepType: LessonStepTypeSchema,
+  title: z.string().min(1),
+  succeeded: z.literal(true),
+  tokenUsage: z.number().int().nonnegative().optional(),
+});
+
 export const PlatformSuccessEventSchema = z.object({
   eventType: z.literal("platform.command.succeeded"),
   category: z.literal("outcome"),
@@ -127,18 +188,60 @@ export const PluginKillSwitchChangedEventSchema = z.object({
   }),
 }).strict();
 
+export const LessonDraftRequestedEventSchema = z.object({
+  eventType: z.literal("lesson.draft.requested"),
+  category: z.literal("domain"),
+  aggregateType: z.literal("lesson"),
+  aggregateId: z.string().min(1),
+  payload: LessonDraftRequestedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
+}).strict();
+
+export const LessonToolInvokedEventSchema = z.object({
+  eventType: z.literal("lesson.tool.invoked"),
+  category: z.literal("domain"),
+  aggregateType: z.literal("lesson"),
+  aggregateId: z.string().min(1),
+  payload: LessonToolInvokedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
+}).strict();
+
+export const LessonDraftProducedEventSchema = z.object({
+  eventType: z.literal("lesson.draft.produced"),
+  category: z.literal("domain"),
+  aggregateType: z.literal("lesson"),
+  aggregateId: z.string().min(1),
+  payload: LessonDraftProducedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
+}).strict();
+
 export const PlatformEventSchema = z.discriminatedUnion("eventType", [
   PlatformSuccessEventSchema,
   PlatformFailureEventSchema,
   PluginInstalledEventSchema,
   PluginLifecycleChangedEventSchema,
   PluginKillSwitchChangedEventSchema,
+  LessonDraftRequestedEventSchema,
+  LessonToolInvokedEventSchema,
+  LessonDraftProducedEventSchema,
 ]);
 
 export const PlatformDomainEventSchema = z.union([
   PluginInstalledEventSchema,
   PluginLifecycleChangedEventSchema,
   PluginKillSwitchChangedEventSchema,
+  LessonDraftRequestedEventSchema,
+  LessonToolInvokedEventSchema,
+  LessonDraftProducedEventSchema,
 ]);
 
 export const PlatformSuccessOrDomainEventSchema = z.union([
@@ -160,6 +263,9 @@ export type PlatformFailureEvent = z.infer<typeof PlatformFailureEventSchema>;
 export type PlatformFailureAttribution = z.infer<typeof PlatformFailureAttributionSchema>;
 export type PlatformEventBridgeOwnership = z.infer<typeof PlatformEventBridgeOwnershipSchema>;
 export type PlatformSuccessOrDomainEvent = z.infer<typeof PlatformSuccessOrDomainEventSchema>;
+export type LessonDraftRequestedEvent = z.infer<typeof LessonDraftRequestedEventSchema>;
+export type LessonToolInvokedEvent = z.infer<typeof LessonToolInvokedEventSchema>;
+export type LessonDraftProducedEvent = z.infer<typeof LessonDraftProducedEventSchema>;
 export type PlatformPersistedDispatchBatch = {
   commandId: string;
   attemptNumber: number;
