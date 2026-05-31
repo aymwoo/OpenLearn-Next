@@ -1,16 +1,17 @@
 # ROADMAP
 
-**Current milestone:** `(none)`
-**Status:** Awaiting next milestone definition
+**Current milestone:** `v3.2 AI LessonAgent 起草闭环`
+**Status:** Planning — phases drafted, awaiting plan-phase
+**Current requirements file:** `.planning/REQUIREMENTS.md`
 **Latest archive:** `.planning/milestones/v3.1-ROADMAP.md`
-**Current requirements file:** `(none; create during /gsd-new-milestone)`
 
 ## Overview
 
-`v3.1` 已于 2026-05-30 归档。仓库当前已经具备 single-school pilot production readiness baseline：课堂投票样板链路、operator recovery、deploy/release/restore、40/5 rehearsal evidence 与 closeout audit 都已收口。下一轮 planning 应从这份已归档事实出发，定义新的用户价值切口，而不是重开 `v3.1` 已完成能力。
+`v3.2` 把 `v3.0` 已就绪的 AI-native contract（Command Bus、governed action registry、persisted event bus、AI discoverability）兑现成一条真正可用的 LessonAgent 起草闭环。本里程碑只打穿单个 Agent 的单条链路（N=1 强样板优先）：先建 server-side provider 抽象层，再建 Zod 校验的 typed tool 层，经 Command Bus 把 Agent 产出写入 draft lesson version（复用既有 publish/version 真相源），交付对齐 Stitch + DESIGN.md 的教师审校面，最后用 eval + guardrails + `verify:phase` close gate 封口。全程不破坏 SQLite-first、DAL-only、no-arbitrary-code、provider-key-server-only 约束，且不重建 `v3.0` 平台内核。
 
 ## Milestones
 
+- 🚧 **v3.2 AI LessonAgent 起草闭环** - Phases 61-65 (in progress)
 - ✅ **v3.1 Single-School Pilot Production Readiness (Plugin-First)** - Archived 2026-05-30. See `.planning/milestones/v3.1-ROADMAP.md`.
 - ✅ **v3.0 AI Native Educational OS Upgrade** - Archived 2026-05-23. See `.planning/milestones/v3.0-ROADMAP.md`.
 - 🧊 **v2.4 Plugin Data Architecture & Default Plugins** - Phases 44-49 remain frozen historical context.
@@ -21,6 +22,85 @@
 - ✅ **v1.3 Teaching Orchestration & Classroom Intelligence** - Archived 2026-05-15.
 
 ## Phases
+
+### 🚧 v3.2 AI LessonAgent 起草闭环 (Phases 61-65)
+
+**Milestone Goal:** 教师可触发 AI 起草一节课的步骤包，经审校后通过既有发布链路落地，全程经 Command Bus / 工具层治理。
+
+- [ ] **Phase 61: AI Provider Abstraction Layer** - 统一 server-side provider 接口、密钥隔离、限流/配额与 typed 可重试错误，provider 可替换。
+- [ ] **Phase 62: LessonAgent Typed Tool Layer** - Zod 校验的 typed tools，只调 DAL / Command Bus，产出原子步骤包，关键节点写入 event bus。
+- [ ] **Phase 63: AI Draft Chain into Draft Lesson Version** - 经 Command Bus 把 Agent 产出写入 AI-标注、幂等、replay-safe 的 draft lesson version，复用既有真相源。
+- [ ] **Phase 64: Teacher Review & Accept-Publish Surface** - 起草结果的 diff / 编辑 / 接受发布 / 丢弃，对齐 Stitch + DESIGN.md。
+- [ ] **Phase 65: Eval, Guardrails & verify:phase Close Gate** - 可重复 eval、越界 guardrails 与端到端 `verify:phase` 单一权威闭环闸门。
+
+## Phase Details
+
+### Phase 61: AI Provider Abstraction Layer
+**Goal**: 建立 `server/ai/providers` 统一抽象层，让调用方通过单一接口完成一次文本/结构化生成，密钥只在服务端 Node runtime 读取，调用受限流/配额保护，失败返回区分可重试的 typed 错误。
+**Depends on**: Nothing (first phase of v3.2; reuses v3.0 platform core)
+**Requirements**: PROV-01, PROV-02, PROV-03, PROV-04
+**Success Criteria** (what must be TRUE):
+  1. 调用方能通过统一 provider 接口完成一次 LLM 文本/结构化生成，替换底层 provider 实现不需要改动调用方代码。
+  2. provider 密钥只在服务端 Node runtime 读取，在客户端、Edge runtime、插件 manifest 与浏览器响应中均不可见（有测试或检查证明不泄漏）。
+  3. 超出限流/配额的 AI 调用返回明确可读错误，而不是静默失败或卡死。
+  4. provider 调用失败（超时、上游错误、解析失败）返回 typed 错误，调用链能区分可重试与不可重试。
+**Plans**: TBD
+
+### Phase 62: LessonAgent Typed Tool Layer
+**Goal**: 建立 `server/ai/tools` LessonAgent 工具层：一组 Zod 校验的 typed tools，输入输出在边界处被校验，只能经 DAL / Command Bus 读写，不可直连 DB、不可触 provider key、不可执行任意代码；教师能针对目标课时触发起草，Agent 产出符合 `content`/`task`/`quiz` schema 的步骤包，关键节点写入 v3.0 event bus。
+**Depends on**: Phase 61
+**Requirements**: AGENT-01, AGENT-02, AGENT-03, AGENT-04
+**Success Criteria** (what must be TRUE):
+  1. 用非法 payload 调用任一 LessonAgent tool 会在边界处被拒绝并返回校验错误。
+  2. 工具层无法直连数据库、无法读取 provider key、无法执行任意代码（由边界约束与测试证明，只能走 DAL / Command Bus）。
+  3. 教师能针对一节目标课时触发 LessonAgent 起草，得到符合 `content`/`task`/`quiz` 原子步骤 schema 的步骤包。
+  4. Agent 起草过程关键节点（开始、工具调用、完成、失败）作为 typed platform events 写入 v3.0 event bus，operator 可追溯。
+**Plans**: TBD
+
+### Phase 63: AI Draft Chain into Draft Lesson Version
+**Goal**: 打通起草写入链路：Agent 产出经 Command Bus 写入 draft lesson version，复用既有 publish/version 模型而非新建第二真相源；写入幂等且 replay-safe；draft 在数据上标注 AI 来源、与教师手工编辑可区分，且不会自动发布给学生。
+**Depends on**: Phase 62
+**Requirements**: DRAFT-01, DRAFT-02, DRAFT-03
+**Success Criteria** (what must be TRUE):
+  1. Agent 起草结果通过 Command Bus 写入 draft lesson version，复用既有 publish/version 模型，没有出现第二套课时真相源。
+  2. 同一起草请求重试不会产生重复 draft，也不会污染已有课时内容（幂等、replay-safe）。
+  3. AI 起草的 draft version 在数据上标注 AI 来源、可与教师手工编辑区分，且不会自动发布给学生。
+**Plans**: TBD
+
+### Phase 64: Teacher Review & Accept-Publish Surface
+**Goal**: 交付教师审校面：教师能看到 AI 起草与当前课时的步骤级 diff（新增/修改/删除），能逐项或整体编辑后再决定去留，能接受起草进入既有发布链路或丢弃且不影响原课时，界面对齐 Stitch 项目 `5322129002350954765` 与 `DESIGN.md`。
+**Depends on**: Phase 63
+**Requirements**: REVIEW-01, REVIEW-02, REVIEW-03, REVIEW-04
+**Success Criteria** (what must be TRUE):
+  1. 教师在审校界面能看到 AI 起草内容与当前课时的步骤级 diff（新增/修改/删除）。
+  2. 教师能逐项或整体编辑 AI 起草的步骤后再决定去留。
+  3. 教师能接受 AI 起草使其进入既有发布链路，或丢弃起草且不影响原课时。
+  4. 审校界面对齐 Stitch `5322129002350954765` 与 `DESIGN.md`（Lexend、无 1px 分隔线、tonal surface、glass/gradient CTA）。
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 65: Eval, Guardrails & verify:phase Close Gate
+**Goal**: 建立 AI 起草链路的质量与闭环闸门：一组可重复运行的 eval 验证起草输出在 schema 合法性与基本教学结构上达标；guardrails 拦截越界输出（非法 step 类型、超长、注入禁止内容）并记录；提供 `verify:phase` close gate 对整条链路做端到端回归，作为里程碑 close 的单一权威闸门。
+**Depends on**: Phase 64
+**Requirements**: EVAL-01, EVAL-02, EVAL-03
+**Success Criteria** (what must be TRUE):
+  1. 存在一组可重复运行的 eval，验证 LessonAgent 起草输出在 schema 合法性与基本教学结构上达标。
+  2. guardrails 能拦截 Agent 越界输出（非法 step 类型、超长、注入既有约束禁止的内容），被拦截输出记录可查。
+  3. `verify:phase` close gate 对 AI 起草链路做端到端回归校验，并作为里程碑 close 的单一权威闸门通过。
+**Plans**: TBD
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 61. AI Provider Abstraction Layer | v3.2 | 0/TBD | Not started | - |
+| 62. LessonAgent Typed Tool Layer | v3.2 | 0/TBD | Not started | - |
+| 63. AI Draft Chain into Draft Lesson Version | v3.2 | 0/TBD | Not started | - |
+| 64. Teacher Review & Accept-Publish Surface | v3.2 | 0/TBD | Not started | - |
+| 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 0/TBD | Not started | - |
 
 <details>
 <summary>✅ v3.1 Single-School Pilot Production Readiness (Plugin-First) (Phases 55-60, 60.1, 60.2) — SHIPPED 2026-05-30</summary>
@@ -34,55 +114,4 @@
 - [x] **Phase 60.1: Replace dry-run phase60 proof with live rehearsal evidence** - 用 live smoke/capacity/drills/rollout-rollback rehearsal evidence 替换 dry-run close artifacts。 (completed 2026-05-30)
 - [x] **Phase 60.2: Wire frozen voting contract into launch and runtime** - 把 frozen voting contract 接入 runtime truth，关闭 `PLUG-01` / `CHAIN-03`。 (completed 2026-05-28)
 
-### Phase 55: Pilot Scope & Acceptance Gate
-**Goal**: 冻结单校试点口径、样板链路、proof artifact 与 close gate。
-**Depends on**: milestone kickoff
-
-### Phase 56: Voting Plugin Contract & Authoring Integration
-**Goal**: 打通课堂投票插件的 authoring、schema validation、compatibility gating 与 publish freeze。
-**Depends on**: Phase 55
-
-### Phase 57: Classroom Runtime Sample Chain
-**Goal**: 打通 launch readiness、teacher trigger、student participation、canonical result writes 与 teacher evidence。
-**Depends on**: Phase 56
-
-### Phase 58: Operator Recovery & Production Surfaces
-**Goal**: 交付 classroom/plugin/command/task 关联诊断面、degraded honesty 与可执行恢复动作。
-**Depends on**: Phase 57
-
-### Phase 59: Deploy, Release & Recovery Baseline
-**Goal**: 交付 env discipline、CI/CD、health/ready、release traceability、backup/restore 与 restore drill。
-**Depends on**: Phase 58
-
-### Phase 60: Load, Degrade & Pilot Rehearsal
-**Goal**: 交付 sample smoke、40/5 capacity、degraded drills 与 rollout/rollback rehearsal。
-**Depends on**: Phase 59
-
-### Phase 60.1: Replace dry-run phase60 proof with live rehearsal evidence
-**Goal**: 用真实 rehearsal evidence 替换 dry-run close artifacts。
-**Depends on**: Phase 60
-
-### Phase 60.2: Wire frozen voting contract into launch and runtime
-**Goal**: 把 frozen voting contract 接入 runtime truth，关闭 `PLUG-01` / `CHAIN-03`。
-**Depends on**: Phase 60
-
 </details>
-
-### Awaiting Next Milestone
-
-- No active phases are open.
-- Start the next milestone with `/gsd-new-milestone`.
-- Create a new `.planning/REQUIREMENTS.md` only after the next committed scope is defined.
-
-## Progress
-
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 55. Pilot Scope & Acceptance Gate | v3.1 | 3/3 | Complete | 2026-05-24 |
-| 56. Voting Plugin Contract & Authoring Integration | v3.1 | 5/5 | Complete | 2026-05-25 |
-| 57. Classroom Runtime Sample Chain | v3.1 | 5/5 | Complete | 2026-05-25 |
-| 58. Operator Recovery & Production Surfaces | v3.1 | 8/8 | Complete | 2026-05-26 |
-| 59. Deploy, Release & Recovery Baseline | v3.1 | 5/5 | Complete | 2026-05-27 |
-| 60. Load, Degrade & Pilot Rehearsal | v3.1 | 4/4 | Complete | 2026-05-30 |
-| 60.1. Replace dry-run phase60 proof with live rehearsal evidence | v3.1 | 3/3 | Complete | 2026-05-30 |
-| 60.2. Wire frozen voting contract into launch and runtime | v3.1 | 1/1 | Complete | 2026-05-28 |

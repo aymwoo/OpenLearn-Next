@@ -60,4 +60,25 @@
 
 ## Traceability
 
-*(Filled by roadmap — maps each REQ-ID to its phase.)*
+Every v3.2 requirement maps to exactly one phase. Coverage: 18/18.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| PROV-01 | Phase 61 | Pending |
+| PROV-02 | Phase 61 | Pending |
+| PROV-03 | Phase 61 | Pending |
+| PROV-04 | Phase 61 | Pending |
+| AGENT-01 | Phase 62 | Pending |
+| AGENT-02 | Phase 62 | Pending |
+| AGENT-03 | Phase 62 | Pending |
+| AGENT-04 | Phase 62 | Pending |
+| DRAFT-01 | Phase 63 | Pending |
+| DRAFT-02 | Phase 63 | Pending |
+| DRAFT-03 | Phase 63 | Pending |
+| REVIEW-01 | Phase 64 | Pending |
+| REVIEW-02 | Phase 64 | Pending |
+| REVIEW-03 | Phase 64 | Pending |
+| REVIEW-04 | Phase 64 | Pending |
+| EVAL-01 | Phase 65 | Pending |
+| EVAL-02 | Phase 65 | Pending |
+| EVAL-03 | Phase 65 | Pending |
