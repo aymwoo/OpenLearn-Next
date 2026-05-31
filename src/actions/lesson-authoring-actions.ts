@@ -79,7 +79,7 @@ const applyDraftSchema = z.object({
     title: z.string().min(1),
     description: z.string(),
     content: z.string(),
-  })).optional(),
+  }).strict()).optional(),
 });
 
 const discardDraftSchema = z.object({
