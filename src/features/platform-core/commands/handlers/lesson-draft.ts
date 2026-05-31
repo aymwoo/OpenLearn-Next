@@ -5,8 +5,9 @@ import type {
   PlatformSuccessOrDomainEvent,
 } from "@/features/platform-core/events/contracts";
 import type { PlatformAuditMetadata } from "@/features/platform-core/ai-contracts/delegation";
-import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
+import { assertActiveTeacher, persistDraftLessonVersion } from "@/lib/dal/lesson-authoring";
 import type { LessonStepPayload } from "@/lib/dto/lesson-authoring";
+import { cacheTags } from "@/lib/cache-policy";
 import { createDraftLessonStepTool } from "@/server/ai/tools";
 
 import {
@@ -30,6 +31,7 @@ import {
  */
 
 type LessonDraftRunCommand = Extract<PlatformCommand, { type: "lesson.draft.run" }>;
+type LessonDraftPersistCommand = Extract<PlatformCommand, { type: "lesson.draft.persist" }>;
 
 type ExecutionInput<TCommand extends PlatformCommand = PlatformCommand> = {
   command: TCommand;
@@ -186,12 +188,52 @@ async function executeLessonDraftRun(input: ExecutionInput<LessonDraftRunCommand
   });
 }
 
+async function executeLessonDraftPersist(
+  input: ExecutionInput<LessonDraftPersistCommand>,
+): Promise<ExecutionResult> {
+  const { command } = input;
+  const lessonId = command.payload.lessonId;
+
+  // 1) 授权：schoolId 越权写他校 draft 拦截（T-63-01）。单参数、返回 void。
+  await authorizeLessonDraftCommand(command);
+
+  // 2) actor 取自已鉴权闭包（绝不取自 payload/LLM），仿 executeLessonDraftRun :126。
+  const { userId: teacherId } = await assertActiveTeacher();
+
+  // 3) 调 Plan 02 DAL；sourceCommandId/createdById 均闭包注入，不入 payload。
+  const { draftVersionId, version, stepCount } = await persistDraftLessonVersion({
+    lessonId,
+    steps: command.payload.steps,
+    sourceCommandId: command.id,   // provenance + 表层幂等键
+    createdById: teacherId,        // 起草教师 id → 表 createdById（FK→users）
+  });
+
+  // 4) 返回 bus 约定形状：successResult，事件 withAudit 包裹（仿 executeLessonDraftRun :142-186）。
+  return successResult({
+    resultSummary: { draftVersionId, version, stepCount },
+    invalidation: { tags: [cacheTags.draftLesson(lessonId), cacheTags.lesson(lessonId)] },
+    emittedEvents: [
+      withAudit({
+        eventType: "lesson.draft.persisted",
+        category: "domain",
+        aggregateType: "lesson",
+        aggregateId: lessonId,
+        payload: { draftVersionId, version, stepCount, source: "ai" },
+      }, command.audit),
+    ],
+  });
+}
+
 export const lessonDraftCommandHandlers = {
   "lesson.draft.run": {
     authorize: ({ command }) => authorizeLessonDraftCommand(command),
     execute: (input) => executeLessonDraftRun(input as ExecutionInput<LessonDraftRunCommand>),
   },
-} satisfies Record<"lesson.draft.run", Pick<PlatformCommandDefinition, "authorize" | "execute">>;
+  "lesson.draft.persist": {
+    authorize: ({ command }) => authorizeLessonDraftCommand(command),
+    execute: (input) => executeLessonDraftPersist(input as ExecutionInput<LessonDraftPersistCommand>),
+  },
+} satisfies Record<"lesson.draft.run" | "lesson.draft.persist", Pick<PlatformCommandDefinition, "authorize" | "execute">>;
 
 // sentinel 命名常量在 register 路径外仍受引用约束（避免未使用告警，并昭示其内部专用语义）。
 export { LESSON_AGENT_SENTINEL_PLUGIN_ID };
