@@ -8,9 +8,13 @@ vi.mock("@/lib/dal/auth", () => ({
 vi.mock("@/lib/dal/membership", () => ({
   getUserMembershipsDTO: vi.fn(),
 }));
+vi.mock("@/features/platform-core/actions/registry", () => ({
+  readPluginGovernanceLifecycle: vi.fn(),
+}));
 
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
+import { readPluginGovernanceLifecycle } from "@/features/platform-core/actions/registry";
 
 import { createDeniedGovernanceDecision, createGuardedHostAction, resolveStudentHostActor, resolveTeacherHostActor } from "./guards";
 import { invokePluginHostAction } from "./plugin-host";
@@ -102,6 +106,7 @@ describe("runtime host guards", () => {
     vi.mocked(getUserMembershipsDTO).mockResolvedValue(
       [trustedMembership] as unknown as Awaited<ReturnType<typeof getUserMembershipsDTO>>,
     );
+    vi.mocked(readPluginGovernanceLifecycle).mockResolvedValue(null);
 
     await expect(
       invokePluginHostAction({

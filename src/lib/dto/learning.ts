@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { lessonStepPayloadSchema } from "./lesson-authoring";
+import { ClassroomVotingFrozenContractSchema, lessonStepPayloadSchema } from "./lesson-authoring";
 
 export const TaskAttemptPayloadDTOSchema = z
   .object({
@@ -21,6 +21,7 @@ export const LearningStepDTOSchema = z.object({
   title: z.string(),
   rank: z.string(),
   payload: lessonStepPayloadSchema,
+  pluginContract: ClassroomVotingFrozenContractSchema.nullable().default(null),
 });
 
 export const RuntimeStepStateDTOSchema = z.object({
@@ -105,6 +106,8 @@ export const QuizAttemptDTOSchema = z.object({
   isLatest: z.boolean(),
   canRetryQuiz: z.boolean(),
   showCorrectAnswer: z.boolean(),
+  selectionSummary: z.string().nullable().default(null),
+  classroomSessionId: z.string().nullable().default(null),
   successMessage: z.string().default("已提交，系统已记录本次作答结果"),
   feedback: AttemptFeedbackDTOSchema.nullable().default(null),
   createdAt: z.string(),

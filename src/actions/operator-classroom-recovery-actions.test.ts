@@ -76,7 +76,7 @@ describe("operator-classroom-recovery-actions", () => {
 
     const result = await runOperatorClassroomRecoveryAction({
       classroomSessionId: "session-1",
-      action: "resume" as "resume",
+      action: "resume",
     });
 
     expect(result.success).toBe(false);

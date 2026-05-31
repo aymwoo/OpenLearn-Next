@@ -662,7 +662,7 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
     const dto = await getClassroomSnapshotDTO({ sessionId: "session-1" });
 
     expect(dto.teacherTimeline).toEqual([]);
-    expect(insertMock).toHaveBeenCalledTimes(1);
+    expect(insertMock).not.toHaveBeenCalled();
   });
 
   it("builds runtime monitoring summary and participant attention signals from session facts", async () => {
@@ -876,6 +876,31 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
                 pluginName: "课堂投票",
               },
             },
+            pluginContract: {
+              kind: "classroom-voting",
+              contractVersion: "v1",
+              runtimeContractVersion: "v2",
+              pluginId: "plugin-voting",
+              publicMetadata: {
+                builtInKey: "classroomVoting",
+                pluginKey: "builtin-teaching-step-classroom-voting",
+                pluginName: "课堂投票",
+                stepType: "quiz",
+              },
+              executableConfig: {
+                prompt: "你更认可哪种理解？",
+                options: [
+                  { id: "option-1", label: "我支持方案 A" },
+                  { id: "option-2", label: "我支持方案 B" },
+                  { id: "option-3", label: "我还想再讨论" },
+                ],
+                allowMultiple: false,
+                anonymousResults: true,
+                showLiveResults: true,
+                participationWindowSeconds: 90,
+                resultsDisplay: "bar",
+              },
+            },
           },
         ],
       },
@@ -1012,6 +1037,9 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
       roundStatusCopy: "本轮已结束",
       failureCopy: "有 1 名学生提交失败或状态异常，请先查看未完成名单。",
       isFrozen: true,
+      anonymousResults: true,
+      liveResultsVisible: true,
+      resultsDisplay: "bar",
     });
     expect(dto.currentVotingRound?.optionResults).toEqual([
       expect.objectContaining({ optionLabel: "我支持方案 A", count: 1, percentage: 50 }),
@@ -1021,10 +1049,7 @@ describe("getClassroomSnapshotDTO teacher timeline", () => {
     expect(dto.currentVotingRound?.incompleteStudents).toEqual([
       { studentId: "student-3", studentName: "小明", statusToken: "离线" },
     ]);
-    expect(dto.currentVotingRound?.namedResults).toEqual([
-      expect.objectContaining({ studentId: "student-1", studentName: "李雷", selectedOptionLabels: ["我支持方案 A"] }),
-      expect.objectContaining({ studentId: "student-2", studentName: "韩梅梅", selectedOptionLabels: ["我支持方案 B"] }),
-    ]);
+    expect(dto.currentVotingRound?.namedResults).toEqual([]);
     expect(dto.currentVotingRound?.recoveryActions).toEqual([
       expect.objectContaining({ action: "retry", label: "重试同步" }),
       expect.objectContaining({ action: "reconcile", label: "重新对账" }),
@@ -1095,6 +1120,21 @@ describe("formative evaluation contracts", () => {
     expect(source).toContain("createdAt: toIso(evidence.createdAt)");
     expect(source).toContain(".sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))");
   });
+
+  it("keeps frozen voting contract on snapshot steps and round DTO contract surfaces", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+    const classroomDtoSource = readFileSync("src/lib/dto/classroom.ts", "utf8");
+
+    expect(source).toContain("pluginContract: parseVotingFrozenContract(step.pluginContract)");
+    expect(source).toContain("function getVotingContract");
+    expect(source).toContain("function isVotingPluginRuntimeReady");
+    expect(source).toContain("export async function recordClassroomVotingRoundControl");
+    expect(classroomDtoSource).toContain("pluginContract: ClassroomVotingFrozenContractSchema.nullable().default(null)");
+    expect(classroomDtoSource).toContain('"VOTING_PLUGIN_DISABLED"');
+    expect(classroomDtoSource).toContain("liveResultsVisible");
+    expect(classroomDtoSource).toContain("anonymousResults");
+    expect(classroomDtoSource).toContain("resultsDisplay");
+  });
 });
 
 describe("same-route classroom student detail contracts", () => {
@@ -1149,6 +1189,16 @@ describe("same-route classroom student detail contracts", () => {
     expect(source).toContain("feedbackTarget");
     expect(source).not.toContain("getTeacherLessonReviewDTO");
     expect(source).not.toContain("@/lib/dal/learning");
+  });
+
+  it("checks for an existing participant before inserting a reconnecting row", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(source).toContain("const existingParticipant = await db.query.classroomParticipants.findFirst({");
+    expect(source).toContain("eq(classroomParticipants.sessionId, session.id)");
+    expect(source).toContain("eq(classroomParticipants.studentId, input.studentId)");
+    expect(source).toContain("if (existingParticipant) {");
+    expect(source).toContain("await db.insert(classroomParticipants).values({");
   });
 
   it("returns monitoring summary fields and splits formative evaluation history from classroom evidence", async () => {

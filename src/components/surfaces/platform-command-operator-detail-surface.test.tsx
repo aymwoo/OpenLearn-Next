@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PlatformCommandOperatorDetailSurface } from "./platform-command-operator-detail-surface";
 import type { PlatformCommandOperatorDetailDTO } from "@/features/platform-core/observability/dto";
@@ -75,8 +75,11 @@ const detail: PlatformCommandOperatorDetailDTO = {
 
 describe("PlatformCommandOperatorDetailSurface", () => {
   beforeEach(() => {
-    cleanup();
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it("gates high-risk posture changes behind a confirmation panel with impact, posture change, and audit copy", async () => {

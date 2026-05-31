@@ -274,6 +274,25 @@ describe("submitQuizAttemptAction", () => {
       message: "提交暂时失败，请保留当前内容后重试。",
     });
   });
+
+  it("preserves explicit voting contract errors from DAL", async () => {
+    const { submitQuizAttemptAction } = await import("./learning-actions");
+
+    submitQuizAttempt.mockRejectedValueOnce(new Error("VOTING_ROUND_CLOSED"));
+
+    const result = await submitQuizAttemptAction({
+      publishedVersionId: "pub-ver-1",
+      lessonId: "lesson-1",
+      stepId: "step-1",
+      answer: { selectedOptionIds: ["option-a"] },
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      error: "VOTING_ROUND_CLOSED",
+      message: "提交暂时失败，请保留当前内容后重试。",
+    });
+  });
 });
 
 describe("sendAttemptFeedbackAction", () => {

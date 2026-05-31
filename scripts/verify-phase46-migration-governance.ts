@@ -397,8 +397,8 @@ async function runVerification() {
       }
     }
     console.log("  ✓ Index naming convention audit passed for all governed plugin data tables.");
-  } catch (dbError: any) {
-    console.error("Physical database check failed:", dbError.message);
+  } catch (dbError: unknown) {
+    console.error("Physical database check failed:", dbError instanceof Error ? dbError.message : String(dbError));
     throw dbError;
   } finally {
     await (client as { close?: () => Promise<void> | void }).close?.();

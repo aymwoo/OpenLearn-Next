@@ -57,8 +57,11 @@ vi.mock("@/features/platform-core/plugins/dependency-graph", () => ({
   readRegistryProjectionBundleForSchool: mocks.readRegistryProjectionBundleForSchool,
 }));
 
+import type { PlatformCommand } from "../contracts";
 import { PlatformCommandExecutionError } from "../contracts";
 import { platformCommandRegistry } from "../registry";
+
+type PluginCommandOf<TType extends PlatformCommand["type"]> = Extract<PlatformCommand, { type: TType }>;
 
 function createCommand(type: "plugin.install", payload: {
   schoolId: string;
@@ -66,11 +69,11 @@ function createCommand(type: "plugin.install", payload: {
   name: string;
   installSource: "manual" | "bootstrap" | "repair" | "seed";
   manifestJson: Record<string, unknown>;
-}): any;
-function createCommand(type: "plugin.enable", payload: { schoolId: string; pluginId: string; enabledBy: string }): any;
-function createCommand(type: "plugin.kill_switch.set", payload: { schoolId: string; pluginId: string; enabled: boolean; reason: string }): any;
-function createCommand(type: "plugin.retry", payload: { schoolId: string; pluginId: string; commandId: string; reason: string }): any;
-function createCommand(type: string, payload: Record<string, unknown>) {
+}): PluginCommandOf<"plugin.install">;
+function createCommand(type: "plugin.enable", payload: { schoolId: string; pluginId: string; enabledBy: string }): PluginCommandOf<"plugin.enable">;
+function createCommand(type: "plugin.kill_switch.set", payload: { schoolId: string; pluginId: string; enabled: boolean; reason: string }): PluginCommandOf<"plugin.kill_switch.set">;
+function createCommand(type: "plugin.retry", payload: { schoolId: string; pluginId: string; commandId: string; reason: string }): PluginCommandOf<"plugin.retry">;
+function createCommand<TType extends PlatformCommand["type"]>(type: TType, payload: Extract<PlatformCommand, { type: TType }>["payload"]): Extract<PlatformCommand, { type: TType }> {
   return {
     id: type === "plugin.retry" ? "command-existing" : `command-${type}`,
     type,
@@ -105,7 +108,7 @@ function createCommand(type: string, payload: Record<string, unknown>) {
         },
       },
     },
-  };
+  } as Extract<PlatformCommand, { type: TType }>;
 }
 
 describe("plugin command event emission", () => {

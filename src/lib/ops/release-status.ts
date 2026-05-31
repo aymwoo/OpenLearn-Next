@@ -3,7 +3,10 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { getBullmqConnectionHealthSnapshot } from "@/features/async-tasks/infra/connection";
+import {
+  getBullmqConnectionHealthSnapshot,
+  getBullmqEnvironmentCapability,
+} from "@/features/async-tasks/infra/connection";
 import { listAsyncWorkerHeartbeats } from "@/features/async-tasks/infra/heartbeat";
 import {
   getRedisFanoutConnectionHealthSnapshot,
@@ -244,6 +247,7 @@ export async function getHealthPayload() {
 
 export async function getReadyPayload() {
   const env = getServerEnv();
+  const workerCapability = getBullmqEnvironmentCapability();
   const [workerConnectionHealth, workerHeartbeats] = await Promise.all([
     Promise.resolve(getBullmqConnectionHealthSnapshot()),
     listAsyncWorkerHeartbeats(),
@@ -262,32 +266,31 @@ export async function getReadyPayload() {
 
   const dbOk = Boolean(env.DB_FILE_NAME && env.DB_FILE_NAME.trim().length > 0);
   const webOk = Boolean(env.OPENLEARN_DEPLOY_ENV && env.OPENLEARN_HEALTHCHECK_BASE_URL);
+  const latestWorkerStatus = latestHeartbeat?.status ?? null;
   const workerOk =
-    workerConnectionHealth.asyncTasksEnabled
-    && workerConnectionHealth.redisConfigured
-    && workerConnectionHealth.redisReachable
-    && workerConnectionHealth.connectionStates.worker === "ready"
+    workerCapability.asyncTasksEnabled
+    && workerCapability.redisConfigured
     && heartbeatFresh;
   const fanoutOk =
     fanoutHealth.deployAllowsRedis
     && fanoutHealth.redisReachable
     && fanoutHealth.connectionState === "ready";
 
-  const workerReason = !workerConnectionHealth.asyncTasksEnabled
+  const workerReason = !workerCapability.asyncTasksEnabled
     ? "ASYNC_TASKS_ENABLED=false 或 BULLMQ_REDIS_URL 缺失，worker 不能视为 ready。"
-    : !workerConnectionHealth.redisConfigured
+    : !workerCapability.redisConfigured
       ? "BULLMQ_REDIS_URL missing."
-      : !workerConnectionHealth.redisReachable
-        ? workerConnectionHealth.lastError ?? "BullMQ Redis is unreachable."
-        : workerConnectionHealth.connectionStates.worker !== "ready"
-          ? `BullMQ worker state is ${workerConnectionHealth.connectionStates.worker}.`
+      : latestWorkerStatus !== "ready"
+        ? `Latest worker heartbeat status is ${latestWorkerStatus ?? "missing"}.`
+        : !workerConnectionHealth.redisReachable && workerConnectionHealth.lastError
+          ? workerConnectionHealth.lastError
           : !heartbeatFresh
             ? "Worker heartbeat is stale or missing."
             : "BullMQ worker posture is ready.";
 
   const workerNextStep = workerOk
     ? "Worker is safe for pilot traffic."
-    : !workerConnectionHealth.asyncTasksEnabled
+    : !workerCapability.asyncTasksEnabled
       ? "Enable async tasks and configure BULLMQ_REDIS_URL before release, rollout, or restore completion."
       : !heartbeatFresh
         ? "Restart the worker process or wait for a fresh heartbeat before receiving pilot traffic."
@@ -310,6 +313,9 @@ export async function getReadyPayload() {
       posture: toPosture({
         ok: workerOk,
         degraded:
+          latestWorkerStatus === "stopping"
+          || latestWorkerStatus === "stopped"
+          ||
           workerConnectionHealth.connectionStates.worker === "degraded"
           || !heartbeatFresh,
       }),

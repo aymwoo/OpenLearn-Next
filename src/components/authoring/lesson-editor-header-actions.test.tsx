@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
 
+import type { ComponentProps } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LessonEditorHeaderActions } from "./lesson-editor-header-actions";
+
+type LessonEditorHeaderLesson = ComponentProps<typeof LessonEditorHeaderActions>["lesson"];
+
+const asLessonEditorHeaderLesson = (value: unknown) => value as LessonEditorHeaderLesson;
 
 const publishLessonAction = vi.fn();
 const refresh = vi.fn();
@@ -37,14 +42,14 @@ describe("LessonEditorHeaderActions", () => {
 
     render(
       <LessonEditorHeaderActions
-        lesson={{
+        lesson={asLessonEditorHeaderLesson({
           lesson: { id: "lesson-1", revision: 3 },
           preparationSummary: {
             launchHref: "/teacher/launch?courseId=course-1&lessonId=lesson-1",
           },
           publishState: { canPublish: true },
           materials: [],
-        } as any}
+        })}
         activeCourse={{ classLabels: [] }}
         activeStepCount={2}
         builtInStepCount={1}
@@ -66,14 +71,14 @@ describe("LessonEditorHeaderActions", () => {
   it("publishes from the top action bar and refreshes the route on success", async () => {
     render(
       <LessonEditorHeaderActions
-        lesson={{
+        lesson={asLessonEditorHeaderLesson({
           lesson: { id: "lesson-1", revision: 3 },
           preparationSummary: {
             launchHref: "/teacher/launch?courseId=course-1&lessonId=lesson-1",
           },
           publishState: { canPublish: true },
           materials: [],
-        } as any}
+        })}
         activeCourse={{ classLabels: [] }}
         activeStepCount={2}
         builtInStepCount={1}
@@ -93,14 +98,14 @@ describe("LessonEditorHeaderActions", () => {
   it("keeps preview and publish actions while surfacing a /teacher/launch handoff", () => {
     render(
       <LessonEditorHeaderActions
-        lesson={{
+        lesson={asLessonEditorHeaderLesson({
           lesson: { id: "lesson-1", revision: 3 },
           preparationSummary: {
             launchHref: "/teacher/launch?courseId=course-1&lessonId=lesson-1",
           },
           publishState: { canPublish: true },
           materials: [],
-        } as any}
+        })}
         activeCourse={{ classLabels: [] }}
         activeStepCount={2}
         builtInStepCount={1}

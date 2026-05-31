@@ -9,21 +9,10 @@ export default async function PluginLifecycleOperatorDetailPage({
   params: Promise<{ pluginId: string }>;
 }) {
   const { pluginId } = await params;
+  let detail;
 
   try {
-    const detail = await getPluginLifecycleOperatorDetailDTO({ pluginId });
-
-    return (
-      <main className="min-h-screen bg-surface px-4 py-6 text-on-surface sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-6xl">
-          <PluginLifecycleOperatorSurface
-            schoolId={detail.schoolId}
-            dashboard={detail.dashboard}
-            focusedPluginId={detail.focusedPluginId}
-          />
-        </div>
-      </main>
-    );
+    detail = await getPluginLifecycleOperatorDetailDTO({ pluginId });
   } catch (error) {
     if (error instanceof Error && error.message === "PLUGIN_GOVERNANCE_OPERATOR_NOT_FOUND") {
       notFound();
@@ -31,4 +20,16 @@ export default async function PluginLifecycleOperatorDetailPage({
 
     throw error;
   }
+
+  return (
+    <main className="min-h-screen bg-surface px-4 py-6 text-on-surface sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl">
+        <PluginLifecycleOperatorSurface
+          schoolId={detail.schoolId}
+          dashboard={detail.dashboard}
+          focusedPluginId={detail.focusedPluginId}
+        />
+      </div>
+    </main>
+  );
 }

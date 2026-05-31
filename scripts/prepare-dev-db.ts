@@ -58,6 +58,10 @@ function readMigrationByTag(tag: string) {
   };
 }
 
+function migrationTagExists(tag: string) {
+  return readMigrationJournal().entries.some((entry) => entry.tag === tag);
+}
+
 async function columnExists(tableName: string, columnName: string) {
   const result = await db.values(sql.raw(`PRAGMA table_info("${tableName}")`));
 
@@ -131,40 +135,77 @@ async function detectExistingSchemaTag() {
     && await indexExists("platformCommands_dedupeKey_unique")
     && await indexExists("platformCommandAttempts_command_attempt_unique");
 
+  const hasPhase53PlatformEventFoundationSchema =
+    hasPhase51CommandBusFoundationSchema
+    && await tableExists("platformEvent")
+    && await tableExists("platformEventDispatch")
+    && await columnExists("platformCommand", "invalidationTagsJson")
+    && await columnExists("platformCommand", "failureAttributionJson")
+    && await indexExists("platformEvents_command_attempt_ordinal_unique")
+    && await indexExists("platformEventDispatches_event_channel_unique");
+
+  const hasDaffyXavinSchema =
+    hasPhase53PlatformEventFoundationSchema
+    && await indexExists("plugin_owned_biz_school_plugin_key_unique");
+
+  if (hasDaffyXavinSchema && migrationTagExists("0002_daffy_xavin")) {
+    return "0002_daffy_xavin";
+  }
+
+  if (hasPhase53PlatformEventFoundationSchema && migrationTagExists("0012_phase53_platform_event_foundation")) {
+    return "0012_phase53_platform_event_foundation";
+  }
+
+  if (hasPhase51CommandBusFoundationSchema && migrationTagExists("0000_windy_metal_master")) {
+    return "0000_windy_metal_master";
+  }
+
   if (hasPhase51CommandBusFoundationSchema) {
-    return "0013_phase51_command_bus_foundation";
+    return migrationTagExists("0013_phase51_command_bus_foundation")
+      ? "0013_phase51_command_bus_foundation"
+      : null;
   }
 
   if (hasPhase44PluginIdentityNamespaceSchema) {
-    return "0011_phase44_plugin_identity_namespace";
+    return migrationTagExists("0011_phase44_plugin_identity_namespace")
+      ? "0011_phase44_plugin_identity_namespace"
+      : null;
   }
 
   if (hasPhase43KnowledgeChunkUniquenessSchema) {
-    return "0010_wandering_angel";
+    return migrationTagExists("0010_wandering_angel") ? "0010_wandering_angel" : null;
   }
 
   if (hasPhase43KnowledgeSourceUniquenessSchema) {
-    return "0009_phase43_knowledge_source_uniqueness";
+    return migrationTagExists("0009_phase43_knowledge_source_uniqueness")
+      ? "0009_phase43_knowledge_source_uniqueness"
+      : null;
   }
 
   if (hasPhase43ValidationWorkloadsSchema) {
-    return "0008_phase43_validation_workloads";
+    return migrationTagExists("0008_phase43_validation_workloads")
+      ? "0008_phase43_validation_workloads"
+      : null;
   }
 
   if (hasPhase43ReminderDispatchClaimSchema) {
-    return "0007_phase43_scheduled_reminder_dispatch_claim";
+    return migrationTagExists("0007_phase43_scheduled_reminder_dispatch_claim")
+      ? "0007_phase43_scheduled_reminder_dispatch_claim"
+      : null;
   }
 
   if (hasPhase42OperatorSchema) {
-    return "0006_phase42_async_operator";
+    return migrationTagExists("0006_phase42_async_operator") ? "0006_phase42_async_operator" : null;
   }
 
   if (hasPhase40RuntimeProjectionSchema) {
-    return "0005_phase40_async_task_runtime_projection";
+    return migrationTagExists("0005_phase40_async_task_runtime_projection")
+      ? "0005_phase40_async_task_runtime_projection"
+      : null;
   }
 
   if (hasAsyncTaskSchema) {
-    return "0004_phase39_async_tasks";
+    return migrationTagExists("0004_phase39_async_tasks") ? "0004_phase39_async_tasks" : null;
   }
 
   const hasRedisFanoutSchema =
@@ -172,7 +213,7 @@ async function detectExistingSchemaTag() {
     && await columnExists("classroomSession", "transportModeSnapshot");
 
   if (hasRedisFanoutSchema) {
-    return "0003_phase37_redis_fanout";
+    return migrationTagExists("0003_phase37_redis_fanout") ? "0003_phase37_redis_fanout" : null;
   }
 
   const hasTransportSchema =
@@ -183,7 +224,9 @@ async function detectExistingSchemaTag() {
     && await columnExists("pluginRegistration", "lifecycleState");
 
   if (hasTransportSchema) {
-    return "0002_runtime-governance-transport";
+    return migrationTagExists("0002_runtime-governance-transport")
+      ? "0002_runtime-governance-transport"
+      : null;
   }
 
   const hasRuntimeSessionSchema =
@@ -192,11 +235,13 @@ async function detectExistingSchemaTag() {
     && await tableExists("runtimeEventOutbox");
 
   if (hasRuntimeSessionSchema) {
-    return "0001_curved_overlord";
+    return migrationTagExists("0001_curved_overlord") ? "0001_curved_overlord" : null;
   }
 
   const hasBaselineSchema = await tableExists(DEV_SENTINEL_TABLE);
-  return hasBaselineSchema ? "0000_phase15-course-import" : null;
+  return hasBaselineSchema && migrationTagExists("0000_phase15-course-import")
+    ? "0000_phase15-course-import"
+    : null;
 }
 
 async function readRecordedMigrationTag() {

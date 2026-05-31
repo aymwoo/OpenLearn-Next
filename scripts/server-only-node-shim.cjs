@@ -1,4 +1,7 @@
-const Module = require("node:module");
+/* eslint-disable @typescript-eslint/no-require-imports */
+const { createRequire } = require("node:module");
+const requireFromHere = createRequire(__filename);
+const Module = requireFromHere("node:module");
 
 const originalLoad = Module._load;
 

@@ -167,6 +167,7 @@ describe("dispatchPlatformCommand", () => {
         aggregateType: event.aggregateType,
         aggregateId: event.aggregateId,
         payloadSummaryJson: event.payload,
+        auditSummaryJson: event.audit,
         createdAt: new Date(),
       })),
       dispatches: input.events.map((_: PlatformEvent, index: number) => ({

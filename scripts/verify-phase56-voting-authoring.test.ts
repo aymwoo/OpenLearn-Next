@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   evaluatePhase56StaticChecks,
   getPhase56VerificationSuitePaths,
+  withPhase56VitestEnv,
   verifyPhase56PackageScript,
 } from "./verify-phase56-voting-authoring";
 
@@ -45,5 +46,14 @@ describe("verify-phase56 voting authoring gate", () => {
 
     expect(checks).toHaveLength(3);
     expect(checks.every((check) => check.passed)).toBe(true);
+  });
+
+  it("forces focused vitest runs onto test env", () => {
+    expect(
+      withPhase56VitestEnv({ NODE_ENV: "production", PHASE60_BASE_URL: "http://127.0.0.1:3000" }),
+    ).toMatchObject({
+      NODE_ENV: "test",
+      PHASE60_BASE_URL: "http://127.0.0.1:3000",
+    });
   });
 });

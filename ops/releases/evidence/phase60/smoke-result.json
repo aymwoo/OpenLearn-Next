@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-05-30T11:41:17.657Z",
+  "checkedAt": "2026-05-30T13:47:05.193Z",
   "proofScopeId": "phase60-load-rehearsal",
-  "classroomSessionId": "688e596d-f0d2-4f19-8bc1-b6c114d7cb18",
+  "classroomSessionId": "8e4c9e09-aff7-4f22-95c4-4517b5924b02",
   "designPublish": {
     "status": "passed",
     "script": "pnpm verify:phase56"

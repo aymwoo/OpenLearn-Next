@@ -10,8 +10,8 @@ vi.mock("next/navigation", () => ({
 
 describe("LegacyLoginPage", () => {
   it("redirects the legacy /login route to home", async () => {
-    const module = await import("./page");
+    const pageModule = await import("./page");
 
-    await expect(module.default()).rejects.toThrow("REDIRECT:/");
+    await expect(pageModule.default()).rejects.toThrow("REDIRECT:/");
   });
 });

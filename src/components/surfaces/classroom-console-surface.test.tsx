@@ -71,6 +71,7 @@ const snapshot: ClassroomSnapshotDTO = {
   },
   steps: [],
   slideState: null,
+  currentVotingRound: null,
   transportStatus: {
     fanoutMode: 'local_only',
     degraded: false,

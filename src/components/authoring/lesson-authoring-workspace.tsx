@@ -87,6 +87,9 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
   const [activeLibraryFilter, setActiveLibraryFilter] = useState<LibraryFilter>("all");
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
   const steps = useMemo(() => lesson?.steps.filter((step) => !step.archivedAt) ?? [], [lesson?.steps]);
+  const effectiveSelectedStepId = selectedStepId && steps.some((step) => step.id === selectedStepId)
+    ? selectedStepId
+    : steps[0]?.id ?? null;
   const orderedBuiltInTemplates = useMemo(() => {
     const orderMap = new Map<string, number>(builtInTeachingStepButtonOrder.map((pluginName, index) => [pluginName, index]));
 
@@ -97,9 +100,10 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
     });
   }, [builtInTemplates]);
   const selectedStep = useMemo(
-    () => steps.find((step) => step.id === selectedStepId) ?? steps[0] ?? null,
-    [selectedStepId, steps]
+    () => steps.find((step) => step.id === effectiveSelectedStepId) ?? null,
+    [effectiveSelectedStepId, steps]
   );
+  const isStepEditorVisible = isStepEditorOpen && selectedStep !== null;
   const normalizedResourceQuery = resourceQuery.trim().toLowerCase();
   const totalMinutes = steps.reduce((total, step) => total + getStepMinutes(step), 0);
   const builtInStepCount = steps.filter((step) => getBuiltInSourceLabel(step)).length;
@@ -113,24 +117,6 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
 
     return orderedBuiltInTemplates.filter((template) => `${template.pluginName} ${template.title} ${template.summary}`.toLowerCase().includes(normalizedResourceQuery));
   }, [normalizedResourceQuery, orderedBuiltInTemplates]);
-
-  useEffect(() => {
-    if (steps.length === 0) {
-      setSelectedStepId(null);
-      setIsStepEditorOpen(false);
-      return;
-    }
-
-    if (!selectedStepId || !steps.some((step) => step.id === selectedStepId)) {
-      setSelectedStepId(steps[0]?.id ?? null);
-    }
-  }, [selectedStepId, steps]);
-
-  useEffect(() => {
-    if (!selectedStep) {
-      setIsStepEditorOpen(false);
-    }
-  }, [selectedStep]);
 
   async function moveStep(step: LessonStepDTO, direction: "up" | "down") {
     const index = steps.findIndex((item) => item.id === step.id);
@@ -314,7 +300,7 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
                     <FlowStepCard
                       step={step}
                       index={index}
-                      selected={selectedStep?.id === step.id}
+                      selected={effectiveSelectedStepId === step.id}
                       onSelect={() => setSelectedStepId(step.id)}
                       onEdit={() => openStepEditor(step.id)}
                       onDuplicate={() => duplicateLessonStepAction({ stepId: step.id })}
@@ -346,7 +332,7 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }:
 
       </div>
 
-      {isStepEditorOpen && selectedStep ? (
+      {isStepEditorVisible && selectedStep ? (
         <div
           className="fixed inset-0 z-50 bg-[rgba(12,15,16,0.32)] p-4 backdrop-blur-sm sm:p-6"
           data-testid="lesson-step-editor-modal"

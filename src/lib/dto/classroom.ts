@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  ClassroomVotingFrozenContractSchema,
   TeachingActivityIntentSchema,
   TeachingActivityModeSchema,
   TeachingDesignFallbackReasonSchema,
@@ -129,6 +130,7 @@ export const ClassroomStepDTOSchema = z.object({
   rank: z.string(),
   type: z.enum(["content", "task", "quiz"]).optional(),
   payload: z.unknown().optional(),
+  pluginContract: ClassroomVotingFrozenContractSchema.nullable().default(null),
 });
 
 export const ClassroomLaunchPreviewStepDTOSchema = z.object({
@@ -168,6 +170,8 @@ export const ClassroomLaunchReadinessIssueCodeSchema = z.enum([
   "TEACHING_DESIGN_INFERRED",
   "MATERIAL_CUES_MISSING",
   "EVIDENCE_CUES_REVIEW",
+  "VOTING_PLUGIN_DISABLED",
+  "VOTING_PLUGIN_INCOMPATIBLE",
 ]);
 
 export const ClassroomLaunchReadinessIssueDTOSchema = z.object({
@@ -229,6 +233,9 @@ export const ClassroomVotingRoundDTOSchema = z.object({
   failureCopy: z.string().nullable().default(null),
   recoveryActions: z.array(ClassroomVotingRoundRecoveryActionDTOSchema).default([]),
   isFrozen: z.boolean().default(false),
+  resultsDisplay: z.enum(["bar", "column", "compact"]).default("bar"),
+  anonymousResults: z.boolean().default(true),
+  liveResultsVisible: z.boolean().default(true),
 });
 
 export const ClassroomLaunchReadinessDTOSchema = z.object({

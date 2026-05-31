@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ClassroomRuntimeClient } from './classroom-runtime-client'
 import type { StudentPlayerPersonalDTO, StudentPlayerShellDTO } from '@/lib/dto/learning'
@@ -32,6 +32,7 @@ class MockEventSource {
   static instances: MockEventSource[] = []
   readonly url: string
   listeners = new Map<string, Set<(event: Event) => void>>()
+  closed = false
 
   constructor(url: string) {
     this.url = url
@@ -44,9 +45,15 @@ class MockEventSource {
     this.listeners.set(type, set)
   }
 
-  close() {}
+  close() {
+    this.closed = true
+    this.listeners.clear()
+  }
 
   emit(type: string, data: unknown) {
+    if (this.closed) {
+      return
+    }
     const event = new MessageEvent(type, { data: typeof data === 'string' ? data : JSON.stringify(data) })
     for (const listener of this.listeners.get(type) ?? []) {
       listener(event)
@@ -60,6 +67,7 @@ class MockWebSocket {
 
   readonly url: string
   readyState = MockWebSocket.OPEN
+  closed = false
   private listeners = new Map<string, Set<(event: Event | MessageEvent) => void>>()
 
   constructor(url: string) {
@@ -75,9 +83,15 @@ class MockWebSocket {
   }
 
   send() {}
-  close() {}
+  close() {
+    this.closed = true
+    this.listeners.clear()
+  }
 
   emit(type: string, data?: unknown) {
+    if (this.closed) {
+      return
+    }
     const event = type === 'message'
       ? new MessageEvent('message', { data: typeof data === 'string' ? data : JSON.stringify(data) })
       : new Event(type)
@@ -100,8 +114,11 @@ const shell: StudentPlayerShellDTO = {
       type: 'content',
       title: '互动 Runtime',
       rank: 'a0',
+      pluginContract: null,
       payload: {
         type: 'content',
+        title: '互动 Runtime',
+        body: 'runtime body',
         runtime: {
           version: 'v2',
           runtimeId: 'runtime-pilot',
@@ -199,6 +216,11 @@ describe('ClassroomRuntimeClient websocket consumer', () => {
         },
       }),
     })) as unknown as typeof fetch)
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.unstubAllGlobals()
   })
 
   it('touches presence on websocket open and consumes durable snapshot parity', async () => {

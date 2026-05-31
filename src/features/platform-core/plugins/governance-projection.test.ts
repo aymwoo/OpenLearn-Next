@@ -126,6 +126,7 @@ describe("plugin governance lifecycle contracts", () => {
           impactedLessonStepIds: [],
           impactedResourceIds: [],
           impactedBusinessKeys: [],
+          cleanupConfirmationToken: "cleanup:plugin-a:0:0:0:0:0",
         },
       },
       {
@@ -155,6 +156,7 @@ describe("plugin governance lifecycle contracts", () => {
           impactedLessonStepIds: ["step-1", "step-2"],
           impactedResourceIds: ["resource-1", "resource-2", "resource-3"],
           impactedBusinessKeys: ["biz-1", "biz-2", "biz-3", "biz-4"],
+          cleanupConfirmationToken: "cleanup:plugin-b:1:2:3:4:10",
         },
       },
       {
@@ -184,6 +186,7 @@ describe("plugin governance lifecycle contracts", () => {
           impactedLessonStepIds: [],
           impactedResourceIds: [],
           impactedBusinessKeys: [],
+          cleanupConfirmationToken: "cleanup:plugin-c:0:0:0:0:0",
         },
       },
       {
@@ -213,6 +216,7 @@ describe("plugin governance lifecycle contracts", () => {
           impactedLessonStepIds: [],
           impactedResourceIds: [],
           impactedBusinessKeys: [],
+          cleanupConfirmationToken: "cleanup:plugin-d:0:0:0:0:0",
         },
       },
     ]);
@@ -277,6 +281,7 @@ describe("plugin governance lifecycle contracts", () => {
           impactedLessonStepIds: [],
           impactedResourceIds: ["resource-1"],
           impactedBusinessKeys: ["biz-1", "biz-2", "biz-3"],
+          cleanupConfirmationToken: "cleanup:plugin-clean:2:0:1:3:6",
         },
         uninstallRequest: {
           mode: "cleanup",
@@ -332,6 +337,7 @@ describe("plugin governance lifecycle contracts", () => {
           impactedLessonStepIds: [],
           impactedResourceIds: [],
           impactedBusinessKeys: ["biz-1", "biz-2"],
+          cleanupConfirmationToken: "cleanup:plugin-uninstalled:1:0:0:2:3",
         },
       },
     ]);

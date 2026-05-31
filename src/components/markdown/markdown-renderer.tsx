@@ -28,21 +28,18 @@ function splitRevealSlides(source: string) {
 }
 
 export function MarkdownRenderer({ step, slideState, locked = false, isTeacher = false, onSlideChange }: MarkdownRendererProps) {
-  if (step.payload.type !== 'content') {
-    return null
-  }
-
-  const markdown = step.payload.markdown
+  const contentPayload = step.payload.type === 'content' ? step.payload : null
+  const markdown = contentPayload?.markdown
   const mermaidId = useId()
   const revealRef = useRef<HTMLDivElement | null>(null)
   const revealDeckRef = useRef<RevealDeck | null>(null)
 
-  const source = markdown?.source ?? step.payload.body
+  const source = markdown?.source ?? contentPayload?.body ?? ''
   const renderMode = markdown?.renderMode ?? 'document'
   const slides = useMemo(() => splitRevealSlides(source), [source])
 
   useEffect(() => {
-    if (!markdown?.mermaidEnabled || renderMode !== 'document') {
+    if (!contentPayload || !markdown?.mermaidEnabled || renderMode !== 'document') {
       return
     }
 
@@ -58,10 +55,10 @@ export function MarkdownRenderer({ step, slideState, locked = false, isTeacher =
         parent.textContent = text
       })
     })
-  }, [markdown?.mermaidEnabled, mermaidId, renderMode, source])
+  }, [contentPayload, markdown?.mermaidEnabled, mermaidId, renderMode, source])
 
   useEffect(() => {
-    if (renderMode !== 'reveal' || !revealRef.current) {
+    if (!contentPayload || renderMode !== 'reveal' || !revealRef.current) {
       return
     }
 
@@ -90,10 +87,10 @@ export function MarkdownRenderer({ step, slideState, locked = false, isTeacher =
       void deck.destroy()
       revealDeckRef.current = null
     }
-  }, [isTeacher, locked, onSlideChange, renderMode, slideState?.slideIndex])
+  }, [contentPayload, isTeacher, locked, onSlideChange, renderMode, slideState?.slideIndex])
 
   useEffect(() => {
-    if (renderMode !== 'reveal' || !revealDeckRef.current || typeof slideState?.slideIndex !== 'number') {
+    if (!contentPayload || renderMode !== 'reveal' || !revealDeckRef.current || typeof slideState?.slideIndex !== 'number') {
       return
     }
 
@@ -101,7 +98,11 @@ export function MarkdownRenderer({ step, slideState, locked = false, isTeacher =
     if (indices.h !== slideState.slideIndex) {
       revealDeckRef.current.slide(slideState.slideIndex)
     }
-  }, [renderMode, slideState?.slideIndex])
+  }, [contentPayload, renderMode, slideState?.slideIndex])
+
+  if (!contentPayload) {
+    return null
+  }
 
   if (renderMode === 'reveal') {
     return (

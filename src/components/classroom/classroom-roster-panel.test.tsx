@@ -91,8 +91,8 @@ const snapshot: ClassroomSnapshotDTO = {
     submittedCount: 1,
   },
   steps: [
-    { id: "step-1", title: "开场导入", rank: "a0", type: "content", payload: { type: "content", title: "开场导入", body: "导入" } },
-    { id: "step-2", title: "随堂测验", rank: "b0", type: "quiz", payload: { type: "quiz", question: "问题", options: [{ id: "a", text: "A" }], correctOptionId: "a" } },
+    { id: "step-1", title: "开场导入", rank: "a0", type: "content", payload: { type: "content", title: "开场导入", body: "导入" }, pluginContract: null },
+    { id: "step-2", title: "随堂测验", rank: "b0", type: "quiz", payload: { type: "quiz", question: "问题", options: [{ id: "a", text: "A" }], correctOptionId: "a" }, pluginContract: null },
   ],
   slideState: null,
   transportStatus: {
@@ -117,6 +117,9 @@ const snapshot: ClassroomSnapshotDTO = {
     failureCopy: null,
     recoveryActions: [],
     isFrozen: false,
+    resultsDisplay: "bar",
+    anonymousResults: true,
+    liveResultsVisible: true,
   },
   teacherTimeline: [],
   copy: {

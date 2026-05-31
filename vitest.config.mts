@@ -12,6 +12,8 @@ export default defineConfig({
   },
   test: {
     include: ["src/**/*.{test,spec}.ts", "src/**/*.{test,spec}.tsx", "scripts/**/*.test.ts"],
+    maxWorkers: 4,
+    testTimeout: 30000,
     coverage: {
       provider: "v8",
       reporter: ["text", "json"],

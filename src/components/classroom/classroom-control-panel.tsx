@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
 
-import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction, recordRuntimeTeacherControlAction, runCurrentVotingRecoveryAction } from '@/actions/classroom-actions'
+import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction, recordClassroomVotingRoundControlAction, recordRuntimeTeacherControlAction, runCurrentVotingRecoveryAction } from '@/actions/classroom-actions'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { RuntimeDescriptorSchema } from '@/features/runtime-platform/contracts/descriptors'
 import { createRuntimeBridgeMessageId } from '@/features/runtime-platform/host/runtime-host-bridge'
@@ -20,12 +20,42 @@ import { subscribeClassroomSocket } from './classroom-ws-client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import type { ClassroomConsoleSessionEntryDTO, ClassroomSnapshotDTO, ClassroomStepDTO, ClassroomStudentDetailDTO, ClassroomStudentDetailTab } from '@/lib/dto/classroom'
+import type { ClassroomConsoleSessionEntryDTO, ClassroomSlideStateDTO, ClassroomSnapshotDTO, ClassroomStepDTO, ClassroomStudentDetailDTO, ClassroomStudentDetailTab } from '@/lib/dto/classroom'
+import type { LessonStepDTO } from '@/lib/dto/lesson-authoring'
 
 type ConflictState = { latest?: ClassroomSnapshotDTO } | null
 
+type MarkdownClassroomStep = ClassroomStepDTO & {
+  type: 'content'
+  payload: Extract<LessonStepDTO['payload'], { type: 'content' }>
+}
+
 function hasLatestSnapshot(value: unknown): value is { latest: ClassroomSnapshotDTO } {
   return typeof value === 'object' && value !== null && 'latest' in value
+}
+
+function getMarkdownClassroomStep(
+  step: ClassroomStepDTO | undefined,
+  slideState: ClassroomSlideStateDTO | null | undefined,
+): MarkdownClassroomStep | null {
+  if (!step || step.type !== 'content' || typeof step.payload !== 'object' || step.payload === null) {
+    return null
+  }
+
+  const payload = step.payload as Partial<Extract<LessonStepDTO['payload'], { type: 'content' }>>
+  if (payload.type !== 'content' || typeof payload.body !== 'string' || !payload.markdown) {
+    return null
+  }
+
+  if (slideState && slideState.stepId !== step.id) {
+    return null
+  }
+
+  return {
+    ...step,
+    type: 'content',
+    payload: payload as Extract<LessonStepDTO['payload'], { type: 'content' }>,
+  }
 }
 
 export function ClassroomControlPanel({
@@ -80,6 +110,7 @@ export function ClassroomControlPanel({
   const incidentHref = `/settings/labs/incidents/${currentSnapshot.sessionId}`
   const showEscalatedIncidentCta = currentSnapshot.transportStatus.degraded
     || (currentSnapshot.currentVotingRound?.failureCount ?? 0) > 0
+  const markdownStep = getMarkdownClassroomStep(currentStep, currentSnapshot.slideState)
 
   useEffect(() => {
     const subscription = subscribeClassroomSocket({
@@ -272,12 +303,19 @@ export function ClassroomControlPanel({
     if (!currentStep || conflict || isPending) return
 
     startTransition(async () => {
-      const wsResult = sendRuntimeCommand(command)
-      if (wsResult.ok) {
-        return
+      const wsResult = currentRuntimeDescriptor ? sendRuntimeCommand(command) : { ok: false as const, reason: 'socket_unavailable' as const }
+      if (!wsResult.ok) {
+        if (currentRuntimeDescriptor) {
+          await fallbackRuntimeCommand(command)
+        } else {
+          await recordClassroomVotingRoundControlAction({
+            sessionId: currentSnapshot.sessionId,
+            stepId: currentStep.id,
+            command,
+          })
+        }
       }
 
-      await fallbackRuntimeCommand(command)
       router.refresh()
     })
   }
@@ -434,7 +472,7 @@ export function ClassroomControlPanel({
             })}
           </div>
 
-          {currentStep && currentRuntimeDescriptor ? (
+          {currentStep && (currentRuntimeDescriptor || currentSnapshot.currentVotingRound || (currentStep.type === 'quiz' && currentStep.pluginContract?.publicMetadata?.builtInKey === 'classroomVoting')) ? (
             <div className="mt-5 rounded-[1.6rem] bg-surface-container-lowest p-4 shadow-ambient">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -470,16 +508,20 @@ export function ClassroomControlPanel({
                 {currentSnapshot.currentVotingRound.failureCopy ? (
                   <p className="mt-2 text-sm text-[#9a3412]">{currentSnapshot.currentVotingRound.failureCopy}</p>
                 ) : null}
-                <div className="mt-4 grid gap-3">
-                  {currentSnapshot.currentVotingRound.optionResults.map((result) => (
-                    <div key={result.optionId} className="rounded-[1.1rem] bg-surface-container-low p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-medium text-on-surface">{result.optionLabel}</span>
-                        <span className="text-sm text-on-surface-variant">{result.count} 人 · {Math.round(result.percentage)}%</span>
+                {currentSnapshot.currentVotingRound.liveResultsVisible || currentSnapshot.currentVotingRound.isFrozen ? (
+                  <div className="mt-4 grid gap-3">
+                    {currentSnapshot.currentVotingRound.optionResults.map((result) => (
+                      <div key={result.optionId} className="rounded-[1.1rem] bg-surface-container-low p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium text-on-surface">{result.optionLabel}</span>
+                          <span className="text-sm text-on-surface-variant">{result.count} 人 · {Math.round(result.percentage)}%</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-on-surface-variant">当前设置为结束前不展示实时结果，老师仍可根据未完成名单推进课堂。</p>
+                )}
               </section>
 
               <section>
@@ -498,6 +540,7 @@ export function ClassroomControlPanel({
                 )}
               </section>
 
+              {!currentSnapshot.currentVotingRound.anonymousResults ? (
               <section>
                 <Button type="button" variant="secondary" className="min-h-[40px] px-4" onClick={() => setNamedResultsExpanded((value) => !value)}>
                   {namedResultsExpanded ? '收起实名结果' : '展开实名结果'}
@@ -516,6 +559,7 @@ export function ClassroomControlPanel({
                   </div>
                 ) : null}
               </section>
+              ) : null}
 
               <section>
                 <h3 className="text-xl font-semibold text-on-surface">恢复动作</h3>
@@ -630,7 +674,7 @@ export function ClassroomControlPanel({
           </div>
         ) : null}
 
-        {currentStep && !currentRuntimeDescriptor && currentStep.type === 'content' && currentStep.payload && typeof currentStep.payload === 'object' && 'markdown' in currentStep.payload && currentStep.payload.markdown ? (
+        {markdownStep && !currentRuntimeDescriptor ? (
           <Card className="bg-surface-container-low p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -643,7 +687,7 @@ export function ClassroomControlPanel({
             </div>
             <div className="mt-5">
               <MarkdownRenderer
-                step={currentStep as any}
+                step={markdownStep}
                 isTeacher
                 locked={currentSnapshot.locked}
                 slideState={currentSnapshot.slideState}

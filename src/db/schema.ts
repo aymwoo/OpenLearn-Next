@@ -387,7 +387,7 @@ export const platformCommands = sqliteTable(
       .default("pending"),
     dedupeKey: text("dedupeKey").notNull(),
     actorScope: text("actorScope", {
-      enum: ["host", "teacher", "student", "plugin", "system"],
+      enum: ["host", "teacher", "student", "plugin", "operator", "system"],
     }).notNull(),
     scopeJson: text("scopeJson", { mode: "json" }).notNull(),
     payloadJson: text("payloadJson", { mode: "json" }).notNull(),
@@ -931,7 +931,7 @@ export const runtimeStepSessions = sqliteTable(
     actorId: text("actorId")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    actorScope: text("actorScope", { enum: ["host", "teacher", "student", "plugin", "system"] }).notNull(),
+    actorScope: text("actorScope", { enum: ["host", "teacher", "student", "plugin", "operator", "system"] }).notNull(),
     schoolId: text("schoolId")
       .notNull()
       .references(() => schools.id, { onDelete: "cascade" }),
@@ -1262,7 +1262,7 @@ export const pluginActionAudits = sqliteTable("pluginActionAudit", {
   decision: text("decision", { enum: ["allowed", "denied"] }).notNull().default("allowed"),
   reasonCode: text("reasonCode"),
   schoolId: text("schoolId").references(() => schools.id, { onDelete: "cascade" }),
-  actorScope: text("actorScope", { enum: ["host", "teacher", "student", "plugin", "system"] }),
+  actorScope: text("actorScope", { enum: ["host", "teacher", "student", "plugin", "operator", "system"] }),
   lifecycleState: text("lifecycleState", {
     enum: ["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"],
   }),
@@ -1302,7 +1302,7 @@ export const governanceAudits = sqliteTable("governanceAudit", {
   decision: text("decision", { enum: ["allowed", "denied"] }).notNull(),
   reasonCode: text("reasonCode"),
   actorId: text("actorId").references(() => users.id, { onDelete: "cascade" }),
-  actorScope: text("actorScope", { enum: ["host", "teacher", "student", "plugin", "system"] }),
+  actorScope: text("actorScope", { enum: ["host", "teacher", "student", "plugin", "operator", "system"] }),
   lifecycleState: text("lifecycleState", {
     enum: ["installed", "enabled", "mounted", "ready", "suspended", "disabled", "failed"],
   }),

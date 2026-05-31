@@ -24,6 +24,12 @@ import {
   upsertPluginOwnedBusinessData,
 } from "@/lib/dal/plugin-data";
 
+type MockRow = Record<string, unknown>;
+
+function asMockedReturn<T>(value: T): T {
+  return value;
+}
+
 // 1. Mock "server-only" 以避免 Node 测试环境报错
 vi.mock("server-only", () => ({}));
 
@@ -281,13 +287,13 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
   const updateWhere = vi.fn();
 
   // 辅助函数，构建 Drizzle 链式调用的 Select 模拟
-  function setupDbSelectChain(rows: any[] = []) {
+  function setupDbSelectChain(rows: MockRow[] = []) {
     const limitFn = vi.fn().mockResolvedValue(rows);
     const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
     const innerJoin2 = vi.fn().mockReturnValue({ where: whereFn });
     const innerJoin1 = vi.fn().mockReturnValue({ innerJoin: innerJoin2, where: whereFn });
     const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-    mockSelect.mockReturnValue({ from: fromFn } as any);
+    mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
     return { limitFn, whereFn, fromFn };
   }
 
@@ -295,9 +301,9 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
     vi.clearAllMocks();
 
     // 默认 Drizzle Mock 行为
-    mockInsert.mockReturnValue({ values: insertValues } as any);
-    mockUpdate.mockReturnValue({ set: updateSet } as any);
-    updateSet.mockReturnValue({ where: updateWhere } as any);
+    mockInsert.mockReturnValue(asMockedReturn({ values: insertValues }) as never);
+    mockUpdate.mockReturnValue(asMockedReturn({ set: updateSet }) as never);
+    updateSet.mockReturnValue(asMockedReturn({ where: updateWhere }) as never);
 
     // 默认教师角色与学校范围断言通过
     mockAssertActiveTeacher.mockResolvedValue({
@@ -366,7 +372,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const innerJoin1 = vi.fn().mockReturnValue({ where: whereFn });
       const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       await expect(
         upsertPluginExtension({
@@ -389,7 +395,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const innerJoin1 = vi.fn().mockReturnValue({ where: whereFn });
       const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       await expect(
         upsertPluginExtension({
@@ -413,7 +419,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const innerJoin2 = vi.fn().mockReturnValue({ where: whereFn });
       const innerJoin1 = vi.fn().mockReturnValue({ innerJoin: innerJoin2, where: whereFn });
       const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       await expect(
         upsertPluginExtension({
@@ -437,7 +443,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const innerJoin2 = vi.fn().mockReturnValue({ where: whereFn });
       const innerJoin1 = vi.fn().mockReturnValue({ innerJoin: innerJoin2, where: whereFn });
       const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       await expect(
         getPluginExtension({
@@ -462,7 +468,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const innerJoin1 = vi.fn().mockReturnValue({ where: whereFn });
       const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       const res = await getPluginExtension({
         actorId: "teacher-1",
@@ -485,7 +491,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const innerJoin1 = vi.fn().mockReturnValue({ where: whereFn });
       const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       await upsertPluginExtension({
         actorId: "teacher-1",
@@ -518,7 +524,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const innerJoin1 = vi.fn().mockReturnValue({ where: whereFn });
       const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       await upsertPluginExtension({
         actorId: "teacher-1",
@@ -547,9 +553,9 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
 
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const fromFn = vi.fn().mockReturnValue({ where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
       const insertOnConflictDoUpdate = vi.fn().mockResolvedValue(undefined);
-      insertValues.mockReturnValue({ onConflictDoUpdate: insertOnConflictDoUpdate } as any);
+      insertValues.mockReturnValue(asMockedReturn({ onConflictDoUpdate: insertOnConflictDoUpdate }) as never);
 
       await upsertPluginOwnedBusinessData({
         actorId: "teacher-1",
@@ -589,7 +595,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
 
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const fromFn = vi.fn().mockReturnValue({ where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       const res = await getPluginOwnedBusinessData({
         actorId: "teacher-1",
@@ -620,7 +626,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const innerJoin1 = vi.fn().mockReturnValue({ where: whereFn });
       const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       await expect(
         upsertPluginExtension({
@@ -645,7 +651,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const innerJoin1 = vi.fn().mockReturnValue({ where: whereFn });
       const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       await upsertPluginExtension({
         actorId: "teacher-1",
@@ -673,7 +679,7 @@ describe("Phase 45-01 DAL Seam & Security Boundary", () => {
       const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
       const innerJoin1 = vi.fn().mockReturnValue({ where: whereFn });
       const fromFn = vi.fn().mockReturnValue({ innerJoin: innerJoin1, where: whereFn });
-      mockSelect.mockReturnValue({ from: fromFn } as any);
+      mockSelect.mockReturnValue(asMockedReturn({ from: fromFn }) as never);
 
       await upsertPluginExtension({
         actorId: "teacher-1",

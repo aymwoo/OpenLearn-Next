@@ -1,10 +1,13 @@
 import { connection } from "next/server";
 
-import { getHealthPayload } from "@/lib/ops/release-status";
-
 export async function GET() {
   await connection();
-  const payload = await getHealthPayload();
+  const payload = {
+    kind: "health" as const,
+    ok: true,
+    process: "alive" as const,
+    checkedAt: new Date().toISOString(),
+  };
 
   return Response.json(payload, {
     status: 200,

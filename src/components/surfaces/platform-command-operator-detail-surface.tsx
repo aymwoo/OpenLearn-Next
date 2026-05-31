@@ -35,27 +35,6 @@ export function PlatformCommandOperatorDetailSurface({
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  if (!detail.command) {
-    return (
-      <Card className="bg-surface-container-lowest p-5 shadow-ambient sm:p-6">
-        <p className="text-sm text-on-surface-variant">Command Detail</p>
-        <h2 className="mt-2 text-2xl font-semibold text-on-surface">未找到命令详情</h2>
-        <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-          当前 school scope 下没有对应 command，或该 command 不在当前 operator 可见范围内。
-        </p>
-      </Card>
-    );
-  }
-
-  const { command, timeline } = detail;
-  const highRiskEnabled = command.status !== "running" && Boolean(command.pluginId);
-  const highRiskReason = !command.pluginId
-    ? "当前 command 缺少稳定 plugin scope，无法执行姿态恢复。"
-    : command.status === "running"
-      ? "当前 command 仍在执行中，需等待稳定结果后再做高风险姿态变更。"
-      : null;
-  const recoveryReason = command.failureAttribution?.reasonCode ?? "operator_recovery";
-
   const recoveryCopy = useMemo(() => {
     if (!selectedRecoveryAction) {
       return null;
@@ -85,6 +64,27 @@ export function PlatformCommandOperatorDetailSurface({
         };
     }
   }, [selectedRecoveryAction]);
+
+  if (!detail.command) {
+    return (
+      <Card className="bg-surface-container-lowest p-5 shadow-ambient sm:p-6">
+        <p className="text-sm text-on-surface-variant">Command Detail</p>
+        <h2 className="mt-2 text-2xl font-semibold text-on-surface">未找到命令详情</h2>
+        <p className="mt-3 text-sm leading-6 text-on-surface-variant">
+          当前 school scope 下没有对应 command，或该 command 不在当前 operator 可见范围内。
+        </p>
+      </Card>
+    );
+  }
+
+  const { command, timeline } = detail;
+  const highRiskEnabled = command.status !== "running" && Boolean(command.pluginId);
+  const highRiskReason = !command.pluginId
+    ? "当前 command 缺少稳定 plugin scope，无法执行姿态恢复。"
+    : command.status === "running"
+      ? "当前 command 仍在执行中，需等待稳定结果后再做高风险姿态变更。"
+      : null;
+  const recoveryReason = command.failureAttribution?.reasonCode ?? "operator_recovery";
 
   const submitHighRiskAction = (action: "resume" | "suspend" | "fallback") => {
     if (!command.pluginId || !highRiskEnabled) {

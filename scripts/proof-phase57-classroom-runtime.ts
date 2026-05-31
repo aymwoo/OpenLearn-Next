@@ -2,11 +2,14 @@ import { spawn, type ChildProcess } from "node:child_process";
 import bcrypt from "bcryptjs";
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import http from "node:http";
+import https from "node:https";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { and, eq, inArray } from "drizzle-orm";
+import { encode } from "next-auth/jwt";
 import { chromium, type Browser, type Page } from "playwright";
 
 import { db } from "@/db";
@@ -40,16 +43,84 @@ type VotingProofContext = {
   sessionId: string;
 };
 
+type ProofActor = {
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
+  workspaceRole: "teacher" | "student";
+};
+
+type SessionCookie = {
+  name: string;
+  value: string;
+  domain: string;
+  secure: boolean;
+};
+
 type ServerHandle = {
-  process: ChildProcess;
+  process: ChildProcess | null;
   url: string;
 };
 
 const PHASE_57_PROOF_SLUG = "phase57-voting-proof";
 const DEFAULT_PORT = 3057;
+const PREWARM_TIMEOUT_MS = 600000;
 const PHASE_57_PROOF_SCHOOL = `${PHASE_57_PROOF_SLUG}-school`;
 const PHASE_57_TEACHER_LOGIN = `${PHASE_57_PROOF_SLUG}-teacher@example.com`;
 const PHASE_57_STUDENT_LOGIN = `${PHASE_57_PROOF_SLUG}-student@example.com`;
+const PHASE_57_VOTING_OPTIONS = ["我支持方案 A", "我支持方案 B", "我还想再讨论"];
+
+function requestUrl(url: URL, headers: Record<string, string>) {
+  const transport = url.protocol === "https:" ? https : http;
+
+  return new Promise<{ statusCode: number }>((resolve, reject) => {
+    const request = transport.request(
+      url,
+      {
+        method: "GET",
+        headers,
+      },
+      (response) => {
+        response.resume();
+        response.on("end", () => resolve({ statusCode: response.statusCode ?? 0 }));
+      },
+    );
+
+    request.setTimeout(PREWARM_TIMEOUT_MS, () => {
+      request.destroy(new Error(`PHASE57_PROOF_PREWARM_TIMEOUT ${url.toString()}`));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+function buildFrozenVotingContract() {
+  return {
+    kind: "classroom-voting" as const,
+    contractVersion: "v1" as const,
+    runtimeContractVersion: "v2" as const,
+    pluginId: "plugin-voting-proof",
+    publicMetadata: {
+      builtInKey: "classroomVoting" as const,
+      pluginKey: "classroomVoting",
+      pluginName: "课堂投票",
+      stepType: "quiz" as const,
+    },
+    executableConfig: {
+      prompt: "请选择你当前更认可的判断。",
+      options: PHASE_57_VOTING_OPTIONS.map((label, index) => ({
+        id: `option-${index + 1}`,
+        label,
+      })),
+      allowMultiple: false,
+      anonymousResults: true,
+      showLiveResults: true,
+      participationWindowSeconds: 120,
+      resultsDisplay: "bar" as const,
+    },
+  };
+}
 
 function runtimeSessionIdFor(sessionId: string, actorId: string) {
   return `runtime-${sessionId}-${actorId}`;
@@ -320,11 +391,12 @@ async function createPublishedVotingLesson(context: {
   const lessonId = randomUUID();
   const votingStepId = randomUUID();
   const publishedVersionId = randomUUID();
+  const frozenVotingContract = buildFrozenVotingContract();
 
   const votingPayload = {
     type: "quiz",
     question: "请选择你当前更认可的判断。",
-    options: ["我支持方案 A", "我支持方案 B", "我还想再讨论"],
+    options: PHASE_57_VOTING_OPTIONS,
     explanation: "这是课堂投票样板，不预设正确答案。",
     allowRetry: false,
     retryPolicy: "none",
@@ -401,6 +473,7 @@ async function createPublishedVotingLesson(context: {
           title: "课堂投票",
           rank: "a0",
           payload: votingPayload,
+          pluginContract: frozenVotingContract,
         },
       ],
       materials: [],
@@ -535,20 +608,24 @@ async function prepareVotingProofContext(): Promise<VotingProofContext> {
   };
 }
 
-async function waitForServer(url: string, timeoutMs = 240000) {
+async function waitForServerReady(
+  child: ChildProcess,
+  url: string,
+  isReady: () => boolean,
+  timeoutMs = 240000,
+) {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
-    try {
-      const response = await fetch(url, { redirect: "manual" });
-      if (response.status < 500) {
-        return;
-      }
-    } catch {
-      // retry
+    if (isReady()) {
+      return;
     }
 
-    await delay(1000);
+    if (child.exitCode !== null) {
+      throw new Error(`PHASE57_PROOF_SERVER_EXITED_BEFORE_READY: ${url} (exit=${child.exitCode})`);
+    }
+
+    await delay(250);
   }
 
   throw new Error(`PHASE57_PROOF_SERVER_TIMEOUT: ${url}`);
@@ -557,6 +634,7 @@ async function waitForServer(url: string, timeoutMs = 240000) {
 async function startLocalServer(port = DEFAULT_PORT): Promise<ServerHandle> {
   const envFile = readEnvFile(path.join(process.cwd(), ".env.local"));
   const url = `http://127.0.0.1:${port}`;
+  const hasProductionBuild = existsSync(path.join(process.cwd(), ".next", "BUILD_ID"));
   const child = spawn(
     process.execPath,
     [
@@ -571,9 +649,9 @@ async function startLocalServer(port = DEFAULT_PORT): Promise<ServerHandle> {
     {
       cwd: process.cwd(),
       env: {
-        ...process.env,
         ...envFile,
-        NODE_ENV: "development",
+        ...process.env,
+        NODE_ENV: hasProductionBuild ? "production" : "development",
         PORT: String(port),
         HOSTNAME: "127.0.0.1",
       },
@@ -581,19 +659,28 @@ async function startLocalServer(port = DEFAULT_PORT): Promise<ServerHandle> {
     },
   );
 
+  let ready = false;
+  const readyMessage = `> Ready on ${url}`;
+
   child.stdout?.on("data", (chunk) => {
-    process.stdout.write(String(chunk));
+    const output = String(chunk);
+    process.stdout.write(output);
+
+    if (output.includes(readyMessage)) {
+      ready = true;
+    }
   });
   child.stderr?.on("data", (chunk) => {
     process.stderr.write(String(chunk));
   });
 
-  await waitForServer(url);
+  await waitForServerReady(child, url, () => ready);
+
   return { process: child, url };
 }
 
 async function stopLocalServer(handle: ServerHandle | null) {
-  if (!handle) return;
+  if (!handle?.process) return;
   handle.process.kill("SIGTERM");
   await Promise.race([once(handle.process, "exit"), delay(5000)]).catch(() => undefined);
   if (!handle.process.killed) {
@@ -601,26 +688,90 @@ async function stopLocalServer(handle: ServerHandle | null) {
   }
 }
 
-async function login(page: Page, input: { baseUrl: string; role: "teacher" | "student"; loginId: string }) {
-  await page.goto(input.baseUrl, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: input.role === "teacher" ? "教师登录" : "学生登录" }).click();
-  await page.locator('input[name="email"]').fill(input.loginId);
-  await page.locator('input[name="password"]').fill("password");
-  await page.getByRole("button", { name: "进入控制台" }).click();
-  const workspacePath = input.role === "teacher" ? "/teacher" : "/student";
-  await page.waitForURL(new RegExp(`${workspacePath}(?:$|[/?#])`), { timeout: 120000 });
-  await page.waitForLoadState("networkidle");
+async function createSessionCookie(input: { baseUrl: string; actor: ProofActor }): Promise<SessionCookie> {
+  const baseUrl = new URL(input.baseUrl);
+  const envFile = readEnvFile(path.join(process.cwd(), ".env.local"));
+  const secret = process.env.PHASE57_PROOF_AUTH_SECRET ?? process.env.AUTH_SECRET ?? envFile.AUTH_SECRET;
+
+  if (!secret) {
+    throw new Error("PHASE57_PROOF_AUTH_SECRET_MISSING");
+  }
+
+  const cookieName = baseUrl.protocol === "https:" ? "__Secure-authjs.session-token" : "authjs.session-token";
+
+  const sessionToken = await encode({
+    secret,
+    salt: cookieName,
+    token: {
+      sub: input.actor.id,
+      id: input.actor.id,
+      name: input.actor.name,
+      email: input.actor.email,
+      roles: input.actor.roles,
+      workspaceRole: input.actor.workspaceRole,
+    },
+    maxAge: 60 * 60,
+  });
+
+  return {
+    name: cookieName,
+    value: sessionToken,
+    domain: baseUrl.hostname,
+    secure: baseUrl.protocol === "https:",
+  };
 }
 
-async function verifyTeacherFlow(browser: Browser, input: { baseUrl: string; sessionId: string }) {
+async function establishSession(page: Page, input: { baseUrl: string; actor: ProofActor }) {
+  console.log(`[phase57 proof] Seeding ${input.actor.workspaceRole} session cookie...`);
+  const sessionCookie = await createSessionCookie(input);
+
+  await page.context().addCookies([
+    {
+      name: sessionCookie.name,
+      value: sessionCookie.value,
+      domain: sessionCookie.domain,
+      path: "/",
+      httpOnly: true,
+      sameSite: "Lax",
+      secure: sessionCookie.secure,
+    },
+  ]);
+
+  return sessionCookie;
+}
+
+async function prewarmRoute(input: { baseUrl: string; href: string; sessionCookie: SessionCookie; label: string }) {
+  const url = new URL(input.href, input.baseUrl).toString();
+  console.log(`[phase57 proof] Prewarming ${input.label}: ${url}`);
+  const response = await requestUrl(new URL(url), {
+    cookie: `${input.sessionCookie.name}=${input.sessionCookie.value}`,
+    pragma: "no-cache",
+    "cache-control": "no-store",
+  });
+
+  if (response.statusCode >= 400) {
+    throw new Error(`PHASE57_PROOF_PREWARM_FAILED [${input.label}] ${response.statusCode} ${url}`);
+  }
+}
+
+async function verifyTeacherFlow(browser: Browser, input: { baseUrl: string; sessionId: string; teacherId: string }) {
   const page = await browser.newPage();
   page.setDefaultTimeout(120000);
   page.setDefaultNavigationTimeout(180000);
-  await login(page, {
+  console.log("[phase57 proof] Starting teacher flow...");
+  const sessionCookie = await establishSession(page, {
     baseUrl: input.baseUrl,
-    role: "teacher",
-    loginId: PHASE_57_TEACHER_LOGIN,
+    actor: {
+      id: input.teacherId,
+      email: PHASE_57_TEACHER_LOGIN,
+      name: "Phase57 Teacher",
+      roles: ["teacher"],
+      workspaceRole: "teacher",
+    },
   });
+  await prewarmRoute({ baseUrl: input.baseUrl, href: "/teacher", sessionCookie, label: "teacher-home" });
+  await prewarmRoute({ baseUrl: input.baseUrl, href: `/classroom?sessionId=${encodeURIComponent(input.sessionId)}`, sessionCookie, label: "classroom" });
+  await page.goto(`${input.baseUrl}/teacher`, { waitUntil: "domcontentloaded" });
   await page.goto(`${input.baseUrl}/classroom?sessionId=${encodeURIComponent(input.sessionId)}`, {
     waitUntil: "domcontentloaded",
   });
@@ -632,18 +783,33 @@ async function verifyTeacherFlow(browser: Browser, input: { baseUrl: string; ses
   await page.getByRole("heading", { name: "未完成名单" }).waitFor();
   await page.getByText("全班已提交，可由老师决定何时结束本轮投票。").first().waitFor();
 
+  console.log("[phase57 proof] Teacher flow passed.");
   await page.close();
 }
 
-async function verifyStudentFlow(browser: Browser, input: { baseUrl: string; lessonId: string; stepId: string }) {
+async function verifyStudentFlow(browser: Browser, input: { baseUrl: string; lessonId: string; stepId: string; studentId: string }) {
   const page = await browser.newPage();
   page.setDefaultTimeout(120000);
   page.setDefaultNavigationTimeout(180000);
-  await login(page, {
+  console.log("[phase57 proof] Starting student flow...");
+  const sessionCookie = await establishSession(page, {
     baseUrl: input.baseUrl,
-    role: "student",
-    loginId: PHASE_57_STUDENT_LOGIN,
+    actor: {
+      id: input.studentId,
+      email: PHASE_57_STUDENT_LOGIN,
+      name: "Phase57 Student",
+      roles: ["student"],
+      workspaceRole: "student",
+    },
   });
+  await prewarmRoute({ baseUrl: input.baseUrl, href: "/student", sessionCookie, label: "student-home" });
+  await prewarmRoute({
+    baseUrl: input.baseUrl,
+    href: `/student/player?lessonId=${encodeURIComponent(input.lessonId)}&stepId=${encodeURIComponent(input.stepId)}`,
+    sessionCookie,
+    label: "student-player",
+  });
+  await page.goto(`${input.baseUrl}/student`, { waitUntil: "domcontentloaded" });
   await page.goto(
     `${input.baseUrl}/student/player?lessonId=${encodeURIComponent(input.lessonId)}&stepId=${encodeURIComponent(input.stepId)}`,
     { waitUntil: "domcontentloaded" },
@@ -653,24 +819,27 @@ async function verifyStudentFlow(browser: Browser, input: { baseUrl: string; les
   await page.getByText("老师结束前，你可以更新本次选择。", { exact: true }).waitFor();
   await page.getByText("课堂投票").first().waitFor();
 
+  console.log("[phase57 proof] Student flow passed.");
   await page.close();
 }
 
 export async function runPhase57BrowserProof() {
   console.log("[phase57 proof] Preparing browser/UAT voting proof context...");
   const context = await prepareVotingProofContext();
+  const externalBaseUrl = process.env.PHASE57_PROOF_BASE_URL?.trim() || null;
 
   let server: ServerHandle | null = null;
   let browser: Browser | null = null;
 
   try {
-    server = await startLocalServer();
+    server = externalBaseUrl ? { process: null, url: externalBaseUrl } : await startLocalServer();
     browser = await chromium.launch({ headless: true });
 
     console.log("[phase57 proof] Verifying teacher classroom result visibility...");
     await verifyTeacherFlow(browser, {
       baseUrl: server.url,
       sessionId: context.sessionId,
+      teacherId: context.teacherId,
     });
 
     console.log("[phase57 proof] Verifying student waiting-state browser flow...");
@@ -678,6 +847,7 @@ export async function runPhase57BrowserProof() {
       baseUrl: server.url,
       lessonId: context.lessonId,
       stepId: context.stepId,
+      studentId: context.studentId,
     });
 
     console.log("[phase57 proof] Browser/UAT proof passed.");

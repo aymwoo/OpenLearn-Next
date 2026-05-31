@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 const mocks = vi.hoisted(() => ({
+  getBullmqEnvironmentCapability: vi.fn(),
   getBullmqConnectionHealthSnapshot: vi.fn(),
   listAsyncWorkerHeartbeats: vi.fn(),
   probeRedisFanoutHealth: vi.fn(),
@@ -12,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/async-tasks/infra/connection", () => ({
+  getBullmqEnvironmentCapability: mocks.getBullmqEnvironmentCapability,
   getBullmqConnectionHealthSnapshot: mocks.getBullmqConnectionHealthSnapshot,
 }));
 
@@ -38,6 +40,13 @@ describe("release status helper", () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-26T09:00:20.000Z"));
+
+    mocks.getBullmqEnvironmentCapability.mockReturnValue({
+      asyncTasksEnabled: true,
+      redisConfigured: true,
+      redisUrl: "redis://127.0.0.1:6379",
+      prefix: "openlearn:async-tasks",
+    });
 
     mocks.getBullmqConnectionHealthSnapshot.mockReturnValue({
       asyncTasksEnabled: true,
@@ -194,6 +203,12 @@ describe("release status helper", () => {
   });
 
   it("getReadyPayload blocks on worker degradation but keeps fanout non-blocking", async () => {
+    mocks.getBullmqEnvironmentCapability.mockReturnValueOnce({
+      asyncTasksEnabled: true,
+      redisConfigured: true,
+      redisUrl: "redis://127.0.0.1:6379",
+      prefix: "openlearn:async-tasks",
+    });
     mocks.getBullmqConnectionHealthSnapshot.mockReturnValueOnce({
       asyncTasksEnabled: true,
       redisConfigured: true,
@@ -227,11 +242,52 @@ describe("release status helper", () => {
     expect(payload.kind).toBe("ready");
     expect(payload.components.worker.blocking).toBe(true);
     expect(payload.components.worker.posture).toBe("degraded");
-    expect(payload.components.worker.reason).toContain("redis down");
+    expect(payload.components.worker.reason).toContain("missing");
     expect(payload.components.fanout.blocking).toBe(false);
     expect(payload.components.fanout.posture).toBe("degraded");
     expect(payload.components.fanout.reason).toContain("fanout");
     expect(payload.evidence.workerLastHeartbeatAt).toBeNull();
+  });
+
+  it("getReadyPayload trusts worker capability plus fresh ready heartbeat when connection snapshot is from the web process", async () => {
+    mocks.getBullmqEnvironmentCapability.mockReturnValueOnce({
+      asyncTasksEnabled: true,
+      redisConfigured: true,
+      redisUrl: "redis://127.0.0.1:6379",
+      prefix: "openlearn:async-tasks",
+    });
+    mocks.getBullmqConnectionHealthSnapshot.mockReturnValueOnce({
+      asyncTasksEnabled: false,
+      redisConfigured: false,
+      redisReachable: false,
+      prefix: "openlearn:async-tasks",
+      instanceId: "runtime-1",
+      connectionStates: {
+        producer: "disabled",
+        worker: "disabled",
+        queue_events: "disabled",
+      },
+      lastError: null,
+      lastHealthyAt: null,
+    });
+    mocks.listAsyncWorkerHeartbeats.mockResolvedValueOnce([
+      {
+        instanceId: "worker-1",
+        status: "ready",
+        queueNamesJson: ["async-tasks"],
+        lastSeenAt: new Date("2026-05-26T09:00:10.000Z"),
+        startedAt: new Date("2026-05-26T08:50:00.000Z"),
+        stoppedAt: null,
+        lastSignal: null,
+      },
+    ]);
+
+    const { getReadyPayload } = await import("./release-status");
+
+    const payload = await getReadyPayload();
+
+    expect(payload.ok).toBe(true);
+    expect(payload.components.worker.posture).toBe("green");
   });
 
   it("getReleasePayload returns empty state when canonical pointer is missing", async () => {

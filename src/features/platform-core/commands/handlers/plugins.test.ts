@@ -57,7 +57,10 @@ vi.mock("@/features/platform-core/plugins/dependency-graph", () => ({
   readRegistryProjectionBundleForSchool: mocks.readRegistryProjectionBundleForSchool,
 }));
 
+import type { PlatformCommand } from "../contracts";
 import { platformCommandRegistry } from "../registry";
+
+type PluginCommandOf<TType extends PlatformCommand["type"]> = Extract<PlatformCommand, { type: TType }>;
 
 const baseAudit = {
   delegatedActor: null,
@@ -71,26 +74,15 @@ function createCommand(type: "plugin.install", payload: {
   name: string;
   installSource: "manual" | "bootstrap" | "repair" | "seed";
   manifestJson: Record<string, unknown>;
-}): {
-  id: string;
-  type: "plugin.install";
-  actor: { actorId: string; actorScope: "teacher" };
-  scope: { schoolId: string; pluginId: string };
-  payload: typeof payload;
-  correlation: { correlationId: string; causationId: null; producer: string };
-  audit: {
-    delegatedActor: null;
-    approval: null;
-  };
-};
-function createCommand(type: "plugin.enable", payload: { schoolId: string; pluginId: string; enabledBy: string }): any;
-function createCommand(type: "plugin.resume", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): any;
-function createCommand(type: "plugin.reconcile", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): any;
-function createCommand(type: "plugin.retry", payload: { schoolId: string; pluginId: string; commandId: string; reason: string }): any;
-function createCommand(type: "plugin.uninstall.preflight", payload: { schoolId: string; pluginId: string }): any;
-function createCommand(type: "plugin.suspend", payload: { schoolId: string; pluginId: string; reason: string }): any;
-function createCommand(type: "plugin.kill_switch.set", payload: { schoolId: string; pluginId: string; enabled: boolean; reason: string }): any;
-function createCommand(type: string, payload: Record<string, unknown>) {
+}): PluginCommandOf<"plugin.install">;
+function createCommand(type: "plugin.enable", payload: { schoolId: string; pluginId: string; enabledBy: string }): PluginCommandOf<"plugin.enable">;
+function createCommand(type: "plugin.resume", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): PluginCommandOf<"plugin.resume">;
+function createCommand(type: "plugin.reconcile", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): PluginCommandOf<"plugin.reconcile">;
+function createCommand(type: "plugin.retry", payload: { schoolId: string; pluginId: string; commandId: string; reason: string }): PluginCommandOf<"plugin.retry">;
+function createCommand(type: "plugin.uninstall.preflight", payload: { schoolId: string; pluginId: string }): PluginCommandOf<"plugin.uninstall.preflight">;
+function createCommand(type: "plugin.suspend", payload: { schoolId: string; pluginId: string; reason: string }): PluginCommandOf<"plugin.suspend">;
+function createCommand(type: "plugin.kill_switch.set", payload: { schoolId: string; pluginId: string; enabled: boolean; reason: string }): PluginCommandOf<"plugin.kill_switch.set">;
+function createCommand<TType extends PlatformCommand["type"]>(type: TType, payload: Extract<PlatformCommand, { type: TType }>["payload"]): Extract<PlatformCommand, { type: TType }> {
   return {
     id: type === "plugin.retry" ? "command-existing" : `command-${type}`,
     type,
@@ -109,7 +101,7 @@ function createCommand(type: string, payload: Record<string, unknown>) {
       producer: "test-suite",
     },
     audit: baseAudit,
-  };
+  } as Extract<PlatformCommand, { type: TType }>;
 }
 
 describe("platform plugin command registry", () => {
@@ -291,7 +283,7 @@ describe("platform plugin command registry", () => {
   });
 
   it("authorizes operator-scoped governance commands for active admin memberships in school scope", async () => {
-    const command = {
+    const command: PluginCommandOf<"plugin.resume"> = {
       ...createCommand("plugin.resume", {
         schoolId: "school-1",
         pluginId: "plugin-1",
@@ -301,7 +293,7 @@ describe("platform plugin command registry", () => {
         actorId: "operator-1",
         actorScope: "operator",
       },
-    } as any;
+    };
 
     await expect(platformCommandRegistry["plugin.resume"].authorize({ command })).resolves.toBeUndefined();
 
@@ -311,7 +303,7 @@ describe("platform plugin command registry", () => {
   });
 
   it("rejects operator-scoped governance commands when operator memberships do not cover the target school", async () => {
-    const command = {
+    const command: PluginCommandOf<"plugin.suspend"> = {
       ...createCommand("plugin.suspend", {
         schoolId: "school-foreign",
         pluginId: "plugin-1",
@@ -325,7 +317,7 @@ describe("platform plugin command registry", () => {
         actorId: "operator-1",
         actorScope: "operator",
       },
-    } as any;
+    };
 
     await expect(platformCommandRegistry["plugin.suspend"].authorize({ command })).rejects.toThrow(
       "OPERATOR_AUTH_REQUIRED",
@@ -333,7 +325,7 @@ describe("platform plugin command registry", () => {
   });
 
   it("rejects operator-scoped governance commands when current user lacks admin or developer membership", async () => {
-    const command = {
+    const command: PluginCommandOf<"plugin.kill_switch.set"> = {
       ...createCommand("plugin.kill_switch.set", {
         schoolId: "school-1",
         pluginId: "plugin-1",
@@ -344,7 +336,7 @@ describe("platform plugin command registry", () => {
         actorId: "operator-1",
         actorScope: "operator",
       },
-    } as any;
+    };
 
     mocks.getUserMembershipsDTO.mockResolvedValueOnce([
       { schoolId: "school-1", status: "active", role: "teacher" },

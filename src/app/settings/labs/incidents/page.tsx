@@ -2,16 +2,14 @@ import { ClassroomIncidentListSurface } from "@/components/surfaces/classroom-in
 import { getClassroomIncidentListDTO } from "@/lib/dal/classroom-incident-list";
 
 export default async function SettingsLabsIncidentsPage() {
-  try {
-    const list = await getClassroomIncidentListDTO();
+  let list = null
+  let errorMessage: string | null = null
 
-    return <ClassroomIncidentListSurface list={list} />;
+  try {
+    list = await getClassroomIncidentListDTO()
   } catch (error) {
-    return (
-      <ClassroomIncidentListSurface
-        list={null}
-        error={error instanceof Error ? error.message : "CLASSROOM_INCIDENT_LIST_FAILED"}
-      />
-    );
+    errorMessage = error instanceof Error ? error.message : "CLASSROOM_INCIDENT_LIST_FAILED"
   }
+
+  return <ClassroomIncidentListSurface list={list} error={errorMessage ?? undefined} />
 }

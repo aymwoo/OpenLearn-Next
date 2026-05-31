@@ -10,8 +10,8 @@ vi.mock("next/navigation", () => ({
 
 describe("TeacherScheduleImportPage", () => {
   it("redirects the legacy import route back to the main schedule page", async () => {
-    const module = await import("./page");
+    const pageModule = await import("./page");
 
-    await expect(module.default()).rejects.toThrow("REDIRECT:/teacher/schedule");
+    await expect(pageModule.default()).rejects.toThrow("REDIRECT:/teacher/schedule");
   });
 });

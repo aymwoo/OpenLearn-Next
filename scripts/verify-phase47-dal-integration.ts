@@ -105,8 +105,8 @@ async function runVerification() {
     }
 
     console.log("  ✓ Physical plugin audit and governance tables are healthy in local.db.");
-  } catch (dbError: any) {
-    console.error("Physical database check failed:", dbError.message);
+  } catch (dbError: unknown) {
+    console.error("Physical database check failed:", dbError instanceof Error ? dbError.message : String(dbError));
     process.exit(1);
   } finally {
     client.close();

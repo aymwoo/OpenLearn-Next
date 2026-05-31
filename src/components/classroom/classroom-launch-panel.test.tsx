@@ -300,6 +300,76 @@ describe("ClassroomLaunchPanel", () => {
     expect((screen.getByRole('button', { name: '开启新课堂' }) as HTMLButtonElement).disabled).toBe(false)
   })
 
+  it("shows voting plugin blocker copy when frozen runtime contract is not launchable", async () => {
+    render(
+      <ClassroomLaunchPanel
+        publishedLessons={[
+          {
+            id: "lesson-1",
+            title: "古诗导读",
+            publishedVersionId: "pub-1",
+            courseId: "course-1",
+            classes: [{
+              id: "class-1",
+              name: "一班",
+              studentCount: 42,
+              rosterSummary: {
+                classId: "class-1",
+                className: "一班",
+                studentCount: 42,
+                launchScopeLabel: "整班启动",
+                note: "本次会按整班名单同步进入课堂；如需调整名册，请先回到班级相关页面处理。",
+              },
+            }],
+            launchPreview: {
+              lessonId: "lesson-1",
+              lessonTitle: "古诗导读",
+              totalEstimatedMinutes: 15,
+              stepCount: 1,
+              steps: [{
+                id: "step-1",
+                order: 1,
+                title: "开场投票",
+                pluginKey: "classroomVoting",
+                pluginLabel: "课堂投票插件",
+                family: "课堂测验",
+                summary: "学生根据已发布问题完成投票。",
+                activityIntent: "check",
+                activityMode: "assessment",
+                estimatedMinutes: 15,
+                evidenceSummary: "需提交：完成投票。",
+                teachingDesignStatus: "explicit",
+                needsTeachingDesignRefinement: false,
+                teachingDesignFallbackReason: null,
+                materialCues: [],
+              }],
+            },
+            launchReadiness: {
+              blockingIssues: [{
+                code: "VOTING_PLUGIN_DISABLED",
+                message: "课堂投票插件当前已停用，需先恢复插件后再开课。",
+                stepId: "step-1",
+                stepTitle: "开场投票",
+                pluginKey: "classroomVoting",
+                pluginLabel: "课堂投票插件",
+                severityCopy: "当前必须先解决这个问题，才能开启课堂。",
+              }],
+              attentionIssues: [],
+              advisoryIssues: [],
+            },
+          },
+        ]}
+        emptyStateCopy="暂无可开课课时"
+        launchPreviewEmptyState={{ title: "先选择一个已发布课时", description: "选定课时后会显示课堂节奏预览。" }}
+      />,
+    )
+
+    fireEvent.change(screen.getAllByRole('combobox')[0]!, { target: { value: 'lesson-1' } })
+
+    expect(screen.getByText('课堂投票插件当前已停用，需先恢复插件后再开课。')).toBeTruthy()
+    expect(screen.getAllByText('课堂投票插件').length).toBeGreaterThan(0)
+  })
+
   it("keeps the launch surface on the shared teacher skeleton without horizontal card rails", () => {
     expect(launchSurfaceSource).toContain("surfaceWidths.workspace");
     expect(launchSurfaceSource).toContain("surfaceWidths.heroBody");

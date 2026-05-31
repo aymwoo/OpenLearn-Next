@@ -76,6 +76,7 @@ describe("learning DAL student read boundary", () => {
   it("keeps markdown payload and slide runtime data available to the student player", () => {
     expect(source).toContain("function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string): LearningStepDTO[]");
     expect(source).toContain("payload: lessonStepPayloadSchema.parse(step.payload)");
+    expect(source).toContain("pluginContract: parseVotingFrozenContract(step.pluginContract)");
     expect(source).toContain("payload.teachingDesign");
     expect(source).toContain("slideIndex = classroomRuntime.slideIndex");
     expect(source).toContain("teacherRecommendedStepId = classroomRuntime.activeStepId");
@@ -110,6 +111,15 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain('roundStatusCopy = latestVotingSubmissionRow');
     expect(source).toContain('"已提交，等待老师结束本轮投票"');
     expect(source).toContain('"老师结束前，你可以更新本次选择。"');
+  });
+
+  it("normalizes frozen voting answers by option ids and records classroom evidence for teacher aggregation", () => {
+    expect(source).toContain("function normalizeVotingAnswer");
+    expect(source).toContain("selectedOptionIds");
+    expect(source).toContain("QUIZ_MULTIPLE_SELECTION_NOT_ALLOWED");
+    expect(source).toContain("VOTING_ROUND_CLOSED");
+    expect(source).toContain("recordRuntimeClassroomEvidence({");
+    expect(source).toContain('evidenceType: "quiz-response"');
   });
 
   it("derives Chinese student activity guidance server-side without leaking teacher-only wording", () => {

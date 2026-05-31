@@ -37,6 +37,7 @@ const mockRefreshClassroomSnapshot = vi.fn();
 const mockRecordRuntimeReady = vi.fn();
 const mockUpdateClassroomParticipantConnection = vi.fn();
 const mockRecordRuntimeTeacherControl = vi.fn();
+const mockRecordClassroomVotingRoundControl = vi.fn();
 const actionSource = readFileSync("src/actions/classroom-actions.ts", "utf8");
 
 vi.mock("@/lib/dal/classroom", () => ({
@@ -52,6 +53,7 @@ vi.mock("@/lib/dal/classroom", () => ({
   refreshClassroomSnapshot: mockRefreshClassroomSnapshot,
   recordRuntimeReady: mockRecordRuntimeReady,
   recordRuntimeTeacherControl: mockRecordRuntimeTeacherControl,
+  recordClassroomVotingRoundControl: mockRecordClassroomVotingRoundControl,
   updateClassroomParticipantConnection: mockUpdateClassroomParticipantConnection,
 }));
 

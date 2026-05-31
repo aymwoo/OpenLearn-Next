@@ -16,6 +16,12 @@ import {
 } from "@/db/schema";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 
+type JsonObject = Record<string, unknown>;
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /**
  * 校验当前 actor 是否属于合法的学校教师管理员，并进行权限断言
  */
@@ -46,17 +52,19 @@ export interface MigrationResult {
 /**
  * deepEquals 辅助方法，用于判断两个复杂 JSON 对象是否一致
  */
-function deepEquals(a: any, b: any): boolean {
+function deepEquals(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) {
     return false;
   }
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
+  const objectA = a as Record<string, unknown>;
+  const objectB = b as Record<string, unknown>;
+  const keysA = Object.keys(objectA);
+  const keysB = Object.keys(objectB);
   if (keysA.length !== keysB.length) return false;
   for (const key of keysA) {
     if (!keysB.includes(key)) return false;
-    if (!deepEquals(a[key], b[key])) return false;
+    if (!deepEquals(objectA[key], objectB[key])) return false;
   }
   return true;
 }
@@ -137,7 +145,7 @@ export async function backfillPluginJsonToSchema(
       .where(ownedCourseScope(scope, schoolId));
 
     for (const item of list) {
-      const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey) as Record<string, any> | null;
+      const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey);
       if (payload && typeof payload === "object" && pluginKey in payload) {
         result.processed++;
         try {
@@ -162,9 +170,9 @@ export async function backfillPluginJsonToSchema(
               },
             });
           result.succeeded++;
-        } catch (err: any) {
+        } catch (err: unknown) {
           result.failed++;
-          result.errors.push({ entityId: item.id, reason: err.message });
+          result.errors.push({ entityId: item.id, reason: getErrorMessage(err) });
         }
       }
     }
@@ -177,7 +185,7 @@ export async function backfillPluginJsonToSchema(
       .where(ownedCourseScope(scope, schoolId));
 
     for (const item of list) {
-      const payload = item.payloadJson as Record<string, any>;
+      const payload = item.payloadJson as JsonObject;
       if (payload && typeof payload === "object" && pluginKey in payload) {
         result.processed++;
         try {
@@ -202,9 +210,9 @@ export async function backfillPluginJsonToSchema(
               },
             });
           result.succeeded++;
-        } catch (err: any) {
+        } catch (err: unknown) {
           result.failed++;
-          result.errors.push({ entityId: item.id, reason: err.message });
+          result.errors.push({ entityId: item.id, reason: getErrorMessage(err) });
         }
       }
     }
@@ -215,7 +223,7 @@ export async function backfillPluginJsonToSchema(
       .where(eq(resources.schoolId, schoolId));
 
     for (const item of list) {
-      const payload = extractResourcePluginPayload(item.content, pluginKey) as Record<string, any> | null;
+      const payload = extractResourcePluginPayload(item.content, pluginKey);
       if (payload && typeof payload === "object" && pluginKey in payload) {
         result.processed++;
         try {
@@ -240,9 +248,9 @@ export async function backfillPluginJsonToSchema(
               },
             });
           result.succeeded++;
-        } catch (err: any) {
+        } catch (err: unknown) {
           result.failed++;
-          result.errors.push({ entityId: item.id, reason: err.message });
+          result.errors.push({ entityId: item.id, reason: getErrorMessage(err) });
         }
       }
     }
@@ -285,7 +293,7 @@ export async function verifyBackfillData(
       .where(ownedCourseScope(scope, schoolId));
 
     for (const item of list) {
-      const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey) as Record<string, any> | null;
+      const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey);
       if (payload && typeof payload === "object" && pluginKey in payload) {
         const legacyVal = payload[pluginKey];
         const [physicalRow] = await db
@@ -314,7 +322,7 @@ export async function verifyBackfillData(
       .where(ownedCourseScope(scope, schoolId));
 
     for (const item of list) {
-      const payload = item.payloadJson as Record<string, any>;
+      const payload = item.payloadJson as JsonObject;
       if (payload && typeof payload === "object" && pluginKey in payload) {
         const legacyVal = payload[pluginKey];
         const [physicalRow] = await db
@@ -341,7 +349,7 @@ export async function verifyBackfillData(
       .where(eq(resources.schoolId, schoolId));
 
     for (const item of list) {
-      const payload = extractResourcePluginPayload(item.content, pluginKey) as Record<string, any> | null;
+      const payload = extractResourcePluginPayload(item.content, pluginKey);
       if (payload && typeof payload === "object" && pluginKey in payload) {
         const legacyVal = payload[pluginKey];
         const [physicalRow] = await db
@@ -414,7 +422,7 @@ export async function cutoverPluginJsonToSchema(
         .where(ownedCourseScope(scope, schoolId));
 
       for (const item of list) {
-        const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey) as Record<string, any> | null;
+        const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey);
         if (payload && typeof payload === "object" && pluginKey in payload) {
           result.processed++;
           try {
@@ -434,7 +442,7 @@ export async function cutoverPluginJsonToSchema(
             physicalPayloadMatches(legacyVal, physicalRow?.payloadJson, item.id, pluginKey);
 
             const snapshot = structuredClone(item.snapshotJson as {
-              lesson?: { payloadJson?: Record<string, any> };
+              lesson?: { payloadJson?: JsonObject };
             });
             const lessonPayload = snapshot.lesson?.payloadJson;
             if (!lessonPayload || typeof lessonPayload !== "object") {
@@ -456,10 +464,11 @@ export async function cutoverPluginJsonToSchema(
               .where(eq(publishedLessonVersions.id, item.publishedVersionId));
 
             result.succeeded++;
-          } catch (err: any) {
+          } catch (err: unknown) {
             result.failed++;
-            result.errors.push({ entityId: item.id, reason: err.message });
-            throw new Error(`CUTOVER_FAILED_TRANSACTION_ROLLBACK: ${err.message}`);
+            const reason = getErrorMessage(err);
+            result.errors.push({ entityId: item.id, reason });
+            throw new Error(`CUTOVER_FAILED_TRANSACTION_ROLLBACK: ${reason}`);
           }
         }
       }
@@ -472,7 +481,7 @@ export async function cutoverPluginJsonToSchema(
         .where(ownedCourseScope(scope, schoolId));
 
       for (const item of list) {
-        const payload = item.payloadJson as Record<string, any>;
+        const payload = item.payloadJson as JsonObject;
         if (payload && typeof payload === "object" && pluginKey in payload) {
           result.processed++;
           try {
@@ -503,10 +512,11 @@ export async function cutoverPluginJsonToSchema(
               .where(eq(lessonSteps.id, item.id));
 
             result.succeeded++;
-          } catch (err: any) {
+          } catch (err: unknown) {
             result.failed++;
-            result.errors.push({ entityId: item.id, reason: err.message });
-            throw new Error(`CUTOVER_FAILED_TRANSACTION_ROLLBACK: ${err.message}`);
+            const reason = getErrorMessage(err);
+            result.errors.push({ entityId: item.id, reason });
+            throw new Error(`CUTOVER_FAILED_TRANSACTION_ROLLBACK: ${reason}`);
           }
         }
       }
@@ -517,7 +527,7 @@ export async function cutoverPluginJsonToSchema(
         .where(eq(resources.schoolId, schoolId));
 
       for (const item of list) {
-        const payload = extractResourcePluginPayload(item.content, pluginKey) as Record<string, any> | null;
+        const payload = extractResourcePluginPayload(item.content, pluginKey);
         if (payload && typeof payload === "object" && pluginKey in payload) {
           result.processed++;
           try {
@@ -548,10 +558,11 @@ export async function cutoverPluginJsonToSchema(
               .where(eq(resources.id, item.id));
 
             result.succeeded++;
-          } catch (err: any) {
+          } catch (err: unknown) {
             result.failed++;
-            result.errors.push({ entityId: item.id, reason: err.message });
-            throw new Error(`CUTOVER_FAILED_TRANSACTION_ROLLBACK: ${err.message}`);
+            const reason = getErrorMessage(err);
+            result.errors.push({ entityId: item.id, reason });
+            throw new Error(`CUTOVER_FAILED_TRANSACTION_ROLLBACK: ${reason}`);
           }
         }
       }

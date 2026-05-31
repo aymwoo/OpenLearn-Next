@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { RuntimeDescriptorSchema } from "@/features/runtime-platform/contracts/descriptors";
+import { RuntimeContractVersionSchema } from "@/features/runtime-platform/contracts/version";
 
 const builtInTeachingStepKeys = [
   "directInstruction",
@@ -209,6 +210,35 @@ export const LessonStepDTOSchema = z.object({
   updatedAt: z.string(),
 });
 
+export const ClassroomVotingFrozenOptionSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+}).strict();
+
+export const ClassroomVotingFrozenExecutableConfigSchema = z.object({
+  prompt: z.string().min(1),
+  options: z.array(ClassroomVotingFrozenOptionSchema).min(2).max(6),
+  allowMultiple: z.boolean(),
+  anonymousResults: z.boolean(),
+  showLiveResults: z.boolean(),
+  participationWindowSeconds: z.number().int().min(15).max(600),
+  resultsDisplay: z.enum(["bar", "column", "compact"]),
+}).strict();
+
+export const ClassroomVotingFrozenContractSchema = z.object({
+  kind: z.literal("classroom-voting"),
+  contractVersion: z.literal("v1"),
+  runtimeContractVersion: RuntimeContractVersionSchema,
+  pluginId: z.string().min(1),
+  publicMetadata: z.object({
+    builtInKey: z.literal("classroomVoting"),
+    pluginKey: z.string().min(1),
+    pluginName: z.string().min(1),
+    stepType: z.literal("quiz"),
+  }).strict(),
+  executableConfig: ClassroomVotingFrozenExecutableConfigSchema,
+}).strict();
+
 export const LessonMaterialDTOSchema = z.object({
   id: z.string(),
   lessonId: z.string(),
@@ -353,6 +383,9 @@ export type CourseDTO = z.infer<typeof CourseDTOSchema>;
 export type ClassRosterDTO = z.infer<typeof ClassRosterDTOSchema>;
 export type LessonSummaryDTO = z.infer<typeof LessonSummaryDTOSchema>;
 export type LessonStepDTO = z.infer<typeof LessonStepDTOSchema>;
+export type ClassroomVotingFrozenOption = z.infer<typeof ClassroomVotingFrozenOptionSchema>;
+export type ClassroomVotingFrozenExecutableConfig = z.infer<typeof ClassroomVotingFrozenExecutableConfigSchema>;
+export type ClassroomVotingFrozenContract = z.infer<typeof ClassroomVotingFrozenContractSchema>;
 export type LessonMaterialDTO = z.infer<typeof LessonMaterialDTOSchema>;
 export type LessonEditorDTO = z.infer<typeof LessonEditorDTOSchema>;
 export type TeacherAuthoringOverviewDTO = z.infer<typeof TeacherAuthoringOverviewDTOSchema>;

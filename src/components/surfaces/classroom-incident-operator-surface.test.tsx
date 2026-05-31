@@ -190,6 +190,7 @@ describe("ClassroomIncidentOperatorSurface", () => {
         classroomSessionId: "session-1",
         action: "reconcile",
       });
+      expect(routerRefresh).toHaveBeenCalledTimes(2);
     });
 
     for (const label of ["恢复运行姿态", "暂停当前姿态", "切换到降级姿态"]) {

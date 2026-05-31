@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PluginMarketplaceSurface } from "./plugin-marketplace-surface";
 
@@ -39,6 +39,11 @@ vi.mock("@/lib/dal/auth", () => ({
 }));
 
 describe("plugin marketplace surface", () => {
+  afterEach(async () => {
+    await Promise.resolve();
+    cleanup();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

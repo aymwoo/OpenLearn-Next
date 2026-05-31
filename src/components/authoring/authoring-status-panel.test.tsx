@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 
+import type { ComponentProps } from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthoringStatusPanel } from "./authoring-status-panel";
+
+type AuthoringStatusPanelLesson = ComponentProps<typeof AuthoringStatusPanel>["lesson"];
+
+const asAuthoringStatusPanelLesson = (value: unknown) => value as AuthoringStatusPanelLesson;
 
 const publishLessonAction = vi.fn();
 const refresh = vi.fn();
@@ -32,7 +37,7 @@ describe("AuthoringStatusPanel", () => {
   it("renders structured blocking issues and disables publish when readiness is blocked", () => {
     render(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 3 },
           publishState: {
             canPublish: false,
@@ -55,7 +60,7 @@ describe("AuthoringStatusPanel", () => {
             ],
             warnings: [],
           },
-        } as any}
+        })}
       />,
     );
 
@@ -68,7 +73,7 @@ describe("AuthoringStatusPanel", () => {
   it("renders warnings separately and enables publish when there are no blocking issues", () => {
     render(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 3 },
           preparationSummary: {
             activeStepCount: 2,
@@ -93,7 +98,7 @@ describe("AuthoringStatusPanel", () => {
               },
             ],
           },
-        } as any}
+        })}
       />,
     );
 
@@ -105,7 +110,7 @@ describe("AuthoringStatusPanel", () => {
   it("renders preparation summary with 阻断项 / 需关注 / 建议完善 buckets", () => {
     render(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 3 },
           preparationSummary: {
             activeStepCount: 3,
@@ -143,7 +148,7 @@ describe("AuthoringStatusPanel", () => {
             blockingIssues: [],
             warnings: [],
           },
-        } as any}
+        })}
       />,
     );
 
@@ -174,7 +179,7 @@ describe("AuthoringStatusPanel", () => {
 
     render(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 3 },
           preparationSummary: {
             activeStepCount: 1,
@@ -194,7 +199,7 @@ describe("AuthoringStatusPanel", () => {
             blockingIssues: [],
             warnings: [],
           },
-        } as any}
+        })}
       />,
     );
 
@@ -211,7 +216,7 @@ describe("AuthoringStatusPanel", () => {
 
     render(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 3 },
           preparationSummary: {
             activeStepCount: 1,
@@ -231,7 +236,7 @@ describe("AuthoringStatusPanel", () => {
             blockingIssues: [],
             warnings: [],
           },
-        } as any}
+        })}
       />,
     );
 
@@ -247,7 +252,7 @@ describe("AuthoringStatusPanel", () => {
   it("refreshes blocker list from latest lesson props instead of cached first-frame issues", () => {
     const { rerender } = render(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 3 },
           preparationSummary: {
             activeStepCount: 1,
@@ -273,7 +278,7 @@ describe("AuthoringStatusPanel", () => {
             ],
             warnings: [],
           },
-        } as any}
+        })}
       />,
     );
 
@@ -281,7 +286,7 @@ describe("AuthoringStatusPanel", () => {
 
     rerender(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 4 },
           preparationSummary: {
             activeStepCount: 1,
@@ -310,7 +315,7 @@ describe("AuthoringStatusPanel", () => {
             ],
             warnings: [],
           },
-        } as any}
+        })}
       />,
     );
 
@@ -324,7 +329,7 @@ describe("AuthoringStatusPanel", () => {
 
     const { rerender } = render(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 3 },
           preparationSummary: {
             activeStepCount: 1,
@@ -350,7 +355,7 @@ describe("AuthoringStatusPanel", () => {
             ],
             warnings: [],
           },
-        } as any}
+        })}
       />,
     );
 
@@ -359,7 +364,7 @@ describe("AuthoringStatusPanel", () => {
 
     rerender(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 4 },
           preparationSummary: {
             activeStepCount: 1,
@@ -379,7 +384,7 @@ describe("AuthoringStatusPanel", () => {
             blockingIssues: [],
             warnings: [],
           },
-        } as any}
+        })}
       />,
     );
 
@@ -390,7 +395,7 @@ describe("AuthoringStatusPanel", () => {
   it("updates publish CTA disabled state when refreshed readiness truth changes", () => {
     const { rerender } = render(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 3 },
           preparationSummary: {
             activeStepCount: 1,
@@ -416,7 +421,7 @@ describe("AuthoringStatusPanel", () => {
             ],
             warnings: [],
           },
-        } as any}
+        })}
       />,
     );
 
@@ -424,7 +429,7 @@ describe("AuthoringStatusPanel", () => {
 
     rerender(
       <AuthoringStatusPanel
-        lesson={{
+        lesson={asAuthoringStatusPanelLesson({
           lesson: { id: "lesson-1", revision: 4 },
           preparationSummary: {
             activeStepCount: 1,
@@ -444,7 +449,7 @@ describe("AuthoringStatusPanel", () => {
             blockingIssues: [],
             warnings: [],
           },
-        } as any}
+        })}
       />,
     );
 

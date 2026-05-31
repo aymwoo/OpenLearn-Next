@@ -206,8 +206,8 @@ async function runVerification() {
   try {
     await runBehaviorProof();
     console.log("  ✓ Temporary SQLite delete/assert proof and PRAGMA foreign_key_check passed.");
-  } catch (error: any) {
-    console.error("Behavior-first SQLite cascade proof failed:", error.message);
+  } catch (error: unknown) {
+    console.error("Behavior-first SQLite cascade proof failed:", error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 
@@ -265,8 +265,8 @@ async function runVerification() {
     }
 
     console.log("  ✓ All 4 physical extension and business tables verified in temporary SQLite proof database.");
-  } catch (dbError: any) {
-    console.error("Physical database check failed:", dbError.message);
+  } catch (dbError: unknown) {
+    console.error("Physical database check failed:", dbError instanceof Error ? dbError.message : String(dbError));
     process.exit(1);
   } finally {
     await (client as { close?: () => Promise<void> | void }).close?.();
@@ -372,7 +372,7 @@ async function runVerification() {
       "node",
       ["--require", "./scripts/server-only-node-shim.cjs", "--import", "tsx", "scripts/verify-phase44-plugin-identity.ts"],
       "Phase 44 Regression",
-      { DB_FILE_NAME: phase44DatabaseUrl },
+      { ...process.env, DB_FILE_NAME: phase44DatabaseUrl },
     );
     console.log("  ✓ Cascading Phase 44 regression verifications passed successfully.");
   } finally {

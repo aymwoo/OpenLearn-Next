@@ -58,6 +58,13 @@ describe("ops probe routes", () => {
       blocking: ["worker"],
       reason: "worker blocking",
       nextStep: "restart worker",
+      evidence: {
+        workerInstanceId: "worker-1",
+        workerLastHealthyAt: null,
+        workerLastHeartbeatAt: null,
+        fanoutInstanceId: "fanout-1",
+        fanoutLastHealthyAt: null,
+      },
     });
 
     const { GET } = await import("./ready/route");

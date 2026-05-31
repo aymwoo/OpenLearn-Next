@@ -207,7 +207,7 @@ describe("mcp-actions", () => {
       const { registerMcpCredentialRefAction } = await import("./mcp-actions");
       const result = await registerMcpCredentialRefAction({
         serverId: "server-1",
-        provider: "openai" as any,
+        provider: "openai" as unknown,
         credentialRef: "cred-12345",
         scopes: [],
       });

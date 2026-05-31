@@ -1,12 +1,10 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import { Lexend } from 'next/font/google'
+import '@fontsource/lexend/index.css'
 import './globals.css'
 
 import { ThemeInjector } from '@/components/theme/theme-injector'
 import { ToastProvider } from '@/components/ui/toast'
-
-const lexend = Lexend({ subsets: ['latin'], variable: '--font-lexend' })
 
 export const metadata: Metadata = {
   title: '开放学习 Next',
@@ -16,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <body className={lexend.variable}>
+      <body>
         <ToastProvider>
           <Suspense fallback={null}>
             <ThemeInjector />

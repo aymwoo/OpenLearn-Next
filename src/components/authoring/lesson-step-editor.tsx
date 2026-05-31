@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Clock3, Eye, FileText } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { autosaveLessonStepAction, saveVotingLessonStepAction, uploadLessonMarkdownAssetAction } from "@/actions/lesson-authoring-actions";
 import {
@@ -308,6 +308,11 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
   const [status, setStatus] = useState<string | null>(null);
   const [stateByStepId, setStateByStepId] = useState<Record<string, EditorState>>({});
   const [votingValidationByStepId, setVotingValidationByStepId] = useState<Record<string, VotingValidationState>>({});
+  const pendingStep = step;
+  const pendingState = pendingStep ? stateByStepId[pendingStep.id] ?? buildInitialState(pendingStep) : null;
+  const latestStepRef = useRef<LessonStepDTO | null>(null);
+  const latestStateRef = useRef<EditorState | null>(null);
+  const latestVotingValidationRef = useRef<VotingValidationState | null>(null);
 
   const stepTypeLabel = useMemo(() => {
     if (!step) return "";
@@ -318,7 +323,31 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
     return `内置环节 · ${step.payload.builtInSource.pluginName}`;
   }, [step]);
 
-  if (!step) {
+  useEffect(() => {
+    if (!pendingStep || !pendingState) {
+      return;
+    }
+
+    function handleSaveRequest(event: Event) {
+      event.preventDefault();
+      saveStep();
+    }
+
+    function handleResetRequest(event: Event) {
+      event.preventDefault();
+      resetStep();
+    }
+
+    window.addEventListener(lessonStepEditorSaveRequestEvent, handleSaveRequest);
+    window.addEventListener(lessonStepEditorResetRequestEvent, handleResetRequest);
+
+    return () => {
+      window.removeEventListener(lessonStepEditorSaveRequestEvent, handleSaveRequest);
+      window.removeEventListener(lessonStepEditorResetRequestEvent, handleResetRequest);
+    };
+  }, [pendingState, pendingStep, resetStep, saveStep]);
+
+  if (!pendingStep || !pendingState) {
     return (
       <Card className={`bg-surface-container-low p-5 shadow-none ${className ?? ""}`.trim()}>
         <h3 className="text-2xl font-semibold">新增内容 / 新增任务 / 新增测验</h3>
@@ -327,13 +356,17 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
     );
   }
 
-  const activeStep = step;
-  const activeState = stateByStepId[step.id] ?? buildInitialState(step);
-  const activeVotingValidation = votingValidationByStepId[step.id] ?? {
+  const activeStep = pendingStep;
+  const activeState = pendingState;
+
+  const activeVotingValidation = votingValidationByStepId[activeStep.id] ?? {
     general: null,
-    fallback: isClassroomVotingStep(step) ? getPersistedVotingConfig(step).fallback : null,
+    fallback: isClassroomVotingStep(activeStep) ? getPersistedVotingConfig(activeStep).fallback : null,
     fields: {},
   };
+  latestStepRef.current = activeStep;
+  latestStateRef.current = activeState;
+  latestVotingValidationRef.current = activeVotingValidation;
   const previewMaterialRefs = parsePreviewMaterialRefs(activeState.materialRefsText);
   const previewTitle = activeState.title.trim() || activeStep.title;
   const previewDescription = getPreviewDescription(activeStep, activeState);
@@ -364,6 +397,7 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
           fields: {},
         },
       }));
+      setStatus((currentStatus) => (currentStatus === "配置未通过校验，请先修正红色标记字段。" ? null : currentStatus));
     }
   }
 
@@ -375,23 +409,43 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
   }
 
   function saveStep() {
+    const currentStep = latestStepRef.current;
+    const currentState = latestStateRef.current;
+    const currentVotingValidation = latestVotingValidationRef.current;
+    if (!currentStep || !currentState || !currentVotingValidation) {
+      setStatus(validationCopy);
+      return;
+    }
+
+    const isVotingStep = isClassroomVotingStep(currentStep);
+
+    if (isVotingStep) {
+      const clientValidation = buildVotingValidation(currentState);
+      clientValidation.fallback = currentVotingValidation.fallback;
+      if (hasVotingValidationErrors(clientValidation)) {
+        clientValidation.general = "配置未通过校验，请先修正红色标记字段。";
+        updateVotingValidation(clientValidation);
+        setStatus("配置未通过校验，请先修正红色标记字段。");
+        return;
+      }
+    }
+
     setStatus(savingCopy);
     startTransition(async () => {
-      let nextState = activeState;
-      const isVotingStep = isClassroomVotingStep(activeStep);
+      let nextState = currentState;
 
       if (
-        activeStep.type === 'content' &&
-        activeState.markdownSource.trim() &&
-        !activeState.markdownAssetResourceId.trim() &&
+        currentStep.type === 'content' &&
+        currentState.markdownSource.trim() &&
+        !currentState.markdownAssetResourceId.trim() &&
         schoolId &&
         courseId
       ) {
         const uploaded = await uploadLessonMarkdownAssetAction({
           schoolId,
           courseId,
-          title: activeState.markdownTitle.trim() || activeState.title.trim(),
-          source: activeState.markdownSource.trim(),
+          title: currentState.markdownTitle.trim() || currentState.title.trim(),
+          source: currentState.markdownSource.trim(),
         })
 
         if (!uploaded.ok || !uploaded.data || typeof uploaded.data !== 'object' || !('id' in uploaded.data)) {
@@ -400,31 +454,22 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
         }
 
         nextState = {
-          ...activeState,
+          ...currentState,
           markdownAssetResourceId: String(uploaded.data.id),
           markdownAssetMaterialId: crypto.randomUUID(),
         }
         setStateByStepId((prev) => ({
           ...prev,
-          [activeStep.id]: nextState,
+          [currentStep.id]: nextState,
         }))
       }
 
       if (isVotingStep) {
-        const clientValidation = buildVotingValidation(nextState);
-        clientValidation.fallback = activeVotingValidation.fallback;
-        if (hasVotingValidationErrors(clientValidation)) {
-          clientValidation.general = "配置未通过校验，请先修正红色标记字段。";
-          updateVotingValidation(clientValidation);
-          setStatus("配置未通过校验，请先修正红色标记字段。");
-          return;
-        }
-
         const result = await saveVotingLessonStepAction({
-          stepId: activeStep.id,
+          stepId: currentStep.id,
           title: nextState.title.trim(),
-          pluginId: activeStep.payload.builtInSource!.pluginId,
-          expectedUpdatedAt: activeStep.updatedAt,
+          pluginId: currentStep.payload.builtInSource!.pluginId,
+          expectedUpdatedAt: currentStep.updatedAt,
           executableConfig: {
             prompt: nextState.votingPrompt.trim(),
             options: nextState.votingOptions.map((option) => ({ id: option.id, label: option.label.trim() })),
@@ -445,7 +490,7 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
 
         const nextValidation: VotingValidationState = {
           general: result.message || "配置未通过校验，请先修正红色标记字段。",
-          fallback: activeVotingValidation.fallback,
+          fallback: currentVotingValidation.fallback,
           fields: {},
         };
         if (result.fieldErrors) {
@@ -463,7 +508,7 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
         return;
       }
 
-      const nextPayload = buildPayload(nextState, activeStep)
+      const nextPayload = buildPayload(nextState, currentStep)
       const parsedPayload = lessonStepPayloadSchema.safeParse(nextPayload)
 
       if (!parsedPayload.success || !nextState.title.trim()) {
@@ -472,7 +517,7 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
       }
 
       const result = await autosaveLessonStepAction({
-        stepId: activeStep.id,
+        stepId: currentStep.id,
         title: nextState.title.trim(),
         payload: parsedPayload.data,
       });
@@ -516,26 +561,6 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
       setStatus("Markdown 已导入，可继续保存步骤。");
     }
   }
-
-  useEffect(() => {
-    function handleSaveRequest(event: Event) {
-      event.preventDefault();
-      saveStep();
-    }
-
-    function handleResetRequest(event: Event) {
-      event.preventDefault();
-      resetStep();
-    }
-
-    window.addEventListener(lessonStepEditorSaveRequestEvent, handleSaveRequest);
-    window.addEventListener(lessonStepEditorResetRequestEvent, handleResetRequest);
-
-    return () => {
-      window.removeEventListener(lessonStepEditorSaveRequestEvent, handleSaveRequest);
-      window.removeEventListener(lessonStepEditorResetRequestEvent, handleResetRequest);
-    };
-  }, [activeStep, activeState]);
 
   return (
     <div className={`flex h-full min-h-0 flex-col ${className ?? ""}`.trim()}>
@@ -704,12 +729,17 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
                         <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">投票题目</span>
                         <textarea
                           id="lesson-step-voting-prompt"
+                          aria-describedby={activeVotingValidation.fields.prompt ? "lesson-step-voting-prompt-error" : undefined}
                           className={`${fieldClassName} min-h-24`}
                           value={activeState.votingPrompt}
                           onChange={(event) => updateField("votingPrompt", event.target.value)}
                         />
-                        {activeVotingValidation.fields.prompt ? <span className="text-sm text-[#b31b25]">{activeVotingValidation.fields.prompt}</span> : null}
                       </label>
+                      {activeVotingValidation.fields.prompt ? (
+                        <span id="lesson-step-voting-prompt-error" className="text-sm text-[#b31b25]">
+                          {activeVotingValidation.fields.prompt}
+                        </span>
+                      ) : null}
                       <div className="grid gap-2">
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">投票选项</span>
@@ -761,12 +791,17 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
                           <input
                             id="lesson-step-voting-window"
                             inputMode="numeric"
+                            aria-describedby={activeVotingValidation.fields.participationWindowSeconds ? "lesson-step-voting-window-error" : undefined}
                             className={fieldClassName}
                             value={activeState.votingParticipationWindowSeconds}
                             onChange={(event) => updateField("votingParticipationWindowSeconds", event.target.value)}
                           />
-                          {activeVotingValidation.fields.participationWindowSeconds ? <span className="text-sm text-[#b31b25]">{activeVotingValidation.fields.participationWindowSeconds}</span> : null}
                         </label>
+                        {activeVotingValidation.fields.participationWindowSeconds ? (
+                          <span id="lesson-step-voting-window-error" className="text-sm text-[#b31b25]">
+                            {activeVotingValidation.fields.participationWindowSeconds}
+                          </span>
+                        ) : null}
                       </div>
                       <div className="grid gap-3 md:grid-cols-3">
                         <label className="flex items-center gap-3 rounded-none bg-surface-container-high px-4 py-3 text-sm text-on-surface">

@@ -51,11 +51,20 @@ function read(filePath: string) {
   return existsSync(absolutePath) ? readFileSync(absolutePath, "utf8") : "";
 }
 
-function run(command: string, args: readonly string[], label: string) {
+function run(
+  command: string,
+  args: readonly string[],
+  label: string,
+  envOverrides?: NodeJS.ProcessEnv,
+) {
   try {
     const output = execFileSync(command, [...args], {
       stdio: "pipe",
       encoding: "utf8",
+      env: {
+        ...process.env,
+        ...envOverrides,
+      },
     });
     if (output) process.stdout.write(output);
   } catch (error: unknown) {
@@ -71,18 +80,19 @@ function run(command: string, args: readonly string[], label: string) {
 function runVitest(paths: readonly string[], label: string) {
   const directRunner = path.join(process.cwd(), "node_modules", "vitest", "vitest.mjs");
   const localBin = path.join(process.cwd(), "node_modules", ".bin", "vitest");
+  const envOverrides: NodeJS.ProcessEnv = { NODE_ENV: "test" };
 
   if (existsSync(directRunner)) {
-    run(process.execPath, [directRunner, "--run", ...paths], label);
+    run(process.execPath, [directRunner, "--run", ...paths], label, envOverrides);
     return;
   }
 
   if (existsSync(localBin)) {
-    run(localBin, ["--run", ...paths], label);
+    run(localBin, ["--run", ...paths], label, envOverrides);
     return;
   }
 
-  run("pnpm", ["exec", "vitest", "--run", ...paths], label);
+  run("pnpm", ["exec", "vitest", "--run", ...paths], label, envOverrides);
 }
 
 function assertIncludesAll(source: string, tokens: readonly string[], label: string) {

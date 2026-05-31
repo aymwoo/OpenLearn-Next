@@ -12,7 +12,8 @@ describe("RootLayout hydration guard", () => {
 
   it("keeps the existing lang, font, and ThemeInjector structure", () => {
     expect(source).toContain('lang="zh-CN"');
-    expect(source).toContain('<body className={lexend.variable}>');
+    expect(source).toContain("import '@fontsource/lexend/index.css'");
+    expect(source).toContain('<body>');
     expect(source).toContain('<Suspense fallback={null}>');
     expect(source).toContain("<ThemeInjector />");
   });

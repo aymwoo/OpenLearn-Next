@@ -193,20 +193,6 @@ export default function HtmlCoursewarePilotPage() {
     return () => window.removeEventListener("message", handleMessage);
   }, [runtimeInstanceId]);
 
-  useEffect(() => {
-    if (!runtimeInstanceId || !bridgeContext || !lastFailedAction || isTerminalSubmitState) {
-      return;
-    }
-
-    if (lastRetryCurrentActionRequest === 0) {
-      return
-    }
-
-    const retryEvent = lastFailedAction === 'runtime-submit' ? handleSubmit : handleSave
-    retryEvent()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bridgeContext, isTerminalSubmitState, lastFailedAction, lastRetryCurrentActionRequest, runtimeInstanceId])
-
   const handleInteract = () => {
     if (!runtimeInstanceId || !bridgeContext || isTerminalSubmitState) {
       return;
@@ -324,6 +310,27 @@ export default function HtmlCoursewarePilotPage() {
       },
     });
   };
+
+  useEffect(() => {
+    if (!runtimeInstanceId || !bridgeContext || !lastFailedAction || isTerminalSubmitState) {
+      return;
+    }
+
+    if (lastRetryCurrentActionRequest === 0) {
+      return;
+    }
+
+    const retryEvent = lastFailedAction === "runtime-submit" ? handleSubmit : handleSave;
+    retryEvent();
+  }, [
+    bridgeContext,
+    handleSave,
+    handleSubmit,
+    isTerminalSubmitState,
+    lastFailedAction,
+    lastRetryCurrentActionRequest,
+    runtimeInstanceId,
+  ]);
 
   return (
     <main className="min-h-screen bg-[#f4f7fb] p-4 text-[#10233f] sm:p-6">

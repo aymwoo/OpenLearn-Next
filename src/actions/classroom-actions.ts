@@ -10,6 +10,7 @@ import {
   changeClassroomMode,
   endClassroomSession,
   launchClassroomSession,
+  recordClassroomVotingRoundControl,
   recordRuntimeReady,
   recordRuntimeInteraction,
   recordRuntimeTeacherControl,
@@ -380,6 +381,26 @@ export async function recordRuntimeTeacherControlAction(input: FormData | Record
   try {
     const result = await recordRuntimeTeacherControl(parsed.data);
     updateTag(cacheTags.classroom(parsed.data.payload.classroomSessionId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
+export async function recordClassroomVotingRoundControlAction(input: {
+  sessionId: string;
+  stepId: string;
+  command: "start-voting-round" | "end-voting-round";
+}): Promise<ActionResult<unknown>> {
+  if (!input.sessionId || !input.stepId || !input.command) {
+    return validationError();
+  }
+
+  try {
+    const result = await recordClassroomVotingRoundControl(input);
+    if (result.sessionId) {
+      updateTag(cacheTags.classroom(result.sessionId));
+    }
     return { ok: true, data: result };
   } catch (error) {
     return handleClassroomActionError(error);

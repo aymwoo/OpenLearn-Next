@@ -1,11 +1,18 @@
 // @vitest-environment jsdom
 
+import type { ComponentProps } from "react";
 import { readFileSync } from "node:fs";
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LessonAuthoringWorkspace } from "./lesson-authoring-workspace";
+
+type LessonAuthoringWorkspaceOverview = ComponentProps<typeof LessonAuthoringWorkspace>["overview"];
+type LessonAuthoringWorkspaceLesson = ComponentProps<typeof LessonAuthoringWorkspace>["lesson"];
+
+const asLessonAuthoringWorkspaceOverview = (value: unknown) => value as LessonAuthoringWorkspaceOverview;
+const asLessonAuthoringWorkspaceLesson = (value: unknown) => value as LessonAuthoringWorkspaceLesson;
 
 const { addLessonStepAction, reorderLessonStepAction } = vi.hoisted(() => ({
   addLessonStepAction: vi.fn(),
@@ -37,12 +44,12 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("inserts classroom voting through the existing quiz step shell with only public built-in metadata", async () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [],
-        } as any}
+        })}
         builtInTemplates={[
           {
             id: "plugin-voting",
@@ -122,12 +129,12 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("preserves built-in provenance for non-voting built-ins too", async () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [],
-        } as any}
+        })}
         builtInTemplates={[
           {
             id: "plugin-direct",
@@ -176,8 +183,8 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("only renders enabled built-in teaching steps from the injected template list", () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [
@@ -196,7 +203,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               },
             },
           ],
-        } as any}
+        })}
         builtInTemplates={[
           {
             id: "plugin-1",
@@ -296,8 +303,8 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("uses the next sibling rank as the lower anchor when moving a step down", async () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [
@@ -326,7 +333,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               payload: { type: "task", prompt: "完成练习", submissionType: "text", materialRefs: [] },
             },
           ],
-        } as any}
+        })}
         builtInTemplates={[]}
       />,
     );
@@ -354,8 +361,8 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("renders built-in source badges inside the integrated flow composition workspace", () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [
@@ -391,7 +398,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               },
             },
           ],
-        } as any}
+        })}
         builtInTemplates={[]}
       />,
     );
@@ -409,8 +416,8 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("shows inferred teaching-design fallback cues without blocking lesson editing", () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [
@@ -445,7 +452,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               updatedAt: "2026-05-12T10:00:00.000Z",
             },
           ],
-        } as any}
+        })}
         builtInTemplates={[]}
       />,
     );
@@ -460,8 +467,8 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("uses teaching-design estimated minutes in flow cards and totals", () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [
@@ -513,7 +520,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               updatedAt: "2026-05-12T10:10:00.000Z",
             },
           ],
-        } as any}
+        })}
         builtInTemplates={[]}
       />,
     );
@@ -538,8 +545,8 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("keeps labeled duration metadata discoverable on a crowded flow card", () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [
@@ -566,7 +573,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               updatedAt: "2026-05-12T10:20:00.000Z",
             },
           ],
-        } as any}
+        })}
         builtInTemplates={[]}
       />,
     );
@@ -601,8 +608,8 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("opens the step editor modal from the explicit flow-card edit button", () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [
@@ -623,7 +630,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               payload: { type: "content", title: "讲解", body: "讲解概念。", materialRefs: [] },
             },
           ],
-        } as any}
+        })}
         builtInTemplates={[]}
       />,
     );
@@ -656,8 +663,8 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
 
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [
@@ -670,7 +677,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               payload: { type: "content", title: "导入", body: "从图片观察开始。", materialRefs: [] },
             },
           ],
-        } as any}
+        })}
         builtInTemplates={[]}
       />,
     );
@@ -686,8 +693,8 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("shows auto-saved feedback when no step editor is open", () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [
@@ -700,7 +707,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               payload: { type: "content", title: "导入", body: "从图片观察开始。", materialRefs: [] },
             },
           ],
-        } as any}
+        })}
         builtInTemplates={[]}
       />,
     );
@@ -713,8 +720,8 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
   it("no longer keeps a standalone step editor mounted below the flow by default", () => {
     render(
       <LessonAuthoringWorkspace
-        overview={{ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] } as any}
-        lesson={{
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
           lesson: { id: "lesson-1" },
           materials: [],
           steps: [
@@ -727,7 +734,7 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
               payload: { type: "content", title: "导入", body: "从图片观察开始。", materialRefs: [] },
             },
           ],
-        } as any}
+        })}
         builtInTemplates={[]}
       />,
     );

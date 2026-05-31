@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import Papa from "papaparse";
 import { Upload, X } from "lucide-react";
@@ -144,9 +145,9 @@ export function CourseImportModal({ schoolId }: Props) {
               选择 CSV 文件
               <input type="file" accept=".csv,text/csv" className="sr-only" onChange={handleFileChange} disabled={isPending || !schoolId} />
             </label>
-            <a href="/teacher/courses/import/template" className="text-sm text-primary underline underline-offset-2">
+            <Link href="/teacher/courses/import/template" className="text-sm text-primary underline underline-offset-2">
               下载 CSV 模板
-            </a>
+            </Link>
           </div>
         </div>
       </dialog>

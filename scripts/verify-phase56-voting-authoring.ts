@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, type ExecFileSyncOptions } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -17,11 +17,17 @@ function read(filePath: string) {
   return existsSync(absolutePath) ? readFileSync(absolutePath, "utf8") : "";
 }
 
-function run(command: string, args: readonly string[], label: string) {
+function run(
+  command: string,
+  args: readonly string[],
+  label: string,
+  options: ExecFileSyncOptions = {},
+) {
   try {
     const output = execFileSync(command, [...args], {
       stdio: "pipe",
       encoding: "utf8",
+      ...options,
     });
     if (output) process.stdout.write(output);
   } catch (error: unknown) {
@@ -34,22 +40,24 @@ function run(command: string, args: readonly string[], label: string) {
   }
 }
 
+export function withPhase56VitestEnv(env: NodeJS.ProcessEnv = process.env) {
+  return {
+    ...env,
+    NODE_ENV: "test",
+  } satisfies NodeJS.ProcessEnv;
+}
+
 function runVitest(paths: readonly string[], label: string) {
-  const directRunner = path.join(process.cwd(), "node_modules", "vitest", "vitest.mjs");
   const localBin = path.join(process.cwd(), "node_modules", ".bin", "vitest");
   const args = ["--run", "--testTimeout=20000", ...paths];
-
-  if (existsSync(directRunner)) {
-    run(process.execPath, [directRunner, ...args], label);
-    return;
-  }
+  const env = withPhase56VitestEnv();
 
   if (existsSync(localBin)) {
-    run(localBin, args, label);
+    run(localBin, args, label, { env });
     return;
   }
 
-  run("pnpm", ["exec", "vitest", ...args], label);
+  run("pnpm", ["exec", "vitest", ...args], label, { env });
 }
 
 export function verifyPhase56PackageScript(packageSource: string): boolean {

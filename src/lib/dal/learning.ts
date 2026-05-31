@@ -23,10 +23,11 @@ import {
 } from "@/db/schema";
 import { getCurrentActorDTO } from "@/lib/dal/auth";
 import { ensureClassroomParticipant } from "@/lib/dal/classroom";
+import { recordRuntimeClassroomEvidence } from "@/lib/dal/classroom";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { cacheTags } from "@/lib/cache-policy";
-import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
+import { ClassroomVotingFrozenContractSchema, lessonStepPayloadSchema, type ClassroomVotingFrozenContract } from "@/lib/dto/lesson-authoring";
 import {
   FeedbackInputSchema,
   MarkProgressInputSchema,
@@ -79,6 +80,7 @@ type PublishedSnapshot = {
     title: string;
     rank: string;
     payload: unknown;
+    pluginContract?: unknown;
   }>;
 };
 
@@ -104,6 +106,67 @@ function parseSnapshot(value: unknown): PublishedSnapshot {
   return (value ?? {}) as PublishedSnapshot;
 }
 
+function parseVotingFrozenContract(value: unknown): ClassroomVotingFrozenContract | null {
+  const parsed = ClassroomVotingFrozenContractSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+function getVotingFrozenContract(step?: LearningStepDTO | null) {
+  return step?.pluginContract?.publicMetadata.builtInKey === "classroomVoting"
+    ? step.pluginContract
+    : null;
+}
+
+function normalizeVotingAnswer(input: unknown, contract: ClassroomVotingFrozenContract | null) {
+  const options = contract?.executableConfig.options ?? [];
+  const optionIds = new Set(options.map((option) => option.id));
+  const answerRecord = input && typeof input === "object" ? input as {
+    selectedIndex?: unknown;
+    selectedIndexes?: unknown;
+    selectedOptionId?: unknown;
+    selectedOptionIds?: unknown;
+  } : {};
+  const selectedIndexes = Array.isArray(answerRecord.selectedIndexes)
+    ? answerRecord.selectedIndexes.filter((value): value is number => Number.isInteger(value) && value >= 0)
+    : typeof answerRecord.selectedIndex === "number" && Number.isInteger(answerRecord.selectedIndex) && answerRecord.selectedIndex >= 0
+      ? [answerRecord.selectedIndex]
+      : [];
+  const selectedOptionIds = Array.isArray(answerRecord.selectedOptionIds)
+    ? answerRecord.selectedOptionIds.filter((value): value is string => typeof value === "string" && optionIds.has(value))
+    : typeof answerRecord.selectedOptionId === "string" && optionIds.has(answerRecord.selectedOptionId)
+      ? [answerRecord.selectedOptionId]
+      : [];
+  const normalizedOptionIds = selectedOptionIds.length > 0
+    ? selectedOptionIds
+    : selectedIndexes
+        .map((index) => options[index]?.id)
+        .filter((value): value is string => typeof value === "string" && value.length > 0);
+  const dedupedOptionIds = [...new Set(normalizedOptionIds)];
+
+  if (contract && dedupedOptionIds.length === 0) {
+    throw new Error("QUIZ_ANSWER_INVALID");
+  }
+
+  if (contract && !contract.executableConfig.allowMultiple && dedupedOptionIds.length > 1) {
+    throw new Error("QUIZ_MULTIPLE_SELECTION_NOT_ALLOWED");
+  }
+
+  const normalizedIndexes = dedupedOptionIds
+    .map((optionId) => options.findIndex((option) => option.id === optionId))
+    .filter((index) => index >= 0);
+
+  return {
+    selectedOptionIds: dedupedOptionIds,
+    selectedIndexes: normalizedIndexes,
+    primaryIndex: normalizedIndexes[0] ?? null,
+    selectionSummary: dedupedOptionIds.length > 0
+      ? dedupedOptionIds
+          .map((optionId) => options.find((option) => option.id === optionId)?.label ?? optionId)
+          .join("、")
+      : null,
+  };
+}
+
 function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string): LearningStepDTO[] {
   return [...(snapshot.steps ?? [])]
     .sort((a, b) => a.rank.localeCompare(b.rank))
@@ -114,6 +177,7 @@ function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: strin
       title: step.title,
       rank: step.rank,
       payload: lessonStepPayloadSchema.parse(step.payload),
+      pluginContract: parseVotingFrozenContract(step.pluginContract),
     }));
 }
 
@@ -331,6 +395,8 @@ function toTaskAttemptDTO(row: typeof taskSubmissions.$inferSelect, feedback: ty
 }
 
 function toQuizAttemptDTO(row: typeof quizAttempts.$inferSelect, feedback: typeof attemptFeedback.$inferSelect | null = null, policy = { allowRetry: false, revealCorrectAnswer: false }) {
+  const answer = row.answerJson as { selectedOptionIds?: string[]; selectedIndex?: number | null } | null;
+  const outcome = row.outcomeJson as { classroomSessionId?: string | null; selectionSummary?: string | null; showCorrectAnswer?: boolean } | null;
   return {
     id: row.id,
     publishedVersionId: row.publishedVersionId,
@@ -342,7 +408,9 @@ function toQuizAttemptDTO(row: typeof quizAttempts.$inferSelect, feedback: typeo
     outcome: row.outcomeJson,
     isLatest: row.isLatest,
     canRetryQuiz: policy.allowRetry,
-    showCorrectAnswer: policy.revealCorrectAnswer && Boolean((row.outcomeJson as { showCorrectAnswer?: boolean }).showCorrectAnswer),
+    showCorrectAnswer: policy.revealCorrectAnswer && Boolean(outcome?.showCorrectAnswer),
+    selectionSummary: outcome?.selectionSummary ?? (Array.isArray(answer?.selectedOptionIds) ? answer.selectedOptionIds.join("、") : null),
+    classroomSessionId: outcome?.classroomSessionId ?? null,
     feedback: feedback ? toFeedbackDTO(feedback, row.lessonId) : null,
     createdAt: toIso(row.createdAt),
   };
@@ -1054,15 +1122,28 @@ export async function submitQuizAttempt(input: unknown) {
   const scope = await assertActiveStudent();
   const payload = SubmitQuizInputSchema.parse(input);
   const { policy, step } = await assertStudentMutationTarget(payload, scope, "quiz");
+  const votingContract = getVotingFrozenContract(step);
+  const normalizedAnswer = normalizeVotingAnswer(payload.answer, votingContract);
+  const classroomRuntime = votingContract
+    ? await getStudentClassroomRuntime({ lessonId: payload.lessonId, scope })
+    : null;
+  const currentRound = classroomRuntime?.currentVotingRound;
+  if (votingContract && currentRound?.stepId === payload.stepId && currentRound.status === "closed") {
+    throw new Error("VOTING_ROUND_CLOSED");
+  }
   const stepPayload = step.payload as { correctOptionIndex?: number; explanation?: string } | undefined;
-  const answerIndex = typeof payload.answer === "number" ? payload.answer : (payload.answer as { selectedIndex?: number })?.selectedIndex;
+  const answerIndex = normalizedAnswer.primaryIndex;
   const isCorrect = typeof stepPayload?.correctOptionIndex === "number" ? answerIndex === stepPayload.correctOptionIndex : null;
   const outcomeJson = {
     selectedIndex: answerIndex ?? null,
+    selectedIndexes: normalizedAnswer.selectedIndexes,
+    selectedOptionIds: normalizedAnswer.selectedOptionIds,
+    selectionSummary: normalizedAnswer.selectionSummary,
     isCorrect,
     correctOptionIndex: policy.revealCorrectAnswer ? (stepPayload?.correctOptionIndex ?? null) : null,
     explanation: policy.revealCorrectAnswer ? (stepPayload?.explanation ?? null) : null,
     showCorrectAnswer: policy.revealCorrectAnswer && typeof stepPayload?.correctOptionIndex === "number",
+    classroomSessionId: classroomRuntime?.sessionId ?? null,
   };
 
   const inserted = await db.transaction(async (tx) => {
@@ -1098,7 +1179,12 @@ export async function submitQuizAttempt(input: unknown) {
         stepId: payload.stepId,
         studentId: scope.userId,
         attemptNo,
-        answerJson: payload.answer,
+        answerJson: {
+          ...((payload.answer && typeof payload.answer === "object") ? payload.answer as Record<string, unknown> : {}),
+          selectedIndex: answerIndex,
+          selectedIndexes: normalizedAnswer.selectedIndexes,
+          selectedOptionIds: normalizedAnswer.selectedOptionIds,
+        },
         outcomeJson,
         isLatest: true, // isLatest: 1
       })
@@ -1111,6 +1197,32 @@ export async function submitQuizAttempt(input: unknown) {
 
     return row;
   });
+
+  if (classroomRuntime?.sessionId) {
+    await recordRuntimeClassroomEvidence({
+      sessionId: classroomRuntime.sessionId,
+      studentId: scope.userId,
+      stepId: payload.stepId,
+      sourceType: "student-submission",
+      evidenceType: "quiz-response",
+      capturedById: scope.userId,
+      payload: {
+        classroomSessionId: classroomRuntime.sessionId,
+        submittedAt: new Date().toISOString(),
+        state: {
+          selectedOptionIds: normalizedAnswer.selectedOptionIds,
+          selectedOptionId: normalizedAnswer.selectedOptionIds[0] ?? null,
+          selectedIndexes: normalizedAnswer.selectedIndexes,
+          selectedIndex: normalizedAnswer.primaryIndex,
+        },
+        proofSummary: {
+          status: "submitted",
+          title: "已提交",
+          submittedStateLabel: normalizedAnswer.selectionSummary ?? "已记录你的答案",
+        },
+      },
+    });
+  }
 
   return toQuizAttemptDTO(inserted, null, policy);
 }

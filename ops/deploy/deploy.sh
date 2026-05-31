@@ -150,6 +150,7 @@ GIT_SHA=$(git -C "$REPO_ROOT" rev-parse --short HEAD)
 RELEASE_ID="$(date -u +%Y%m%dT%H%M%SZ)_${GIT_SHA}"
 RELEASE_DIR="$RELEASES_DIR/$RELEASE_ID"
 MANIFEST_PATH="$RELEASE_MANIFESTS_DIR/${RELEASE_ID}.json"
+SOURCE_NODE_MODULES=${OPENLEARN_SOURCE_NODE_MODULES:-}
 PREVIOUS_GREEN_RELEASE_ID=""
 PREVIOUS_GREEN_MANIFEST_PATH=""
 ROLLBACK_REASON="migration_or_ready_failed"
@@ -200,12 +201,30 @@ copy_release_tree() {
     return 0
   fi
 
-  tar \
-    --exclude='.git' \
-    --exclude='node_modules' \
-    --exclude='.next' \
-    --exclude='local.db' \
-    -cf - -C "$REPO_ROOT" . | tar -xf - -C "$RELEASE_DIR"
+  local entries=()
+  local path=""
+
+  while IFS= read -r path; do
+    entries+=("$path")
+  done < <(
+    cd "$REPO_ROOT"
+    shopt -s dotglob nullglob
+    for path in * .[!.]* ..?*; do
+      case "$path" in
+        .|..|.git|node_modules|.next|.local|.opencode|.playwright-mcp|.tmp|local.db|local.db-shm|local.db-wal|tsconfig.tsbuildinfo)
+          continue
+          ;;
+      esac
+      printf '%s\n' "$path"
+    done
+  )
+
+  tar -cf - -C "$REPO_ROOT" "${entries[@]}" | tar -xf - -C "$RELEASE_DIR"
+
+  if [[ -n "$SOURCE_NODE_MODULES" ]]; then
+    rm -rf "$RELEASE_DIR/node_modules"
+    cp -a "$SOURCE_NODE_MODULES" "$RELEASE_DIR/node_modules"
+  fi
 }
 
 load_previous_green() {
@@ -406,7 +425,7 @@ copy_release_tree
 
 run_step lint bash -lc "cd \"$RELEASE_DIR\" && pnpm lint" || trigger_failure_rollback
 run_step typecheck bash -lc "cd \"$RELEASE_DIR\" && pnpm typecheck" || trigger_failure_rollback
-run_step test bash -lc "cd \"$RELEASE_DIR\" && pnpm test --run" || trigger_failure_rollback
+run_step test bash -lc "cd \"$RELEASE_DIR\" && NODE_ENV=test pnpm test --run" || trigger_failure_rollback
 run_step build bash -lc "cd \"$RELEASE_DIR\" && pnpm build" || trigger_failure_rollback
 run_step migrate bash -lc "cd \"$RELEASE_DIR\" && pnpm db:migrate" || trigger_failure_rollback
 run_step verifyPhase57 bash -lc "cd \"$RELEASE_DIR\" && pnpm verify:phase57" || trigger_failure_rollback

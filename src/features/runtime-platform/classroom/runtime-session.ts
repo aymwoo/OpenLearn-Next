@@ -59,7 +59,7 @@ import {
 
 type ActorLike = {
   actorId: string;
-  actorScope: "host" | "teacher" | "student" | "plugin" | "system";
+  actorScope: "host" | "teacher" | "student" | "plugin" | "operator" | "system";
   schoolId: string;
   capabilities: readonly string[];
   hostPermissions: readonly string[];

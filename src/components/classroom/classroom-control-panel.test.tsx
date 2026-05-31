@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ClassroomControlPanel } from './classroom-control-panel'
@@ -12,6 +12,7 @@ const classroomActionMocks = vi.hoisted(() => ({
   changeClassroomSlideAction: vi.fn(),
   changeClassroomStepAction: vi.fn(),
   endClassroomSessionAction: vi.fn(),
+  recordClassroomVotingRoundControlAction: vi.fn(),
   recordRuntimeTeacherControlAction: vi.fn(),
   runCurrentVotingRecoveryAction: vi.fn(),
 }))
@@ -27,6 +28,7 @@ vi.mock('@/actions/classroom-actions', () => ({
   changeClassroomSlideAction: classroomActionMocks.changeClassroomSlideAction,
   changeClassroomStepAction: classroomActionMocks.changeClassroomStepAction,
   endClassroomSessionAction: classroomActionMocks.endClassroomSessionAction,
+  recordClassroomVotingRoundControlAction: classroomActionMocks.recordClassroomVotingRoundControlAction,
   recordRuntimeTeacherControlAction: classroomActionMocks.recordRuntimeTeacherControlAction,
   runCurrentVotingRecoveryAction: classroomActionMocks.runCurrentVotingRecoveryAction,
 }))
@@ -109,6 +111,7 @@ const snapshot: ClassroomSnapshotDTO = {
       title: '互动 Runtime',
       rank: 'a0',
       type: 'content',
+      pluginContract: null,
       payload: {
         type: 'content',
         markdown: '# Runtime',
@@ -130,6 +133,7 @@ const snapshot: ClassroomSnapshotDTO = {
       title: '总结',
       rank: 'b0',
       type: 'content',
+      pluginContract: null,
       payload: { type: 'content', markdown: '# Summary' },
     },
   ],
@@ -169,6 +173,9 @@ const snapshot: ClassroomSnapshotDTO = {
       { action: 'fallback', label: '切换到课堂内回退处理', description: '保留课堂内处理，不跳出当前课堂。' },
     ],
     isFrozen: false,
+    resultsDisplay: 'bar',
+    anonymousResults: false,
+    liveResultsVisible: true,
   },
   teacherTimeline: [],
   copy: {
@@ -181,6 +188,7 @@ const snapshot: ClassroomSnapshotDTO = {
 
 describe('ClassroomControlPanel websocket cutover', () => {
   beforeEach(() => {
+    cleanup()
     vi.clearAllMocks()
     MockWebSocket.instances = []
     vi.stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket)
@@ -277,6 +285,89 @@ describe('ClassroomControlPanel websocket cutover', () => {
       }))
       expect(refreshMock).toHaveBeenCalled()
     })
+  })
+
+  it('falls back to classroom voting round action when the voting step has no runtime descriptor', async () => {
+    classroomActionMocks.recordClassroomVotingRoundControlAction.mockResolvedValue({ ok: true, data: { sessionId: 'session-1' } })
+
+    render(
+      <ClassroomControlPanel
+        initialSnapshot={{
+          ...snapshot,
+          activeStepId: 'step-1',
+          steps: [
+            {
+              id: 'step-1',
+              title: '课堂投票',
+              rank: 'a0',
+              type: 'quiz',
+              payload: {
+                type: 'quiz',
+                question: '你更支持哪个方案？',
+                options: ['方案 A', '方案 B'],
+              },
+              pluginContract: {
+                kind: 'classroom-voting',
+                contractVersion: 'v1',
+                runtimeContractVersion: 'v2',
+                pluginId: 'plugin-1',
+                publicMetadata: {
+                  builtInKey: 'classroomVoting',
+                  pluginKey: 'builtin-teaching-step-classroom-voting',
+                  pluginName: '课堂投票插件',
+                  stepType: 'quiz',
+                },
+                executableConfig: {
+                  prompt: '你更支持哪个方案？',
+                  options: [
+                    { id: 'option-a', label: '方案 A' },
+                    { id: 'option-b', label: '方案 B' },
+                  ],
+                  allowMultiple: false,
+                  anonymousResults: true,
+                  showLiveResults: false,
+                  participationWindowSeconds: 90,
+                  resultsDisplay: 'compact',
+                },
+              },
+            },
+          ],
+          currentVotingRound: null,
+        }}
+      />,
+    )
+
+    fireEvent.click(screen.getAllByRole('button', { name: '开始本轮投票' })[0]!)
+
+    await waitFor(() => {
+      expect(classroomActionMocks.recordClassroomVotingRoundControlAction).toHaveBeenCalledWith({
+        sessionId: 'session-1',
+        stepId: 'step-1',
+        command: 'start-voting-round',
+      })
+      expect(refreshMock).toHaveBeenCalled()
+    })
+  })
+
+  it('hides named results and live aggregates when frozen contract requires it', () => {
+    render(
+      <ClassroomControlPanel
+        initialSnapshot={{
+          ...snapshot,
+          currentVotingRound: {
+            ...snapshot.currentVotingRound!,
+            optionResults: [],
+            namedResults: [],
+            anonymousResults: true,
+            liveResultsVisible: false,
+            isFrozen: false,
+          },
+        }}
+      />,
+    )
+
+    expect(screen.queryAllByRole('button', { name: '展开实名结果' })).toHaveLength(0)
+    expect(screen.getByText('当前设置为结束前不展示实时结果，老师仍可根据未完成名单推进课堂。')).toBeTruthy()
   })
 
   it('shows teacher-only degraded banner when transport falls back to local instance only', async () => {

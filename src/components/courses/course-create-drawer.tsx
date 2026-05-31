@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BookMarked, X } from "lucide-react";
 
@@ -45,10 +45,6 @@ export function CourseCreateDrawer({
   const [selectedSchoolId, setSelectedSchoolId] = useState(initialSchoolId);
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    setSelectedSchoolId(initialSchoolId);
-  }, [initialSchoolId]);
-
   const submit = () => {
     if (!selectedSchoolId) {
       setError("当前教师身份没有可用学校，暂时无法创建课程。");
@@ -79,7 +75,14 @@ export function CourseCreateDrawer({
 
   return (
     <>
-      <Button variant={triggerVariant} className="gap-2 px-5 text-sm" onClick={() => setOpen(true)}>
+      <Button
+        variant={triggerVariant}
+        className="gap-2 px-5 text-sm"
+        onClick={() => {
+          setSelectedSchoolId(initialSchoolId);
+          setOpen(true);
+        }}
+      >
         <BookMarked className="size-5" aria-hidden />
         {triggerLabel}
       </Button>

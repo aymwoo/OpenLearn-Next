@@ -33,11 +33,20 @@ export function read(filePath: string) {
   return existsSync(absolutePath) ? readFileSync(absolutePath, "utf8") : "";
 }
 
-function run(command: string, args: readonly string[], label: string) {
+function run(
+  command: string,
+  args: readonly string[],
+  label: string,
+  envOverrides?: NodeJS.ProcessEnv,
+) {
   try {
     const output = execFileSync(command, [...args], {
       stdio: "pipe",
       encoding: "utf8",
+      env: {
+        ...process.env,
+        ...envOverrides,
+      },
     });
     if (output) process.stdout.write(output);
   } catch (error: unknown) {
@@ -54,18 +63,19 @@ function runVitest(paths: readonly string[], label: string) {
   const directRunner = path.join(process.cwd(), "node_modules", "vitest", "vitest.mjs");
   const localBin = path.join(process.cwd(), "node_modules", ".bin", "vitest");
   const args = ["--run", "--testTimeout=20000", ...paths];
+  const envOverrides: NodeJS.ProcessEnv = { NODE_ENV: "test" };
 
   if (existsSync(directRunner)) {
-    run(process.execPath, [directRunner, ...args], label);
+    run(process.execPath, [directRunner, ...args], label, envOverrides);
     return;
   }
 
   if (existsSync(localBin)) {
-    run(localBin, args, label);
+    run(localBin, args, label, envOverrides);
     return;
   }
 
-  run("pnpm", ["exec", "vitest", ...args], label);
+  run("pnpm", ["exec", "vitest", ...args], label, envOverrides);
 }
 
 export function verifyPhase57PackageScripts(packageSource: string) {
@@ -94,8 +104,8 @@ export function evaluatePhase57StaticChecks(sources: Phase57StaticSources): Stat
 }
 
 async function runBrowserProof() {
-  const module = await import("./proof-phase57-classroom-runtime");
-  await module.runPhase57BrowserProof();
+  const phase57ProofModule = await import("./proof-phase57-classroom-runtime");
+  await phase57ProofModule.runPhase57BrowserProof();
 }
 
 export async function runPhase57Verification() {

@@ -16,6 +16,7 @@ import { RuntimeHostClient } from '@/features/runtime-platform/host'
 import { touchClassroomPresenceAction } from '@/actions/classroom-actions'
 import { markStepProgressAction } from '@/actions/learning-actions'
 import { subscribeClassroomSocket } from '@/components/classroom/classroom-ws-client'
+import type { LessonStepDTO } from '@/lib/dto/lesson-authoring'
 import type {
   LearningStepDTO,
   ProgressState,
@@ -44,17 +45,39 @@ function getStepActivity(player: StudentPlayerDTO, stepId: string) {
   return player.stepActivities.find((activity) => activity.stepId === stepId) ?? null
 }
 
+type MarkdownLearningStep = LearningStepDTO & {
+  type: 'content'
+  payload: Extract<LessonStepDTO['payload'], { type: 'content' }>
+}
+
+function getMarkdownLearningStep(step: LearningStepDTO): MarkdownLearningStep | null {
+  if (step.type !== 'content') {
+    return null
+  }
+
+  const payload = step.payload as Partial<Extract<LessonStepDTO['payload'], { type: 'content' }>>
+  if (payload.type !== 'content' || typeof payload.body !== 'string' || !payload.markdown) {
+    return null
+  }
+
+  return {
+    ...step,
+    type: 'content',
+    payload: payload as Extract<LessonStepDTO['payload'], { type: 'content' }>,
+  }
+}
+
 function ContentStepCard({ player, step, state }: { player: StudentPlayerDTO; step: LearningStepDTO; state: ProgressState }) {
   const payload = step.payload as { body?: string; content?: string; summary?: string }
   const body = payload.body || payload.content || payload.summary || '这个步骤暂时没有正文内容，请继续下一个步骤。'
-  const isMarkdown = step.payload.type === 'content' && Boolean(step.payload.markdown)
+  const markdownStep = getMarkdownLearningStep(step)
 
   return (
     <div className="space-y-6">
-      {isMarkdown ? (
+      {markdownStep ? (
         <div className="mt-5">
           <MarkdownRenderer
-            step={step as any}
+            step={markdownStep}
             locked={player.runtime.locked}
             slideState={player.runtime.slideIndex !== null ? { stepId: step.id, slideIndex: player.runtime.slideIndex } : null}
           />

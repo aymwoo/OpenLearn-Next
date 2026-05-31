@@ -208,23 +208,6 @@ export default function ExamRuntimePage() {
     return () => window.removeEventListener("message", handleMessage)
   }, [bridgeContext])
 
-  useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0 || exam.submitted) return
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(timer)
-          if (!exam.submitted) {
-            handleSubmit()
-          }
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [timeLeft, exam.submitted])
-
   const handleSelectAnswer = (questionId: string, answer: string | string[]) => {
     if (exam.submitted) return
     setExam((prev) => ({
@@ -331,6 +314,23 @@ export default function ExamRuntimePage() {
       },
     })
   }
+
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0 || exam.submitted) return
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer)
+          if (!exam.submitted) {
+            handleSubmit()
+          }
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [timeLeft, exam.submitted])
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)

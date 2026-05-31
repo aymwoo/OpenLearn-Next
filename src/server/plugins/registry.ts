@@ -1,5 +1,6 @@
 import {
   BUILT_IN_TEACHING_STEP_DEFINITIONS,
+  type BuiltInTeachingStepDefinition,
   type BuiltInTeachingPluginName,
   BuiltInTeachingStepSuggestionPayloadSchema,
   BuiltInTeachingStepTemplatePayloadSchema,
@@ -47,18 +48,27 @@ const BUILT_IN_TEACHING_STEP_BY_NAME = new Map(
   BUILT_IN_TEACHING_STEP_DEFINITIONS.map((definition) => [definition.pluginName, definition] as const),
 );
 
+function hasBuiltInTeachingStepDefinition<
+  Key extends string,
+>(
+  map: Map<Key, BuiltInTeachingStepDefinition>,
+  key: string,
+): key is Key {
+  return map.has(key as Key);
+}
+
 function resolveBuiltInTeachingStep(input: PluginActionInput) {
   const pluginKey = typeof input.payload.pluginKey === "string" ? input.payload.pluginKey : null;
-  if (pluginKey) {
-    const resolved = BUILT_IN_TEACHING_STEP_BY_KEY.get(pluginKey as any);
+  if (pluginKey && hasBuiltInTeachingStepDefinition(BUILT_IN_TEACHING_STEP_BY_KEY, pluginKey)) {
+    const resolved = BUILT_IN_TEACHING_STEP_BY_KEY.get(pluginKey);
     if (resolved) {
       return resolved;
     }
   }
 
   const builtInKey = typeof input.payload.builtInKey === "string" ? input.payload.builtInKey : null;
-  if (builtInKey) {
-    const resolved = BUILT_IN_TEACHING_STEP_BY_BUILTIN_KEY.get(builtInKey as any);
+  if (builtInKey && hasBuiltInTeachingStepDefinition(BUILT_IN_TEACHING_STEP_BY_BUILTIN_KEY, builtInKey)) {
+    const resolved = BUILT_IN_TEACHING_STEP_BY_BUILTIN_KEY.get(builtInKey);
     if (resolved) {
       return resolved;
     }

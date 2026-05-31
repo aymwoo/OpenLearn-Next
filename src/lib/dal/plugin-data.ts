@@ -20,6 +20,9 @@ import {
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { cacheTags } from "@/lib/cache-policy";
 
+type JsonObject = Record<string, unknown>;
+type PluginManifestJson = JsonObject & { permissions?: unknown };
+
 /**
  * 校验当前 actor 是否属于合法的学校教师管理员，并进行权限断言
  * 
@@ -148,7 +151,7 @@ async function assertPluginBelongsToSchoolAndGetManifest(schoolId: string, plugi
     throw new Error("SCHOOL_CROSS_BOUNDARY_FORBIDDEN");
   }
 
-  return result.manifestJson as any;
+  return result.manifestJson as PluginManifestJson | null;
 }
 
 export type ExtensionEntityType = "lesson" | "step" | "resource";
@@ -159,7 +162,7 @@ export interface UpsertExtensionInput {
   pluginId: string;
   entityType: ExtensionEntityType;
   entityId: string;
-  payloadJson: Record<string, any>;
+  payloadJson: JsonObject;
 }
 
 export interface GetExtensionInput {
@@ -173,7 +176,7 @@ export interface GetExtensionInput {
 export interface PluginStepExtensionRecord {
   lessonStepId: string;
   pluginId: string;
-  payloadJson: Record<string, any>;
+  payloadJson: JsonObject;
   updatedAt: Date | number | null;
 }
 
@@ -182,7 +185,7 @@ async function upsertPluginStepExtensionWithTx(input: {
   schoolId: string;
   pluginId: string;
   lessonStepId: string;
-  payloadJson: Record<string, any>;
+  payloadJson: JsonObject;
 }) {
   const existing = await input.tx
     .select()
@@ -411,7 +414,7 @@ export { upsertPluginStepExtensionWithTx };
  * Returns:
  *   若存在数据，则返回对应的 Record 映射；若不存在，则返回 null
  */
-export async function getPluginExtension(input: GetExtensionInput): Promise<Record<string, any> | null> {
+export async function getPluginExtension(input: GetExtensionInput): Promise<JsonObject | null> {
   const { actorId, schoolId, pluginId, entityType, entityId } = input;
 
   // 1. 教师权限鉴权
@@ -434,7 +437,7 @@ export async function getPluginExtension(input: GetExtensionInput): Promise<Reco
         ),
       )
       .limit(1);
-    return row ? (row.payloadJson as Record<string, any>) : null;
+    return row ? (row.payloadJson as JsonObject) : null;
   } else if (entityType === "step") {
     const [row] = await db
       .select()
@@ -447,7 +450,7 @@ export async function getPluginExtension(input: GetExtensionInput): Promise<Reco
         ),
       )
       .limit(1);
-    return row ? (row.payloadJson as Record<string, any>) : null;
+    return row ? (row.payloadJson as JsonObject) : null;
   } else if (entityType === "resource") {
     const [row] = await db
       .select()
@@ -460,7 +463,7 @@ export async function getPluginExtension(input: GetExtensionInput): Promise<Reco
         ),
       )
       .limit(1);
-    return row ? (row.payloadJson as Record<string, any>) : null;
+    return row ? (row.payloadJson as JsonObject) : null;
   }
   return null;
 }
@@ -503,7 +506,7 @@ export async function listPluginStepExtensions(input: {
     .map((row) => ({
       lessonStepId: row.lessonStepId,
       pluginId: row.pluginId,
-      payloadJson: row.payloadJson as Record<string, any>,
+      payloadJson: row.payloadJson as JsonObject,
       updatedAt: row.updatedAt,
     }));
 }
@@ -513,7 +516,7 @@ export interface UpsertOwnedBusinessDataInput {
   schoolId: string;
   pluginId: string;
   key: string;
-  payloadJson: Record<string, any>;
+  payloadJson: JsonObject;
 }
 
 export interface GetOwnedBusinessDataInput {
@@ -625,7 +628,7 @@ export async function upsertPluginOwnedBusinessData(input: UpsertOwnedBusinessDa
  * Throws:
  *   Error("PLUGIN_KEY_REQUIRED"): 查询特征关键字 key 缺失或为空白时抛出
  */
-export async function getPluginOwnedBusinessData(input: GetOwnedBusinessDataInput): Promise<Record<string, any> | null> {
+export async function getPluginOwnedBusinessData(input: GetOwnedBusinessDataInput): Promise<JsonObject | null> {
   const { actorId, schoolId, pluginId, key } = input;
 
   if (!key?.trim()) {
@@ -651,5 +654,5 @@ export async function getPluginOwnedBusinessData(input: GetOwnedBusinessDataInpu
     )
     .limit(1);
 
-  return row ? (row.payloadJson as Record<string, any>) : null;
+  return row ? (row.payloadJson as JsonObject) : null;
 }

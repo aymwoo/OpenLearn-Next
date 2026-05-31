@@ -139,8 +139,8 @@ async function runVerification() {
       }
     }
     console.log("  ✓ Physical unique indexes verified: pluginKey_unique, dbNamespace_unique.");
-  } catch (dbError: any) {
-    console.error("Physical database check failed:", dbError.message);
+  } catch (dbError: unknown) {
+    console.error("Physical database check failed:", dbError instanceof Error ? dbError.message : String(dbError));
     process.exit(1);
   } finally {
     client.close();

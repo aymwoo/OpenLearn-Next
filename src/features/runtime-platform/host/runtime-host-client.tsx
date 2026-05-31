@@ -108,6 +108,22 @@ export function RuntimeHostClient({
   const [statusCopy, setStatusCopy] = useState(getInitialStatusCopy(surface));
   const [errorCopy, setErrorCopy] = useState<string | null>(null);
   const [bootstrap, setBootstrap] = useState<RuntimeBootstrapDTO | null>(null);
+  const hasLiveRuntimeBinding = Boolean(classroomSessionId && publishedVersionId);
+  const frameConnected = frameReady && (status === "loading" || status === "ready");
+  const effectiveBootstrap = hasLiveRuntimeBinding ? bootstrap : null;
+  const effectiveStatus: RuntimeHostFrameStatus = !hasLiveRuntimeBinding
+    ? "snapshot-fallback"
+    : frameConnected
+      ? "ready"
+      : status;
+  const effectiveStatusCopy = !hasLiveRuntimeBinding
+    ? surface === "teacher-preview"
+      ? "草稿预览不会读取学生进度或课堂运行态。宿主仅下发当前草稿内容。"
+      : "当前 runtime 尚未绑定 live classroom session，宿主先保留静态快照。"
+    : frameConnected
+      ? "runtime host 已连接，可继续互动、保存与提交。"
+      : statusCopy;
+  const effectiveErrorCopy = !hasLiveRuntimeBinding || frameConnected ? null : errorCopy;
 
   useLayoutEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -224,14 +240,7 @@ export function RuntimeHostClient({
   }, [bootstrap, classroomSessionId, onActionFailure, onActionRecovered, publishedVersionId]);
 
   useEffect(() => {
-    if (!classroomSessionId || !publishedVersionId) {
-      if (surface === "teacher-preview") {
-        setStatus("snapshot-fallback");
-        setStatusCopy("草稿预览不会读取学生进度或课堂运行态。宿主仅下发当前草稿内容。");
-      } else {
-        setStatus("snapshot-fallback");
-        setStatusCopy("当前 runtime 尚未绑定 live classroom session，宿主先保留静态快照。");
-      }
+    if (!hasLiveRuntimeBinding || !classroomSessionId || !publishedVersionId) {
       return;
     }
 
@@ -294,7 +303,7 @@ export function RuntimeHostClient({
     return () => {
       cancelled = true;
     };
-  }, [actorIdentity, actorScope, classroomSessionId, descriptor.runtimeVersion, frameReady, lessonId, publishedVersionId, schoolId, stepId, surface]);
+  }, [actorIdentity, actorScope, classroomSessionId, descriptor.runtimeVersion, frameReady, hasLiveRuntimeBinding, lessonId, publishedVersionId, schoolId, stepId]);
 
   useEffect(() => {
     if (!frameReady || !iframeRef.current?.contentWindow) {
@@ -303,13 +312,13 @@ export function RuntimeHostClient({
 
     postRuntimeBridgeMessage(
       iframeRef.current.contentWindow,
-      createRuntimeBootstrapMessage({
-        runtimeInstanceId: runtimeInstanceIdRef.current,
-        surface,
-        bootstrap,
-        preview: {
-          title: stepTitle,
-          note: note ?? undefined,
+        createRuntimeBootstrapMessage({
+          runtimeInstanceId: runtimeInstanceIdRef.current,
+          surface,
+          bootstrap: effectiveBootstrap,
+          preview: {
+            title: stepTitle,
+            note: note ?? undefined,
         },
       }),
     );
@@ -327,13 +336,7 @@ export function RuntimeHostClient({
         }),
       );
     }
-
-      if (status === "loading" || status === "ready") {
-        setStatus("ready");
-        setStatusCopy("runtime host 已连接，可继续互动、保存与提交。");
-        setErrorCopy(null);
-      }
-  }, [bootstrap, frameReady, latestRuntimeStateSummary, note, retryCurrentActionRequest, snapshotPayload, status, stepTitle, surface]);
+  }, [effectiveBootstrap, frameReady, latestRuntimeStateSummary, note, retryCurrentActionRequest, snapshotPayload, stepTitle, surface]);
 
   return (
     <RuntimeHostFrame
@@ -343,9 +346,9 @@ export function RuntimeHostClient({
       title={getSurfaceTitle(surface)}
       subtitle={note ?? `${stepTitle} 通过共享 runtime host 渲染，不额外引入 route-specific iframe 逻辑。`}
       frameHeight={frameHeight}
-      status={status}
-      statusCopy={statusCopy}
-      errorCopy={errorCopy}
+      status={effectiveStatus}
+      statusCopy={effectiveStatusCopy}
+      errorCopy={effectiveErrorCopy}
     />
   );
 }

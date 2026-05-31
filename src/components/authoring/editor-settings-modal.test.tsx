@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
 
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EditorSettingsModal } from "./editor-settings-modal";
+
+type EditorSettingsLesson = ComponentProps<typeof EditorSettingsModal>["lesson"];
+
+const asEditorSettingsLesson = (value: unknown) => value as EditorSettingsLesson;
 
 const refresh = vi.fn();
 const setActiveThemeAction = vi.fn();
@@ -46,11 +50,11 @@ describe("EditorSettingsModal", () => {
   it("supports preview, save, and apply for theme selection", async () => {
     render(
       <EditorSettingsModal
-        lesson={{
+        lesson={asEditorSettingsLesson({
           lesson: { id: "lesson-1", revision: 2 },
           publishState: { latestVersion: 1 },
           materials: [],
-        } as any}
+        })}
         activeCourse={{ classLabels: ["七年级一班"] }}
         activeStepCount={3}
         builtInStepCount={1}
