@@ -49,7 +49,7 @@
 - [x] 61-01-PLAN.md — Wave 1：config（server-only env 收口）+ errors + error-mapping（PROV-02/04）
 - [x] 61-02-PLAN.md — Wave 2：redis-client + rate-limit（teacher+global 固定窗口，fail-closed）（PROV-03）
 - [x] 61-03-PLAN.md — Wave 2：registry（createOpenAICompatible 装配 LanguageModel）（PROV-01）
-- [ ] 61-04-PLAN.md — Wave 3：facade + index barrel + no-leak 静态证明（PROV-01/02）
+- [x] 61-04-PLAN.md — Wave 3：facade + index barrel + no-leak 静态证明（PROV-01/02）
 
 ### Phase 62: LessonAgent Typed Tool Layer
 **Goal**: 建立 `server/ai/tools` LessonAgent 工具层：一组 Zod 校验的 typed tools，输入输出在边界处被校验，只能经 DAL / Command Bus 读写，不可直连 DB、不可触 provider key、不可执行任意代码；教师能针对目标课时触发起草，Agent 产出符合 `content`/`task`/`quiz` schema 的步骤包，关键节点写入 v3.0 event bus。
@@ -101,7 +101,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 61. AI Provider Abstraction Layer | v3.2 | 4/5 | In Progress|  |
+| 61. AI Provider Abstraction Layer | v3.2 | 5/5 | Complete   | 2026-05-31 |
 | 62. LessonAgent Typed Tool Layer | v3.2 | 0/TBD | Not started | - |
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 0/TBD | Not started | - |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 0/TBD | Not started | - |

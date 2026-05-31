@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
-status: executing
-last_updated: "2026-05-31T04:31:49.640Z"
+status: verifying
+last_updated: "2026-05-31T04:43:32.416Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 4
-  percent: 0
+  completed_plans: 5
+  percent: 20
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: `.planning/PROJECT.md` (updated 2026-05-31)
 
 Phase: 61 (ai-provider-abstraction-layer) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-31
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [████████░░] 80%
 | Phase 61 P01 | 20min | 2 tasks | 5 files |
 | Phase 61 P02 | ~30min | 2 tasks | 3 files |
 | Phase 61 P03 | ~6min | 1 tasks | 2 files |
+| Phase 61 P04 | 20min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 61]: 61-02: enforceRateLimit teacher+global 双层固定窗口限流，超限抛 ProviderRateLimitError(retryAfter=key TTL)，Redis 不可达 fail-closed 拒绝放行
 - [Phase 61]: 61-02: getAiRedis URL 解析 AI_REDIS_URL→BULLMQ_REDIS_URL→REDIS_URL，与 BullMQ 连接隔离，连接失败复位以便重连
 - [Phase 61]: 61-03: getLanguageModel(modelId?) 收口 createOpenAICompatible 唯一装配点，provider 模块级 memoize，导出面仅 getLanguageModel；刻意收敛单 provider（N=1），待 N>1 升级 Map-based registry
+- [Phase ?]: facade maxRetries 显式封顶为 2，本层不叠加自定义重试（缓解 retry-amplification）
+- [Phase ?]: AI provider 公共面经 index.ts 具名 barrel 收口，不导出 config/registry 内部（PROV-02）
 
 ### Pending Todos
 
@@ -107,8 +110,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-31T04:31:38.657Z
-Stopped at: Completed 61-02-PLAN.md
+Last session: 2026-05-31T04:43:32.411Z
+Stopped at: Completed 61-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
