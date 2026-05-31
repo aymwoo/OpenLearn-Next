@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
-status: planning
-last_updated: "2026-05-31T03:40:00.000Z"
-last_activity: 2026-05-31 — Phase 61 planned (5 plans / 9 tasks / 4 waves), plan-checker APPROVED
+status: executing
+last_updated: "2026-05-31T04:01:02.758Z"
+last_activity: 2026-05-31
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 5
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-31)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 61 — AI Provider Abstraction Layer
+**Current focus:** Phase 61 — ai-provider-abstraction-layer
 
 ## Current Position
 
-Phase: 61 of 65 (AI Provider Abstraction Layer)
-Plan: 5 plans planned (61-00..04), plan-checker APPROVED
+Phase: 61 (ai-provider-abstraction-layer) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-05-31 — Phase 61 planned (5 plans / 9 tasks / 4 waves), plan-checker APPROVED
+Last activity: 2026-05-31
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -50,6 +50,8 @@ Progress: [░░░░░░░░░░] 0%
 - Last 5 plans: —
 - Trend: New milestone
 
+| Phase 61 P00 | 25min | 2 tasks | 6 files |
+
 ## Accumulated Context
 
 ### Roadmap Evolution
@@ -67,6 +69,8 @@ Recent decisions affecting current work:
 - [Milestone v3.2]: provider key 只在服务端 Node runtime，绝不进 Edge / 插件 manifest / 客户端。
 - [Milestone v3.2]: Agent 产出经 Command Bus 写入 draft lesson version，复用既有 publish/version 真相源，不新建第二真相源。
 - [Milestone v3.2]: 多 Agent 编排、RAG/Qdrant、MCP、插件触达 AI 继续 deferred。
+- [Phase ?]: Pin ai/openai-compatible to ~minor (~6.0.193 / ~2.0.48); upgrades via dedicated PR
+- [Phase ?]: AI fixtures target actual @ai-sdk/provider@3.0.x structured finishReason/usage shapes, not PLAN flat interfaces block
 
 ### Pending Todos
 
@@ -95,9 +99,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-31T03:40:00.000Z
-Stopped at: Phase 61 planned + plan-checker APPROVED; awaiting user go-ahead for execution
-Resume file: .planning/phases/61-ai-provider-abstraction-layer/61-00-PLAN.md
+Last session: 2026-05-31T04:01:02.753Z
+Stopped at: Completed 61-00-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

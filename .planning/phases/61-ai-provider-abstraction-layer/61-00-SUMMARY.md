@@ -146,3 +146,8 @@ None — `.env.example` keys are intentionally empty templates; real provider ke
 ---
 *Phase: 61-ai-provider-abstraction-layer*
 *Completed: 2026-05-31*
+
+## Self-Check: PASSED
+
+- All 3 fixture files + SUMMARY.md exist on disk.
+- All 3 commits (9fb53cb, 1843c7c, 59e9cf1) present in git history.

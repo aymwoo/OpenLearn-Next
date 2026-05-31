@@ -45,7 +45,7 @@
   3. 超出限流/配额的 AI 调用返回明确可读错误，而不是静默失败或卡死。
   4. provider 调用失败（超时、上游错误、解析失败）返回 typed 错误，调用链能区分可重试与不可重试。
 **Plans**: 5 plans
-- [ ] 61-00-PLAN.md — Wave 0：装 ai/@ai-sdk/openai-compatible + .env.example AI 段 + 共享测试夹具
+- [x] 61-00-PLAN.md — Wave 0：装 ai/@ai-sdk/openai-compatible + .env.example AI 段 + 共享测试夹具
 - [ ] 61-01-PLAN.md — Wave 1：config（server-only env 收口）+ errors + error-mapping（PROV-02/04）
 - [ ] 61-02-PLAN.md — Wave 2：redis-client + rate-limit（teacher+global 固定窗口，fail-closed）（PROV-03）
 - [ ] 61-03-PLAN.md — Wave 2：registry（createOpenAICompatible 装配 LanguageModel）（PROV-01）
@@ -101,7 +101,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 61. AI Provider Abstraction Layer | v3.2 | 0/TBD | Not started | - |
+| 61. AI Provider Abstraction Layer | v3.2 | 1/5 | In Progress|  |
 | 62. LessonAgent Typed Tool Layer | v3.2 | 0/TBD | Not started | - |
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 0/TBD | Not started | - |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 0/TBD | Not started | - |

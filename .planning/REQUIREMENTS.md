@@ -8,10 +8,10 @@
 
 ### AI Provider 抽象层 (PROV)
 
-- [ ] **PROV-01**: 系统能通过统一的 provider 接口调用 LLM 完成一次文本/结构化生成，provider 实现可替换而不影响调用方。
-- [ ] **PROV-02**: provider 密钥只在服务端 Node runtime 读取，绝不出现在客户端、Edge runtime、插件 manifest 或返回给浏览器的响应中。
-- [ ] **PROV-03**: 教师触发的 AI 调用受限流/配额保护，超限时返回明确的可读错误而非静默失败或卡死。
-- [ ] **PROV-04**: provider 调用失败（超时、上游错误、解析失败）时返回 typed 错误，调用链能区分可重试与不可重试。
+- [x] **PROV-01**: 系统能通过统一的 provider 接口调用 LLM 完成一次文本/结构化生成，provider 实现可替换而不影响调用方。
+- [x] **PROV-02**: provider 密钥只在服务端 Node runtime 读取，绝不出现在客户端、Edge runtime、插件 manifest 或返回给浏览器的响应中。
+- [x] **PROV-03**: 教师触发的 AI 调用受限流/配额保护，超限时返回明确的可读错误而非静默失败或卡死。
+- [x] **PROV-04**: provider 调用失败（超时、上游错误、解析失败）时返回 typed 错误，调用链能区分可重试与不可重试。
 
 ### LessonAgent 工具层 (AGENT)
 
@@ -64,10 +64,10 @@ Every v3.2 requirement maps to exactly one phase. Coverage: 18/18.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PROV-01 | Phase 61 | Pending |
-| PROV-02 | Phase 61 | Pending |
-| PROV-03 | Phase 61 | Pending |
-| PROV-04 | Phase 61 | Pending |
+| PROV-01 | Phase 61 | Complete |
+| PROV-02 | Phase 61 | Complete |
+| PROV-03 | Phase 61 | Complete |
+| PROV-04 | Phase 61 | Complete |
 | AGENT-01 | Phase 62 | Pending |
 | AGENT-02 | Phase 62 | Pending |
 | AGENT-03 | Phase 62 | Pending |
