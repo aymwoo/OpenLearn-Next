@@ -34,19 +34,24 @@ import {
   AutosaveResultDTOSchema,
   BuiltInTeachingStepKeySchema,
   CourseDTOSchema,
+  LessonDraftReviewDTOSchema,
   LessonEditorDTOSchema,
   LessonPublishReadinessDTOSchema,
   LessonSummaryDTOSchema,
+  LessonStepDTOSchema,
   PublishResultDTOSchema,
   TeacherLessonPreviewDTOSchema,
   TeacherAuthoringOverviewDTOSchema,
+  buildLessonDraftDiffRows,
   lessonStepPayloadSchema,
   type TeachingDesignFallbackReason,
   type TeachingDesignStatus,
   type AutosaveResultDTO,
+  type LessonDraftReviewDTO,
   type LessonPreparationIssueDTO,
   type LessonPreparationSummaryDTO,
   type LessonPublishIssueDTO,
+  type LessonStepDTO,
   type LessonStepPayload,
   type PublishResultDTO,
 } from "@/lib/dto/lesson-authoring";
@@ -1451,6 +1456,148 @@ export async function publishLesson(input: { lessonId: string; expectedRevision?
     version,
     publishedVersionId: published.id,
     publishedAt: toIso(published.publishedAt),
+  });
+}
+
+/**
+ * 根据 draft snapshotJson.steps 中的 payload 为每个草稿步骤派生显示标题。
+ * content 类步骤有 title 字段，task/quiz 类通过 prompt/question 派生。
+ */
+function deriveDraftStepTitle(step: LessonStepPayload): string {
+  switch (step.type) {
+    case "content":
+      return step.title;
+    case "task":
+      return step.prompt;
+    case "quiz":
+      return step.question;
+    default:
+      return "lesson-step";
+  }
+}
+
+/**
+ * Phase 64 Plan 02 — 读取当前课时最新的 pending AI 草稿，与活跃步骤做
+ * 索引对齐 diff，返回审校 UI 所需的完整 DTO。
+ *
+ * 没有 pending 草稿时返回 hasPendingDraft=false、draftSteps=[]、diffRows=[]，
+ * 以便调用方无需在 DAL 外做空值分支。
+ */
+export async function getLessonDraftReviewDTO(input: { lessonId: string }): Promise<LessonDraftReviewDTO> {
+  const scope = await assertActiveTeacher();
+  const { lesson, course } = await getScopedLesson(input.lessonId, scope);
+
+  // 查最新 pending 草稿（D-01 只使用最新 pending 版本）
+  const draftRows = await db.query.draftLessonVersions.findMany({
+    where: and(
+      eq(draftLessonVersions.lessonId, lesson.id),
+      eq(draftLessonVersions.status, "pending"),
+    ),
+    orderBy: desc(draftLessonVersions.version),
+  });
+  const draft = draftRows[0] ?? null;
+
+  // 查活跃步骤（未归档，rank 升序）
+  const stepRows = await db.query.lessonSteps.findMany({
+    where: and(eq(lessonSteps.lessonId, lesson.id), isNull(lessonSteps.archivedAt)),
+    orderBy: (step, { asc }) => [asc(step.rank)],
+  });
+
+  // 构建 liveSteps DTO（遵循既有 DTO 构建模式）
+  const liveSteps: LessonStepDTO[] = stepRows.flatMap((step) => {
+    const parsed = lessonStepPayloadSchema.safeParse(step.payloadJson);
+    if (!parsed.success) {
+      return [];
+    }
+    const hydrated = hydrateTeachingDesign(parsed.data);
+    return [
+      {
+        id: step.id,
+        lessonId: step.lessonId,
+        type: step.type as "content" | "task" | "quiz",
+        title: step.title,
+        rank: step.rank,
+        payload: hydrated.payload,
+        teachingDesignStatus: hydrated.teachingDesignStatus,
+        needsTeachingDesignRefinement: hydrated.needsTeachingDesignRefinement,
+        teachingDesignFallbackReason: hydrated.teachingDesignFallbackReason,
+        archivedAt: nullableIso(step.archivedAt),
+        updatedAt: toIso(step.updatedAt),
+      },
+    ] as unknown as LessonStepDTO[];
+  });
+
+  if (!draft) {
+    // 没有 pending 草稿 → 返回空 diff 的 DTO
+    return LessonDraftReviewDTOSchema.parse({
+      lesson: await getLessonSummaryDTO(lesson),
+      liveSteps,
+      draftSteps: [],
+      draftMeta: {
+        draftVersionId: "none",
+        version: 0,
+        source: "ai",
+        status: "pending",
+        createdAt: toIso(new Date(0)),
+        stepCount: 0,
+      },
+      diffRows: [],
+      hasPendingDraft: false,
+    });
+  }
+
+  // 解析 snapshotJson 中的步骤数组
+  const snapshotStepsRaw = (draft.snapshotJson as { steps?: unknown[] } | null)?.steps;
+  if (!Array.isArray(snapshotStepsRaw)) {
+    throw new Error("DRAFT_SNAPSHOT_INVALID");
+  }
+
+  const draftStepsPayload: LessonStepPayload[] = [];
+  for (const raw of snapshotStepsRaw) {
+    const parsed = lessonStepPayloadSchema.safeParse(raw);
+    if (!parsed.success) {
+      continue;
+    }
+    draftStepsPayload.push(parsed.data);
+  }
+
+  // 将 draft payload 映射为 DTO 形状（合成 id/rank/archivedAt 为 null 等字段）
+  const draftSteps: LessonStepDTO[] = draftStepsPayload.map((payload, index) => {
+    const hydrated = hydrateTeachingDesign(payload);
+    const stepType = payload.type as "content" | "task" | "quiz";
+    const title = deriveDraftStepTitle(payload);
+    return {
+      id: `draft-step-${index}`,
+      lessonId: lesson.id,
+      type: stepType,
+      title,
+      rank: `draft-${String(index).padStart(2, "0")}`,
+      payload: hydrated.payload,
+      teachingDesignStatus: hydrated.teachingDesignStatus,
+      needsTeachingDesignRefinement: hydrated.needsTeachingDesignRefinement,
+      teachingDesignFallbackReason: hydrated.teachingDesignFallbackReason,
+      archivedAt: null,
+      updatedAt: toIso(draft.createdAt),
+    } as unknown as LessonStepDTO;
+  });
+
+  // 调用 Plan 01 的纯 diff 函数
+  const diffRows = buildLessonDraftDiffRows(liveSteps, draftSteps);
+
+  return LessonDraftReviewDTOSchema.parse({
+    lesson: await getLessonSummaryDTO(lesson),
+    liveSteps,
+    draftSteps,
+    draftMeta: {
+      draftVersionId: draft.id,
+      version: draft.version,
+      source: draft.source,
+      status: draft.status as "pending",
+      createdAt: toIso(draft.createdAt),
+      stepCount: draftStepsPayload.length,
+    },
+    diffRows,
+    hasPendingDraft: true,
   });
 }
 
