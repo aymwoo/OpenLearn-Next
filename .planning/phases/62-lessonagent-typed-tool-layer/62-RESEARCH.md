@@ -167,17 +167,23 @@ lessonStepPayloadSchema = z.discriminatedUnion("type", [ content, task, quiz ]);
 
 ---
 
-## 风险与开放问题
+## 风险与开放问题 (RESOLVED)
+
+> 全部开放问题已在 plan-phase 阶段解决并编码进 62-01/03/04（用户确认采纳 option (a)）。
 
 1. **【架构 / HIGH】事件无法脱离 command 独立落账。** D-03 字面读作「经 `appendPlatformEvents` 落账」，但该函数要求父 `commandId` 并就地更新 `platformCommands`/`platformCommandAttempts`。
    - 需 planner 决定：(a) 新增 AI/lesson command 类型 + handler，走标准 `dispatchPlatformCommand`（推荐，事务/重试/去重一致）；还是 (b) 为 AI 域新增一条轻量 append 路径（偏离现有不变量，风险更高）。
    - 当前 command 类型仅 `PlatformPluginGovernanceCommandTypes`，无 AI/lesson command —— 需新增并注册 correlation（`{ correlationId, causationId, producer }`，commands/contracts.ts:38）。
+   - **RESOLVED:** 采纳 option (a) —— 新增 `lesson.draft.run` command（sentinel `pluginId:"core.lesson-agent"` 复用既有 `{schoolId,pluginId}` scope schema，零改 bus.ts 失败路径），handler 经 `emittedEvents` 落 D-03 三事件；失败节点复用 generic `platform.command.failed`。见 62-03。
 
 2. **【契约 / MEDIUM】事件模型 plugin-centric。** `aggregateType` 硬编码 `plugin`、`category` 仅 `outcome`/`domain`。新增 AI 域事件需扩 discriminated union 并定义新 `aggregateType`，并确保步骤包 DTO 不违反 `SummaryRecordSchema`（`*json` 字段名禁用、禁整包快照）—— 步骤包只能以摘要进事件。
+   - **RESOLVED:** 62-01 扩展 `events/contracts.ts` discriminated union，新增 `aggregateType:"lesson"` 的三条 `.strict()` summary-only 事件；步骤包整包仅入 `resultSummary`，不进事件 payload。
 
 3. **【SDK / LOW】Agent API 仍 experimental。** v6 的 `Agent` 是 type-only（运行时 `undefined`），可用的是 `Experimental_Agent`/`ToolLoopAgent`。N=1 建议避开 Agent 类、用单工具单轮 `generateText`，降低对 experimental 面的耦合。`maxSteps` 不存在，用 `stopWhen: stepCountIs(n)`。
+   - **RESOLVED:** 本 phase 经 Phase 61 facade `aiGenerateObject({ schema })` 单调用产出结构化步骤包，规避 experimental Agent 类。见 62-02/62-04。
 
 4. **【范围 / LOW】不在本 phase 引入 AI-SPEC / eval 体系**（归 Phase 65）。研究据此未设计评测，仅保证链路可测。
+   - **RESOLVED:** 维持推迟，eval/guardrails 归 Phase 65。
 
 ---
 
