@@ -123,3 +123,8 @@ None（运行期）— 生产部署需配置 `AI_REDIS_URL`（或复用 `BULLMQ_
 ---
 *Phase: 61-ai-provider-abstraction-layer*
 *Completed: 2026-05-31*
+
+## Self-Check: PASSED
+- FOUND: redis-client.ts, rate-limit.ts, rate-limit.test.ts, 61-02-SUMMARY.md
+- FOUND commits: 05662d0 (test), ca5ccb6 (feat), 9acee78 (test), bb40526 (feat), b6bc062 (docs)
+- Tests: 9/9 rate-limit.test.ts pass (4 redis-client + 5 enforceRateLimit)
