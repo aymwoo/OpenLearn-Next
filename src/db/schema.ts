@@ -544,6 +544,8 @@ export const lessons = sqliteTable(
     status: text("status").notNull().default("draft"),
     revision: integer("revision").notNull().default(1),
     publishedVersionId: text("publishedVersionId"),
+    aiDraftAppliedAt: integer("aiDraftAppliedAt", { mode: "timestamp_ms" }),
+    latestDraftVersionId: text("latestDraftVersionId"),
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
     updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
@@ -627,6 +629,10 @@ export const draftLessonVersions = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+    status: text("status", { enum: ["pending", "applied", "discarded"] })
+      .notNull()
+      .default("pending"),
+    archivedAt: integer("archivedAt", { mode: "timestamp_ms" }),
   },
   (table) => [
     index("draftLessonVersions_lessonId_version_idx").on(table.lessonId, table.version),
