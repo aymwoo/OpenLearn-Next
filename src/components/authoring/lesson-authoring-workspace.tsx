@@ -12,11 +12,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { dispatchLessonStepEditorCommand, lessonStepEditorSaveRequestEvent } from "@/components/authoring/editor-command-events";
+import { LessonDraftReviewWorkspace } from "@/components/authoring/lesson-draft-review-workspace";
 import { LessonStepEditor } from "@/components/authoring/lesson-step-editor";
 import {
   type BuiltInTeachingStepTemplatePayload,
 } from "@/lib/dto/resource-ai";
 import type {
+  LessonDraftReviewDTO,
   LessonEditorDTO,
   LessonStepDTO,
   TeacherAuthoringOverviewDTO,
@@ -32,6 +34,8 @@ type LessonAuthoringWorkspaceProps = {
   overview: TeacherAuthoringOverviewDTO;
   lesson: LessonEditorDTO | null;
   builtInTemplates: BuiltInTemplateForAuthoring[];
+  mode?: string;
+  draftReview?: LessonDraftReviewDTO | null;
 };
 
 const stepLabels = {
@@ -80,12 +84,24 @@ const libraryFilters = [
 
 type LibraryFilter = (typeof libraryFilters)[number]["id"];
 
-export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates }: LessonAuthoringWorkspaceProps) {
+export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates, mode, draftReview }: LessonAuthoringWorkspaceProps) {
   const [selectedStepId, setSelectedStepId] = useState(lesson?.steps[0]?.id ?? null);
   const [isStepEditorOpen, setIsStepEditorOpen] = useState(false);
   const [resourceQuery, setResourceQuery] = useState("");
   const [activeLibraryFilter, setActiveLibraryFilter] = useState<LibraryFilter>("all");
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+
+  // ─── Review mode: render dedicated review workspace ───
+  if (mode === "review" && draftReview?.hasPendingDraft) {
+    return <LessonDraftReviewWorkspace draftReview={draftReview} lesson={lesson} overview={overview} />;
+  }
+
+  // ─── Review mode — no pending draft: show empty state ───
+  if (mode === "review" && !draftReview?.hasPendingDraft) {
+    return <EmptyDraftReviewState />;
+  }
+
+  // ─── Normal edit mode below — unchanged ───
   const steps = useMemo(() => lesson?.steps.filter((step) => !step.archivedAt) ?? [], [lesson?.steps]);
   const effectiveSelectedStepId = selectedStepId && steps.some((step) => step.id === selectedStepId)
     ? selectedStepId
@@ -505,4 +521,21 @@ function getStepMinutes(step: LessonStepDTO) {
   if (step.type === "content") return 12;
   if (step.type === "task") return 15;
   return 8;
+}
+
+/** Empty state shown when entering review mode but no pending draft exists. */
+function EmptyDraftReviewState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center px-6">
+      <div className="rounded-[var(--radius-card)] bg-surface-container-lowest shadow-ambient p-10 max-w-md">
+        <Sparkles className="size-10 text-primary mx-auto mb-4" aria-hidden />
+        <h3 className="text-xl font-semibold text-on-surface">
+          当前没有待审校的 AI 草稿
+        </h3>
+        <p className="mt-3 text-sm leading-6 text-on-surface-variant">
+          先让 LessonAgent 生成草稿，新的审校任务会出现在编辑器顶部。
+        </p>
+      </div>
+    </div>
+  );
 }

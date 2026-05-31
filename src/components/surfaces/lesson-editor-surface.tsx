@@ -1,9 +1,14 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
 import {
   Layers3,
   MonitorUp,
   Settings2,
   Sparkles,
   TimerReset,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { LessonEditorHeaderActions } from "@/components/authoring/lesson-editor-header-actions";
@@ -11,6 +16,7 @@ import { LessonAuthoringWorkspace } from "@/components/authoring/lesson-authorin
 import { surfaceWidths } from "@/components/surfaces/surface-widths";
 import { teacherSurfaceRhythm } from "@/components/surfaces/teacher-surface-rhythm";
 import type {
+  LessonDraftReviewDTO,
   LessonEditorDTO,
   TeacherAuthoringOverviewDTO,
 } from "@/lib/dto/lesson-authoring";
@@ -29,6 +35,8 @@ type LessonEditorSurfaceProps = {
   themes: ThemeRegistryDTO[];
   activeThemeId: string | null;
   pluginSlot?: React.ReactNode;
+  mode?: string;
+  draftReview?: LessonDraftReviewDTO | null;
 };
 
 export function LessonEditorSurface({
@@ -38,13 +46,26 @@ export function LessonEditorSurface({
   themes,
   activeThemeId,
   pluginSlot,
+  mode,
+  draftReview,
 }: LessonEditorSurfaceProps) {
+  const [showDiscoveryPrompt, setShowDiscoveryPrompt] = useState(true);
   const activeCourse = lesson?.course ?? overview.courses[0];
   const activeLesson = lesson?.lesson ?? overview.lessons[0];
   const steps = lesson?.steps ?? [];
   const activeStepCount = steps.filter((step) => !step.archivedAt).length;
   const builtInStepCount = steps.filter((step) => step.payload.builtInSource).length;
   const previewHref = lesson ? `/teacher/editor/preview?courseId=${lesson.course.id}&lessonId=${lesson.lesson.id}` : null;
+  const isReviewMode = mode === "review";
+  const hasDraft = draftReview?.hasPendingDraft === true;
+  const pendingDraftChangedCount =
+    draftReview?.diffRows.filter((r) => r.state !== "unchanged").length ?? 0;
+  const editUrl = lesson
+    ? `/teacher/editor?courseId=${lesson.course.id}&lessonId=${lesson.lesson.id}`
+    : "/teacher/editor";
+  const reviewUrl = lesson
+    ? `/teacher/editor?courseId=${lesson.course.id}&lessonId=${lesson.lesson.id}&mode=review`
+    : "/teacher/editor?mode=review";
   const preparationStatus = lesson
     ? lesson.preparationSummary.blockingIssues.length > 0
       ? "阻断项待处理"
@@ -138,6 +159,31 @@ export function LessonEditorSurface({
               {/* Separator */}
               <span className="hidden xl:block h-6 w-px bg-surface-variant/50" aria-hidden />
 
+              {/* Segmented mode switch: 编辑 | 审校 */}
+              <div className="flex rounded-[var(--radius-card)] bg-surface-container-low p-1 gap-1">
+                <Link
+                  href={editUrl}
+                  replace
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition ${!isReviewMode ? "bg-surface-container-lowest shadow-ambient text-on-surface" : "text-on-surface-variant hover:text-on-surface"}`}
+                >
+                  编辑
+                </Link>
+                <Link
+                  href={reviewUrl}
+                  replace
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition flex items-center gap-1.5 ${isReviewMode ? "bg-surface-container-lowest shadow-ambient text-on-surface" : "text-on-surface-variant hover:text-on-surface"}`}
+                >
+                  审校
+                  {hasDraft ? (
+                    <span className="inline-flex items-center justify-center rounded-full bg-tertiary-container/70 text-tertiary text-xs font-semibold min-w-[1.25rem] h-5 px-1.5">
+                      {pendingDraftChangedCount}
+                    </span>
+                  ) : null}
+                </Link>
+              </div>
+
+              <span className="hidden xl:block h-6 w-px bg-surface-variant/50" aria-hidden />
+
               <LessonEditorHeaderActions
                 lesson={lesson}
                 activeCourse={activeCourse}
@@ -154,12 +200,41 @@ export function LessonEditorSurface({
         </div>
       </section>
 
+      {/* Glass discovery prompt — appears in edit mode when unreviewed AI draft exists */}
+      {!isReviewMode && hasDraft && showDiscoveryPrompt ? (
+        <div className="mx-auto w-full max-w-[1360px] rounded-2xl bg-surface/85 backdrop-blur-xl px-6 py-4 shadow-ambient flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Sparkles className="size-5 text-primary" aria-hidden />
+            <span className="text-sm text-on-surface">AI 已生成草稿</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              href={reviewUrl}
+              replace
+              className="text-sm font-semibold text-primary hover:underline"
+            >
+              点击审校 →
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowDiscoveryPrompt(false)}
+              className="p-1 text-on-surface-variant hover:text-on-surface transition"
+              aria-label="关闭提示"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Full-width Authoring Workspace */}
       <section className={cn(teacherSurfaceRhythm.section, "flex-1 overflow-hidden")}>
         <LessonAuthoringWorkspace
           overview={overview}
           lesson={lesson}
           builtInTemplates={builtInTemplates}
+          mode={mode}
+          draftReview={draftReview}
         />
       </section>
     </div>

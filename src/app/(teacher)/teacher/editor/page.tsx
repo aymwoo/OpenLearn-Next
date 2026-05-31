@@ -11,12 +11,15 @@ import {
   getValidThemesForSchool,
   listBuiltInTeachingStepTemplates,
 } from "@/features/runtime-platform/authoring";
+import { getLessonDraftReviewDTO } from "@/lib/dal/lesson-authoring";
+import type { LessonDraftReviewDTO } from "@/lib/dto/lesson-authoring";
 import { getActiveThemeId } from "@/lib/theme-cookie";
 
 type TeacherEditorPageProps = {
   searchParams?: Promise<{
     courseId?: string;
     lessonId?: string;
+    mode?: string;
   }>;
 };
 
@@ -42,6 +45,10 @@ export default async function TeacherEditorPage({ searchParams }: TeacherEditorP
     ? scopedOverview.lessons.find((lesson) => lesson.id === lessonId && lesson.courseId === courseId) ?? null
     : null;
   const lesson = scopedLessonSummary ? await getLessonEditorDTO(scopedLessonSummary.id) : null;
+  const draftReview: LessonDraftReviewDTO | null =
+    lesson && params.mode === "review"
+      ? await getLessonDraftReviewDTO({ lessonId: lesson.lesson.id })
+      : null;
   const builtInTemplates = lesson
     ? await listBuiltInTeachingStepTemplates({ actorId: scope.userId, schoolId: lesson.course.schoolId })
     : [];
@@ -83,6 +90,8 @@ export default async function TeacherEditorPage({ searchParams }: TeacherEditorP
       builtInTemplates={builtInTemplates}
       themes={themes}
       activeThemeId={activeThemeId}
+      mode={params.mode}
+      draftReview={draftReview}
       pluginSlot={
         <PluginRenderer
           anchor="lesson.sidebar"
