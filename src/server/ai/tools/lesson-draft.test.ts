@@ -2,6 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
 
+/**
+ * `ai` 把 tool.inputSchema 暴露为 `FlexibleSchema`（运行期即我们传入的 ZodObject），
+ * 类型上不直接含 `safeParse`/`shape`，故测试内收窄回结构型以做边界断言。
+ */
+type InputSchemaView = {
+  safeParse: (value: unknown) => { success: boolean };
+  shape: Record<string, unknown>;
+};
+const asInputSchema = (schema: unknown) => schema as unknown as InputSchemaView;
+
 // server-only 在测试环境是 no-op（providers/no-leak.test.ts:8 先例）。
 vi.mock("server-only", () => ({}));
 
@@ -49,7 +59,7 @@ describe("createDraftLessonStepTool", () => {
 
   it("Test 1（AGENT-01 边界拒绝）：非法 payload 在 inputSchema 处被拒", () => {
     const tool = createDraftLessonStepTool({ teacherId: "t1" });
-    const parsed = tool.inputSchema.safeParse({
+    const parsed = asInputSchema(tool.inputSchema).safeParse({
       lessonId: "",
       stepType: "essay",
       intent: "",
@@ -59,7 +69,7 @@ describe("createDraftLessonStepTool", () => {
 
   it("Test 1b（AGENT-01）：合法 payload 通过 inputSchema", () => {
     const tool = createDraftLessonStepTool({ teacherId: "t1" });
-    const parsed = tool.inputSchema.safeParse({
+    const parsed = asInputSchema(tool.inputSchema).safeParse({
       lessonId: "l1",
       stepType: "content",
       intent: "导入",
@@ -81,7 +91,7 @@ describe("createDraftLessonStepTool", () => {
   it("Test 3（Spoofing）：teacherId 不在 inputSchema，且经闭包注入 facade", async () => {
     const tool = createDraftLessonStepTool({ teacherId: "t1" });
     // inputSchema 不含 teacherId 键。
-    expect(Object.keys((tool.inputSchema as { shape: Record<string, unknown> }).shape)).not.toContain(
+    expect(Object.keys(asInputSchema(tool.inputSchema).shape)).not.toContain(
       "teacherId",
     );
 
