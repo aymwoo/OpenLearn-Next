@@ -44,7 +44,12 @@
   2. provider 密钥只在服务端 Node runtime 读取，在客户端、Edge runtime、插件 manifest 与浏览器响应中均不可见（有测试或检查证明不泄漏）。
   3. 超出限流/配额的 AI 调用返回明确可读错误，而不是静默失败或卡死。
   4. provider 调用失败（超时、上游错误、解析失败）返回 typed 错误，调用链能区分可重试与不可重试。
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 61-00-PLAN.md — Wave 0：装 ai/@ai-sdk/openai-compatible + .env.example AI 段 + 共享测试夹具
+- [ ] 61-01-PLAN.md — Wave 1：config（server-only env 收口）+ errors + error-mapping（PROV-02/04）
+- [ ] 61-02-PLAN.md — Wave 2：redis-client + rate-limit（teacher+global 固定窗口，fail-closed）（PROV-03）
+- [ ] 61-03-PLAN.md — Wave 2：registry（createOpenAICompatible 装配 LanguageModel）（PROV-01）
+- [ ] 61-04-PLAN.md — Wave 3：facade + index barrel + no-leak 静态证明（PROV-01/02）
 
 ### Phase 62: LessonAgent Typed Tool Layer
 **Goal**: 建立 `server/ai/tools` LessonAgent 工具层：一组 Zod 校验的 typed tools，输入输出在边界处被校验，只能经 DAL / Command Bus 读写，不可直连 DB、不可触 provider key、不可执行任意代码；教师能针对目标课时触发起草，Agent 产出符合 `content`/`task`/`quiz` schema 的步骤包，关键节点写入 v3.0 event bus。
