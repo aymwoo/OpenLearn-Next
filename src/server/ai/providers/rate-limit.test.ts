@@ -155,9 +155,10 @@ describe("enforceRateLimit（teacher+global 双层固定窗口 + fail-closed）"
       captured = error;
     }
 
-    expect(captured).toBeInstanceOf(ProviderRateLimitError);
-    expect((captured as ProviderRateLimitError).retryAfter).toBe(42);
-    expect((captured as ProviderRateLimitError).message).toContain("频繁");
+    const err = captured as ProviderRateLimitError;
+    expect(err?.kind).toBe("rate_limit");
+    expect(err.retryAfter).toBe(42);
+    expect(err.message).toContain("频繁");
   });
 
   it("teacher 未超但 global 超限 → 抛错（双层各自独立触发）", async () => {
@@ -169,9 +170,9 @@ describe("enforceRateLimit（teacher+global 双层固定窗口 + fail-closed）"
     await enforceRateLimit("teacher-b");
     await enforceRateLimit("teacher-b");
 
-    await expect(enforceRateLimit("teacher-b")).rejects.toBeInstanceOf(
-      ProviderRateLimitError,
-    );
+    await expect(enforceRateLimit("teacher-b")).rejects.toMatchObject({
+      kind: "rate_limit",
+    });
   });
 
   it("两层都未超 → resolve（不抛）", async () => {
@@ -187,9 +188,9 @@ describe("enforceRateLimit（teacher+global 双层固定窗口 + fail-closed）"
     connectShouldFail = true;
     const { enforceRateLimit } = await import("./rate-limit");
 
-    await expect(enforceRateLimit("teacher-d")).rejects.toBeInstanceOf(
-      ProviderRateLimitError,
-    );
+    await expect(enforceRateLimit("teacher-d")).rejects.toMatchObject({
+      kind: "rate_limit",
+    });
   });
 
   it("限额走 env：AI_RL_TEACHER_MAX=1 时第 2 次即超限", async () => {
@@ -199,8 +200,8 @@ describe("enforceRateLimit（teacher+global 双层固定窗口 + fail-closed）"
 
     await enforceRateLimit("teacher-e");
 
-    await expect(enforceRateLimit("teacher-e")).rejects.toBeInstanceOf(
-      ProviderRateLimitError,
-    );
+    await expect(enforceRateLimit("teacher-e")).rejects.toMatchObject({
+      kind: "rate_limit",
+    });
   });
 });
