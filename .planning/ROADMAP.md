@@ -89,7 +89,12 @@
   2. 教师能逐项或整体编辑 AI 起草的步骤后再决定去留。
   3. 教师能接受 AI 起草使其进入既有发布链路，或丢弃起草且不影响原课时。
   4. 审校界面对齐 Stitch `5322129002350954765` 与 `DESIGN.md`（Lexend、无 1px 分隔线、tonal surface、glass/gradient CTA）。
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 64-01-PLAN.md — Schema + DTO foundation (draft lifecycle fields, migration, diff DTOs, editable step schemas)
+- [ ] 64-02-PLAN.md — DAL layer (getLessonDraftReviewDTO, applyDraftToLiveLesson, discardDraftLessonVersion)
+- [ ] 64-03-PLAN.md — Server Actions + Commands/Events (apply/discard actions, lesson.draft.accept/discard commands, event contracts)
+- [ ] 64-04-PLAN.md — Editor UI integration (mode=review, glass prompt, diff workspace, edit panel, Stitch alignment)
 **UI hint**: yes
 
 ### Phase 65: Eval, Guardrails & verify:phase Close Gate
@@ -112,7 +117,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | 61. AI Provider Abstraction Layer | v3.2 | 5/5 | Complete   | 2026-05-31 |
 | 62. LessonAgent Typed Tool Layer | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 4/4 | Complete   | 2026-05-31 |
-| 64. Teacher Review & Accept-Publish Surface | v3.2 | 0/TBD | Not started | - |
+| 64. Teacher Review & Accept-Publish Surface | v3.2 | 0/4 | Not started | - |
 | 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 0/TBD | Not started | - |
 
 <details>
