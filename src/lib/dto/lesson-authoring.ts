@@ -402,3 +402,113 @@ export type LessonPreparationSummaryDTO = z.infer<typeof LessonPreparationSummar
 export type LessonPublishReadinessDTO = z.infer<typeof LessonPublishReadinessDTOSchema>;
 export type TeacherLessonPreviewStepDTO = z.infer<typeof TeacherLessonPreviewStepDTOSchema>;
 export type TeacherLessonPreviewDTO = z.infer<typeof TeacherLessonPreviewDTOSchema>;
+
+// ============================================================
+// Phase 64 — Draft Review Lifecycle DTOs & Diff Classification
+// ============================================================
+
+export const LessonDraftStatusSchema = z.enum(["pending", "applied", "discarded"]);
+
+export const LessonDraftDiffStateSchema = z.enum(["new", "modified", "deleted", "unchanged"]);
+
+/**
+ * Editable fields a teacher can modify in the review side panel.
+ * Only title, description, and content are exposed — step type and advanced
+ * plugin/voting configurations are locked (D-03 / D-13 / REVIEW-02).
+ */
+export const EditableDraftStepSchema = z
+  .object({
+    title: z.string().min(1),
+    description: z.string().optional(),
+    content: z.string().optional(),
+  })
+  .strict();
+
+export type EditableDraftStep = z.infer<typeof EditableDraftStepSchema>;
+
+export const LessonDraftDiffRowSchema = z.object({
+  index: z.number().int().nonnegative(),
+  state: LessonDraftDiffStateSchema,
+  liveStep: LessonStepDTOSchema.nullable(),
+  draftStep: LessonStepDTOSchema.nullable(),
+});
+
+export type LessonDraftDiffRow = z.infer<typeof LessonDraftDiffRowSchema>;
+
+export const LessonDraftMetaSchema = z.object({
+  draftVersionId: z.string(),
+  version: z.number().int().nonnegative(),
+  source: z.string(),
+  status: LessonDraftStatusSchema,
+  createdAt: z.string(),
+  stepCount: z.number().int().nonnegative(),
+});
+
+export const LessonDraftReviewDTOSchema = z.object({
+  lesson: LessonSummaryDTOSchema,
+  liveSteps: z.array(LessonStepDTOSchema),
+  draftSteps: z.array(LessonStepDTOSchema),
+  draftMeta: LessonDraftMetaSchema,
+  diffRows: z.array(LessonDraftDiffRowSchema),
+  hasPendingDraft: z.boolean(),
+});
+
+export type LessonDraftReviewDTO = z.infer<typeof LessonDraftReviewDTOSchema>;
+
+/**
+ * Derive a content-comparable string from a step payload that reflects the
+ * teacher-visible content (title, body, prompt, question).
+ */
+function stepContentFingerprint(step: LessonStepDTO): string {
+  const p = step.payload;
+  switch (p.type) {
+    case "content":
+      return JSON.stringify({ title: step.title, body: p.body });
+    case "task":
+      return JSON.stringify({ title: step.title, prompt: p.prompt });
+    case "quiz":
+      return JSON.stringify({ title: step.title, question: p.question });
+    default:
+      return JSON.stringify({ title: step.title });
+  }
+}
+
+/**
+ * Compare live steps and draft steps index-aligned per D-02.
+ *
+ * Returns one {@link LessonDraftDiffRow} per index position in the union
+ * of both arrays (max length wins). Missing entries are treated as null
+ * so the diff state can be expressed cleanly.
+ */
+export function buildLessonDraftDiffRows(
+  liveSteps: readonly LessonStepDTO[],
+  draftSteps: readonly LessonStepDTO[],
+): LessonDraftDiffRow[] {
+  const maxLen = Math.max(liveSteps.length, draftSteps.length);
+  const rows: LessonDraftDiffRow[] = [];
+
+  for (let i = 0; i < maxLen; i++) {
+    const live = liveSteps[i] ?? null;
+    const draft = draftSteps[i] ?? null;
+
+    let state: z.infer<typeof LessonDraftDiffStateSchema>;
+
+    if (live === null && draft !== null) {
+      state = "new";
+    } else if (live !== null && draft === null) {
+      state = "deleted";
+    } else if (live !== null && draft !== null) {
+      state =
+        stepContentFingerprint(live) === stepContentFingerprint(draft)
+          ? "unchanged"
+          : "modified";
+    } else {
+      // both null — shouldn't happen given the loop bounds
+      state = "unchanged";
+    }
+
+    rows.push({ index: i, state, liveStep: live, draftStep: draft });
+  }
+
+  return rows;
+}
