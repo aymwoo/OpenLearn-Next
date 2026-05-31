@@ -69,9 +69,11 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "~2.0.48",
     "@auth/drizzle-adapter": "^1.11.2",
     "@libsql/client": "^0.17.3",
     "@radix-ui/react-slot": "1.2.4",
+    "ai": "~6.0.193",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.76.10",
     "clsx": "2.1.1",
