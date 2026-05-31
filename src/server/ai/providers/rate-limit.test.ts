@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ProviderRateLimitError } from "./errors";
+import { makeMockRedis } from "./__fixtures__/mock-redis";
+
 /**
  * 限流层测试：覆盖 `redis-client`（lazyConnect 单例 + 失败重连）与
  * `rate-limit`（teacher+global 双层固定窗口 + fail-closed）。
@@ -114,5 +117,90 @@ describe("redis-client（限流专用 ioredis lazyConnect 单例）", () => {
 
     expect(recovered).toBeDefined();
     expect(redisInstances).toHaveLength(2);
+  });
+});
+
+describe("enforceRateLimit（teacher+global 双层固定窗口 + fail-closed）", () => {
+  /** 把 ioredis mock 的 eval 委派到一个内存计数夹具，返回该夹具便于断言。 */
+  function wireRedis(opts?: { ttl?: number }) {
+    const mock = makeMockRedis({ ttl: opts?.ttl });
+    evalDelegate = (lua, numKeys, key, windowSec) =>
+      mock.eval(lua, numKeys, key, windowSec);
+    return mock;
+  }
+
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    redisInstances.length = 0;
+    connectShouldFail = false;
+    evalDelegate = undefined;
+    clearRateLimitEnv();
+    process.env.AI_REDIS_URL = "redis://127.0.0.1:6379/3";
+  });
+
+  it("teacher 维度：前 MAX 次放行，第 MAX+1 次抛错且 retryAfter===TTL", async () => {
+    process.env.AI_RL_TEACHER_MAX = "3";
+    wireRedis({ ttl: 42 });
+    const { enforceRateLimit } = await import("./rate-limit");
+
+    await enforceRateLimit("teacher-a");
+    await enforceRateLimit("teacher-a");
+    await enforceRateLimit("teacher-a");
+
+    let captured: unknown;
+    try {
+      await enforceRateLimit("teacher-a");
+    } catch (error) {
+      captured = error;
+    }
+
+    expect(captured).toBeInstanceOf(ProviderRateLimitError);
+    expect((captured as ProviderRateLimitError).retryAfter).toBe(42);
+    expect((captured as ProviderRateLimitError).message).toContain("频繁");
+  });
+
+  it("teacher 未超但 global 超限 → 抛错（双层各自独立触发）", async () => {
+    process.env.AI_RL_TEACHER_MAX = "100";
+    process.env.AI_RL_GLOBAL_MAX = "2";
+    wireRedis();
+    const { enforceRateLimit } = await import("./rate-limit");
+
+    await enforceRateLimit("teacher-b");
+    await enforceRateLimit("teacher-b");
+
+    await expect(enforceRateLimit("teacher-b")).rejects.toBeInstanceOf(
+      ProviderRateLimitError,
+    );
+  });
+
+  it("两层都未超 → resolve（不抛）", async () => {
+    process.env.AI_RL_TEACHER_MAX = "5";
+    process.env.AI_RL_GLOBAL_MAX = "5";
+    wireRedis();
+    const { enforceRateLimit } = await import("./rate-limit");
+
+    await expect(enforceRateLimit("teacher-c")).resolves.toBeUndefined();
+  });
+
+  it("fail-closed（T-61-dos）：Redis 不可达 → 抛错，绝不放行", async () => {
+    connectShouldFail = true;
+    const { enforceRateLimit } = await import("./rate-limit");
+
+    await expect(enforceRateLimit("teacher-d")).rejects.toBeInstanceOf(
+      ProviderRateLimitError,
+    );
+  });
+
+  it("限额走 env：AI_RL_TEACHER_MAX=1 时第 2 次即超限", async () => {
+    process.env.AI_RL_TEACHER_MAX = "1";
+    wireRedis();
+    const { enforceRateLimit } = await import("./rate-limit");
+
+    await enforceRateLimit("teacher-e");
+
+    await expect(enforceRateLimit("teacher-e")).rejects.toBeInstanceOf(
+      ProviderRateLimitError,
+    );
   });
 });
