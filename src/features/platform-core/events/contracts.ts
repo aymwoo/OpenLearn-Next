@@ -128,6 +128,16 @@ const LessonDraftProducedPayloadSchema = summaryOnlyStrictPayload({
   tokenUsage: z.number().int().nonnegative().optional(),
 });
 
+// lesson.draft.persisted —— 写型命令成功后落账的 summary-only provenance 事件（DRAFT-03）。
+// .strict() 仅允许 id/version/stepCount/source，拒绝任意额外键（含 snapshotJson），
+// 沿用 Phase 62 summary-only 守卫：整包 snapshot 仅入 resultSummary/落表，绝不入事件 payload。
+const LessonDraftPersistedPayloadSchema = z.object({
+  draftVersionId: z.string().min(1),
+  version: z.number().int().positive(),
+  stepCount: z.number().int().nonnegative(),
+  source: z.literal("ai"),
+}).strict();
+
 export const PlatformSuccessEventSchema = z.object({
   eventType: z.literal("platform.command.succeeded"),
   category: z.literal("outcome"),
@@ -224,6 +234,18 @@ export const LessonDraftProducedEventSchema = z.object({
   }),
 }).strict();
 
+export const LessonDraftPersistedEventSchema = z.object({
+  eventType: z.literal("lesson.draft.persisted"),
+  category: z.literal("domain"),
+  aggregateType: z.literal("lesson"),
+  aggregateId: z.string().min(1),
+  payload: LessonDraftPersistedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
+}).strict();
+
 export const PlatformEventSchema = z.discriminatedUnion("eventType", [
   PlatformSuccessEventSchema,
   PlatformFailureEventSchema,
@@ -233,6 +255,7 @@ export const PlatformEventSchema = z.discriminatedUnion("eventType", [
   LessonDraftRequestedEventSchema,
   LessonToolInvokedEventSchema,
   LessonDraftProducedEventSchema,
+  LessonDraftPersistedEventSchema,
 ]);
 
 export const PlatformDomainEventSchema = z.union([
@@ -242,6 +265,7 @@ export const PlatformDomainEventSchema = z.union([
   LessonDraftRequestedEventSchema,
   LessonToolInvokedEventSchema,
   LessonDraftProducedEventSchema,
+  LessonDraftPersistedEventSchema,
 ]);
 
 export const PlatformSuccessOrDomainEventSchema = z.union([
@@ -266,6 +290,8 @@ export type PlatformSuccessOrDomainEvent = z.infer<typeof PlatformSuccessOrDomai
 export type LessonDraftRequestedEvent = z.infer<typeof LessonDraftRequestedEventSchema>;
 export type LessonToolInvokedEvent = z.infer<typeof LessonToolInvokedEventSchema>;
 export type LessonDraftProducedEvent = z.infer<typeof LessonDraftProducedEventSchema>;
+export type LessonDraftPersistedEvent = z.infer<typeof LessonDraftPersistedEventSchema>;
+export type LessonDraftPersistedPayload = z.infer<typeof LessonDraftPersistedPayloadSchema>;
 export type PlatformPersistedDispatchBatch = {
   commandId: string;
   attemptNumber: number;
