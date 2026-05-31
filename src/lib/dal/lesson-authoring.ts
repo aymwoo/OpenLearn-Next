@@ -32,6 +32,7 @@ import {
 import { resolveTeachingDesignInput } from "@/lib/teaching-design";
 import {
   AutosaveResultDTOSchema,
+  ApplyDraftResultDTOSchema,
   BuiltInTeachingStepKeySchema,
   CourseDTOSchema,
   LessonDraftReviewDTOSchema,
@@ -47,6 +48,7 @@ import {
   type TeachingDesignFallbackReason,
   type TeachingDesignStatus,
   type AutosaveResultDTO,
+  type ApplyDraftResultDTO,
   type LessonDraftReviewDTO,
   type LessonPreparationIssueDTO,
   type LessonPreparationSummaryDTO,
@@ -1598,6 +1600,127 @@ export async function getLessonDraftReviewDTO(input: { lessonId: string }): Prom
     },
     diffRows,
     hasPendingDraft: true,
+  });
+}
+
+/**
+ * Phase 64 Plan 02 — 将 AI 草稿的步骤应用到活跃 lessonSteps。
+ *
+ * 事务内保证原子性：
+ * 1. 归档所有活跃 lessonSteps（设置 archivedAt）
+ * 2. 从草稿 snapshotJson.steps 插入新步骤（带 LexoRank 排序）
+ * 3. 更新 lessons 行（aiDraftAppliedAt、latestDraftVersionId、revision、updatedAt）
+ * 4. 更新 draftLessonVersions 行（status = 'applied'）
+ *
+ * 权限：必须通过 assertActiveTeacher + getScopedLesson 验证。
+ * 不接受非 pending 状态的草稿。
+ */
+export async function applyDraftToLiveLesson(input: {
+  lessonId: string;
+  draftVersionId: string;
+  editedSteps?: Array<{ title: string; description?: string; content?: string }>;
+}): Promise<ApplyDraftResultDTO> {
+  const scope = await assertActiveTeacher();
+  const { lesson, course } = await getScopedLesson(input.lessonId, scope);
+
+  // 加载指定 draft 行
+  const draft = await db.query.draftLessonVersions.findFirst({
+    where: eq(draftLessonVersions.id, input.draftVersionId),
+  });
+  if (!draft) {
+    throw new Error("DRAFT_NOT_FOUND");
+  }
+  if (draft.status !== "pending") {
+    throw new Error("DRAFT_NOT_PENDING");
+  }
+
+  // 解析 snapshotJson 中的步骤
+  const snapshotStepsRaw = (draft.snapshotJson as { steps?: unknown[] } | null)?.steps;
+  if (!Array.isArray(snapshotStepsRaw)) {
+    throw new Error("DRAFT_SNAPSHOT_INVALID");
+  }
+
+  const draftStepsPayload: LessonStepPayload[] = [];
+  for (const raw of snapshotStepsRaw) {
+    const parsed = lessonStepPayloadSchema.safeParse(raw);
+    if (!parsed.success) {
+      continue;
+    }
+    draftStepsPayload.push(parsed.data);
+  }
+
+  // 如果提供了编辑后的步骤，按索引合并（D-13: title/description/content 仅覆盖这些字段）
+  if (input.editedSteps && input.editedSteps.length > 0) {
+    for (let i = 0; i < input.editedSteps.length && i < draftStepsPayload.length; i++) {
+      const edit = input.editedSteps[i]!;
+      const step = draftStepsPayload[i]!;
+      // 覆盖可编辑字段
+      if (edit.title) {
+        if (step.type === "content") {
+          (step as { title: string }).title = edit.title;
+        }
+        // task/quiz 步骤的 title 来源于 prompt/question，不直接覆盖
+      }
+      if (step.type === "content" && edit.content) {
+        (step as { body: string }).body = edit.content;
+      }
+    }
+  }
+
+  const now = new Date();
+
+  await db.transaction(async (tx) => {
+    // 1. 归档所有活跃 lessonSteps
+    await tx
+      .update(lessonSteps)
+      .set({ archivedAt: now, updatedAt: now })
+      .where(and(eq(lessonSteps.lessonId, lesson.id), isNull(lessonSteps.archivedAt)));
+
+    // 2. 插入新步骤（带 LexoRank 排序）
+    let prevRank: string | null = null;
+    for (let i = 0; i < draftStepsPayload.length; i++) {
+      const payload = draftStepsPayload[i]!;
+      const stepRank: string = i === 0 ? createInitialRank() : createRankAfter(prevRank!);
+      const stepType = payload.type as "content" | "task" | "quiz";
+      const title = deriveDraftStepTitle(payload);
+
+      await tx.insert(lessonSteps).values({
+        id: crypto.randomUUID(),
+        lessonId: lesson.id,
+        type: stepType,
+        title,
+        rank: stepRank,
+        payloadJson: payload,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      prevRank = stepRank;
+    }
+
+    // 3. 更新 lessons 行（回链 draft 来源）
+    await tx
+      .update(lessons)
+      .set({
+        aiDraftAppliedAt: now,
+        latestDraftVersionId: input.draftVersionId,
+        revision: lesson.revision + 1,
+        updatedAt: now,
+      })
+      .where(eq(lessons.id, lesson.id));
+
+    // 4. 更新 draftLessonVersions 状态
+    await tx
+      .update(draftLessonVersions)
+      .set({ status: "applied" })
+      .where(eq(draftLessonVersions.id, input.draftVersionId));
+  });
+
+  return ApplyDraftResultDTOSchema.parse({
+    lessonId: lesson.id,
+    courseId: course.id,
+    draftVersionId: input.draftVersionId,
+    appliedStepCount: draftStepsPayload.length,
   });
 }
 
