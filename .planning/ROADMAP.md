@@ -77,8 +77,8 @@
 **Plans**: 4 plans
 - [x] 63-01-PLAN.md — Wave 1：schema.ts 新增 draftLessonVersions 镜像表（source/sourceCommandId provenance + (lessonId,sourceCommandId) 唯一约束 + FK cascade）+ drizzle/0014 migration（DRAFT-01/02）
 - [x] 63-03-PLAN.md — Wave 1：contracts.ts 四处登记 lesson.draft.persist 命令（.strict payload，steps 复用 lessonStepPayloadSchema）+ events 新增 lesson.draft.persisted summary-only 事件（三处 union）+ cache-policy draftLesson tag（DRAFT-01/03）
-- [ ] 63-02-PLAN.md — Wave 2：DAL persistDraftLessonVersion（max+1 版本、内联快照单 INSERT、source='ai'、绝不写 live）+ 写/读双隔离证明测试（DRAFT-01/02/03）
-- [ ] 63-04-PLAN.md — Wave 3：executeLessonDraftPersist handler（授权校 schoolId→调 DAL→invalidation tags+emit 事件）+ registry 注册 dedupe:required + 幂等双层集成测试（DRAFT-01/02/03）
+- [x] 63-02-PLAN.md — Wave 2：DAL persistDraftLessonVersion（max+1 版本、内联快照单 INSERT、source='ai'、绝不写 live）+ 写/读双隔离证明测试（DRAFT-01/02/03）
+- [x] 63-04-PLAN.md — Wave 3：executeLessonDraftPersist handler（授权校 schoolId→调 DAL→invalidation tags+emit 事件）+ registry 注册 dedupe:required + 幂等双层集成测试（DRAFT-01/02/03）
 
 ### Phase 64: Teacher Review & Accept-Publish Surface
 **Goal**: 交付教师审校面：教师能看到 AI 起草与当前课时的步骤级 diff（新增/修改/删除），能逐项或整体编辑后再决定去留，能接受起草进入既有发布链路或丢弃且不影响原课时，界面对齐 Stitch 项目 `5322129002350954765` 与 `DESIGN.md`。
@@ -111,7 +111,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 |-------|-----------|----------------|--------|-----------|
 | 61. AI Provider Abstraction Layer | v3.2 | 5/5 | Complete   | 2026-05-31 |
 | 62. LessonAgent Typed Tool Layer | v3.2 | 4/4 | Complete   | 2026-05-31 |
-| 63. AI Draft Chain into Draft Lesson Version | v3.2 | 2/4 | In Progress|  |
+| 63. AI Draft Chain into Draft Lesson Version | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 0/TBD | Not started | - |
 | 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 0/TBD | Not started | - |
 
