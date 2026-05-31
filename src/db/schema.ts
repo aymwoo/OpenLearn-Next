@@ -608,6 +608,32 @@ export const publishedLessonVersions = sqliteTable(
   (table) => [index("publishedLessonVersions_lessonId_version_idx").on(table.lessonId, table.version)]
 );
 
+export const draftLessonVersions = sqliteTable(
+  "draftLessonVersion",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    lessonId: text("lessonId")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    snapshotJson: text("snapshotJson", { mode: "json" }).notNull(),
+    source: text("source", { enum: ["ai", "human", "ai_edited"] })
+      .notNull()
+      .default("ai"),
+    sourceCommandId: text("sourceCommandId").notNull(),
+    createdById: text("createdById")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("draftLessonVersions_lessonId_version_idx").on(table.lessonId, table.version),
+    uniqueIndex("draftLessonVersions_idempotency_unique").on(table.lessonId, table.sourceCommandId),
+  ]
+);
+
 export const lessonStepProgress = sqliteTable(
   "lessonStepProgress",
   {
