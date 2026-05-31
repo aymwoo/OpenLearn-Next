@@ -10,6 +10,19 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
+## Current Milestone: v3.2 AI LessonAgent 起草闭环
+
+**Goal:** 把 v3.0 已就绪的 AI-native contract 兑现成一个真正可用的 LessonAgent —— 教师可触发 AI 起草一节课的步骤包，经审校后通过既有发布链路落地，全程经 Command Bus / 工具层治理，不破坏 SQLite-first、DAL-only、no-arbitrary-code 约束。
+
+**Target features:**
+- AI Provider 抽象层（`server/ai/providers`）：统一模型接入、密钥隔离、限流，provider 可替换。
+- LessonAgent 工具层（`server/ai/tools`）：Zod 校验的 typed tools，只调 DAL / Command Bus，禁直连 DB、禁触 provider key。
+- 起草链路：Agent 经 Command Bus 写入 draft lesson version，复用既有 publish/version 模型，不新建真相源。
+- 教师审校面：起草结果的 diff / 编辑 / 接受 / 丢弃，对齐 Stitch + DESIGN.md。
+- Eval + Guardrails + close gate：`verify:phase` 闭环，用 v3.0 event bus 做可观测与审计。
+
+**Key context:** 复用 v3.0 Command Bus / action registry / event bus，不重建平台内核；本轮只打穿单个 Agent 的单条起草链路（强样板优先，N=1 先跑通）；继续推迟多 Agent 编排、RAG/向量库、MCP 外部工具、插件触达 AI；provider key 只在服务端 Node runtime，绝不进插件 manifest 或 Edge。
+
 ## Current State
 
 - `v3.1 Single-School Pilot Production Readiness (Plugin-First)` 已于 2026-05-30 归档，milestone audit 为 `passed`；仓库当前已经具备 classroom voting 样板链路、operator recovery、pilot deploy/release/restore 与 40/5 rehearsal close posture。
@@ -122,7 +135,11 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ### Active
 
-- [ ] 待下一里程碑定义。使用 `/gsd-new-milestone` 从已归档 `v3.1` baseline 出发建立新的 committed scope。
+- [ ] 建立 AI Provider 抽象层：统一模型接入、密钥服务端隔离、限流，provider 可替换。（v3.2）
+- [ ] 建立 LessonAgent 工具层：Zod 校验的 typed tools，只调 DAL / Command Bus，禁直连 DB / provider key。（v3.2）
+- [ ] 打通 AI 起草链路：Agent 经 Command Bus 写入 draft lesson version，复用既有 publish/version 模型。（v3.2）
+- [ ] 交付教师审校面：起草结果的 diff / 编辑 / 接受 / 丢弃，对齐 Stitch + DESIGN.md。（v3.2）
+- [ ] 建立 AI 起草链路的 Eval + Guardrails + `verify:phase` close gate，并接入 v3.0 event bus 观测。（v3.2）
 
 ### Out of Scope
 
@@ -216,4 +233,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 after archiving milestone v3.1*
+*Last updated: 2026-05-31 after starting milestone v3.2*

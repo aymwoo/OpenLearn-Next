@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.1
-milestone_name: Single-School Pilot Production Readiness (Plugin-First)
-status: Awaiting next milestone
-last_updated: "2026-05-30T14:00:56.944Z"
-last_activity: 2026-05-30 -- Archived milestone v3.1 and reset planning entrypoint
+milestone: v3.2
+milestone_name: AI LessonAgent 起草闭环
+status: planning
+last_updated: "2026-05-31T02:16:20.908Z"
+last_activity: 2026-05-31
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 34
-  completed_plans: 34
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -24,13 +24,10 @@ See: `.planning/PROJECT.md` (updated 2026-05-30)
 
 ## Current Position
 
-Milestone: `v3.1` archived
-Phase: None
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone definition
-Last activity: 2026-05-30 -- Archived `v3.1` and rewrote planning entrypoint
-Progress: [██████████] 100%
-Next queued phase: None
+Status: Defining requirements
+Last activity: 2026-05-31 — Milestone v3.2 started
 
 ## Performance Metrics
 
