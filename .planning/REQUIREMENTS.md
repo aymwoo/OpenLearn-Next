@@ -22,8 +22,8 @@
 
 ### AI 起草链路 (DRAFT)
 
-- [ ] **DRAFT-01**: Agent 起草结果通过 Command Bus 写入 draft lesson version，复用既有 publish/version 模型，不新建第二真相源。
-- [ ] **DRAFT-02**: 起草写入是幂等且 replay-safe 的：同一起草请求重试不会产生重复 draft 或污染已有课时内容。
+- [x] **DRAFT-01**: Agent 起草结果通过 Command Bus 写入 draft lesson version，复用既有 publish/version 模型，不新建第二真相源。
+- [x] **DRAFT-02**: 起草写入是幂等且 replay-safe 的：同一起草请求重试不会产生重复 draft 或污染已有课时内容。
 - [ ] **DRAFT-03**: draft lesson version 与教师手工编辑的课时在数据上可区分（标注 AI 来源），且不会自动发布给学生。
 
 ### 教师审校面 (REVIEW)
@@ -72,8 +72,8 @@ Every v3.2 requirement maps to exactly one phase. Coverage: 18/18.
 | AGENT-02 | Phase 62 | Pending |
 | AGENT-03 | Phase 62 | Complete |
 | AGENT-04 | Phase 62 | Complete |
-| DRAFT-01 | Phase 63 | Pending |
-| DRAFT-02 | Phase 63 | Pending |
+| DRAFT-01 | Phase 63 | Complete |
+| DRAFT-02 | Phase 63 | Complete |
 | DRAFT-03 | Phase 63 | Pending |
 | REVIEW-01 | Phase 64 | Pending |
 | REVIEW-02 | Phase 64 | Pending |

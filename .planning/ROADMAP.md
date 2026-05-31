@@ -75,8 +75,8 @@
   2. 同一起草请求重试不会产生重复 draft，也不会污染已有课时内容（幂等、replay-safe）。
   3. AI 起草的 draft version 在数据上标注 AI 来源、可与教师手工编辑区分，且不会自动发布给学生。
 **Plans**: 4 plans
-- [ ] 63-01-PLAN.md — Wave 1：schema.ts 新增 draftLessonVersions 镜像表（source/sourceCommandId provenance + (lessonId,sourceCommandId) 唯一约束 + FK cascade）+ drizzle/0014 migration（DRAFT-01/02）
-- [ ] 63-03-PLAN.md — Wave 1：contracts.ts 四处登记 lesson.draft.persist 命令（.strict payload，steps 复用 lessonStepPayloadSchema）+ events 新增 lesson.draft.persisted summary-only 事件（三处 union）+ cache-policy draftLesson tag（DRAFT-01/03）
+- [x] 63-01-PLAN.md — Wave 1：schema.ts 新增 draftLessonVersions 镜像表（source/sourceCommandId provenance + (lessonId,sourceCommandId) 唯一约束 + FK cascade）+ drizzle/0014 migration（DRAFT-01/02）
+- [x] 63-03-PLAN.md — Wave 1：contracts.ts 四处登记 lesson.draft.persist 命令（.strict payload，steps 复用 lessonStepPayloadSchema）+ events 新增 lesson.draft.persisted summary-only 事件（三处 union）+ cache-policy draftLesson tag（DRAFT-01/03）
 - [ ] 63-02-PLAN.md — Wave 2：DAL persistDraftLessonVersion（max+1 版本、内联快照单 INSERT、source='ai'、绝不写 live）+ 写/读双隔离证明测试（DRAFT-01/02/03）
 - [ ] 63-04-PLAN.md — Wave 3：executeLessonDraftPersist handler（授权校 schoolId→调 DAL→invalidation tags+emit 事件）+ registry 注册 dedupe:required + 幂等双层集成测试（DRAFT-01/02/03）
 
@@ -111,7 +111,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 |-------|-----------|----------------|--------|-----------|
 | 61. AI Provider Abstraction Layer | v3.2 | 5/5 | Complete   | 2026-05-31 |
 | 62. LessonAgent Typed Tool Layer | v3.2 | 4/4 | Complete   | 2026-05-31 |
-| 63. AI Draft Chain into Draft Lesson Version | v3.2 | 0/TBD | Not started | - |
+| 63. AI Draft Chain into Draft Lesson Version | v3.2 | 2/4 | In Progress|  |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 0/TBD | Not started | - |
 | 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 0/TBD | Not started | - |
 
