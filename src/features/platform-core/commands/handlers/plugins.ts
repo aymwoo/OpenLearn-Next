@@ -29,6 +29,7 @@ import { registerThemeTokens } from "@/lib/dal/themes";
 
 import {
   PlatformCommandExecutionError,
+  PlatformPluginGovernanceCommandTypes,
   type PlatformCommand,
   type PlatformCommandDefinition,
   type PlatformCommandType,
@@ -957,4 +958,4 @@ export const pluginCommandHandlers = {
     authorize: ({ command }) => authorizePluginGovernanceCommand(command),
     execute: (input) => executeKillSwitchSet(input as ExecutionInput<KillSwitchCommand>),
   },
-} satisfies Record<PlatformCommandType, Pick<PlatformCommandDefinition, "authorize" | "execute">>;
+} satisfies Record<(typeof PlatformPluginGovernanceCommandTypes)[number], Pick<PlatformCommandDefinition, "authorize" | "execute">>;

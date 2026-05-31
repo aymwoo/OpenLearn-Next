@@ -23,7 +23,14 @@ export const PlatformPluginGovernanceCommandTypes = [
   "plugin.kill_switch.set",
 ] as const;
 
-export const PlatformCommandTypeSchema = z.enum(PlatformPluginGovernanceCommandTypes);
+// AI LessonAgent 起草命令类型（AGENT-04）。复用既有 {schoolId, pluginId} scope，
+// scope.pluginId 携带保留 sentinel "core.lesson-agent"（内置系统 agent 身份）。
+export const LessonDraftCommandTypes = ["lesson.draft.run"] as const;
+
+export const PlatformCommandTypeSchema = z.enum([
+  ...PlatformPluginGovernanceCommandTypes,
+  ...LessonDraftCommandTypes,
+]);
 
 export const PlatformCommandActorSchema = z.object({
   actorId: z.string().min(1),
@@ -124,6 +131,14 @@ const PluginKillSwitchSetPayloadSchema = z.object({
   reason: z.string().min(1),
 });
 
+// lesson.draft.run payload —— strict 边界校验（T-62-07），非法 lessonId/stepType/intent
+// 在 dispatch 入口被拒。teacherId 绝不出现于 payload（经授权 actor 闭包注入工具）。
+const LessonDraftRunPayloadSchema = z.object({
+  lessonId: z.string().min(1),
+  stepType: z.enum(["content", "task", "quiz"]),
+  intent: z.string().min(1),
+}).strict();
+
 export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,
   "plugin.enable": PluginEnablePayloadSchema,
@@ -135,6 +150,7 @@ export const PlatformCommandPayloadSchemas = {
   "plugin.uninstall.preflight": PluginUninstallPreflightPayloadSchema,
   "plugin.uninstall": PluginUninstallPayloadSchema,
   "plugin.kill_switch.set": PluginKillSwitchSetPayloadSchema,
+  "lesson.draft.run": LessonDraftRunPayloadSchema,
 } as const;
 
 export const PlatformCommandSchema = z.discriminatedUnion("type", [
@@ -177,6 +193,10 @@ export const PlatformCommandSchema = z.discriminatedUnion("type", [
   PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.kill_switch.set"),
     payload: PluginKillSwitchSetPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("lesson.draft.run"),
+    payload: LessonDraftRunPayloadSchema,
   }),
 ]);
 

@@ -4,6 +4,7 @@ import {
   type PlatformCommandType,
 } from "./contracts";
 import { pluginCommandHandlers } from "./handlers/plugins";
+import { lessonDraftCommandHandlers } from "./handlers/lesson-draft";
 
 export function createPlatformCommandDefinition<TType extends PlatformCommandType>(
   input: PlatformCommandDefinition<TType>,
@@ -81,5 +82,12 @@ export const platformCommandRegistry = {
     dedupe: "required",
     authorize: pluginCommandHandlers["plugin.kill_switch.set"].authorize,
     execute: pluginCommandHandlers["plugin.kill_switch.set"].execute,
+  }),
+  "lesson.draft.run": createPlatformCommandDefinition({
+    commandType: "lesson.draft.run",
+    payloadSchema: PlatformCommandPayloadSchemas["lesson.draft.run"],
+    dedupe: "optional",
+    authorize: lessonDraftCommandHandlers["lesson.draft.run"].authorize,
+    execute: lessonDraftCommandHandlers["lesson.draft.run"].execute,
   }),
 } satisfies Record<PlatformCommandType, PlatformCommandDefinition>;
