@@ -455,6 +455,27 @@ export const LessonDraftReviewDTOSchema = z.object({
 
 export type LessonDraftReviewDTO = z.infer<typeof LessonDraftReviewDTOSchema>;
 
+// ============================================================
+// Phase 64 — Apply / Discard Result DTOs (Plan 02)
+// ============================================================
+
+export const ApplyDraftResultDTOSchema = z.object({
+  lessonId: z.string(),
+  courseId: z.string(),
+  draftVersionId: z.string(),
+  appliedStepCount: z.number().int().nonnegative(),
+});
+
+export type ApplyDraftResultDTO = z.infer<typeof ApplyDraftResultDTOSchema>;
+
+export const DiscardDraftResultDTOSchema = z.object({
+  lessonId: z.string(),
+  draftVersionId: z.string(),
+  discardedAt: z.string(),
+});
+
+export type DiscardDraftResultDTO = z.infer<typeof DiscardDraftResultDTOSchema>;
+
 /**
  * Derive a content-comparable string from a step payload that reflects the
  * teacher-visible content (title, body, prompt, question).
