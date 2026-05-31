@@ -9,11 +9,14 @@ importers:
   .:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: ~2.0.48
+        specifier: 2.0.48
         version: 2.0.48(zod@4.4.3)
       '@auth/drizzle-adapter':
         specifier: ^1.11.2
         version: 1.11.2
+      '@fontsource/lexend':
+        specifier: ^5.2.11
+        version: 5.2.11
       '@libsql/client':
         specifier: ^0.17.3
         version: 0.17.3
@@ -21,7 +24,7 @@ importers:
         specifier: 1.2.4
         version: 1.2.4(@types/react@19.2.15)(react@19.2.5)
       ai:
-        specifier: ~6.0.193
+        specifier: 6.0.193
         version: 6.0.193(zod@4.4.3)
       bcryptjs:
         specifier: ^3.0.3
@@ -836,6 +839,9 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@fontsource/lexend@5.2.11':
+    resolution: {integrity: sha512-bShbQr2g2sWl7GJNyIxdllZST1faVbebXN6H7AEEDCRms/g4orDLxWnmTVodOtiErdZVUJURq4jpafZ34nIkTw==}
 
   '@hono/node-server@1.19.14':
     resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
@@ -5740,6 +5746,8 @@ snapshots:
       levn: 0.4.1
 
   '@exodus/bytes@1.15.1': {}
+
+  '@fontsource/lexend@5.2.11': {}
 
   '@hono/node-server@1.19.14(hono@4.12.21)':
     dependencies:

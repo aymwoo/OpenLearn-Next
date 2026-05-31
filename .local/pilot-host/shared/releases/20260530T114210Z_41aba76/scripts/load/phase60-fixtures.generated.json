@@ -1,0 +1,2057 @@
+{
+  "checkedAt": "2026-05-30T11:42:10.832Z",
+  "proofScopeId": "phase60-load-rehearsal",
+  "schoolId": "50bd91b9-8464-44ca-8472-27d9307407bd",
+  "courseId": "0399c21c-71f9-4b2d-86fe-125cd35f7757",
+  "lessonId": "7f46864e-1f5d-4e41-a850-a4559235541e",
+  "publishedVersionId": "d5a4aef4-6a09-4efe-8f79-1ccd7cb87bcf",
+  "stepId": "0a5df09f-e0a7-4bd8-ae79-b1f186c7130c",
+  "cookieName": "authjs.session-token",
+  "classrooms": [
+    {
+      "classroom": "phase60-load-rehearsal-class-1",
+      "classId": "5efb67d1-cae2-472c-97da-8f83d27dd6fa",
+      "classroomSessionId": "9331a485-8ffb-4c11-b1f9-86d87220d717",
+      "teacherId": "b32033f6-0da2-467d-a89b-46a40b92a952",
+      "teacherCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..8f54_3f4PxA51miwbIKO1A.FBRrwAbrQYoBMq0OCv9jfQnxcZLiU_aoEGsyO3WfdA-SSPo5bEq_HDWvkl-5yEQkc5daBO6TawuwDD2B_q6Usat6tl-rDhUbbo10m4sDRPz7VvtPAKqcFOjmePgQR3UAxveiYNdUKSmxVZ93fTCA5JkkFtdz0LoXjiZT1CoNqmEfom9y1me3QxAqxJ3rEwBMLUrVCeP_I-mwWpfHqQBxyjNtqjbRbm__fVzZDw4pZSw17SY_TRHynLA7a7YajBZgvypSdRMLu-ksAWeqBlMRlk4qVYi_x9Jx7ZKvrsgZYkiyBJclLiR5_QzlwBlUC5eXRGEw7BX1qVUR89jOgAIVzDBlR7ldB4wqKfUrUPQn1saiVqKHUHPjqxsJUSmF5wHvoRWhb8fEX9RPrm0eAaIu6w.iekPuJudB1F398rQntaRZT9uOLz_YmoStF18l-5FTY4",
+      "studentActors": [
+        {
+          "id": "fa418dfa-f4cb-4581-b06e-976ef9fa3c50",
+          "email": "phase60-load-rehearsal-student-001@example.com",
+          "name": "Phase60 Student 001",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..UvV81p1uwfsONye10xyJFA.TMdhfvZ653w5x3dcmOB9QVwWtL9LBc0gqPzP5IOvlSwgQx-rr1AYQPj3U7mOd1YoWkHGgUcZPtPpCUNHi6qrhVPBShH052bTfPXq_H1zmQNW_ysu-p8HEi5hPvQxs_wvm1vhlpGgPY_6igkoQc_XWRSQXIeZ5NWtppjhKvOmQtOEyA0c1200_m7LarYw1_DZPo_UPO3C-8eW6Oz6vsM2cV7sL5tY4CDAbKJVUVToxDewMq6r_cYNQLJllHJ8NEGudlm8J0bVS8ZQQJSzmoR7n0Nw5We81_tIw2kg_3rKLwS0MfZ6vRAnHGvhSgBcGTlcr1fXNDPzqzyLeWeeheiTXRizP-xFwtxED6Nqoo19C5LdRsETyn0SR_WjBxvCRYY6x65J-ewAwaxw5i1gxlmneg.ulGzLGcvoV6xqz3URlMcJVobAnndYBc3gsw5xBdcDgw"
+        },
+        {
+          "id": "9b991630-0687-4b97-99f6-e0bfcd18521d",
+          "email": "phase60-load-rehearsal-student-002@example.com",
+          "name": "Phase60 Student 002",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..X5bbI79l6peWPxH2g7LHyg.JN1-VzfoAY2W0imTIp5yDax5582I0Ffjj2DT8B1s4NyOIGdFZaD0k6pJzQKY-MadOvByoTxDpYCB71TXGM_6aoolF1YTTzT1bT9feLH75PPXLCOQCMED8ASXmrZxbtlkFqkcApTqLu9CHmaB7mgENPo3F4_Xl_14fS82Z0GieYS59lnE0pOVaTl6UmQze8zS1SVsHcOY4scFXpKNyw6glZi0ruMEWzytFkOmKifai_qj8qaLelrKpyOYPbJhzQtLuW-hJm7RO7JjC2seJ4p_nOp7IgV4sZnOURyxX164W5QS4b9q8Ij0ojgQThtftwZbqUuIVJJumoqLssxv1Ym4RLi64Nh3oiaYF10zDyKcccGaImV8YAe4H7g6ribUQ_O-xUDsYK62C3RcagWmHyiHKw.abkmfbpW5hLU1mK_IKzBh4Dm5-NdYfKqAn6E4IbJZ3k"
+        },
+        {
+          "id": "dc12c928-96e6-4171-a496-9f3ec832e3d5",
+          "email": "phase60-load-rehearsal-student-003@example.com",
+          "name": "Phase60 Student 003",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..YG02nZ13wtla2CUyHgaSNA.KPuEGNbTThlSRyEI4B3ODltYg6jcS8HtdxNViro4obEnUijgPpchp3ySjx6DM2Ev--5sYsa-FBMDCgCoSJ5kmbHol3eSafWxA0lN_2g8owThd9_yvMrOUkrSQowXRLg8WlUtzq3Qrjq61oKq91JccpGLjACf-tqcfV5VN5P7JWEQxHCUpgW77wkXehwkvN9UIvHwmKsV3hG3noaEK-wEiFadMHrROlftcr4PGe6bA4aBbRezX8QssfbSfRH9L68UgisPPxawOmUsayKoQlDBAYcnPCSKxbubPE9Mm6xS343PlhjTooXdglbsuFk-Vezw0t7bqDJs7as8JGGDnMPxzv9Yxl4ZG-NVsi_I8RTbsSakebPgLyjZQTDTe7h7c5fuchk8-PgE28SZtJf3HInvdQ.PIKGFAAHtMyuZb1OAV7mDXFzL2q6LFWhoBMg1UAq50s"
+        },
+        {
+          "id": "ee7ce72f-4acb-445c-b24b-5e859f2818b4",
+          "email": "phase60-load-rehearsal-student-004@example.com",
+          "name": "Phase60 Student 004",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..O6p-jF5d1F_5Q82bxa1jOQ.zNcao7Kokr7wKBydJJKAd79CvAe_75v9Jssce81hU5K4fWg85i8K59LBA0YPpvL4k-wFQCn-yrNHDYBwedLAgR1sylAknY3m3uhv6-S6yYeDgb_Sb3DjBWu9L_3FAeY69BoTUFFdU4yNvkKQW6MO8Tbam-LPuU7YLcOHWapJguNYWHAyHUmOCF_cPbA6X610CqvNJG_USoyfQ-fNSFOz7NpodxM0wRVoL-hVFktv6BfEiZ9UHtW6aima9mjsPrTa2TWlrWk_oAucNgmmqXanEgm8DX7SoHnARwVX7pCg1Rrfdb23Ng-rIPS1k4YuyU45K9qYIQKsnXgImauWjhNmP-ABaU8M30cauI2qAz67Ol098Mo1zej54DBhkgkxus0bnJfRARmXUlL9Vk69MnLqDg.4AFUfzOUj07cGbN_mfUpJ_8oMdaGQknmaZUmN41kXmA"
+        },
+        {
+          "id": "26816c1b-0c60-48b8-a182-95a9fefff282",
+          "email": "phase60-load-rehearsal-student-005@example.com",
+          "name": "Phase60 Student 005",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..TqW3MNrGIjf2Tc3OWfuIlA.gbrFLcOv8w6YgAEr-Z3M7kIGDKkx7B5FqH3Szkd1tG-IpoaDvvXQ_CCFvnsLG9URGGf_q0eERokK4rjrwtAk8fnFhWRYMR-AEVakKOXBQeD5iGtlNDIp_JyFuHuy6tuRnNC7opOBDfsORGVn79zK05i-BVaF5xBJJEEJUKr5h-o3vMIYzsw1xgAxnC8B7rK9cT1F9nk-1ThCsMU01iYGSNm9GhTHkYCZa8PYraOdZHLPRd9An10Rtovk90KhS-rYBgwjYvEF0bY8iUSNZHExLevV6GDLHC6590bO1BKU_gsmU-wCbseIDvL7XuTj3kyRZJ3k8WGAFWjqftGX_Oqr69G3dti3GtwSV4yLAOD1diqWWut_QkPIyCV_sR0HZYCuLVGv0H8wf6tC40swFui2sg.QHA91myCWZ4Y2rWtgcBJy0Joxal6xYNY3SXDRyQyq-U"
+        },
+        {
+          "id": "85ad7ac3-f668-4d94-af34-0c037009994a",
+          "email": "phase60-load-rehearsal-student-006@example.com",
+          "name": "Phase60 Student 006",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..YuMba1T30M_ytdWRzGKw2w.zta3XgjIVNCLGTuT4JHCz-ODohz2z51c7TfKRsePPtaQCzX_0ECBI9pI7lSGVWvOBjqs_4i2PwgyuKPOgr3goJ-OemCnjfQsFU50zQXCZ0MUxwHY2K3sI1NnhcoOGeumQ_B39KjWmbiZHQzVdvF4dqlXyVgCEp8AqptrZCBm3r3CTfSQM4WSwwLMkjZFf9VCOpVjQuciVxc4MCHzFrnic1S37_VHrEO3SRoNje79QQVBwDNe9hJgdFzNZLev-sBN-vZXFvbpBZVRLN7YnbfS0FYxSJeh3yGmKG5OAtpSpc06JqfFXx1gdiaCd7Icx02OvIGWLxVIcIo7jP1WYDUCYDfSnSfgTdeBPigjsq7N3qN4Hk14ns4jh8l6ztB3E0ev8QnarToCvUXRSx02667Ecg.HGj78L270me09pWexRSnqLU0C1dut4xIh9ShXE_kC88"
+        },
+        {
+          "id": "d0376a66-959d-4578-b753-8a4f603ea1ec",
+          "email": "phase60-load-rehearsal-student-007@example.com",
+          "name": "Phase60 Student 007",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..X5RdBmu16CiZW1vea_xwVw.3PclSxPVYpuVLMqXtMMAYhVlg0gdApi5gtpDMeSba_i9JAnXzKi2_hxxT8qlcIA56OIDJEDhm1jAnN20J9oj62p63n8yuUjBSQezhKwrYAYacCTaE1V4qISgUtvrT5LTTTAnsS18-iEs02wrAMM0u1gW4GxF_VkZVuE94pE0Ip0vfolU7lIzDu6T-zksEvd1q0KdzyMTn4VXQbutfQcXymjeN1u9A84vU8TfzUGbyV92pw9kZWBH8HMCesCB402mxmWzrmnTSRe9l8UTIiEFJ9YgXF8n1gxI0Dml37HgVsDJOdmR7LNOfSfap1pCsLq98M8S09Os4vZMyoF3DKkW5qNXnXUAfuSYxmdLFyrIB-djSbbymwNGZsY1NYH1ipg88mZZf9jUcbSer2jN044idg.sA67ubIPAH3pUDVJLxEniBLNhP3IGDf8DvojY5hLaXs"
+        },
+        {
+          "id": "ee208819-9994-405a-89aa-1452698bb80e",
+          "email": "phase60-load-rehearsal-student-008@example.com",
+          "name": "Phase60 Student 008",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..or8Cjdv7-oKrcNJuI3OmKQ.io1EosVp4ZKhAWT8C7nSTjaVTTY5Tr9eHejBAMQ50h-lfhRZXvAKkZveUiapWTD-JudxolqXb62qyk0ZhVZh9EvrJbGSNJKMHh_21zj0Rhde641IIx03EwQwsVG9R8DxXkYuS9boZcZX68wJN_1aKYtCZ88tJs1cTcN0om4tVsM23gOJz5gEp0C19QPEKRk4MnafTNoNfu2q4eY3rLBRX_VRXU8Ayp6ivzStNeW-agL7ikoyFM7ZQf-bdFnB0bEtJZrsogj3LBBuumHkt_bMTWagHrZzbKSPzV_Fy8hlBfaVF1oCS4M3dBZ1p97bqvnyaQ5daoDgvcspi8T_9FiDACh-hMaa9gGiWoQ3jAF8IolG-JDCr_jcOP0OVTHK5_8I7PGk-5G3F1HbJAII7qNDOQ.705SQAIgvhkRLO4NvZuyKOHV0tJDaGLsKhkJlgC8FuE"
+        },
+        {
+          "id": "710d15b8-f5e3-4918-ac20-e8b47aad55a8",
+          "email": "phase60-load-rehearsal-student-009@example.com",
+          "name": "Phase60 Student 009",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..NDu6yorPqKHz59HMrV5HwQ.JuOivDnUKDJQbHU37c_1Wgev146aPGdKBGcuwDkwx5dGxPxZ8Xf-Mjadk2LnuQRg-2JlpN8fI5OVIhoo0GV1lm12i8qx0mMwU9kM9TYBZY36J1QttBQ0dWSKKvFamwhkNtTJqMrhsmDOlSxWtTViTLlzknSu4OtzbnXGMiz-_eIKUXlaRQG_scvcq8EHPuNlrXgVx2fUP2JMfAvJkcBh-Q-hK4Fq2DSWB-z_60X2rXX9bCWAkS9sRuZ4VwrXZETvitwicKh2xaBeAEHSI4AE2YsgfTV0yEDHAUJEMKaDnGqUjZemAoK84BVrDJBsYahO-WIRvEroCkr14ABQ04TjF3-ZPjoY1uETrV1bIZDnMPEQahplXYIHO3U1jJ5rzo836UTPKVXIOo3b_z_g5Tca3w.uxIYcgv9oWcbCToynThtb75PgHn6fHJ1QuOF8vuGzfA"
+        },
+        {
+          "id": "c71db0e8-88c2-4d7d-9aff-d2597d3dcb4a",
+          "email": "phase60-load-rehearsal-student-010@example.com",
+          "name": "Phase60 Student 010",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..zamV2WEwdHN1FJfF-1uAVQ.u3m1RTgBtTih9tu0_QWqrWyuOb-c8FdYi0Uh2pvpKPSr9E9T5v2e1-1sgsyBonaE-zg1XK60gUgOVfiVWp9OPmnoA1rOupEuHnYAeHI6MB4nWz52D-5H2F60NYCRWblvqiR9nHVdQjgfOmfivOgENwssH1r95xJwmBgG-ijDa3Cab5hIgojT97c20McwVTbgCLv0_2tdElgAsV_KmZa2wfI28_wjeSnqOe1ZRD-ETy6PfjGxP9TDkT1lfyuCmionzNA1qUis9ju64-YLP5DwuhC88RFXeiD72fSW092IDEZ2tJoWy4OeXSS291THttnPTeEZ6qPwFNo7UKAHN9Akdi8XurahlsEQRcNElBw2qtrSjjN89PmcBEkJaVbIWkL-Catn2aD3sBUqL3N--ET60w.0_76MhM6NoTthu3EoBUEtACrPwhm15mDZdiDKD0Vp1E"
+        },
+        {
+          "id": "da4d7b1e-54bc-447a-a42c-b441c1b8ec67",
+          "email": "phase60-load-rehearsal-student-011@example.com",
+          "name": "Phase60 Student 011",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..U7fRacpQSA5870w_fkXnHQ.XEYybc8d5h9jEtp5emihrBeJyhU2KWuTp16-nEYBtJF4uOPnTiBfU7CUZEQstCBCQf4OSIL8dE6uC-q3WUFfufDbcnMRVo3Jq7SfYCu1GWDB2M1VXYTkAFKyYJi5xFohsfYJTf5otAhbd0ObuiGzZhNkOBxCqUtz8ndifg58uBKfkGtJOpbdMEjZoqqP8TtdKYrCIGmuudFVUbI-sqMpANEGLO1uHUWl5-bCkKgek-ymQ2L9O3wz-Bs81vNj82wQjCV5XpxXUrNEodHB9JC0CV6iHUsiFpu5EXtBFjhPxn3QH8RvGTN_6rYAnhHE-XFwOB6wgnMeAFc5tYP9m1IHT7OPNpu77c_OYux5rWAHz2tJLABTo-P6jOYE1suYOlxAGQUAml7DPGXrVV0T7zMwpQ.wilXNyuexdBNvsBwJpTvna7QpuP6vt02VXv7yWlRilE"
+        },
+        {
+          "id": "d7401ee3-21c5-46ee-b95d-22c42bb50d62",
+          "email": "phase60-load-rehearsal-student-012@example.com",
+          "name": "Phase60 Student 012",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..ocVnZ7haKQrfbOxiAUo8Ag.RFe2meCARVBK5WVKmQYn7uwtY3dXYVST4xO1_vdV-E_ijwkqWmQ65izfg6gTgdMguZXk2qu6lRhI9C_i8zaU8b40RzpzvoJB9C1L7QVGndo3SpUZLIGAOTguy_WwPtFsmPiLUw5FPcBeAjCydjwNM6PGOk5UCw0jsHinVSptFD6YZ0mvma3BRbzJ-lUStGAfJ9KKZke02q7KuJLtvr2WJOGhu0IcgCc6_iYIcRt8nLiLU6e9j2KVzuO96DENHQlmaQNlQdlp_WYyklVTIKOB6QlqFL9MwISAkN2-ffFRh1vIUHWqBrYlyZYm-zvzMI8vXRE3LSugDtevdulQec7pfEBpjemcrwPLcFW9FNatjyOY34Qnp3mKapDh-MeMSCyNHdcXIL-z6wxdJvbmOM4THA.u5Ms8iEBX3hFBmtXBgHGR09CaanhNsayRoJsA3vOsuQ"
+        },
+        {
+          "id": "e374a255-452b-4b04-8655-3ccaacb6c3ea",
+          "email": "phase60-load-rehearsal-student-013@example.com",
+          "name": "Phase60 Student 013",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..nCWp3-yhwyTgrT5EQr9U7A.6LY6bcI1s6LHIiZZuYK-E79-fZpaTNnsWw-97XmMGqVStm8J_B0QlMe959dmKbJa-yPW88aYYOcEdM1GW1kDFJ8VcFfzl9VADZIO9t0RJwixGNx8xpdRFSRsG8p4HlZjS9i8iCo4zW33TbStQ89_r30m-B-TchgdoEGgmrsQXYgqOwD2vwbdlLuuCh-iMd074Ba73X1kcno5ZC77EkyIdYYLW2uCZVYxBB2yL7SpaOwmo5GHTbcgJoHvFWVi3JsDgFVikrnzcxSyyrRe3Hy3FELTuwsZ9pF3EPnb8DGX4IZk2SN2ZRxQ8ICbIolRspM43gZOZhbBT41yX-uQawG-fY1cJruFb5kFdbJYs4QQPl7f0MGo-4zJxqXSpWoBmQ_KHWlXlQ5d1kcYNgBLlNw8_w.C4p671I5gFca_LSph5W-eGzTBYCXCMF7GXpxybt_2Bs"
+        },
+        {
+          "id": "16f68b22-5560-4c97-ab0f-20f6d2a2e5cd",
+          "email": "phase60-load-rehearsal-student-014@example.com",
+          "name": "Phase60 Student 014",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..VzIsi_jgxrUBLRo7t45PuQ.Vh1zGD6N_alvnY-4n-GwhrYaKgB1NjT231dYnx1aGKEXiJ-rDzXNaVTKKm4gu3yWEXcqWcvubFl5FhIVeLweOVs7h2L_nPyS78rmPYfjgaECHEbcdw2oVMs-vLQb4TQ9sNc4oWPxdQSfKC15I65fYoOGDax2cg82mW2OOuqReURA3lo--Fhd2kcn60EIJvhJ4xr4W-LEI442_jjZb1Bye4X9oJNF0TbfLwDK-K6Zh9R7rOXNtWToN_1le6dq_1-nPrS8d84xyh44Fcl5ZW0nHxGWmjtAGHCOaNTTvBar_Nnw-AgjeUkcfCRbbxVluHewi1gPlfDaBjasOm3ViwRCVJU2fbrI33irBS5KfS8safpDQrH_zZfwtC0EFdoyM0jCD3KHD8SsxdWwF3CtRBCEsQ.G3mDex6xQ6uLbsZfPqV1V6gEeIgmMXwZTDxBEhgzPxc"
+        },
+        {
+          "id": "93fd986c-319b-43ea-9b3d-4d794a5933a5",
+          "email": "phase60-load-rehearsal-student-015@example.com",
+          "name": "Phase60 Student 015",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..9RK4v0Sws1TOrDJNBlxvwA.-68wOsgLpwxPbstn4NlPOYcgtNlqQBuhtVTTbuFJP4mQhQndXq0SHS4mcD8zjxmLhPrxrQMqts6e_OP3u8ofV2191BHMS7483nKadC99lG8PQRiPsVL8Q_RaXK2sQ8J4YUMRQx5OC3UE2YqcOoUsowCphCWXlIjKMFJJz81hILWAm04PLKBto_ueh9J25MMijNo2Cn1odICsodwM9tPDx5bKi_iY0JhmV5HsjzSm2Imqi9DP-UoRcB2yLkQMN2SfTmFesANumd_T4Tv68jz1TQkFs5q2ksy-T50-Nr06cRO8FEaGCWfYjtd1-fxlHaxYZaA3G5jH2962tI4CxBgQH3Xgobh3fTE49sEJrYlJtIQM-QLonSXg87fCox45YbMbiGvF65TAPAb6KDUej_z2Qg.vwchPhYelE8DzNTG5fd7Q_FLWlPSSZD7hiGkHMIdm3c"
+        },
+        {
+          "id": "640ce6d9-3c49-405a-8268-fe2185835c84",
+          "email": "phase60-load-rehearsal-student-016@example.com",
+          "name": "Phase60 Student 016",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..-2BDDna15gMr47MkLAmKRw.vjGTkS3u6OFd1LOhDJYJljiSH3T5kE6Mnixbh_lQA-cb4yhoNCvH6adfJRVPNOOEJhcjIqO9ThUL-SelXCo53atnKBlJ9XJhFGfirvs8ZyWU7uREaqdqSTYEjDIh70Dt70IGikiTKvkGlvtAQpgCeEUSxxoF4xFy-qJevHudxyjd8jjx8fe1RWQ-QLefsz-E9yRBGVDBvR8BLjL2CLcrHe7hfBKsyosYA4OXtiwT4FSNeWIUS7atEGi8qbNe_WjtYdM-NB-dpZpCTg9wR65NZe1SgbSVdbPeUPPuoSjL68p0dU7fzvzV7H5BnkHNLIGobV04BhCZwHPwYOZVEK200dV51Nz8dS6ShqVF7sHI9UjhgCpLxT4mPPxGXXuwSwsva9PnWUuR4ATGJ0fAwJgsjg.Qu-6Itb1JtVRUjNiGoK30I-RAmuuzOfDy2dayeECYVw"
+        },
+        {
+          "id": "280ddeb5-e8ac-4a13-b6a9-f17563ff53b3",
+          "email": "phase60-load-rehearsal-student-017@example.com",
+          "name": "Phase60 Student 017",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..DzUuFFroeKQ0Xab4pnin2w.qmiGEUgyiWefZ8oMbH_piu139ob8cCsQnUn6mAr0XyHv5kLZ12UITYwWOyy_Sde1ccrHMgbYNrBT4aUwJKPJf4jottFfXyS2Ff6QFrx671h56f2HNwKpLc7_zTO7PgzwDlnczrLbRup1B6-cW0I8BPzQ_vHR9_mvlNlwY33GFiuNIm9-0RZVxwyJq5c84U_e_T1sBEzBeyX5-V1aIvDlzlzE10c1IxbtiaLG4GFuAatwto01BtgJ3ZoiS-iHwOZN7zad2h69FOmF6CdQk8HV2Ac3ZFjgLJfTFgwxcB3i4chTMQpgBTUfW_EVj0IEb0iZxOWwd3oPw8Ug4y_t8euv12gBMNqZWmj3mhtK5rqPMqalCVw7H_4yGJOGsOL8G_qJ_L4IVx7y8FvRcu86OQURfQ.ieLG1MpE1ciTjbherZHUuSpo2b6xLWU6rTVUXc4cOTw"
+        },
+        {
+          "id": "3cdef976-20b9-4538-9b95-01b0916270d6",
+          "email": "phase60-load-rehearsal-student-018@example.com",
+          "name": "Phase60 Student 018",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..ONcaDEIxj2OI646Jt_eAZQ.5IYUFxkcxPkq2-VxLS5jXb1T1h_ARGoGYIYTsizxeUyKMjMCdDEla8bkjTnRVD60f8P8_Sl6u70iGz9k4NU_FgSqx2SN_gT7rAnddZ-1wg1o0nIDEB53tezfy5Z4QZueE3BYbOVpA-Jz_OBWPLI-kI83SC3v-UakY6SrA9pFwW6YF_ENyYUv4o7VSCQaVP7oQadsItayriXGI-bCBu5ZaNxrAR4Vw_fIg4w1MzkgVRN86vWDgc_tAfVNULBs4wdTBGSWbBK4d-Druw5SaF4-Cw_fMeEhycEmSx5_-h3y5cTm9Nx4ephu7q0W8KFupv_8jDonEW8S6GPcX4pwmEqu50TiIdV2jxyoflkaKC7sFzqEUa82i-aYk-3NobGYNeQGwDcLX4OvWpDlc_03DucULQ.ES_-1CfUkwieLtAGKdX2zD03eq0YZb6tufmfIwXDQjE"
+        },
+        {
+          "id": "4ec8ff8d-6147-456b-a0f3-54287f042c82",
+          "email": "phase60-load-rehearsal-student-019@example.com",
+          "name": "Phase60 Student 019",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..VS8iUrVXY2lL500tXJwHbg.PDu3Gxd_HrIqE0MpVkLRY6osN-3eEhiN4ProMikNdm5gPgvXSddLBdV3bgk9lUtYxm-c6a_KM4s5g3ynpwAxPyJTPV37JhNgKtRNFBgS0rtGjSl4u-hB3xwOPb5ovIV-Isel2PpcPIzoxp8659MQHmIdEx-hQHGMXudq5EXkCsTVqL5a5-u7ks_r3fWl-FdrUuc6TbVpeac91g6aVEfzKIz3MqY4z8CYr93QJ-iePgPOVAJFh-mD6m1Wc3YIkIk9iFLjN4xXB_ZzANmMcOoFYu-CEoqw6QkFCJ29z6jLWEsEhG6SvrXYG-3dFjgaL7rwdRGkS07_EewetwfB2IaJxuatbTbcM5WT25mjPI-tgW3LoFA7fEbNrJtq-qDOAQgq66xlSBn6a3QtXQCz9shkkg.GODJdmLJE-d_HCbHBs6XCKLpXs0dtXbw81TeIp7ZgKA"
+        },
+        {
+          "id": "00e454dd-8b09-4d19-bd23-863c1e0a3126",
+          "email": "phase60-load-rehearsal-student-020@example.com",
+          "name": "Phase60 Student 020",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..kr8LS6tkERSnGeTlSeHKRg.I5lA-V3PBli8OTBBYZkqXOIxeBfAaQOjfXFKoqte6yce-hflomjPw02lTqv8d_OelHkgMeG2l0ys1Yh3fs5LQ9N3kywd9FSra8oeSdS4dkrlDlLdScXDxVriRSGyrw_oVkjDm80-Z97JpNRexgVbaQb-HMAklFN8vSs6VAuCV7vLNwzd6d1PoG9ZcnGRgoOe1iYU9QsIzHGSJAFVKMeTb0IjYEWvsnfu26qwZZMi9Kg4y1cfG0nvDPcwGl-R-WslnjFEVTBE4r2YZaVvpjYV7RnL-Ty8sBNH0H1_ceGmwwCHcghlPzultePIq3-R7k4CLjKLcO7TDPbF5ctS5f1J0TeNEswWR4f3xSitql4s73crSvXIqUE1GJAYqkTBqDhsMNEqNPjK2AAIp5RWiM95cA.qh4xY6wGe4Sd-lPhqJ8F0mwgQXtA9hA2Zjg8XWeMlxU"
+        },
+        {
+          "id": "4c38e615-ecc2-4839-bf5c-85662bba8254",
+          "email": "phase60-load-rehearsal-student-021@example.com",
+          "name": "Phase60 Student 021",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..8ozNqzumqDqqEvoyjk_tbA.rUDUBN1kz0g3SrBAZ-6w4w2QTpSLKZdW3sjgL_sM02VXUGH4olk0y1u9fU08dSOYakKbhTeQ0YJNIlxQllseuiyvjMvsDC-lMbzA4MaThtAixR1MOGDIg6x-BBrx2kQzp8iRpMsWOwQxVSqzb1Sghrq0BC9n41SmY0qlj6ZO9_QrEIK_AKZcJ3OO1Wezo6tGP6hq6NGCNBRmZ73XWFtTNBhLHZ5hsVyuX93ODKiYH9UvC6S0zDNc-k7XN9B4IA7Ppj0N-IXtxmE0hWBEMfV-KiJxbko9C1SoH1Nd15NqGWlm1olnzOoLAcr89oGrHO9Q0v0oeYu5bDIdN9ojGNSOe2KwDaRl6TjYkkuVoSexv9VZu5YilslCXuhq0BLmMkbWg-IIopvFSKnh52dVeOCrpA.m9KeRuWhwol6XL4tDD7UJSr6iH9LptHAmvGGbdCV_Qw"
+        },
+        {
+          "id": "20632c0d-0a61-4ad9-aada-9adabce9d7e9",
+          "email": "phase60-load-rehearsal-student-022@example.com",
+          "name": "Phase60 Student 022",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..71m-Xjada0JuzXtO83vJig.Nis1_ofardvvRUsUf1kX2OkT7cA13lNVT73e5NjyOH8n8Ll0n0mym8AVPcuL64mwzAN8zca9Ktm7a_zd3utNUlglTc73l3D4HH33YKr_wvF95w-RtdGdkLqqCPO0x47ROnivxxsKisRR5uiVygd0wQD3hmZX_cQXu1n6TabtWjs2-0nkLON0akLlqp43OqATh6q9LpWHL1ruIxSn6wObhKHm6kUivqE6-o-nOaXGNCVagwIAA6UxgQ7xbqErOMEA2J4wzMT83lHrlVkIPnW1kaygtR-LqbpPDnoiv3Y4DJ0boljOq2ryNIUaUgxHd8SAPFk3IifBqDKvewUvqQOePTA5I41xkw-ALclZRoHjYZyV4n0xZgi2fPo1NhYnpNAJeOzmqWi3on24lJC9ImrbHg.3w-g3qRaYNeCAnWStfXO_U5OoprevAstaxYoChvUjA8"
+        },
+        {
+          "id": "d53a868a-dcca-41d0-9fbb-db41d90a3080",
+          "email": "phase60-load-rehearsal-student-023@example.com",
+          "name": "Phase60 Student 023",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..98oDYz7_uvs3EAszfm8RVA.S2USaVSyDJTCA506IQTByRIM7Wm0RnaUcs51Cn3cok7tdyiP-7OEFe_-mcUkj1y4P2r1H4SozTChw5V3N-c3n7n42tAPVB7aW54wcT6BuUlLdhG13cPxUAhkWrLMxT60g89fuYZbt5PfrxfIvbRsShgmQUDKssWqmpxeh07l9VMV4ZX7dgzvVSvnKWDUIABXmkbAueeyzqVkU-w3Z3zdrAMrNw2udTN0fybavbTIj-s0r0BPoHrdpG47rK3OLrbb-Y7h8S8h5nfImeZGbW29ysbujJ2rBp10cfHKTRl0XKf2HCpsG0e9K3KkXS9rDvpWeea336dG2YlB9NqyCpiKMHEMBXOlKVOX_qbx_aQZR_g9_qzkZl7MGNZmIH2X21pbTFQmSayi-IVHvQOw7tFbrw.X7LBI1VNF2Pl6tZmMADJ8Bbo7wnGfKrqZ43Zm7IoWyQ"
+        },
+        {
+          "id": "5af88965-cb6b-4874-bc8b-edb32b944dd1",
+          "email": "phase60-load-rehearsal-student-024@example.com",
+          "name": "Phase60 Student 024",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..9-WZUJc7H0FhI_Pwt6F9nw.Kz-zvyWQLzhSQsgnGtyWefUzumyN0tzbvEf_7hmTvEeD6aIvM-aMO_lTuq0GVG82rFGMu6-wDGCfmWcS1Qnn7DEX-GjTRcS6R-ZiZdXzAIc-esoiknP6VbmOkol43EiBcm0i7H1gUYPs-pECk24ZANqIvm5FeltCHi8P-tLz2ets6R2W3MSCiy3vMkwYDX5CLhgU29lx4sdZX_ZRziIdnXogLyQ5tZdIUKkkpXS66D1i9YfGzHDMm6z1dtqyTBMSYF5PgmFJAzuBPISf9_nq_TNT8ZZ_wza3qpWFJUxmL8srKRROX67nr6q1K1vwuI9Gkw0ozCwOoQYzG1dsIILLFuwdhD6KpBV5IwRG85FVlil9DyF4S_B1ztsIj2sZDPayyVhvVzlk4H3FZ5-6mBdpUw.hZoiw-BbaQJMghZazuFBfuzHXWWWBYcmxwpcn59g770"
+        },
+        {
+          "id": "edf6682c-2a47-402e-a38e-587c050c6cd6",
+          "email": "phase60-load-rehearsal-student-025@example.com",
+          "name": "Phase60 Student 025",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..njIuIZUkJnNTAPpZnbPLzQ.TMMTzZlbZjW0SIsM7F343l9rCvEmrFzXMYTwh44HPkoGXJ6AUnGdTTNIlT2vXkU0q4wEY_7AWub9PCKcPOyX1YuYg8JUYDIWIrCeU_Xx81o9pI7ebWjOnkL-Et-jBZv4s9COaqGAmjNaR_ZbQmLhYmqzQkycUWg4eOw3Kyh6RoTcUi2ALK9LUMBQtfmJnubwr7Tla3QVPtDQl8hkOYq9C-9zS4NttoxZMKagOOeEKjPa5gYEujRRMj05hBCFTzciJ2t4nNpME8Lb6JluPNyHMD4LuKgsA8eOrwzjBeraKRpVFf-Gzxbh3MxkMv8Rn8T3xb48wQOATmYj6sVExLr-58VzLXf5GBZraJtUUqY2W5QX3OnFQkxmPio4eVcDNCWKxu10moHEUJDyyIaYqYxujQ.egt9AkrkuzDzuJHYOWBEVxPQaWUmyKgS8Xir5xHFrws"
+        },
+        {
+          "id": "f8ff812f-7a81-45b2-bffc-0672da121a66",
+          "email": "phase60-load-rehearsal-student-026@example.com",
+          "name": "Phase60 Student 026",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..1SvBIHSlQGum7vvZcS-sTA.bYaDuvetG2fWwKbjXqJQPZFCddiyvsyrHR1Xe9CsOpWmrAPLisRQ180uR1N28uKHZoxXYEFkNvGbzZGSjD4S56ayyCcjja3qVdljLWKcmUNMWoy1glQLycMDqGmIo2JENy0HUgp21l79O_jfQ_TIklLq3LaaWl1p4R8ofkNLaEmZeKCzhgVkK317cvi6uZ7zKtHX0MuiRb-KbWEmY4euSjYbXvVI_pOotsd9koCkzaAtaOWNHO_1AY3Wp-iJZwgoYmVBe3PqcLaIYd5G0qKxigtiJgUoOf3F8HtdAx1iptTNVGY1RLGTIW0TUnShIjtauAP1QqYJ9cfx8EZRi7Kb7HTgfNZIRBd6pNSeLf83GHGl4pL95PeiuMP98yexJ6ERFD5jjlbJUtKATB23BAD_6Q.wYIb76Xns0CQOwT0HpZqtvOVq4bGxZ_4QgL9EjQP7a4"
+        },
+        {
+          "id": "e8afa336-f964-4e08-af30-dd9baa247289",
+          "email": "phase60-load-rehearsal-student-027@example.com",
+          "name": "Phase60 Student 027",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..gyTRUqfy_66K6maXl2G3YQ.aEGtUeOJCthLS8He3hINflO27714lsFvOYNpXpFrZqkzWSn7bFjIr3Mjkv4qNKjUOP_fvTxgvbgm3hlueyfdtQfwhLAjuzcckpzdopXR4Q-tll59HS5cxu_Ef0eERJWc2ThHdg6Y9VEVjz8e8jT0u4ywR_M3qri_7-dPYv5SncgR9zdCs7O61yBJCrYzPy0_6qgHu2ElpiJ_FehjPpuN1Af9CLFVbmiz37Z_akwzteH4zalbE9B_yLUDE-7yrPgL74_DzXho8ipTLpWiSdd3To9a0IIjQNSd2FvDZULEJM0FyBh2KpwaogJuzAa_7p5_tL7fH3vyXR4bM0NxcO9zJGfOo_Ghyc06sUc48Vxikkw73evWxKgtDpKzc29Lar42jsaeCbGHPglmy4TRVAVGcA.NoHk2XTP4svH-ZTipd5EIAAtAMHKh8P77qHIwbHXPc8"
+        },
+        {
+          "id": "b85cce85-96c6-4075-8fe5-8235df2d2615",
+          "email": "phase60-load-rehearsal-student-028@example.com",
+          "name": "Phase60 Student 028",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..BbA2W8MJp3L_NGxCzPgp0g.FLWD2YvvhjiGOlQRo-lfMJgJDgCvGCNr3xpAJ8zbr255R_CRRXCNzGddICsieRZU03sWEBzoVCruJyafVUPSWEwWN4S3InawF1h9O-3NXPyjPSWuDrofjLYEfj8C492d4uO3JVaVQsaAF_HSp2BwJL7a3zo11p2StMW3sqEkkKqH_7ARycwSHK0iK_DQttbdw10bvuExAeL76Dp2ZTWIpXGzn3aEyXsIv5t909yDOjcAmfMtl4oS83QNk42Y7pCTwEDcvOuzdG1jnTpLPsqgjTY7-Uf1uJYcJ69LsTeNZxOzidlJAiCNM0iAs1VDMKhK1sgFLAsn7qxMMhuBwA94vvU3-LKLNwFw4i_p4A1aCVlflwuJ8GyGU8EK4wUq4OcXJIBE4j93zEWrPyGuZV8TTw.eU3dVLWdhJ-JG6AWhQFU68qf2cYBPJ5uRArUMbfRxw8"
+        },
+        {
+          "id": "b5ed768d-bbf1-483c-802a-47c81112f122",
+          "email": "phase60-load-rehearsal-student-029@example.com",
+          "name": "Phase60 Student 029",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..AaegsBf-kV8XOQwJq8jlRw.YHZJ3NnNQMQPYKe7bYx-BKmsuSAVQ3IwCHtCwu-9VNwAOhURtumMYRMt_co09yRtUz8IzSCEoNjPa63lb6BrX-nSjtYUns2Yh_-O7MIcaR3bNuPvDhuuaIbH6VcYq3bSJQ_agtHwam2idvgGaewj79ryzlPgQiq0aqBUapDUWGAa147zcppVkVYpeK9wn3emrdQiy10YfNBeI4UPBVzvpY3M2J_QFDHlTfrt3qv_Dyt2UgSXn_Y_uKoYQUPjx0HcBDCkLDYMlx9dmwaXEuMRgRugYD0h_Ly4RNOEP8sbJX0t2sp9LTKO1qQSTfvp2Ug_xnr9Aoi4ko2kaLT3J9u_f2Tfr7kOFLVwAROS3POmbfNE5Z4sbbDe_81R5BFddjkLUXdGv4DzgJ1tQ_icwNlbvA.Gnc3HYskr5tnDYR3_2bycf2mruEpZEC94s4nMROWxKg"
+        },
+        {
+          "id": "069a3e00-a884-4867-aa8b-a088d4d17e86",
+          "email": "phase60-load-rehearsal-student-030@example.com",
+          "name": "Phase60 Student 030",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..q2soO1X7CddHjBzkhIyRtQ.UcVBmtELyjYy4-bl0oI3kSOwdoEUbDRYE50JiJsd_b7lI9QOWjHciMmo9yA-SZAgzBWjqWRMqmIVIUe2w7RQB3AIqrQ8dT5EY3JUvbTs7b9qoDYasPdEPbsbyhe0eGi7D8PABAXhRftQ_mMGvmp5paeFE9nFgEt2036C9GfbVezy1hyKpWws1ORG4AgSd5vvPbKMQ52iQ54GLGLlTp0hCPBUlaRVJsLNLCZ56XOU9xBLFNnFJFDw-J1fAwtkH9jQU9KVppnbwulU2pGr-ankb4w03PVlmqZaPq5TO57OSCF2_imQODTXF2AHMUbArmMYkL_WL0lCqDjl5ydohJW1YbeZbkpu_qwD84uZ1d_t_Ve9-kDSeU7chEslhK3p5OPJv_RmFVowCzJcqVFgdSQ5GA.Bes_DCEcMxr5UU4zVwOOklKFxPtT3kljJKCm7YYd4z8"
+        },
+        {
+          "id": "58adc616-84fc-4b78-a860-6fe285a9ace7",
+          "email": "phase60-load-rehearsal-student-031@example.com",
+          "name": "Phase60 Student 031",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..iMAtrKTCLjD5tdbgDZdbYg.dq58rN24OFqCU7akJ5EEDITBSswWTdLHOjz9LhSunCXUNfctDrSyEKFaiSApWX-YRO3tu9m4GUctS2cK21LuTuFjFbeWQbwtZFGl19uknfGRhx-2WweS2gFvBL1Yq37sA4TnagVtS4yx7LWOd_Bp16HM8812ch8M3hl3xs_IKqBWiNxFCXKRu2n32NpEob8lVUEafrP43QB5TIxHGh_vSR2iLnctJbbKDClB4eg7htl1nOQOahAVDx4M9ymbwddCRzYB2k_n1yFrpCQSKWTLOphp1ktJBwlI4JIipOw3IBiJfUcxp97OhSbaJMil72szokksGsCaQrBMneHYLEQD06Qbt0jwiIg6692vs9dkkcNstmzyM0m2sx2OQgLu7HjCzwFKxpCt5s_E02UA1E4Yfg.4isGBn5YWIafxkpdCTo0QpkEpYzETCCPx9cg4dmBmC0"
+        },
+        {
+          "id": "2154b541-d1ca-4d42-921e-5d141475e45b",
+          "email": "phase60-load-rehearsal-student-032@example.com",
+          "name": "Phase60 Student 032",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Vs2uPZ0nCFKDTYMCey9HEQ.G3LjIPOHEQaL-pxcFrx24A2xhj7Z4rmPYhoghIqBYYtoM60BxjgtjqmcnDHMINH39nFDzj7Apx3FQ8unlCaYyucEYh0Gi1mk8Q_loGKL9uaRFqT3b6JkRZrriJRsvoI1Tbw7ax0H-GyyCfCkceH-ljy0_quJGwPGV8LllaTPl5G4X2941g5QW2atnqLran9e7iNvAcl5kJNR50T5KGMO2UuuQULGM4we_GvQoQJUibVSmj15y1D4uw-uftxoOn0chVzSm4BUF1J8b_RiPH-347_1MFiWs8cSR9hA-3Y-SjdgKHB2Wyb0oSRmR_czsSSe_OYYpXpqwvmomxXo-DpbHT9tC4YjirDHciUSI2xM0C_215FnyHAJja58wJPW1rcOiNFhb3rIL7eeXTl2bNWMIw.IbfCydr60sy-JEsppQMBBXxb-8kM19Ny03DfRP3BBVc"
+        },
+        {
+          "id": "f31ec41b-5a43-489a-830d-774a7a78ba7b",
+          "email": "phase60-load-rehearsal-student-033@example.com",
+          "name": "Phase60 Student 033",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..B38YwrGxLcXkOUVvWB8klw.iR0WA-hbQOH4Luv_dkKSx6jZaor95iZJ598T0TvF2yTgIQ_PPQdp1qxnSaS9AdQyCBff87w_btuvzECt8pvwU3qurX_sOjzEWC9qW8zpAhNuXUeDMckGCZkDwrnWgyaKPoxpFNG6-ip77cETVJHduTKaM51QluTa_MoCRLorFyk6105mA6br_GyOT6nDS2jQK4csN4LPdD8uvsV9Yudw8S-aU8L2LgnNmpoOtHS4PdZufL4JMYNK4KacxuMD7Xd09U73Q9SszbobisNy9piOAZIoahPMx37MCY3LVwdIFGR22mUFajgw0ygRrYAjy5bhCaJUf6CLzBPxeCOGU-knls08k_Yk1l79heit0okJ6Ke2HukWZUvkwKWzJaczaycnIV1vtCSPD2FJV0tmNucf5w.1WBios2nr9983R1RiViRnCi7qaTDobJNyGHA116Ph5w"
+        },
+        {
+          "id": "c18dc947-8f8e-4c75-b325-1c1598fa855d",
+          "email": "phase60-load-rehearsal-student-034@example.com",
+          "name": "Phase60 Student 034",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..wyKOoUDy3zUKgwgaTllHAg.FtGAwMRAed3LTJRCnd3FH3x9EP-gRB5hcNJCS-WMNv0bYUVOqj6pJhAQZVOJrM-m9vAPhzY10wLGBUHUCox282f-woKRshtsrxR3Hj284uzwP3qlcXpZNyBdJ9b-SI3rfVKhAfndlpKBKx80Q4Oth5Q1HrGgSEdjU9ry-w2vqyOKStOKnR3VdyzCSmzLN-43Aferqccz3xeZeySdHmcXx474K6o4ITuxWIotPgt31lEYXLxMrWVF804HL0Nov5YHe8Bd-oOiLddLyL7YIh76En2OvQ1nE4OLDsvhvMdjJEGnHAiln2UOGv2xufvhKRYsnjiS5W2iJo_4eaFH5nQhkn0MQgBLr_l8DhRvpcNgtZdS0jisuL5XDCfWJzGLwlJ3AxKuYRSQRbFPA2uGxN2Swg.56YFoePGF9s2SH1dNycj10GVbszaqJj30pJFKVWqDDk"
+        },
+        {
+          "id": "4ca6bb94-072e-4cbd-af82-d992cff26e7f",
+          "email": "phase60-load-rehearsal-student-035@example.com",
+          "name": "Phase60 Student 035",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Ru8uaZjt4nbtBxWpJqNgbg.DG51Gd9oI20aHVeemETow6Tqwcs4Vqe47eCeV8l4e_7Kp_M4U1BieYZhzBiK5ja62jcPsFzFBmfPcmoCRvpsHw_k4HQWW20-WlmrXY2szzInWhT5URcQEIrzbTxoC2kF3PFZGPK1EYDL1iENterHQ7Yr8oUoheNsnySXpce8xy-Ju1jHQ7ZBFPbN5u3gJ_kf6CUGq3TsD9u32rFrXLbTqXAQp9nM8Md4Vc72ow6Z0mKNpEAa3ip---_ObJa3jN3vqfVHHU70bM-PIAqc-5hpH3D7ln8v2H84FZstFP4kNjZO0uEivMMX0MXkg_R_LcRT7nMy7j8C_PCTsRuMAFLI_bEuUU9xhqTQ4PU2LAY-Z4oVybNPFPMlZRyNF-Mg6v3q8nKvsWfmiVydCOs4y__law.BTwEhGtpMk2LlsTJkAhMbFgtQxa6V6JmBWg1SPTydhQ"
+        },
+        {
+          "id": "a3818636-d61d-4223-a109-d036d3628013",
+          "email": "phase60-load-rehearsal-student-036@example.com",
+          "name": "Phase60 Student 036",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..q8q4_Hui0KHw-X9xnohZDA.NZrNZnn2d59oJUpEVWDjkzyCd2CQdlf_9WJtHbIGwcjXcEz2o6VMS3Lapqp0V2Vl8oo_b24Qxf60QDzMEIaJlhVXmpK8wlrxHB1-40XFrbGQC3pFifcT7UiCD9bYDVlQFR4TJj-dSHaEa32tV1z-qthuH-A6OqeSTYeQE9BIjanFneoVbX7kZjmVzRJlSEOfVskcpJ7zd3JgxP8MTGZE_Np6aYUPTMpnTRAfjV1AQDuoCSaMOx4sgo2zlMdKuFfd8Ym7UaZVA8U4jpg7bR-egV3ibSP_yWpcdKRIrdJhG21crjyntGpBTjikJot0qO_U55ojWwGY2r6QOVl2r9g8iqvbA5WLCRtZkPi8JyrIk0q0Fj96FgJoofefg9RLx08qVOu7gKMSVQppAN9N-fMK2g.VDQhvutWA8PO6dmUWSrzDrj1LdoL5PprG-zhoUYtW5k"
+        },
+        {
+          "id": "70dfce7e-204f-4291-af79-20a3a2d70de3",
+          "email": "phase60-load-rehearsal-student-037@example.com",
+          "name": "Phase60 Student 037",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..c4UQpGctY5ip-CrGRN3mpQ.U0Fd1KKRLB5exfoKYwXqMftZ4p9woFFLbFF1n4n-x-mOsIMQdicS6TCwo8DQ8fB6drJAdYZPspDVr03IP3ktncLv1B8fjEFEEPH2n1nrHVFJFQF744GLpf0bWhsyoboGhfV6ZqaE7hecEFugnt5O6FQoffScToK4hGakLs7RBVXltb4wxWtxZF0XjFDKPx44Kiiz348gPhwM9XzJD8Fo7dgEvM6eFNN2UAa7ReOwYCsFYi7ZCJLTItBx40ef5VE2XiJOAsXQfEaIyMqjWv5x1iEOoix8bD8Ac8pl3DN2b7mWsIZpG6YRbmLtvUhxGK3joN3f_qLwDNK3GU1g9S1ZjhiDHSbyA4GnnM9fmEZ-A34RbeH2u1tpxKfcmp2fh-_0Nii-s1qRyQhRI-qOP1f-vA.shOiD83Uls7KpJtI1OGMN3ss6I-Osy2GzKA7dyJv1I0"
+        },
+        {
+          "id": "aab29ad9-1402-4f29-8da9-aff3e5ab7587",
+          "email": "phase60-load-rehearsal-student-038@example.com",
+          "name": "Phase60 Student 038",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..wOavDvzg7TXJ0btCAqhwfA.Bb0T3kDcx-muCJXkRTKE1yE9nW-Vkg2X-RjqS2udRGnk4JtpBBna_nvjp5oXB90rFafUIvex92oGYn-iu2RyPwBxBjDw7999V82qP6XiL4Yr5XKtYqwzcvF2dTVt0PihzphLoHNqr06QDQCitvRjgJJNQKKbNk0oAJsoHvQ_8H1QGTSsmHMq-aGZSypwutv3SQbtoFkUqitO4_S7lDyHj7Lrq6idIYJL2uljiFq_ECCNfWMZfJ8Fu39oSnxOgWDNZH6U06VYuJ4dj466pfuPEKtwnlrU8CO0jdLpxxtUVjABKWzCUauUGb03aJh_O-N3EQg6hJAz34fdTwXzBGo9Bjg4eqWd_wU0n8XGZQnb6yBcsT8cyLW1Wsi-f12aWgEN9gj6GIn2TheHOqcXsW0o_w.leJDdVivDYyYaD1mr9-ZXakcOwsi3XUEi01egRGeEhY"
+        },
+        {
+          "id": "7c321718-1ea5-456c-bb86-5443be937e96",
+          "email": "phase60-load-rehearsal-student-039@example.com",
+          "name": "Phase60 Student 039",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..C98wpsRs2PFWI_qQcjY7sw.edeUKm6bzlpb2R3pQ3FTyRPaiIlb_QeSvQiW4RFyXokFH3gi_ldmveNYhT-Jn9C1cx6M7CczcfWksZXmohSZn7cXu8tbsPA0izRLa_LjOHpFWYLq95dLf-mPThRaUNwNATx6qSazk8gyp6i6sMQyIZJGja9mrxJZWACL9Pfe8JRZjXy8TUa2w6ClMXEu7XQjQONBDvaFP2Cz06O0NenHXvzUx5ZGes8Qv41k0YruOxzrfBVjRoBWdqM6HSxAbawv8MKJWlBQiJSe64if0XJ8P36Qkawz3easjOoSeCWr_d8Y6rseL7b9HssPRONoUHyHGaE7O3mZBOoujpGnnKRPUREmFaui5buaPDX_-fLsQeX8YUy9gadaUyKAN76AU7hobADK9I3c8OkGj_5zxY1bUg.lJNRnTDuwuBn77sgTLWrMNdIn_mWy_btOVHZ4asTyBk"
+        },
+        {
+          "id": "c5fa523f-4a7e-49f2-b187-52391142f961",
+          "email": "phase60-load-rehearsal-student-040@example.com",
+          "name": "Phase60 Student 040",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..lvoWBxL1mjUUOYShlaPwRw.W8xLkjqMV49p7TsSfv0rfjSLjMXcAd15YnYY_yZ91BgfiGkuJQPPqp4-KN_KxJ8k8Dz8gUq5kysZougj7om8fBYWXRDFS4e51iPgXjUL_zVKIopxuwYGkxRIezcJnVJh-XXqITweKzKcp9ge0P38cLDPNzDCmhvfMpNEUfamcDYBIw85anmglxwHHQPtncMHJUqOTOufTrVoDBbyEQBx4-xO9H4qktBj0cEjo84GzFXzndSenmbyDiEaFKbAvyvR9l1w91cpRGjtgzj6b1VIpGq7anpeg65DTA3gECjc2i2H_-p7ORjWBV96Z62nWkEkEdBggJhhfg4KiRONajbKeHnxegCo81NvQrPCaQ5uAUKhse6Km5X9PQr4ji3eeU-d27Lol3pCXnztkHHnX4SKng.Um056Bu0os-1Vsawz3Nn8rmFcntHEp8LDO3iKh9gIPY"
+        }
+      ]
+    },
+    {
+      "classroom": "phase60-load-rehearsal-class-2",
+      "classId": "750eb625-e2b5-497b-9c9c-ee89740fd8dd",
+      "classroomSessionId": "f9e6a3ce-b1a7-4eba-b247-b43bc5822fb0",
+      "teacherId": "b32033f6-0da2-467d-a89b-46a40b92a952",
+      "teacherCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..fd0ExcH1Ibhm5SjBbZ9c7Q.wCwd-vLTSaDlYYPb5WUoChB9SENxs2NlU09OpSZBjPYG05TDS2O8VV9bAUO8nAixtPSeLs_tOQTHpgnXal_SwLT8X_hLtpuJjMrZ2nacGjvaPEkzqKsV-7MPctq3phF1NhAPUgq0n97m191fedyjBMobC5IGTGcxyv5_ZDjh4mT-Y47zIpo5OzsrpUqXnJ3v-6-ZbeiyAnYS4hvMojMPx4HO_5SJVHLg6ND6kpZrO8FMX0poyWiUMOfStPIi8o7BlRoEMCV-bFtODEczVg2HsCuFqk_5_LwQIMa77mDUYJhBHIRi_vx3yfU8t5zh8QORgHtTbD1bg7JW_TeUkpW-6hK0ny325O-gvloyIq3IrVaMV0myVOj1ySKKCi9fE51dWeDDXVuluyedqE_2tB2MtA.vLTJOOMhhhv2sDdYQFPP_-sELJKEq6EhjxmwFnnroHc",
+      "studentActors": [
+        {
+          "id": "2ffb103d-d41f-406f-bfcd-f42863777838",
+          "email": "phase60-load-rehearsal-student-041@example.com",
+          "name": "Phase60 Student 041",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..gQLOuZmEnWqxnMSAZvlSBg.VvgZQsQksh5F7j3PPPhc3aWKPprUenNGS-Vf3ayzAWdvH_FU46lQy1MwSsGi9kr-2ddiiBPm-jOeI4FrCQfhFVsam82GWlUAHQQfXWtCFZzNQF_g_t61qrspgCtchz5TFkymaUEQDqXs0uYFp4qa7WlHhVJTlBr5oKb4SHoFoczGsa2jXR0waiFvN6vjx9icS8dOk4zG0AyhYop5ic6ipQPnE6Amb9xV0Nd2w-ZFZ3HyTuy8hJ1mrnLkR-uxy2qOWqKbKXVJNiSkGszZIxEoc4AVzila1xJflxEPDRBBMOZMyJm0Bu2NHNON40Ve9tV0zz7ot1MRp9vrJDSgSwpMvJwPV9ArGc0EMnXWFa0GFn_BVlSuFJtNUgcRU8c1lC3wOHXK4aCEuX6MEfyX_BQimA.crGuMMay32toAm2tm9cXhSPwTq9X7FB9UdOq72DwOAs"
+        },
+        {
+          "id": "db6ce582-eb91-4ff4-a2f0-26e27dc069cc",
+          "email": "phase60-load-rehearsal-student-042@example.com",
+          "name": "Phase60 Student 042",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..LqzRnb-qzwu7wsahP_aPzQ.IcayLhce1DWrf7wCaoZT6W3eDKbPpnzkcBjyCezpujCh0GSomXALs_c6avGQp-UJOeRP1BGXvIaFSVVEZX8_W0p-wV3mSuEN-2zGu6cCNKfgUfJ3bU6HTz0DT9ZFcnHvMKWwzFL24dWtF1nhQbcHUJ0BuWN7ajTB-DMqtpG5h-DpmvyrSfzkDKGwFsFF1tJHCmOl3WnJQTYXTGfWdz4cZzvkfWhY2IrvF-hE8-13BvoR1aE7yH8uqnN0Eg_IGcvPG96xbrEX6NyVE2K_06QgSmShMTpO67qVlIbH_1DO2SOTKC7MiDq0Y2STAiFHpUyM2xi8UOYyXzSxnV_dYry5kDEVY2AKHkmaVUtLdBDGhOERAc2Sxc6-QGJHxtAJswSoQ1jZ1UDPLO6vWw55GQnyNg.NWfMCAei9MyVIEd9XQ-GJUOO9r8AlKeERFVCMW0om9Q"
+        },
+        {
+          "id": "1606988b-4590-4f20-ab1c-9520f7764e72",
+          "email": "phase60-load-rehearsal-student-043@example.com",
+          "name": "Phase60 Student 043",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..XNmEe-lONpjXggHeaQ6s2Q.gzAJp_XfrXmsm8TXFIVLZ0f9q3QxDIrcRtAL7iKcSfPy28NtyVaQm7kd6-06s-sv56ag5PyX8BcYyhYkkFKKAFi_-4SKmHGXbkg_0CwoCrzyU_PNTXzJoFqbF1B5A6LvLgK6Dpre-3-OKwRKIPCzDyd-pKTMMtB8F2Jl3AtbEbAWh5d0yTA3HTPcnhk3v7yO8tQMM6cq26RpsRCM5KJEsnw83Yc02eeuMrt-4GQNoakNEVzs_eJSCWipQCi5tYQ4jVbhck-2gDmIP7m9G_B_jGtOGk2f_CjpMPaFB8pm8TY-0I6I10nK9Mxj5QzYrM8zPRMAnyvOYV5Hljnhj1Sr_6IsmE_p51KjhlljAC5a52OaqdSlz9l8eu06Lr8p8W5eafckxMTzM3QaXzFTWVFLSg.7sLLVO_S1TI2Zimd7FgSVON1bodcFALD-fLP-mK1w9s"
+        },
+        {
+          "id": "0ea4d52a-cf9a-45c0-b60e-f3ca9b4db1f3",
+          "email": "phase60-load-rehearsal-student-044@example.com",
+          "name": "Phase60 Student 044",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Bm6oqzAVfuKHIZK-LNg_6g.IwQ3xBZ0U3DEQsmO8MrV61abB_jVrcyNIwnQQkvlAFp-i3ezEYnlZ--Z9KA3WzdZnPHJxSIOV8ntjsFh2wB36ybhgVeSpQzNDzmrBavVlktveeXbchMcnXROUB4Af8IVrwWTC-Byn3qwbALkH5mf9WVTWmiOXkHWChPvA9Y0nhzFN9Qn9x7Za7tACYl2wNclbsLy553TUHE6ZTPwbiLXLy33swmMtpnlEtEluQS1IgGRNEI-VO26FHeabPft-IDkEudzK06PmkI9jLjC04JcyLMB9UGlbg2PMLWEI7GwXFjH8mP-m_lVS34-vQwsKuFc8ry9Um4zm9d5pDU-PM5AZD3yv_GZgr7TdKD4z8fcmybgNKJJHIUdNvGb220Kfkiq4lj203b_vAppkgWgsfAD2A.gSt4ZbTe5CkIWGaT_t2uMy3fZN6PfbPoZueQ4hp8U2Q"
+        },
+        {
+          "id": "34c14941-2846-49a5-861e-b6e6a7b3b50d",
+          "email": "phase60-load-rehearsal-student-045@example.com",
+          "name": "Phase60 Student 045",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..XARctZfxFGiCSEhZzOBFCg.EaNFCFFz82TjA2i90BmsDNi9rrAO35IVpPXbdZZ49uSPUnTchbJDYqi7v9bAutrUNK27d1vBNJWqeqfD_bHDRpsm5Q8hu5fYF45Ys6bE9VzrzG14HiuNg38GaKOAUzrM7K_NyqNIJDgKbavcY-a8b7ZKwPgYekllVgFLP1_aVDuGoZ8MfkZ_9ApVNrDjPZhGr8wa9LlfNdFe5zAt5wENfrQZYisloZd3CiAEP2ZP3Ptrt0ZKCiIo7b291MBUqh3giBWkwEo4DE1TEcdxzL-bqxMnP1xa-h3eTGxfAGrJLmy4tJM7ZX0fwZJU5m1Jxj5tniRlBQXkARvGSZQDz-Tl1MFfzw3QU3UT4hG1CInO7u0vKk2uFym5K61FPOhL-lhO53SUZ5A9PmYHgvSmXp8y5w.4zNMjHoWfcALgv4LO-9OaBgKJrCSFNdxWAYuJzgXQHo"
+        },
+        {
+          "id": "d5270cb1-4073-43c4-ae0f-12e4d6607749",
+          "email": "phase60-load-rehearsal-student-046@example.com",
+          "name": "Phase60 Student 046",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..EUyLFfM4NqX5LYW-cCfOZg.PNp1FhDRK20ycVEMm01bSpNUjoaXFFjrQv5zwFXLMW9Zv7v0iEoAOQo4ZRkq9rb6iEk6td2uKOPCY2GKNKUhpdaTswc8N_aWz2pifqe3jhdZ2yKL_NWSWJd9QZZ5k17KGfgVRTyQgrOEsL9XSPoUc7-rerOsP65EEHuT_4DcvRZywc8NvjfMI8kEdI9aWz28AIrNWxKfJGbwAmBXFYP6ryd0YutGQ700CzGQGYbavR-FbW-NbP-1HxyhsFzRwzpLIG3mfg3jBtsGUa9YP7jcL8yOrgOS87EqzdmAZRstBgZTfzR2cZgAmpbyKmmgykAVG1AhWhnooGpp3zxa0Nvh0tAzhhw7bFbBqGg3M2Fet_DANu0uUdKlwmiaPcELzPon88EWabL30Xr7K6wDzkt5og.85Ssn8D4L0nt-XgEevyqnSzChjAz5LZ7vziK_R_Fj6Y"
+        },
+        {
+          "id": "c175694a-ae19-44ad-866f-697a275a91b7",
+          "email": "phase60-load-rehearsal-student-047@example.com",
+          "name": "Phase60 Student 047",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..HqavVKtQT2b7DeOypL3ukg.oMEZAkq8VilpG0alK-AmIBbEA0AbeFfRXxn_JoD1csLiVy-KmpWfRkdlxMWtW7TcSnzMlJhG9_GZJg7Jz39w-kWcbErEAfXK9AT7Jhty2SnWi4N9l_0cdUD5EUDGSpX0O54ZIBWOiQCRoKjaD5f_0ICn_aNlEK0v2S5Q4dvWB0ik8PIEoSYVjZHsLpnSBeCW6anXdy-CRrZSt17g01EE3KdLKzLGmgD77Ka6KlTaxEfpK2HT88B-fE9deufWJf2dqEpe4tGPxppymoJ_ccr1jEpJKMlcCpZfNGBnBMVpfeFxnodaidDD1wiE_AAgVoWeGRstQBWMr_IfILfMOWFA32OLeWat5J0bed1pHiR7vqnYMAgTweM-M47VKkyGRrx7LB4PbhPDv7Yw0jFcblMfUA.Jw0EJXmm6D96Vo8qVOJd7OM9gLAtRJzgNVv_yf84Zwc"
+        },
+        {
+          "id": "d2424e23-891f-4daa-910b-f3ee29cc5a74",
+          "email": "phase60-load-rehearsal-student-048@example.com",
+          "name": "Phase60 Student 048",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..WkoEBixp0rqQxMW-3xYOFg.NisTJeVKKRag5GA7oYur2HBzgK31JUa6qQ3Js9KbBv8Z5LGnr_9WMpVOx_6vOPpIGQkW9xkum9bVsqW1dkkb7cEJzYoyffeEyUjcbJNt0Hj-X0GPnH5nj77aJipUkQOLr6-HfSTen5M1eIlRxkKzHbxpVWYmO7PELV3EAQuBW0ivUt-vwm_IbEh1PjUZigMyjqP_YvkUeMfLQsHk4BltyUbSmziuqaD4zTvjfkisstt43Jux7jPM_dIZskVKuSWP5v7xMeZvLhXsUFhBY-8J96DjqWLStRd7Z4dz2tZAEImIgYJPVxYOUFaRUnaz8VtIRQivjq55zxtYq6pXla7IqK60dk3xpvC-yLKxvr8fAPTIcYCtUUiewUh0s714r8X0bC6N7DFQHSGfWE2UGO9pfQ.phLp_8Z4UxwTXnvt5azcRTvdCJHfl1hBDsLBQi7a3ak"
+        },
+        {
+          "id": "c653d802-91b9-455f-9f6a-100f1d538ef6",
+          "email": "phase60-load-rehearsal-student-049@example.com",
+          "name": "Phase60 Student 049",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..oGGwFSQGVjtx4ZTuDC65dQ.glKidKCx1NuuPNTlE2cU-SDe4r8bGMNWz__7hdMTtMsLUvYXx7_7kvGmfYBjBUS4DnvLOElk7D378SE44TqK-Tq7lKTVgQWGmSCKniop8pyoZLPOCsmGRMKAJk7y779plBi3eZ7DgTjzbQrNXLkEPPo8XaHouShHCTQo1jo1rwp__6nXxXfqy-GG9HBd8wmkHaIi-ZVHtjYLBOvsc8wpr4u4TxMrXobfV7-oZUmkQkSP9mqwXDZxfHAGr9XAafwFyXp7e42IyMPmFVmx_oYt_Brh5NkWHd3dQudcEdMgkbcAaBHqDjw3GQFa-pa7gtFknjtaMXcO1jQWq6_bAx59T0tolqqOctYKBvE774EAEeMuuo114kvoPkkq6QmkK8kpxg3g5KunkHYbjwjSt3w4RA.cLFtuUnsGRW4XUOWW9BAVHiHc5Vd25Gx20L17V9zwn8"
+        },
+        {
+          "id": "f1c261a8-0d6c-48e9-90ce-3399bdc959ef",
+          "email": "phase60-load-rehearsal-student-050@example.com",
+          "name": "Phase60 Student 050",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..XtKcIsFg7iZdD2FosD4M0g.2u_3vibTHZAtvwx4Urv_ezYzulJS7LCf8B_Ds-Mh4TFuulIKLjF2bsreT-ilNyKJwg4hXWWjGl9Of-2-4zJh-O6lMQCEjX2-0dxNWKwR8Dol8xZH2CIFL-KXnGwv68wIp7bZWzoF9Cj7O1uuLpIvSuFadgwL8Y-PGnhIqNP5l1jEqRTwD-raamn4wQePWeXBE-AytLmjQt8xCB2gq0wRIDE3QAW0k8XUFiECN3P84rMK5Byc9un6smqwc8FlJhMlMzXgtDKW6adYGYapIh4LYveW4C6uGJDig6bceFAwvzg5IfaWO1ZX4ZKbK0tP7zK6xa3hWP5xDz_SHXhflJOcf7F9kTX9XwlZk8CThr7y5l9WsvxLPiKYwTRUHN_PsyqO0Il6bxCh0B03TmSCjwhGxQ.WAsolSm5NKQ2t4BnFC6Qax2INlYmiwC082Q9SsaDPGU"
+        },
+        {
+          "id": "f2355039-70ea-4d6e-90c3-3747f09527d0",
+          "email": "phase60-load-rehearsal-student-051@example.com",
+          "name": "Phase60 Student 051",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Ott1fArOtZAx24lmbRJGDg._EHpBXo2tbMgybnlmuAvtj-5w1Ra3nbsMd8gC5lbQAtqwedq8u3xNEQ623xdPGRyRJ862x2Hf8TP_tXhnNZKrYc_VjqbplSXj_dR2v2BBeHuox4oY-NXQfe8CRpBdyz-mV5aCvPUtvnISLXfM3Z36jvLKEEVRk4yrHgtVqvYJkuZKI90IDPWNynObsPay7hCCJ8mSs7hhwG3FrKgNUDz1-LOn5ln9zk1jluP8hpugwlnqUTuHFDNXUuoMty7OluI3qMnP49GJbmgNjUeNpwFLlsoJprHd_2hOMGt0PYCZGoig_4OI8z_HUoWA5RmbdBbwBowdzS6eJaqZp1HNnnBYe8MQzNGG2JJa9LsxABcFWG3yevOvEX1gfZhzL_su8pGmoprx6cuilF6-Un9U4z9oQ.pRsUwWEHJpdMx25gfsVlMTAzOyMdMJgxdyKXoyU1lAQ"
+        },
+        {
+          "id": "65c4c99b-5ffc-4bf6-8c3e-b5ad12753715",
+          "email": "phase60-load-rehearsal-student-052@example.com",
+          "name": "Phase60 Student 052",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..-_pHFTvxBOang5R0beErTw.VVSNVbRTCbq_2fn1GVZ3b3aADqwjaGgmlDdvb-xVXROJbS-sET1uFn3jkgCGil4_0P2ZM8txvzjVfeEXQEh_OET5XpV29vuOMug270RO8VLC8ycpB7ytHI633coaXaNj9EcB9QWmCf6SF8lJaNs6DtBS8_6NUiZbM1AwnFjm9ZXRjFtzNHZ3QTYe9Ah-VwBWr5BarqziKpt0wowMG-c3t6pZxxUVGjD9y9qXmhPOr7zCmoiyF3U9TaJzmQa6u_PZi7o8AwXvQ8X-dYjiTOLxxZnSLYTSZ__G3oetcrZtOe8PpCL00lDMV5Y8n_ja1TXDz9NIIQ6rp-BEuZTxKBevt1ASb5x95Gv2lkGGQ54i3zTM6Upg0k2KblOb60OTRJT4NQiAqJwXEaaath5y297yww.UC_4odruAs8HMO5Llx09uG8HLjKEPBjebF0MbhALyJ0"
+        },
+        {
+          "id": "f8f6e8f4-3acc-4942-848a-ede63a7aeb16",
+          "email": "phase60-load-rehearsal-student-053@example.com",
+          "name": "Phase60 Student 053",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..O6kZgLUl9fmR1cQRJqAEjg.ZjdGlaFRCWs9oaS_qpiLEverAEsdJTA6R5C2St8qmc8hA-5QThlnfKoM_fbuBsJJRxsWgnuV85mNzNR8r5vB8bBBCuN2n9PXGK2BhMGmwqtBNUKzsjVPjfK0SjgD3Q8Bp4Jgj4N9W6gK4mDu4Y5xOTcYnZayqiTDKX8gVvMxPnkvAqCqflDMYFMjNXSPucgumqG9RnHUyxAhlHofg7i6gOfmnt2XZvklYZJ_jhUuS1VRJIwAdUj7mqKw3m0TVK80jQfcTina7SMr4SFLFrwiMkbwo_RR1bMQBVy8NcSAi2nj9V3EtOXk2u6EAL-lM-_flVaFrJ2441VvalFQEj9bEAdcaLkEPdnvw758U7Fw9uyZ1qlfOqwAh7JnXR9Ee4FCJ1uAqY0wbn5ic6ISlNXH-Q.70hfXzl9oBJWxrq1HjalUG_kf3g0FlQo9_v2b31MN2g"
+        },
+        {
+          "id": "d6420bed-ca61-44e9-ab24-d5768d5e0e77",
+          "email": "phase60-load-rehearsal-student-054@example.com",
+          "name": "Phase60 Student 054",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..8XCjCy-5hcA2S6XteeBVdg.rSrlkoLZlUoP4A8CVKQRyFH2m6V8R4Dz_2AhoBbq6UACUZ5odgw1UfKGF9qDXDaeWXHCiReDyHcSFFPsQfgv0R093Mt8642y7ozTJoOhg5z2nQB4FYUCXHOdTe9eIJOMLekrkVDvVrBp0Ipfj-ARMS41mOaok760GEMAXV5WXzWFXZDWl_gu4TCo94BO-ZiM9w0TTX5n5DfFwYOhs7lzEqBXDHn8haRh2Q-OIJuMXI73iQyx8jZ65rdR5YGiha33SIUzRGka10IfVGw51_-LbCv9pcIOBD4ccEfBP8nvwdUC7DHQKE6P2jddWKyNiRjzFNSWpnyGIjjwM6Bk2XXLzdpB7EDuy07G8OzWbgFaaDyanC6JE0xC5pMXFAZesM0xcy_wbRY7A6AnsXnB_9jr2Q.BQtuycZCOOSatkXzkmoubJi6TtffH55kqAo4w0fGQsY"
+        },
+        {
+          "id": "f10951b4-32d3-4280-9d3f-4c6360af8575",
+          "email": "phase60-load-rehearsal-student-055@example.com",
+          "name": "Phase60 Student 055",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..-O65pPshNzw33c8ZQUCmsA.3-dsEOrVjjKVQJ9lJkeNKHsbMxXBMMTC0CGAsfaDAYU0crQnB2mwwLZJRx4Rc8FszGmcvJceRTqkwXr-IJc_56SzhBrSUs8Da1kRcea9nmsO_5mwHHiMLHXOIBmQSRyYnQyo94jN2KNru62PgUplpQ6rTagXt2paBD2sydu9c2fZuOGT0OUjeBmOX-FLBE0K9N8iTHG26DjRvZLyYOq1dohb5qRc4rrV8gLAEfAWGhxrgqd72DGwlJaiTbbKS8GVUQdvYImEG61f7r3TFeGx0ohT0qa97Cd7OipfmKMn7CT_1Z_qZ-z6ns5CYIowgtelkCjTsCl7Gc4PPw3b6vBkOprVwVGY2uN4CyfK3GoYWGhHSSpeCsDDGXmfzQUKcJMmz0-MqalSPpa-IKoqplP3Bw.HzkWJQCThmKiMmP5kph6glSGJ5WA0jb2LNkWV3cG2Aw"
+        },
+        {
+          "id": "09ed1908-f10d-4184-9ff8-d0793ddf9596",
+          "email": "phase60-load-rehearsal-student-056@example.com",
+          "name": "Phase60 Student 056",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..44RdG3YIJZXnZOfjucOTTg.TV-8KWuVY5GNo4I41oS3K-ASVhLXkPSx6LrCpa3E2q0JEYjx7GXThHRlF2r5WC5DL_-BPAxcjZt2tnFTMD9DMuZrMcbF46md6uBzn45c8lUxoNdYDbf_Slb-2pAmYGUM7biDkTits3NZ6bQGFniy_s-s-zRXTCqfMDt9u5TNKfADZIm81157G3V6wTKemUV-AzCsUgOWJ9fMQdmCQ7-NccAPR2T9TmOvebA4WPq2N2VlVorCU9b5Fqz9smyDlNpEq1ZlxUYvFeUpSyKp6zeFXgkdBCCQvXc-IYys0de4FPi_nOW3tMznogmoX6y6bE_z9iharHA7aM5umquRj8KIQ8PNf2_ZH-t-bkPjhK72V8s59wror6QdZNRDZicQWLc0MJWisjluWrn0K1I71L25BA.N1PjDQD7y9Ujd79Xxe0R0ajtP0bIIP89po1D5LlJTUA"
+        },
+        {
+          "id": "d9c98f60-48b1-4d33-9669-fe36ebea951c",
+          "email": "phase60-load-rehearsal-student-057@example.com",
+          "name": "Phase60 Student 057",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..vWizT0iNOs1W0MtCCjgDRQ.K92lHczJy4akSKhq4VwCiPq-SvUskjKOMJ72BpyFomDMOeX20JJBzpQsdnpRJ9eZu53GCwfC7mUuRVU8zU6Zha9tAEIbaQefYApq6q3i4gbq98FIq9du5mVYSWjxV-JZ6-HtHqFx9frHQ2mvsNexpPB-OAmtsc_w1fUQ6zIB1YkkzhADphNspxIUKtdJ1NuAeWUe79ikgw4hXlHf80VlD-IHDhhqwT8GGXtGjIEKdZn9Z_1CtquzIojioxg3-SgI-nxraYDifSQuktaYEA7cJl8CBo08DP9fZSz-4-3QmXiw6mgPAJ7imdOdJgM1png9RsM7blFSwwPjk9AdzWeWrs55PJdDAbeFncfmemkjP1_Ph7zZT7aVFBCommaBItWESZwCVejJ1dVAb_ESOVhNng.rxqqHFWcc4Fc5Rc0gh-PnvhZK6Bn8OmOcaXtCgUD86o"
+        },
+        {
+          "id": "fb7f53ec-0d53-46f8-be92-059e5bbce1d2",
+          "email": "phase60-load-rehearsal-student-058@example.com",
+          "name": "Phase60 Student 058",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..V5k_ul9kCXMvdp9yTmTnwg.AN-iUpy1d72QrG8dSbTpVZf7irTnnm8-xWl8suDfNQnSy83nhQQM_VPa8qYbYJHYu5nGP5sN5ngRXqhf9-lKMeZloQUM5K27QLr_Ddnafl9ZuaXipJ36iAbdurXBvUgwCrmSSr48JTXYijR8IEOf-rJNWQH2PdwqyNzHj0YmuJuDDpaJYg9rIIQ2dHdGjf0EbrDf0b1lWMPq0MLfoxCw6Lfzmn7k1FtTbbnJObfuXRzoPVt858-Xk3AmtdRPbwKFxV5tGRghSlaUSpb5NXAOYs6z6Jg_cNTh9LT1KaYrriBCwxSes-lYQHgUz5BNL4dV8E_IdAIt7CevzoUHwLGnqRxAfBwZ2y-Pg6jD_crfqDaS17Hx1weh1IOicrfb5yPQGOmwK0zwjd6X_WT779fcxg.fsV-vLzdjQVhkogKLeTA0GWFRRysl-YL4EW-cgsNDaI"
+        },
+        {
+          "id": "b9befa2e-259d-447a-b89c-8e1861768efc",
+          "email": "phase60-load-rehearsal-student-059@example.com",
+          "name": "Phase60 Student 059",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..xAjn0wW9vzh1b35DbABbig.nqwkQ33o-uozAKfYHD-VAffDq1yjCTof341dUWRTyfhBAMIQ7lbpDa7kVKPrwo67dTmqDp47cRrpSc-NqqeJ04grKR2xUZse5cKwFp5NcNY2sqbShJ5pzOUGT6K58OazO2bQtiGlHAK528Y2hP377CafIy7TEC8NTTpOUUwhBfMQVmEqqAj1yFAZ2sm6-bZ1B9f3P-3LntcboqsY9F8OYaLBDm5PMDwTzxQmtHDY3YJxXnyjd2bmvJ8_Enl7mYSQw4a6aNBWBDVwhe9ddKeVsQ1JyBlGhLuDY84s8VFLbKFv6v--F7ZENRAdk-jede1CzE3UonjCBmztoufMtquozE_9Cp6g2sGSYymaTiBwyoPOu4hh_5wDsRW1Wvq41F4_mMjGASGgpvLgDLB_72ujFw.jTMCPIB9mP5sLe_c9pnuApkSqm3dHS7rv8IuRGMMU6Q"
+        },
+        {
+          "id": "3cab7e4d-c3bd-4004-af8b-2a1703df5f4b",
+          "email": "phase60-load-rehearsal-student-060@example.com",
+          "name": "Phase60 Student 060",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..MzaTz6CFXJkOB7d4Mf0ayg.vBez2imZpjGLsw2VyQvgEAeIZQmZkPVIqFjDO_U0OgSujPeYs2K_gatQw0gp4ydMh2IYqLgGXzFK2FXzuEEgCFOIGbOHLaUOJdv3t1kIfDpB3FlWZEd2RY8Eh6YTa-8YO5JeTxO9aO7JhryvTPkY7G5jms2uUUGOj70mDtWwHKpseW3E8rWhteTRFhsbIKm_6bGCS-LFkyGKme0YiBaAHRWYNqm05MAAkaCoH5pNvhk8J7Yy-xiW69rjThHGl5Lm7EQy9Mc1GkwSKIS-aY7yt_GYNoUGulWwewLGTVfMSoOFAhZeNJM3-94MVrk6x3p4GmoRnKsRLmgALDZGUY2dFYdXa3yKvM_gPEvbtWpq1eeX_Q6sJ-B1_zKGJQ-H2qX8vq33tZ3JIYhwxZYPVL-RUQ.nhwzS2XTI-Jzo-7A8tLMJH35bu6X_AoUfYG281FuYvk"
+        },
+        {
+          "id": "fe8077c7-0aa1-4159-8517-285d5328da0a",
+          "email": "phase60-load-rehearsal-student-061@example.com",
+          "name": "Phase60 Student 061",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..GtUBQOXzrjGUwANoNh2i-A.P6Kh2YEFiFH8le1dvGzbr122mqEC3I_Zm22GzqmUYuJVOWs7cFXChIpby9d2hdU53MeFoHydEdkVqnKpJnyj0kduTGUgOPsqlPwJpMoW3k5cvxKpZ9uxNjQKA4I5XYctFKmz9I2sgpRmmpQk3IBRArxN32ogDO16INtaA3cFEPXCSN-PleBXiq269HuM82NnPagtg8NHdN9AbYdrPIRyWNm-zXOMEuYRMj6OlQRADi1w_UabvjKCEzgrM7co-GssBJcZFcg2ncevNjZyHhZhx5lLORCryqdO4bR6kMoqqV3XN5KNzh_hP-4-GThrdPzvHF6SqmEai2k2oJssW4OSJWc7UJdBm2reXJWzx_WNMKIYeHqjwAHGhvDJpAREihboyDBGmE4qXBnGbROlevVzrw.QatLMyNuMV3Ntma1uVQQ0OmpXFxZL1S2d3pgREImX4Q"
+        },
+        {
+          "id": "a848f386-2f08-4718-9469-c1ebac855dd3",
+          "email": "phase60-load-rehearsal-student-062@example.com",
+          "name": "Phase60 Student 062",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..mP4noXK_H9zQo7TYyPmUig.Jbs1f8vGVIDPH1Dqf1C9WuZo2tcPp5g6tmFHXK1xiS0totBOIAcV5nXIXiuWLQnmou9ErTfxbE9aiTeVkkMsqqM5M0qurpXbpElo7Bm7_59sQMx1XRSvL3mpk0WyKgYSvaQSh1VCExY1DG7SoDs1bNYQqO3Dq95RGa3u6K0VRvEGhxUrDim6UpcDZygqB3xPgF4i69Dkm170PJXngTkds6jdEIQizE8RvGMP6QmzkUZOWPlm3gaAQ3uLQeGZs60XOMUXPT2PrrNAZssFLlpWfl1WgTeociadO-bXR2DJlOSniiIEEKpCh3oQibjT3Xmfa3xQyc6tLJUe7NTIhbe1JUxYfkgKvAQidzzoEednVJyxlIo5agNYOd8h7fSI7L1j5i1AwEyB9hAhQ390-aeQWw.S2_xEHKBqVwtOrISyEAQE3FYz5rkigtnX_2ugSV9VSA"
+        },
+        {
+          "id": "f012537e-4980-4fc9-86fb-d21a5aa65c32",
+          "email": "phase60-load-rehearsal-student-063@example.com",
+          "name": "Phase60 Student 063",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..2bjy58c77N1lMSxfzG6esw.6P6N-DoaiYT2jIznJA_-6ji4TqsnPnKRiWHM4PxsQw7_utc3aDfliK8sw0UYFfIkus_Wz3clQ1m4wLjca8OXdQuoGg7-Ivyu0SBnkXccRFpUORmDS2floC94eQyBGhftTr67SD-xQAJKFqZmyFaK0p--7hDBKM55MeolrKEUKHBCvkZPSTYNF3hW0nprvuIqeZNJ1ZsevpDoBhMi6J2Bgpe0NsOmEbRWwMk1_1wFS5BynIroUhVEt4KY_vMTDynpw0abiwkLUmopzqIOTl8uFxlB_2lgQMrJI6wx9fk3Od0Kye3b3S3q_xtXXUMKCa983WL7CqdZ2_RMpy_k0AzNjzRDiw41iBI4lRrY1KmydmWSitUeH4g6drMWqlpio4CpNpoTjJh7qn_GeJvy5layZw._4rEG2iGChBHLESqpOawp6vAsnk6EP4W1vMgzIVxqio"
+        },
+        {
+          "id": "585ca050-7986-438b-9db1-26a3456b902b",
+          "email": "phase60-load-rehearsal-student-064@example.com",
+          "name": "Phase60 Student 064",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..BheenUvOcVcMAx9DWFJRoA.TydqrPgR-178yTW_cWrBvBOPeRx3Rf0Ukl4mhk5Gq4zFzu4QLzESHylXBhxHmYyhrKZ7dLDH723bBzFJncXAaoRsTAJRkiVBO1wkTy7kAP42Vv8SZku_L3apWkFXOISgNfvOFZcQVzYmA9cpsQwcAKm0FYcRIrz6dqNr-oWp1IWKcrwDQFCoHxIJ53eRZSxfD7ItshDCr4haoOIAokklNwIV1junq4-TrlORLFhvp8Py_j-W4Zb8ldUSZzaCSwjqBUv2vdfxH2JpmNYjOOaoFDAWCYtOUbWVTlVbUYdF_ien8ngrKgZuInxj8Nc4_29L8XzmKy5R0E7ImDncmxMRNy4DzOkKk9FUvhv5WZn7r3u0JAqvgZr6naW25VchMI_1k2bKP-6_NuMBsjwO221A5Q.YrhOllRdpdJPeO2WsNWZ76GA6LJG_eZe_xqLymeZDBM"
+        },
+        {
+          "id": "7b143621-fbaa-43ea-a36f-378e3a76302f",
+          "email": "phase60-load-rehearsal-student-065@example.com",
+          "name": "Phase60 Student 065",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..e-aGWoTwbggdVT3lgHgT2g.gMptxb8hMG1HrOLWd_M6nfBxVydYmQxZqF219y4jXwmH7W1fVktZ70wQ4-ybB16Xo8f4BUNufdNg8Hwv2AwsRj0hQxwOdcLqsr-Ao2TJogaw_m0pA-zspJt4SbIe_Xe2iYBz1vQc66NGWprD18lmUmmINh8BHnLC12iqqsDevD084q8WblilN2oBR7bWPQWKWR9rdNmqNZzOe02i3fc8d5fsw5Fz8hQHOaUpgOWQmRpKY41q6QF3bifPIIqqnf1YVCjzvgSVhA4uvBsC9nlVtnNADNQOpI0x4Hxk2Vqv3_3eeEfadqRKf4yCTTWf6R6JkePgWrlppkKSbR5K1_tdmfD0WHWZZfMG4htcdMFMMhO4OoOFpI0fPlaFnT18wk2socFeMoA29OJIqKCURecbKA.wi45sikPkLclqpNbezXA-LaxEcW_4SyWFSs8vkOIi8s"
+        },
+        {
+          "id": "790c8bb3-eda6-4099-a61a-aab45db0b60e",
+          "email": "phase60-load-rehearsal-student-066@example.com",
+          "name": "Phase60 Student 066",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..oyvteBwRT3We5o7vU5ROuw.EWYMVl6bKmpJBbsfg9f0YS3pNfTIdnCz3MP11D-z3gxRWuBEIzGir2ESYdsJPPwFz7Axmh-fh5LeynGQ2hrZkQRkmIWQFYzhuTX8Q69SNFA3R3MJhnRTSU5sC3OUs_HuhbzdFQuo_5FlrEOsxqovu19xckhSCLKYV130zo2gXKJmuA49DWxL_0UNl09fr5GHzn91-521lebmqIx3eHB-8aVM4vnCAk1GalnCH9OixY0YiJb8aLUY2_uhiMLXrrbdHn77XM8-W-DTS4Zly0m6rE2p0ciaBAn0qGc2-N_uUyDAqp5skR5KA8UzyifrLw9Te63MWwvwrPVGBtgj2ld-KX9b8HGWce7AEMHU6TLyGD7S5VPzmH5eDkow8770TNPiDb6MbSYBtl8-YXqDCk47iA.enluxPf-1Z2_eGW4J683pAGilcL9JYrGb-Xm5YzsVT8"
+        },
+        {
+          "id": "e63580d9-ca96-42c5-bf5c-d3630e7634aa",
+          "email": "phase60-load-rehearsal-student-067@example.com",
+          "name": "Phase60 Student 067",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..1SnBWDhF_XsftnNI6wKUfA.S6Rl26zIWxrxYlkqpp9EbxVh-dulekEA3ZqIC0eMvls-Ms5F8jWr11cHwZMazbrk3qzQqnnWxv00NoE3SaFzwpc99Lk-72aRV5JU6NBaKgfzFg21sNedkE-QvgvhEbThI6Uxt5WPTWgqQGmvcrbKKJZs2dieGovgtuMPa4yWJwwGfmsyZnzAVbjLN0ZyDLr9sf3LUDrPXFHyuNONC1JQLI9kqZ7fO85-1trulDp2ucBHIc_nyLTOSGenuy5mDM1fJO0Gh8rcOo8NfkbO16pYBDINUx6xpjI0uodUjSc6mdWkH2OcD9JPvH2GaD5MWoTSK3RJIqBbVujevsm25rE8Z7BVSKU7CW81vTU282wEA11schtUnqjL2qIBa_cvT3UuPvcpdcqdC1wtZgJNXLsTeQ.Ry3jsH_VMnhVTu7aH3JAy9bb-KnxRd8VUsXf_AeZHAM"
+        },
+        {
+          "id": "ae073a10-21bf-4c0b-8ccf-01c9143c149e",
+          "email": "phase60-load-rehearsal-student-068@example.com",
+          "name": "Phase60 Student 068",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..uLl2U7MT_EALvNzoZPCsiA.oS8hX4xH079lrzgbS_46evqj2Bgbq44XpzQJ0GBCH48HLXPxzJpuEbb-CaIzgRGDxv4-ubQAIQTfBgqXp79_xOgH-mE3wg9L0stT9x0LIqk2QB3K5-AFZBcxiDxXc1apT29o3ffvWPROf7g7cwOpRvUkL5-47r8PaXZ5utgwLAhxC9J01yErUYUV52zSJSvLnT_d9hqrGZVNB4Gu84joK_57SjI4egiBs3-1480skrP47R_Rt1FumVOGRDtZ2xb6FDBjNOUe2HStUfSTX51W-JgbqBIoigkZx7RzGDwdih8Mg-5_5W5w4LsHlC8nPKKvHysbR-Qwfu4sPfBhnP6EUpTchkun-9PmrHC_9eoXSAnK4gGiYHBVaB8Gyy8rydmin70MK62zYtfx_h85I6TowQ.YmSkWUZcOtuoOlib2SgZ9Y21Zv9fnJ_spjWIa2ln3Oo"
+        },
+        {
+          "id": "43ad7108-4e2c-4c58-b735-a20f88be1fc5",
+          "email": "phase60-load-rehearsal-student-069@example.com",
+          "name": "Phase60 Student 069",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..cXqpSvYBet7Beb5v1iF4ow.Nf8RNNVuyp2hEp__ZpMklgSKDb9hwkY_aUlxzhzqQa_kEFAk_FXXSMizpYsIxG3O6GJiPbl-kxzdUB_zukibgV6QuicMyE1XP-m58dAeVzIcQTd1pzs8cKhbQ2ctrIp0Xmy4jriNrkpR3hNx6CLj5JNcBeMtAFO_JH_KAEN_1zm7QgBB_s9TyJ3qRLKJ8R5qXNFzjmAFssVWCK9A-TWuaa_ZrK2swDLbiQH8fqccxgEWWU-dDhZdUe4RIb0NNrm0uApWYTokMHSOnV5ETixoedh9Sh-1S1XrE6no42qN7sYOB12GV3WIM3t463TM62mLMwfR2LNFl4lkXa_wf6ZjVuuHX2bCJ1N6nu11-K8vP_TdbZG_YogBBtMX2iMELLZD76G950KVYYH3oMHBIZ0ySA.SNqKKqI0-Wztikqb6E3L9GTjo3Y1P5iIye48v8pU0P4"
+        },
+        {
+          "id": "6537ea70-b68e-4d3c-bc7a-927e0fd05fd4",
+          "email": "phase60-load-rehearsal-student-070@example.com",
+          "name": "Phase60 Student 070",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..B_47p-l7Qkkx2kxiAS2h9Q.4wLF_1PM_EeBUOw_9HGdHymDOIcCKEI9I4u42ILDcSDaZ0pNM40cMkdGOx5o86rVJcpdj4rwnsTXWyG8ne-fFr2W23WnNqCRp0PhDEq18eBojwU4zkWbqKXaCldWl38UEBDWMOYOcHzA1oDYZa3oEon54prQDWuQIVvzSbABe-oY5bdzL-uFCDHp2tMKb5L7a4sRCV6rftXFSZBC5VQO2A_rnJ6pCnZxffq4h1I7lNjLfttqv53xinV197c_smm7Ce40_Zodn-_tB16lBftqqOFNqIaCqIhaYSNi8FaYOFiLNXxNreX0ll1_6uxBJYjqce8XGV8O4DhzmfBrFn4bqqYzDkjs9OWFyw7Ne93Em9e6C23afksI-Hab1jcUlXDVHo9P83oe8TlI3DDjrX1tZg.H3xWNJ615lYyRwUuBtVNgiVk2Hsq1ur6j7CE42O1v_8"
+        },
+        {
+          "id": "41877a9c-b202-4354-b388-eb923b5b3079",
+          "email": "phase60-load-rehearsal-student-071@example.com",
+          "name": "Phase60 Student 071",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..S8of4cOIXb86QdacmIkwUA.IcPol_w6qRwmdvs6EIZoU1bbx62w46hyN2Ry6woXF87VMsd4bLoQx5fg3QuSPXYzMUq03iMHqmWNLTCS4FhQSBjM4Xkj-9j3lAWqWu0qo5H_6q-EnMyti_rGP5XMYfeYQd_bbOa74xeOHeIBoB6QrkSmtcypT7lRK5FF175TLN17ygTwjPwssJYXk-WYCwTQNrwsu6EUuFWYoEjTvHEbjUGtCcrTRTWt3HH71sGxyZtqDoz1NViI88wcw8CX-2tRu3gk7ZbQFjuc1wISOEjXEZJ6wf7VMY_5DZPPBYO9XGFNuVUkOdKm84N2c2Nk7I9UXj8nZpQwNdO3Op71bfcNdhzFUDDcWKWU4MRLVxd3zaF_bEl5MuGK7uY6ymamaXgbxgKcLjDGYs-kr8w8o3qVog.a3eq8RXesLfGzwuP8VBl8Ygy7oPOF7umH3pqAKZ5zAw"
+        },
+        {
+          "id": "baeb3f52-d323-48c9-ad38-1f9586cd49a3",
+          "email": "phase60-load-rehearsal-student-072@example.com",
+          "name": "Phase60 Student 072",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..DFejjuPexCUZfDTZPqbYDw.YAO-ecz1N5KhoNk9mtA5xsk85b2SCHsgdGqRkN9fIgb_x0nVNdFAP1aeWS0KFT2ZrXTEYQW7NEM6IkPJIFuOIJ8NC6A56nlbCA7-phBCBcMhak2oO_FPsAMhA6eY2p_hlhvilerkVip54T0dS4LC4kf79aZOa3IS-z8r1S8-lme27WmTs8gRSd8tGaKax1ikxhU1kMuAuuB0J1Okz8JUAum8uMLrqneNGe88rxFfny4zhyPeEgesICy7DtGPjVxWjq6nyVwnatmRDDpGFFmBwKAET0yV2kouFlFGmrbeti0eEU-xDKiVdel6bmWkB642-eLS8MxS_JEOwBNe1qHOQZc4wgvAHemIhUMf2qE_vrUjmuA_eWgjb82OnXNBpr99SoJuqrz2xF2bZIXXbtSFTw.P7WoDUUDmajOAHkbwPYcU-UcelCpCVtz_GaQsZDnHBE"
+        },
+        {
+          "id": "32da45ad-d2e5-46cc-a301-200f4a21cc89",
+          "email": "phase60-load-rehearsal-student-073@example.com",
+          "name": "Phase60 Student 073",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..QVVUkyS_e9waU_3Kqrq6cw.k3mVxktOI0wGCpTeiXPsD4Dwl63R2W1qpsha0njPlOGo7sKv0MpC1OlxgguVjlEQedrJt5HnPYWAuQMypZHKVbJpmCtcggsheOcwC7KT-I6BotrYRrQ2ZeUxPR-TJk9KqZJpmR327K37lTOiU7DCKceXVJjvZdoZzSykVYZ8MtX0DtjHRHVdoHGqynC0YwqpN7E3UHquulj_NGZr4xDaeFdwJ70j6LXv_OA9u_LuNRmVL-USfPIccvESGlsDDnToGHhHxzmSu_fRaVu6Qm640X99cqsAvszQreY9e81Ql3fC3ajGy0TR9JQwiGzv88oh-BxIc1sWrT-djeeuvbgR2kNBZ8UzQ2JWd1n_vAkOywNEIqfE_ZVEkBog1ttC31cRwfrNzsRK8CFOJtPJWf50zg.WAKVzKAXg8KfL905vpnhDvBz5j2wE9d9VvRnGe6360w"
+        },
+        {
+          "id": "c8ad59eb-092a-44b6-b028-8c70348744b5",
+          "email": "phase60-load-rehearsal-student-074@example.com",
+          "name": "Phase60 Student 074",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..rr6LxrqBpkilJ5Y0h_AB4w.RadgnoG2Xoji7aZBg01DDBY3BtB-nwZq-tslt-ntrO1HUuexAKjVp3PzmyVVwuZceC_zUnKfRiUzdcoeK0_6JCPInWUAZZRga6kmSFqwnf30VRKYflN5RrSsYoWAG-hyouzgC-fCA1ytL8xpxMtRnpBm88AS6xGt0YGxMmr2vd-z3o7sZfeeyIcmUi-ueBamFKG8e8ngiOBtJilivxavsmvnfjO8pXV5HrUAl6r8TWJWG4FRTp4hLShDxbkzAMmiVTpj2gdCSMpqDKXzWXiI7x-eRIJLxC2KL5YNQ00VsZrZWLiZ9D9PZyMjWygLBcmfX8oH0i4eYv9dCK4N8nxJdOi5ryLysSJlhQG400cEl-lm-soC3qmK_fIX9xt2UHNnW3Yx2K72IaMIe9K6kCLdFQ.nqzNwFq-NGorJe5QbOx3lrQujmFyQ7xhmykwOXh4c2M"
+        },
+        {
+          "id": "e5eb4d43-a839-4e2b-abd0-5dc5de520384",
+          "email": "phase60-load-rehearsal-student-075@example.com",
+          "name": "Phase60 Student 075",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..8gAUE-Lt3tpNC2R0DX4GMg.AOCGCuhlEQYJdQZd2OwVe1SCp4R252wLxL_SJH1O0MXUwJE1ykNpw2rUzq9T4bPqX6fJPTzwgsmlkx8eR8KUUPzvhrwKP7Ug7IaJyZWLfdOCxNWZa56JoBbVX3gvBcN5hjaDTe_I-6sPYBLB7dnvxNa3q8u-anjrrJEnrsyIR20rU4UG80ukGqOpF2dqmJFll16tCWO0yJ3TISkgtpSy_quVulRpabMxFp52EU49BM9iKS32oYMQefLWpVNfVA6lY3f-Ca0q485xDdO1ynxLk152L8odGUkLOE0N57rWuUBdqfsqUg-ZcuEfwNP5JlJj_J2zUwrHPGVahCgkBXwN2xHHQr0GTJIRK7yyP_8VZNO1xRBHmGgrMi2YHB_mVGTI4rqRgHjtj1MH-jPh3zrePQ.NL5rlk-oTRAFFUad4ETTcbuajfHF-rEWjBcZK7Hj83A"
+        },
+        {
+          "id": "870fc5fa-fb9e-4832-96e5-1d64c20e54f4",
+          "email": "phase60-load-rehearsal-student-076@example.com",
+          "name": "Phase60 Student 076",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..UmuVGbYOwg5yT7LeZc7M4A.jXZVKOKcoAdvyQAR5H-9nnr4cmTsWkBvjUuYqNVKkMc-KtWlRB_aOz9V6dfGospP98FAxLx5ySIzN8wRZVklB6bOBXnZWN0zitJxKasQ6vXgwCIfDe1fBLbiDYttX98lUPJWIGNeAKMftDOH-Gy-5cmr1BSyYM1ofcUs7rR_IMX_rZAkEDfNnCVylLcjCmr8gusvl9rjekI6w4AMigyyUBkbiGTgyyTxtgi9jYNlm061qECDqTdKafKBWK81cbeVzHDgAJJ-INTzFHeHrDSi8wkZoIS4lMaYsFBIONOF6Rhi1U0dahwBmFqlqCxg-EkaPVJYOcgfD2aipFbFVNWYCVZcK6ggP4H94C6ulTuiqtJgHnZ1k4504U0gq-HSuv2Hfx2uDhep1XxmIrrJctKnGQ.0PH_LuCHHxq3svQIYiM5i8v178wQIx0VX-V1nymfMk8"
+        },
+        {
+          "id": "3bf1e98e-f909-4f19-9db7-93784c590c0b",
+          "email": "phase60-load-rehearsal-student-077@example.com",
+          "name": "Phase60 Student 077",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..UL5q55PCkykwBnWMpCKMSA.mcuy-nsbaJSZhzauW22ydw_YupJ3NjzZKWsdf9N0gfkDsjSO_mkL1YrC3mZW_aB1zDJJzJROrGQnK0msKnLXwlBeHce8OSrR1wcN8LwajBrN2ZZa3RJgVvAom0J7x0jm1GR-uR68DvTbQbIPXsZNLCIbS_x0SsJ4MipofBwZxgMof6AkhPglSEIfZfSWudZelKWSTsaTU07i2vcWwHhyWiYGPh0KtXXSEUzdHo5ZUGbnwabxPpA0nYjAHEHBZBSvdSKX0-me7p2spJ1nfJXV8zeCvC_etGPL1DMzKNQqjeFpB8sLH3pikyN7loTX1ArfbAjPCPnj2xpzYg8MYQtgXiFxmor31jVxQ8flYumjBIf1N5ZOAkgGKrqVLj-6-5U02MDZJa8YtQ-nHGCDcJc7zg.2T9EmdMj5bTf8u9Vs1kTroVUBIWekXuVzMdM92vvKwM"
+        },
+        {
+          "id": "2933739d-4782-4d29-a5a8-26f48924fbfc",
+          "email": "phase60-load-rehearsal-student-078@example.com",
+          "name": "Phase60 Student 078",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..8KqnteS5M0r2-JYbR79aCg.jBnhSQz4F81B5f035M4Ic_54QdEiSWZT2UDsXSwjFR4-MpC26YEFyw2RTt7dgL8SF_NgwBVqzEvpcfUJe63FpUdmHwme-LiMuiqyriRw9Afk3QlbqN1H7aBqeh02a1kSmOyPq3kJtdzFoMVVb9Suz9Q7sqtvadcqtUoDaNFV46DyJ-ohYDsxCCeCeu2IopPlmvBjqiAuE8GpYMT2tfvs9_QsiMd15RZDfcx5WWRnGKkq8G9OTI1ZVrE0nYZAs5WaKJopS9fM289JKtiRn_m6o9iPapPczn3ad4M_6lD0ZKagtIPOvyZgMoVTZ5MUzN5xvPBML_u3shj_JQB_ZsbJtGNXPx-c_FpWulxofkiZEWx_miBL9tVVkFNOmBSL32dRXTF7lu0EsJfBA6PNAbYh7A.omR9Ii6x7oYA7oEySj2UyYlvZvJ_-EH4n17_MJB9VHE"
+        },
+        {
+          "id": "8eb209f2-d7e7-46d7-a98f-b2459edea7a8",
+          "email": "phase60-load-rehearsal-student-079@example.com",
+          "name": "Phase60 Student 079",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..FXx-0ueUeJX1ODG7_jQ_9g.cEnWELLorlKNwPHMllfh_k7wCJOevTo8mOEwl9TIqeCwLKGkp1JsYTfmoKjlX_PCH9rM6FFj0SAd_bSMajhb4U0s9w4iHloe7389ljKwYvTHglsXzt0TeLZO7d26DcasJzE-osLcX8wwPnz9uRQsOoQ87eKc8UI9p9E_9EzqJMnYKeeyQVnj1DcsRSJDL3VaO_8jVyueB1y5Kt3CenpkcpqMt9FHQQhALP7TGWQUjz5zoQS9l3DKKG8Au3pTjC3fpQtvh5DlvmwTTK05LT8GbDCpieuiyDLvzBhf52rborjVTFs6mleIkbk9QkZChiqo9BnuNP2Sb1RXEaaxnOOGFux1oNK8qrP_xrXZTDym9rfrinjzKOuol_0UCC0PshfZ40L5bKuH_JnqQP2Aao8DfA.utUM2n71q9IUeaflZkrARNOUev3Z6wFhhJaZQHdIBRM"
+        },
+        {
+          "id": "b2e2a1c7-489a-43d0-a16e-115588b2ccff",
+          "email": "phase60-load-rehearsal-student-080@example.com",
+          "name": "Phase60 Student 080",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..yT-acjhhPCrfhLgjpm2hPg.dIKC1aUc_2hbtebsQHHGvug4tQGyHyGwP6tKH1qXo-wU-SQ-wK23Ziu3p1zj4txPuHbCxjBxHB0sVz4ldUzEsnTKYOXN_mY6KI18NUtF5SBmpe9Ii7tJ4-am4syMJP4rHDxt2GsiLAC8bBIXPe3fBGYvZjQqwg6YKdadd3ljyg2JiaXUbDPzel1J43ETJ3Gllf-fIqQR7AtDF3w9kA0JXu16o4wMzgHg8ObKYDv1Sb8bhXQpHx42URiosEBDJjLN14RLpWD-aFYSHzdnNHxse4-tMZ6Uhiyh8asnYFtgq2Qz5VTYlj7Hjv5HAIIHMucfx2YRdjXnXz35VHdrt3h2mD6HXkJoBX8EuovHbmWUdGGt2HYCyCUzmPSaNxuCSNl5qCu1xU4e-0XDSFPq1pFUQA.XW6M3EwjUBvIcEujt-sVfz50s4lZvJyRgmDpJs9-nz8"
+        }
+      ]
+    },
+    {
+      "classroom": "phase60-load-rehearsal-class-3",
+      "classId": "d2e9567e-0b82-4cc9-9320-9b40d30f7393",
+      "classroomSessionId": "867dc7f5-4dab-4195-92a4-e1a7d4158182",
+      "teacherId": "b32033f6-0da2-467d-a89b-46a40b92a952",
+      "teacherCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Tfin5l2rYBfmx9SXJCbzBA.c051ksTzvHfkf2BqA6LVHVnBlxa8KRasV5hpiKzSoZGdOC4phta_M8XYlyk5Mlb5smZbRsl8vvcf9KLBXWZQQUDYgqKR2Dnde7KffOJsO0ocvqvmjpZLZC3C0ZKOF1GjFCDHUV9Zort_l-PdGSqIcrN3cup95FO33BD9qXYc-8COLpTx6ouPiMY20Wzvx0Ck4Tw-OXdcOvioetK6K3RwtNf73w6i5f2kKYgxGl0B0F949x21hZ0pNSL7VlRmgSkcSN8Jxg2a7x_lAAUON-JMMi0E-iMwLDublVI1BYE-GdWvxrfX37z9hOPrwsdNC5pp1OMiyW3NYY2PxmQZTPRckasTjzeJU4rLTVv186SnanFWqAEhpLiwHuFUfUYPbL_h9SKQXYmHi2glSM9MuRGa-w.anD9Qo8PEqY5hLzopFSxx1bsT_ShDaw6JDmaMxNIRDw",
+      "studentActors": [
+        {
+          "id": "8ca74ad7-adcd-4698-95c7-9545b364bf41",
+          "email": "phase60-load-rehearsal-student-081@example.com",
+          "name": "Phase60 Student 081",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..3FyHB6CDmQlS4SpWhtdT3g.vSq6l-GtnniThRGvXnvpU7KysKMTmfr6pwB-BY2z9EliSrootGDXwpr-j4r5nf-KdCMv6RE2c65XvbZrZLfy2SPvoJQP5lurd5O6SOqBHID9zSKmYhR5TfEuyWtgy8y3H-hFo9Y9a6qzjS31YG24Ag9LBEa4jknFhswwCRZHXn-lFJq7pn1RDDRmUNSAWTuEVigBU6X8nEIjlvmHtLvEhAMek2M1dvUGvIcIy8jnX42Zv0gvibcwzj8zweKzdw5gzDmFsDqiPWZr2As8-Hnwat_Ddj2FJLnywAJ_BsEkaHAVr0DgR35fs13UwWYP-yuXgV2gPBASU7dfsnjPnbwa7sFh4RPGWLn4MreyeseHxnSCygC48VPbGPxOQOhE0tCG00auuNooG8tewGk9r-KNoQ.LsNwuwUeHilzNg0ETtkTYayTkJgHQgJQVbQSczuMlts"
+        },
+        {
+          "id": "08dbea6a-bc7d-4581-8e75-0a20f4c67ba3",
+          "email": "phase60-load-rehearsal-student-082@example.com",
+          "name": "Phase60 Student 082",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..GJY5qCxBddiS7c5XzwvJ8A.DZ8DBtUrbnG1O_lx-6JEah3Cgvydn6Ek6AM1tbDvyhI_UZ9_UMs_HQiH-UEW_Lc5YMxAT7TmkKkuaCCblXQBhvM16zq9HV36RgLL6PZjw50BRqopXjimWos6ycEZThg2xsSlWUpZQ7CeO6OfNM9tBGwsPEpMD1tG5dJlGApPWP03eP3dOwCn2miP5cPdHLp5GECLT2TBfQrYxiUktzy9sNEJ0CCYRfqx7i6Ule_bAkfPcb0r8G5nqgtMHPsVNOHGFNu_5ZYkaNJsMAZSb_ZIyzlLXmvfyMq-wrIrxNil1bWwjY_4gVGrZ_mGdyWTdQUw6pjQ72e6PeoyxmvsuDrHsuJlFtHGNCyy9yWpUKmAJv_Z3QQKWmAm3tyCj-ICxtGuyJSV28PHlMFxtuEPaYnBuQ.SQ4OHXs9gZZq5U3nlAAlZKikLX4vaJ76z0sojzmDtBM"
+        },
+        {
+          "id": "89e8f157-37be-46e1-93ce-33425fe1d178",
+          "email": "phase60-load-rehearsal-student-083@example.com",
+          "name": "Phase60 Student 083",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..j8PcAVJB1VTxYEQVWCsnfw.Qmn1A7YQ5zewAeLEYVaJdfL5gUMWGFh5y751HJnmFEuLBUeVpDTK684S9xbS8yqXcrQ_zYERdwpsPWiCtCSDf4Lk0DYyn2DB4dI2qTINJ3maBFiKObABd8taUSlGOG5hfe8E__xEEDjgcM8_pNmgm9OfU6sK-gUTGk9J1WNWpRTmGpZn_gtWDGYkiz50ZEZWfRwL-6I2uIo4LUSzHNdnMV5srK4IN7PcgTM4_0s6v76JR2zTmOyEHroxY_Fyid_2YDx-YFjdGG8yMunw3D9oUKA0DLObEsMk_Cnuxgi5GTQ8wjhgjDGQAViVjCuyysQRxem3yhibxrk1_hzlnmcgUtcDILFnTJwLUtxZnlgA_jeK8rHYmQaBgkR8ST5TOH185TJxfdpMFarpSbJQ2KGJeQ.O3N4vkXivcAUZnSd-W9wQTBRIxRTLSTYKkqpMVv1TL4"
+        },
+        {
+          "id": "450fe3d2-6eee-44db-8886-e49fb7035874",
+          "email": "phase60-load-rehearsal-student-084@example.com",
+          "name": "Phase60 Student 084",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..eCIJsGBenRDbtWVdly832Q.XcZ7jv3Q6gDM8VTTfPgGR-bSR1-OtMdOhEYGETjOsJJkrBVPhXiIlXAPHwzGiZUy0O--0ucUpadhi3kxV9f1THRBzAGoMGWTq3NJeN77XuL4KlnkXu5GrYFya1JB8pGXB5uIBOrLiGeMkl0feo12Po4_N-m3KlKqvqqjT4MjvCVnoHUwtw_9giAGwqCmmtYSuzuwJ1nVCqBVw1m6E3XiJtJlEASVv-uqr_75f6RcscIn8JT_nSWnZX-2aVoM-U1GXm5M2SXQM6cBAdlQYad8scxDi4dHXI5Twg4IbqW0sdur8QXIqYAVAWTdtgsqL20TWxjTL0W1H43njDNR3llMemZVQwp0vXY-pToTYXep08gffUnIu2PSzhRdcDydGvvLklBqwgYsJg0TbTLO0J97-w.t7qgKuU7354gevNz_3rfdO5Vx1sla0sPnwCR66SoiSs"
+        },
+        {
+          "id": "00e0f812-12d1-4134-b0df-d7c7ea67da49",
+          "email": "phase60-load-rehearsal-student-085@example.com",
+          "name": "Phase60 Student 085",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..OFcOaMF-R33_uVJNUji6ZQ.KkiQ0_px_SViOgK98tH8Ysi5UP3bmSLbNqgRqANdVy3RPn0RCg7s9okIRT9nLRswc2l9GcpE9IDZ0VB35W6a_KyZl_TthMHGP_xLxfe6wgbfKeQQSXcq5bgVqYzxkDJb0gW6axTzXv5-9MbuAULqDsz6TkvpCVsRmu3jI3-XfuFLXZ11eJzD2g5JAsKG_Hf_OA2w9U19dqOCcZZtd0mIkXy0ZLC8ys8amQylpybvrlOzI7vEIE0xjzfNhWm7KNVz40hSUwPfObgTMoPgaaHoJFm-hCy_QSSuoC6zxpalJjOUBod4YqjFWhruOEpjAL8VV9OocrnPHrVZjBm8GZA6fwtHdKZbXP-4wCgIy8Y2eWmNjTemdNhLfwhSFN6wrHp4nzeEfprL2y-tRLFZpB5DBw.l5Z6Kp-MEo2Gi1k7lowELUWnDdxuobVYnsa5b5-rrwk"
+        },
+        {
+          "id": "5809eb93-3559-4c7d-abed-9fe7a3e549e9",
+          "email": "phase60-load-rehearsal-student-086@example.com",
+          "name": "Phase60 Student 086",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..XQjECmdGuTeS5NuB5hIYCw.L0IazRsLLo9Iy6Rqvyi7gc95_I4Meu01-bBec_8y642qBjImU80RQvOPsRlf61dkBOa8KvWOyosHIVe00LyFVQLGQ92raXPdzRidYXW7T3mC0j-Cr-_ibW5BjleVaoae3cnvZP0DSbgJtVgfOUH8dUgOpVYO8F4PFaj-gyYWw2Or4oENJLLyH2Mz2DCLbz3pBxtrUdYdktX5gJ7jii6t9xjQbTVdWDaGZFs0Jxfd1HuNyVfrrk0s2kzAyqGjNodF7D_I0CNWCSMfjT8Ya4JMhTpzcCbE3vvfuw3JzPAmx6GJHOo3KLKMpQfvADF30eSQs-mFurWm-lZNpZ1INchMkF2XrBx4wwMVZR6wkNRuzprDXHQFH1puqPJk4u7vsNwbbr1kYSyE7-cGyijWqr8lGw.4druh18Z2LtekdLz5FK3phgQYg1g5Aep4bqekoI0qBs"
+        },
+        {
+          "id": "1230cf35-e74a-4145-ba4c-d2fd89c7c568",
+          "email": "phase60-load-rehearsal-student-087@example.com",
+          "name": "Phase60 Student 087",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..8_X_ea611-BEcuwuV7YgsQ.zvo4o4e4UCMebaowICBHNvilaJiI10zttBs4FZ11JjIEC32SOj2JXenp4NrYM_JADFFcVjzmCBoN7jxQ-mW_wf2YH2GoAURPwUTqqT8JiWWax15XNV2VnfUg_FK43roQMXegZSt9RQG8nb856DCRErlRs9pdAjUMUYCLVWMQlv2S1BgXLdvfOdj0mzHVCvydA3zceW_zci3ur_qkEGc2ga_mX4DGLUZ5JzwEj9XZBUSmss88oMOQj6ALWvO_dFlwMjas7GW4RyOAlJUWJ1iebGOeI3MkDh08E5lx3NS86zRf-ZhOkimZhoPdj9vB7d9j8a9E7Hujl2O7jcehfhknGk3V-ZLRCHxxp4E8g8FQznFkBqH52QrMu-jwO-aoQDPOpjTppiThjXXmp09Ka_KNYg.ouiyBA2ldN3LrCxSSVWzZE48y_1wc3p2vK2iFtPqct8"
+        },
+        {
+          "id": "a5df4fe2-9dc0-44b5-b08f-1ef493e65ae3",
+          "email": "phase60-load-rehearsal-student-088@example.com",
+          "name": "Phase60 Student 088",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..5Iq7WCv-4gSY_35mSc4k0Q.2zTAsLS6xdiaEX03Xu3YBrMCsCyW-FXvMovuhj0fdL0ruipsY-wLlZqwxE9gQoXFDJZpl0QUd8QcVot8xU92TeKlUbLJrQqRNSv24b0nMxpYQdVVv0r0MG4ZHE7lTgea2OObmR5MnaSNYFm16ipgGcY4QNiy8BtLtmWOUAfsDOrdGHFtOKEBlQ0mXsDf-oKZndh8OWQYv4qgGndYnaoBRPctMMhq61WntXub2JRg7s5mu9QPT1nshKiVvPEauQJD0kEbPbdwlrgQjwVS0vhgDbvvulYAjKNBAxIUPttMeFQJh7VYoWZloNzWvbUT7ukTooh2rMWe1oIxPCSWUaDB73CVFzC4ODS8ah-jk-uymFAAe3dKiFKDRHrNvqcN4JiOQdyqYXlppMDEfNB1vciupA.k1BYh6PrwEvDPKdi4sbvJaYbPs67d_IzZ0fD9ibLD9g"
+        },
+        {
+          "id": "7e9f168c-af2d-4d90-a6f6-5395e945310b",
+          "email": "phase60-load-rehearsal-student-089@example.com",
+          "name": "Phase60 Student 089",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..AQe4IeKr6mpZQfBj5nGc2w.j4CAA4FUUli6bNcBeMBvtXV8decYWCnxVTrCl2tF9gW4G-0RdrwobNbg89vX_1GsNdPCDxmx60K_hA4gLlqrANmZAYwPpPPmmmfqdPy_6iP1EtMUrYmLNjiOdSjIXDenp7ng9H6mnLLm6i5gwPYRWs5saa3kPOPsDA-XRGq-PRX1Cg_RAqrHJ_5QdMOXCPZNdMlHQCWNk_w_YX6PFnkYktcz7_OBvuFVo8zHbjqdxWtQjShEa271thTuueGjUEdw-V8uMupjiE2ea7OutQUmZPDO59QouSGG1u3iZCVg6VkkBEs9QYfdls6QWEWiQs8j3qbkTI0THRxYwCXd09RjrN5kaLk19gMVKo52k_d_IZ2TeU5mwtW2s7fHYfwobsU-Kw9wmNf_NcNcVv76kF33cA.7umRdX-p05W5ra9BwyafeTVyVuWMeVk2kV3ZIoad74I"
+        },
+        {
+          "id": "2037000d-4cc1-4df3-86bd-ac17c9f34ae6",
+          "email": "phase60-load-rehearsal-student-090@example.com",
+          "name": "Phase60 Student 090",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..1SKHzuzV8DGdPieBuD71EQ.YClvF1ARtDNh0vDwMny2dcMGDc8vb-hJ2oR9LpeoICR3JFMvNT77qXi6CSGClRxR0mD27_9Gmpgrlublr8Irn_7JWeiaMT9iLfY3QjRS_1VesQCHQT9Tx8ZWx4kO_r5uIzwfsqTQXkow8Oj1Tvq2nQPE_Fiozt61_y_sUbibBAwhHpBUZneo11jnRuYbOYC2DrvM8u-NaEnt9yw856y6rqSdlGTL9EGCLMBv8jeWAqWEY2FJcMleJ21dpUd8V6SwEZRGycQfaPjxuQywWNkP5NhlKHKMpqcV87R3SVctLAt8oZZySGaI0GhTL-m25d_cBkFmFG5AYp0x14Io2h-MfeJkfPPkwL50JrCl6r7AaVB_byHRyvb0BNrZ7PggHO2Wb7c-GKz0z-3qVhfrSptxkg.P35xeWF-S5t6X1AAE3bNadS9WqpgryNHWqQJFgwexkU"
+        },
+        {
+          "id": "651a3e7f-5a0d-4062-b4ab-1c5d34ca9f0b",
+          "email": "phase60-load-rehearsal-student-091@example.com",
+          "name": "Phase60 Student 091",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Mz7-5Fr5ka9_n93MeVnQjw.2Ql7WrK4-NVKBbpCsXxFJApVu5Sa28tKvMPKfVSjhGXiBDRlGDweNhiiFZpyEa9Yu3qZhdEp-dj2Gsbu0-mkQ64rK2ujaUMjhGb5QgF_2TjURGyM3X9T3AJzQow4waGJ9eLJGuRvf-i6jkR2O2g0eOruJXlNKlJVSaf6vJsUEBjJxHiV-1N9XK2XkOUwraRHZ1vCqHZ-2JrlQTPz19wV7DOefWqmeag9xgU5AWLvsRevVk4ZaUgwqjTi1Acg_N2gH20SSQKgiI_FjdQbC6LDyWneiIdBwM4RoNDoCfgmt5qyMJ4uew0dRMNFN4VrjcRaUB0KR0hTFZYID7dIAMbc7VUuhE9tg7Bhzgcxmk8sd5tlhpN8A-sqorBEd0t98TZ-Yuemr-JU--8oon6srpNHDQ.0T4ZZxwDDHNlzTA9naxczjQ4jrsBDiddDH-FM5NO5Jc"
+        },
+        {
+          "id": "b8b2ae5a-0370-403e-9ed5-63fc6bab8204",
+          "email": "phase60-load-rehearsal-student-092@example.com",
+          "name": "Phase60 Student 092",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..uYjK_LkPBC-0DHnRof3gag.xbmLGJW0M59ONgDfW7HNXNxhxWYSsYBqPpKsiUMUWdCam9ts1qeOsH7PwZdP-SytOxvmbc597XwaL6kSZYKL0Ek7gW0ySI8Q8JdVTyG8MWeWM2ua-LPF4fVXDIGO-bb9tCYukY0LoUhfWYQOF6Y7Va8MHz7kXYe5Oc9Lu9pT85CFOH6AwW23Sn_7Mw8UcwUJuKGy4NcvC7xQWJlJb5I0kusXnX_VJ2BajG2Ec_nBJNhgbv1C_vzS6ynqwdRxgG0caar1xdf-YybWS-FI-iDQYPpukbnfuBo-7SnuxQlH5GiZ_Ff_zscrhCJWB5kH6mZYKyit3lzvELqEv9UhqNAP-oCcknlIBw5ktVWquw630hMV0VPVxvcg9gSKk8tMyj_JFOltJv5Zer5UNcffsTvUog.7oJCNmfGW4HX1VmG2P0K1d8Jd4-m0zUUR08tRUOy-ew"
+        },
+        {
+          "id": "31f5067b-f50b-4ce5-af8b-cc70f3febb15",
+          "email": "phase60-load-rehearsal-student-093@example.com",
+          "name": "Phase60 Student 093",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..pHo-rHJnFbArOpQXN6yRHw.uVTVqoixQ8GY8OcmKwyScDqTJI23VXkPTfOZgiz5b8ZbJkWXoX5A2gmRVzyZgUITgKpoFRLyhI_NggpoXybJsp1M43LkSkBEcuy_3SXXffC-4F5TK7RKo2re4ZEdX5_KsfRL7rSvFQTwggwwNuHLMvSv2_apHDljCEt9BMEFnlPLMP_QqhK5oBJKlx3rVsCueJD5_yCPQaHIk1ZCuNQbL4q2Jt6icPcIZD1s8v4Gt5uK7BDRXzDwyZWiUwkLrvg7ND3yDmT9oBA2y20kaNZXIPzre23vKi4MgzBb-vVH6ad27wOWK3rGJqC8j8zUkVqplVmJXjpP3kaEp6OYVQ8wjL2-myQwes5NaS6IugXTiD81AWA5nMGohspEFr4-cmyYgZFhyyxOb3yBLXi5vdPmew.g29YwEWwrEpUGODaiX-1W5PHVkQkRDNG1811WelkxP0"
+        },
+        {
+          "id": "1738ca37-f8cb-4cae-bc9a-9a50cc7bdecf",
+          "email": "phase60-load-rehearsal-student-094@example.com",
+          "name": "Phase60 Student 094",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..tVInVLcJ9fgkyzGmqPCvHg.I2Ukf6emo-Dofppc1MvbQj0q1OlTE44ozP9V1S_lMeXmh8BkSvf76E5lQxweroV5GKYsKm9SrVctFHqzuMLVKLdBQT9ffMvLRqH3hlEs4fbDYYPL3_uuK52T5xhdMGy1BVY6uc-SaFKSaompz1nomNopkur5O9ffPGD6QFuDPMVbcJKvBDeSHbaBxWWT3LKGBfx3V07gau8G2BDYk9IMWIkibuJVPLGEOT7yjliCSdHANF3O0H7UtY1GI6-QRQAmBsKYEc1Vi9UHPQ1ht6bDnjjFRDnGp6JPjlPtKS0x3LGTwMSgQnFHZsSpaWYXldgmu4xG3fi_nuHtGn5OZ8KA9fy2LrBgDWX5Occwu_tT1-hhB2Ji7uzh4kS6txvezajOaeO8BCafgX-jcHvvu_2uLg.ndqNJJviVTcLPXmCwyMBAIuAtr_f02TmwIYyN9_06Sw"
+        },
+        {
+          "id": "b07fcfc1-bee4-4c47-ab76-a086d528fa2d",
+          "email": "phase60-load-rehearsal-student-095@example.com",
+          "name": "Phase60 Student 095",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..HgEm8AsDuIHWT7MBhGPrfw.F_2ITgrDqKJv7sko7dd5r3lLQjXPMeX2S6Bo6zq1O8Ei6c1wdFFFQrMoZ7_ty601XzFA4y2uP33bOYE2CvtHpPBECZ-_MEohjxslqGY0HeKn36cBYdw3S03MJAmWMwvfKD6WM_X6N-3rHU6iBXNOnfQjXLgLRjQ-skrQi4m6-U-XdjKZ4fXVEImmRISOkTkOOfojgiTG33fHbR0iMAEpH1O4LBTTn4v8yWXrG9N2F7vAZrKE2dYz8jvMlPSHaPCALTCyXfJDNjtmAh0mMaqk6oSlgQM-7XoqKl_PQKrnKqVf9-Aob0-_8qzQ2j0k3_HWM6AbHWPxN1qnEqXKMv1hOGpaic4dFcqwZtfHnk5geq6i5tqJufv_CPRSWlHIUqZGOinj6lNuUDhGbHut-lSYGw.eAOWPFQXg6jARsRdSuAcIHJ7ry798mDhhQepWBYMOsI"
+        },
+        {
+          "id": "f9848300-3b43-4aec-af19-20581aed8eda",
+          "email": "phase60-load-rehearsal-student-096@example.com",
+          "name": "Phase60 Student 096",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..yaPGZXdJHUfHLezSUBNPfw.ug7QOwYWpEWgQWproXuz99WCBk97VM77nHKOL41GBnPG2vYQbb4-Ms6soN5avSTZ2-ewN-4KmPrn3Iz_Wnbo7CrDic3i7zEOUIdDYLHyyu37ZtUmud4pOXjS6pi7a5CFFCX40t5AdAExiB0ICDQQ1sVuw9skNbzAM701q-Y0JfY7-eKyowaMhMEwpOXhtE4UuM1za9pzvzjPS5zY2q6Nn2NpsJbiLe9aGcVGjvFKpL5Yp4oQ3jABypn5BknbaaZKcsyuyyVhIaKBwmaXWJgh2V9a3jb9RtKePcAaM_JN-hc3Vyu87Xbia_a5R3EEhhRII55hmEAvKsOhWlENo2rt287runF1NeyFlHlzW5KXi0qj7RdBp9B3oJ1p80O1drWR4-HzIq06_qVFe5XszxMW_A.8w2aOD_4cP6ztMD24pIHRMq8YIkQxuV6Fvx-BmiwBqM"
+        },
+        {
+          "id": "44d30b7b-be27-41a6-8455-4c73c617fe37",
+          "email": "phase60-load-rehearsal-student-097@example.com",
+          "name": "Phase60 Student 097",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..-uYm6exNbQ_cycYKuTcpbQ.8MMOBx0wXyS80J_voUaEdGWipJujBIijRSdfJkFNxPdR7ZsDM6NdYXQlVcAUL8ttTzfuJ9thfQc4W5kDkkEDERH0sCAQQ2SKo8GGBgQGVGB0FcPTqeI3UC6nHVQucNj_f5Vl3deGexjS33Zuah1h2fGC6RCl-KwLlhu1evwjp9Vn7Xljy8AZ5pg3DL0x_-bP4hJigr_xu30hd9-rITdSf8TvAAQAX3QMgLi7gjJIHaTz-tyo0ehv5FWBVgdzbm4IfUyLGYLgBNI6oMzFPQ_6Sp4GNxY8On20XLSg00jB-aMBkpJ-BG5mkKlA8wt4fVEJMgbSJHVjy4bCoGweS76crfe3Adr6J6L6DkayMBBn_QgXCQXQkM7pe2NMfkf-_JyiK_p6VuoiPoe7GdgqEXNKXQ.DkLfa2YZKgLH-xqSJ-sqZSnM78WbHHGA1TBYD_pc79s"
+        },
+        {
+          "id": "26fb9ccc-2f5f-4940-88f9-bcbb9a6f8069",
+          "email": "phase60-load-rehearsal-student-098@example.com",
+          "name": "Phase60 Student 098",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..bQQP0k1rYH1gCV8DIxuurQ.LJSfG8OrUQbQTlpjnCJJYiw3EZvbo18EfZmgCUrzl2Gp8YE2DYfVRNt3jPA-S-KTHPMYoaRqtM2czIfs_oBerHebG1BqVfT8iuQ3bYsoL-0UqGsKRnGZfRlAoe5tBs_7HXGutHT0dEcMid1sF1d1kxFM8QbWUS8EN6O3Ba4MNwYJgJerDg6DNpKg7ZJtm99PEpAszGbvLtJC-kEt_5dBCBTl1hopBOqHdnmLtmpjHp_sDhHR-j1JvEmGOct0HOJ9RoUKWuNmYOIHgo_I6pxh_JKv7eLknmYqQYMZwwa3OcX3uhfikuYV93sa9hoMiBZzPrdOVt8RNNRwO2HxHQe0xrLuRQMIYr9DIhHXF-CUCHlPnzrNkP69_VFDfufqTvSX18T98e0JqJVrbcVXUHdmOw.kbDGWRmWFDon--LAAnXalPDU8yOGcSy4L8nM5KW2sCg"
+        },
+        {
+          "id": "0686407f-0474-441c-81c7-551ed26e4de5",
+          "email": "phase60-load-rehearsal-student-099@example.com",
+          "name": "Phase60 Student 099",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..j-_HRqCOv8Lbuy4V02ScqA.gyo7hTd1CKbtXqs0MQ8udIhIQWNHhRa6oHAhRhtXLXyozLkZKr8fuv_JTdQK6O_67QqSiWbexVzgS0TihwZhtAUDUQu2EJcAUkoJXGWNBkGxZt8hGmliZ0SHTxOEHbvx6VJIzllAqGfMMxhDVVWfCAXkTq0D8azbYRtCjA6cOdPEiPX-GGRYyL4WiO4jox4yflzsHV2_leHo9vEm4d2sAhz34V_aI5BoE6A4n5Rlc_-ZMbjzSTjMeGXD57z1T3BjNA8Zo7vevb4a10bn06FoDPzywBJjZp24BRNwznLhirZdDCG1zOHn1QFBYfvheI8OxHpVzNSYel5S2q4rcAm3pqGNFr2INzlcybRn46qprn9Wn2DAUe91wPvnrE8LnSNQH0dVeSPXcuH0RHAkoq4wTA.2cGcJrMbkaEppPb2PNUAnBs-i9yWvU1kn0aSEYwNEIM"
+        },
+        {
+          "id": "3fad0b77-c5f9-49bf-b7bd-97219100de06",
+          "email": "phase60-load-rehearsal-student-100@example.com",
+          "name": "Phase60 Student 100",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Yua1Ul9PLpycWNBu7m8aDA.MrKVlj8l2ynZNUWdLnV6eHFEvN79eIWhYgJYKck4lL5AoCusSHdOf233YVnE5-2usX7F1SVgoLisD1jxGcRHS5-gy36Jqb-abTg-HyO7jqO5a8l5ZvhjlEwH9YJL5-A49t895fzmx__lA9-AzZhAzA22y68HKQe5rYJJPFl2_kZ4OzsfD4GDZAjfz-NocpWfDc8AZFxV7Xm9HfcSxQPVchniGW7BjKxNGHKBcw4q-KFrntFMIHzMEjD1wlCt1EOsytXIVBHrgykJXAoM7uX4dIEUuMq7mmiNECvN0hmQdkn6qPodIu9clyuZurDTNsgSq2hHiMOEwcPp0boxEAsWDHu0opGXjTgvYHolCcrS6nN14qy6_xiutv233vptvLDlNMButMPISrEB8SNIrY6isA.LiBMdiBOnMs8UZiqfdpEBkoabD3mocs4DISSAyFKvBs"
+        },
+        {
+          "id": "10767875-99f4-4a26-ba39-b258a7a6fb5e",
+          "email": "phase60-load-rehearsal-student-101@example.com",
+          "name": "Phase60 Student 101",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..CSg4KRa2kLn7uDZNyRzYZw.inoAaIj-48-osSXp9TQcTfNYIo2pkawlHdbNBsSAoGsYhJ5MFrOfnlG3JmH3mW1_2TUvab7i_J3mrXY9bHHJ-6Ru7EO8LBTrCmavHm9rwIkW-vUUfmauOZmFzJNFhHT3fNhzOoXn04IuaRPukiuKJh6fSM18lldPI7c-Asp3ci34NvxcVCysPVDFMD9U7pAAwetJtAzIW2HK-YfzSfwAz8lh4_S97htIMIEDbWGYU7CH-a_hE8UNq9MwXuTgP7usGeNJlXahYGfjm5HGj3zYg9366Cc9r8eXCIRUxlblQY_rSQJBgL_Stvb1Y0Y7AaF6WzdLEb62CK21-Mquw_2oG8qtRgiznH3MZ17AgIXvrShz57v1Skcsj6WBa7baq9BL9P6OAQa7F91THsojvdWPlw.YD10Fs-vK4gpQSHWn2WmP7uhSgaE3P91smStD0uLKNg"
+        },
+        {
+          "id": "09f8f197-b671-4844-a29c-4593ab30284c",
+          "email": "phase60-load-rehearsal-student-102@example.com",
+          "name": "Phase60 Student 102",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..hqB70BW-hBwiaW8HCcxoeA.mHcWWmRPWRdcFMxlE-65XLqxWJMpQcumTpjWw6uzHT3tqYBqcdtotplydVObDUX-TSRTmMUugs2uB2Cr-gK2LcBPrO4BlUTV-wtp20FcVXRcm_riF4BlKNKvER2U2z00B9zJZndoMe5NfHecFceoTfuT3ICEmYb9u0VzPGXRJKtUF8fKK7jjCZiFK9-KAHNwJ21GmRGvz1kGCkuM2xypJ9Xg56n7wdu2eHoxaa8aN033IIlhi9KksqLkAt9BT8hP2dufvhvCJJELmp4UWK2NzFbfF0_2eulNMS4ElCAcfhPaFU6O1J9NrwNWr8ahq0uqg0d7a9UPiTEvXgQ1PzjMPSijXPrKdbDt6WtaTmSBIBmo4LkGftlmcSPicPWbQmKta-sa4wEzBi8_vF1VI28fPg.l_At92xyYZB6v-fA_gvAYicq28I1Upnea2YIgx_vAV0"
+        },
+        {
+          "id": "1e342d05-eecf-4dd4-9dcd-6d6484e8b2e3",
+          "email": "phase60-load-rehearsal-student-103@example.com",
+          "name": "Phase60 Student 103",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..ie3kdEDTrEJlpDmnOJ2OnA.JeJFGjvcPw9ko0-ROoG-G-iz8WF419sI-qZXA5oWX5lLlLIT_6G0kT0Z19ebNS_yCmB2beeYwfF8v4twdugFtDEBZIuECgaFLoSrQp0nPW8c0TJJ8ItwN7dEKhnbKnLUXA6ij2_Dep-0heCJpKVpDbcrShshad4bHeTiPzuXT_a5ReirHdkWWloJeliby_OQojIBVv-YKoAzdcNiBO5gQHGMvO2XLmeUqRCbgYzjK5GA6X6VF6NjNQc6N3NOKo2LtOH7nVSe4zslMx9Rwn2GgqKRbhd3ZtuqCnJ0151Kx_1cLcArPSKIqa5MQ3VfNNM0c_jLuLDEXQjGjulGNpxZTu5TQ9cAvNrEjU4v8fQDxJXqyS0tATP15Rtisl05VBsAaWjmhBV2XMK2qm1K_McvJA.QLiOTAR7v4icPE0pxcW-O_tBUXyzZHqY8O1jOlGJ3ko"
+        },
+        {
+          "id": "0be9acdd-27f4-46ec-ae22-594d07324b5e",
+          "email": "phase60-load-rehearsal-student-104@example.com",
+          "name": "Phase60 Student 104",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..u9wdjoPst7jlnrS3kHanTw.3LihIDCCZFOudAE98ylOQX9a2DW5oQMBsTMw-ox8us6KthFzzC4In1qi8XJgTpa_namCyecRo3Zrm6zWSj8fJX014n_pGQunBKBUVwH0SEohH0y8x5n1JGZkraEmbBO4dhpK9Gq7ospSygX4dx-_bcnDlNaahXH_1U__S5PZtWcVmI4fU0NIu89gvYLkMpnWTi0cFf4QfiL3g-lYjMu827GknTh1LbeMTVUHFeuWFXtxWXFD52YcFAz7P0BQA3TumnSW-qal7txOYiDGKa_Jj4PHGDaGAJfrasnkXiTwDUph8tCyvIGGxhwVrHYvwOjbXWoDKGVfZnlj1MUu9iiqp89lAHIgOKgqZ7ajMDnhf6LE-eCxdKpq0CbldcmV_FZpYcwSNkotUidl65Xni2pf8Q.xQQahH5NR920Eju2_CB5mu0NuRG0SppwenbkUoJVeL8"
+        },
+        {
+          "id": "124962e9-cf73-4464-9aac-8d87b54d1c79",
+          "email": "phase60-load-rehearsal-student-105@example.com",
+          "name": "Phase60 Student 105",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..CjB-EZm5KZ57TzgBoIe63A.j5sMrVBk-S2-8X9hLEzlSJ1VjEpTkwtNNlAHWUbET-pCyV2IKR5ekF4S_9xdA1Zf3vDQ2acowd0GA0_-TiGEXIKA2cPF_mKFmYTWQEu1uT3fNSZMIgNc_0CTXZdUpmgO6N3cW_DaUJXkYMBpS3kxtztKkSk65iDN772agtcVMng87l-xWHnZ0q7eD-atrg5qc62-gmSq2W9IaMD3TONWx2rkICcm-qS3Lh2pB4-N4d2bK8L94F_LF03wbCRvrEbKyPzXPr9U-OTLy-94Iwbv8djZKXWzgjKfR9l_VuUTnB0yIvXjsC1Gs6lkQbwuzH2a0pEzhDjwLUSqbOfiKosiAvRZ2LRQTRK5GRE_itcK8zZgxL8DiTugd47POjToOEKN2Mw_tfqd6OI0pCbi3hm9JA.0FLFD2qxFCTioRebWCqsZmNAdCi_YmzuRKMD1wVGgXQ"
+        },
+        {
+          "id": "c53853bd-ed08-4629-8d5e-f7d5201a0ca2",
+          "email": "phase60-load-rehearsal-student-106@example.com",
+          "name": "Phase60 Student 106",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..WPVPy3XZmmTMKarK7wkgfQ.npGf6N-Pft9SJx_KU0Xke4jGUx4YllTzvCa7NbysQMxvB7x6KgbHv_HIMuKNyQiyOByURFDezgPF6xkMg1C1mHRzxkBScChTqDIkQItj8sATX_KLTmExZCJJBXnh2LyciQZltKJB2-oTfaGhpbdJ6zOjJ2-O3nfajHmXcFeN1fWNR_jwlazoaNIX5n7NpHNHL09x_6Yug4bF3jf5zjOS41MwDRR88N3iOwvSki4I_BJ_a1JZj3hJkNr3crbelBgPuRypCaez4wANHdidPRNnF9eCyJGuUzesS-n4mMUQ4cd4onM8TQaWle0fse_UIC9KNwrRQ49eIODGy5BagU45L8V-WZmgQNm0jIIYkwGrJJZRf5Pb2JBjVC-Oa9K7ciBZKpjtn1KGHgR8oYkp8yRZAg.Jzn3SGi9gFFt7Ld70rmPNinBzNrI7_psN93PHvmeFlg"
+        },
+        {
+          "id": "ad95a5c9-6ad6-4df7-a297-12dc323636a4",
+          "email": "phase60-load-rehearsal-student-107@example.com",
+          "name": "Phase60 Student 107",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..cs7hVMxarzIf497fWxSiZQ.fvv0TpnJQonUh1sHaUZT4k3dAyOA6zFjghDsyHZKIrEfBCEwYNWMdExputti_nohPB388_rhdmLVLPYktwikqbx5J08ncETiXCk7n9dDzWtUf9utfaBbFW1mNMcB9Xjl6vnyYq8nuNyKGS-ilTTrco_kVnuPZDP_EOGDcqv4zUcBISjgi1kaHnPZsHK51W4MS-DtpfNmddN8vqEqAGwyen3C5pryvYBxoMwy4QmTxdxWlpY2rmdfAwhAEaKULA6XjpEsQWwavsXEjXm-2DdFhtqo-9ocpMAgS2WKetSCMxXxJl_FfxtJICLqcA8V2Uxii2T0rv7OX9Luo1RNXfjj40xNhrFZnOtHbrrhBkcB-wTTTSjFzVe2a8rquCIJHxaRhxj4t7vyQ-wpKu5IiNyC0g.ztaBtrm_kCgVfdezGaHiwLMXmkahgwbAZP2M_nlhgqI"
+        },
+        {
+          "id": "2dbd818a-3c67-479b-ae0d-c59fa2c67031",
+          "email": "phase60-load-rehearsal-student-108@example.com",
+          "name": "Phase60 Student 108",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..CiCkgjW394hx7WqOAUmfhg.djvldKNU-zjP1wK-WjzaQbkBbHao50B1VQhiFFOohe3dckYwo0jjKVFK2Yutj5O7Ndfjv9H9blt27mQeD5p1P4cg2-QAKnOAPxc9LvX4c01d2NQNQ4Jn5Aomzgt3Q-sULt0Xpt7WFeQ-Ku1ACAxs3iZWeIZ1Z7xJx6QhgwFFR7O5Vz5kVFOoPbG8lvYearfUZ_L5v-hUa-VGGq7hQL08rVRVTUOUMYD4SNnFYF5408wcgZqe4bZQ6IC_vglKVyMmw7ASarnEt3V4xpfEwedqfEt6EgkqQ94JztAfMgah0B7Yvmvok8j-r0EzOaghZsI7lEZ5Xa_oYznzo0qicyG_ag1zlYjDy9QQDiB5UXoLRNNqiZYi7l0NMYX5UlvljsCuSA9ik0nNBuPlbzXySnaV8A.rwjQ8knzAhnHxdPh_ehGAVNgEE2tZNLNymi73KTAya4"
+        },
+        {
+          "id": "9059ca74-b998-4ee4-82e5-39579b10e602",
+          "email": "phase60-load-rehearsal-student-109@example.com",
+          "name": "Phase60 Student 109",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..jGplxIlsh17Mqo7sji8i6A.Ztcgh2fqLWNMkztGYvhOiize1dTKSAmye9H48H1F3lHQX6zY7-SusXkrp6R_maoU9sF1kX5ZFXV4ATYrdXq5v2ObRZlV3FLSVMq5ETuH79yEtJmMupp_zLOaFi5e_jWv6Bxgsshxo6MNNQqm1Hqw3X73OHFrTDG-yXubXaHGSdnLRQMpRdO1RFvqR8FY2LMsKoi3_Jm4L-7Oeo3cTnmMjUgahVADCgtMGb2048YOChx8uV6s1mjaEmfUxdOc_KzJLbRRKjP9Rk8AkFiINbcZGbTO-Knz9W25LYUUhbWLvi7wKM3nFT6a_635WY_nNm3ingZq1bgaRS_23t2YgUkPiW-S9EVUHu5PG0S4Bzn9eS_0Jm-Nl01LCTOeQGkdNgGnEq3Dn-PW7bR8mTrvTxa0tQ.LGLGtqgKYbn5TCc28ivcnmtmDbLnQOY7A-I9Nk3OcQU"
+        },
+        {
+          "id": "2d065420-0bf1-45fe-85cd-19e9988526da",
+          "email": "phase60-load-rehearsal-student-110@example.com",
+          "name": "Phase60 Student 110",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..dLwnGezNHVyrUK5s4_yT9A.J8ry7UQY3QnHhFHZhP7fE9gT4Zc6juubLpM0ukgcym6WJgAMpEjcf4SmFuDeYUCQh8t4xDno6UzuUuuW2wqdzi1bk_UwfFknZOvq8uE5mhnDk8Qj1d0EGYOVH0dYLUn1-y2pVF-pjEfaHcChFPsXbY7lqEt597iPNtuI7agMkSoWJIsrVPZk_DGgCwTiy4JaLXWqFaZG5U7puDSrwxYRi4u-3DJjF3k-OmGUv0cakqPQ_P72d_xardMzgo-Mder-W1UbwiyujDxe5xWjJuCj6ZHSJrvtu0769JgnuN7inK0jORXqLP5Fl1nHWnB_09u-K63-qqb3VwY-Z4XRtQlrcaSiBL2p2DDbzZ0N4fRkUxC0Tq6A2LSHDyh5yulrUWCZvaM429pqlksDsqIGw2uc3w._ZypNvkBAf1Wbhz00xVMWtviDt9DCloLti4OiGYEytY"
+        },
+        {
+          "id": "230fcf3c-71b1-41c3-8242-11cd824a4ea3",
+          "email": "phase60-load-rehearsal-student-111@example.com",
+          "name": "Phase60 Student 111",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..aDwvBlY-XJpRKEll9rm0DQ.cwDGVduO2lcp0HUCTmqibBgeS7LBw9IoJYzDR4T7vuuTCHqjHH8Nmuo2KX4mcJ2dWrJf-VlhyRc5TS3OnNQCfmODIdme_BCMMtqcPeQdHFGBvhdoMbH9bTVs23pNhv724Jk8VB4DqrvMGw4mWoNMZ48CsEFRYQLorjpSfEhio2-MGKNmTNzMgjphNNbVaePbtS00Gb-GP5Byd9wazq35HEyDWB59EeJpT3P5jexdZ-cmObSQnrGBtYUN6B4EEB5dMVWYgXMUNsHteNgqhXhcCGovVThAwloXVfq2JSmrClj1LUe2CWnxqzwkhHm_Q0ItrlMCtnRF4wMrTr7-9fAoygY9gcCU7ZKW-wqAK5z5i3SfN-_jyNYJMkXM07UftrsUWDjiaxWM7pKT8iffD1j5rg.aeCQ8ZnUWxpJzYBxPUs91LXkDOs6Jmtxa7RjxrA1_dI"
+        },
+        {
+          "id": "ba34ddde-c0bc-4df1-bb05-2ba35c5c767a",
+          "email": "phase60-load-rehearsal-student-112@example.com",
+          "name": "Phase60 Student 112",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..uHiudmq3-5WtrbHfmWXOng.Adip--VfyzSB82_Vk1b6LJlAtLd_7HoX26sVfj3qLuqdNj5Cwjui6K3bRZJZNrcLfAlfNNSTg7ux3MQCs24Yj3-iT5Kv4eNJ0l6TQyrzoP82oBBa9xrmKcqGE1tyqKA2Cm4QLZhGeOSeQSveY0NlLI47p5jH1xA96j7CqV6Lz_VPQSHad12vVseJCfh6pvVZdsj0V9CMHa7nE9Xz1vq_wQWGi-fg-vdpwonOyaoKnJYpGKF0NaS0DCl1loMYkn9zH3rjnefEGCGB9MUbu09ZqxyItY0v7xAsxX9p7U3lxolT2-_ZQyLhA0q_t9N2BfaDua49mnIcWLChbNKMq-uJt_iLZ731_9zb0Ka4Mv_E1IKYBxNMqeKsF8xRjTludUqahdPJ3TqS2bXrdB-0Dcg1CQ.rikjZoDCzaC0M_jI7Tyg20VHcknO7f4ssKScsBb1ihM"
+        },
+        {
+          "id": "f2bf283c-1157-4259-8539-4a5e0d6d4282",
+          "email": "phase60-load-rehearsal-student-113@example.com",
+          "name": "Phase60 Student 113",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..pAPrMm1OnvI1_ngnsU9iHw.kOkROVp4FWeWvt4rB2p5QpNUgAxOT-HNvJ8pe9o4P7lIInJjdOFSnA4bC22lTKaCJs02d5H-z-0hj2t0Z1NlI8LYclVRfG5UZsfaI4y3a12kZZqA23ISNBHmrWUzRUQbVuSDz9rqvlFiSCE5mgv1EwVFrVb6D4e0WiyFVu69FMfHO7z2c_GqfMDB58GbNbMbue1zNDVjoY61RyftJbUtyNEiF6EUovfVI_r1nLOL5adMQuKM0qETLvrf2c0lKh55VqJqsWEaymNVTUrU4lJ_PhUQ5oM8u00xIjrv19Uyf6kw380CtOtR8Htq_bweeYckfLh0VSq9svVdQaCc-9nkev8kxqXfcmEggnUQdQOXaogqKoLcpc52AtoS0hJb20EIZS5J-o4IRcwL8a_xiBvsJw.QYE0mE8q5BeMZeOM0d-yA3EiS20lX3JIiySGu0V4jMo"
+        },
+        {
+          "id": "2f03ec6c-3561-4a8c-9a06-72ca68bfb07c",
+          "email": "phase60-load-rehearsal-student-114@example.com",
+          "name": "Phase60 Student 114",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..UL5Mn7i5_p0f85n2C9LJkQ.zvrFXCCpNjpsfHP6Ne8k3u7CNsnOGAUDaIpfobhMnGUgbntInqzZRgeKz8yhVF6lNNz0s3_ZD6eWhLLh8-IhT01ikh_26xcAJ08N9taM0XGCwq8ieRYUUKBUc-LgBsXxkB_8VrDRaXpedmJTN_gkSXgh8TB_rIoR6Lf69631xi1t5P_Z5yfhv8zKBLvrlsfTENxFDq9AzXEc-7pmC5oiUlSjerKY0qYAyOphD7dkBECzFJxiDcGa3_coI8icbQ8wLiEJ8pb9WPGxkzEt73MHWVsGTQDvFaos_WSoeqmzNcLGMPnMt_yYc2u721LaPox0ts9UqUDPXByRqAjKhK5JYnOIcHPpo0KdQBSJ08ZmZ-zeNmLl_a7sMYu29lY8kClqylJiZHNBfCyBTH88yhx0hQ.lG9jMRWL4JZEdz0Ef-XHjcFOOg68ytUUellckZz8l_s"
+        },
+        {
+          "id": "bc7a3f2f-3527-4f62-ba58-6e38068a3934",
+          "email": "phase60-load-rehearsal-student-115@example.com",
+          "name": "Phase60 Student 115",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Y-URK70xM_0wszsGdmZi6A.zhsMnIGlqMe3u38VqlkXL3n_u3W1gxVHDOqlvs0mrCsZXAWZUZ1CX2VXuX0jpyrnXuNqvmY71MT3in_gnQqerI5IChmitjS-nYMbo948MloYHUvyqfxhRmknI58cYQwevPQNyCWtfuGhNDLyT9I8sCjUAEMO5yWJm79po1Bto3rvkgNmzWYrYz3uTfgefMzv-enhqnGliSckLZvzVIzKttCJ9A1Jk1yWZY752V6nMfkmSL4F44Tjm6k3OFRl1zPwb5RQfPn7jGT3PoqW_8TK4wv-hVVt3B0pz8EGo6ZFghy9e_4itQQkSga6M9P4_FKIm1jqL-chs32HOTFdHXD7xZ9p48hnn7zYWUZgC1sAMYn0EAOUCKODsvroBaiVgcj1Ey0E4G44XBQmV--2r6pDgw.ujnSB2VmWJ6WCkeil2_MlpJdkzUOc7RexTS2WYfPi8w"
+        },
+        {
+          "id": "4b9eedf9-02f5-4298-a9e2-43767dfd78ce",
+          "email": "phase60-load-rehearsal-student-116@example.com",
+          "name": "Phase60 Student 116",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..HPYbgWtjREa01AaTv-lvBw.E-Eub3b0M5e5A5jTNJmF2Ahemk5ZAusv8ZWqpaxj11PNzkPBPkTqbhs_LGhY8kfevZQzlgpWRxxGudkXxEAFYeBVu6U8yG8b8WABy1FXYzZUlcRY9yCfdgGkQw1NJATiAdUQaA_Eju24gUZ9ViBoWQ0onjrJnc4mSrsndpV7MxCn0URfnzGA86KfHNVMyDfTdSR2ip7bCVWgFMr05_V271aQX8nPMKm6-wjAZd4MAQCHC4NhSvuW3cF29IEqfenZ2ZcKLfow4xPRYV_vNBezFw9zDip-1Z6gcESFvxtQT0cFiHEx3mqukMD33078ZzE0oVfBgk24nKmzk76yDrVSzya_6yVecq60zXnONZpJawCqfgyRHFBmECRSAe_4e2bR_lngt7rq4fwaQQjrpdlirQ.hpqtx4NKt0skocq5VyIDjcnTsrizlH9pw3h7lfZLLRA"
+        },
+        {
+          "id": "699b6f4f-d3ba-40c0-93c0-cf75332f903a",
+          "email": "phase60-load-rehearsal-student-117@example.com",
+          "name": "Phase60 Student 117",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..F2VMynUEol-IEeJM6CS6Xg.Tw_VVIQgGXpgu3CXdd4d8QaDaELPmv-NciphPi4QHMFtGZHkld_z4_nQhxqAFcgLYu2zmaykxP77GlSfLvniZWRrdoTuGfnc-6jqPwYsoxUq2so7nb3Kf8QLNn1tzcTpdvN2hoA9h1OQTiTcvLRDko8a15OInnT01cFIbECQbsuBEogYQRsXkBeDVjppwy_hCAUxm8Vuno8PYDkhBaCl9UyGQHWqg1ETmS-oF2ENi-yu75y6myrs3cQAkRccM7aaCS4HXyqoUCPPOIBMOzCPg57Z5mu9ZBIDSYh00SnEpBHNCPZUJ4dG8m28IYNZEQLXjjLcfBohvRwsenCzGHciAN7ap3wEzW_fjPtqXgoWoWCfObDQzpdPU0aDyWCHsMNN_vaXxJXVMMcapvJHZHijQg.YKsGFh1SQ2yU5kDiBNgn3qiUKRC2bSlnHV0eM74RvUg"
+        },
+        {
+          "id": "fb7273a0-5373-48d6-9cdb-72af4f651e20",
+          "email": "phase60-load-rehearsal-student-118@example.com",
+          "name": "Phase60 Student 118",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..uzNktL7IQQOywbrda1okLA.vJa_mrE_HV8Ah564KZ0iqgx4jJM1VhpH85DbKyiVzsS-y7FbPHRRVJm_fRk-VhjOjfjgD2SxbsCtBwGDVv_GwMPbkxdcJ7K4MBF93iRgBh2CwdwrimkQzWi8eux-uSU8exAUgqNwQDtNuHSJqLiJG0OnRCNqlt37wtBnY5hjB-Lk9Kwe26JKKv6MTeKG0t7MbUKKN6raJ42lhFpllSDWtHiawmshP2bXCGTe_R7Oiu7USnwTOEDYnSwbdXJGuYm_tFjTBmymNGPFKVuuCnyQGBBQY2oVJ2fm9ydOUEMb-e1Pp1wKcnoKQuVWSJWkHccCLgVo_421lps_T_qfRALJvsr0GP8JXf4MTFRg8SL1jYY_JkTVH0OR6lkLVxk3dqoqGDmTwYg4ugPAjNFUFPwHig.RE5CRTYDUZhbPEcwK1JX7Jy524jVzUj3utn886095p0"
+        },
+        {
+          "id": "708b86a1-46cb-468f-9d2b-88dc716c23e0",
+          "email": "phase60-load-rehearsal-student-119@example.com",
+          "name": "Phase60 Student 119",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..PHCP6SgO6DreenhbK8G_sg.CmMjGh6KF3-FzuLx_4QgOxUapwFIWRKXezjRuycT6u_oqhypZ2-S0ApSXhmfePRrxb9CIfIddJfKKL5MYqOREVn1BuVNWmwJssiLxpDy_CRK2h6PdvaiAx_-F9jBOUNZN3uwDG11B_hrHtiatpxBp8QfcSOe-EtdxEYbM0SVnDHvHfFRu13E0zflxiud63oF2BrSFaUiWnCmQXAN9CEDULa4_pBSB3kjLm_s-jOoUVO6O81fsEwXJxCMPWF-F8D1mpPbhd85RQlpRjqZoOypXK7VghaCIlaaNgeya88_uO6RxPB-5qE4vfEu77LbI6yiOM-g0kBesB3mqmxg0AKqno5A6S-ZseX1-3oMrUFC95Uo32c3nSqry0EZ78fnI4IaGIINE95ffAhCjUhCIsYpJQ.S2-zsa6nwrHVfT_zjU4Q8xn1PwGKblh-U-u7bR_5coM"
+        },
+        {
+          "id": "80f96ddd-3a68-44b0-acac-0f80c4694281",
+          "email": "phase60-load-rehearsal-student-120@example.com",
+          "name": "Phase60 Student 120",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..SCKG0Rv2R-7VYvwT1S6AeQ.i9WLax2dcpPJ4COCXVE_vJuc-AIq6YUs1Uq0oxgF7ic1vRA4IU9hDr2Cq84cKykCTJkb0NvGKeOgBbIM5eWvAkHTCrvpT9d2nAEWkqQT7GYooqCO2r0awhol5URsHEIFrJU9vaNeiz_8D9KV53VRCL8Y4XN2Jc8GEAVA-8mzYWek0-wTY_OsEn2XFGs5cFSrP05NRd2A5gi0adT6B2WX3JXMChsjS_ZeAhHl9wwbW-T1hxDeBtmk335iuJdFIdP1MUgF1_lHDAc_fbo12LKVE7UX8ZVSC-f9cPchzYW1Y0DFVbiv4pboTaUjy_oK7iQLdlOhd8sDpmi1zme6V4Ov_iH0mPvblF_uWe3UQARsfob-Vd2KJWcJOUiJ-kt98TcDnKnATTIhRvNy8RrTJCOpKw.FdnLHlgl0BtlS1gDLAa72XnnwBJM9rW14PkesjYqwQQ"
+        }
+      ]
+    },
+    {
+      "classroom": "phase60-load-rehearsal-class-4",
+      "classId": "ff24ec40-7983-4599-8c67-84c310806da4",
+      "classroomSessionId": "fab21d5d-89cc-41e6-86fb-0adcb6555893",
+      "teacherId": "b32033f6-0da2-467d-a89b-46a40b92a952",
+      "teacherCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..ZH66RSuzsXHdBrJSB9J-Zg.Hbw92R6Y8GULBjOV3JAhdT79m71tA0AfceD8vjd7Hol2Lxjluzt5WePCnImGhVio2v0CNdfOR_qL14XoEz0rlctK8btqbjVyOqtm6BdLGtsCuZ7II8HMpZ0r6Qar873rJdl-OlBwcByOTYi0UX0gMFGNo02waEtTGkLFhPON0FsGKnX8th9bnJq5VkkXEJTbR8IiztpBMyP9pmzPD8MwR_T8bh9Ldq05ENHvGqKQW7kUDnUzRO8XflN90C0Hu54WsAiS9a6k2Hrzojn0xVGsn7HGrnCtc5nKFKUiqW3xzH-NY4U3SUqWKwr-X5zQC6TVLcxrjgmZqX0M9mJmvaA9tZTJ0K42ne_MVnbKXa2E0l-NQfdkhdxEdXdiqZ2kZoJyTZacLtukp3KmgIQSeEsO8g.PSdRFDyp56N66S7RcKKxWWxypplkOkSnyHmN70TfliU",
+      "studentActors": [
+        {
+          "id": "c8b47308-dcda-4300-9af7-fe24c00903f3",
+          "email": "phase60-load-rehearsal-student-121@example.com",
+          "name": "Phase60 Student 121",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..z3K3evl07CzxKlr3RxKRWQ.Vd1htux1OTA4Ca3_BneDNvY1OEX5Nayf_Lb7fnGNGgcyab-YYQIprfyHR9iGpq7Dtq5eTq3m-7Ww-d3C81KF2pm8UJY1PShC4e7__WZ-zlZjqWjkmyaxgWuIppcb8vXERZRfFfk50ZBs-cE2xRv_Ib0xtShXrTstjBTZ30mynT5gMqzTlqWp0wcdTFmfBeUSRt0fDb_LFdcDuiB3f2K6JEDEECkr49j1oI4WVeLrGaVjsy-wsYG_e7VLyvpFZS9yKSb5hO98YTD6y_LvJI08l_rLMV_HWIOMe740cXVTfFaP4-Pv-V9-jlh4k14nnt803yBaS7rFougY4GF19I8XCG7nlbcUUvRGafyUu95REkQY_nBrMf5xkVCaN3El879njlJIKmHIg88nXvgx5NvR3A.ygz-uAOUKOJ8o-D-gyt5icunxp7KD-dVXThmit8lqKE"
+        },
+        {
+          "id": "b07a7e90-698d-41e9-b8b7-d5c045e5d4db",
+          "email": "phase60-load-rehearsal-student-122@example.com",
+          "name": "Phase60 Student 122",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..U_TTOjFPv7MTHGnfqPunVA.jILhiardPnnStv-viofEbwu54kk8zSs6wm9WtSFMvpdHNM2zO_HegVFD-_5GsvI-CudqySsHWaZNUyyKoMTs-4ElahPA9wNp8RS4TwyXlLdi_tO_zNsVfoWu9V8XBEUCMBfLby9V9m41-7Pm6736OM2gdqHyDE6ym-iqC6E3DNm9YZHqgDOVOoODmv8vfLM817AWhvIRsZVzaem85RNj-F-iQEWPbCQc3RDXGBqLifL4QYEzKDnNNEV1wBrqsPwoNUuD7zokldI9J0Hxb9aJ0x6D-hQCHvM49OW560IT1IOzQf59bRi3zhCDuSLMj3T6IfC42BpAFzJNBuNVwX_FA0zkDHGRUSkuT_B4vYoTABnICaoDQUyWcJ1NBLcu8Qh-oEi7eoqLBfYVr3bkmv58Jw.ijQDyzl3GlEOTMETZC7PR6iPmHjTw6HRN5Lwyyz7Z90"
+        },
+        {
+          "id": "8c55be8f-1091-44f2-a663-12d79de50a56",
+          "email": "phase60-load-rehearsal-student-123@example.com",
+          "name": "Phase60 Student 123",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..48jCWfDdYUsUAdoJ-SJByQ.DWs4aQjUZWs9-k5PJkEalA4MQPlGllpY5J8dEyHxuq_-t0XcS79mO7FX_RrAf-MgW_E7BuP-_3UuLoJNzLrlfaen8L1rai-86iX_SnH5wIuprcUFT7pVjN_s4g_hvodv-ac2lv2l4ka8qwzFqozGH4cWabYJ6d5WOZGi4P8kJhsWlC_44f8j9r-u17Wh3TvbxIDiUlVbkVJUXVqWKS1p1A50HTZjeQ3YvEByZKuQMaEICoY2jR8fjLlr4_ELifyt3xCG0ELIWMddEgfO5Zt0mXm7j7qre-5Cs7h0Brg36xSD-oASw7AYhjWxtDuLQNpb-H8BGNEzDeustQ65xKU2t3qlfn_cVCUj1g6RiXFzkCkgw3NHzxRjR3Ou3vjzzKzkAWpXFyMNEBYIHwT7j1RmAQ.2rM6IzF2NkbbwUGQssuhoWZG1bCfCpwjOt1YCqhnl4I"
+        },
+        {
+          "id": "3d9c0e97-a140-4130-85e3-44b3a3e947e7",
+          "email": "phase60-load-rehearsal-student-124@example.com",
+          "name": "Phase60 Student 124",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..z_CyevE8dGgFTx3MPzA-nA.8bb1FqERImPLxD2yoGMt-oVMSiTw3agkUuzxrBoOrmLL1KdAY1uN9HI81ZoQhkAp1CEFZAib06oGBL94eapI0P_e_VzGC0I5j1DJfYLftIXDkWMmHGtr9SuuBTFxCLAmP-sp0NXeTdIK9jyF2tsd98h7u4PcR_n7tVMqKi7mOZUwlPFHhx1LaF3a9T1meXChwENxUrhJwkQ5oHPonSqAis1AB4ArS8XaL97EFQB9RYevBOaDiTwmUXpkmmn6OUOxybsW58q_u99v6cbfm-w8PLuOhVSDE9KZ2iMk5u-KLtyGegyn2Uy-_ncwS7vg0_D8Kj285GkpB3dDAduXzt3vdG9uAmuJrpdnogttzB2uEFiNj1XtHiZcj8C_krzHI6S76jlHHr3wOlRtpIxiNT2X4Q._v3gEnYdsWZ7EELYk7HvKKKZ_Gejibn6r79kHvuPTH4"
+        },
+        {
+          "id": "6c41362e-cae1-444a-8bf6-5ea4c24ec8d5",
+          "email": "phase60-load-rehearsal-student-125@example.com",
+          "name": "Phase60 Student 125",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..2ChsIfSl5GZJQH9sTZUTtA.HGn4l_Y3FVoJxQmvyOVs7zNMqBNVJ5ywA_nKpM8QL3nq5R5-XyGuUNyp-f8Wc3vQ75gIytHk1TH6o-S2dyKEcQrwdfX6b4oTkfks0lpcwckaMbxt5Tzm350vmd1WJz0ue46lUJ3gZGIJvF9mKu5RsqWpPhgF13jwG9fsvisMy1SlQ-I-p2Q8cJC511OfUcItG21RI2j-cu4F4YjsgSGjhPVMPJJ8Dd73ro92sWqhRuS6kaizhE2aRKDRQptEfRe5Yi9GaLEZNi_N2e-lpNqRMZJK8eDs0vIkai7qLfqL1wYqEsyOLvJOMfcb7D4tSWj5aKgUAPMMSTkcXcCXZ-SRdnZSzgnKh8w4GKEVCIKpr2eK8SHsPFJO5otLzi-gLxsl0v-_gPfWGnngcgiBSeU3Wg.BRx7RkIZt8BJUSIQjrAfl6ci_HV3wN3rQqJcM3E8LJw"
+        },
+        {
+          "id": "f444a88b-35f3-480d-91c4-97696d765ff0",
+          "email": "phase60-load-rehearsal-student-126@example.com",
+          "name": "Phase60 Student 126",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..g5bGqQQcZ1SM4nkL_YH52g.3YwpmHk-70dKA7RJRz3g0-et9shg7xsMWY5CqGvknCaK-MXjdUA0CKzjzZQRoVHYseP4VWMNtb6vj3UMTA28rZX-PRW9doohih3UYd1AJd4EpI-vLpY_UU9Tl_1bXyD64Qs7wYMcTvWvEtCrlVx9wpJKiOMx98CIR28gFc8-kmGU16ZZqtDlje_vcpcMiNw5hM1Ir3JeoWehs2PiIUnujOA4-sA2cu7zCUYmmV-YJamTSjUVcT7IOML25t7Gr1f4LqZ0Mr6L1Cz8z0o0v14dcIq7533GhOBjHe0xk6ZPV3Aqz9hlf3uCrfq_0HaJe6OHl-MP9Rhkp1K3h4MkuDv-3_WgAAlRY5OxcwW-kkCJvzf8Jnmskn3HbeDa58-4GKthw-PRf5fEVZ_Q2qD40FV6CA.qLESlSmlrmS6jCJlh8xUzb-bJyESv_yiIBoxPg_ad3o"
+        },
+        {
+          "id": "abd40b85-0416-4c14-9257-850262bf55be",
+          "email": "phase60-load-rehearsal-student-127@example.com",
+          "name": "Phase60 Student 127",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..4hcd-exuYoE_Lfu6jrX-vQ.ZzBsDeYgSv6_wZn7YBE-fEodaXlJasO6_G03x0lwmKEA9YxSuuWPfvsWWjKhtGnJOtUuuHg6qluVgClo10T-ep67ZlizDcfPcdNx-P3oRNC8cwqKdXTdq8kCyRXj8HFa9ZIg4EkW4ExK7HCkuYSlN0i22kn-qpXJg4Ck499F8iL9gvhGTI2gj2RdhIqxwFO4MjkWwNGD9HyQLdDpa6FWAlZxZvS3sddQMRh3HLu0KWJLBeN79X8GMyJPa-Pn7dECahqiI-SDcD8a0iEObelv2MMaPOA8Uq7U96B0gtpNGOplP76PvgDhHyMz5vmFfRUb725Gwjou4WF80yzWzA_SZN7W_ne_pQw0Zr_45Gk6bUpRk0NMOZvcsJBWwXI5-ezqYWpJDLYqEJhQUCqJGdNJQw.Dw9wCq33UeSMkHnZQZda9hxZfiVss0McFpNvciTKDr8"
+        },
+        {
+          "id": "8a442ff7-e160-4262-b6e7-880071ee24be",
+          "email": "phase60-load-rehearsal-student-128@example.com",
+          "name": "Phase60 Student 128",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..5G-hhce5-fmcHq5hCbe5rw.0W32n_R1AcBk507B9cURccYPBJ0AcMEBzJcqh4n0VNn_6tn-RFeEbAFu-4ZRvsLjclVX6KBYSxVxzroF2FVr_UqZAB3br_nrDAXwhLHDOYhJGKNA_j5VinjQ8s9lC9tvsYj8KmUmQsAkD7jpSL1a9wHMbqPSIS9uV8QFD3eE7UtphBJH1ckDncYalbjpnbP6BWCZXQqmK4wKf30SYYy_zEXuOt7b7mNgCDT1gYCHDEgqH1OaZcZJG2SOZOeUdV3j-QMSh_CVW6lh6lWcug0J9uooJolxQgSCVo1265w0bWca2CYUGY8RVO1J16n6SxALXPyW63yOnK1qEuoJoYZ6QSPhm7Jgdw0L3-uZR9rXpekLwgx0N5dMmrG9A509gXzcT6xQtfKwRaJEVSJassnJrw.YeLHHP2WAiwwjZ2cvOBg7UeXub-9htTdbvK4_RgwABs"
+        },
+        {
+          "id": "e5e28b7f-c677-4c9b-a39f-22726d6dcf77",
+          "email": "phase60-load-rehearsal-student-129@example.com",
+          "name": "Phase60 Student 129",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..4IcrEdhIwQrrfiE_iZ4pXA.muf9KABQMPtbkRQOK3uQ5u7c2m91r4Y5PQGWS7OFf8OstJTU6gpKwm88PdwgIZtNla7FcG9669t1MnxaQPfNDt9GlRVFvsZqWowVgte4WoXfEnCrKAk9my7u4-LedbWn61YYoZfqRR3diE8raRpa7YoD2bK2QD8rgSB3PdR9LJpiQKU_XeByqleLiA8QjDGRkFCf6m4VDurCuZ0MnJxNdJaE70baLsY2IEmlgmWyTcjn9CTdlkXxc1d1-gM5Z0pz3N1Iuu4h2ieGs6KAcvrAwFbHor_eBM19ttz3KY1oxW9JI421W1fsJIWF2FLH3nPis1bNax3QCHZVKcbPTEG6h8g3ZKTxC_kpYvR3-Yw-lApLki8QlL2k8wO30yIFKj5vnbTWuqt-qPl44ppXotvyeg.h01CtSf5oWHQaaeRiehdLiQMhP0zkhXiVd689gz48Q4"
+        },
+        {
+          "id": "a97151b8-c59e-451f-ac06-97a91c5c2c7b",
+          "email": "phase60-load-rehearsal-student-130@example.com",
+          "name": "Phase60 Student 130",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..c7EApz3j4Fjk1RjQ4nEBFw.kjznnfiMtB5wM0g8IKJNQTpqIpJPzniKZppmCdvR1n_q3jUyaR0jewlu0v-TcKfIU6aT5vLiiyhsL253ubi2wfykWzlbBgeSYQWXDXIFtBznDBmeMGFW3cAkRBHcI8fRym1q7rlpFB581VFCoZdXAhulhOgx46bJdzDICIpg4cRR4dg6guModhrRmfxm7W_fj-tvmZhyymzUSBg5kbYGurcAqM6-FHrFx3ELp2zQcEPh59MvZ5WuaoBs6jvoXKmzgNS4ljMSHCxGabZIl-Vd8jvimxIGwDkHk9fIdNVsOLIh6kenicMiop3RXlX_znAZsKF-qDcO5B2fQSJPXSuDSLRBwJRO8Wbe8qMN2y9sG7wxQiRr_nGMz8lFQPNhbGsBOg_gnNTB0mXIZ3EWpgVgdQ.UaY_ShU8Rx7Oh6IYPIo0az4zzIdVS3GnfnnBdVxqjZU"
+        },
+        {
+          "id": "a1ce8ca8-bd3f-46f0-a391-2aa39ee143bd",
+          "email": "phase60-load-rehearsal-student-131@example.com",
+          "name": "Phase60 Student 131",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..AXXnKSz9MS26yZcXvLnxeA._49FmUeU4tinZv44SH1Z6nkvkCcy3SiB645amKE4JWrPL5e3aQ6YBYOzksHm_nusOJJ3QTdSbdZF_2ipioIX6qEv9j5Ql4ansHNzWTRoF7_DtKluLPP47irzHd-N2DgNlMQD-1tG_i2TofDgZBCQv2su9K93inm4VIXodVLV1cCJFOX06FHjEE6h2wd58vYdOaezvdO2DlR8Y_i2XxJjs3-02WVICFQ_Q8XTB1fUMyKYWw1LtygHKXgqJLUf6nkDnr53b0h_u4mzhrp32vGj2N9r1Sqiviq-QwDvmqc1R6sAkXKk63HGtp9JFe78l9SfnQ78ayGhaYXaBcCgFXnzSsbwmnVhwzs6BJ4FRf6Kgk4ZMwcoYgNFn4SVJhrL49x_zk0rKndWm4NNrr7QDn_m0A.T1B3vefm_3NGdnn3E6ozR2IzBjoLRzz3UxxBb1BjbfU"
+        },
+        {
+          "id": "d2be5833-853e-4c05-ab75-93f1fe168d46",
+          "email": "phase60-load-rehearsal-student-132@example.com",
+          "name": "Phase60 Student 132",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..5tVmKQBID3Q9QW6OMF3Maw.bPmxnY81Q1IdkKl3pDv35lQSldwQXpWTFp-Kf9j9bx9zXvG2QROXs_1NpnWjv7knCOuQK2syGWJjurhy4uwal25hegblhWGYtxlu4E6I87m8HmzgMOjC3k-1m3sMC1NdBgiy9QJfuJrTqzsUiksOC6Uj0VrNKo62ItSPRND6jJjUyHbEubRRzxKsyUjiQasbnyK_NsHKjUQXJ1T2EY8WrAGh5xwB4oQcGmFxBaFd4nx_PT12JBZWmD3-2hkHsUJp0Q4578tXECaAMdFz9fpfQcmTaOoaNDkwIe53J65M6pahD61ufUOgBAUDdn1VJhfLkRwGI3BCARTwEWvIsSBcTK35rTqT4Dk0S5ug-GiNMxrgtzJ0sqLJ1uE3Id67RJIofxvEhIFNfOLRQ7K1IfPC_Q.6fbS7yexTNUZoRH47X9UVKsSjZLmgB-I21GTXLmI24c"
+        },
+        {
+          "id": "5ccae692-6f7d-41ff-9126-123c6770e683",
+          "email": "phase60-load-rehearsal-student-133@example.com",
+          "name": "Phase60 Student 133",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..MoHzeXe2kJhfWK1tZALENQ.a5CQ1hXKDG9CjejfsCqN-Onnzbf4-y9uESTztG3Mu58lkns0yqHJddr7FfbgZ22XB1nwgeYrWQJGq1QYrS5xFixAiJ9EokOsy8eB0lvObhk8fEBy8O6XqJzvIanRyn4bEXDqI9-xSmqWePIsXCpmDqhblXkBiq3cYtgldqpiAfHhZUbXd-EaUrkr7kTshZEJUThWmKjCLdYMeFFObNyPhOYMbdlrphY64Pdq1MeFN2WQ7tNjEFW685r0m2EKg3zK18j_rL7jrsn87WHr4DkoWa5jNlamqpQ_pUX9PArL3tpOKlfNfLlRaU4XwqI-4LL8sOqZv3oRQcicvfbTwnezVSiJDSev_rpFrToFijCKkJhUrkKtJilQZxqDTDIh1B4X0lI-76v7VmfucqkVSoa9yg.CGJM12A-rPv1WYheR-bN_s_gvsSHE5eCbmZfIrscVHY"
+        },
+        {
+          "id": "3b3a4c63-eb62-451a-8de0-6e978273deee",
+          "email": "phase60-load-rehearsal-student-134@example.com",
+          "name": "Phase60 Student 134",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..rSwEv5sxXBUMJJMErd2K1Q.Kk9DkiKKm-IQMebot4WZD7O1uXY6Qadpc_nlGW5kKuBZqJF9Vj0I8su2iO_LsaRSkTdCXezzd6O82gBAyo3jrPG9XbqeJaq3OcuoSlVp72NdhaMHne10MaE7r9yGj1ntvAChoqSn8BnYlbBN32iQyV-SvDmFDI3PvWKIyN_O6X8cl0ctz4JDVMC418nUhn8uUqdSrGe1Of1cJ6de0pzwIWFbH_UEko36l9vvDpnCHN_PUqwQK52WYXtydkQyfyTT5R1f58QRrpRNO-TQQETkW9dfBFsdoneQ6HmyGsOlAjZ1SXa1Ja9cPZHoDYAfsCf2Yg9NFUFDQn5gxOpkJBHIQ_GRJV_B6F4KnjBLCoyouxh3IvXv91ECxF4rpd9shcVFAFEr9GWaVANXZuaNp36buQ.lv2SlLWicPZVojSfcT8MHMH8ljQNclbOkBA5uCrd8Nc"
+        },
+        {
+          "id": "2c7cc51c-89be-40dc-bc54-543dfc42dc0c",
+          "email": "phase60-load-rehearsal-student-135@example.com",
+          "name": "Phase60 Student 135",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..pXzrd1nUM6RbBaNpiCYKuQ.s8BuX9pOl8KQvr5mHnRT_pCHY_uArq0GOFBfofnfEp7GqVouhRvtgyzgqBjbbDS6x03DEMjKaJq3hw8ldlsAqVLUnRxAPXbLyOs1-qd-bmVqWhp3S71r6f2_UN9zOhM5Hevvi029pIsX2vgRKPNCF-BY9FyhzPvNr0Mo5ySswlElIIp6DK27RGZsBCOuOrnjp60HtbXoCPo8iZMlqg-BiPXyVkkN-gmX4UGO9CO58uINAyEeeCkbN2cS0A-T-ze-4n5HVNjCnsCcpTLCwX9ZO5aNpMo2Kz8ODGqOe2D5TaQOOrTmK0K1kkppuuACnCs3ZzG8AcYTRkTyooyDws0AHxFFhRZzPUNgp9Xh4MwqianM5nk2ZgX9Jvc93Z29k3JcvxoJmO6VLHvYXOebAWuldA.fjOJL1X_zKaSh2gXCYThqz-690CPDLydAC_NHAgWMfA"
+        },
+        {
+          "id": "cd618f90-cced-48dc-8f83-ce0a01e2a2b8",
+          "email": "phase60-load-rehearsal-student-136@example.com",
+          "name": "Phase60 Student 136",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..oxEXLuGt_uUEkmJL2rTsbQ.y5mrqNk4Bhxls8PvwIKLQKAPrrnV71IIcy4LUa6xZhLvhItZIwj0QNqSUKiOMl7T5_AM9aoVtO3E9uZoBkPr0IHY1ZuOMTzU_gBg-2yHThgR3pgoOGGCl9Vv7mOXj3Ibdav7COHSEKDxPnmlFhuwch5Cc6eLADmIY2-VxPWCwE49PySXzc4kwTD8a8us-qjZ-oyAKFb0XydeiekGuvyHo4EWeWrRrKEP4S_hEgTZWEqaC5as8Tgw1dt1kskQMkGXEIAQdfAGK8AncQ250IK5lposADh2hpECP3NgC_DdyjWdYijBVOCjJb6gZ0ySzWvHb9rCGcctCPe-oE0S0AuROFitgmPe6G_c1vV8_M4oZwKRwQ9KdkKcBxVD3h4qqOEMFofnnI7J-LbAk4W9NzfKYw.2_obrWaBexZ-Gwt5FyEHINP5CtLxN3JWnWRBab9GRR0"
+        },
+        {
+          "id": "afc39311-59da-4385-9c5d-20642382a9e0",
+          "email": "phase60-load-rehearsal-student-137@example.com",
+          "name": "Phase60 Student 137",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..9cAj4eXMahJqb_UaHLZndg.MhjES7a8LinIqDEEk0TAk5afEkojeq836m8jZ1aIs5n6dq5cnvSn4i-PYLJ1YCulmTfKD7OMkdMmE-YbFGE2eONOGL510gFrK_g9AbC8e0Uor0ZjzXUUtKus8qc1wfyyW0vbIGBXber0ikNRBKD7mxtdLWKczbynnFvpwxV7Q7MFWUUknsgTTok4Go9sRaZTOBIzLjn9H-uOqTIczzz57vt70hu3KS1irqInMrBThzAPC0djzmXgbGNNwCDngKn-Oq21U1XPswqYheyzUB6SOTVCXJehpJYQSa3TzXHJsmPJZfbDFP5yloO3ao3XEIr47AHSDLT1IcXjcxBTA8TpI9ZqvadBp-UTfcQE9sofeZc9wCRfoFNsDl82prP3e6HMCh7TaOsczY2fnQw0SfnsXg.W_SoQaeITPmYDQ2MEd3xoWxnT365_LldFtCjzQwZvLQ"
+        },
+        {
+          "id": "b4e98a6a-09a7-4f23-8fae-f23913763dc2",
+          "email": "phase60-load-rehearsal-student-138@example.com",
+          "name": "Phase60 Student 138",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..u4mftPfYS0yVEEpG45IQ4A.3riqXfwpqFYKB4zR6UvNRSSaBuYh9xSrTN4LglsBMvQsPCy1MUsVvtCCzxhVNjad66F34Bl2OcjV6wm3FUdpiPKbfIJv-XiBy-OkRch3XWcuoN5QMDSq5-2UoR45J_cyhGjlSmLfswD7ZLP7DnIHQKpyPKsPb5VHN0Hd9beQaLceBsldL7mmk0CQtGC9pRJx6rT2P8Lr6lS6QeS8SyaTSRum0usuo3W7zkNI6hAA3Ut6mK6iTQueKDWj9ZDYb-HgZc8IGqlQDmJGppKW9WR2LfLGRrdvSM038aeay3a2nnwMaeSPXvacAsdSWn8Sv13wX3vqocJveLqFsk4sDzlPxn4AFPDffpoRAznRZfKNXxMijCqvOV94E3jy95KhamvK9Emu2p6QcNKNNPWyicflkA.6V0y0AhuVDD5iNA2SP8uslr02riUgGVQ0BtYkkU1zjU"
+        },
+        {
+          "id": "3dabbeec-0fcb-43ab-8069-b0c3f552776c",
+          "email": "phase60-load-rehearsal-student-139@example.com",
+          "name": "Phase60 Student 139",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..rhCv8tsCreZTTfar0is4yA.DyALLxXgw_TLCpEOwG7dgoAp-kypR26stD2rinMUE-zHILdYWUrmgfgzKV7d2ZAM3N8qWKZmfuw7F1pfFlF59lShMySu2YuxfRCUB8CACe6D2ZWM_v3-BdIjeaxZK9nubOBkpzgBVgimeuuLQTLt8iclXFf1tYEkRnJZiRfinARMxgL8rD81EczwZR4-ET9tjp_Hpx7XSvIK3K8Wf5rMrbC35F5nIWDmmOAFbTS48WHLpWOZN8f7zqWetnzzAYLkgL8r1ozxoXsI8D6ysbT6fEuYAzR7ivZOgcQi5XEZqG5JstMNMDkoMBn4kyudqnBQfSoIW8sAFPLNiDhe1APNOlUaB1NjQELPSTZ6z9xxyYMdgk54c6rurzfUnrP0S3YJ_sZ_gbxj_W1DkMYaMCHBlw.DbL_sVNATMDk9FujnToC9z5kN_PkdEfPE-AbLA7k8YQ"
+        },
+        {
+          "id": "97aa978c-8db0-4047-bbb8-9f6eb247f167",
+          "email": "phase60-load-rehearsal-student-140@example.com",
+          "name": "Phase60 Student 140",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..OTqQ1YfJEVTHmuLsusMU5w.4SKXzG_YOXI0gt3K8XRJOSxZ0kZqEm8i-lg_FzdnZzqRm_Z_BVgZqwzzejpHmVEag8RMG8dfrq8O9TWVLlG78S6vldUPspO__iNUvQAend3WoSVxQobmXjxWfffNbsMgWD0wg87ORxizR_inuDPO7EjD00KICLribBqYyDObpYtXA1EfQrY8BS3EkPUd_UFiLNwu47BC2uTMTqS1JvWd6CvkktSxFxtlc7xSi4OFB9aspdHQY12aXsXwCS4cA485vv2xCDuNQEZs_eCeoaZh7ATUM-EQbZ5CzDDZhJF_mWKv-m7PxiofckobV7YjzOzvD5J6H5KAa75EyHRA8R2dv2L5yYf4T5HuDGVZbh-1OWxa7pFsgoGz72SAMBkG23Q3i5_w_gk_2zG5FBYvFySj7w.7hkoe8vwkTcM7KMzPWB-kjAFdWV9U90xBd0c3f4o5ho"
+        },
+        {
+          "id": "35539d96-5972-4635-903d-7ade9aef14c1",
+          "email": "phase60-load-rehearsal-student-141@example.com",
+          "name": "Phase60 Student 141",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..qnNkO5izkdWejexAlkkMSA.c-aiY06GinXcw-zq3vVGvbK5drOyO9MCsnO0Y_eSDyxX-_YL8NKA6dJ8K0ZMF-KKTZm29LB1Sl0shvCQD2L7KnEtqnvS4Czb2pwjSTLKiONBveNKqTA-F3FO6taqqxNdM-TvP54T6wnfwuUHWeJaX7bCTSe88fKW78PvbLHb_dgDBJdMf0wx0hXehAKaBJqSk1fs9_PNutcw3BGtx452j0nyJ5W7z9wv54z5ri-T5f2bpX3YioW1BNKp8XDSal2OS3lKlufwfqmIOk3mkXCrUrtYyO0-pROvAX8Y0JrB2ejj5B1LVAHeOBNVt0V7kXN_8Avw4ZLkflJGNrZjRqJsjj05ufldpG8AHeqdmIgljl0SDNp8aL4n9E1YdVoclGB0hfEZzRqrcMZagkeWiIPksA.sCQkceckeH4eENAooMaxKWmFtqAj2GpaYz3sl014V-c"
+        },
+        {
+          "id": "81c212b0-024b-4497-9d21-706d97ebe026",
+          "email": "phase60-load-rehearsal-student-142@example.com",
+          "name": "Phase60 Student 142",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Jbb0LZu-gDE68CNlOTP2UA.ZwsbIcBSD6JKz1PIzpWQoz31wIx59bgMYfy-x3JNSR1CQZRAs8zYd3Rhc_xShuVjqnKvhdskkUUIAFnTCd01_0irpFC2PsEOFAh7HOP2MEtk7sClYHO0PHuu9m0qvMW8DCYoiUVhvzAcJJc8fnEjFqXKmNZof-B4lX4vvGPN9LcsuUveGXSXWYNWqMCT5mF27JpB1tXQZAd8z2BjBK96DvFGJckOkXA1GAilwLpV4N4HEmExF91AHjNZOxqg4EF_IERhkF8YtSzs0xNvvITxOu_FlnD22ySfW1q249VtbnDJPTyR6uVccGm0Y6Su0Fp7vQXRSaV15P_siqXXRy1eUlM1IewPR1tQSEMakfA_81VmWBANHzNR5AZ7Gxi3ezIMLfWbUlcFv-ewYk705MtzfQ.orHcpjFlETDiaSL1fLlGDJY4-4lZROBL5qLdzdAgBLw"
+        },
+        {
+          "id": "96b4b6b1-e55a-4107-b5a5-fb888dec9949",
+          "email": "phase60-load-rehearsal-student-143@example.com",
+          "name": "Phase60 Student 143",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..soEoFEquMrQ7uyYnmelneg.t_VwDup_mz_VymY7kdMWPvANI56fhHDDFqv6roa4N08UVcdvzwAmhFqWO6O5ruF--AG8yw-t_LitIVlOHTcYdS35d9iEF4bBVbVLc1h-QZdReH1g9pvj_FjxtxEURyw3AA0_5vfY2YrOc5wgNrHdC1bM73aiyrKgC5pTH1REhuKxUSfMHeIFBApQ7w3jfoEoz_4sPdYtSh9m-7gu0XkHx3gJzwIsOxvcTx57OtDJ0hv_Zb6TxNJqGsjDI16p_agG5xwGZRtjssEUsJ1r9b9_jgTxGomexE4Xj7rLiU408GsjCZ4MIRMNCZWX9nGh6zDVet8ezGULq42ZYlyIQvzT9OYfwtgKo-1w3ZV9r55NVSw7Ig-lWvYDakguOtCel9yX4-Fu7T-hAPTW_zbAXbHZJQ._TiAjQp-mVaaAK1a52c16c6gSl0_MmAdlBanfluMLx0"
+        },
+        {
+          "id": "5df68f21-c9c9-44b3-b8e6-d2ccb725200b",
+          "email": "phase60-load-rehearsal-student-144@example.com",
+          "name": "Phase60 Student 144",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..ervrPNGov6VAem7LlQM8-Q.WAubiCFULinOvqq0xGtUo7fk0mofbPXBat9G9GXBZ_4ZkmbH3O0qsqfm3KZaW-a57AF4RuDrneMi3-rPTM2U7GJa5r4dJNuKWkWdndqcK0KQEE7Ssm6nZsMNqo2LRYTPXdbIcA5lHi4OBeRKXnsFLVV4fmvvDAWJIynKq_AzUjeC07ooK4D8WNA6uT6q_Q9UMscag_DDRW-5SFJB5SgfOTk4CilDxfZG-WMgHv7YjPOqmZ_jmwhs2J_masXiavUCpgsO84Mo8mc9acKMeAZnswm9G_RY7EHutVzi615qiP10nIx-eY1-Gccq9usQwrxDigdhee8gyJwlkjlCpdKTx8aSU-UqyO9X1sq1ab8xgjI9pHqf8ZWtVhh5rh4GH_abyTfnOuqmOtQYHYSveoQfrA.iP6OtnBw51T202ccdvHaPQIt3NuyVhqNJjINEZSLXRM"
+        },
+        {
+          "id": "151272aa-ef38-4380-aec8-2bbb7945b20d",
+          "email": "phase60-load-rehearsal-student-145@example.com",
+          "name": "Phase60 Student 145",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..5ivzEjnXGDyNUO9TnF4D9A.uCJKKDxGNzMMEjH_7fxNrGEmQ7wiqlleu9ivvYh25PsLrGzFNPCqJMF9ULyW3Hoze5hcaS7ayT_RVzNcglYxwINoplB-9COgsWYExCzRthngwgSWhpi6Vcr6BkMwMZIuKoY5g4baj-c64BE1TMSmJJ0FeEOXcWuVO6qSZIzKs7PcOdtg4ywhhsCh0ZZuOyeVXjwTE_KRQZ-dJEm3WlF14rpLy-gKfjdHTrSKTdSAhYayxaycjsOOhC3BdQUMK5pAKV0oeLS92FmI94aXM_nFieGiyTBCqdjJ1ueYG7TPoo2sGSW24XoT974PdTx0wB8ritFlJI35uBoBE5guL3SM0LWpHYpAw63gZzx6Xr8j7e1lF3tkNhhLDqxx1b4fFToy43Mj36FGWYdoYSMjS9bWwA.ebWRT0BiGnz2UM57OyXKceMwfvZ3y1eg4gZilPm2BJo"
+        },
+        {
+          "id": "e024451c-0f1a-4a38-93d3-44c0f570fc5b",
+          "email": "phase60-load-rehearsal-student-146@example.com",
+          "name": "Phase60 Student 146",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..JMCdBR4Zb1cp2rQZNM2qFA.V8FW01LtGu5D7bHb9_RybJFXACm_pxmqKK_mb5NIfLJxOlLweeAZgGBJUk7bR_g5r3bafJk6u4FDjBHAg8hT_NWMsjiPwFJh6Ztp9H1wxJo_stNlkLOTa5rriqMv8tb0qjaHFw3bxjPV1DH7iMrlKHMBQ_AonE3PhgljKiXUvD-7s7Uiiwq-fazNrLFCgnMpQYlMLYdyJGRJMFLkb6ypkeuFspflinxwP8t84OC2uuH-2LNcDXCBh6pMvsHPbnNJc4zrWKljVQiwq2bGhxcPyhGMOR4UNyUmmQInv-XkhesRR3mjqj8f3h-VMEb5cS6rLeH-AqHiQ8LarrPLdJdI7Y3Vck_y6NsqfqC0YZfds-piRAl6dN_-xqyRhycZotT3qP-M5sr0QWDDkIZZdKwd8w.UOgle7EnmZ0TBhv0MgATkaaI6mxnwI7HRGQsFUcwVUg"
+        },
+        {
+          "id": "915ae579-89cc-4846-adea-d11cc9f1bdce",
+          "email": "phase60-load-rehearsal-student-147@example.com",
+          "name": "Phase60 Student 147",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..PuCnFw-IxPhPmyaQ4JcSJQ.kjVQ1z-pJ3ShqiZIxXsLEORQLR-1pYABUXfgHTVWGUj7ZublamKR7pnVghBJAaLpxNwdkoCgs2PfE1oppcoFgeGLIDrhZTqWctKSbWOInAd__WiaeCuve9isn72Pabfm7hXsvYtng_QLIvcL3tdmIY-C7SXoyo7JKW0SlqJNZhQ8hqeijDIAq-0O3atQDGSiG-bUBxEzUYlG9ObvLyRZTssLNvff7Iy0slXYQlJOgNSkg56cqwllR5j1qmSG6thmYuZZyxOUA3QEynFuxUlaPD7A8fMb7BDtCQf4EDO_vzhwvIau1zEk9dLeEo0BSvWcODa6h6eHKLT8KRqG5D3a6jh2okBP487VkCMf9n5Z4EIREkCHP_nIwsWy7cDuztKrtjroLaDxVMt9f23aOJXK6w.Du-ZKXyJrtnPshj-UzIBV3u8xZUee0sOeEaAtWZvfYI"
+        },
+        {
+          "id": "c114371d-a59a-4100-a206-81a46f2bc975",
+          "email": "phase60-load-rehearsal-student-148@example.com",
+          "name": "Phase60 Student 148",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..yF03Stb1rrxlb65rwm9vXA.7avhgzzUWP1IaG5qi83s8snMxK0_bJ79HhJ15VYT_LRxqQ4ACR-pQDJ462OeWCGxBs9snsObvZ05gpDN8sXqP0u-bIvayDvVEf03HNy3kAfHLLnfJlS7ooA7Y83igqOJaHFoeSP-mqZdeZm4tIMrn7Q-r0BiCoHl8KTz-NOpHZnATULz1LKjrWSKp5uUsQySAxVnbZx5Hk8Rq-2fbME5BrMI_6yB0hP2zowmdxvcG-mKPzHPsYBWEsIRSi6yR5217Q3ts7gfU3w5Zv3Pkgq26-_2O86g2aOJGvPRIb_nLDPCDt0najV-DPIkp48AeP4SiMPjyXDg8isCm6b4tnh3c8BuE6E4Xb_lGGlBHVtZNwynSNCw1ldrMwxsFOTg0Ae9lzc2V2VarnTZZkvuxBBq6A.fNoUkggkf4ZVWWzzEXdhoXdWLRllwZF2V2ptbpLctxs"
+        },
+        {
+          "id": "00cc1e25-0200-4a08-a9c4-b23334f9ecc9",
+          "email": "phase60-load-rehearsal-student-149@example.com",
+          "name": "Phase60 Student 149",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..fIfsiEtao_2oNSnPzni69w.vvPzvcaRGjUuoPF-j5nRj6ha0LI93tQZmRVG5u1GL4Q6ef0rP0Nue3WbmsJVT7TUfBJNMWvPrNmEbZo8xRDYb5dnLiAvEfrizRyAa_ZNqNsP9TEg_oJr1y_9jJFWEXkRrHvwePkwIimLalywNbXfmZPsvcAjQNrUGxPqQsmEOEH2TtttFDDiUUAyxry21nz5RZyuFnKdS_yIhy6_sT87hMtpgzTo2z7xxNHX_fJqzjTyV0s4xGTLpYIqSDImxi57Q6ZOwq9l8yuBcI6pniaQTj_4sLvyMA2tVe92YKizEa9hkQ4SAAXFCItNfMEE6u0OQyRQ6QP0M3nNHnltV1glaXnxXAM1ZIcLNqc2LRIXmYdkkSf3X_Kh2DCNnIPTR2B3JU4v98DK3f6Iy20ZK0Quuw.kVOUj6-gPz-2RjHHdQm2BXs_K7NbluGzSKuT7S9LTzU"
+        },
+        {
+          "id": "5c347d12-8758-43d5-a699-b1bb207908b4",
+          "email": "phase60-load-rehearsal-student-150@example.com",
+          "name": "Phase60 Student 150",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..qW58-9Qzg8IjinVODtYJnA.ZvG8BXpuEcdCPggntDDH9B_NuOLN1zFJbo-VGAiTZfJILE5vJJRwuQT-6k4KC_X1KkjGOCJTICX2yyYWJnss1Evj0wiv9bvEHqGiFAhmgVD8YF3QQqBFiP9yPDAVZ_3GOQueFNJ45_C1g7nYSMEU9jUlOnoI8E4yAC2DyGHEqXVr5p0MCyewTx5vLkUfurs2px-Vq8-qoMOnBckwCls0_WxN7hgS6KwoFJZJUFqZi4EfzT9TIZ_9xKvHmPlJ2AxHRD8-QozLW3FPAd9eeiArLT3L0-MP6I8vQq8q5y9xhxnQbTZj1IbWYp6MDVNdtPYUgWvdcFZDJLO-k7HET2FgCJ2VIVrZBv2OA1BZ-927h4ZiEeHEMsZIZ7G5_ehFaRiAz0NZ54w-5uj8DN4e3ifZTA.ZPJbEuGqWq-aQ756c330j3pEmrc8BrjvwTM0pjEYm2U"
+        },
+        {
+          "id": "fbd4c5da-3960-4c62-9492-602096479feb",
+          "email": "phase60-load-rehearsal-student-151@example.com",
+          "name": "Phase60 Student 151",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..lX-vOPeyLJzE4tOCoBGqJw.CLOmaPyoNeNRTbzruVJmSJmT6S4dGG99BYjKougAgpco9Y_gHoSjMAH7A_BxiISnnXwocPLonfD1-0rke8Fpr_Rl--O3xtxxbKt8qMawTXLhvg_AH_sUh23EzYNGVuc2IdA28ENILTWbESDEcfJ5Lyd80hy6Qn9kzTM9nrIV6I08Q2VfGrMykaz5OPTGC394UHB-szonZhY4Yh9i89f7zOKADMHcCdWZOohD1LnacrsLakfKzuOzENQ5Ye1yQrItgOl9Y6XFWGzzvXSEJ5StpVXQIEeTMWI_ZV-5UyzTcCMdvjRCUm64uJFh4vbDGm0wKxNQcQvrqr1Sh3UCAA9pd-cHHwVJZiA1zpBREC75mcVgdqDIPnCWqI-7o1GDGHXg9Z9tsvoTmubRbu4b4t7bDg.kgKPsDqk-lsEPyKtNuPp_Kfc_TAi-rr5O6ZTqSZ6Kt8"
+        },
+        {
+          "id": "2427c54e-b71f-4ee2-8aa1-2c2960964a1a",
+          "email": "phase60-load-rehearsal-student-152@example.com",
+          "name": "Phase60 Student 152",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..KoBPf6aLX_Y4irsuLYFcTA.PIILFMg_3LZqc0ZIrix4chHRixuqo813s3IFGSYWZyElZ0-FLco78B3JsunW5FRwUFD8ERgiTsKUv988V4z8lIxMTByM7d3tLsMCXnbdceobLzaa27D0Pt0wg7qSlDJTv1SOFbSpUWsTpOZ1R72U275iqd8DCII17TzNnaPpj1ZPgge3qw0elHTjb_tI1STpsiZ4q3DjlSJ8oNrImkzU_KwpD6koS5o03ZKzd2pz40F0Iu-zZmy5PB069CCZdQ4Ii52MgF_jlmhsC6Eh5IbFw_oMjxm_EtEB4TXhUEhVywLTLC7RWFW0ztlRgK6sezlBdkpqqgADd53xg6QC6pDmcx8KoW7sKpNYrj1eJ9admihoIqmHdUdy1apyjEoRH0sPL-erRPHdCMYxyDjF84hCJQ.7nyUiu29sMO6MrZCEY1oTCM2AkaDDWIbmbrV-BWeyoM"
+        },
+        {
+          "id": "eecb898b-9458-4cbd-8f51-7796ecd91d15",
+          "email": "phase60-load-rehearsal-student-153@example.com",
+          "name": "Phase60 Student 153",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..sfvxLsNuLSXbq46Cny6PUg.MfoSmzvYls7I4_85lV0to1_27z9m_lA6hYbs3loDE7TgwQoKKOQzt7Kldr1oWrlWkudIbhBBp1W9Xc8ot3X7Sf-uWVCIwLPlyHTufffrfx2tTbgnieN-fEtn-9JINN3Y8mQYA8IWSkCTgfrmeYNDCqCpMoAgSOhAEZddGJS39ntmr9HwMJT4_HZlXxUQ-y05HZgeOZeAZGWXQUicII3zIB4DlUsXkyToC3o5KEaXMfL1dP_roRjC5nROY-hQb7nrDGEpIMCAp2jOZr6BkY5b1GfwxMGGWjqPeHVrq5C5Gz54KZBZ76NMfJF218W-P2seTB80GlwMCtR3rV20oEoFhamoUt_vnkzZGo2L5EsHCgUrDVqf6301b9py5bo9CdCoxOwZn9w-_sOOCUCKUvbZ5g.hD07TSGk38PRj-sgJoT9d0Q9Iysd6D8EVcEjT4w2v6A"
+        },
+        {
+          "id": "00ef56c2-3e14-4488-aff4-8d57ef2344fd",
+          "email": "phase60-load-rehearsal-student-154@example.com",
+          "name": "Phase60 Student 154",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..ynLWj4_C-PahMcBPOB0p8Q.9lxhSJD2J0_7oG00Wt8o3Ax-nN6WmxjGjR-iu7bM0tYL9iyeIhLwRmKZ1f3i_mUmS_Y21Ex6G7xOWOUDjqklhQFSLNnYC-vAxSXaFMtCCEVoKtQYXav8j9QvqZ31CKSROYC9Po0ZXOrl1st8hhtt5C0Zcf0gNrXe4L3ERPygZQttjIHXAafozNKbgqsaLcqfNA9z1S6UP3IBTamh5-uuir2hXvxWVhM3wlzbPh1mWEsVyWKxr9Wvg7zDns-WORlLh7qrc2QZlfGnJYF5cJIsiTIOXpPCi1B01ckbXLQE2PHDAy-y-3vugX_EVyB0gVCefxGzxR3NW5--eONM5kk6eo09PGKNsBcw2_oyOVdUb8wyKxP8iM3WQ7vFXLFwEWb8Qiu5KDkBbJFRzhp0PeVbfw.UdgHHMNoISkhwHzHjI0pmQ3hlH1EWzJggSd5MVqWHQA"
+        },
+        {
+          "id": "83a0f2f7-cc59-4bd6-8861-c6060f0bb08f",
+          "email": "phase60-load-rehearsal-student-155@example.com",
+          "name": "Phase60 Student 155",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..5foMHE-vDcOcZTl6nJZnvA.9fnXYShtZS72HyhrD80UBgF-iizoSwXZBEMH-razcH2z2vtMWtaU9ibu1qNpHZh8s-ySHJ4cCNSUClJZHZtfmRoKNG_TQ8-FPtPlwrVo7096seVU4m2EddfDPASewVzVqAR1FkyIBxJrzT0yfe5yn5QCoTfh3hWPpJiVBIrBaA0v-zBPbV0KzkMetbd25Z_h_o5L728WRg1PJYFwp5H0kfBuW0VewBkC0rl6osIagFNOwmOa6o4IjZY29JS64yqyVlACKSy1FsZ9VUc2TYOEjF9yh4bRMxjmZgQjxArpLHDMl3EilADqxxZJeY9nbqMQj6eTclxWvbzD8OPEjQKZHXg9u3fbg816gRrlrtlUOl4SGteMaiU_w2f6DDBbt0JMYSdE_iaV9p33viXZ3YWCIw.jQIXcRLDcFZFw5Woo2Q2Y5bAM0h5vDyBPxvMPypZVKA"
+        },
+        {
+          "id": "7c3d35a2-c0ab-47aa-90f2-e036e793fdd2",
+          "email": "phase60-load-rehearsal-student-156@example.com",
+          "name": "Phase60 Student 156",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..ck5Upn9EUPy0RFLmAswF9g.hpaX8XrzvcGdB8-rg3mZ1mgO1CQfUYuHPTdzS_53N5tvKN2LVoNLNKxYaUFm84z4k_w42kBhA86V1i-nkB_jdUnXf_0tW_zxnyVDiK62jKKoTMIfbDqleowTkRiBwiPp_oOzhkpe4JPum-N3mx9orTtiyAih2_oj3bz6-8nkuUTbCfDxQRcoer6gftE2BHi-4MdfyZ_Z8uB8GlVveaRDyCz21uAvYjwP1j-cWsuAkB5UQbkj72ZCGTSr-VwbEVTNxj-M7KSU3xV8PqL0W5TOMlWjCRff2szgIHY1Rd74GO_ooC3cCzd40H-74Mw9492inPM9C38Oyekr7hEUiAlfC3mwy8jk4DeF8r1_L6Yd7HLY-k7m7_v8CpWxnFQUOYDzEX3aQ7HNMWAID8rXxo2ljQ.3TFWMt5oxFvqajQhrVvD_2mAhs1OVDt58TtuI3v6CEA"
+        },
+        {
+          "id": "5e2e3297-5ae0-4729-8c56-30cfc2b562f1",
+          "email": "phase60-load-rehearsal-student-157@example.com",
+          "name": "Phase60 Student 157",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..YaKOGfhsUBlAlpd4bntV4A.FZzvpF82oyB8GHTvlk3IH9wxG5_Z8Nu4Rx2gWRfmpEfRoXvjqwFYVA8dY8EJkey_fY3oEN58OjZ-1pYioQ9TS5BQ1owdoKPavTeFNZc77747QV5EBYEG3SlZHt-Xg23AOOpk_sN0diC21iF1sqTOpN2XV7HREbL6Xu_kp-i8qjkC3Ode2shpSJgMQjhCs4d89TJpwUN0oR2fstFLOy8IDIvj8Csmu21uIT2-eJ-TEBrzd1h3l1oOSZd4pk0WndZ4hMbSJY1lqMl8rfYYn0CZ-YD-9Rk_vASuvN0ikceSjE5pI2m_0AIMF6hdewgLjAdwNKURxvVowMq0lUnGgRKadXMzhyrF0MW08CVqkEYW13YV2CeBcVpnG4SADnkT8572Cu4dVtXPQTN1ZCaVMzgDmA.JTXDTtgUERd0WQekHnp-hlyG_CcPNYaQkD94m-zl67c"
+        },
+        {
+          "id": "b1503e07-b789-4281-962c-44198bcc7221",
+          "email": "phase60-load-rehearsal-student-158@example.com",
+          "name": "Phase60 Student 158",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..vyfMJRZA4Y94APeVOyR8Sg.HCPEKSVDwVYFsUdiFd8Ybkuc4PPhZOXPaP5RkBn0IKdD9o4DUGLMTF1h5MpPjWCipycW5athoaTrwf00q050NKwhZvYj3ROEFVVKwDFZ9XlIscvqZCKkJZmU55XmSwI-C5VswilP8GIvgGmmCgeq-Rivk1D-PVQho7Kx7nNSEuczOk4BaSLTv47G_xNjpcOYaN7bmiSTIINkobR4LKGXnBsUkGrPwjRsc1vSeflGzem_VrxGLaE1I4CnizCz0SJ9BoZJlz2D2CGtnPL0QfqyqqNyI7_NaIUD7LgHLorWCpHPUrRLoVHBMELgNbyz62vmGLonaEvCztIiA_4kVzUX6J-6KggndmjdVuvKcexuC3r4_B4U3i2iJF7yYN2iIk5EYL1MZdEWf-u5d880ecYDpA.5DiUuAer-dEnFDYtiCckBQyxZdDdFcEj95zpExRdT70"
+        },
+        {
+          "id": "afbe5975-da9b-4790-9199-552bde401de7",
+          "email": "phase60-load-rehearsal-student-159@example.com",
+          "name": "Phase60 Student 159",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..xb89jsCKJDIqr2i1kePsrQ.tqt4hUSeveZoEn4QApUyX96Md2Wqsu0-06S-9ZiMFzTFRcajP_kPo3RkNrjRB4H807jQs_5KraH17vQrm5v75cWshsYapjORo0-xktrlH7Eo7mXLJr7-A-KKYk2sy1Yhx8XYSS769jw4Md3ZRomrLfOCJAm2IP9oFkJvlb--Ks27uWGJbHCxjBoeaFr__ww81t_IExGsKGoJEUodgrCw-0wTFSoE6-kiPMLGC5NXH-5MmdjxMJ7u62iI4aMH9TqmmSI5YEjE7KO7Ub21e_vvMjgN--TL2sUAHeVavm1Nx1rYyESOlT3-0NApFyUN8uiFRhB1EEIhHjx0CFK53D30Q9qqAWTyuWanxUJ_aufy_m3abkqUKNYLV394B6ttkuNulznDIRiJOoG2MruC4Dhoew.Zp85sKJ6xoDsbfqvbYunB9B7QWl4AGFBpIP2gAo5HXY"
+        },
+        {
+          "id": "e7ad3aa5-6518-4642-8c97-6d7330b8a69c",
+          "email": "phase60-load-rehearsal-student-160@example.com",
+          "name": "Phase60 Student 160",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..LCMCBHaHaGz2rsmwMlgTQQ.8NmaxozOSNeqhMl9ZSgj24qVTSa03_pEOjqJ6PuL7ybh74DwINH2PHa2cZMGM7QeGmnBDXQ-ibUU1ilwRwVqABZJQVTT_AnGoUE7_f8toIgzBGoNCuzRED610onY5d1UpypZ0gWh8kxDKRmQt4kah-DqjrC75g2ni_oUxsDW7F_N7bzhfnNBMoqaOVt-kpTWx_uhRa5SKzvMelGobl1Cu-OgaEz05Z3n-VlP-erPUR6h0xmbXiqz2B-ciFDTixjpc5lyPV3oRoqSn-v74BdjoJgipkAZHXoGxwYYE8j1NATNj37lDsx8nQm8vGamC6qZBjvoxJ0XOTdSOAQD1A_FHEELmhDLhJG2BKZEAKO-yGrq8rw_QyIvEqXVeNR5zTn9PdaKdqDAhLWVn9eK1zufqw.cDoEqz_AlJZQYkXCgSKpnJMk3g4v2H3FfMS5Kw6zhuk"
+        }
+      ]
+    },
+    {
+      "classroom": "phase60-load-rehearsal-class-5",
+      "classId": "ae6c6aa7-85bb-4bbe-a4df-ab0d3160d6d9",
+      "classroomSessionId": "ae8383c4-6d67-43c9-ba51-61647466e700",
+      "teacherId": "b32033f6-0da2-467d-a89b-46a40b92a952",
+      "teacherCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Eyj37W-HftrqI2X6C9V3xQ.qb-lrbWSwPwc1jpfvNijsjUv1cKdHQl3GbJFI1RdgvMpVqRIJfd0RPjFKkCga1s6IIofR-LcfWaaTxwybn5SOfeoUJ2aGyk1prAlaIgSeOixlnuexJ1PTj6JqdBy5Ps3AXr3R-tjYfo_DpnTmjjuJ_DZPlB6NgzFhhHZquGiR4_ofnlU-5qxePGbabwFIWAIW5E3ImO0IMD7MIwELgTyPZ4c5mYvLLgRmzVHA_11V3FgJv0tJXriR5VUYuehJHnJiAMEBlD9Y17mX6YlMaslaGB6YZ_BaWt4iPbLlLjp92j51Vfeu5Ac-VpL-Xdv1aURTNub1qCFAHtIonol2UrvwaXM1MSjD5SH4_hF9MXTR6G40mLAsh-ceJdbRcKFaLT4v2xHYM2Ffog8DwEYdRiJzw.18vJ1cczdD44sFRajUNDS8e2YwOit4xOWv536e1rHHQ",
+      "studentActors": [
+        {
+          "id": "4d73f7b5-844c-48d7-91e8-0efb9ae2c92a",
+          "email": "phase60-load-rehearsal-student-161@example.com",
+          "name": "Phase60 Student 161",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..KHxAozpJf1AXGmgSrubtbA.8D77bYb7wtiUeN0KwwfdQkQMHL-V6cbftz5KtQCDSPQiCATk8gF4XyzrFmfmI5xccDgknwjSZhtJ9YWwGzQTFvSbqYh0uPYe5mj1A08g4qxkblHAqOIb7L8YS9vbxoLby2FHA3xWzYnQCzV9kMOMJhRj-vt--UBVIxxqBAheXawE9MiAIrRLYnVM-gCxMs5SG0FuoEyt5A_TbKcNs4imhhJrBtgzjH4F-421GcnEudL80HjXOARqEY6JsnOKF51agp5tMuC0Lmg2MZszr7eA16watrjn8a33y_wt_YF-09CGRxzqHC7Wb2ok21_DegEfLyFFVL4QwKLL9Wmy4qu62thQ5nFCipSQRw13KRTMyhQkZTNHbEAXtam8JfjjXhPOh4haktqkAkaIZ9Yr8vHYYg.1mYXF4t9skM3C9hfcHO7CnBur0caqvNwa9aru_co34Q"
+        },
+        {
+          "id": "62132e5e-382e-42ca-b18b-2363cfde0b13",
+          "email": "phase60-load-rehearsal-student-162@example.com",
+          "name": "Phase60 Student 162",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..w3qGDR_XVpIq1iHUSmLQ7g.ky1kwmRq0VrjfQAc2tmuXBTcqMYCpjuEmeSMTlY7Y0DmBuuYouAFNyl09KL1VGCF_LurUKhrXX73gip8iKN7il-IC75zZYOugsHq0fTte-v1mY7E1EbopCtVbu0vG1-oId8OznyIdMuTuKfzyKULruXnXceal0jzFT2fNqnytQ_VOkkTNKzC4NuMik1Pni8MDPqUTDu2feEA4qDpLc3QyPoO7n7rQxmS13Nh6RAEijA0xqDtkZtx133DARZiHAkMy9H5Ds3LhL1ctUVsT_anSbWrbA8hlZCiFno34hSr3gd9pGyaVVvdsJSSCN5Vuz2nTat6ilOwkWM3Sw2i0G9jCu6s-OawGBZ3xqutAgv61fvzetxv4j_GRAjL-949bh8JPX2a4woxLu9CZdvprg55Hw.IJRTWr9MSPpugMmcPWuIWUcIIjSrjFbdrGmQZo6ZguU"
+        },
+        {
+          "id": "2f3dacef-7296-4d68-90cf-7595be0adbb9",
+          "email": "phase60-load-rehearsal-student-163@example.com",
+          "name": "Phase60 Student 163",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..hQ-QcWZOKW_agx2CYYc35A.XbGwlGd1L6lMYJmLUrkYnG0lMlX-4GdUfU5nHByFiiDqbBJOyHCslsTLmHkjFzbsy8LOf6UygI4z0BhGlTOXyGomfel-TfRT3n6JUXeoLW9LvQXS0Qup1e6HshSjlb1c9u78OTZKOcCVK9xZFmHw3U6LR533ze68CY-0G4VBiH31XiT0oMtQ349e-IoKwitWtn3yLW1i5RDupPOJIVi_t3PEv7KeQUGKdHqF64XRrTpMTlW8YKkW7QvU4BKlA7XU9n7oj12C2vYfAVbqPFpqdDF_npsp6T-XXeLgw6FVydSnjED6UcPK0zadEgNR9nTzctL2KNPLFemcKWp31IMcsuLOj-PujSd5E4m81mNXOnRpl38BFmmhYd8FcEdw7aSZRMZDb1mnUink1gLcEFtJpA.OPaLjhcRYAu8d6fthKgBOZynL2J-L6KQY5SlrZtg7Wg"
+        },
+        {
+          "id": "0c6bc19d-aa89-409b-b347-cf305fbb6444",
+          "email": "phase60-load-rehearsal-student-164@example.com",
+          "name": "Phase60 Student 164",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..hJQGc1LrcB0XptEEzW6DIQ.JKI1dAiSxXi2Cj486tmuFF8UWADlHEqzo_6W0iFBjA_VTYlD2tuqrEq4TTKUzWNhasWb07VroHq0nAZU3FJ9BuWLuHFsKMMkwmHVniuiUtpS5ZmGzYfBaw642hd5iq5EWJrPnQu6U0myjfWZCYjw8dAJJW9sbLdEmxyUibwHfvW6fuq8cTv8LGfOauHL6si0Cn6xnmkG_Sh3xgPTO4L0M2F3tR-nT876j7gEQuatHFf1uD6I5u02qhZxitTlH_nCLqedub30KaEw1-9MBGPE26nizYJ5knkhdu_Qix-M8SQ9d2mLPri95OxtqBKMGwvJ6RKZ1MnIr3MnggOE9pDAhzlov7tqyKLbsDaHjjqxDknmFUrJzTbFDgwLdMAeZYveuYjM5XQUoJXj_rubtCeb4w.36oqCS2jYXyAvnw5ZWJ5IkkKwBV1MLr9hr5fhR_tTm8"
+        },
+        {
+          "id": "d6811835-4a4e-4ed2-8dd6-f57dcc950b04",
+          "email": "phase60-load-rehearsal-student-165@example.com",
+          "name": "Phase60 Student 165",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..zNIRgKzGZgW_QzkNN98F0A.mD_JsH2zzgJAyHYf2RdVRTs7d_l0jV6KjEck_LQRlFkFv8y04oOAtkepZmVlHOAX20qBTqlkwZIOj6eX2UbPpG765veUOirL3UYIGsSIRS9TnIP7X_ocSFzTZMZVf_YyXHjzeZeGxsEu0MdUWSRonjVRX5L02BrQapcnRKt68YnVwtCWMbFCVfyc7MWsTcIzH0nj-zV7Yhdv5H4y4bqtOkKuzxVx3R880eM3dbWxTRfZo5GonE-6pVxgOYVa2DC68ei1_9eVQO_GKZhYg8wy_lw6Hdpe60avRFS4FB3fRWblzpLp6mTVoSou2l5K9Z5AP0vw3B64aVRzpoMQrpFGWHM6KuINPiwINLiF-aT0gRJrE7V5cNJtD8zQA1ZITt_UuXxOfPuMCH_wl8OJglbUYQ.SQx71aZqmbXZJpNRJsRjoXT2quGoRuGD4a7D2kuLvN4"
+        },
+        {
+          "id": "00bcafe4-442d-4b2b-8b1c-c88e810a6c0d",
+          "email": "phase60-load-rehearsal-student-166@example.com",
+          "name": "Phase60 Student 166",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..v1XdqNDqy3T-0EmZeTVK0g._BTyfXHHMCap-wabvSoQsRlZIDsVXyZhQNBYQ2VGG363ttxgRrYI-_XiXNKAW8PVIgYCK_aSUjQzRLlqGiyedc-QysrhJ64v5A981aTj2-cFxxw9bhWjUWFOqmaRbGyZzRn7dFUx0HIaBTuEZv4PQOcgMq68HsC2ANcRY8EG5RtvR4BZYY6eGnuzPRp2vLO7HIwUyB8RyX6APvSmLujGn_lZjwgJbvJB-BqapUYF7rAWh7JAldwvVwhRuloyEM2BDnCbFMCX2NG0UCvG92ZhIEbRlWvZPB0OLVySvwKH--ktJ2U5suWl5d9YMkryooH_Sv9RrFz6w3g4CzOyXg-gwEMh_W-M13AgwDzISMwTatF3vv2E7-LkOGUyvhf9Z2pqnFHkHr1YDnyFr3MrDez-8g.nhViviAiJHwF--07yLrO-dugtqtUnllo0eDAxDBMez8"
+        },
+        {
+          "id": "465d5a4f-40ea-4e29-91bc-366df8858144",
+          "email": "phase60-load-rehearsal-student-167@example.com",
+          "name": "Phase60 Student 167",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..1H8-a1yycbv130f-7RqfyQ.KUOpcRCKnN8bRntNgad5Qt1ngltA4sPhUoeryXSG6WjQG0i9IlU1cjTN-OHTiD04OomrqltDw0US9B2RddosSlMpivLouY9dukl0srMh-7GOdTVsXwqk8P1h6lq1UYFe1qr9l5TJ_9KEDCd3W4XI6zyRW-KjgxSnoDSsaYgofzvJIFDHLGV2M2QexTVIVP6YwgwcGEQGAm4ssb6xXTRUL0InWkS2oQnq7pjGnRAUPkPTuTGkFcDFWvKwHG1MmI7Colp7ktazMY97PpOJrwqwO64S1LLcgq_vqrHiSS3ZMlk50oxdqOBtb8K7VBUCtSU6OUYcsFx0QhaXovl2u1t2epFahrNzKAiZnPDhixvtD2RZMFBnL3e5H3jEFHA5GTE6KrVvIZ7GA__r3EeEAoliww.zcRDXLk0YbFDyBuzkYhXc8uQ8Clk1csog5njF7MB-SI"
+        },
+        {
+          "id": "13dd169c-2f9c-41d6-aae7-b37f1c34829c",
+          "email": "phase60-load-rehearsal-student-168@example.com",
+          "name": "Phase60 Student 168",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..rTMbeZpoNk06Efq0ntHMsw.6Vxiu73wz-eSbfrXsIv2PQBSJpk6KLWsj02YQXfxyfBWMDHwRnWJ0G91-s8c8eXT05NUhOaKXKPBYZzaxj9GumKkDRMuiMUtbBuLtR4FKAfh903msXRT42CTBYpSWD7OW-KS1LWdDaKsT_GTBIg8yn1pOEDpJv1VRFpx1hY5CykUSlAIXuCWf82J9HpmZHNnbhhA723wnJZ6tYPOKAr3Hn-_lII4mJqsrXy24H_LTKrBK83GfBIYWr7y8NTFVUfo3OT3nP6LxyiHTR88SZODVCj051BoBLcs-EU7DMMLIlEPQsKEA-TggnV9DksQc55QCdiAlJo2Bo-V5fZJnd1U46Rxzq4TtKatlMvSZ3_NCtwDYR862DELRnJxM2-VvhhF2dOHe_9LgbpxmIx2wo-8HQ.oCQHUabZEneTjZ2IbsY1P61WsASlEBvHPU7MwM2dQKk"
+        },
+        {
+          "id": "48216c47-c4aa-44f7-a517-50c42c768541",
+          "email": "phase60-load-rehearsal-student-169@example.com",
+          "name": "Phase60 Student 169",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..kk7MjauArrK0as3_7x-jFQ.mo0skRpWfHPhP89K0E12q-OEnYVm85L0dm0CSLw2FpipaGZfMaONDqRT-iPD22DRgLf_iYVRTsMfT1TN137hNPUVCNfTcoUB4AM4wfptAWyeTnjiQ8oFR2RpW56v7BpdQaUvs9ifmkfwrZ2YhJSVHe1hUWiqCCNipfxvHU3VclCDF2-iN0KZmQ1ap8LbdpZo7k3R3V09-BLqUYGq42ZQ4HiOCAT1Qv_jOoS0Fae70wALtQfxedcQcwY5VuCRwSu5HoQXOQ9xRszL3P1cRRlqAtreC8bR4q1gXRZDi2YOVqY0-WnHDQnBy-q7qu5WVMB6R2VLaeu3gWwE42TGUbTR82S3cdRg6jWpSlzXvrVK1GV2ry4cZfgI1g7vV_Nvt0jpXmZzrB4xGWdiOoHxQXmBAQ.fc09rMBLvuLyfOjYbaeKyV2F1azcdKzfIcKR_WWExE4"
+        },
+        {
+          "id": "d2d54f9f-334c-4131-a325-928f16efa801",
+          "email": "phase60-load-rehearsal-student-170@example.com",
+          "name": "Phase60 Student 170",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..mTqjMnpE2NiKSyZrXMXtXw.b2bG9qn3As2A-xjVkXCtNvJ9JeVmB8P1BQXOjFV7muJLvTVzRR2UskeGp6yYvPjQzXUcZGH2tK2fGOCc356MZvIonDp7FThEDNZ7PeBwaSMQ8Fm2gh4NY8mI58jYYJVCUBJ-ZMNp5IIKgvjj5Bgp2kKqF6_ia1OLJLBCXY2gQX40x5s1pLq2HdNr40Cf7-_shJOp1LPY8IDQG7Ji24bZJYfu4VTFCTX68PPW3aRzxsIqjR57zVRPBYAAQ_TKE7lAWGebTFvVmlIm-9ErzY5UM4Tvx3b-jcOA8zITwG635FE1AVbPBfhJulh1hOxg0v79ZOSDg3istjI5cXiCYDXNvaPfnnVX29qrq7suiyiMoYdu5XWb3GzbaXdyTUGAihRveVQoTaV3qyTaKo9ooANOyA.1kGsibEl0LWDeE1EhL3BRAYb5mQMNlCAXMqKV-_CKhc"
+        },
+        {
+          "id": "826c3599-5d4f-4f7c-8c06-c4127a2db94e",
+          "email": "phase60-load-rehearsal-student-171@example.com",
+          "name": "Phase60 Student 171",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..hzuMCDhE_5BwAgKkGj1RYw.1Hpu9qfM8viSo4-Gqlvw4yLF6vVAigTE4VZTGI9sLRAdaxGfMPqNXFwGQ1ro4XX53MdErIzUwsEssBCNmg4_Do7cbJtv5ezErXEwEzVa-Ek405aXyEXyIoyAg3P8iPlmRV5nJC5aimQL8D6Arq1NgI15ysczdJxcXU6glHBKjAr9mT9nQiPpTK7WkvIQITN407hrcAH8IQI8cGHQ-4ir_LN_bWXeYHZpdSJntS2ICKlsTkgIViyabxgaWrnc7y9a9mCbjczr-IGbAVehIWyUUcJ4a_JUUtASEiyXLt1sk3QxYhDPDKgJ3_aY64VeC3u8eoZGq7D72prhOZqF1V31nnzpHfuhF3CeOVzD9h73cVSDKpjw-5QiJQhPlYwPemeYssqo_s253pfMWrGNUabS-A.D50HRCBGB_aqgxFvVywxCQjY1kDDdStatp0hjvpmlpk"
+        },
+        {
+          "id": "f73499ca-8206-415e-b35f-ec83cef195b2",
+          "email": "phase60-load-rehearsal-student-172@example.com",
+          "name": "Phase60 Student 172",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..DNrSqHHfhHyUL9X6zz7nqQ.jcDXNdDQbsu88nQnqkxJ4VLBxN-sKl081j1QvWpSdIWPt-68Eyz7IAiPlQ7ct0CGIq8xM7IlF6NbzlW6xt1lXOBnN3byM08HxuvfeblqBIqNjif3JfrfOwk8lKASqGHPK1HDunXXuqqvE4xq-_9y3hyqrlKYtKS6Pj96Mp8J6hx-5GSCaAllacaqTdAmcvClg2mX5bJSzz4VQQEixmqKvr9RBelYJA75NahcNFqCkEZkFChITVg2Jf7dBzEF4pP8qvoZTllW4WyPpZyAp6_csPuy4iM4jUrkxNOeGjakPSBXGoVlEVe-MDfkqQ7DTDzLzzb6DywK_JXBVlPwuUrP4Ap70FQRghNJ6V5h7owvEj9G_yW5k1OVUy4o7Sm1OXW0Ic2pZ7vXpRAyylULA45kWg.GdqHJfGWRNr8HLkfeuaO_nrVQPRzmttoC1S1KUZc8ig"
+        },
+        {
+          "id": "2407063c-ac83-4449-af19-4394883d80c5",
+          "email": "phase60-load-rehearsal-student-173@example.com",
+          "name": "Phase60 Student 173",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..ahRquQBe6c2gQyia1IJLcQ.uya8sd-KYuDiEaerMzY4FeTlHm1DZCdYJPB7VIjC_1rn_NIhgtBKyk79Go0-dGJnSFaVng6UZ_gnHHBs6ZqBi-KfSbqiqLnRzfJsL5JBRri8h2A9_1Vku4tFx72Kb6sLZnAscPPJqEvhGz5S3fE5GwGZp0-aZCArK-7Bazrjzd0cBee3JU49bI-1owLH2qtbruaWLrkwBDiKZE85t_Z8PlxvmuwefwmwoqKonfeV5wFkeUKS8RJvFaYlFsn30OANG_lP14yw3pLz0N8CB1zboNo2RBMUSXWGUA-xmnU8-X876CFWwtk80J51eyBmBUN6U1kHwVmrziO21NNpi9Vtli3upCcVgMH707p5v8giiJv4534AZuEU_5rMSosOLot3wWmUnz0YVsUWDVpcppORlA.sWz-0O5PnnUx53AIkfM92b-BWZp8EikJmz88MuiLM-U"
+        },
+        {
+          "id": "c5bb37ab-f2dc-4db7-8d96-4e84c5025c7c",
+          "email": "phase60-load-rehearsal-student-174@example.com",
+          "name": "Phase60 Student 174",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..4yOyONdugwP6iGoTyox1vw.0AAr0yQNzhaN0BEvmiGItzSDgCuilk5zYGfbCqbdfRtU1eRIv-0O4dp0TXOf04ly1GbaNt89IWlrZ52TSM8ECvNkz5VLwLSHwejWsOWux3uHgmUMfcILTOImqsXQouTOLWB7_QXX_VdqVV4c6-dWzC7_qs5DKAeChWZ85ZuJLQGY8ycR2rTC3zKV3502b6zJ7MiWms5KjAHBWRL5vVbOSgKBJd0WJReTVuUyX_wQIIm9z6YxGC5-TqHhKSxrJOAYgzFfyx2OZtF9TAJFQtThlyeZJhs1GlRiVNyn3ZM8AupP_DXdvAFRreWuBq9EbUkduVVATFxS9eo5oWjQZ9MQBTEzFK_Q4JxDFaR9RXtr6boptLlqmF930bTQocP8q_SZyTy3h27FM9yn-jdOsFmeKQ.JY3-63qD8YRgyItxAt2OPldN0MmF-NykOHX0FpoDaek"
+        },
+        {
+          "id": "3e40f0f3-0ddf-4ecf-8314-b7ff8b47495d",
+          "email": "phase60-load-rehearsal-student-175@example.com",
+          "name": "Phase60 Student 175",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..MKaR1pS83sdrHqevyIwKhw.bJ4Y4mHwFuFHhs9HSsQR7esoFiK-kY98DeZC29W0Wfna2Nb2h4fxVSwAZg5lgSs1wUESbRBArhmkpzEVkCHwT3Zy8HrwnFe9CSouti28QkzBkGMYW9JBcl8EWXxdp7tQDCwDAe2kPK7KbvRrb5rVkT6_VvVmCLJdbwzRvVISZtpjPdzdKbPko6VkrRorFnJOZ0JqpoTM08Dey1YHJQeL5wOEDoH4m_zcStLfY5pFimlBI53rGAclq2EKJlVAarV9NM9PLMc3IaIN4TI7-tuFfDcxvvbUVV5Rk8G2GZIG8wh7wLFepFzh7qNK2AL-THSM_l7kZOqlBW1dTIw0MDrCA-oYozD_pZKSqDdcmyeogRTNdCIHp_3eMe_jqFAgAOceD-n3dy5Jd5b5lcRSS1p94g.3udh6-e4qDb6dsu5a6LAjAtrP1wt8x66Mbiy_CyT0j0"
+        },
+        {
+          "id": "2e47b986-bbb7-478c-91c4-8f84ff4c31bc",
+          "email": "phase60-load-rehearsal-student-176@example.com",
+          "name": "Phase60 Student 176",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..cE_T81zpz_IFVmgwPN2Qdg.LFV3rYRBUzdkE3hJSzOo8KTb8aHI-WCvUsO79ZA9Oq6AeK-FcrNA1Hf4XXctv92XaXzzX85szi19W3H3VRD2FjtLAwiTb5otYM6Vc0u8D_T3euC_oRZ4GmPa8U4Vk3lXioTjrMLHc8JoWFT9fLij4o4Qym7TFsLngJKI7HvECPJ_cTJFpylmgDS2BOwFBaMxT6b9PICcu192sbiVLO6IyTsV42WysSIaPCotwCxELqw3uWiVlXrZ-ndsMJ7SWdrJmMM594LhlSJIct3jAZopkziGU5wB9jzM75jsbXGJGMgBHxk3ei64wyGqa3XoEAtZjlsDqVMHrNGliqSOKhWDbBp0P8ys_QplSnPqXLvb2tuBXmCUQ9MVlqS97S9CHfjBzuhI-93DdMRB8a6WUKNXzQ.C6-W6gxHMOF-OtmVuL1nnfiELJV79XoY7RJ70Yrs4HE"
+        },
+        {
+          "id": "4eafcdaf-3f5a-450d-b63d-82d036be8fc1",
+          "email": "phase60-load-rehearsal-student-177@example.com",
+          "name": "Phase60 Student 177",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Afv1DZROsQgioplSWshL2w.4KHq0cRlDMl9cQwl6JyXSwnO6z6LDCK8srmMaV0eOr1-uY8IE4irXLYNQ6RGE2-czTZ-XQ9fksUWWveic3sFlgK8TIKeW_W5so9C10MCRy9BcjAHSuDuo0FLJxTKqYBZhcDa-Is3S9tC_fMv8JDwALcxrYAFsU91aYGHfUhy2Y-dXa3RXJPp4YKAudSbzEyVHJPUucofBGIobyqEAEbuUab81Zto5z6kr9PWerpNPlT1WQiA8UuR36oHnk-Muwl6TDeJNewjYTBjieNbWNEYLgkuudwmmGXCR7zXypX_9B2dlF_-nCaYSoKKvZkRcrJzdMv02f6GMUssXIGQLkbMfftK7l67zv9xPJyaQmfQRvkJN71OD4ldqb_bidfjH7mQRjedJP-Ex38HuV4eoQbE6Q.RWFxPLODDnwyEg0V9xNcOfAPKaiPBREAiOwy5Q8-mv8"
+        },
+        {
+          "id": "b7aa0d9d-3d60-4ac0-8404-106398a0158c",
+          "email": "phase60-load-rehearsal-student-178@example.com",
+          "name": "Phase60 Student 178",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Cy2lFV-4PDx5gJbdcZBaZw.FPiCK28FHNbN2rAyBtnV1wxugjjBdZRuKJv5ZyuI3va7gAy06_rqqbrsDB0N-fAMhPoFDZUyskCCBE-rCFk751pPiYt9-z8sgnnmtLTneTOUNx3CiQ4KJOKLvEQ8bH8Bj2VUL1IExxDr2NejJG_nuEraWa2-UzYwBu3_0wAESX0dul0tt_FOeQrDURhQT-tvg988VuaE6nd3NQYW6MxjHzCwaJ58s5WdOtQa6kpSEBcoWsM0C-yyRE43D2hZiRISkoawDE86PbiUYLz0yn5efH63mn5rzjTzlMtM53qu7Qf3XpnzXwcyrnP6a6LjTDijQlKBtFXLcW2iWbumP1O266IB9NEcp8pnSWcA2hapm9LtXgiUbcOpBUyc8hI_FO6kUnkSmJ4OTgdWIce91AT4bA.IvAtPw4mMdCIdk8Uxr0QVm0JzEaVN5geOVZJ-kjX1Yc"
+        },
+        {
+          "id": "de3aca4f-aee7-464e-b8e4-54dca3fad4ee",
+          "email": "phase60-load-rehearsal-student-179@example.com",
+          "name": "Phase60 Student 179",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..UWzzv-ocVhpD1Hd0265t2A.7A7IuIhOqrjQPf8IMFFDGfyROrzYTtsfUkuxFlrIma3WOdF7VLQj1tVpwJ3r8M-9HlhJZpi9NJxVbyY0NakMdYx9JUxMGlYNECQtQWdaSbjq6LujPRDWIHNvH1r0hjzu2iyml82ab3dEfL7RbesA_nNUaaihO1YgMtPVOpboUl83IQyhabJSG4jSNTJ0CA4hyosZ_Ijxf8nMUJFMGZ4gpEFHO8ZUVjQIU9Trwa5R1QPjmIrZGPjXrjVaLieU_1Wpxue6iFIFJ6k5WkM9IGuME28YMkYGnfPKGPTsTFQoN4PNBJdWUGBqGMS3ETB7u5M_VjudbtGPuuVdki_O-qPKdjkqb_egSY1wz1HJBRzNmDrx__wcGkM3D3vkTlwOOwFLaPvIxnML0XCM_YVNdWK8rw.iVpwjOHzn4oatRZ3H5X2ET719YHs-V74hTX74l_Y5aA"
+        },
+        {
+          "id": "5a1b095a-b792-4360-9b3f-6a375423c796",
+          "email": "phase60-load-rehearsal-student-180@example.com",
+          "name": "Phase60 Student 180",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Ff9TDY97YqTtwKDLQs-gNw.giDFRkhlDd6Y3u1aYm3OEjgauB0mGCu6YTLrzUVbHiYroDZZuguIjMgTUFQH0zh6uIiGhiNzEPpdnpdeRlSUBi7vthjr499_iYfjYxUhtyuToSGanyA7vaPwzQBNpZCZf0VzfS-KsfvYm-KvBv7VCIE1W5vnEQk7Mgd87PACizptQ2ElHTisNYwQOwsYmdmSyIhl06iBIv0H16pi1szv-XYzlZ2pnQJ-jVgzN9beRdBRcT8kqpKrHD734dLmjJDZq1mBKJmlEacSIBrufwBSmKznKSjG8R-0YD8WfkiLMDBVRASo3-iFeK5twtVgx__hCNsQwiMWwd02f9bxMAWvAeSdVPwzdTPpKMluk5iXmtXBb8VG6ipmmdbf5A_ib3HK6zmyXgXr3crFY9pXYhJotg._Z2q_nc8HSouqmPA7u4pexmYip956t5cHAzDIPqLmbI"
+        },
+        {
+          "id": "d9300875-f3e3-4e58-94eb-fff4b6650944",
+          "email": "phase60-load-rehearsal-student-181@example.com",
+          "name": "Phase60 Student 181",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..M1zlwT4H-4qTLIFlJB0xcQ.dqO3jvqJhjXM4l1u0HVqdAQDYfnxpWmbUxHzfQk1Xmbt5Q1NeGU2MubAxtrXIUuJPFmbjHf3koq2M0ARWQ45rmG1y83iKowthZrL_-G6a6BcWLdOCAY0Khdke9oRUr3JyVMhq-wKbItuI7MIZmk5t1St3Q1mbnot21w_5bpLwU5feLlQlfU-vJU8RFurNJYpjNWHd0eZROX1w6LySbhyzoWpFiVh7zV08knJORkryvdGMuPSuiN22FHdz2zzLurtpLOLQhe7YYewK0AX-V_8nKH3O7O7FcNQi84x5cSlBXSps8u4hinRYL68Htpy2ezPnpOUs3SjlbxC_dWU-ro4CKMsn4Dsrv3U6gu_O6y1VVaz9_l7rjMp3LgJL_EJzMMs6ZAJ6n4zj7kyX1NsVFudzA.jiC_Rq3b4TUZIz0a3e8LSE6IuC5uG2RLC5uS60ikIl0"
+        },
+        {
+          "id": "bf416a65-b60a-467a-b20d-5518af6adf95",
+          "email": "phase60-load-rehearsal-student-182@example.com",
+          "name": "Phase60 Student 182",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Y81DBMqw1NnZ8nftofVd6Q.sZt3RdeQP-JcpFc5n1H8t1LlEym-wEDGQCqYJKPCWwHVd3nJMahnhGEaCQ2URJh8gSD7s4nMk6FvxuUTVF4Ep4eoD2yyVC9UGkzJgKHWCdZbKzudWnU1EKeF_bJlOn95fTspccbFc8xP7kyQOikOP8ZhZ0Ao5Yr7cJwtLqPcevwslG0shLjoBwgVZnrlNt6xL-DJ3L_9gmpoEQs_sep627UOXQQeqohYDWy1yk7dSlhyBhmU11HyAY8S_2XPqVeq_tNKwgtbeX6UmKGFWC3MIJVUKduM5zjLvqGZD1GAyvSPW5S2Nkqn8HK53Q1k-AyGQBuVjWl-_UYuDV9-HsEOszt9EOrG6bE9kINAq1fZ2PQEZqikC4t6WFIzofebdy_cFdtolOhlkOmQDlKkUEYZEA.ErpD3p98phNnE25Co-KYO8EGrr-rWAz1olXNKkXOfpI"
+        },
+        {
+          "id": "f01d561d-fccd-4169-8444-f203e470257a",
+          "email": "phase60-load-rehearsal-student-183@example.com",
+          "name": "Phase60 Student 183",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..QYQHjzXQfK34-GdTK6Nl0g.ipiV0H1_vTuhYSHFD8m5GPxVyG-FkExfs3gKd55se6gpnEXNBIwh-Ha4uea_7cvi2JS_6CWYg5rtDRri-S2TjjtjXpsKR0wYhfCSgGGfhSMO6zU6tdPlyqxZ5yCekw-9PC9VY3xjB02Qkfa6dtIjYdKRwMU4tN4M1uDT9GgyBpb47SDIUqIlIxEaTclIuGO1tTvJ7sV5rUFIYr5qDlEXrlm-S7_TF2R2MYTvUUHwetKLUWjpdIq37hSXhw9jX6ptJv9KhjWHNbbE2ta21TW-RVLWnRjW8WSTYGZ464daB8mLdVgic_-d0iRrl85TigBNqy3ka18-fTqv3FWOCYbZn-7Z_lEFJALdZcqYn5MrqkVl3hCsPPPNyZa8aoUQVS6HMb2t9VUrLsDse__zY5FXXA.qtg7bS2b4MP325V51WSJ1f02y2zrwWOwichj2YkSu0s"
+        },
+        {
+          "id": "fd04e0e4-ce18-4b20-8d46-625fbf1a9cbf",
+          "email": "phase60-load-rehearsal-student-184@example.com",
+          "name": "Phase60 Student 184",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..M3_G6B2XwHdAtatwdEHnnA.vnMV3CbzpX5jNxhB6rtCYsfmUAqZG5l9ujyeLAKG76UaM8-D-OBQhM9qo1LMDidbJzeIqQNXCyDcwXJ8iNjybDx6OFDEPyQrLcI8zP2zNHAVUbVukG45l8cvRyAUVAC3PlEynUPF2OIPWtc9Hvu1-u-YuXCK_DCtEuFu476dQn1Zgc7P0-paqNnOGKpmVxU_V6W3qWvBOUtygm2kmnZ_LvXg32uAMh9Zu5Kt5hDWY8tWFQJoyajqpQTi-HmYyJkb67sYm3aLWg9jL2D1y8ngpwkTEj0LgJUMoCuxdJgZ-3K4E8KHzYlWqfSMiIRARo8ioQ1LvzW1O8CFuHUik75l27twJvaPpory7PILWhHjXxyJNY7zcvM6q3b1Ra-PChsMepZ3nUIpFgoa8srmKBsUkA.Pl9rG0fTvp5tFUQz2P6cbEDvVbSq-6luVOYBbO7Bo9M"
+        },
+        {
+          "id": "f90316cb-93a9-48b6-aa0a-38b16a546d6b",
+          "email": "phase60-load-rehearsal-student-185@example.com",
+          "name": "Phase60 Student 185",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..F1SM8mGggLTma62y0UiDjQ.lOj_NDdKpog4c0JNBQNGrIEhKKVyW4LK6syfQYkSvxLwRCHYJwch2_NJO5nhvRPIqEuxaymmVBg6F_TRDtng7EWsvOACEHPp5_9QBHWX7gzLZRcZ-oz84c8HmN7fr5-na8SOiPJnHKbsfda_SCfGBEg_vVOVS81GmGAid4LHipQM2LcK8ovFAiQJgjtW7Cfg7JFn20LPmiZIpPHAXB3CHnAi-2kTZ-SfryrDFWFG7xOrTobxYkJnXNEWAHwXQAP-9XZS3t-apGBeMe6vHeNjIuPiexjezmTJDtcQO-AgBH3se1Vi1dQSXAGG9C8TtUxbh44cqy6_Qvj9vbKW2savWMvAn43JcmTHyHN5SPq220tNbh0GSAoSRIbYjY28MTT6Sy0E6K40Wvbg-h-8sgCoQg.1ztV7PmqZmJvufNu22GY4-2vLnSOflRcprfHMyQlyPI"
+        },
+        {
+          "id": "abc7fb1e-61a5-4ef3-a2af-b796ec4674ee",
+          "email": "phase60-load-rehearsal-student-186@example.com",
+          "name": "Phase60 Student 186",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Prz6fhoj-qiJM-JeicaBqA.VUHHZ-Z2S_GdGDxV4RR7o-luH9W6HWFwEvk1I0DYWi5LcA0T5K3j9AG2MjZvfhxs2M8Wh0NagmFCAtbgK5AxmVvuh9LE8eaYrGk1Mc_xeovWM8uAOrTY5pxUTfe4Nz0h2Qe9TWMFmyWox3zqrgYbsqNqGytWtRUZqdDg9ijpG3vUJ-dXMZX1cu06tSIvoERGsjpdg9YJDqe0_R8V90O3GijU_FaLJ9yJEVWrLFWMDTEGrybB30k2MTfP5gT_-ANK_83OjBcF-GaWqn74A9J4Gu6cGwiAqsCDXvqPEMdSVSjpGYJU9Wvr60ACiNHbnj6R-IKkzeOXch7Vt52fPTs3k9a3tv1OuAPtThr0bNrEDs10NOL9HTsx0eso0FRuhXEqQanMqstOlxZhXtm6t-t9mQ.JLmftcxu1L8hBXFdGemqzR0kVCCb-K3ZvxDJNXusdR4"
+        },
+        {
+          "id": "45e556cb-9555-47e9-8099-db24e9de6082",
+          "email": "phase60-load-rehearsal-student-187@example.com",
+          "name": "Phase60 Student 187",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..vT0Y8Rf7gtM6y8YncOC4Sg.iEbqmAlldztZ_lWXqHzVhQA9r97e5Jdjqn9pOTkU3CF5XvypFCetP-aDySaPwkmWh_PUBqqiFMYeAkCcM6HWp-dKnIJnzmR4xqCzIUMQOx0eN56zHYzwV331_mHfF2thIg9F8rsuR2VE3Lg5zlSl4fkoCtB38o3SPJiX_E9VoEs6LK749sJzp8f4At0UFyCHtZKW1QECz6w0wn_zTVVZW0X91dlo83jtCe9nwnPJ-_e8yFa7_WcDUpSyISTrDajkTmW91XF_QhMEnL5AAVp8vsd7ovLmhNKMMR8HnkoDnU1iYjg1DVCXWf1NpTqxzboyf-v9maszekp4o3lZwYQvvrfGgRMyT0bmr31pspUKwE8X_Xq5G1RXci2J20_NAwIdJa5KPiPYJkratnl_dTa7vQ.RI0coRd1RbGEqO78Hh8fxwd9_2Bdbb-HrwONAS6Z4eA"
+        },
+        {
+          "id": "af586204-bd4f-49fb-ba15-12f6d16e1963",
+          "email": "phase60-load-rehearsal-student-188@example.com",
+          "name": "Phase60 Student 188",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..JqAcfpPzhU8PejQF08q9nQ.lZySPLxujWJbRj5CWDME6x8C-xJ_opyvbwgUTolTyYN5IFr-VA-5da8dEekWGZCTwwc1ACgx7L6J334of57uBfKHlSQRMxSV2Xr-SLhfMoQWb9AgDoZNQ8IVOVl7wzc4SBLaECsHEyS0VXMxATJ-we-8tZTVPIzoBFHZaU53Lpj62SdNJWGrYMDvJyujNX8pUdHCqMWbI17gZg9BfmJTJ3GqjyjAYOITgjX5-4vR9AWeffEpiQxLybGOKZ34RPNbz67geRccRNAYivUHqeyi-LI9svCsB6dbRv0WVp3CPqf0V1QW6K2FWBgOMWblKCFonBt4bdwwfukL4sVnVqRvtfaGxTTu-Wfoq2WD6HvsolNYl1d0ECMB5HO--1sudRxolXbmXZmOhorsZzlPRpmKMQ.7sEguqCR784puYbnSrKnAENERAEKDpfGaUNkkjfDGR0"
+        },
+        {
+          "id": "12b95318-d06f-4043-b21b-9243a48a67d1",
+          "email": "phase60-load-rehearsal-student-189@example.com",
+          "name": "Phase60 Student 189",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..ykJVQ6MhUvtZ9wgdfBleQw.wdFcLL52U4ldKqQhX5SL-goIeC-QeoX_nuQlOF940ERqghukuLB7U4LHewlShFeB0_tnmuu8jLMilH9jOX5IfW0wH_dQr33-eNeVLc1JON538zVzgFSO6-mmcEZ6ZrZeLCnpJrosjL1iuaofVp02TLlEGi0vAkKDjlABsE2Ia_PJ0BHGjXd6YrVoFTmfyP3COh4aIfxroV3pRn35kmS9rRzvlovbR4W1bVl6bv40bNFSII1RAUHpQ9W5inqdRSXp5ZtS8cCF6jDSSkHVglDAJ9A_fz10-jUOa0nKFUHtxs_QRyN2YD4IizDuT4k2Bt28XTNWuBvT2PPbTd0koOaaeZQvRq2skUIzbSgTSvDvETxLs7vQ89Ooo8PeLLooB6T5dFwLRdrEFTORrGEMBrkgWA.12DpER5fE9z4WFpslKPVnKJzj5F01yM4Hw6pQQnw-N8"
+        },
+        {
+          "id": "838d499d-bbec-4690-a493-fda63271f0c6",
+          "email": "phase60-load-rehearsal-student-190@example.com",
+          "name": "Phase60 Student 190",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..JbfGQ8YrhSZXj075QNlf0Q.MwlR7dymL4jEEaS3LIE-i4Q-7wT3t_WmNbnDUyWmySxFFoLoW353wuimHr9MyzelrWQsB3SzI39hagE22Xv4vwnWOGB0C3GmfGX7VATRlXGjYitO6Jp7j-Yb77YxbRLarKqp4kDk70nikzWHeMLwQfQSyKoFs3HoIiMM9pvLYO5JW002yaCYMC5sxPLGjXS-7fljq9Qf0hudbtFpe_Y0EDop6xxHBHfkcdpyPE1CVH92d1s2hK1J3W8QMCbIT1_7s_poRTKMYliYD1o9FR2Rr5CkvhVfULzlq7AP6O01s5nDI6D1vYr0hj9htqMuO6i0ZwWKIyyD7E6TvBBqfiIu2B8fN9zWzAdISKDocirkJ3NLx-oEtIs1fKjo-cQ4g_ikMsdpOUoYMSMxtdMy6eRYIg.QTzkime5gwNcXspXKn8HaaorliEtINt71LzVY9TnO9M"
+        },
+        {
+          "id": "3872a424-9297-4eb5-b15a-4a9dfd009906",
+          "email": "phase60-load-rehearsal-student-191@example.com",
+          "name": "Phase60 Student 191",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..VPpVuvdpCoDdI-ljBTi3ng.6qTPVS-_Xdk7FKB5wvzIHmMIa3-dm1lhfa3vUQ66YW15dQB_lTCS9V0yQ2dCQSZTOdIUKguCc3XF7iBxYrk3bL7WPgUCf_gUWOywdEXlu4-rWGJToU3lwk-BKi61xf4fjYHsAlr11sEJ8m_XU-7Wm16W_8DuaduKi8iy-koKRAUeROFiBAxBNI4H5COR8DE1IYKM7XthGnHa05a_0GYH1YKdnGiz_iZa_nshL4lArwf3wQU1Vb863cI5iFusGGcaRk4aO0nyos1wl_Jzh9fZ8ZtJYtiW-OMhyKjx3zBdhhC5RTsi_QpDeRgE37HsqKrLUbEWsVuCY2Sb80h1IOKhmrI3z2PSFx6qSshyO3ftaAqvDJatkLKkcuOog7ZYaX9H93NYD7t_9NOAPZ28B-y8Hg.3QXPzDmHKQVTw1-h2k224sdG2lw1fIN7W86S925ltrk"
+        },
+        {
+          "id": "14d49d67-c83c-4c11-871c-52baeeda6705",
+          "email": "phase60-load-rehearsal-student-192@example.com",
+          "name": "Phase60 Student 192",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..-6DFJOxbAOmT9kyN3X5dgg.jyTM3A1s6W5M0VKiDotuaj2JF3PGjdZF1g9D6TjH6tKOFqXNwL_Ue0T0eFh_KaDAjwK9KrRaFZ48I-bzz4wgWPwrUU2gY4QaChMibMaVQYi9obVm6ASEK4LWxrhDKuhcDWRQdyPnTUUUTKx0zoUguTgwygUDgu0LyInEDKq0sJ0z3czgsV2KMw2qMT60fDMGU0QJ5WufSVB9tRbNzWgR6uj57ck_Qd1syzekbbsaUBE5B-NZasZTUoqQ1wKZaOjSHiuyXOUe0JmJZxMe0KpWXow6HQfYHmMHc3Op3Yn0vSG6Mkj0hQyQcgyiB2JPpk83YXaMHW7dN6BMLFxDIooQrTgbug7HA5zcBhBKmyty2uFpM1Xx0Z_hpSEsaBJu4fqCKD2u805tFQlHFyAZGZMLCA._NEPC4NUcyqHuM_j7XMlXocQQZna-yjBaGHzbIfOjE4"
+        },
+        {
+          "id": "c72436c9-b7ec-4201-b622-de1719f5d3c9",
+          "email": "phase60-load-rehearsal-student-193@example.com",
+          "name": "Phase60 Student 193",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..MTemNrCytNximrycg7Z2zw.WS-w5v2cjCyk3l17lB_-MQsmBikKiGwQfq1lfWeNgruesshfH_w32FVyLaQEmevzwHCaYrOoId_VkUqWMFBYKI7LjpskdnJCcaLH1yC-5boXDdWt5WYehmk9S9vgk_nEeCLpL-rh2q9HBXjBqrPt6g53tfbVKpkV-POZlYdYAzdFRCVnZ0c4jmb5K_0nf1-_OwpF-oj4kX_Xy9ZvDpKCVmbo-9zLXMKwoNlwUvPgqRrJNPs09mqmFsF5LU4EPbzkxqOBQEJa5elSUA2eEYyB7buHAYOcObLH3kU6_GZjRmwzhNgeFG8pKPjUrWnvbn78rjBHyM094XXyKkAQP0pq1vKlLvmAes8QIoVgb9EwirPGyL4o0RdLhB6P81utgGYPiFChge7AFleAbOw-wiiAPg.LtaAmNj0Vw7-r5437OPDCf3MyYLyVbDkaTcNXjZrEso"
+        },
+        {
+          "id": "9024b1c5-05b8-4391-8cde-272359171d2c",
+          "email": "phase60-load-rehearsal-student-194@example.com",
+          "name": "Phase60 Student 194",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..rRbQdwIWvFh5GhbmHWOoiQ.4i_o4iNqiWGMmHk-XFmQIaietIVnMqGkqbzv406AbnHHyAqNhvx7PnpViON-dU6eomedG3ijun40pe9CTX5JjldV7l5A1DAXQ48vWyP_rVFwtaktINkEmtUi_hRZMO6dMcfZeA_cKouT2Io93wCTpB820XEZLmAaSM5u4ZSQxGRTlCDFNMcnVJo9vAiFsv4U82Lf1Lzi8L6AHMstn_hVw0xQWtA8g7I_ao8ogagbvb9EMBXC1qu-iBb-rwbVSJ3OLCYWZergRq5aStCkmtLw_k14wdJ6HeostRaBJ2Z1YKAoUrJlfE1pQOILqhjFjpSeWz42K3EOE66aXwDnIcnbV1mm0CNY741kOVwCckQy63CdOeL08NxCVD0EFx188W1uSvM0mEJjcXMIUDjpwORYZw.aYLoKif5OzLJkm0xnD_e1unGWk-kXzbZCn8S6MZDmJQ"
+        },
+        {
+          "id": "223b822a-6f45-40d0-b186-04e2da6bb63c",
+          "email": "phase60-load-rehearsal-student-195@example.com",
+          "name": "Phase60 Student 195",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..Y9lzhpJVKsswCaUSdkw49A.V83FluicSxR1nu09b1IPgE8ky5fu1GlwzTpZY49uR8okuq76KhKW-UKBx4iAEA4eqa3eAzR0SWwG5-Lmf5KY6UHIdJuJVkl3QCN_v1oenjCUtnMUdJavz31BqJD4HUo_JH6xQCarbh3xuljffkJ3S7oItULc2Kdso3Xr1RApiZYayKxHWd8oDuuEaqiBgIvYdsWaEZIMWqnzizTt_fa-QSm8PtwYd2UYiXeYqC-y9_jI7W3sQg8Ew_4WMZluqkV8ckOxZfNa9YoXDbqLc6YaEAJF1CaJ2JmTBZRXfs7G2M88x0d8f6Zi-8WUPKxse49FZ8H8hpx0rH_9v1TmjdEDuXm0yej2xxo3sWXOGy_YHSIMtmFNbvaKQD0Qy4U-vTveMYlLouNkkXcSUILLjtRD6A.mBSB42F56HMLuVZLN23ALlBbTIyeqGwll7-lzvCDTGc"
+        },
+        {
+          "id": "c6961c70-fa9a-4ddc-be2e-67ec932ddda7",
+          "email": "phase60-load-rehearsal-student-196@example.com",
+          "name": "Phase60 Student 196",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..adP-E3gTHgGpCjg8we96XA.OAtA7LWgKprv0hA_UaA8TnuJduILoT1uu3Uwf4vmL3fOvGvgX7eFLv4bkkU30sC4M38lIBOghvvn8cJPkLs2_A6rx0cyigilAEmPf92OFTss6zWi3eGfabI8kjxSdKt6gXfdIQrfykW3Mab11YaFYQLQNeFxNeYpMRlSXLpgh_gPl99SdYFKrdXvp5j7bjayRLJ6oVMr9vhRyXSsKeSXPfQVbu5GyS46AdmfXEcndc5pNRbXA1TWs4m7t29mLNY23nV_GvUhXVuBjV1UN9bVvRMYI_VSJWNckva3nOxZZd5Jb8lhUFcqMr4OzESX1ajrAjc3C5RPw_YVdNApN7PfV9hehRcDr3AY2a8LSSMN1XCjYSEe7YorLh-XQgIed2CHRGOQo1kAb85w9nw9YRXn3A.pp1NOKmtswFLhhGr10UibW6j5F9B8bt40MFOUS7n5xw"
+        },
+        {
+          "id": "db3c6258-5a94-47ab-8c0e-2d0e60bc6bc3",
+          "email": "phase60-load-rehearsal-student-197@example.com",
+          "name": "Phase60 Student 197",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..NI7RQyO7rPDPyYTKiC3Z2Q.nAJd-IC5f6oJYazTUL_dacYrUodP0NErnXfq8oMU3ZNL81J_FRbt4tufBlif_CPF-jQOoieoZphZdhCdcsxcmrnh590jU4BYNRgKgRQ_wQ9jFYJhBw-Rey832J6uLYqJCA_UGJB4yiJwR9hz_zadJSj1zMAK5VvpNDV_sw5iuniOQ-HlLYBsabeet2IIJxEF9VTkeF_QlFGzvwZ6CxIadP09HGJYFG_1LUXFPWkneH6rDRldywy-UGlO4I7jGnptKeFvhYwyXSiJ2iuBZtb5V3xH6f9yl9r93v2BTwX0zK2HAHLm4CpEQ8guPjeNq2jAXQyTIK9Y4RX3OT-qRSGEIE8UdV-GWWd1yVp7BR2tO9aOMnvW5htq_W8Sdu3JVsBf0dvq4rGEwKA8fQJct2PY8Q.Ih5be97ExEtzF3G-LSt3tegOSYnE2j-Bn_JAgZjZK9o"
+        },
+        {
+          "id": "035ce432-755d-438e-861c-014e0527462b",
+          "email": "phase60-load-rehearsal-student-198@example.com",
+          "name": "Phase60 Student 198",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..szmDPCm76xWZUQDe2c7t8Q.IOLqycnj2UswNjYpA-sEuEPXEe6fdn2LittDMJjFx32aOIxw-QwNzqSMCBw0e5826UKrjwHJRcFd6AbikbpWjlEa5twV9FUDJWE3Xf9MVf3m59ZB_csZSXcrptI4GL5_AH3Tmt5eGYW7OBVnqgEcN4qry5VBeLpyBDzF55uvmN-o3cWBI7fZ8uLLolUvTtSKpM7LRxx71tIf2voAlKiUcg7jRIo3yb-V1X_bCUww4CY9vCTAc-H44ojigZx--EuQJWQGuRnGZmqg16MAcZv-HXEJyKJKZV33xgYV8lp12Z6vRoypJ3hmV9uEdOcloU0s8Rnh4cMZuLQH0-Frt1iYqAZG6SogJ2ZbvQPkcFC-rSzmo7K54mep8Oaz85ZTE9nXH14d0Mgiuxj_D_HPDby73w.L_k9rff6Umj6Dmykj8gMy8-ph3czhdl05B_JytszI6M"
+        },
+        {
+          "id": "e3207eb7-6a57-414c-a70a-28c08fa63e8f",
+          "email": "phase60-load-rehearsal-student-199@example.com",
+          "name": "Phase60 Student 199",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..qedx6qHLeSt1-OYPYxsLRA.AfIPgj3G4TOvk9EUD4eKZCz_olUlEXTvvrOyEmX341gHafL3W2HB7knFygKFQa4bIy1Fz2VoH_XaK2HyJ08KQQ6PlpT7Rw2fRdjsDCKsJDuCz-140xLFB9C7eTLc6iln3bQRIq6XrdSTZwCXu7KCDN91t8aY3c1qCZd7AHBa588fS7F59yLjcjdx8GhNK2sCGF4x76xtZliBkSxaxy_ZdqnbSfdVwOiDSMobOsqpCDlIPSbD-pny-WX_gJEOwEP23v0JAbVbsEJkRDvWNTFyOAj-JEYYW25TVyhBxqb7a57E_ndSxLQymvWbYqT2QRis3wcq8XM-7fmILydYx7Z_s9N-i82VQJdkj8fhDPwrBL5H9CofxZ-haMWun4FxB3TYem0EVifbW8PG5VLg1vJX4w.jCM7h3Fs-3PRDh9V_xfxCihx5KZoo0qevnlV1jXRKvo"
+        },
+        {
+          "id": "bbdfd715-0989-4c59-9255-98b3aad5fa7a",
+          "email": "phase60-load-rehearsal-student-200@example.com",
+          "name": "Phase60 Student 200",
+          "roles": [
+            "student"
+          ],
+          "workspaceRole": "student",
+          "sessionCookie": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiZ0ItSGNYV2ZsaDM1QkhWTHh1WWhGTFNPY29NS19hTjZJRFNRZl9mMWRhSXhBWUxWMDA2SjdqVV9VNmxaeG5IQ2tVVERZVXFpX1BUN2YxYkk1ODVCYWcifQ..MticWogBuz71CjV3njzF-w.PvnZrjpmrSwij7RijAq-j6Aj658pUPO2-4OF9OAHQ--E2FmNv_JXP2qVNh4ypB2B6DIYudnwep49_-QiwyJ_Y_12U4ygEyIXeMkb-TDHS7WhYySIR-vxYq-pBh8Wrk3NTMTMlkyyyz1oEbJthFSWX1qPzZgIfxv1JX4FzmASuzZdOuE2T0gXJCvtUsq-WwjeCCIb7fG6WEmNATMM7yQjTRUfnn3p-2WnysmyA0ksMeGOLNBV4E2uZuMJ_D8Dc9A0By1bZV_tAaoU69zKN0ua5AL3Cq4qksNFWGaynrkL9sOoDQRqY-prhdrjZwtLlGZep2uAb2R9mhm7Bmi26iNeMlJ5svYXA9N-bJ5umXXLtgN5F1qCbFkVFS4VhYKhBjWN7ZNpcTpK1PtyZ0qkD4AjIQ.AS_NWOqV_5KgCBlYojI-Aqn9igNOv0cObcRu-HM1scI"
+        }
+      ]
+    }
+  ]
+}

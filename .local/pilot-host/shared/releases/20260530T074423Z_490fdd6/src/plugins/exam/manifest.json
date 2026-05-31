@@ -1,0 +1,48 @@
+{
+  "id": "exam-plugin",
+  "version": "1.0.0",
+  "manifestVersion": 2,
+  "anchors": ["lesson.exam"],
+  "permissions": [],
+  "actions": [],
+  "builtIn": false,
+  "defaultEnabled": true,
+  "nonDeletable": false,
+  "governance": {
+    "manifestVersion": 2,
+    "contractVersion": "v2",
+    "runtime": {
+      "version": "v2",
+      "runtimeId": "exam-plugin",
+      "runtimeVersion": "1.0.0",
+      "kind": "plugin-runtime",
+      "displayName": "考试插件",
+      "stateSchemaVersion": "exam-v1",
+      "entry": {
+        "sandbox": "iframe",
+        "bootstrap": "/runtime/exam"
+      },
+      "bootstrap": {
+        "contextMode": "minimal",
+        "resumeStrategy": "latest-or-create",
+        "capabilitySnapshot": "session-scoped"
+      },
+      "submitTarget": {
+        "targets": ["task-submission"]
+      },
+      "requestedCapabilities": [
+        "runtime:ready",
+        "runtime:state:save",
+        "runtime:submission:create"
+      ]
+    },
+    "requestedCapabilities": [],
+    "permissions": [],
+    "lifecycle": {
+      "ownerType": "host",
+      "installScope": "school",
+      "initialState": "installed",
+      "mountMode": "session-bootstrap"
+    }
+  }
+}

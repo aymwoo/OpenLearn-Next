@@ -1,0 +1,83 @@
+{
+  "releaseId": "20260530T075236Z_490fdd6",
+  "gitSha": "490fdd6",
+  "environment": "pilot-single-school-local",
+  "actor": "phase60-rehearsal",
+  "releaseDir": "/home/wuxf/Develop/OpenLearn-Next/.local/pilot-host/shared/releases/20260530T075236Z_490fdd6",
+  "manifestPath": "/home/wuxf/Develop/OpenLearn-Next/.local/pilot-host/shared/manifests/20260530T075236Z_490fdd6.json",
+  "migration": {
+    "command": "pnpm db:migrate",
+    "status": "pending"
+  },
+  "migrations": {
+    "command": "pnpm db:migrate",
+    "status": "pending"
+  },
+  "gates": {
+    "lint": "passed",
+    "typecheck": "passed",
+    "test": "failed",
+    "build": "pending",
+    "migrate": "pending",
+    "verifyPhase57": "pending",
+    "verifyPhase58": "pending",
+    "verifyPhase59": "pending",
+    "health": "pending",
+    "ready": "pending"
+  },
+  "releasedAt": "2026-05-30T07:56:13Z",
+  "rollbackTarget": null,
+  "systemdUnits": [
+    "openlearn-web",
+    "openlearn-worker"
+  ],
+  "restoreDrill": {
+    "status": "not_run",
+    "nextStep": "Run ops/deploy/verify-restore.sh after Phase 59-05 lands the restore baseline."
+  },
+  "operatorCorrelation": {
+    "schoolId": {
+      "id": "7b6064dc-cb96-4867-b528-3a13e93217a6",
+      "href": null,
+      "hrefTemplate": null
+    },
+    "classroomSessionId": {
+      "id": "9948a82d-7b95-42ec-b5fd-448d96d9c5a1",
+      "href": "/settings/labs/incidents/9948a82d-7b95-42ec-b5fd-448d96d9c5a1",
+      "hrefTemplate": "/settings/labs/incidents/[sessionId]"
+    },
+    "lessonVersionId": {
+      "id": "df9da308-2c75-47d3-8dfc-19984b60eca5",
+      "href": null,
+      "hrefTemplate": null
+    },
+    "pluginId": {
+      "id": "plugin-voting-proof",
+      "href": "/settings/labs/plugins/plugin-voting-proof",
+      "hrefTemplate": "/settings/labs/plugins/[pluginId]"
+    },
+    "actionKey": {
+      "id": "launchVote",
+      "href": "/settings/labs/plugins/plugin-voting-proof/actions/launchVote",
+      "hrefTemplate": "/settings/labs/plugins/[pluginId]/actions/[actionKey]"
+    },
+    "commandId": {
+      "id": "phase60-command-1780127555899",
+      "href": "/settings/labs/commands/phase60-command-1780127555899",
+      "hrefTemplate": "/settings/labs/commands/[commandId]"
+    },
+    "taskId": {
+      "id": "phase60-task-1780127555899",
+      "href": "/settings/labs/async-tasks/phase60-task-1780127555899",
+      "hrefTemplate": "/settings/labs/async-tasks/[taskId]"
+    },
+    "runtimeInspector": {
+      "href": "/settings/labs/runtime-inspector?runtimeSessionId=9948a82d-7b95-42ec-b5fd-448d96d9c5a1",
+      "hrefTemplate": "/settings/labs/runtime-inspector?runtimeSessionId={classroomSessionId}"
+    },
+    "pluginActionDetail": {
+      "href": "/settings/labs/plugins/plugin-voting-proof/actions/launchVote",
+      "hrefTemplate": "/settings/labs/plugins/[pluginId]/actions/[actionKey]"
+    }
+  }
+}

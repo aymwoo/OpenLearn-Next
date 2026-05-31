@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-05-30T13:37:40.643Z",
+  "proofScopeId": "phase60-load-rehearsal",
+  "classroomSessionId": "c9298a39-f942-4114-bbe2-5f00d4e44a57",
+  "designPublish": {
+    "status": "passed",
+    "script": "pnpm verify:phase56"
+  },
+  "browserProof": {
+    "status": "passed",
+    "reusedScript": "runPhase57BrowserProof"
+  },
+  "status": "passed",
+  "blockingFailure": null,
+  "nextStep": "Capacity and drill gates may continue."
+}

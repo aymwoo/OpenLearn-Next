@@ -1,0 +1,104 @@
+{
+  "phase": "22",
+  "phase_name": "teacher-orchestration-workspace-and-launch-preparation",
+  "timestamp": "2026-05-13T03:15:00Z",
+  "areas_completed": [
+    "准备区主结构",
+    "名册作用域",
+    "运行时强调",
+    "阻断规则"
+  ],
+  "areas_remaining": [],
+  "decisions": {
+    "准备区主结构": [
+      {
+        "question": "先定 `/teacher/launch` 的主结构：Phase 22 的准备区主舞台应该长什么样？",
+        "answer": "三段工作台",
+        "options_presented": ["三段工作台", "双栏准备页", "清单驱动页"]
+      },
+      {
+        "question": "三段工作台里，哪一段应该占最大、最核心的主舞台？",
+        "answer": "Run sheet 主舞台",
+        "options_presented": ["Run sheet 主舞台", "配置区主舞台", "Readiness 主舞台"]
+      },
+      {
+        "question": "class-facing run sheet 你更想让它用什么呈现方式？",
+        "answer": "节奏卡片流",
+        "options_presented": ["节奏卡片流", "时间线视图", "表格式 run sheet"]
+      }
+    ],
+    "名册作用域": [
+      {
+        "question": "Phase 22 的 roster scope 应该开放到什么粒度？",
+        "answer": "只允许整班",
+        "options_presented": ["整班 + 小组/子集", "只允许整班", "多班混合"]
+      },
+      {
+        "question": "即便本期只允许整班启动，老师在 launch 前对名册还能做什么？",
+        "answer": "只看摘要",
+        "options_presented": ["只看摘要", "临时排除少数学生", "可直接编辑名册"]
+      }
+    ],
+    "运行时强调": [
+      {
+        "question": "Phase 22 里，老师在开课前最值得显式预设的“运行时强调”应该是哪一类？",
+        "answer": "课堂节奏与关注点",
+        "options_presented": ["课堂节奏与关注点", "锁定模式等运行参数", "都要，但以节奏为主"]
+      },
+      {
+        "question": "run sheet 卡片上，哪些“开课前重点”必须成为正式信息层，而不是只靠正文描述？",
+        "answer": "关键步骤 + 材料 + 采证提醒",
+        "options_presented": ["关键步骤 + 材料 + 采证提醒", "关键步骤 + 课堂模式提醒", "只突出关键步骤"]
+      },
+      {
+        "question": "这些课堂节奏/关注点在 Phase 22 应该是什么性质？",
+        "answer": "只读准备摘要",
+        "options_presented": ["只读准备摘要", "允许少量临时备注", "允许完整 session 配置"]
+      }
+    ],
+    "阻断规则": [
+      {
+        "question": "Phase 22 的 readiness gate，整体上你更想采用哪种姿态？",
+        "answer": "少量硬阻断 + 明确提醒",
+        "options_presented": ["少量硬阻断 + 明确提醒", "严格阻断", "几乎不阻断"]
+      },
+      {
+        "question": "下面哪些问题在 Phase 22 应该被视为“不能开课”的硬阻断？可多选。",
+        "answer": "没有可启动班级；没有已发布课时",
+        "options_presented": ["没有可启动班级", "没有已发布课时", "关键教学设计仍是待完善", "缺少材料摘要或采证提醒"]
+      },
+      {
+        "question": "对于不会阻止开课的 readiness 缺口，Phase 22 更适合怎么呈现？",
+        "answer": "分成“需关注 / 建议完善”两级",
+        "options_presented": ["分成“需关注 / 建议完善”两级", "统一提醒列表", "嵌入每张步骤卡"]
+      }
+    ]
+  },
+  "deferred_ideas": [],
+  "canonical_refs": [
+    ".planning/PROJECT.md",
+    ".planning/ROADMAP.md",
+    ".planning/REQUIREMENTS.md",
+    ".planning/STATE.md",
+    ".planning/phases/17-teacher-flow-editor-enhancement/17-CONTEXT.md",
+    ".planning/phases/18-teaching-schedule-os/18-CONTEXT.md",
+    ".planning/phases/19-teacher-shell-route-metadata-system/19-CONTEXT.md",
+    ".planning/phases/21-teaching-design-contracts-and-evidence-foundation/21-CONTEXT.md",
+    "src/app/(teacher)/teacher/launch/page.tsx",
+    "src/components/surfaces/classroom-launch-surface.tsx",
+    "src/components/classroom/classroom-launch-panel.tsx",
+    "src/components/classroom/classroom-launch-preview.tsx",
+    "src/components/surfaces/lesson-editor-surface.tsx",
+    "src/components/authoring/authoring-status-panel.tsx",
+    "src/components/authoring/lesson-editor-header-actions.tsx",
+    "src/components/surfaces/teacher-lesson-preview-surface.tsx",
+    "src/lib/dto/lesson-authoring.ts",
+    "src/lib/dto/classroom.ts",
+    "src/lib/dal/lesson-authoring.ts",
+    "src/lib/dal/classroom.ts",
+    "src/actions/lesson-authoring-actions.ts",
+    "src/actions/classroom-actions.ts",
+    "src/lib/theme-layout/route-surface-registry.ts",
+    "docs/teacher-classroom-flow-review.md"
+  ]
+}

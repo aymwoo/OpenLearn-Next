@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenLearn Next web process (user)
+After=default.target
+
+[Service]
+Type=exec
+EnvironmentFile=%h/.config/openlearn/openlearn.env
+ExecStart=/usr/bin/env bash -lc 'cd "$OPENLEARN_CURRENT_ROOT" && pnpm start'
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=30s
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=default.target

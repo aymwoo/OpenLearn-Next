@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenLearn Next worker process
+After=network.target
+
+[Service]
+Type=exec
+EnvironmentFile=/etc/openlearn/openlearn.env
+ExecStart=/usr/bin/env bash -lc 'cd "$OPENLEARN_CURRENT_ROOT" && pnpm worker:start'
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=30s
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=multi-user.target

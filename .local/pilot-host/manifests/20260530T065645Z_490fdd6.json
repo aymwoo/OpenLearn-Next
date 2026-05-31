@@ -1,0 +1,83 @@
+{
+  "releaseId": "20260530T065645Z_490fdd6",
+  "gitSha": "490fdd6",
+  "environment": "pilot-single-school-local",
+  "actor": "local-operator",
+  "releaseDir": "/home/wuxf/Develop/OpenLearn-Next/.local/pilot-host/shared/releases/20260530T065645Z_490fdd6",
+  "manifestPath": "/home/wuxf/Develop/OpenLearn-Next/.local/pilot-host/manifests/20260530T065645Z_490fdd6.json",
+  "migration": {
+    "command": "pnpm db:migrate",
+    "status": "passed"
+  },
+  "migrations": {
+    "command": "pnpm db:migrate",
+    "status": "passed"
+  },
+  "gates": {
+    "lint": "passed",
+    "typecheck": "passed",
+    "test": "passed",
+    "build": "passed",
+    "migrate": "passed",
+    "verifyPhase57": "passed",
+    "verifyPhase58": "passed",
+    "verifyPhase59": "passed",
+    "health": "passed",
+    "ready": "passed"
+  },
+  "releasedAt": "2026-05-30T07:11:10Z",
+  "rollbackTarget": null,
+  "systemdUnits": [
+    "openlearn-web",
+    "openlearn-worker"
+  ],
+  "restoreDrill": {
+    "status": "not_run",
+    "nextStep": "Run ops/deploy/verify-restore.sh after Phase 59-05 lands the restore baseline."
+  },
+  "operatorCorrelation": {
+    "schoolId": {
+      "id": "school-1",
+      "href": null,
+      "hrefTemplate": null
+    },
+    "classroomSessionId": {
+      "id": "session-1",
+      "href": "/settings/labs/incidents/session-1",
+      "hrefTemplate": "/settings/labs/incidents/[sessionId]"
+    },
+    "lessonVersionId": {
+      "id": "lesson-v1",
+      "href": null,
+      "hrefTemplate": null
+    },
+    "pluginId": {
+      "id": "plugin-voting-proof",
+      "href": "/settings/labs/plugins/plugin-voting-proof",
+      "hrefTemplate": "/settings/labs/plugins/[pluginId]"
+    },
+    "actionKey": {
+      "id": "launchVote",
+      "href": "/settings/labs/plugins/plugin-voting-proof/actions/launchVote",
+      "hrefTemplate": "/settings/labs/plugins/[pluginId]/actions/[actionKey]"
+    },
+    "commandId": {
+      "id": "command-1",
+      "href": "/settings/labs/commands/command-1",
+      "hrefTemplate": "/settings/labs/commands/[commandId]"
+    },
+    "taskId": {
+      "id": "task-1",
+      "href": "/settings/labs/async-tasks/task-1",
+      "hrefTemplate": "/settings/labs/async-tasks/[taskId]"
+    },
+    "runtimeInspector": {
+      "href": "/settings/labs/runtime-inspector?runtimeSessionId=session-1",
+      "hrefTemplate": "/settings/labs/runtime-inspector?runtimeSessionId={classroomSessionId}"
+    },
+    "pluginActionDetail": {
+      "href": "/settings/labs/plugins/plugin-voting-proof/actions/launchVote",
+      "hrefTemplate": "/settings/labs/plugins/[pluginId]/actions/[actionKey]"
+    }
+  }
+}
