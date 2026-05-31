@@ -4,8 +4,13 @@ import {
   PlatformCommandExecutionResultSchema,
 } from "@/features/platform-core/commands/contracts";
 import {
+  LessonDraftProducedEventSchema,
+  LessonDraftRequestedEventSchema,
+  LessonToolInvokedEventSchema,
+  PlatformDomainEventSchema,
   PlatformEventBridgeOwnershipSchema,
   PlatformEventSchema,
+  PlatformSuccessOrDomainEventSchema,
 } from "@/features/platform-core/events/contracts";
 
 describe("platform event contracts", () => {
@@ -159,6 +164,118 @@ describe("platform event contracts", () => {
         },
       }),
     ).toThrow();
+  });
+
+  it("parses the three AI-domain lesson draft events as valid PlatformEvents", () => {
+    const requested = PlatformEventSchema.parse({
+      eventType: "lesson.draft.requested",
+      category: "domain",
+      aggregateType: "lesson",
+      aggregateId: "lesson_x",
+      payload: {
+        commandType: "lesson.draft.request",
+        stepType: "content",
+        intentSummary: "导入",
+      },
+    });
+    expect(requested.eventType).toBe("lesson.draft.requested");
+
+    const invoked = PlatformEventSchema.parse({
+      eventType: "lesson.tool.invoked",
+      category: "domain",
+      aggregateType: "lesson",
+      aggregateId: "lesson_x",
+      payload: {
+        toolName: "draftContentStep",
+        stepType: "task",
+        attempt: 1,
+      },
+    });
+    expect(invoked.eventType).toBe("lesson.tool.invoked");
+
+    const produced = PlatformEventSchema.parse({
+      eventType: "lesson.draft.produced",
+      category: "domain",
+      aggregateType: "lesson",
+      aggregateId: "lesson_x",
+      payload: {
+        stepType: "quiz",
+        title: "随堂检测",
+        succeeded: true,
+        tokenUsage: 128,
+      },
+    });
+    expect(produced.eventType).toBe("lesson.draft.produced");
+
+    expect(LessonDraftRequestedEventSchema.safeParse({
+      eventType: "lesson.draft.requested",
+      category: "domain",
+      aggregateType: "lesson",
+      aggregateId: "lesson_x",
+      payload: { commandType: "lesson.draft.request", stepType: "content", intentSummary: "导入" },
+    }).success).toBe(true);
+    expect(LessonToolInvokedEventSchema.safeParse({
+      eventType: "lesson.tool.invoked",
+      category: "domain",
+      aggregateType: "lesson",
+      aggregateId: "lesson_x",
+      payload: { toolName: "draftContentStep", stepType: "content", attempt: 2 },
+    }).success).toBe(true);
+  });
+
+  it("rejects AI-domain payload fields ending in Json (summary-only guard)", () => {
+    const result = LessonDraftRequestedEventSchema.safeParse({
+      eventType: "lesson.draft.requested",
+      category: "domain",
+      aggregateType: "lesson",
+      aggregateId: "lesson_x",
+      payload: {
+        commandType: "lesson.draft.request",
+        stepType: "content",
+        intentSummary: "导入",
+        stepPayloadJson: { title: "整包快照禁入" },
+      },
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((issue) => issue.message).join(" | ");
+      expect(messages).toContain("must not include object snapshots");
+    }
+  });
+
+  it("carries lesson.draft.produced through the domain and emittedEvents-capable unions", () => {
+    const event = {
+      eventType: "lesson.draft.produced" as const,
+      category: "domain" as const,
+      aggregateType: "lesson" as const,
+      aggregateId: "lesson_x",
+      payload: {
+        stepType: "content" as const,
+        title: "课堂导入",
+        succeeded: true as const,
+      },
+    };
+
+    expect(PlatformDomainEventSchema.safeParse(event).success).toBe(true);
+    expect(PlatformSuccessOrDomainEventSchema.safeParse(event).success).toBe(true);
+  });
+
+  it("rejects AI-domain payloads with undeclared fields (.strict())", () => {
+    const result = LessonDraftProducedEventSchema.safeParse({
+      eventType: "lesson.draft.produced",
+      category: "domain",
+      aggregateType: "lesson",
+      aggregateId: "lesson_x",
+      payload: {
+        stepType: "content",
+        title: "课堂导入",
+        succeeded: true,
+        unexpectedField: "should be rejected",
+      },
+    });
+
+    expect(result.success).toBe(false);
   });
 
   it("locks bridge ownership to sqlite-ledger truth", () => {
