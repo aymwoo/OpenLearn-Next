@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
 status: completed
-stopped_at: Completed 61-04-PLAN.md
-last_updated: "2026-05-31T08:03:14.678Z"
-last_activity: 2026-05-31 -- Phase 62 marked complete
+stopped_at: Phase 63 plan-phase complete (GO) -- ready to execute
+last_updated: "2026-05-31T09:30:00.000Z"
+last_activity: 2026-05-31 -- Phase 63 planned (4 plans/3 waves), plan-checker GO
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 9
+  total_plans: 13
   completed_plans: 9
   percent: 40
 ---
@@ -21,16 +21,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-31)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 62 — lessonagent-typed-tool-layer
+**Current focus:** Phase 63 — ai-draft-chain-into-draft-lesson-version
 
 ## Current Position
 
-Phase: 62 — COMPLETE
-Plan: 62-04 complete (draftLessonStep server-only orchestration via Command Bus)
-Status: Phase 62 complete
-Last activity: 2026-05-31 -- Phase 62 marked complete
+Phase: 63 — PLANNED (executing)
+Plan: 4 plans / 3 waves (Wave1: 63-01∥63-03, Wave2: 63-02, Wave3: 63-04); plan-checker GO (修订环 2/3)
+Status: Phase 63 plan-phase complete, entering execute-phase
+Last activity: 2026-05-31 -- Phase 63 planned, plan-checker GO
 
-Progress: [██████████] 100% (Phase 62)
+Progress: [████░░░░░░] 40% (2/5 phases; Phase 63 executing)
 
 ## Performance Metrics
 
