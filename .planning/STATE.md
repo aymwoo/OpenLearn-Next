@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
 status: executing
-last_updated: "2026-05-31T07:43:17.592Z"
-last_activity: 2026-05-31 -- 62-03 lesson.draft.run typed-tool command handler landed
+last_updated: "2026-05-31T16:00:00.000Z"
+last_activity: 2026-05-31 -- 62-04 draftLessonStep server-only orchestration landed; Phase 62 complete
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
-  percent: 20
+  completed_plans: 9
+  percent: 40
 ---
 
 # Project State
@@ -24,12 +24,12 @@ See: `.planning/PROJECT.md` (updated 2026-05-31)
 
 ## Current Position
 
-Phase: 62 (lessonagent-typed-tool-layer) — EXECUTING
-Plan: 62-03 complete (lesson.draft.run typed-tool command handler)
-Status: Executing Phase 62
-Last activity: 2026-05-31 -- 62-03 lesson.draft.run typed-tool command handler landed
+Phase: 62 (lessonagent-typed-tool-layer) — COMPLETE (4/4 plans)
+Plan: 62-04 complete (draftLessonStep server-only orchestration via Command Bus)
+Status: Phase 62 complete — ready for Phase 63 (lesson-draft-persistence)
+Last activity: 2026-05-31 -- 62-04 draftLessonStep server-only orchestration landed; Phase 62 complete
 
-Progress: [█████████░] 89%
+Progress: [██████████] 100% (Phase 62)
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█████████░] 89%
 | Phase 61 P03 | ~6min | 1 tasks | 2 files |
 | Phase 61 P04 | 20min | 2 tasks | 4 files |
 | Phase 62 P03 | ~45min | 1 tasks | 6 files |
+| Phase 62 P04 | ~40min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Recent decisions affecting current work:
 - [Phase 62]: 62-03: lesson.draft.run handler 严格只发 3 AI 域事件（无 succeeded），失败仅抛 PlatformCommandExecutionError 走 bus 唯一 generic platform.command.failed（D-53-07/08）；零改 scope schema / bus 失败路径
 - [Phase 62]: 62-03: teacherId 从授权 actor（assertActiveTeacher().userId）闭包注入 typed tool，绝不取自 LLM/payload；步骤包仅经 command resultSummary 回传，不写 lesson/draft version（归 Phase 63）
 - [Phase 62]: 62-03: plugins handler-map satisfies 由 Record<PlatformCommandType> 收窄为 Record<governance command types>，使新增 command 类型不被迫塞入 plugin handler map
+- [Phase 62]: 62-04: lesson-agent 只暴露 server-only 编排 facade draftLessonStep，构造 envelope（system actor core.lesson-agent、sentinel pluginId、correlation 三字段、payload 无 teacherId）后经 dispatchPlatformCommand 唯一派发，从 resultSummary.step 取回；失败透传不静默吞错
+- [Phase 62]: 62-04: 端到端集成测试用真实 bus + 真实 platformCommandRegistry + 真实 lesson-draft handler，仅注入 persistPlatformEvents 捕获三事件落账并断言 summary-only 信息隔离；agent 文件零 DB/env/LLM 直接依赖
 
 ### Pending Todos
 

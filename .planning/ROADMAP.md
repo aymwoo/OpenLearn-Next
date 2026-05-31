@@ -28,7 +28,7 @@
 **Milestone Goal:** 教师可触发 AI 起草一节课的步骤包，经审校后通过既有发布链路落地，全程经 Command Bus / 工具层治理。
 
 - [ ] **Phase 61: AI Provider Abstraction Layer** - 统一 server-side provider 接口、密钥隔离、限流/配额与 typed 可重试错误，provider 可替换。
-- [ ] **Phase 62: LessonAgent Typed Tool Layer** - Zod 校验的 typed tools，只调 DAL / Command Bus，产出原子步骤包，关键节点写入 event bus。
+- [x] **Phase 62: LessonAgent Typed Tool Layer** - Zod 校验的 typed tools，只调 DAL / Command Bus，产出原子步骤包，关键节点写入 event bus。
 - [ ] **Phase 63: AI Draft Chain into Draft Lesson Version** - 经 Command Bus 把 Agent 产出写入 AI-标注、幂等、replay-safe 的 draft lesson version，复用既有真相源。
 - [ ] **Phase 64: Teacher Review & Accept-Publish Surface** - 起草结果的 diff / 编辑 / 接受发布 / 丢弃，对齐 Stitch + DESIGN.md。
 - [ ] **Phase 65: Eval, Guardrails & verify:phase Close Gate** - 可重复 eval、越界 guardrails 与端到端 `verify:phase` 单一权威闭环闸门。
@@ -64,7 +64,7 @@
 - [x] 62-01-PLAN.md — Wave 1：events/contracts.ts 新增三条 AI 域事件契约（lesson.draft.requested/tool.invoked/produced，`.strict()` summary-only）+ 契约单测（AGENT-04）
 - [x] 62-02-PLAN.md — Wave 1：server/ai/tools `createDraftLessonStepTool` factory（teacherId 闭包注入、inputSchema 边界校验、只调 facade+只读 DAL）+ prompts + barrel + no-leak 静态证明（AGENT-01/02/03）
 - [x] 62-03-PLAN.md — Wave 2：commands/contracts.ts 新增 `lesson.draft.run`（sentinel pluginId=core.lesson-agent，零改 scope/bus）+ handler（授权→调 tool→emit 三事件/失败抛错）+ registry 注册（AGENT-03/04）
-- [ ] 62-04-PLAN.md — Wave 3：server/ai/agents `draftLessonStep` 公共编排入口（构造 envelope→dispatchPlatformCommand→从 resultSummary 取回 step）+ 端到端集成测试（AGENT-03/04，闭合 SC3/SC4）
+- [x] 62-04-PLAN.md — Wave 3：server/ai/agents `draftLessonStep` 公共编排入口（构造 envelope→dispatchPlatformCommand→从 resultSummary 取回 step）+ 端到端集成测试（AGENT-03/04，闭合 SC3/SC4）
 
 ### Phase 63: AI Draft Chain into Draft Lesson Version
 **Goal**: 打通起草写入链路：Agent 产出经 Command Bus 写入 draft lesson version，复用既有 publish/version 模型而非新建第二真相源；写入幂等且 replay-safe；draft 在数据上标注 AI 来源、与教师手工编辑可区分，且不会自动发布给学生。
@@ -106,7 +106,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 61. AI Provider Abstraction Layer | v3.2 | 5/5 | Complete   | 2026-05-31 |
-| 62. LessonAgent Typed Tool Layer | v3.2 | 3/4 | In Progress|  |
+| 62. LessonAgent Typed Tool Layer | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 0/TBD | Not started | - |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 0/TBD | Not started | - |
 | 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 0/TBD | Not started | - |
