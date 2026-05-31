@@ -7,6 +7,16 @@ const draftSection = schema.slice(
   schema.indexOf("export const draftLessonVersions = sqliteTable")
 );
 
+const lessonsSection = schema.slice(
+  schema.indexOf("export const lessons = sqliteTable")
+);
+
+const lessonStepsStart = schema.indexOf("export const lessonSteps = sqliteTable");
+const lessonStepsSection = schema.slice(
+  lessonStepsStart,
+  schema.indexOf("export const lessonMaterials = sqliteTable")
+);
+
 describe("Phase 63 draft lesson version schema", () => {
   it("exports the draftLessonVersions table mapped to draftLessonVersion", () => {
     expect(schema).toContain("export const draftLessonVersions = sqliteTable");
@@ -44,5 +54,26 @@ describe("Phase 63 draft lesson version schema", () => {
     expect(draftSection).toContain(
       'index("draftLessonVersions_lessonId_version_idx").on(table.lessonId, table.version)'
     );
+  });
+});
+
+describe("Phase 64 draft review lifecycle schema", () => {
+  it("includes status enum pending/applied/discarded on draftLessonVersions with default pending", () => {
+    expect(draftSection).toContain('enum: ["pending", "applied", "discarded"]');
+    expect(draftSection).toContain('.default("pending")');
+  });
+
+  it("includes archivedAt timestamp on draftLessonVersions for discarded lifecycle tracking", () => {
+    expect(draftSection).toContain('integer("archivedAt", { mode: "timestamp_ms" })');
+  });
+
+  it("adds aiDraftAppliedAt and latestDraftVersionId backlinks to lessons", () => {
+    expect(lessonsSection).toContain('integer("aiDraftAppliedAt", { mode: "timestamp_ms" })');
+    expect(lessonsSection).toContain('text("latestDraftVersionId")');
+  });
+
+  it("does NOT add source or sourceCommandId provenance columns to lessonSteps", () => {
+    expect(lessonStepsSection).not.toContain("sourceCommandId");
+    expect(lessonStepsSection).not.toContain('text("source"');
   });
 });
