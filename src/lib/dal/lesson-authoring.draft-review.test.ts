@@ -421,6 +421,7 @@ describe("applyDraftToLiveLesson", () => {
       courseId: "course-1",
       draftVersionId: "draft-1",
       appliedStepCount: 3,
+      version: 1,
     });
   });
 
