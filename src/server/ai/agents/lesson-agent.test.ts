@@ -9,11 +9,15 @@ vi.mock("@/db", () => ({ db: {} }));
 
 const mocks = vi.hoisted(() => ({
   assertActiveTeacher: vi.fn(),
+  persistDraftLessonVersion: vi.fn(),
   createDraftLessonStepTool: vi.fn(),
 }));
 
+// 真实 persist handler 经 registry 解析后会调 DAL `persistDraftLessonVersion`（写型副作用）。
+// 注入 mock → 桥接路径 run→persist 端到端经真实 bus 派发，DAL 写入被捕获且永不触达 @/db。
 vi.mock("@/lib/dal/lesson-authoring", () => ({
   assertActiveTeacher: mocks.assertActiveTeacher,
+  persistDraftLessonVersion: mocks.persistDraftLessonVersion,
 }));
 
 vi.mock("@/server/ai/tools", () => ({
@@ -51,6 +55,8 @@ import type {
 } from "@/features/platform-core/commands/bus";
 import type { PlatformEvent } from "@/features/platform-core/events/contracts";
 
+import { DraftGuardrailRejection } from "@/lib/dto/draft-guardrails";
+
 import { draftLessonStep } from "./lesson-agent";
 
 type PersistCall = {
@@ -64,7 +70,11 @@ type PersistCall = {
 /** 最小 in-memory PlatformCommandStore：捕获 createCommand 的 envelope，支撑 bus 的 attempt 流程。 */
 function createInMemoryStore() {
   const records = new Map<string, PersistedPlatformCommandRecord>();
-  const captured: { command: PlatformCommand | null } = { command: null };
+  // command：最后一次插入（向后兼容）；commands：run→persist 桥接全序列（断言两段派发）。
+  const captured: { command: PlatformCommand | null; commands: PlatformCommand[] } = {
+    command: null,
+    commands: [],
+  };
 
   const store: PlatformCommandStore = {
     async getCommandByDedupeKey() {
@@ -72,6 +82,7 @@ function createInMemoryStore() {
     },
     async insertCommand(input) {
       captured.command = input.command;
+      captured.commands.push(input.command);
       records.set(input.command.id, {
         command: input.command,
         dedupeKey: input.dedupeKey,
@@ -141,6 +152,11 @@ describe("draftLessonStep 公共编排入口（端到端经真实 bus → handle
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.assertActiveTeacher.mockResolvedValue({ userId: "t1", schoolIds: ["s1"] });
+    mocks.persistDraftLessonVersion.mockResolvedValue({
+      draftVersionId: "draft-v1",
+      version: 1,
+      stepCount: 1,
+    });
     mockToolReturning(contentStep);
   });
 
@@ -152,8 +168,12 @@ describe("draftLessonStep 公共编排入口（端到端经真实 bus → handle
       { store, persistPlatformEvents },
     );
 
-    expect(calls).toHaveLength(1);
-    const persisted = calls[0]!;
+    // 桥接后 persistPlatformEvents 被调两次（run 三事件 + persist 一事件）；
+    // 定位 run 段：含 lesson.draft.requested 的那次落账。
+    const persisted = calls.find((call) =>
+      call.events.some((event) => event.eventType === "lesson.draft.requested"),
+    )!;
+    expect(persisted).toBeDefined();
     expect(persisted.events).toHaveLength(3);
 
     const eventTypes = new Set(persisted.events.map((event) => event.eventType));
@@ -213,7 +233,8 @@ describe("draftLessonStep 公共编排入口（端到端经真实 bus → handle
       { store, persistPlatformEvents },
     );
 
-    const command = captured.command!;
+    const command = captured.commands.find((cmd) => cmd.type === "lesson.draft.run")!;
+    expect(command).toBeDefined();
     expect(command.type).toBe("lesson.draft.run");
     expect(command.scope.pluginId).toBe("core.lesson-agent");
     expect(command.scope.schoolId).toBe("s1");
@@ -242,5 +263,89 @@ describe("draftLessonStep 公共编排入口（端到端经真实 bus → handle
     // 失败走 bus generic 失败路径：落账事件不含任何 lesson.* domain 事件。
     const allEvents = calls.flatMap((call) => call.events);
     expect(allEvents.some((event) => event.eventType.startsWith("lesson."))).toBe(false);
+  });
+});
+
+describe("draftLessonStep run→persist 桥接（D-01 顺序派发，共享 correlationId）", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.assertActiveTeacher.mockResolvedValue({ userId: "t1", schoolIds: ["s1"] });
+    mocks.persistDraftLessonVersion.mockResolvedValue({
+      draftVersionId: "draft-v1",
+      version: 1,
+      stepCount: 1,
+    });
+    mockToolReturning(contentStep);
+  });
+
+  it("Bridge 1: run 成功后顺序派发一条 lesson.draft.persist 命令（DRAFT-01）", async () => {
+    const { store, captured, persistPlatformEvents } = setupDeps();
+
+    await draftLessonStep(
+      { schoolId: "s1", lessonId: "l1", stepType: "content", intent: "导入环节" },
+      { store, persistPlatformEvents },
+    );
+
+    const types = captured.commands.map((cmd) => cmd.type);
+    expect(types).toContain("lesson.draft.run");
+    expect(types).toContain("lesson.draft.persist");
+    // run 先于 persist（顺序派发，非嵌套）。
+    expect(types.indexOf("lesson.draft.run")).toBeLessThan(types.indexOf("lesson.draft.persist"));
+  });
+
+  it("Bridge 2: persist payload.steps 为单个 run 步骤包成的数组 [step]（key_link）", async () => {
+    const { store, captured, persistPlatformEvents } = setupDeps();
+
+    await draftLessonStep(
+      { schoolId: "s1", lessonId: "l1", stepType: "content", intent: "导入环节" },
+      { store, persistPlatformEvents },
+    );
+
+    const persistCommand = captured.commands.find((cmd) => cmd.type === "lesson.draft.persist")!;
+    expect(persistCommand).toBeDefined();
+    const payload = persistCommand.payload as { lessonId: string; steps: unknown[] };
+    expect(payload.lessonId).toBe("l1");
+    expect(payload.steps).toHaveLength(1);
+    expect(payload.steps[0]).toMatchObject({ type: "content", title: "导入", body: "正文内容" });
+    // payload 严格：teacherId/source 绝不入 payload（handler 闭包注入 / T-66-05）。
+    expect(Object.keys(payload).sort()).toEqual(["lessonId", "steps"]);
+  });
+
+  it("Bridge 3: persist 复用 run 的 correlationId（run→persist 为同一关联单元）", async () => {
+    const { store, captured, persistPlatformEvents } = setupDeps();
+
+    await draftLessonStep(
+      { schoolId: "s1", lessonId: "l1", stepType: "content", intent: "导入环节" },
+      { store, persistPlatformEvents },
+    );
+
+    const runCommand = captured.commands.find((cmd) => cmd.type === "lesson.draft.run")!;
+    const persistCommand = captured.commands.find((cmd) => cmd.type === "lesson.draft.persist")!;
+    expect(persistCommand.correlation.correlationId).toBe(runCommand.correlation.correlationId);
+  });
+
+  it("Bridge 4: step 为 null（守卫拒绝）时短路，不派发 persist（D-53-08 失败透传语义）", async () => {
+    mockToolThrowing(new DraftGuardrailRejection({ reasonCode: "forbidden_content", stepType: "content" }));
+    const { store, captured, persistPlatformEvents } = setupDeps();
+
+    const result = await draftLessonStep(
+      { schoolId: "s1", lessonId: "l1", stepType: "content", intent: "导入环节" },
+      { store, persistPlatformEvents },
+    );
+
+    expect(result.step).toBeNull();
+    expect(captured.commands.some((cmd) => cmd.type === "lesson.draft.persist")).toBe(false);
+  });
+
+  it("Bridge 5: 返回携带 persist 结果的草稿身份 draftVersionId + version（DRAFT-01 回传）", async () => {
+    const { store, persistPlatformEvents } = setupDeps();
+
+    const result = await draftLessonStep(
+      { schoolId: "s1", lessonId: "l1", stepType: "content", intent: "导入环节" },
+      { store, persistPlatformEvents },
+    );
+
+    expect(result.draftVersionId).toBe("draft-v1");
+    expect(result.version).toBe(1);
   });
 });
