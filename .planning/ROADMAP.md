@@ -145,7 +145,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65 → 66
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 5/5 | Complete   | 2026-06-01 |
-| 66. Wire AI LessonAgent Draft Loop End-to-End | v3.2 | 5/7 | In Progress|  |
+| 66. Wire AI LessonAgent Draft Loop End-to-End | v3.2 | 6/7 | In Progress|  |
 
 <details>
 <summary>✅ v3.1 Single-School Pilot Production Readiness (Plugin-First) (Phases 55-60, 60.1, 60.2) — SHIPPED 2026-05-30</summary>
@@ -167,7 +167,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65 → 66
 
 **Requirements**: AGENT-03, DRAFT-01, DRAFT-02, DRAFT-03, REVIEW-01, REVIEW-03
 **Depends on:** Phase 65
-**Plans:** 5/7 plans executed
+**Plans:** 6/7 plans executed
 
 Plans:
 **Wave 1**
@@ -184,4 +184,4 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [ ] 66-05-PLAN.md — 课时编辑器「AI 起草」触发器 + 内联意图面板（D-02 前端，含人工验收）
-- [ ] 66-07-PLAN.md — 端到端闭环 e2e 断言：旗标启用→run+persist→accept 经命令（version≥1）→发布链（Nyquist 核心交付）
+- [x] 66-07-PLAN.md — 端到端闭环 e2e 断言：旗标启用→run+persist→accept 经命令（version≥1）→发布链（Nyquist 核心交付）
