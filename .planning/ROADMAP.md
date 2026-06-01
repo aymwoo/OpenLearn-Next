@@ -31,7 +31,7 @@
 - [x] **Phase 62: LessonAgent Typed Tool Layer** - Zod 校验的 typed tools，只调 DAL / Command Bus，产出原子步骤包，关键节点写入 event bus。
 - [ ] **Phase 63: AI Draft Chain into Draft Lesson Version** - 经 Command Bus 把 Agent 产出写入 AI-标注、幂等、replay-safe 的 draft lesson version，复用既有真相源。
 - [ ] **Phase 64: Teacher Review & Accept-Publish Surface** - 起草结果的 diff / 编辑 / 接受发布 / 丢弃，对齐 Stitch + DESIGN.md。
-- [ ] **Phase 65: Eval, Guardrails & verify:phase Close Gate** - 可重复 eval、越界 guardrails 与端到端 `verify:phase` 单一权威闭环闸门。
+- [x] **Phase 65: Eval, Guardrails & verify:phase Close Gate** - 可重复 eval、越界 guardrails 与端到端 `verify:phase` 单一权威闭环闸门。
 
 ## Phase Details
 
