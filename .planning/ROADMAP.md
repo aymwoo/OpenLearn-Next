@@ -145,7 +145,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65 → 66
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 5/5 | Complete   | 2026-06-01 |
-| 66. Wire AI LessonAgent Draft Loop End-to-End | v3.2 | 4/7 | In Progress|  |
+| 66. Wire AI LessonAgent Draft Loop End-to-End | v3.2 | 5/7 | In Progress|  |
 
 <details>
 <summary>✅ v3.1 Single-School Pilot Production Readiness (Plugin-First) (Phases 55-60, 60.1, 60.2) — SHIPPED 2026-05-30</summary>
@@ -167,7 +167,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65 → 66
 
 **Requirements**: AGENT-03, DRAFT-01, DRAFT-02, DRAFT-03, REVIEW-01, REVIEW-03
 **Depends on:** Phase 65
-**Plans:** 4/7 plans executed
+**Plans:** 5/7 plans executed
 
 Plans:
 **Wave 1**
@@ -179,7 +179,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 66-03-PLAN.md — 教师起草 server action + lesson_agent_enabled 旗标强制（D-02 后端/D-03）
-- [ ] 66-04-PLAN.md — 新建 lesson-draft producer 并将 accept/discard 改走 Command Bus（D-04）
+- [x] 66-04-PLAN.md — 新建 lesson-draft producer 并将 accept/discard 改走 Command Bus（D-04）
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
