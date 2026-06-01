@@ -145,7 +145,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65 → 66
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 5/5 | Complete   | 2026-06-01 |
-| 66. Wire AI LessonAgent Draft Loop End-to-End | v3.2 | 2/7 | In Progress|  |
+| 66. Wire AI LessonAgent Draft Loop End-to-End | v3.2 | 3/7 | In Progress|  |
 
 <details>
 <summary>✅ v3.1 Single-School Pilot Production Readiness (Plugin-First) (Phases 55-60, 60.1, 60.2) — SHIPPED 2026-05-30</summary>
@@ -167,14 +167,14 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65 → 66
 
 **Requirements**: AGENT-03, DRAFT-01, DRAFT-02, DRAFT-03, REVIEW-01, REVIEW-03
 **Depends on:** Phase 65
-**Plans:** 2/7 plans executed
+**Plans:** 3/7 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 66-01-PLAN.md — 修复 version:0 数据链（DTO→DAL→handler）并回填 accept resultSummary 的 courseId
 - [x] 66-02-PLAN.md — 桥接 LessonAgent run→persist 编排（D-01，[step] 包装 + 同 correlationId）+ persist 幂等断言（DRAFT-02）
-- [ ] 66-06-PLAN.md — 对账 REQUIREMENTS.md 需求追溯（D-06，仅文档）
+- [x] 66-06-PLAN.md — 对账 REQUIREMENTS.md 需求追溯（D-06，仅文档）
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
