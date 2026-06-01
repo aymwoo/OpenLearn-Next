@@ -24,6 +24,17 @@ vi.mock("@/lib/dal/resources", () => ({
   createTeacherResource: vi.fn(),
 }));
 
+// 阻断 bus → registry → 全量 handler → DAL → @/lib/auth → next-auth 的急切加载链；
+// 本套件不演练 draft accept/discard（覆盖在 draft-routing.test.ts），故 stub 即可。
+vi.mock("@/features/platform-core/commands/bus", () => ({
+  dispatchPlatformCommand: vi.fn(),
+}));
+
+vi.mock("@/features/platform-core/commands/producers/lesson-draft", () => ({
+  buildLessonDraftCommand: vi.fn(),
+  lessonDraftCommandBusDependencies: {},
+}));
+
 vi.mock("@/lib/dal/lesson-authoring", () => ({
   addLessonStep: mockAddLessonStep,
   assertActiveTeacher,

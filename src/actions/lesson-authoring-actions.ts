@@ -5,12 +5,10 @@ import { z } from "zod";
 
 import {
   addLessonStep,
-  applyDraftToLiveLesson,
   assertActiveTeacher,
   archiveLesson,
   archiveLessonStep,
   createLessonDraft,
-  discardDraftLessonVersion,
   duplicateLesson,
   duplicateLessonStep,
   getLessonPublishReadinessDTO,
@@ -24,6 +22,17 @@ import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
 import { ClassroomVotingAuthoringConfigSchema } from "@/lib/dto/resource-ai";
 import { createTeacherResource } from "@/lib/dal/resources";
 import { cacheTags } from "@/lib/cache-policy";
+import { dispatchPlatformCommand } from "@/features/platform-core/commands/bus";
+import {
+  buildLessonDraftCommand,
+  lessonDraftCommandBusDependencies,
+} from "@/features/platform-core/commands/producers/lesson-draft";
+
+/**
+ * 保留 sentinel pluginId —— 内置系统 agent 身份；accept/discard scope.pluginId 复用之
+ * （handler authorize 仅按 schoolId 鉴权，pluginId 仅需非空且语义昭示来源）。
+ */
+const LESSON_AGENT_SENTINEL_PLUGIN_ID = "core.lesson-agent";
 
 const conflictMessage = "检测到更新冲突，请刷新后重试。";
 
@@ -438,10 +447,27 @@ export async function applyDraftLessonVersionAction(input: FormData | Record<str
 
   try {
     const actor = await assertActiveTeacher();
-    const result = await applyDraftToLiveLesson(parsed.data);
-    invalidateLessonAuthoringTags(actor.userId, result.courseId, result.lessonId);
-    updateTag(cacheTags.draftLesson(result.lessonId));
-    return { ok: true, data: result };
+    // D-04：经 Command Bus 派发 lesson.draft.accept，不再直连 DAL。schoolId 取已鉴权教师
+    // 所属学校；handler authorize 复核 schoolId ∈ scope（不取 client courseId / T-66-14）。
+    const command = buildLessonDraftCommand({
+      type: "lesson.draft.accept",
+      source: "server-action",
+      actor: { actorId: actor.userId, actorScope: "teacher" },
+      scope: { schoolId: actor.schoolIds[0], pluginId: LESSON_AGENT_SENTINEL_PLUGIN_ID },
+      payload: parsed.data,
+      // dedupeKey 必填（replay-safe / DRAFT-02）：lessonId+draftVersionId+actor 派生。
+      dedupeKey: `lesson.draft.accept:${parsed.data.lessonId}:${parsed.data.draftVersionId}:${actor.userId}`,
+      correlation: { producer: "lesson-authoring-action", correlationId: null, causationId: null },
+    });
+
+    const result = await dispatchPlatformCommand(command, lessonDraftCommandBusDependencies);
+    // courseId 取自权威命令结果摘要（Plan 01 回填），驱动 course 级缓存失效。
+    const courseId = result.resultSummary?.courseId as string | undefined;
+    if (courseId) {
+      invalidateLessonAuthoringTags(actor.userId, courseId, parsed.data.lessonId);
+    }
+    updateTag(cacheTags.draftLesson(parsed.data.lessonId));
+    return { ok: true, data: { lessonId: parsed.data.lessonId, ...result.resultSummary } };
   } catch (error) {
     return handleActionError(error);
   }
@@ -452,11 +478,22 @@ export async function discardDraftLessonVersionAction(input: FormData | Record<s
   if (!parsed.success) return validationError();
 
   try {
-    await assertActiveTeacher();
-    const result = await discardDraftLessonVersion(parsed.data);
+    const actor = await assertActiveTeacher();
+    // D-04：经 Command Bus 派发 lesson.draft.discard，不再直连 DAL。
+    const command = buildLessonDraftCommand({
+      type: "lesson.draft.discard",
+      source: "server-action",
+      actor: { actorId: actor.userId, actorScope: "teacher" },
+      scope: { schoolId: actor.schoolIds[0], pluginId: LESSON_AGENT_SENTINEL_PLUGIN_ID },
+      payload: parsed.data,
+      dedupeKey: `lesson.draft.discard:${parsed.data.lessonId}:${parsed.data.draftVersionId}:${actor.userId}`,
+      correlation: { producer: "lesson-authoring-action", correlationId: null, causationId: null },
+    });
+
+    const result = await dispatchPlatformCommand(command, lessonDraftCommandBusDependencies);
     updateTag(cacheTags.draftLesson(parsed.data.lessonId));
     updateTag(cacheTags.lesson(parsed.data.lessonId));
-    return { ok: true, data: result };
+    return { ok: true, data: { lessonId: parsed.data.lessonId, ...result.resultSummary } };
   } catch (error) {
     return handleActionError(error);
   }
