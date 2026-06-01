@@ -1723,6 +1723,7 @@ export async function applyDraftToLiveLesson(input: {
     courseId: course.id,
     draftVersionId: input.draftVersionId,
     appliedStepCount: draftStepsPayload.length,
+    version: draft.version,
   });
 }
 
@@ -1765,6 +1766,7 @@ export async function discardDraftLessonVersion(input: {
     lessonId: lesson.id,
     draftVersionId: input.draftVersionId,
     discardedAt: toIso(now),
+    version: draft.version,
   });
 }
 

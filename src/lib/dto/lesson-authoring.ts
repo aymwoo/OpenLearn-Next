@@ -464,6 +464,7 @@ export const ApplyDraftResultDTOSchema = z.object({
   courseId: z.string(),
   draftVersionId: z.string(),
   appliedStepCount: z.number().int().nonnegative(),
+  version: z.number().int().positive(),
 });
 
 export type ApplyDraftResultDTO = z.infer<typeof ApplyDraftResultDTOSchema>;
@@ -472,6 +473,7 @@ export const DiscardDraftResultDTOSchema = z.object({
   lessonId: z.string(),
   draftVersionId: z.string(),
   discardedAt: z.string(),
+  version: z.number().int().positive(),
 });
 
 export type DiscardDraftResultDTO = z.infer<typeof DiscardDraftResultDTOSchema>;
