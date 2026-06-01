@@ -2,8 +2,8 @@
 phase: 66
 slug: wire-ai-lessonagent-draft-loop-end-to-end-bridge-run-persist
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-01
 ---
 
@@ -39,12 +39,12 @@ created: 2026-06-01
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | 1 | DRAFT-01 | — | run→persist bridge: successful run dispatches persist; draft lands in `draftLessonVersions` | integration | `npx vitest run src/server/ai/agents/lesson-agent.test.ts` | ✅ extend existing | ⬜ pending |
-| TBD | TBD | 0/1 | AGENT-03 | — | draft server action: flag enabled → persists; flag disabled → `AGENT_DISABLED`, no command dispatched | integration | `npx vitest run src/actions/lesson-agent-actions.test.ts` | ❌ W0 | ⬜ pending |
-| TBD | TBD | 1 | DRAFT-02 | — | persist idempotent: same `sourceCommandId` re-dispatch does not double-write | integration | `npx vitest run src/features/platform-core/commands/handlers/lesson-draft.persist.test.ts` | ✅ extend existing | ⬜ pending |
-| TBD | TBD | 1 | DRAFT-03 / REVIEW-01 | — | accept/discard go through Command Bus, single-event path (no direct DAL) | integration | `npx vitest run src/actions/lesson-authoring-actions.test.ts` | ✅ extend existing | ⬜ pending |
-| TBD | TBD | 1 | REVIEW-03 (version fix) | — | accepted/discarded events carry `version === draft.version` (≥1, never 0) | unit/integration | `npx vitest run src/features/platform-core/commands/handlers/lesson-draft.events.test.ts` | ✅ extend existing | ⬜ pending |
-| TBD | TBD | 1 | E2E closure | — | enable flag → trigger → run+persist → review → accept via command → publish | integration | planner sets locus (extend `lesson-agent.test.ts` or new e2e-loop spec) | ❌ W0 (core delivery assertion) | ⬜ pending |
+| 66-02 T1/T2 | 66-02 | 1 | DRAFT-01 | T-66-04/05 | run→persist bridge: successful run dispatches persist; draft lands in `draftLessonVersions` | integration | `npx vitest run src/server/ai/agents/lesson-agent.test.ts` | ✅ extend existing | ⬜ pending |
+| 66-03 T1/T2 | 66-03 | 2 | AGENT-03 | T-66-07/08/09 | draft server action: flag enabled → persists; flag disabled → `AGENT_DISABLED`, no command dispatched | integration | `npx vitest run src/actions/lesson-agent-actions.test.ts` | ✅ created by 66-03 (was W0) | ⬜ pending |
+| 66-02 T3 | 66-02 | 1 | DRAFT-02 | T-66-06 | persist idempotent: same `sourceCommandId` re-dispatch — no double-write, no duplicate draft row / event | integration | `npx vitest run src/features/platform-core/commands/handlers/lesson-draft.persist.test.ts` | ✅ extend existing | ⬜ pending |
+| 66-04 T1/T3 | 66-04 | 2 | DRAFT-03 / REVIEW-01 | T-66-11/12/13/14 | accept/discard go through Command Bus, single-event path (no direct DAL) | integration | `npx vitest run src/actions/lesson-authoring-actions.draft-routing.test.ts` | ✅ created by 66-04 | ⬜ pending |
+| 66-01 T1/T3 | 66-01 | 1 | REVIEW-03 (version fix) | T-66-01/02/03 | accepted/discarded events carry `version === draft.version` (≥1, never 0) | unit/integration | `npx vitest run src/features/platform-core/commands/handlers/lesson-draft.events.test.ts` | ✅ extend existing | ⬜ pending |
+| 66-07 T1 | 66-07 | 3 | E2E closure | T-66-18/19/20 | flag enabled (test-DB fixture) → trigger → run+persist (draft row, version≥1) → accept via command (accepted version≥1) → publish chain | integration (e2e) | `npx vitest run src/server/ai/agents/lesson-draft-loop.e2e.test.ts` | ✅ created by 66-07 (was W0; core delivery assertion) | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -52,11 +52,14 @@ created: 2026-06-01
 
 ## Wave 0 Requirements
 
-- [ ] `src/actions/lesson-agent-actions.test.ts` (or folded into existing actions test) — covers AGENT-03 flag enforcement + draft action orchestrating two commands
-- [ ] End-to-end closure integration spec — covers flows 0/1 (the audit's core gap); includes "flag-enabled state injection" fixture (direct-write `agentRegistry` row `enabled=true`, see RESEARCH Open Q1)
-- [ ] Extend `src/server/ai/agents/lesson-agent.test.ts` — assert successful run **actually dispatches** persist (currently missing)
-- [ ] Extend `lesson-draft.events.test.ts` — assert accepted/discarded `version` is a real positive integer (currently uncovered)
-- [ ] Framework install: not needed — Vitest already present
+> All Wave-0 (test-scaffold) items are folded into TDD RED tasks within the plans below — no separate Wave 0 plan is required.
+
+- [x] `src/actions/lesson-agent-actions.test.ts` — AGENT-03 flag enforcement + draft action orchestrating two commands → **66-03 Task 1 (RED)**
+- [x] End-to-end closure integration spec (flows 0/1, the audit's core gap) incl. flag-enabled state injection (direct-write `agentRegistry` row `enabled=true`, RESEARCH Open Q1) → **66-07 Task 1** (`src/server/ai/agents/lesson-draft-loop.e2e.test.ts`)
+- [x] Extend `src/server/ai/agents/lesson-agent.test.ts` — assert successful run **actually dispatches** persist → **66-02 Task 1 (RED) / Task 2 (GREEN)**
+- [x] Extend `lesson-draft.events.test.ts` — assert accepted/discarded `version` is a real positive integer → **66-01 Task 1 (RED) / Task 3 (GREEN)**
+- [x] Extend `lesson-draft.persist.test.ts` — assert same-`sourceCommandId` re-dispatch idempotency (no double-write / duplicate event) → **66-02 Task 3**
+- [x] Framework install: not needed — Vitest already present
 
 ---
 
@@ -72,11 +75,11 @@ created: 2026-06-01
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 8s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (folded into 66-02 / 66-03 / 66-07 RED tasks)
+- [x] No watch-mode flags
+- [x] Feedback latency < 8s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** ready (pending execution — task Status cells flip to ✅ as plans complete)
