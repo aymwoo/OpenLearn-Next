@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
+import {
+  lessonStepPayloadSchema,
+  type LessonStepPayload,
+} from "@/lib/dto/lesson-authoring";
 
 import { draftStepCorpus } from "./__fixtures__/draft-step-corpus";
 
@@ -50,13 +53,19 @@ const FAKE_PREVIEW = {
 const STEP_TYPES = ["content", "task", "quiz"] as const;
 type EvalStepType = (typeof STEP_TYPES)[number];
 
-/** 回放：经受控通道把指定类型的合法语料步骤产出为 LessonStepPayload。 */
-async function draftFromCorpus(stepType: EvalStepType) {
+/**
+ * 回放：经受控通道把指定类型的合法语料步骤产出为 LessonStepPayload。
+ *
+ * `ai` 的 `tool.execute` 返回类型会被放宽为 `T | AsyncIterable<T>`，类型上不可
+ * 直接判别字段；此处收窄回 `LessonStepPayload`（运行期即 facade resolve 的步骤包）。
+ */
+async function draftFromCorpus(stepType: EvalStepType): Promise<LessonStepPayload> {
   aiGenerateObjectMock.mockResolvedValue(draftStepCorpus.valid[stepType]);
-  return createDraftLessonStepTool({ teacherId: "t1" }).execute!(
+  const result = await createDraftLessonStepTool({ teacherId: "t1" }).execute!(
     { lessonId: "l1", stepType, intent: "起草" },
     {} as never,
   );
+  return result as LessonStepPayload;
 }
 
 describe("EVAL-01: draft output schema + teaching structure", () => {
@@ -73,5 +82,35 @@ describe("EVAL-01: draft output schema + teaching structure", () => {
         expect(verified.success).toBe(true);
       });
     }
+  });
+
+  describe("teaching structure invariants（D-02：基础教学结构达标）", () => {
+    it("content：非空 title + 非空 body", async () => {
+      const result = await draftFromCorpus("content");
+      // 按判别字段收窄后断言类型专属字段（避免越过 union）。
+      expect(result.type).toBe("content");
+      if (result.type !== "content") throw new Error("expected content step");
+      expect(result.title.trim().length).toBeGreaterThan(0);
+      expect(result.body.trim().length).toBeGreaterThan(0);
+    });
+
+    it("task：非空 prompt + 合法 submissionType", async () => {
+      const result = await draftFromCorpus("task");
+      expect(result.type).toBe("task");
+      if (result.type !== "task") throw new Error("expected task step");
+      expect(result.prompt.trim().length).toBeGreaterThan(0);
+      expect(["text", "image", "file", "link"]).toContain(result.submissionType);
+    });
+
+    it("quiz：>=2 选项 + 在范围内的 correctOptionIndex", async () => {
+      const result = await draftFromCorpus("quiz");
+      expect(result.type).toBe("quiz");
+      if (result.type !== "quiz") throw new Error("expected quiz step");
+      expect(result.options.length).toBeGreaterThanOrEqual(2);
+      expect(
+        result.correctOptionIndex === undefined ||
+          result.correctOptionIndex < result.options.length,
+      ).toBe(true);
+    });
   });
 });
