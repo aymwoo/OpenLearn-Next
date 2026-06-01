@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
 status: executing
-last_updated: "2026-06-01T02:02:54.401Z"
+last_updated: "2026-06-01T02:14:37.231Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 22
-  completed_plans: 18
+  completed_plans: 19
   percent: 80
 ---
 
@@ -25,11 +25,11 @@ See: `.planning/PROJECT.md` (updated 2026-05-31)
 ## Current Position
 
 Phase: 65 (eval-guardrails-verify-phase-close-gate) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-06-01
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [████████░░] 82%
 | Phase 62 P04 | ~40min | 1 tasks | 2 files |
 | Phase 63 P01 | ~40min | 3 tasks | 5 files |
 | Phase 65 P01 | 4min | 2 tasks | 3 files |
+| Phase 65 P02 | 5min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 62]: 62-03: plugins handler-map satisfies 由 Record<PlatformCommandType> 收窄为 Record<governance command types>，使新增 command 类型不被迫塞入 plugin handler map
 - [Phase 62]: 62-04: lesson-agent 只暴露 server-only 编排 facade draftLessonStep，构造 envelope（system actor core.lesson-agent、sentinel pluginId、correlation 三字段、payload 无 teacherId）后经 dispatchPlatformCommand 唯一派发，从 resultSummary.step 取回；失败透传不静默吞错
 - [Phase 62]: 62-04: 端到端集成测试用真实 bus + 真实 platformCommandRegistry + 真实 lesson-draft handler，仅注入 persistPlatformEvents 捕获三事件落账并断言 summary-only 信息隔离；agent 文件零 DB/env/LLM 直接依赖
+- [Phase ?]: 65-02: illegal_step_type rejection uses sentinel stepType=content; never echoes LLM type literal (T-65-PII)
+- [Phase ?]: 65-02: guardrail rejection propagates uncaught from draft tool; 65-04 handler distinguishes out-of-bounds from real generation failure
 
 ### Pending Todos
 
@@ -119,7 +122,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-01T02:02:54.396Z
+Last session: 2026-06-01T02:10:41.241Z
 Stopped at: Phase 64 plans complete (4 plans, all reviewed, 2 warnings fixed)
 Resume file: None
 
