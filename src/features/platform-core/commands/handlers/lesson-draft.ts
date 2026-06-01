@@ -268,8 +268,10 @@ async function executeLessonDraftAccept(
 
   return successResult({
     resultSummary: {
+      courseId: result.courseId,
       draftVersionId: result.draftVersionId,
       appliedStepCount: result.appliedStepCount,
+      version: result.version,
     },
     invalidation: {
       tags: [
@@ -286,7 +288,7 @@ async function executeLessonDraftAccept(
         aggregateId: lessonId,
         payload: {
           draftVersionId: result.draftVersionId,
-          version: 0, // version is not available from the DAL result; handler resolves it
+          version: result.version,
           appliedStepCount: result.appliedStepCount,
           source: "ai",
         },
@@ -324,7 +326,7 @@ async function executeLessonDraftDiscard(
         aggregateId: lessonId,
         payload: {
           draftVersionId: result.draftVersionId,
-          version: 0, // version is not available from the DAL result; handler resolves it
+          version: result.version,
         },
       }, command.audit),
     ],
