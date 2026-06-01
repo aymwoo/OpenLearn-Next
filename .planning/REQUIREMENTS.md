@@ -17,12 +17,12 @@
 
 - [ ] **AGENT-01**: LessonAgent 暴露一组 Zod 校验的 typed tools，所有输入输出在边界处被校验，非法 payload 被拒绝。
 - [ ] **AGENT-02**: Agent 工具只能通过 DAL / Command Bus 读写数据，不能直连数据库、不能访问 provider key、不能执行任意代码。
-- [ ] **AGENT-03**: 教师能针对一节目标课时触发 LessonAgent 起草，Agent 产出符合 `content`/`task`/`quiz` 原子步骤 schema 的步骤包。
+- [x] **AGENT-03**: 教师能针对一节目标课时触发 LessonAgent 起草，Agent 产出符合 `content`/`task`/`quiz` 原子步骤 schema 的步骤包。
 - [x] **AGENT-04**: Agent 起草过程的关键节点（开始、工具调用、完成、失败）作为 typed platform events 写入 v3.0 event bus，可被 operator 追溯。
 
 ### AI 起草链路 (DRAFT)
 
-- [ ] **DRAFT-01**: Agent 起草结果通过 Command Bus 写入 draft lesson version，复用既有 publish/version 模型，不新建第二真相源。
+- [x] **DRAFT-01**: Agent 起草结果通过 Command Bus 写入 draft lesson version，复用既有 publish/version 模型，不新建第二真相源。
 - [ ] **DRAFT-02**: 起草写入是幂等且 replay-safe 的：同一起草请求重试不会产生重复 draft 或污染已有课时内容。
 - [ ] **DRAFT-03**: draft lesson version 与教师手工编辑的课时在数据上可区分（标注 AI 来源），且不会自动发布给学生。
 
