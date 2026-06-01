@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { PlatformAuditMetadataSchema } from "@/features/platform-core/ai-contracts/delegation";
+// `draft-guardrails` 是最低层、非 server-only 的契约模块（reason-code 词表）。
+// events/contracts 依赖 lib/dto 属于正确的向下依赖方向；绝不反向依赖
+// server/ai/tools，也不会因此把 events/contracts 拉进 server-only 边界。
+import { GuardrailReasonCodeSchema } from "@/lib/dto/draft-guardrails";
 
 const SummaryRecordSchema = z.record(z.string(), z.unknown()).superRefine((value, ctx) => {
   for (const [key, entry] of Object.entries(value)) {
@@ -304,6 +308,28 @@ export const LessonDraftAppliedEventSchema = z.object({
   }),
 }).strict();
 
+// Phase 65 — 守卫拦截草稿事件（summary-only，EVAL-02 "被拦截输出记录可查"）。
+// payload 仅承载 lessonId/stepType/reasonCode/teacherId —— 绝不含 step 快照或
+// 任何 *Json 字段（D-07 / T-65-PII），由 summaryOnlyStrictPayload 在结构上强制。
+const LessonDraftRejectedPayloadSchema = summaryOnlyStrictPayload({
+  lessonId: z.string().min(1),
+  stepType: LessonStepTypeSchema,
+  reasonCode: GuardrailReasonCodeSchema,
+  teacherId: z.string().min(1),
+});
+
+export const LessonDraftRejectedEventSchema = z.object({
+  eventType: z.literal("lesson.draft.rejected"),
+  category: z.literal("domain"),
+  aggregateType: z.literal("lesson"),
+  aggregateId: z.string().min(1),
+  payload: LessonDraftRejectedPayloadSchema,
+  audit: PlatformAuditMetadataSchema.default({
+    delegatedActor: null,
+    approval: null,
+  }),
+}).strict();
+
 export const PlatformEventSchema = z.discriminatedUnion("eventType", [
   PlatformSuccessEventSchema,
   PlatformFailureEventSchema,
@@ -317,6 +343,7 @@ export const PlatformEventSchema = z.discriminatedUnion("eventType", [
   LessonDraftAcceptedEventSchema,
   LessonDraftDiscardedEventSchema,
   LessonDraftAppliedEventSchema,
+  LessonDraftRejectedEventSchema,
 ]);
 
 export const PlatformDomainEventSchema = z.union([
@@ -330,6 +357,7 @@ export const PlatformDomainEventSchema = z.union([
   LessonDraftAcceptedEventSchema,
   LessonDraftDiscardedEventSchema,
   LessonDraftAppliedEventSchema,
+  LessonDraftRejectedEventSchema,
 ]);
 
 export const PlatformSuccessOrDomainEventSchema = z.union([
@@ -362,6 +390,8 @@ export type LessonDraftDiscardedEvent = z.infer<typeof LessonDraftDiscardedEvent
 export type LessonDraftDiscardedPayload = z.infer<typeof LessonDraftDiscardedPayloadSchema>;
 export type LessonDraftAppliedEvent = z.infer<typeof LessonDraftAppliedEventSchema>;
 export type LessonDraftAppliedPayload = z.infer<typeof LessonDraftAppliedPayloadSchema>;
+export type LessonDraftRejectedEvent = z.infer<typeof LessonDraftRejectedEventSchema>;
+export type LessonDraftRejectedPayload = z.infer<typeof LessonDraftRejectedPayloadSchema>;
 export type PlatformPersistedDispatchBatch = {
   commandId: string;
   attemptNumber: number;

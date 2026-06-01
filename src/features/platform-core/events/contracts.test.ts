@@ -5,6 +5,7 @@ import {
 } from "@/features/platform-core/commands/contracts";
 import {
   LessonDraftProducedEventSchema,
+  LessonDraftRejectedEventSchema,
   LessonDraftRequestedEventSchema,
   LessonToolInvokedEventSchema,
   PlatformDomainEventSchema,
@@ -275,6 +276,73 @@ describe("platform event contracts", () => {
       },
     });
 
+    expect(result.success).toBe(false);
+  });
+
+  it("carries a guardrail rejection through the rejected, domain, and discriminated unions", () => {
+    const rejected = {
+      eventType: "lesson.draft.rejected" as const,
+      category: "domain" as const,
+      aggregateType: "lesson" as const,
+      aggregateId: "l1",
+      payload: {
+        lessonId: "l1",
+        stepType: "quiz" as const,
+        reasonCode: "forbidden_content" as const,
+        teacherId: "t1",
+      },
+    };
+
+    expect(LessonDraftRejectedEventSchema.safeParse(rejected).success).toBe(true);
+    expect(PlatformDomainEventSchema.safeParse(rejected).success).toBe(true);
+    expect(PlatformEventSchema.safeParse(rejected).success).toBe(true);
+  });
+
+  it("rejects lesson.draft.rejected payloads carrying a step snapshot or *Json (T-65-PII)", () => {
+    const withSnapshot = LessonDraftRejectedEventSchema.safeParse({
+      eventType: "lesson.draft.rejected",
+      category: "domain",
+      aggregateType: "lesson",
+      aggregateId: "l1",
+      payload: {
+        lessonId: "l1",
+        stepType: "quiz",
+        reasonCode: "forbidden_content",
+        teacherId: "t1",
+        stepJson: { title: "整包快照禁入" },
+      },
+    });
+    expect(withSnapshot.success).toBe(false);
+
+    const withExtraField = LessonDraftRejectedEventSchema.safeParse({
+      eventType: "lesson.draft.rejected",
+      category: "domain",
+      aggregateType: "lesson",
+      aggregateId: "l1",
+      payload: {
+        lessonId: "l1",
+        stepType: "quiz",
+        reasonCode: "forbidden_content",
+        teacherId: "t1",
+        body: "未声明字段应被拒绝",
+      },
+    });
+    expect(withExtraField.success).toBe(false);
+  });
+
+  it("rejects lesson.draft.rejected with a reasonCode outside the shared vocabulary", () => {
+    const result = LessonDraftRejectedEventSchema.safeParse({
+      eventType: "lesson.draft.rejected",
+      category: "domain",
+      aggregateType: "lesson",
+      aggregateId: "l1",
+      payload: {
+        lessonId: "l1",
+        stepType: "quiz",
+        reasonCode: "made_up",
+        teacherId: "t1",
+      },
+    });
     expect(result.success).toBe(false);
   });
 
