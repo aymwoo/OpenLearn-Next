@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
 status: executing
-last_updated: "2026-05-31T12:59:26.321Z"
-last_activity: 2026-05-31 -- Phase 63 execution started
+last_updated: "2026-06-01T02:02:54.401Z"
+last_activity: 2026-06-01
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 17
-  completed_plans: 13
-  percent: 60
+  completed_phases: 4
+  total_plans: 22
+  completed_plans: 18
+  percent: 80
 ---
 
 # Project State
@@ -20,16 +20,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-31)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 63 — ai-draft-chain-into-draft-lesson-version
+**Current focus:** Phase 65 — eval-guardrails-verify-phase-close-gate
 
 ## Current Position
 
-Phase: 63 (ai-draft-chain-into-draft-lesson-version) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 63
-Last activity: 2026-05-31 -- Phase 63 execution started
+Phase: 65 (eval-guardrails-verify-phase-close-gate) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-06-01
 
-Progress: [█████████░] 85%
+Progress: [████████░░] 82%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [█████████░] 85%
 | Phase 62 P03 | ~45min | 1 tasks | 6 files |
 | Phase 62 P04 | ~40min | 1 tasks | 2 files |
 | Phase 63 P01 | ~40min | 3 tasks | 5 files |
+| Phase 65 P01 | 4min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -118,9 +119,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-31T12:59:26.182Z
+Last session: 2026-06-01T02:02:54.396Z
 Stopped at: Phase 64 plans complete (4 plans, all reviewed, 2 warnings fixed)
-Resume file: .planning/phases/64-teacher-review-accept-publish-surface/64-04-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

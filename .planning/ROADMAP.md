@@ -106,7 +106,7 @@ Plans:
   2. guardrails 能拦截 Agent 越界输出（非法 step 类型、超长、注入既有约束禁止的内容），被拦截输出记录可查。
   3. `verify:phase` close gate 对 AI 起草链路做端到端回归校验，并作为里程碑 close 的单一权威闸门通过。
 **Plans**: 5 plans
-- [ ] 65-01-PLAN.md — Guardrail reason-code contract + DraftGuardrailRejection + shared draft-step corpus
+- [x] 65-01-PLAN.md — Guardrail reason-code contract + DraftGuardrailRejection + shared draft-step corpus
 - [ ] 65-02-PLAN.md — Guardrail validator (assertStepWithinGuardrails) + tool wiring
 - [ ] 65-03-PLAN.md — EVAL-01 eval suite: schema legality + teaching-structure invariants
 - [ ] 65-04-PLAN.md — lesson.draft.rejected contract + handler instanceof-rejection branch
@@ -123,7 +123,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | 62. LessonAgent Typed Tool Layer | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 4/4 | Complete   | 2026-05-31 |
-| 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 0/5 | Not started | - |
+| 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 1/5 | In Progress|  |
 
 <details>
 <summary>✅ v3.1 Single-School Pilot Production Readiness (Plugin-First) (Phases 55-60, 60.1, 60.2) — SHIPPED 2026-05-30</summary>
