@@ -1,10 +1,11 @@
 ---
 phase: 66
 slug: wire-ai-lessonagent-draft-loop-end-to-end-bridge-run-persist
-status: draft
+status: approved
 shadcn_initialized: true
 preset: radix-nova
 created: 2026-06-01
+reviewed_at: 2026-06-01
 ---
 
 # Phase 66 — UI Design Contract
