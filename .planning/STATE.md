@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
-status: executing
-last_updated: "2026-06-01T02:40:19.644Z"
+status: verifying
+last_updated: "2026-06-01T02:52:32.331Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 22
-  completed_plans: 21
-  percent: 80
+  completed_plans: 22
+  percent: 100
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: `.planning/PROJECT.md` (updated 2026-05-31)
 
 Phase: 65 (eval-guardrails-verify-phase-close-gate) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-01
 
-Progress: [██████████] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [██████████] 95%
 | Phase 65 P02 | 5min | 3 tasks | 3 files |
 | Phase 65 P03 | 5min | 2 tasks | 1 files |
 | Phase 65-eval-guardrails-verify-phase-close-gate P04 | 6m | 2 tasks | 4 files |
+| Phase 65 P05 | 22m | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,7 @@ Recent decisions affecting current work:
 - [Phase 65]: draftFromCorpus helper casts ai SDK tool.execute (widened T|AsyncIterable<T>) back to LessonStepPayload, then narrows per-test via result.type guard
 - [Phase ?]: 65-04: Guardrail rejection resolves as success-type outcome emitting one lesson.draft.rejected event, not platform.command.failed (D-11/D-53-08)
 - [Phase ?]: 65-04: lesson.draft.rejected payload is summary-only (lessonId, stepType, reasonCode, teacherId) from cause fields, no step snapshot (T-65-PII/D-07)
+- [Phase 65]: Phase 65 close gate (verify:phase65 / verify:phase) runs npm build + Phase 61-65 vitest regression + 14 D-10 static boundary checks; exit 1 on any failure
 
 ### Pending Todos
 
@@ -128,7 +130,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-01T02:40:07.609Z
+Last session: 2026-06-01T02:51:52.972Z
 Stopped at: Phase 64 plans complete (4 plans, all reviewed, 2 warnings fixed)
 Resume file: None
 

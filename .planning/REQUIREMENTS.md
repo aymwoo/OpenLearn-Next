@@ -37,7 +37,7 @@
 
 - [x] **EVAL-01**: 存在一组可重复运行的 eval，验证 LessonAgent 起草输出在 schema 合法性与基本教学结构上达标。
 - [x] **EVAL-02**: 存在 guardrails 阻止 Agent 输出越界（非法 step 类型、超长、注入既有约束禁止的内容），越界输出被拦截并记录。
-- [ ] **EVAL-03**: 提供 `verify:phase` close gate，对 AI 起草链路做端到端回归校验，作为里程碑 close 的单一权威闸门。
+- [x] **EVAL-03**: 提供 `verify:phase` close gate，对 AI 起草链路做端到端回归校验，作为里程碑 close 的单一权威闸门。
 
 ## Future Requirements (Deferred)
 
@@ -81,4 +81,4 @@ Every v3.2 requirement maps to exactly one phase. Coverage: 18/18.
 | REVIEW-04 | Phase 64 | Pending |
 | EVAL-01 | Phase 65 | Complete |
 | EVAL-02 | Phase 65 | Complete |
-| EVAL-03 | Phase 65 | Pending |
+| EVAL-03 | Phase 65 | Complete |

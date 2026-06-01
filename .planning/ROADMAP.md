@@ -110,7 +110,7 @@ Plans:
 - [x] 65-02-PLAN.md — Guardrail validator (assertStepWithinGuardrails) + tool wiring
 - [x] 65-03-PLAN.md — EVAL-01 eval suite: schema legality + teaching-structure invariants
 - [x] 65-04-PLAN.md — lesson.draft.rejected contract + handler instanceof-rejection branch
-- [ ] 65-05-PLAN.md — verify:phase65 close gate + authoritative verify:phase alias
+- [x] 65-05-PLAN.md — verify:phase65 close gate + authoritative verify:phase alias
 
 ## Progress
 
@@ -123,7 +123,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | 62. LessonAgent Typed Tool Layer | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 4/4 | Complete   | 2026-05-31 |
-| 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 4/5 | In Progress|  |
+| 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 5/5 | Complete   | 2026-06-01 |
 
 <details>
 <summary>✅ v3.1 Single-School Pilot Production Readiness (Plugin-First) (Phases 55-60, 60.1, 60.2) — SHIPPED 2026-05-30</summary>
