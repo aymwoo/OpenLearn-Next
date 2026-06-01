@@ -33,6 +33,10 @@ vi.mock("@/lib/dal/lesson-authoring", () => ({
   getLessonDraftReviewDTO: () => null,
 }));
 
+vi.mock("@/lib/dal/ai-rag", () => ({
+  getAgentRegistryDTO: () => [],
+}));
+
 vi.mock("@/components/surfaces/lesson-editor-surface", () => ({
   LessonEditorSurface: () => <div>lesson editor shell</div>,
 }));

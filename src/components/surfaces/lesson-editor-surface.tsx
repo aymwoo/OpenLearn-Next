@@ -37,6 +37,7 @@ type LessonEditorSurfaceProps = {
   pluginSlot?: React.ReactNode;
   mode?: string;
   draftReview?: LessonDraftReviewDTO | null;
+  lessonAgentEnabled?: boolean;
 };
 
 export function LessonEditorSurface({
@@ -48,6 +49,7 @@ export function LessonEditorSurface({
   pluginSlot,
   mode,
   draftReview,
+  lessonAgentEnabled = false,
 }: LessonEditorSurfaceProps) {
   const [showDiscoveryPrompt, setShowDiscoveryPrompt] = useState(true);
   const activeCourse = lesson?.course ?? overview.courses[0];
@@ -235,6 +237,7 @@ export function LessonEditorSurface({
           builtInTemplates={builtInTemplates}
           mode={mode}
           draftReview={draftReview}
+          lessonAgentEnabled={lessonAgentEnabled}
         />
       </section>
     </div>

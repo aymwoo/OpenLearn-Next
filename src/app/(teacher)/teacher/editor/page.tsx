@@ -12,6 +12,7 @@ import {
   listBuiltInTeachingStepTemplates,
 } from "@/features/runtime-platform/authoring";
 import { getLessonDraftReviewDTO } from "@/lib/dal/lesson-authoring";
+import { getAgentRegistryDTO } from "@/lib/dal/ai-rag";
 import type { LessonDraftReviewDTO } from "@/lib/dto/lesson-authoring";
 import { getActiveThemeId } from "@/lib/theme-cookie";
 
@@ -59,6 +60,11 @@ export default async function TeacherEditorPage({ searchParams }: TeacherEditorP
       ])
     : [[], null];
 
+  const agentRegistry = lesson ? await getAgentRegistryDTO() : [];
+  const lessonAgentEnabled = agentRegistry.some(
+    (agent) => agent.agentKey === "LessonAgent" && agent.enabled,
+  );
+
   if (!courseId || !scopedCourse) {
     return <CourseAwareEditorGuidance />;
   }
@@ -92,6 +98,7 @@ export default async function TeacherEditorPage({ searchParams }: TeacherEditorP
       activeThemeId={activeThemeId}
       mode={params.mode}
       draftReview={draftReview}
+      lessonAgentEnabled={lessonAgentEnabled}
       pluginSlot={
         <PluginRenderer
           anchor="lesson.sidebar"
