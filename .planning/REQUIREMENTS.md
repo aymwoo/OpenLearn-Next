@@ -24,13 +24,13 @@
 
 - [x] **DRAFT-01**: Agent 起草结果通过 Command Bus 写入 draft lesson version，复用既有 publish/version 模型，不新建第二真相源。
 - [x] **DRAFT-02**: 起草写入是幂等且 replay-safe 的：同一起草请求重试不会产生重复 draft 或污染已有课时内容。
-- [ ] **DRAFT-03**: draft lesson version 与教师手工编辑的课时在数据上可区分（标注 AI 来源），且不会自动发布给学生。
+- [x] **DRAFT-03**: draft lesson version 与教师手工编辑的课时在数据上可区分（标注 AI 来源），且不会自动发布给学生。
 
 ### 教师审校面 (REVIEW)
 
 - [ ] **REVIEW-01**: 教师能在审校界面看到 AI 起草内容与当前课时的 diff（新增/修改/删除的步骤）。
 - [ ] **REVIEW-02**: 教师能逐项或整体编辑 AI 起草的步骤后再决定去留。
-- [ ] **REVIEW-03**: 教师能接受 AI 起草并使其进入既有发布链路，或丢弃起草且不影响原课时。
+- [x] **REVIEW-03**: 教师能接受 AI 起草并使其进入既有发布链路，或丢弃起草且不影响原课时。
 - [ ] **REVIEW-04**: 审校界面对齐 Stitch 项目 `5322129002350954765` 与 `DESIGN.md`（Lexend、无 1px 分隔线、tonal surface、glass/gradient CTA）。
 
 ### Eval + Guardrails + Close Gate (EVAL)
@@ -74,10 +74,10 @@ Every v3.2 requirement maps to exactly one phase. Coverage: 18/18.
 | AGENT-04 | Phase 62 | Complete |
 | DRAFT-01 | Phase 63 | Complete |
 | DRAFT-02 | Phase 63 | Complete |
-| DRAFT-03 | Phase 63 | Pending |
+| DRAFT-03 | Phase 63 | Complete |
 | REVIEW-01 | Phase 64 | Pending |
 | REVIEW-02 | Phase 64 | Pending |
-| REVIEW-03 | Phase 64 | Pending |
+| REVIEW-03 | Phase 64 | Complete |
 | REVIEW-04 | Phase 64 | Pending |
 | EVAL-01 | Phase 65 | Complete |
 | EVAL-02 | Phase 65 | Complete |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
 status: executing
-last_updated: "2026-06-01T13:41:49.323Z"
-last_activity: 2026-06-01 -- Phase 66 planning complete
+last_updated: "2026-06-01T13:58:42.830Z"
+last_activity: 2026-06-01
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 29
-  completed_plans: 22
-  percent: 76
+  completed_plans: 23
+  percent: 79
 ---
 
 # Project State
@@ -20,16 +20,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-31)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 65 — eval-guardrails-verify-phase-close-gate
+**Current focus:** Phase 66 — wire-ai-lessonagent-draft-loop-end-to-end-bridge-run-persist
 
 ## Current Position
 
-Phase: 65 (eval-guardrails-verify-phase-close-gate) — EXECUTING
-Plan: 5 of 5
+Phase: 66 (wire-ai-lessonagent-draft-loop-end-to-end-bridge-run-persist) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
-Last activity: 2026-06-01 -- Phase 66 planning complete
+Last activity: 2026-06-01
 
-Progress: [██████████] 100%
+Progress: [████████░░] 79%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [██████████] 100%
 | Phase 65 P03 | 5min | 2 tasks | 1 files |
 | Phase 65-eval-guardrails-verify-phase-close-gate P04 | 6m | 2 tasks | 4 files |
 | Phase 65 P05 | 22m | 2 tasks | 2 files |
+| Phase 66 P01 | 4min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 65-04: Guardrail rejection resolves as success-type outcome emitting one lesson.draft.rejected event, not platform.command.failed (D-11/D-53-08)
 - [Phase ?]: 65-04: lesson.draft.rejected payload is summary-only (lessonId, stepType, reasonCode, teacherId) from cause fields, no step snapshot (T-65-PII/D-07)
 - [Phase 65]: Phase 65 close gate (verify:phase65 / verify:phase) runs npm build + Phase 61-65 vitest regression + 14 D-10 static boundary checks; exit 1 on any failure
+- [Phase ?]: Reused already-loaded draft row for version — no second DB read (66-01)
+- [Phase ?]: Preserved summary-only event invariant: only scalar version/courseId added (66-01)
 
 ### Pending Todos
 
@@ -131,9 +134,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-01T13:14:01.898Z
+Last session: 2026-06-01T13:58:05.190Z
 Stopped at: Phase 66 UI-SPEC approved
-Resume file: .planning/phases/66-wire-ai-lessonagent-draft-loop-end-to-end-bridge-run-persist/66-UI-SPEC.md
+Resume file: None
 
 ## Operator Next Steps
 
