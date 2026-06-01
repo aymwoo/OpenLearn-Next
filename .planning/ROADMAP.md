@@ -142,10 +142,16 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65 → 66
 
 ### Phase 66: Wire AI LessonAgent draft loop end-to-end: bridge run→persist, add teacher draft trigger, route accept/discard through Command Bus, fix version:0 event payload
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** 教师能在课时编辑器触发 LessonAgent 起草，AI 产出的步骤包经 Command Bus 写入 draft lesson version 并可在审校界面接受（进入既有发布链路）或丢弃，accept/discard 全程走命令总线且领域事件携带真实 draft 版本号。
+
+**Requirements**: AGENT-03, DRAFT-01, DRAFT-02, DRAFT-03, REVIEW-01, REVIEW-03
 **Depends on:** Phase 65
-**Plans:** 0 plans
+**Plans:** 6 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 66 to break down)
+- [ ] 66-01-PLAN.md — 修复 version:0 数据链（DTO→DAL→handler）并回填 accept resultSummary 的 courseId
+- [ ] 66-02-PLAN.md — 桥接 LessonAgent run→persist 编排（D-01，[step] 包装 + 同 correlationId）
+- [ ] 66-03-PLAN.md — 教师起草 server action + lesson_agent_enabled 旗标强制（D-02 后端/D-03）
+- [ ] 66-04-PLAN.md — 新建 lesson-draft producer 并将 accept/discard 改走 Command Bus（D-04）
+- [ ] 66-05-PLAN.md — 课时编辑器「AI 起草」触发器 + 内联意图面板（D-02 前端，含人工验收）
+- [ ] 66-06-PLAN.md — 对账 REQUIREMENTS.md 需求追溯（D-06，仅文档）
