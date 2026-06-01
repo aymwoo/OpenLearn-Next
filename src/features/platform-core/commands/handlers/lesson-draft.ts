@@ -7,6 +7,7 @@ import type {
 import type { PlatformAuditMetadata } from "@/features/platform-core/ai-contracts/delegation";
 import { assertActiveTeacher, persistDraftLessonVersion, applyDraftToLiveLesson, discardDraftLessonVersion } from "@/lib/dal/lesson-authoring";
 import type { LessonStepPayload } from "@/lib/dto/lesson-authoring";
+import { DraftGuardrailRejection } from "@/lib/dto/draft-guardrails";
 import { cacheTags } from "@/lib/cache-policy";
 import { createDraftLessonStepTool } from "@/server/ai/tools";
 
@@ -137,7 +138,36 @@ async function executeLessonDraftRun(input: ExecutionInput<LessonDraftRunCommand
       {} as never,
     )) as LessonStepPayload;
   } catch (cause) {
-    // 失败：抛错走 bus 唯一 generic 失败事件（不发任何 domain 事件 / D-53-08）。
+    // 守卫拦截：业务上的“可记录拒绝”，**不是**系统失败（D-11/EVAL-02）。
+    // 解析为已解决的成功型 outcome + 唯一 lesson.draft.rejected domain 事件，
+    // payload summary-only（仅 cause.stepType/reasonCode，绝不含 step / D-07），
+    // 且**不**发 requested/tool.invoked/produced —— 被拒草稿未产出任何步骤。
+    if (cause instanceof DraftGuardrailRejection) {
+      return successResult({
+        resultSummary: {
+          stepType: cause.stepType,
+          reasonCode: cause.reasonCode,
+          rejected: true,
+        },
+        invalidation: { tags: [] },
+        emittedEvents: [
+          withAudit({
+            eventType: "lesson.draft.rejected",
+            category: "domain",
+            aggregateType: "lesson",
+            aggregateId: lessonId,
+            payload: {
+              lessonId,
+              stepType: cause.stepType,
+              reasonCode: cause.reasonCode,
+              teacherId,
+            },
+          }, command.audit),
+        ],
+      });
+    }
+
+    // 真正的生成失败：抛错走 bus 唯一 generic 失败事件（不发任何 domain 事件 / D-53-08）。
     throwDraftFailure(command, cause);
   }
 

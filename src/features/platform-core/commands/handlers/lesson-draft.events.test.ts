@@ -18,9 +18,11 @@ vi.mock("@/server/ai/tools", () => ({
 import { PlatformCommandExecutionError } from "../contracts";
 import {
   LessonDraftProducedEventSchema,
+  LessonDraftRejectedEventSchema,
   LessonDraftRequestedEventSchema,
   LessonToolInvokedEventSchema,
 } from "@/features/platform-core/events/contracts";
+import { DraftGuardrailRejection } from "@/lib/dto/draft-guardrails";
 import { lessonDraftCommandHandlers } from "./lesson-draft";
 
 type RunCommand = {
@@ -72,6 +74,17 @@ function mockToolThrowing(error: Error) {
   mocks.createDraftLessonStepTool.mockReturnValue({
     execute: vi.fn(async () => {
       throw error;
+    }),
+  });
+}
+
+function mockToolRejecting(
+  reasonCode: "illegal_step_type" | "oversize_field" | "invalid_teaching_structure" | "quiz_correct_index_out_of_range" | "forbidden_content",
+  stepType: "content" | "task" | "quiz",
+) {
+  mocks.createDraftLessonStepTool.mockReturnValue({
+    execute: vi.fn(async () => {
+      throw new DraftGuardrailRejection({ reasonCode, stepType });
     }),
   });
 }
@@ -165,6 +178,39 @@ describe("lesson.draft.run command event emission", () => {
       expect(typed.failureEvent.eventType).toBe("platform.command.failed");
       expect(typed.failureAttribution).not.toBeNull();
     }
+  });
+
+  it("守卫拦截时解析为已解决 outcome，发唯一 lesson.draft.rejected 域事件（EVAL-02/T-65-EVT）", async () => {
+    mockToolRejecting("forbidden_content", "quiz");
+
+    const result = await lessonDraftCommandHandlers["lesson.draft.run"].execute({
+      command: createRunCommand({ stepType: "quiz" }) as never,
+      attemptNumber: 1,
+    });
+
+    // 拒绝是已解决 outcome（不抛错），且非失败事件。
+    expect(result.failureEvent).toBeNull();
+    expect(result.failureAttribution).toBeNull();
+
+    // 仅一条 rejected 事件，绝无 requested/tool.invoked/produced。
+    expect(result.emittedEvents).toHaveLength(1);
+    const event = result.emittedEvents[0];
+    expect(event.eventType).toBe("lesson.draft.rejected");
+
+    // payload summary-only：仅 lessonId/reasonCode/stepType/teacherId（无 step/body/*Json / T-65-PII）。
+    expect(Object.keys(event.payload).sort()).toEqual([
+      "lessonId",
+      "reasonCode",
+      "stepType",
+      "teacherId",
+    ]);
+    expect(LessonDraftRejectedEventSchema.safeParse(event).success).toBe(true);
+    expect(event.payload).toMatchObject({
+      lessonId: "lesson-1",
+      stepType: "quiz",
+      reasonCode: "forbidden_content",
+      teacherId: "t1",
+    });
   });
 
   it("三事件 aggregate 同为 lessonId/lesson，可经同一 commandId 追溯（SC4）", async () => {
