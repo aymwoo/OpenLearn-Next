@@ -95,6 +95,10 @@ describe("draftLessonWithAgentAction", () => {
       stepType: "content",
       intent: "为本课时生成一个导入步骤",
     });
+    // 转发 payload 仅 4 键（server 派生 schoolId）；无任何 client 身份字段泄漏（T-66-07）。
+    const forwarded = mockDraftLessonStep.mock.calls[0][0];
+    expect(forwarded.schoolId).toBe("school-1");
+    expect(Object.keys(forwarded).sort()).toEqual(["intent", "lessonId", "schoolId", "stepType"]);
     expect(result).toMatchObject({ ok: true, data: expect.objectContaining({ draftVersionId: "draft-1" }) });
   });
 
@@ -122,16 +126,7 @@ describe("draftLessonWithAgentAction", () => {
     expect(mockDraftLessonStep).not.toHaveBeenCalled();
   });
 
-  it("client 传入 teacherId/courseId/schoolId 被忽略，不进入 draftLessonStep payload", async () => {
-    mockGetAgentRegistryDTO.mockResolvedValueOnce([lessonAgentRegistryRow(true)]);
-    mockDraftLessonStep.mockResolvedValueOnce({
-      status: "succeeded",
-      commandId: "cmd-1",
-      step: { kind: "task" },
-      draftVersionId: "draft-2",
-      version: 1,
-    });
-
+  it("client 传入 teacherId/courseId/schoolId 被 strict schema 拒绝，绝不转发", async () => {
     const { draftLessonWithAgentAction } = await import("./lesson-agent-actions");
     const result = await draftLessonWithAgentAction({
       lessonId: "lesson-1",
@@ -142,13 +137,10 @@ describe("draftLessonWithAgentAction", () => {
       schoolId: "attacker-school",
     } as never);
 
-    expect(result).toMatchObject({ ok: true });
-    // server 派生 schoolId 必须是 assertActiveTeacher 的 school-1，绝非 client 传入的 attacker-school
-    const forwarded = mockDraftLessonStep.mock.calls[0][0];
-    expect(forwarded.schoolId).toBe("school-1");
-    expect(forwarded).not.toHaveProperty("teacherId");
-    expect(forwarded).not.toHaveProperty("courseId");
-    expect(Object.keys(forwarded).sort()).toEqual(["intent", "lessonId", "schoolId", "stepType"]);
+    // .strict() 拒绝未知键 → 校验错误（T-66-08），身份字段永不进入 payload（T-66-07）。
+    expect(result).toMatchObject({ ok: false, error: "VALIDATION_ERROR" });
+    expect(mockGetAgentRegistryDTO).not.toHaveBeenCalled();
+    expect(mockDraftLessonStep).not.toHaveBeenCalled();
   });
 
   it("未授权（TEACHER_AUTH_REQUIRED）→ 返回 UNAUTHORIZED，不派发", async () => {
