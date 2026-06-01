@@ -111,3 +111,7 @@ Verification steps (from the plan):
 ---
 *Phase: 66-wire-ai-lessonagent-draft-loop-end-to-end-bridge-run-persist*
 *Completed (code): 2026-06-01*
+
+## Self-Check: PASSED
+- Files verified on disk: workspace.tsx, workspace.test.tsx, 66-05-SUMMARY.md
+- Commits verified: 49ec811 (feat), 2f0f6b3 (docs)
