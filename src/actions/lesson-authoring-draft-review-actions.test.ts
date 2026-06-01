@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const updateTag = vi.fn();
 const assertActiveTeacher = vi.fn();
-const mockApplyDraftToLiveLesson = vi.fn();
-const mockDiscardDraftLessonVersion = vi.fn();
+const mockDispatchPlatformCommand = vi.fn();
+const mockBuildLessonDraftCommand = vi.fn();
 
 vi.mock("server-only", () => ({}));
 
@@ -15,14 +15,26 @@ vi.mock("@/lib/dal/resources", () => ({
   createTeacherResource: vi.fn(),
 }));
 
+// D-04：accept/discard 经 Command Bus 派发，不再直连 DAL。
+// 此处 stub bus + producer，既阻断 bus → registry → handler → DAL → next-auth 的急切加载链，
+// 又允许断言 action 是否正确构建并派发命令。
+vi.mock("@/features/platform-core/commands/bus", () => ({
+  dispatchPlatformCommand: mockDispatchPlatformCommand,
+}));
+
+vi.mock("@/features/platform-core/commands/producers/lesson-draft", () => ({
+  buildLessonDraftCommand: mockBuildLessonDraftCommand,
+  lessonDraftCommandBusDependencies: {},
+}));
+
 vi.mock("@/lib/dal/lesson-authoring", () => ({
   addLessonStep: vi.fn(),
-  applyDraftToLiveLesson: mockApplyDraftToLiveLesson,
+  applyDraftToLiveLesson: vi.fn(),
   assertActiveTeacher,
   archiveLesson: vi.fn(),
   archiveLessonStep: vi.fn(),
   createLessonDraft: vi.fn(),
-  discardDraftLessonVersion: mockDiscardDraftLessonVersion,
+  discardDraftLessonVersion: vi.fn(),
   duplicateLesson: vi.fn(),
   duplicateLessonStep: vi.fn(),
   getLessonPublishReadinessDTO: vi.fn(),
@@ -38,18 +50,16 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
     vi.resetModules();
     vi.clearAllMocks();
     assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
+    mockBuildLessonDraftCommand.mockReturnValue({ type: "stub-command" });
   });
 
   // ── applyDraftLessonVersionAction ───────────────────────────────────────────
 
-  it("calls DAL and returns { ok: true } on valid input", async () => {
+  it("dispatches a lesson.draft.accept command and returns { ok: true } on valid input", async () => {
     const { applyDraftLessonVersionAction } = await import("./lesson-authoring-actions");
 
-    mockApplyDraftToLiveLesson.mockResolvedValueOnce({
-      lessonId: "lesson-1",
-      courseId: "course-1",
-      draftVersionId: "draft-1",
-      appliedStepCount: 3,
+    mockDispatchPlatformCommand.mockResolvedValueOnce({
+      resultSummary: { lessonId: "lesson-1", courseId: "course-1", version: 1, appliedStepCount: 3 },
     });
 
     const result = await applyDraftLessonVersionAction({
@@ -58,20 +68,20 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
     });
 
     expect(result).toMatchObject({ ok: true });
-    expect(mockApplyDraftToLiveLesson).toHaveBeenCalledWith({
-      lessonId: "lesson-1",
-      draftVersionId: "draft-1",
-    });
+    expect(mockBuildLessonDraftCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "lesson.draft.accept",
+        payload: expect.objectContaining({ lessonId: "lesson-1", draftVersionId: "draft-1" }),
+      }),
+    );
+    expect(mockDispatchPlatformCommand).toHaveBeenCalledTimes(1);
   });
 
-  it("merges optional editedSteps into DAL call", async () => {
+  it("merges optional editedSteps into the dispatched command payload", async () => {
     const { applyDraftLessonVersionAction } = await import("./lesson-authoring-actions");
 
-    mockApplyDraftToLiveLesson.mockResolvedValueOnce({
-      lessonId: "lesson-1",
-      courseId: "course-1",
-      draftVersionId: "draft-1",
-      appliedStepCount: 2,
+    mockDispatchPlatformCommand.mockResolvedValueOnce({
+      resultSummary: { lessonId: "lesson-1", courseId: "course-1", version: 1, appliedStepCount: 2 },
     });
 
     await applyDraftLessonVersionAction({
@@ -82,13 +92,16 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
       ],
     });
 
-    expect(mockApplyDraftToLiveLesson).toHaveBeenCalledWith(
+    expect(mockBuildLessonDraftCommand).toHaveBeenCalledWith(
       expect.objectContaining({
-        lessonId: "lesson-1",
-        draftVersionId: "draft-1",
-        editedSteps: expect.arrayContaining([
-          expect.objectContaining({ index: 0, title: "编辑标题", description: "描述", content: "正文" }),
-        ]),
+        type: "lesson.draft.accept",
+        payload: expect.objectContaining({
+          lessonId: "lesson-1",
+          draftVersionId: "draft-1",
+          editedSteps: expect.arrayContaining([
+            expect.objectContaining({ index: 0, title: "编辑标题", description: "描述", content: "正文" }),
+          ]),
+        }),
       }),
     );
   });
@@ -96,11 +109,8 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
   it("invalidates draftLesson, lesson, steps, course, and teacherCourses cache tags after success", async () => {
     const { applyDraftLessonVersionAction } = await import("./lesson-authoring-actions");
 
-    mockApplyDraftToLiveLesson.mockResolvedValueOnce({
-      lessonId: "lesson-1",
-      courseId: "course-1",
-      draftVersionId: "draft-1",
-      appliedStepCount: 2,
+    mockDispatchPlatformCommand.mockResolvedValueOnce({
+      resultSummary: { lessonId: "lesson-1", courseId: "course-1", version: 1, appliedStepCount: 2 },
     });
 
     await applyDraftLessonVersionAction({
@@ -123,7 +133,7 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
     });
 
     expect(result).toMatchObject({ ok: false, error: "VALIDATION_ERROR" });
-    expect(mockApplyDraftToLiveLesson).not.toHaveBeenCalled();
+    expect(mockDispatchPlatformCommand).not.toHaveBeenCalled();
   });
 
   it("returns VALIDATION_ERROR when draftVersionId is missing", async () => {
@@ -134,7 +144,7 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
     });
 
     expect(result).toMatchObject({ ok: false, error: "VALIDATION_ERROR" });
-    expect(mockApplyDraftToLiveLesson).not.toHaveBeenCalled();
+    expect(mockDispatchPlatformCommand).not.toHaveBeenCalled();
   });
 
   it("returns UNAUTHORIZED when teacher scope fails", async () => {
@@ -153,7 +163,7 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
   it("maps DRAFT_NOT_PENDING to structured error", async () => {
     const { applyDraftLessonVersionAction } = await import("./lesson-authoring-actions");
 
-    mockApplyDraftToLiveLesson.mockRejectedValueOnce(new Error("DRAFT_NOT_PENDING"));
+    mockDispatchPlatformCommand.mockRejectedValueOnce(new Error("DRAFT_NOT_PENDING"));
 
     const result = await applyDraftLessonVersionAction({
       lessonId: "lesson-1",
@@ -167,7 +177,7 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
   it("maps DRAFT_NOT_FOUND to structured error", async () => {
     const { applyDraftLessonVersionAction } = await import("./lesson-authoring-actions");
 
-    mockApplyDraftToLiveLesson.mockRejectedValueOnce(new Error("DRAFT_NOT_FOUND"));
+    mockDispatchPlatformCommand.mockRejectedValueOnce(new Error("DRAFT_NOT_FOUND"));
 
     const result = await applyDraftLessonVersionAction({
       lessonId: "lesson-1",
@@ -179,13 +189,11 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
 
   // ── discardDraftLessonVersionAction ──────────────────────────────────────────
 
-  it("calls DAL discard and returns { ok: true } on valid input", async () => {
+  it("dispatches a lesson.draft.discard command and returns { ok: true } on valid input", async () => {
     const { discardDraftLessonVersionAction } = await import("./lesson-authoring-actions");
 
-    mockDiscardDraftLessonVersion.mockResolvedValueOnce({
-      lessonId: "lesson-1",
-      draftVersionId: "draft-1",
-      discardedAt: "2026-05-31T00:00:00.000Z",
+    mockDispatchPlatformCommand.mockResolvedValueOnce({
+      resultSummary: { lessonId: "lesson-1", draftVersionId: "draft-1", version: 1 },
     });
 
     const result = await discardDraftLessonVersionAction({
@@ -194,19 +202,20 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
     });
 
     expect(result).toMatchObject({ ok: true });
-    expect(mockDiscardDraftLessonVersion).toHaveBeenCalledWith({
-      lessonId: "lesson-1",
-      draftVersionId: "draft-1",
-    });
+    expect(mockBuildLessonDraftCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "lesson.draft.discard",
+        payload: expect.objectContaining({ lessonId: "lesson-1", draftVersionId: "draft-1" }),
+      }),
+    );
+    expect(mockDispatchPlatformCommand).toHaveBeenCalledTimes(1);
   });
 
   it("invalidates draftLesson and lesson cache tags after success", async () => {
     const { discardDraftLessonVersionAction } = await import("./lesson-authoring-actions");
 
-    mockDiscardDraftLessonVersion.mockResolvedValueOnce({
-      lessonId: "lesson-1",
-      draftVersionId: "draft-1",
-      discardedAt: "2026-05-31T00:00:00.000Z",
+    mockDispatchPlatformCommand.mockResolvedValueOnce({
+      resultSummary: { lessonId: "lesson-1", draftVersionId: "draft-1", version: 1 },
     });
 
     await discardDraftLessonVersionAction({
@@ -226,7 +235,7 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
     });
 
     expect(result).toMatchObject({ ok: false, error: "VALIDATION_ERROR" });
-    expect(mockDiscardDraftLessonVersion).not.toHaveBeenCalled();
+    expect(mockDispatchPlatformCommand).not.toHaveBeenCalled();
   });
 
   it("returns VALIDATION_ERROR when draftVersionId is missing", async () => {
@@ -237,7 +246,7 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
     });
 
     expect(result).toMatchObject({ ok: false, error: "VALIDATION_ERROR" });
-    expect(mockDiscardDraftLessonVersion).not.toHaveBeenCalled();
+    expect(mockDispatchPlatformCommand).not.toHaveBeenCalled();
   });
 
   it("returns UNAUTHORIZED when teacher scope fails", async () => {
@@ -256,7 +265,7 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
   it("maps DRAFT_NOT_PENDING to structured error for discard", async () => {
     const { discardDraftLessonVersionAction } = await import("./lesson-authoring-actions");
 
-    mockDiscardDraftLessonVersion.mockRejectedValueOnce(new Error("DRAFT_NOT_PENDING"));
+    mockDispatchPlatformCommand.mockRejectedValueOnce(new Error("DRAFT_NOT_PENDING"));
 
     const result = await discardDraftLessonVersionAction({
       lessonId: "lesson-1",
@@ -270,7 +279,7 @@ describe("applyDraftLessonVersionAction + discardDraftLessonVersionAction", () =
   it("maps DRAFT_NOT_FOUND to structured error for discard", async () => {
     const { discardDraftLessonVersionAction } = await import("./lesson-authoring-actions");
 
-    mockDiscardDraftLessonVersion.mockRejectedValueOnce(new Error("DRAFT_NOT_FOUND"));
+    mockDispatchPlatformCommand.mockRejectedValueOnce(new Error("DRAFT_NOT_FOUND"));
 
     const result = await discardDraftLessonVersionAction({
       lessonId: "lesson-1",
