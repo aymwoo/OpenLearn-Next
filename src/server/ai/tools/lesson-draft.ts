@@ -7,6 +7,7 @@ import { getTeacherLessonPreviewDTO } from "@/lib/dal/lesson-authoring";
 import { lessonStepPayloadSchema, type LessonStepPayload } from "@/lib/dto/lesson-authoring";
 import { aiGenerateObject } from "@/server/ai/providers";
 
+import { assertStepWithinGuardrails } from "./guardrails";
 import { buildDraftStepPrompt } from "./prompts";
 
 /**
@@ -59,7 +60,13 @@ export function createDraftLessonStepTool({ teacherId }: CreateDraftLessonStepTo
         schema: lessonStepPayloadSchema,
       });
 
-      // ③ 纯内存返回，绝不写库（D-01 / AGENT-03）。
+      // ③ server-only 守卫拦截（EVAL-02 / D-04）：模型输出离开工具前的唯一
+      // 拦截点，逐项拒绝越界步骤；通过则把 step 收窄为 LessonStepPayload。
+      // 越界抛 DraftGuardrailRejection，刻意**不**在此 catch（由 65-04 命令
+      // 处理器区分越界拒绝与真实生成失败并落 rejected 事件）。
+      assertStepWithinGuardrails(step);
+
+      // ④ 纯内存返回，绝不写库（D-01 / AGENT-03）。
       return step;
     },
   });
