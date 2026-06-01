@@ -115,7 +115,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
+Phases execute in numeric order: 61 → 62 → 63 → 64 → 65 → 66
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -124,6 +124,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | 63. AI Draft Chain into Draft Lesson Version | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 64. Teacher Review & Accept-Publish Surface | v3.2 | 4/4 | Complete   | 2026-05-31 |
 | 65. Eval, Guardrails & verify:phase Close Gate | v3.2 | 5/5 | Complete   | 2026-06-01 |
+| 66. Wire AI LessonAgent Draft Loop End-to-End | v3.2 | 0/? | Not planned | — |
 
 <details>
 <summary>✅ v3.1 Single-School Pilot Production Readiness (Plugin-First) (Phases 55-60, 60.1, 60.2) — SHIPPED 2026-05-30</summary>
@@ -138,3 +139,13 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 - [x] **Phase 60.2: Wire frozen voting contract into launch and runtime** - 把 frozen voting contract 接入 runtime truth，关闭 `PLUG-01` / `CHAIN-03`。 (completed 2026-05-28)
 
 </details>
+
+### Phase 66: Wire AI LessonAgent draft loop end-to-end: bridge run→persist, add teacher draft trigger, route accept/discard through Command Bus, fix version:0 event payload
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 65
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 66 to break down)

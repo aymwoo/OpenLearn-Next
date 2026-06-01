@@ -1,0 +1,42 @@
+{
+  "phase": "64",
+  "areas_total": 4,
+  "areas_completed": 4,
+  "areas": ["diff-view-layout", "accept-publish-path", "review-entry-layout", "step-edit-capability"],
+  "completed": ["diff-view-layout", "accept-publish-path", "review-entry-layout", "step-edit-capability"],
+  "decisions": {
+    "diff-view-layout": {
+      "resolved": true,
+      "choices": [
+        {"question": "diff 布局方式", "choice": "单列 diff 标注", "detail": "一条垂直步骤列表，每步标注状态（新增/修改/删除/无变化），绿色accent/蓝色primary/红色划线"},
+        {"question": "步骤匹配对齐依据", "choice": "按步骤索引位置对齐", "detail": "draft steps[n] ↔ live steps[n]，新增=AI稿有但活跃无，删除=活跃有但AI稿无"},
+        {"question": "点击步骤编辑模式", "choice": "右侧面板/底部抽屉内联编辑", "detail": "侧面板展开轻量编辑表单，不离开 diff 视图"}
+      ]
+    },
+    "accept-publish-path": {
+      "resolved": true,
+      "choices": [
+        {"question": "接受后的动作", "choice": "apply 到活跃步骤 → 教师再到编辑器点发布", "detail": "draft 步骤完全替换 lessonSteps（archive旧步），source='ai' 标记在 lessons 回链，不污染 lessonSteps"},
+        {"question": "合并策略", "choice": "完全替换", "detail": "archive 旧步骤 + 写入新步骤"},
+        {"question": "source 标记", "choice": "仅 lessons 表标回链", "detail": "lessons 加 aiDraftAppliedAt/latestDraftVersionId 列"},
+        {"question": "丢弃行为", "choice": "标记丢弃 + 保留行", "detail": "draftLessonVersions 加 status/archivedAt，不删行，不影响活跃步骤"}
+      ]
+    },
+    "review-entry-layout": {
+      "resolved": true,
+      "choices": [
+        {"question": "审校入口", "choice": "编辑器内模式切换", "detail": "/teacher/editor?lessonId=X&mode=review，顶部切换开关"},
+        {"question": "草稿发现通知", "choice": "编辑器顶部 glass 提示栏", "detail": "半透明提示条可关闭但刷新重现"},
+        {"question": "审校界面布局", "choice": "全宽 diff + 顶部操作栏 + 右侧编辑面板", "detail": "左侧资源面板折叠，中间全宽 diff，顶部固定接受/丢弃按钮"},
+        {"question": "审校进度保留", "choice": "客户端 state 保留", "detail": "切回编辑再切回来保留已标注和编辑，刷新清空"}
+      ]
+    },
+    "step-edit-capability": {
+      "resolved": true,
+      "choices": [
+        {"question": "可编辑字段", "choice": "轻量：title + description + content", "detail": "右侧面板仅暴露三字段，type 不可改"},
+        {"question": "步骤级操作", "choice": "逐项接受/丢弃 + 全局动作", "detail": "每步独立接受/丢弃按钮 + 顶部全局「接受全部」「丢弃全部」"}
+      ]
+    }
+  }
+}

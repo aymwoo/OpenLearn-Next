@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: AI LessonAgent 起草闭环
-status: verifying
-last_updated: "2026-06-01T02:52:32.331Z"
+status: executing
+last_updated: "2026-06-01T03:45:00.000Z"
 last_activity: 2026-06-01
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 5
   total_plans: 22
   completed_plans: 22
-  percent: 100
+  percent: 83
 ---
 
 # Project State
@@ -71,6 +71,7 @@ Progress: [██████████] 100%
 - v3.2 roadmap drafted phases 61-65, continuing numbering from v3.1 (ended at 60 + inserted 60.1/60.2).
 - Build order: provider layer → tool layer → draft chain → review surface → eval/guardrails/close gate (strict dependency order).
 - `v3.1` 已归档到 `.planning/milestones/v3.1-ROADMAP.md`；根级 `ROADMAP.md` 现承载 v3.2 active phases 与 v3.1 collapsed summary。
+- Phase 66 added: 里程碑审计（`.planning/v3.2-MILESTONE-AUDIT.md`，status=gaps_found）发现端到端起草闭环在生产路径断裂——run→persist 接缝无 producer、无教师触发入口、accept/discard 绕过 Command Bus（含 version:0 潜在 schema 违规）。新增收尾 phase 打通这一条编排接缝并修正陈旧 REQUIREMENTS 追溯表，关闭 AGENT-03 / DRAFT-01..03 / REVIEW-01..03 / AGENT-04 后再归档 v3.2。
 
 ### Decisions
 
