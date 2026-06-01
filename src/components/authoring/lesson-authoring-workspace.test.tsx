@@ -19,11 +19,19 @@ const { addLessonStepAction, reorderLessonStepAction } = vi.hoisted(() => ({
   reorderLessonStepAction: vi.fn(),
 }));
 
+const { draftLessonWithAgentAction } = vi.hoisted(() => ({
+  draftLessonWithAgentAction: vi.fn(),
+}));
+
 vi.mock("@/actions/lesson-authoring-actions", () => ({
   addLessonStepAction,
   archiveLessonStepAction: vi.fn(),
   duplicateLessonStepAction: vi.fn(),
   reorderLessonStepAction,
+}));
+
+vi.mock("@/actions/lesson-agent-actions", () => ({
+  draftLessonWithAgentAction,
 }));
 
 vi.mock("@/components/authoring/lesson-step-editor", () => ({
@@ -755,5 +763,95 @@ describe("LessonAuthoringWorkspace built-in quick add", () => {
 
     expect(source).toContain('data-testid="lesson-flow-composer"');
     expect(source).not.toContain('<Card className="relative overflow-hidden rounded-[var(--radius-shell)] bg-surface-container-lowest p-5">');
+  });
+});
+
+describe("LessonAuthoringWorkspace AI 起草 trigger", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const renderWorkspace = (lessonAgentEnabled?: boolean) =>
+    render(
+      <LessonAuthoringWorkspace
+        overview={asLessonAuthoringWorkspaceOverview({ courses: [{ id: "course-1" }], lessons: [{ id: "lesson-1" }] })}
+        lesson={asLessonAuthoringWorkspaceLesson({
+          lesson: { id: "lesson-1" },
+          materials: [],
+          steps: [],
+        })}
+        builtInTemplates={[]}
+        lessonAgentEnabled={lessonAgentEnabled}
+      />,
+    );
+
+  it("hides the trigger when the agent flag is off (default)", () => {
+    renderWorkspace(false);
+
+    expect(screen.queryByTestId("lesson-ai-draft-trigger")).toBeNull();
+    expect(screen.queryByTestId("lesson-ai-draft-panel")).toBeNull();
+  });
+
+  it("opens the inline panel and submits intent to draftLessonWithAgentAction on success", async () => {
+    draftLessonWithAgentAction.mockResolvedValue({ ok: true, data: { draftVersionId: "draft-1" } });
+
+    renderWorkspace(true);
+
+    fireEvent.click(screen.getByTestId("lesson-ai-draft-trigger"));
+
+    const panel = screen.getByTestId("lesson-ai-draft-panel");
+    fireEvent.click(within(panel).getByRole("button", { name: "测验" }));
+    fireEvent.change(within(panel).getByLabelText("描述生成意图"), {
+      target: { value: "用三道选择题检测分数加法。" },
+    });
+    fireEvent.click(screen.getByTestId("lesson-ai-draft-submit"));
+
+    await waitFor(() => {
+      expect(draftLessonWithAgentAction).toHaveBeenCalledWith({
+        lessonId: "lesson-1",
+        stepType: "quiz",
+        intent: "用三道选择题检测分数加法。",
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("lesson-ai-draft-panel")).toBeNull();
+      expect(screen.getByTestId("lesson-ai-draft-feedback").textContent).toContain("AI 草稿已生成");
+    });
+  });
+
+  it("surfaces the AGENT_DISABLED fallback message and closes the panel", async () => {
+    draftLessonWithAgentAction.mockResolvedValue({ ok: false, error: "AGENT_DISABLED", message: "AI 课程助手当前未启用。" });
+
+    renderWorkspace(true);
+
+    fireEvent.click(screen.getByTestId("lesson-ai-draft-trigger"));
+    fireEvent.change(screen.getByLabelText("描述生成意图"), { target: { value: "生成一个导入环节" } });
+    fireEvent.click(screen.getByTestId("lesson-ai-draft-submit"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("lesson-ai-draft-panel")).toBeNull();
+      expect(screen.getByTestId("lesson-ai-draft-feedback").textContent).toContain("AI 起草功能未启用。");
+    });
+  });
+
+  it("keeps the panel open with a retry message when generation fails", async () => {
+    draftLessonWithAgentAction.mockResolvedValue({ ok: false, error: "AGENT_DRAFT_FAILED", message: "AI 起草失败，请稍后重试。" });
+
+    renderWorkspace(true);
+
+    fireEvent.click(screen.getByTestId("lesson-ai-draft-trigger"));
+    fireEvent.change(screen.getByLabelText("描述生成意图"), { target: { value: "生成一个练习任务" } });
+    fireEvent.click(screen.getByTestId("lesson-ai-draft-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("lesson-ai-draft-feedback").textContent).toContain("草稿生成失败，请稍后重试。");
+    });
+    expect(screen.getByTestId("lesson-ai-draft-panel")).toBeTruthy();
+    expect((screen.getByLabelText("描述生成意图") as HTMLTextAreaElement).value).toBe("生成一个练习任务");
   });
 });

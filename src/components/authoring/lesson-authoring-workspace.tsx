@@ -9,6 +9,7 @@ import {
   duplicateLessonStepAction,
   reorderLessonStepAction,
 } from "@/actions/lesson-authoring-actions";
+import { draftLessonWithAgentAction } from "@/actions/lesson-agent-actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { dispatchLessonStepEditorCommand, lessonStepEditorSaveRequestEvent } from "@/components/authoring/editor-command-events";
@@ -36,7 +37,14 @@ type LessonAuthoringWorkspaceProps = {
   builtInTemplates: BuiltInTemplateForAuthoring[];
   mode?: string;
   draftReview?: LessonDraftReviewDTO | null;
+  /**
+   * D-03 / D-03a：`lesson_agent_enabled` 由 server component 传入。
+   * OFF 时整体隐藏「AI 起草」触发器（前端隐藏为次要防线，server action 仍权威 hard-stop）。
+   */
+  lessonAgentEnabled?: boolean;
 };
+
+type AiDraftStepType = "content" | "task" | "quiz";
 
 const stepLabels = {
   content: "内容",
@@ -84,12 +92,17 @@ const libraryFilters = [
 
 type LibraryFilter = (typeof libraryFilters)[number]["id"];
 
-export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates, mode, draftReview }: LessonAuthoringWorkspaceProps) {
+export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates, mode, draftReview, lessonAgentEnabled = false }: LessonAuthoringWorkspaceProps) {
   const [selectedStepId, setSelectedStepId] = useState(lesson?.steps[0]?.id ?? null);
   const [isStepEditorOpen, setIsStepEditorOpen] = useState(false);
   const [resourceQuery, setResourceQuery] = useState("");
   const [activeLibraryFilter, setActiveLibraryFilter] = useState<LibraryFilter>("all");
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  const [aiStepType, setAiStepType] = useState<AiDraftStepType>("content");
+  const [aiIntent, setAiIntent] = useState("");
+  const [isAiPending, setIsAiPending] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
 
   // ─── Review mode: render dedicated review workspace ───
   if (mode === "review" && draftReview?.hasPendingDraft) {
@@ -191,6 +204,42 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates, m
     }
 
     setSaveFeedback("流程中的新增、排序和删除改动已自动保存。");
+  }
+
+  async function submitAiDraft() {
+    const lessonId = lesson?.lesson.id;
+    const trimmedIntent = aiIntent.trim();
+
+    if (!lessonId || trimmedIntent.length === 0 || isAiPending) return;
+
+    setIsAiPending(true);
+    setAiFeedback(null);
+
+    try {
+      const result = await draftLessonWithAgentAction({ lessonId, stepType: aiStepType, intent: trimmedIntent });
+
+      if (result.ok) {
+        // 成功：关闭面板，点亮 Phase 64 草稿审校入口提示。
+        setIsAiPanelOpen(false);
+        setAiIntent("");
+        setAiFeedback("AI 草稿已生成，去审校 →");
+        return;
+      }
+
+      if (result.error === "AGENT_DISABLED") {
+        // D-03a fallback：后端权威关闭，前端关闭面板并提示未启用。
+        setIsAiPanelOpen(false);
+        setAiFeedback("AI 起草功能未启用。");
+        return;
+      }
+
+      // 其他失败：保留已填写内容，面板继续打开。
+      setAiFeedback("草稿生成失败，请稍后重试。");
+    } catch {
+      setAiFeedback("草稿生成失败，请稍后重试。");
+    } finally {
+      setIsAiPending(false);
+    }
   }
 
   return (
@@ -296,6 +345,21 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates, m
                 <span className="rounded-full bg-surface-container-low px-4 py-2 text-sm font-medium text-primary">总时长约 {totalMinutes} 分钟</span>
                 <span className="rounded-full bg-secondary-container px-4 py-2 text-sm font-medium text-on-secondary-container">{steps.length} 个活动</span>
                 <span className="rounded-full bg-surface-container-high px-4 py-2 text-sm font-medium text-on-surface-variant">{builtInStepCount} 个内置环节</span>
+                {lessonAgentEnabled ? (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    aria-label="AI 起草"
+                    aria-expanded={isAiPanelOpen}
+                    data-testid="lesson-ai-draft-trigger"
+                    disabled={!lesson}
+                    className="h-12 gap-2 px-4 text-sm transition hover:-translate-y-0.5"
+                    onClick={() => setIsAiPanelOpen((open) => !open)}
+                  >
+                    <Sparkles className="size-4" aria-hidden />
+                    AI 起草
+                  </Button>
+                ) : null}
                 <Button type="button" aria-label="保存流程修改" data-testid="lesson-flow-save-button" className="h-10 gap-2 px-4 text-sm" onClick={saveFlow}>
                   <Save className="size-4" aria-hidden />
                   保存
@@ -303,6 +367,50 @@ export function LessonAuthoringWorkspace({ overview, lesson, builtInTemplates, m
               </div>
             </div>
             {saveFeedback ? <p className="mt-3 text-sm text-on-surface-variant">{saveFeedback}</p> : null}
+            {aiFeedback ? <p className="mt-3 text-sm font-semibold text-primary" data-testid="lesson-ai-draft-feedback">{aiFeedback}</p> : null}
+
+            {lessonAgentEnabled && isAiPanelOpen ? (
+              <div className="mt-4 rounded-[var(--radius-card)] bg-surface-container-lowest p-4 shadow-ambient" data-testid="lesson-ai-draft-panel">
+                <p className="text-sm leading-6 text-on-surface-variant">选择环节类型并描述意图，让 LessonAgent 生成草稿。</p>
+
+                <div className="mt-4 flex flex-wrap gap-3" role="group" aria-label="选择环节类型">
+                  {(Object.keys(stepLabels) as AiDraftStepType[]).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      aria-pressed={aiStepType === type}
+                      disabled={isAiPending}
+                      onClick={() => setAiStepType(type)}
+                      className={`rounded-full px-4 py-1.5 text-xs transition disabled:opacity-60 ${aiStepType === type ? "bg-primary/10 font-semibold text-primary" : "bg-surface-container font-normal text-on-surface-variant hover:bg-surface-container-high"}`}
+                    >
+                      {stepLabels[type]}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  aria-label="描述生成意图"
+                  className="mt-3 min-h-24 w-full resize-y rounded-[1.25rem] bg-surface-container-high px-4 py-3 text-sm text-on-surface outline-none transition placeholder:text-on-surface-variant focus-visible:outline-2 focus-visible:outline-primary/20 disabled:opacity-60"
+                  placeholder="描述你想生成的环节，例如：用三道选择题检测分数加法。"
+                  value={aiIntent}
+                  disabled={isAiPending}
+                  onChange={(event) => setAiIntent(event.target.value)}
+                />
+
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    data-testid="lesson-ai-draft-submit"
+                    disabled={isAiPending || aiIntent.trim().length === 0}
+                    className="h-12 px-5 text-sm"
+                    onClick={submitAiDraft}
+                  >
+                    {isAiPending ? "正在生成草稿…" : "生成草稿"}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
 
             <div className="relative mt-6 min-h-[38rem] rounded-[2rem] bg-surface-container-low p-5 shadow-ambient">
               <div className="flex items-center gap-4 pb-4">
