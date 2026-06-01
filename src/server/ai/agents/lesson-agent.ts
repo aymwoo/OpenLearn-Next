@@ -162,6 +162,10 @@ export type DraftLessonStepResult = {
   commandId: string;
   /** 经 resultSummary 回传的整包步骤（SC3）；非成功时为 null。 */
   step: LessonStepPayload | null;
+  /** 桥接 persist 后回传的草稿版本身份（DRAFT-01）；未持久化（step 为 null）时为 null。 */
+  draftVersionId: string | null;
+  /** 草稿版本号（DRAFT-01）；未持久化时为 null。 */
+  version: number | null;
 };
 
 /** 入口级依赖注入点：测试经此注入 in-memory store + 捕获型 persistPlatformEvents。 */
@@ -209,9 +213,52 @@ export async function draftLessonStep(
 
   const step = (result.resultSummary?.step as LessonStepPayload | undefined) ?? null;
 
+  // 桥接（D-01）：run 成功且产出步骤时，顺序派发 lesson.draft.persist —— 不嵌入 run handler，
+  // 复用同一 correlationId 使 run→persist 成为单个关联单元。step 为 null（生成失败 / 守卫拒绝）
+  // 时短路，不持久化（失败透传语义 / D-53-08）。
+  if (step === null) {
+    return {
+      status: result.status,
+      commandId: result.commandId,
+      step,
+      draftVersionId: null,
+      version: null,
+    };
+  }
+
+  const persistCommand = {
+    id: `lesson.draft.persist:${correlationId}`,
+    type: "lesson.draft.persist" as const,
+    actor: input.actor ?? LESSON_AGENT_SYSTEM_ACTOR,
+    scope: { schoolId: input.schoolId, pluginId: LESSON_AGENT_PLUGIN_ID },
+    // 单步 step 包成 steps:[step] 满足 LessonDraftPersistPayloadSchema.strict()（min 1）。
+    // teacherId/source 绝不入 payload —— 由 persist handler 经 assertActiveTeacher 闭包注入（T-66-05）。
+    payload: {
+      lessonId: input.lessonId,
+      steps: [step],
+    },
+    correlation: {
+      // 复用 run correlationId（同一关联单元）；causationId 指向触发本次持久化的 run command。
+      correlationId,
+      causationId: command.id,
+      producer: "lesson-agent",
+    },
+  } satisfies Partial<PlatformCommand> & Record<string, unknown>;
+
+  const persistResult = await dispatchPlatformCommand(persistCommand, {
+    store: deps?.store ?? platformCommandStore,
+    publicationPort: deps?.publicationPort ?? defaultInProcessPlatformEventAdapter,
+    persistPlatformEvents: deps?.persistPlatformEvents,
+  });
+
+  const draftVersionId = (persistResult.resultSummary?.draftVersionId as string | undefined) ?? null;
+  const version = (persistResult.resultSummary?.version as number | undefined) ?? null;
+
   return {
-    status: result.status,
+    status: persistResult.status,
     commandId: result.commandId,
     step,
+    draftVersionId,
+    version,
   };
 }
