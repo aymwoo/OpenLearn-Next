@@ -17,20 +17,20 @@
 
 - [ ] **AGENT-01**: LessonAgent 暴露一组 Zod 校验的 typed tools，所有输入输出在边界处被校验，非法 payload 被拒绝。
 - [ ] **AGENT-02**: Agent 工具只能通过 DAL / Command Bus 读写数据，不能直连数据库、不能访问 provider key、不能执行任意代码。
-- [x] **AGENT-03**: 教师能针对一节目标课时触发 LessonAgent 起草，Agent 产出符合 `content`/`task`/`quiz` 原子步骤 schema 的步骤包。
+- [ ] **AGENT-03**: 教师能针对一节目标课时触发 LessonAgent 起草，Agent 产出符合 `content`/`task`/`quiz` 原子步骤 schema 的步骤包。
 - [x] **AGENT-04**: Agent 起草过程的关键节点（开始、工具调用、完成、失败）作为 typed platform events 写入 v3.0 event bus，可被 operator 追溯。
 
 ### AI 起草链路 (DRAFT)
 
-- [x] **DRAFT-01**: Agent 起草结果通过 Command Bus 写入 draft lesson version，复用既有 publish/version 模型，不新建第二真相源。
-- [x] **DRAFT-02**: 起草写入是幂等且 replay-safe 的：同一起草请求重试不会产生重复 draft 或污染已有课时内容。
-- [x] **DRAFT-03**: draft lesson version 与教师手工编辑的课时在数据上可区分（标注 AI 来源），且不会自动发布给学生。
+- [ ] **DRAFT-01**: Agent 起草结果通过 Command Bus 写入 draft lesson version，复用既有 publish/version 模型，不新建第二真相源。
+- [ ] **DRAFT-02**: 起草写入是幂等且 replay-safe 的：同一起草请求重试不会产生重复 draft 或污染已有课时内容。
+- [ ] **DRAFT-03**: draft lesson version 与教师手工编辑的课时在数据上可区分（标注 AI 来源），且不会自动发布给学生。
 
 ### 教师审校面 (REVIEW)
 
 - [ ] **REVIEW-01**: 教师能在审校界面看到 AI 起草内容与当前课时的 diff（新增/修改/删除的步骤）。
 - [ ] **REVIEW-02**: 教师能逐项或整体编辑 AI 起草的步骤后再决定去留。
-- [x] **REVIEW-03**: 教师能接受 AI 起草并使其进入既有发布链路，或丢弃起草且不影响原课时。
+- [ ] **REVIEW-03**: 教师能接受 AI 起草并使其进入既有发布链路，或丢弃起草且不影响原课时。
 - [ ] **REVIEW-04**: 审校界面对齐 Stitch 项目 `5322129002350954765` 与 `DESIGN.md`（Lexend、无 1px 分隔线、tonal surface、glass/gradient CTA）。
 
 ### Eval + Guardrails + Close Gate (EVAL)
@@ -60,7 +60,7 @@
 
 ## Traceability
 
-Every v3.2 requirement maps to exactly one phase. Coverage: 18/18.
+Every v3.2 requirement maps to a build phase. Coverage: 18/18. 其中 6 项（AGENT-03、DRAFT-01、DRAFT-02、DRAFT-03、REVIEW-01、REVIEW-03）的端到端生产路径由 **Phase 66** 收尾打通（run→persist 接缝、教师触发入口、accept/discard 经 Command Bus）；它们在 Phase 66 验证通过前保持 `Wiring (Phase 66)` 状态，不计为 Complete。
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -70,14 +70,14 @@ Every v3.2 requirement maps to exactly one phase. Coverage: 18/18.
 | PROV-04 | Phase 61 | Complete |
 | AGENT-01 | Phase 62 | Pending |
 | AGENT-02 | Phase 62 | Pending |
-| AGENT-03 | Phase 62 | Complete |
+| AGENT-03 | Phase 62 → 66 | Wiring (Phase 66) |
 | AGENT-04 | Phase 62 | Complete |
-| DRAFT-01 | Phase 63 | Complete |
-| DRAFT-02 | Phase 63 | Complete |
-| DRAFT-03 | Phase 63 | Complete |
-| REVIEW-01 | Phase 64 | Pending |
+| DRAFT-01 | Phase 63 → 66 | Wiring (Phase 66) |
+| DRAFT-02 | Phase 63 → 66 | Wiring (Phase 66) |
+| DRAFT-03 | Phase 63 → 66 | Wiring (Phase 66) |
+| REVIEW-01 | Phase 64 → 66 | Wiring (Phase 66) |
 | REVIEW-02 | Phase 64 | Pending |
-| REVIEW-03 | Phase 64 | Complete |
+| REVIEW-03 | Phase 64 → 66 | Wiring (Phase 66) |
 | REVIEW-04 | Phase 64 | Pending |
 | EVAL-01 | Phase 65 | Complete |
 | EVAL-02 | Phase 65 | Complete |
