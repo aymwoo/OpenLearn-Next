@@ -395,4 +395,57 @@ describe("幂等双层：dedupe 短路 + pending 重放兜底", () => {
     // pending-replay 终态：受控错误，count 恒 1（DAL 不吞约束冲突，错误向上传播）
     // 真实 DB 中 draftLessonVersions 仅 1 行 —— 由唯一约束天然保证
   });
+
+  // 用例 C：桥接幂等 —— 同 sourceCommandId（同 dedupeKey）二次 dispatch 经真实 persist handler，
+  // dedupe 短路使 handler / DAL 不再二次执行 → 无重复 draft 行、无重复 persisted 事件、返回同 draftVersionId（DRAFT-02）。
+  it("用例 C (same sourceCommandId 桥接幂等): 真实 handler 经 bus 二次 dispatch → DAL 仅写一次、persisted 事件仅一条、返回同 draftVersionId", async () => {
+    const realDependencies: PlatformCommandBusDependencies = {
+      definitions: {
+        "lesson.draft.persist": {
+          commandType: "lesson.draft.persist" as const,
+          payloadSchema: PlatformCommandPayloadSchemas["lesson.draft.persist"],
+          dedupe: "required",
+          authorize: lessonDraftCommandHandlers["lesson.draft.persist"]
+            .authorize as PlatformCommandDefinition<"lesson.draft.persist">["authorize"],
+          execute: lessonDraftCommandHandlers["lesson.draft.persist"]
+            .execute as PlatformCommandDefinition<"lesson.draft.persist">["execute"],
+        },
+      },
+      store,
+      persistPlatformEvents,
+      publicationPort,
+    };
+
+    const command = createPersistBusCommand({ id: "cmd-persist-src-1" });
+
+    const first = await dispatchPlatformCommand(command, realDependencies);
+    // 第二次：不同 envelope id / correlationId，但 scope+payload 相同 → 同 dedupeKey（dedupe:"required"）。
+    const second = await dispatchPlatformCommand(
+      {
+        ...command,
+        id: "cmd-persist-src-2",
+        correlation: { correlationId: "corr-replay", causationId: null, producer: "retry" },
+      },
+      realDependencies,
+    );
+
+    // (1) DAL 仅写一次：第二次 dedupe 短路，真实 handler 未再执行 → 无重复 draft 行。
+    expect(mocks.persistDraftLessonVersion).toHaveBeenCalledTimes(1);
+    // sourceCommandId 取首个 command.id（不来自 payload）。
+    expect(mocks.persistDraftLessonVersion).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceCommandId: "cmd-persist-src-1" }),
+    );
+
+    // (2) 账本中 lesson.draft.persisted 仅一条（第二次未再落任何事件）。
+    const persistedEventCount = vi
+      .mocked(persistPlatformEvents)
+      .mock.calls.flatMap((call) => call[0].events)
+      .filter((event) => event.eventType === "lesson.draft.persisted").length;
+    expect(persistedEventCount).toBe(1);
+
+    // (3) 重放安全：第二次解析到与首个相同的 draftVersionId 与 commandId。
+    expect(second.resultSummary?.draftVersionId).toBe(first.resultSummary?.draftVersionId);
+    expect(second.resultSummary?.draftVersionId).toBe("draft-v1");
+    expect(second.commandId).toBe(first.commandId);
+  });
 });
