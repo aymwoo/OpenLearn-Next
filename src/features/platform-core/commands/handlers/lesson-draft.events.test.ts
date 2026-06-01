@@ -5,10 +5,14 @@ vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
   assertActiveTeacher: vi.fn(),
   createDraftLessonStepTool: vi.fn(),
+  applyDraftToLiveLesson: vi.fn(),
+  discardDraftLessonVersion: vi.fn(),
 }));
 
 vi.mock("@/lib/dal/lesson-authoring", () => ({
   assertActiveTeacher: mocks.assertActiveTeacher,
+  applyDraftToLiveLesson: mocks.applyDraftToLiveLesson,
+  discardDraftLessonVersion: mocks.discardDraftLessonVersion,
 }));
 
 vi.mock("@/server/ai/tools", () => ({
@@ -223,5 +227,127 @@ describe("lesson.draft.run command event emission", () => {
       expect(event.aggregateType).toBe("lesson");
       expect(event.aggregateId).toBe("lesson-1");
     }
+  });
+});
+
+type AcceptCommand = {
+  id: string;
+  type: "lesson.draft.accept";
+  actor: { actorId: string; actorScope: "teacher" };
+  scope: { schoolId: string; pluginId: string };
+  payload: { lessonId: string; draftVersionId: string };
+  correlation: { correlationId: string; causationId: string | null; producer: string };
+  audit: { delegatedActor: null; approval: null };
+};
+
+function createAcceptCommand(): AcceptCommand {
+  return {
+    id: "command-lesson.draft.accept",
+    type: "lesson.draft.accept",
+    actor: { actorId: "t1", actorScope: "teacher" },
+    scope: { schoolId: "s1", pluginId: "core.lesson-agent" },
+    payload: { lessonId: "lesson-1", draftVersionId: "draft-1" },
+    correlation: {
+      correlationId: "corr-lesson-draft-accept",
+      causationId: null,
+      producer: "test-suite",
+    },
+    audit: { delegatedActor: null, approval: null },
+  };
+}
+
+type DiscardCommand = {
+  id: string;
+  type: "lesson.draft.discard";
+  actor: { actorId: string; actorScope: "teacher" };
+  scope: { schoolId: string; pluginId: string };
+  payload: { lessonId: string; draftVersionId: string };
+  correlation: { correlationId: string; causationId: string | null; producer: string };
+  audit: { delegatedActor: null; approval: null };
+};
+
+function createDiscardCommand(): DiscardCommand {
+  return {
+    id: "command-lesson.draft.discard",
+    type: "lesson.draft.discard",
+    actor: { actorId: "t1", actorScope: "teacher" },
+    scope: { schoolId: "s1", pluginId: "core.lesson-agent" },
+    payload: { lessonId: "lesson-1", draftVersionId: "draft-1" },
+    correlation: {
+      correlationId: "corr-lesson-draft-discard",
+      causationId: null,
+      producer: "test-suite",
+    },
+    audit: { delegatedActor: null, approval: null },
+  };
+}
+
+describe("lesson.draft.accept / discard event version fidelity（REVIEW-03 / DRAFT-03）", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.assertActiveTeacher.mockResolvedValue({ userId: "t1", schoolIds: ["s1"] });
+  });
+
+  it("accepted 事件携带持久化的真实 draft version（>= 1，绝非硬编码 0）", async () => {
+    mocks.applyDraftToLiveLesson.mockResolvedValue({
+      lessonId: "lesson-1",
+      courseId: "course-1",
+      draftVersionId: "draft-1",
+      appliedStepCount: 4,
+      version: 3,
+    });
+
+    const result = await lessonDraftCommandHandlers["lesson.draft.accept"].execute({
+      command: createAcceptCommand() as never,
+      attemptNumber: 1,
+    });
+
+    const accepted = result.emittedEvents.find((e) => e.eventType === "lesson.draft.accepted");
+    expect(accepted).toBeDefined();
+    const version = (accepted!.payload as { version: number }).version;
+    expect(version).toBe(3);
+    expect(version).toBeGreaterThanOrEqual(1);
+    expect(version).not.toBe(0);
+  });
+
+  it("accept resultSummary 携带 courseId（供下游 course 范围缓存失效）", async () => {
+    mocks.applyDraftToLiveLesson.mockResolvedValue({
+      lessonId: "lesson-1",
+      courseId: "course-1",
+      draftVersionId: "draft-1",
+      appliedStepCount: 4,
+      version: 3,
+    });
+
+    const result = await lessonDraftCommandHandlers["lesson.draft.accept"].execute({
+      command: createAcceptCommand() as never,
+      attemptNumber: 1,
+    });
+
+    const courseId = (result.resultSummary as { courseId?: unknown } | null)?.courseId;
+    expect(typeof courseId).toBe("string");
+    expect(courseId).toBe("course-1");
+    expect((courseId as string).length).toBeGreaterThan(0);
+  });
+
+  it("discarded 事件携带真实 draft version（>= 1，绝非硬编码 0）", async () => {
+    mocks.discardDraftLessonVersion.mockResolvedValue({
+      lessonId: "lesson-1",
+      draftVersionId: "draft-1",
+      discardedAt: "2026-06-01T00:00:00.000Z",
+      version: 2,
+    });
+
+    const result = await lessonDraftCommandHandlers["lesson.draft.discard"].execute({
+      command: createDiscardCommand() as never,
+      attemptNumber: 1,
+    });
+
+    const discarded = result.emittedEvents.find((e) => e.eventType === "lesson.draft.discarded");
+    expect(discarded).toBeDefined();
+    const version = (discarded!.payload as { version: number }).version;
+    expect(version).toBe(2);
+    expect(version).toBeGreaterThanOrEqual(1);
+    expect(version).not.toBe(0);
   });
 });
