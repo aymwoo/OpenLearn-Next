@@ -1256,6 +1256,7 @@ export const pluginRegistrations = sqliteTable("pluginRegistration", {
   uninstallRetentionMode: text("uninstallRetentionMode", {
     enum: ["retain", "cleanup"],
   }),
+  dataVersion: integer("dataVersion").notNull().default(1),
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
 }, (table) => [
@@ -1901,3 +1902,7 @@ export const pluginOwnedBusinessData = sqliteTable(
     uniqueIndex("plugin_owned_biz_school_plugin_key_unique").on(table.schoolId, table.pluginId, table.key),
   ]
 );
+
+// 受治理的 plugin-owned 生成表（由 scripts/compile-plugin-data-model.ts 编译）。
+// 手写主体永不被 codegen 改写；此处仅 re-export，让 drizzle-kit 经 schema.ts 看见全部生成表。
+export * from "./schema/generated";
