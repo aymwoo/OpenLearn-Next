@@ -92,7 +92,12 @@
   2. 动词输入输出由 drizzle-zod（与编译表同源）校验；越权/跨校/非法 payload 被拒绝并写入 governance audit；`schoolId` 由认证 session 推导，绝不接受插件/前端传入。
   3. 写入路径 Command Bus → DAL → SQLite（append-only/isLatest）replay-safe，且不产生第二 durable 真相源（WS/Redis 只投递/通知，不落库权威）。
 **Pitfalls mitigated**: #6 灵活查询=注入面、#8 第二真相源（写半边）、#2 scope 强约束。
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 68-01-PLAN.md — 白名单单一真相源：drizzle-zod 同源派生 + 编译生成 checked-in allowlist（零漂移）+ 校验/具名拒因
+- [ ] 68-02-PLAN.md — 动词契约判别联合 + 前置治理门 assertActionExecutable + tx-aware 动词级审计
+- [ ] 68-03-PLAN.md — 写动词 insert/upsert 经 Command Bus（contracts/registry/handler append-only/producer）
+- [ ] 68-04-PLAN.md — 统一入口 dispatchPluginDataAccess + 读动词 getByIndex/count/aggregate 受治理直连
+- [ ] 68-05-PLAN.md — 负样本 close gate（10 类拒因+审计）+ verify:phase68 串联零漂移/单测
 
 ### Phase 69: Interactive Single-Choice Quiz Sample Plugin
 **Goal**: 以单选互动答题样板，用与第三方完全相同的受治理路径打通「老师配置 → 学生作答 → 自有结构表持久化」：老师配置一道单选题，学生在课堂运行链路提交作答，作答经受治理动词 append-only/isLatest 落入插件自有表，绝无 built-in 后门。
