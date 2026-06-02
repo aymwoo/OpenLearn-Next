@@ -80,7 +80,7 @@
 **Pitfalls mitigated**: #1 结构化表契约（非 JSON 袋子）、#2 隔离不变量（schoolId+scope）、#3 动态 DDL 偷渡、#4 dataVersion + 迁移安全契约。
 **Plans**: 3 plans
 - [x] 67-01-PLAN.md — DATA-01 校验地基：dataModel Zod meta-schema（纯 DTO）+ 1 合法/5 非法负样本 + 合法 quiz 样板声明 + 依赖/脚本入口
-- [ ] 67-02-PLAN.md — DATA-02/03 物理面：编译器声明→确定性 Drizzle 生成片段 + schema barrel + dataVersion 列 + checked-in 迁移
+- [x] 67-02-PLAN.md — DATA-02/03 物理面：编译器声明→确定性 Drizzle 生成片段 + schema barrel + dataVersion 列 + checked-in 迁移
 - [ ] 67-03-PLAN.md — DATA-02/03/04 close gate：零-运行时-DDL 静态闸门 + phase67 物理验证脚本（PRAGMA/级联/foreign_key_check/漂移）+ verify:phase 重指 67
 
 ### Phase 68: Governed Declarative Data-Access Verbs
@@ -146,7 +146,7 @@
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 67. Declarative Plugin-Owned Data Model & Migration-Proof | v4.0 | 1/3 | In Progress|  |
+| 67. Declarative Plugin-Owned Data Model & Migration-Proof | v4.0 | 2/3 | In Progress|  |
 | 68. Governed Declarative Data-Access Verbs | v4.0 | 0/TBD | Not started | - |
 | 69. Interactive Single-Choice Quiz Sample Plugin | v4.0 | 0/TBD | Not started | - |
 | 70. Question Stats & Post-Class Recap | v4.0 | 0/TBD | Not started | - |
