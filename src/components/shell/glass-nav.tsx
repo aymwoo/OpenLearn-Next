@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+import { SiteLogo } from '@/components/brand/site-logo'
 import type { NavigationItem } from '@/lib/navigation'
 import { navigationItems } from '@/lib/navigation'
 import { cn } from '@/lib/utils'
@@ -42,7 +43,7 @@ export function GlassNav({
           href={brandHref}
           className="flex min-h-11 shrink-0 items-center rounded-full bg-surface-container-lowest px-4 text-sm font-semibold text-primary transition hover:bg-surface-container-low focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/40"
         >
-          {brandLabel}
+          <SiteLogo compact inverse={inverse} label={brandLabel} />
         </Link>
         <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {items.map((item) => {

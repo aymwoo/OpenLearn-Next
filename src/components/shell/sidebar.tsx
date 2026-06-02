@@ -3,6 +3,7 @@
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
+import { SiteLogo } from '@/components/brand/site-logo'
 import { cn } from '@/lib/utils'
 import { 
   LayoutDashboard, 
@@ -32,7 +33,7 @@ type SidebarProps = {
   className?: string
 }
 
-export function Sidebar({ items, activePath, title = '光启书院', region = 'primary-nav', className }: SidebarProps) {
+export function Sidebar({ items, activePath, title = 'OpenLearn Next', region = 'primary-nav', className }: SidebarProps) {
   const compact = region === 'secondary-nav'
   const currentPath = activePath || ''
 
@@ -61,9 +62,7 @@ export function Sidebar({ items, activePath, title = '光启书院', region = 'p
     >
       <div className="flex flex-col gap-7">
         <div className="flex items-center gap-3 px-2 py-1">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-container-lowest text-sm font-semibold text-primary shadow-ambient">
-            学
-          </div>
+          <SiteLogo compact showLabel={false} />
           <div className="flex flex-col">
             <h1 className="text-base font-bold leading-tight tracking-tight text-on-surface">{title}</h1>
             <span className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-on-surface-variant">

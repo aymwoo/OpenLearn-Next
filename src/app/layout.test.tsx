@@ -16,5 +16,6 @@ describe("RootLayout hydration guard", () => {
     expect(source).toContain('<body>');
     expect(source).toContain('<Suspense fallback={null}>');
     expect(source).toContain("<ThemeInjector />");
+    expect(source).toContain("title: 'OpenLearn Next'");
   });
 });

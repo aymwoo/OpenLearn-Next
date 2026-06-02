@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ArrowRight, Orbit, Sparkles, Timer, Users2, Waypoints } from 'lucide-react'
+import { SiteLogo } from '@/components/brand/site-logo'
 import { HomeLoginCard } from '@/components/home/home-login-card'
 import { surfaceWidths } from '@/components/surfaces/surface-widths'
 
@@ -38,15 +39,9 @@ export function HomeSurface() {
       <div className={`relative z-10 ${surfaceWidths.publicShell} flex flex-col px-6 pb-12 pt-6 md:px-10 lg:px-14`}>
         <nav className="rounded-full bg-white/8 px-5 py-4 shadow-[0_20px_60px_rgba(2,6,23,0.24)] ring-1 ring-white/10 backdrop-blur-2xl">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-full bg-linear-to-br from-[#8b5cf6] via-[#3b82f6] to-[#2dd4bf] text-sm font-semibold text-white shadow-[0_12px_30px_rgba(59,130,246,0.3)]">
-                OL
-              </div>
-              <div>
-                <p className="text-sm text-white/60">OpenLearn Next</p>
-                <p className="text-base font-semibold tracking-[-0.03em] text-white">未来课堂操作系统</p>
-              </div>
-            </div>
+            <Link href="/" className="rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/40">
+              <SiteLogo label="OpenLearn Next" subtitle="未来课堂操作系统" inverse />
+            </Link>
 
             <div className="hidden items-center gap-6 lg:flex">
               {navItems.map((item) => (
