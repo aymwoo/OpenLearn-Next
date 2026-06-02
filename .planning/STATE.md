@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
-status: executing
-last_updated: "2026-06-02T08:59:34.831Z"
+status: verifying
+last_updated: "2026-06-02T09:10:11.341Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 0
+  completed_plans: 3
+  percent: 17
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 Phase: 67 (declarative-plugin-owned-data-model-migration-proof) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-02
 
 ## Performance Metrics
@@ -69,6 +69,7 @@ Last activity: 2026-06-02
 | Phase 66 P07 | 12min | 1 tasks | 1 files |
 | Phase 66 P05 | ~18min | 1 tasks | 2 files |
 | Phase 67 P01 | 13min | 2 tasks | 4 files |
+| Phase 67 P03 | 25min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,9 @@ Recent decisions affecting current work:
 - [Phase 66]: 66-05 verify: live draft path goes draftLessonStep → bus lesson.draft.run → createDraftLessonStepTool → **aiGenerateObject** (facade.ts) — genuinely requires a configured OPENAI_COMPAT_* provider AND a reachable Redis (rate-limit is fail-closed). Earlier "deterministic / no LLM" note was wrong. In-sandbox neither exists, so end-to-end generation is verified by mock-provider unit/eval/integration tests (212/212), and Playwright verifies only the flag-gated trigger visibility + styling (D-03 hard-stop is backend-authoritative; UI hide is secondary).
 - [Phase ?]: FK-to-core guarded by strict() unrecognized_keys, deliberately not a named reason constant
 - [Phase ?]: DDL keyword scan via JSON.stringify(table) regex catches raw SQL in any string field
+- [Phase ?]: Zero-DDL gate uses node:fs recursion (zero-dependency, CI-stable) scanning a superset of D-08 dirs
+- [Phase ?]: Narrow literal DDL flagged only with an execution channel; interpolated template DDL always flagged
+- [Phase ?]: scripts/prepare-dev-db.ts file-exempted as sanctioned drizzle migration-ledger bootstrap
 
 ### Pending Todos
 
@@ -144,7 +148,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-02T08:59:34.826Z
+Last session: 2026-06-02T09:09:11.777Z
 Stopped at: Completed 67-01-PLAN.md
 Resume file: None
 

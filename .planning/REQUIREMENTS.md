@@ -12,7 +12,7 @@
 - [x] **DATA-01**: 插件 manifest 能声明结构化数据模型（`dataModel`：表/字段/类型/约束），该声明由 Zod meta-schema 校验，非法声明在边界处被拒绝，禁止表达任意 SQL/DDL。
 - [x] **DATA-02**: 声明式 `dataModel` 在开发/发布期被编译为受治理的 Drizzle SQLite 定义并产出 checked-in 迁移（独立生成片段文件，不注入手写 `schema.ts`）；运行时绝不执行 DDL 或动态建表。
 - [x] **DATA-03**: 每个插件的自有表带命名空间隔离（基于 `dbNamespace`/`pluginId`），避免跨插件命名冲突，且每行可归属到 school/course/session 维度以防跨域数据泄漏。
-- [ ] **DATA-04**: `verify:phase` 的 migration-proof close gate 扩展覆盖新增的插件自有表，保证声明 schema ↔ 物理表 ↔ 迁移三者一致、无漂移、无运行时 DDL。
+- [x] **DATA-04**: `verify:phase` 的 migration-proof close gate 扩展覆盖新增的插件自有表，保证声明 schema ↔ 物理表 ↔ 迁移三者一致、无漂移、无运行时 DDL。
 
 ### 受治理数据访问 (ACCESS)
 
@@ -85,7 +85,7 @@ Populated during roadmap creation.
 | DATA-01 | Phase 67 | Complete |
 | DATA-02 | Phase 67 | Complete |
 | DATA-03 | Phase 67 | Complete |
-| DATA-04 | Phase 67 | Pending |
+| DATA-04 | Phase 67 | Complete |
 | ACCESS-01 | Phase 68 | Pending |
 | ACCESS-02 | Phase 68 | Pending |
 | ACCESS-03 | Phase 68 | Pending |

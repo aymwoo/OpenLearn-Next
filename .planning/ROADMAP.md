@@ -81,7 +81,7 @@
 **Plans**: 3 plans
 - [x] 67-01-PLAN.md — DATA-01 校验地基：dataModel Zod meta-schema（纯 DTO）+ 1 合法/5 非法负样本 + 合法 quiz 样板声明 + 依赖/脚本入口
 - [x] 67-02-PLAN.md — DATA-02/03 物理面：编译器声明→确定性 Drizzle 生成片段 + schema barrel + dataVersion 列 + checked-in 迁移
-- [ ] 67-03-PLAN.md — DATA-02/03/04 close gate：零-运行时-DDL 静态闸门 + phase67 物理验证脚本（PRAGMA/级联/foreign_key_check/漂移）+ verify:phase 重指 67
+- [x] 67-03-PLAN.md — DATA-02/03/04 close gate：零-运行时-DDL 静态闸门 + phase67 物理验证脚本（PRAGMA/级联/foreign_key_check/漂移）+ verify:phase 重指 67
 
 ### Phase 68: Governed Declarative Data-Access Verbs
 **Goal**: 插件只能经白名单具名、Zod 校验、参数化的受治理动词（`insert`/`upsert`/`getByIndex`/`count`/`aggregate`）读写自有表，全部经 Command Bus + governed action registry 带审计；禁止直连 DB、禁止传原始 SQL/where/字段名；写路径 replay-safe 且不产生第二真相源。
@@ -146,7 +146,7 @@
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 67. Declarative Plugin-Owned Data Model & Migration-Proof | v4.0 | 2/3 | In Progress|  |
+| 67. Declarative Plugin-Owned Data Model & Migration-Proof | v4.0 | 3/3 | Complete   | 2026-06-02 |
 | 68. Governed Declarative Data-Access Verbs | v4.0 | 0/TBD | Not started | - |
 | 69. Interactive Single-Choice Quiz Sample Plugin | v4.0 | 0/TBD | Not started | - |
 | 70. Question Stats & Post-Class Recap | v4.0 | 0/TBD | Not started | - |
