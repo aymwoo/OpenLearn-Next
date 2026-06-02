@@ -76,7 +76,10 @@ const ConstraintSpecSchema = z
 /** 单表声明：前缀、schoolId scope、DDL 探测、约束列存在性均在此把守。 */
 const TableSpecSchema = z
   .strictObject({
-    name: z.string().min(1),
+    // CR-01：表名必须过 IDENTIFIER 正则。编译器以 `export const ${toCamelCase(name)} =
+    // sqliteTable(` 直出 TS，未经此约束的表名（带 plugin_owned_ 前缀且不含 DDL 关键字）
+    // 可偷渡任意可执行代码并躲过 zero-DDL grep，构成编译期 TS 代码注入。与列名同源把守。
+    name: z.string().regex(IDENTIFIER),
     columns: z.array(ColumnSpecSchema).min(1),
     indexes: z.array(ConstraintSpecSchema).optional(),
     uniques: z.array(ConstraintSpecSchema).optional(),

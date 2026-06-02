@@ -100,4 +100,40 @@ describe("plugin-data-model meta-schema（DATA-01 边界契约）", () => {
       expect(issue?.path.at(-1)).toBe("type");
     });
   });
+
+  describe("CR-01：表名必须过 IDENTIFIER，杜绝编译期 TS 代码注入", () => {
+    // 攻击面：编译器 toCamelCase(table.name) → `export const ${name} = sqliteTable(`，
+    // 表名带前缀且不含 CREATE/ALTER/DROP 即可绕过 prefix + DDL 双重把守，
+    // 注入任意可执行 TS（import 期触发），并躲过 zero-DDL grep。
+    it("表名带合法前缀但夹带 TS 代码片段 → 在 name 字段被 IDENTIFIER 正则拒", () => {
+      const bad = mutate((m) => {
+        m.tables[0].name = "plugin_owned_x = 1 as any; import('node:child_process');//";
+      });
+      const result = PluginDataModelSchema.safeParse(bad);
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      const issue = result.error.issues.find(
+        (i) => i.code === "invalid_format" && i.path.at(-1) === "name",
+      );
+      expect(issue).toBeDefined();
+    });
+
+    it("表名含空格/分号等非标识符字符（即便有前缀）一律拒", () => {
+      for (const evil of [
+        "plugin_owned_a;b",
+        "plugin_owned_a b",
+        "plugin_owned_a-b",
+        "plugin_owned_a()",
+      ]) {
+        const bad = mutate((m) => {
+          m.tables[0].name = evil;
+        });
+        expect(PluginDataModelSchema.safeParse(bad).success).toBe(false);
+      }
+    });
+
+    it("合法表名 plugin_owned_quiz_questions 仍通过（不误伤正样本）", () => {
+      expect(() => PluginDataModelSchema.parse(quizDataModel)).not.toThrow();
+    });
+  });
 });
