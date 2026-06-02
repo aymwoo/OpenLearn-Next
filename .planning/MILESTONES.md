@@ -1,5 +1,21 @@
 # Milestones
 
+## v3.2 AI LessonAgent 起草闭环 (Shipped: 2026-06-02)
+
+**Phases completed:** 6 phases, 29 plans, 43 tasks
+
+**Milestone audit:** 2026-06-01 的里程碑审计先识别出 7 个端到端生产链路缺口；收尾 Phase 66 逐项补齐 run→persist、teacher trigger、accept/discard command-bus 路径，并在 2026-06-02 完成验证后归档。
+
+**Key accomplishments:**
+
+- 建立了完整的 server-only AI provider 抽象层：统一 `aiGenerateText/aiGenerateObject` 入口、provider 配置收口、typed 错误归一、双层限流与 no-leak 静态边界证明。
+- 交付了 LessonAgent typed tool 与命令编排主链：`createDraftLessonStepTool`、`lesson.draft.run` handler、`draftLessonStep` facade、summary-only AI 领域事件，确保工具层只经 DAL / Command Bus 工作。
+- 打通了 AI 草稿写入链路：Agent 产出经 `lesson.draft.persist` 写入 `draftLessonVersions`，具备 provenance、幂等与 replay-safe 语义，继续复用既有 publish/version 真相源。
+- 交付了教师审校面：编辑器内嵌 `mode=review`、diff 列表、逐项/整体编辑与接受/丢弃动作，对齐 Stitch 与 `DESIGN.md` 的 Lexend、tonal surface、glass/gradient CTA 语言。
+- 用 shared corpus、guardrails、`lesson.draft.rejected` 契约与 `verify:phase` 收口质量闸门，并由收尾 Phase 66 真正补齐 teacher trigger、run→persist、accept/discard 经 Command Bus 的生产路径。
+
+---
+
 ## v3.1 Single-School Pilot Production Readiness (Plugin-First) (Shipped: 2026-05-30)
 
 **Phases completed:** 8 phases, 34 plans, 50 tasks

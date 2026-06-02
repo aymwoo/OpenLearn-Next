@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.2
-milestone_name: AI LessonAgent 起草闭环
-status: verifying
-last_updated: "2026-06-01T15:31:34.464Z"
-last_activity: 2026-06-01
+milestone: none
+milestone_name: none
+status: Awaiting next milestone
+last_updated: "2026-06-02T03:55:00.000Z"
+last_activity: 2026-06-02 — Milestone v3.2 completed and archived
 progress:
   total_phases: 6
   completed_phases: 6
@@ -17,25 +17,23 @@ progress:
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-05-31)
+See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 66 — wire-ai-lessonagent-draft-loop-end-to-end-bridge-run-persist
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 66 (wire-ai-lessonagent-draft-loop-end-to-end-bridge-run-persist) — EXECUTING
-Plan: 7 of 7
-Status: Code complete — 66-05 visual human-verify PENDING (requires lessonAgentEnabled flag-threading precondition)
-Last activity: 2026-06-01
-
-Progress: [██████████] 100%
+Phase: Milestone v3.2 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-02 — Milestone v3.2 completed and archived
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0 (this milestone)
+- Total plans completed: 29 (v3.2 archived)
 - Average duration: —
 - Total execution time: —
 
@@ -75,10 +73,9 @@ Progress: [██████████] 100%
 
 ### Roadmap Evolution
 
-- v3.2 roadmap drafted phases 61-65, continuing numbering from v3.1 (ended at 60 + inserted 60.1/60.2).
-- Build order: provider layer → tool layer → draft chain → review surface → eval/guardrails/close gate (strict dependency order).
-- `v3.1` 已归档到 `.planning/milestones/v3.1-ROADMAP.md`；根级 `ROADMAP.md` 现承载 v3.2 active phases 与 v3.1 collapsed summary。
-- Phase 66 added: 里程碑审计（`.planning/v3.2-MILESTONE-AUDIT.md`，status=gaps_found）发现端到端起草闭环在生产路径断裂——run→persist 接缝无 producer、无教师触发入口、accept/discard 绕过 Command Bus（含 version:0 潜在 schema 违规）。新增收尾 phase 打通这一条编排接缝并修正陈旧 REQUIREMENTS 追溯表，关闭 AGENT-03 / DRAFT-01..03 / REVIEW-01..03 / AGENT-04 后再归档 v3.2。
+- v3.2 roadmap 按 provider layer → tool layer → draft chain → review surface → eval/guardrails → closure wiring 的顺序执行完毕。
+- `v3.2` 已归档到 `.planning/milestones/v3.2-ROADMAP.md`；根级 `ROADMAP.md` 现在只保留已归档 milestone 摘要与“等待下一里程碑”入口。
+- milestone audit 先识别了 teacher trigger、run→persist、accept/discard command-bus 三个关键断缝；收尾 Phase 66 把这些跨 phase seam 作为真实 blocker 修复，而不是接受为 tech debt。
 
 ### Decisions
 
@@ -115,6 +112,7 @@ Recent decisions affecting current work:
 - [Phase 66]: 66-06: 6 项被 Phase 66 打通的需求保持 Wiring (Phase 66) 状态（checkbox 不勾选），端到端验证前不计 Complete；traceability Phase 列用 'Phase NN → 66' 同记构建相与打通相
 - [Phase ?]: 66-04: review accept/discard Server Actions dispatch lesson.draft.accept/discard via Command Bus producer with required dedupeKey — no direct DAL writes, no second source of truth
 - [Phase ?]: 66-07: assembled-loop closure spec drives both action paths through the real Command Bus; only @/db + ledger + adapter + plugin handlers + DALs are mocked
+- [Phase 66]: 66-05 verify: live draft path goes draftLessonStep → bus lesson.draft.run → createDraftLessonStepTool → **aiGenerateObject** (facade.ts) — genuinely requires a configured OPENAI_COMPAT_* provider AND a reachable Redis (rate-limit is fail-closed). Earlier "deterministic / no LLM" note was wrong. In-sandbox neither exists, so end-to-end generation is verified by mock-provider unit/eval/integration tests (212/212), and Playwright verifies only the flag-gated trigger visibility + styling (D-03 hard-stop is backend-authoritative; UI hide is secondary).
 
 ### Pending Todos
 
@@ -149,5 +147,4 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Execute Phase 61 with `/gsd-execute-phase 61` (Wave 0 must run first — installs SDK + test fixtures)
-- Consider `/gsd-ui-phase 64` before executing the teacher review surface
+- Start the next milestone with /gsd-new-milestone

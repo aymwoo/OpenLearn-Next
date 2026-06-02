@@ -10,23 +10,21 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## Current Milestone: v3.2 AI LessonAgent 起草闭环
-
-**Goal:** 把 v3.0 已就绪的 AI-native contract 兑现成一个真正可用的 LessonAgent —— 教师可触发 AI 起草一节课的步骤包，经审校后通过既有发布链路落地，全程经 Command Bus / 工具层治理，不破坏 SQLite-first、DAL-only、no-arbitrary-code 约束。
-
-**Target features:**
-- AI Provider 抽象层（`server/ai/providers`）：统一模型接入、密钥隔离、限流，provider 可替换。
-- LessonAgent 工具层（`server/ai/tools`）：Zod 校验的 typed tools，只调 DAL / Command Bus，禁直连 DB、禁触 provider key。
-- 起草链路：Agent 经 Command Bus 写入 draft lesson version，复用既有 publish/version 模型，不新建真相源。
-- 教师审校面：起草结果的 diff / 编辑 / 接受 / 丢弃，对齐 Stitch + DESIGN.md。
-- Eval + Guardrails + close gate：`verify:phase` 闭环，用 v3.0 event bus 做可观测与审计。
-
-**Key context:** 复用 v3.0 Command Bus / action registry / event bus，不重建平台内核；本轮只打穿单个 Agent 的单条起草链路（强样板优先，N=1 先跑通）；继续推迟多 Agent 编排、RAG/向量库、MCP 外部工具、插件触达 AI；provider key 只在服务端 Node runtime，绝不进插件 manifest 或 Edge。
-
 ## Current State
 
-- `v3.1 Single-School Pilot Production Readiness (Plugin-First)` 已于 2026-05-30 归档，milestone audit 为 `passed`；仓库当前已经具备 classroom voting 样板链路、operator recovery、pilot deploy/release/restore 与 40/5 rehearsal close posture。
-- 当前 active planning 已清空，等待下一里程碑定义。后续规划必须把 `v3.1` 视为已验证 baseline，而不是待补缺口。
+**Latest shipped milestone:** `v3.2 AI LessonAgent 起草闭环`（archived 2026-06-02）
+
+**What is now validated:**
+- AI provider abstraction 已落地：server-only key posture、typed provider errors、双层限流、统一 `aiGenerateText` / `aiGenerateObject` facade。
+- LessonAgent typed tool / command path 已落地：`createDraftLessonStepTool`、`lesson.draft.run`、`draftLessonStep` facade、summary-only typed events。
+- AI 起草闭环已落地：teacher trigger → run → persist → review → accept/discard → publish 继续复用既有 lesson/version 真相源。
+- 教师审校面已对齐 Stitch + `DESIGN.md`：review mode、diff workspace、逐项编辑、玻璃提示与 gradient CTA。
+- Eval/guardrails/`verify:phase` 已成为 AI 起草链路的权威 close gate。
+
+**Close note:** 本轮 live 端到端生成在 sandbox 中不具备真实 OpenAI-compatible provider 和 Redis，因此 close 采用 mock-provider automated proof + Playwright 视觉验证；这不改变生产代码路径，但提醒下一个里程碑若要求“真实生成验收”应先立可重复基础设施。
+
+- `v3.2 AI LessonAgent 起草闭环` 已于 2026-06-02 归档；LessonAgent 起草、审校和发布主链已成为新的 validated baseline。
+- 当前 active planning 已清空，等待下一里程碑定义。后续规划必须把 `v3.2` 和 `v3.1` 一并视为已验证 baseline，而不是待补缺口。
 - `v3.0 AI Native Educational OS Upgrade` 已于 2026-05-23 归档；第一阶段平台内核升级已经完成，当前仓库已具备统一 Command Bus、governed action registry、plugin lifecycle governance、persisted platform event bus、operator execution observability 与 machine-readable AI-native contracts。
 - `v2.2 WebSocket Classroom Transport Cutover` 已于 2026-05-18 归档，课堂实时链路现已进入 WebSocket-first posture。
 - `ioredis` fanout 已作为 optional、deploy-authoritative 的 delivery capability 落地；Redis degraded posture 会在 `/settings`、runtime inspector 与 teacher `/classroom` 中显式暴露。
@@ -37,7 +35,19 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - `v2.4 Plugin Data Architecture & Default Plugins` 在 Phase 44-48 planning / partial execution 后被冻结，作为输入上下文保留，但不再是当前 committed milestone。
 - 当前 planning 主问题不再是“平台内核是否存在”或“单校试点是否能上线”，而是下一轮 committed scope 要围绕哪条新用户价值切口推进，而不破坏已归档 baseline。
 
-## Most Recently Archived Milestone: v3.1 Single-School Pilot Production Readiness (Plugin-First)
+## Most Recently Archived Milestone: v3.2 AI LessonAgent 起草闭环
+
+**Archive status:** Archived 2026-06-02 after closure Phase 66 resolved the milestone audit's E2E gaps.
+
+**Delivered scope:**
+- Phase 61-66, 29 plans
+- server-only AI provider abstraction, LessonAgent typed tool layer, governed AI draft persistence, teacher review surface, eval/guardrails close gate, and final end-to-end closure wiring
+
+**Close posture:**
+- all 18 `v3.2` requirements marked complete
+- milestone audit was intentionally preserved as historical pre-close evidence; its gaps were closed rather than accepted as deferred debt
+
+## Previously Archived Milestone: v3.1 Single-School Pilot Production Readiness (Plugin-First)
 
 **Archive status:** Archived 2026-05-30 with milestone audit `passed`.
 
@@ -82,11 +92,12 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ## Planning Posture
 
-当前没有 active milestone。下一里程碑应从已归档的 `v3.1` truth 出发，选择新的 committed 用户价值切口，而不是重开已完成的 single-school pilot 基线。
+当前没有 active milestone。下一里程碑应从已归档的 `v3.2` AI draft-loop truth 和 `v3.1` single-school pilot truth 出发，选择新的 committed 用户价值切口，而不是重开已完成 baseline。
 
 **Next planning constraints:**
-- 把 classroom voting 样板链路、operator recovery、pilot deploy/release/restore 与 40/5 rehearsal 视为 validated baseline。
+- 把 LessonAgent 起草闭环、classroom voting 样板链路、operator recovery、pilot deploy/release/restore 与 40/5 rehearsal 视为 validated baseline。
 - 保持既有 WebSocket-first、optional Redis fanout、BullMQ、SQLite + DAL truth posture，不把已交付能力重新描述为缺口。
+- 若下一里程碑要求真实 LLM 端到端验收，先显式纳入 provider/Redis bootstrap 或 staging proof lane，而不是在 close 时临时补环境。
 - 继续推迟多校多租户、通用 plugin marketplace、Agent Runtime 扩张、PostgreSQL/Kubernetes/重型 observability 平台迁移，除非新 milestone 明确承接。
 - 下一轮 scope 应通过 `/gsd-new-milestone` 正式建立，而不是直接恢复旧 `REQUIREMENTS.md`。
 
@@ -214,6 +225,9 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 | `/api/release` 只读取 canonical `current.json` / `green.json` 指针 | release identity 必须来自单一权威来源，不能靠扫描 manifest 目录猜测“最新版本” | ✓ Good |
 | canonical close evidence 只能记账 live rehearsal 与真实 deploy / rollback notes | single-school pilot close 不能再接受 dry-run artifact 伪装成 production proof | ✓ Good |
 | transport fallback 在 `v3.1` close 中继续保持 manual-only evidence | 当前需要诚实保留 operator lane，而不是为了自动化覆盖率牺牲 truthfulness | ✓ Good |
+| `v3.2` 必须先走 provider → tool → draft → review → eval，再允许 E2E closure phase 打通生产接缝 | 先建立每段 contract，再集中修真实 orchestration seam，能把 blocker 压缩进单个 closure phase | ✓ Good |
+| 对 milestone audit 暴露的跨 phase 断缝，优先补真实生产路径而不是接受为 tech debt | 单 phase verifier 全绿不代表里程碑闭环成立；必须让 teacher trigger、run→persist、accept/discard bus path 真正落地 | ✓ Good |
+| sandbox 中缺 provider/Redis 时，真实生成 close 可用 mock-provider automated proof + Playwright 视觉验证替代，但要明确记录环境限制 | 保持 close honesty，不伪造 live LLM 证据，同时不阻断已通过 contract/integration tests 的 milestone 归档 | ✓ Good |
 
 ## Evolution
 
@@ -233,4 +247,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-31 after starting milestone v3.2*
+*Last updated: 2026-06-02 after archiving milestone v3.2*

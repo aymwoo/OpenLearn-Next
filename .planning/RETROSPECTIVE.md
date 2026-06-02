@@ -2,6 +2,40 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v3.2 — AI LessonAgent 起草闭环
+
+**Shipped:** 2026-06-02
+**Phases:** 6 | **Plans:** 29 | **Sessions:** not tracked in repo artifacts
+
+### What Was Built
+- server-only AI provider abstraction with unified facade, typed provider errors, rate limiting, and zero-leak boundaries.
+- LessonAgent typed tool layer, `lesson.draft.run` command path, draft persistence into `draftLessonVersions`, and a governed review/apply/discard surface in the teacher editor.
+- shared corpus, guardrails, `lesson.draft.rejected`, authoritative `verify:phase`, and closure Phase 66 that wired the real production loop end-to-end.
+
+### What Worked
+- 先把 provider/tool/draft/review/eval 各 phase 独立立住，再用 milestone audit 暴露跨 phase seam，最后集中用一个 closure phase 收口，效率很高。
+- 坚持 SQLite + DAL + Command Bus 的单真相源 posture，让 AI 起草可以叠加到现有 lesson/version 模型，而不需要引入新的草稿系统。
+- 用 mock-provider 自动化证明覆盖真实生成依赖缺失的 sandbox 环境，配合 Playwright 做旗标与 UI 验收，保持了 close honesty。
+
+### What Was Inefficient
+- `REQUIREMENTS.md` 和 traceability table 又一次在 close 前滞后，直到收尾 phase 和 milestone archive 才被回写成最终 shipped truth。
+- sandbox 没有 provider + Redis，导致一开始错误地把真实失败归因为业务逻辑而不是基础设施缺口，多走了一轮排查。
+- 自动 archive CLI 虽然生成了骨架，但输出仍需人工清理，尤其是 accomplishments 列表会混入内部修复/偏差项。
+
+### Patterns Established
+- 对 AI feature，milestone audit 必须同时检查 contract-level completion 和 production orchestration seam，单看 phase verifier 不够。
+- 当 close 依赖外部基础设施时，要把“真实环境 proof”和“mocked automated proof”明确分层记录，避免以后把两者混为一谈。
+- closure phase 适合专门解决 teacher trigger、跨 handler seam、traceability reconciliation 这类跨 phase 系统性断缝。
+
+### Key Lessons
+1. 真实产品链路的 blocker 往往不在单个 phase 内，而在 phase 之间的“没人负责的接缝”；milestone audit 的价值就在这里。
+2. 对外部依赖型 AI 能力，close gate 必须从一开始就说明需要什么基础设施，否则最后的人类验收会退化成环境取证。
+
+### Cost Observations
+- Model mix: not tracked in repo artifacts
+- Sessions: not tracked in repo artifacts
+- Notable: 单 Agent 强样板策略有效地把 AI 起草这类高不确定性需求压缩成了可验证、可归档的一条链，而没有把系统拖进更大的 Agent runtime 扩张。
+
 ## Milestone: v3.0 — AI Native Educational OS Upgrade
 
 **Shipped:** 2026-05-23
@@ -111,6 +145,7 @@
 
 | Milestone | Sessions | Phases | Key Change |
 |-----------|----------|--------|------------|
+| v3.2 | not tracked | 6 | Turned the AI-native platform contracts into a real LessonAgent draft/review/publish loop and established milestone-audit-driven closure for cross-phase seams. |
 | v3.0 | not tracked | 5 | Established the first-stage AI-native platform core: command bus, governed action and lifecycle model, persisted platform events, and machine-readable contracts. |
 | v2.3 | not tracked | 5 | Established a reusable async task platform and exposed the difference between platform wiring and real product-trigger proof. |
 | v2.0 | not tracked | 6 | Established runtime-platform foundations inside the main repo without a big-bang rewrite. |
@@ -121,6 +156,7 @@
 
 | Milestone | Tests | Coverage | Zero-Dep Additions |
 |-----------|-------|----------|-------------------|
+| v3.2 | focused suites + `verify:phase` + closure e2e + Playwright visual proof | not tracked | not tracked |
 | v3.0 | focused suites + `verify:phase52/53/54` + milestone audit | not tracked | not tracked |
 | v2.3 | focused suites + `42/43-VERIFICATION` + milestone audit | not tracked | not tracked |
 | v2.0 | focused suites + phase verifiers | not tracked | not tracked |
@@ -129,6 +165,6 @@
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Keep milestone claims executable through canonical verifiers rather than prose-only close notes.
-2. Separate durable truth from delivery transport even during infrastructure migrations.
+1. Keep milestone claims executable through canonical verifiers and milestone audits rather than prose-only close notes.
+2. Separate durable truth from delivery transport even during infrastructure migrations and AI feature growth.
 3. Distinguish real product-closure gaps from proof-artifact debt before marking a milestone shipped.
