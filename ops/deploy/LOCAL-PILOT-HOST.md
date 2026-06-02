@@ -23,6 +23,21 @@ Run:
 bash ops/deploy/setup-local-pilot-host.sh
 ```
 
+To install the local runtime config and start the user-level services in one step, run:
+
+```bash
+pnpm pilot-host:start
+```
+
+Other common controls:
+
+```bash
+pnpm pilot-host:stop
+pnpm pilot-host:restart
+```
+
+This expects a pilot-host release tree to already exist under `~/.local/share/openlearn/local-pilot-host/current` or the overridden `OPENLEARN_LOCAL_PILOT_HOST_ROOT`.
+
 This writes:
 
 - `~/.config/openlearn/openlearn.env`

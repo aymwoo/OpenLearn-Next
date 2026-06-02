@@ -66,6 +66,9 @@
     "proof:phase58": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/proof-phase58-operator-recovery.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
+    "pilot-host:start": "bash ops/deploy/start-local-pilot-host.sh",
+    "pilot-host:stop": "bash ops/deploy/stop-local-pilot-host.sh",
+    "pilot-host:restart": "bash ops/deploy/restart-local-pilot-host.sh",
     "db:migrate": "tsx --import ./scripts/node-shim.js scripts/prepare-dev-db.ts",
     "db:bootstrap:dev": "pnpm db:migrate && tsx --import ./scripts/node-shim.js scripts/bootstrap-dev-db.ts",
     "test": "vitest"
