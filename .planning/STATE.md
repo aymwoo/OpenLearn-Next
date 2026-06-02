@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
-status: verifying
-last_updated: "2026-06-02T09:10:11.341Z"
+status: phase_complete
+last_updated: "2026-06-02T09:40:00.000Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
   completed_plans: 3
-  percent: 17
+  percent: 33
 ---
 
 # Project State
@@ -24,9 +24,9 @@ See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 ## Current Position
 
-Phase: 67 (declarative-plugin-owned-data-model-migration-proof) — EXECUTING
+Phase: 67 (declarative-plugin-owned-data-model-migration-proof) — COMPLETE
 Plan: 3 of 3
-Status: Phase complete — ready for verification
+Status: Phase 67 verified (9/9) + CR-01 BLOCKER fixed; ready for Phase 68
 Last activity: 2026-06-02
 
 ## Performance Metrics
@@ -120,10 +120,12 @@ Recent decisions affecting current work:
 - [Phase ?]: Zero-DDL gate uses node:fs recursion (zero-dependency, CI-stable) scanning a superset of D-08 dirs
 - [Phase ?]: Narrow literal DDL flagged only with an execution channel; interpolated template DDL always flagged
 - [Phase ?]: scripts/prepare-dev-db.ts file-exempted as sanctioned drizzle migration-ledger bootstrap
+- [Phase 67]: CR-01 fix — TableSpecSchema.name 必须过 IDENTIFIER 正则（与列名/pluginKey 同源）；表名经编译器 `export const ${toCamelCase(name)} = sqliteTable(` 直出 TS，仅 min(1) 校验可偷渡可执行 TS 注入并躲过 zero-DDL grep。
+- [Phase 67]: schema-drift gate（src/db/schema.ts + 未推送 drizzle ORM）按 migration-first 视为已接受 false positive；fresh-DB 迁移已物理证明，闸门以 GSD_SKIP_SCHEMA_CHECK=true 旁路。
 
 ### Pending Todos
 
-- Plan Phase 67 (Declarative Plugin-Owned Data Model & Migration-Proof) via `/gsd-discuss-phase 67` → `/gsd-plan-phase 67`.
+- Plan Phase 68 (Governed Declarative Data-Access Verbs) via `/gsd-discuss-phase 68` → `/gsd-plan-phase 68`.
 - Phase 70 是 UI phase（题目统计/课后复盘对齐 Stitch 5322129002350954765 + DESIGN.md）；执行前考虑 `/gsd-ui-phase 70` 生成 UI-SPEC。
 
 ### Blockers/Concerns
@@ -149,9 +151,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-02T09:09:11.777Z
-Stopped at: Completed 67-01-PLAN.md
+Stopped at: Phase 67 complete (verified + CR-01 fixed)
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan Phase 68 (Governed Declarative Data-Access Verbs) via `/gsd-discuss-phase 68` → `/gsd-plan-phase 68`.

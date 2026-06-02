@@ -29,7 +29,7 @@
 <details open>
 <summary>🚧 v4.0 Plugin Marketplace & Plugin-Owned Data (Phases 67-72) — IN PROGRESS</summary>
 
-- [ ] **Phase 67: Declarative Plugin-Owned Data Model & Migration-Proof** - 声明式 `dataModel` DSL + Zod meta-schema + 编译器产出 checked-in Drizzle 迁移（独立片段文件），运行时零 DDL，迁移-proof 闸门覆盖插件自有表。 (DATA-01, DATA-02, DATA-03, DATA-04)
+- [x] **Phase 67: Declarative Plugin-Owned Data Model & Migration-Proof** - 声明式 `dataModel` DSL + Zod meta-schema + 编译器产出 checked-in Drizzle 迁移（独立片段文件），运行时零 DDL，迁移-proof 闸门覆盖插件自有表。 (DATA-01, DATA-02, DATA-03, DATA-04) (completed 2026-06-02)
 - [ ] **Phase 68: Governed Declarative Data-Access Verbs** - 白名单具名、Zod 校验、参数化的受治理读写动词，经 Command Bus + governed action registry，禁直连/禁原始 SQL，单一真相源。 (ACCESS-01, ACCESS-02, ACCESS-03)
 - [ ] **Phase 69: Interactive Single-Choice Quiz Sample Plugin** - 老师配置单选题 + 学生课堂作答 + append-only/isLatest 写入插件自有结构表，全程走第三方同款治理路径、无后门。 (QUIZ-01, QUIZ-02, QUIZ-03)
 - [ ] **Phase 70: Question Stats & Post-Class Recap** - 基于插件自有作答数据的只读统计投影（正确率/选项分布/作答人数，SQL GROUP BY 单一聚合源）+ Stitch/DESIGN 对齐课后复盘界面。 (STATS-01, STATS-02)
