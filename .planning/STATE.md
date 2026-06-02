@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
-status: planning
-last_updated: "2026-06-02T06:20:53.043Z"
+status: executing
+last_updated: "2026-06-02T08:46:04.725Z"
 last_activity: 2026-06-02
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -20,14 +20,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Planning next milestone
+**Current focus:** Phase 67 — declarative-plugin-owned-data-model-migration-proof
 
 ## Current Position
 
-Phase: Not started (roadmap defined, Phases 67-72)
-Plan: —
-Status: Ready to plan Phase 67
-Last activity: 2026-06-02 — Milestone v4.0 roadmap approved (Phases 67-72)
+Phase: 67 (declarative-plugin-owned-data-model-migration-proof) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-06-02
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Last activity: 2026-06-02 — Milestone v4.0 roadmap approved (Phases 67-72)
 | Phase 66 P04 | 8min | 3 tasks | 4 files |
 | Phase 66 P07 | 12min | 1 tasks | 1 files |
 | Phase 66 P05 | ~18min | 1 tasks | 2 files |
+| Phase 67 P01 | 13min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 66-04: review accept/discard Server Actions dispatch lesson.draft.accept/discard via Command Bus producer with required dedupeKey — no direct DAL writes, no second source of truth
 - [Phase ?]: 66-07: assembled-loop closure spec drives both action paths through the real Command Bus; only @/db + ledger + adapter + plugin handlers + DALs are mocked
 - [Phase 66]: 66-05 verify: live draft path goes draftLessonStep → bus lesson.draft.run → createDraftLessonStepTool → **aiGenerateObject** (facade.ts) — genuinely requires a configured OPENAI_COMPAT_* provider AND a reachable Redis (rate-limit is fail-closed). Earlier "deterministic / no LLM" note was wrong. In-sandbox neither exists, so end-to-end generation is verified by mock-provider unit/eval/integration tests (212/212), and Playwright verifies only the flag-gated trigger visibility + styling (D-03 hard-stop is backend-authoritative; UI hide is secondary).
+- [Phase ?]: FK-to-core guarded by strict() unrecognized_keys, deliberately not a named reason constant
+- [Phase ?]: DDL keyword scan via JSON.stringify(table) regex catches raw SQL in any string field
 
 ### Pending Todos
 
@@ -141,8 +144,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-01T15:31:34.459Z
-Stopped at: Completed 66-07-PLAN.md
+Last session: 2026-06-02T08:46:04.720Z
+Stopped at: Completed 67-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
