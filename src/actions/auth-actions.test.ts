@@ -72,4 +72,34 @@ describe("signInAction", () => {
       redirectTo: "/admin",
     });
   });
+
+  it("shows a role-switch hint when a teacher email is entered in student login", async () => {
+    const teacherMembershipWhere = vi.fn().mockResolvedValue([{ role: "teacher" }]);
+    const teacherMembershipFrom = vi.fn().mockReturnValue({ where: teacherMembershipWhere });
+
+    const teacherUserLimit = vi.fn().mockResolvedValue([{ id: "teacher-user-1" }]);
+    const teacherUserWhere = vi.fn().mockReturnValue({ limit: teacherUserLimit });
+    const teacherUserFrom = vi.fn().mockReturnValue({ where: teacherUserWhere });
+
+    const studentLookupLimit = vi.fn().mockResolvedValue([]);
+    const studentLookupWhere = vi.fn().mockReturnValue({ limit: studentLookupLimit });
+    const studentLookupFrom = vi.fn().mockReturnValue({ where: studentLookupWhere });
+
+    dbSelect
+      .mockReturnValueOnce({ from: studentLookupFrom })
+      .mockReturnValueOnce({ from: teacherUserFrom })
+      .mockReturnValueOnce({ from: teacherMembershipFrom });
+
+    const { signInAction } = await import("./auth-actions");
+    const formData = new FormData();
+    formData.set("email", "teacher@example.com");
+    formData.set("password", "secret");
+    formData.set("roleIntent", "student");
+
+    await expect(signInAction({}, formData)).resolves.toEqual({
+      error: "该账号是教师账号，请切换到教师登录。",
+    });
+
+    expect(signIn).not.toHaveBeenCalled();
+  });
 });

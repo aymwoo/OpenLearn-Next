@@ -14,11 +14,42 @@ const roleTabs = [
   { label: '教师登录', value: 'teacher' },
 ] as const
 
+const quickFillAccounts = [
+  {
+    label: '一键填入学生测试账号',
+    description: 'student@example.com / password',
+    roleIntent: 'student' as const,
+    email: 'student@example.com',
+    password: 'password',
+  },
+  {
+    label: '一键填入教师测试账号',
+    description: 'teacher@example.com / password',
+    roleIntent: 'teacher' as const,
+    email: 'teacher@example.com',
+    password: 'password',
+  },
+] as const
+
 export function HomeLoginCard() {
   const [roleIntent, setRoleIntent] = useState<RoleIntent>('student')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [state, formAction, isPending] = useActionState(signInAction, {})
   const error = state.error
+
+  function selectRole(nextRoleIntent: RoleIntent) {
+    setRoleIntent(nextRoleIntent)
+    setEmail('')
+    setPassword('')
+  }
+
+  function fillQuickAccount(nextAccount: (typeof quickFillAccounts)[number]) {
+    setRoleIntent(nextAccount.roleIntent)
+    setEmail(nextAccount.email)
+    setPassword(nextAccount.password)
+  }
 
   return (
     <div className="rounded-[2rem] bg-white/8 p-2 shadow-[0_30px_90px_rgba(2,6,23,0.32)] ring-1 ring-white/10 backdrop-blur-2xl">
@@ -43,7 +74,7 @@ export function HomeLoginCard() {
                 key={role.value}
                 type="button"
                 aria-pressed={active}
-                onClick={() => setRoleIntent(role.value)}
+                onClick={() => selectRole(role.value)}
                 className={cn(
                   'rounded-[0.95rem] px-4 py-3 text-sm font-medium transition',
                   active
@@ -55,6 +86,21 @@ export function HomeLoginCard() {
               </button>
             )
           })}
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {quickFillAccounts.map((account) => (
+            <button
+              key={account.label}
+              type="button"
+              aria-label={account.label}
+              onClick={() => fillQuickAccount(account)}
+              className="rounded-[1.1rem] border border-white/10 bg-white/6 px-4 py-3 text-left transition hover:bg-white/10 hover:border-white/14"
+            >
+              <div className="text-sm font-medium text-white">{account.label}</div>
+              <div className="mt-1 text-[0.78rem] leading-5 text-slate-300">{account.description}</div>
+            </button>
+          ))}
         </div>
 
         {error ? (
@@ -81,6 +127,8 @@ export function HomeLoginCard() {
                   type="text"
                   autoComplete={roleIntent === 'student' ? 'username' : 'email'}
                   required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                   className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/32"
                   placeholder={roleIntent === 'student' ? '请输入学号' : 'teacher@openlearn.dev'}
                 />
@@ -101,6 +149,8 @@ export function HomeLoginCard() {
                   type="password"
                   autoComplete="current-password"
                   required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/32"
                   placeholder="••••••••"
                 />

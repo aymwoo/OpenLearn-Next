@@ -41,4 +41,36 @@ describe("HomeLoginCard", () => {
     expect(screen.getByPlaceholderText("teacher@openlearn.dev")).toBeTruthy();
     expect(roleIntentInput()?.getAttribute("value")).toBe("teacher");
   });
+
+  it("fills the teacher test account from the quick-fill button", () => {
+    const { container } = render(<HomeLoginCard />);
+    const roleIntentInput = () => container.querySelector('input[name="roleIntent"]');
+    const teacherQuickFillButton = container.querySelector('button[aria-label="一键填入教师测试账号"]');
+    const emailInput = () => container.querySelector<HTMLInputElement>('input[name="email"]');
+    const passwordInput = () => container.querySelector<HTMLInputElement>('input[name="password"]');
+
+    expect(teacherQuickFillButton).toBeTruthy();
+    fireEvent.click(teacherQuickFillButton!);
+
+    expect(screen.getByLabelText("邮箱地址")).toBeTruthy();
+    expect(emailInput()?.value).toBe("teacher@example.com");
+    expect(passwordInput()?.value).toBe("password");
+    expect(roleIntentInput()?.getAttribute("value")).toBe("teacher");
+  });
+
+  it("fills the student test account from the quick-fill button", () => {
+    const { container } = render(<HomeLoginCard />);
+    const roleIntentInput = () => container.querySelector('input[name="roleIntent"]');
+    const studentQuickFillButton = container.querySelector('button[aria-label="一键填入学生测试账号"]');
+    const emailInput = () => container.querySelector<HTMLInputElement>('input[name="email"]');
+    const passwordInput = () => container.querySelector<HTMLInputElement>('input[name="password"]');
+
+    expect(studentQuickFillButton).toBeTruthy();
+    fireEvent.click(studentQuickFillButton!);
+
+    expect(screen.getByLabelText("学号")).toBeTruthy();
+    expect(emailInput()?.value).toBe("student@example.com");
+    expect(passwordInput()?.value).toBe("password");
+    expect(roleIntentInput()?.getAttribute("value")).toBe("student");
+  });
 });
