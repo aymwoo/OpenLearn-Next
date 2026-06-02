@@ -248,6 +248,9 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 | `v3.2` 必须先走 provider → tool → draft → review → eval，再允许 E2E closure phase 打通生产接缝 | 先建立每段 contract，再集中修真实 orchestration seam，能把 blocker 压缩进单个 closure phase | ✓ Good |
 | 对 milestone audit 暴露的跨 phase 断缝，优先补真实生产路径而不是接受为 tech debt | 单 phase verifier 全绿不代表里程碑闭环成立；必须让 teacher trigger、run→persist、accept/discard bus path 真正落地 | ✓ Good |
 | sandbox 中缺 provider/Redis 时，真实生成 close 可用 mock-provider automated proof + Playwright 视觉验证替代，但要明确记录环境限制 | 保持 close honesty，不伪造 live LLM 证据，同时不阻断已通过 contract/integration tests 的 milestone 归档 | ✓ Good |
+| `v4.0` 插件自有数据采用「compile, don't execute」：声明在源码、迁移在主仓库 review、运行时只 CRUD 零 DDL | 在 SQLite-first 单体里既给插件结构化自有表能力，又把建表收口为可审计的 checked-in Drizzle 迁移，杜绝运行时动态 DDL 红线 | ✓ Good（Phase 67）|
+| Phase 67 meta-schema 是声明面唯一安全边界：表名/列名/pluginKey 一律过 IDENTIFIER 正则 | 编译器以 `export const ${name} = sqliteTable(` 直出 TS，任何未经标识符约束的声明名都是编译期 TS 代码注入面（CR-01），结构约束必须前置在边界 | ✓ Good（Phase 67）|
+| schema-drift gate 在 migration-first 下视为已接受 false positive，经 `GSD_SKIP_SCHEMA_CHECK=true` 旁路 | fresh-DB 迁移已物理证明（PRAGMA/级联/foreign_key_check/漂移四关），drift 仅源于本地未推送 ORM 快照，不构成真实风险 | ✓ Good（Phase 67）|
 
 ## Evolution
 
@@ -267,4 +270,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-02 after starting milestone v4.0 Plugin Marketplace & Plugin-Owned Data*
+*Last updated: 2026-06-02 after completing Phase 67 (Declarative Plugin-Owned Data Model & Migration-Proof)*
