@@ -120,3 +120,9 @@ None - no external service configuration required.
 ---
 *Phase: 67-declarative-plugin-owned-data-model-migration-proof*
 *Completed: 2026-06-02*
+
+## Self-Check: PASSED
+
+- Files verified on disk: scripts/gate-no-runtime-ddl.ts, scripts/verify-phase67-plugin-owned-data.ts, 67-03-SUMMARY.md
+- Commits verified: 51dafe6, c1891b4, 1341ade
+- package.json: verify:phase -> pnpm verify:phase67, verify:phase67 present
