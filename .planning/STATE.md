@@ -24,10 +24,10 @@ See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Not started (roadmap defined, Phases 67-72)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-02 — Milestone v4.0 started
+Status: Ready to plan Phase 67
+Last activity: 2026-06-02 — Milestone v4.0 roadmap approved (Phases 67-72)
 
 ## Performance Metrics
 
@@ -116,12 +116,12 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Execute Phase 61 via `/gsd-execute-phase 61` — Wave 0 first (装 ai@6.0.193 + @ai-sdk/openai-compatible@2.0.48 + fixtures).
-- (optional) Fold plan-checker 的 1 MEDIUM + 2 LOW 清晰度建议进 61-02/61-03 plan 文案。
+- Plan Phase 67 (Declarative Plugin-Owned Data Model & Migration-Proof) via `/gsd-discuss-phase 67` → `/gsd-plan-phase 67`.
+- Phase 70 是 UI phase（题目统计/课后复盘对齐 Stitch 5322129002350954765 + DESIGN.md）；执行前考虑 `/gsd-ui-phase 70` 生成 UI-SPEC。
 
 ### Blockers/Concerns
 
-- Phase 64 是 UI phase（对齐 Stitch 5322129002350954765 + DESIGN.md）；执行前考虑 `/gsd-ui-phase 64` 生成 UI-SPEC。
+- v4.0 红线必须在每个 phase success criteria 中显式断言：no eval / no arbitrary code、no plugin direct DB、no runtime DDL（compile-time Drizzle only）、SQLite+DAL 单一真相、no core-table pollution、样板插件无后门。
 - Current working tree still contains unrelated source changes; future commits should stage only intended planning + fix files.
 
 ## Deferred Items
