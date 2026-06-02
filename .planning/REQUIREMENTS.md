@@ -82,29 +82,29 @@ Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| DATA-04 | TBD | Pending |
-| ACCESS-01 | TBD | Pending |
-| ACCESS-02 | TBD | Pending |
-| ACCESS-03 | TBD | Pending |
-| MKT-01 | TBD | Pending |
-| MKT-02 | TBD | Pending |
-| MKT-03 | TBD | Pending |
-| MKT-04 | TBD | Pending |
-| MKT-05 | TBD | Pending |
-| QUIZ-01 | TBD | Pending |
-| QUIZ-02 | TBD | Pending |
-| QUIZ-03 | TBD | Pending |
-| STATS-01 | TBD | Pending |
-| STATS-02 | TBD | Pending |
-| GATE-01 | TBD | Pending |
+| DATA-01 | Phase 67 | Pending |
+| DATA-02 | Phase 67 | Pending |
+| DATA-03 | Phase 67 | Pending |
+| DATA-04 | Phase 67 | Pending |
+| ACCESS-01 | Phase 68 | Pending |
+| ACCESS-02 | Phase 68 | Pending |
+| ACCESS-03 | Phase 68 | Pending |
+| QUIZ-01 | Phase 69 | Pending |
+| QUIZ-02 | Phase 69 | Pending |
+| QUIZ-03 | Phase 69 | Pending |
+| STATS-01 | Phase 70 | Pending |
+| STATS-02 | Phase 70 | Pending |
+| MKT-01 | Phase 71 | Pending |
+| MKT-02 | Phase 71 | Pending |
+| MKT-03 | Phase 71 | Pending |
+| MKT-04 | Phase 71 | Pending |
+| MKT-05 | Phase 71 | Pending |
+| GATE-01 | Phase 72 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 18 ⚠️ (resolved during roadmap creation)
+- Mapped to phases: 18
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-02*
