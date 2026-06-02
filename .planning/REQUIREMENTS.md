@@ -16,8 +16,8 @@
 
 ### 受治理数据访问 (ACCESS)
 
-- [ ] **ACCESS-01**: 插件只能通过受治理的声明式数据访问动词（经 DAL / Command Bus）读写自有表，禁止直连 DB、禁止传入原始 SQL/where/字段名等可注入面。
-- [ ] **ACCESS-02**: 数据访问动词在边界处用 Zod（与声明 schema 同源，drizzle-zod）校验输入输出，越权/越界/非法 payload 被拒绝并记入 governance audit。
+- [x] **ACCESS-01**: 插件只能通过受治理的声明式数据访问动词（经 DAL / Command Bus）读写自有表，禁止直连 DB、禁止传入原始 SQL/where/字段名等可注入面。
+- [x] **ACCESS-02**: 数据访问动词在边界处用 Zod（与声明 schema 同源，drizzle-zod）校验输入输出，越权/越界/非法 payload 被拒绝并记入 governance audit。
 - [ ] **ACCESS-03**: 写入路径经 Command Bus 记录、replay-safe，且不产生第二真相源（SQLite + DAL 仍是唯一 durable truth）。
 
 ### Marketplace 生命周期 (MKT)
@@ -86,8 +86,8 @@ Populated during roadmap creation.
 | DATA-02 | Phase 67 | Complete |
 | DATA-03 | Phase 67 | Complete |
 | DATA-04 | Phase 67 | Complete |
-| ACCESS-01 | Phase 68 | Pending |
-| ACCESS-02 | Phase 68 | Pending |
+| ACCESS-01 | Phase 68 | Complete |
+| ACCESS-02 | Phase 68 | Complete |
 | ACCESS-03 | Phase 68 | Pending |
 | QUIZ-01 | Phase 69 | Pending |
 | QUIZ-02 | Phase 69 | Pending |
