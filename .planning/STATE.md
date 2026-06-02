@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: none
-status: Awaiting next milestone
-last_updated: "2026-06-02T03:55:00.000Z"
-last_activity: 2026-06-02 — Milestone v3.2 completed and archived
+milestone: v4.0
+milestone_name: Plugin Marketplace & Plugin-Owned Data
+status: planning
+last_updated: "2026-06-02T06:20:53.043Z"
+last_activity: 2026-06-02
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 29
-  completed_plans: 29
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 ## Current Position
 
-Phase: Milestone v3.2 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-02 — Milestone v3.2 completed and archived
+Status: Defining requirements
+Last activity: 2026-06-02 — Milestone v4.0 started
 
 ## Performance Metrics
 

@@ -10,6 +10,23 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
+## Current Milestone: v4.0 Plugin Marketplace & Plugin-Owned Data
+
+**Goal:** 把声明式第三方插件的发布、安装、升级、数据扩展与治理打通成核心闭环，并用“互动答题”插件作为样板证明：老师用插件设计课堂活动 → 学生参与 → 系统基于插件自有数据自动统计 → 教师课后复盘。
+
+**Target features:**
+- 第三方插件声明式数据模型：插件可声明并持有自己的结构化数据表，由主仓库迁移体系统一管理，不污染核心表、不动态 DDL。
+- Marketplace 核心闭环：插件发布 → 安装 → 升级 → 卸载（含数据保留/清理规则）的受治理生命周期。
+- 互动答题样板插件：老师可配置题目，学生课堂作答，作答记录写入插件自有数据。
+- 基于插件数据的题目统计与课后复盘：每题正确率、选项分布、作答/未作答人数等结果统计面。
+- 第三方安全与治理边界：声明式权限、受控 action/hook 分发、安装审核，红线（无任意代码、无直连 DB）不被突破。
+- close gate：`verify:phase` 守住数据迁移正确性、治理边界与课堂样板链路可重复跑通。
+
+**Key context:**
+- 这是相对 `v3.2` 的一次主动 scope 升级：把原先 deferred 的 plugin marketplace 正式纳入 committed scope，因此定为 v4.0 大版本。
+- 复用既有 validated baseline：Command Bus、action registry、event bus、plugin lifecycle/governance audit、WebSocket-first classroom、SQLite + DAL truth 与现有受控 marketplace surface，不重建平台内核。
+- 第三方插件必须是声明式受治理形态；`eval`、任意外部代码、插件直连 DB / 核心 API、插件绕过主仓库迁移体系动态建表/迁移 仍然 Out of Scope。
+
 ## Current State
 
 **Latest shipped milestone:** `v3.2 AI LessonAgent 起草闭环`（archived 2026-06-02）
@@ -146,11 +163,14 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ### Active
 
-- [ ] 建立 AI Provider 抽象层：统一模型接入、密钥服务端隔离、限流，provider 可替换。（v3.2）
-- [ ] 建立 LessonAgent 工具层：Zod 校验的 typed tools，只调 DAL / Command Bus，禁直连 DB / provider key。（v3.2）
-- [ ] 打通 AI 起草链路：Agent 经 Command Bus 写入 draft lesson version，复用既有 publish/version 模型。（v3.2）
-- [ ] 交付教师审校面：起草结果的 diff / 编辑 / 接受 / 丢弃，对齐 Stitch + DESIGN.md。（v3.2）
-- [ ] 建立 AI 起草链路的 Eval + Guardrails + `verify:phase` close gate，并接入 v3.0 event bus 观测。（v3.2）
+<!-- v3.2 已归档：以下 v3.2 Active 项已随里程碑归档为 validated baseline，详见 .planning/milestones/v3.2-REQUIREMENTS.md。当前 Active 切换为 v4.0。 -->
+
+- [ ] 建立第三方插件声明式数据模型：插件可声明并持有自有结构化数据表，由主仓库迁移体系统一管理，不污染核心表、不动态 DDL。（v4.0）
+- [ ] 打通 Marketplace 核心生命周期：插件发布 → 安装 → 升级 → 卸载（含数据保留/清理规则）的受治理闭环。（v4.0）
+- [ ] 交付互动答题样板插件：老师可配置题目、学生课堂作答、作答记录写入插件自有数据。（v4.0）
+- [ ] 交付基于插件数据的题目统计与课后复盘面：每题正确率、选项分布、作答/未作答人数等结果统计。（v4.0）
+- [ ] 建立第三方插件安全与治理边界：声明式权限、受控 action/hook 分发、安装审核，红线不被突破。（v4.0）
+- [ ] 建立 v4.0 close gate：`verify:phase` 守住插件数据迁移正确性、治理边界与课堂样板链路可重复跑通。（v4.0）
 
 ### Out of Scope
 
@@ -160,7 +180,7 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - 插件直接访问数据库或核心 API。
 - 完整 LMS 替代能力。
 - 多校多租户完整 SaaS 运营体系。
-- 通用 plugin marketplace、安装评分、商店化工作流。
+- 插件商店化运营外延：付费/计费、评分评论、公开开发者门户、自动化审核流水线（v4.0 只做受治理的发布→安装→升级→卸载核心闭环，不做商店运营层）。
 - Classroom realtime 主链路重写；`v2.2` 已完成 transport cutover，本轮只验证样板链路承载能力。
 - BullMQ/async platform 重写、第二套 workflow engine 或 AI runtime expansion。
 - 第三方 runtime/package governance、QuickJS sandbox、Extension Host、多进程插件宿主。
@@ -247,4 +267,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-02 after archiving milestone v3.2*
+*Last updated: 2026-06-02 after starting milestone v4.0 Plugin Marketplace & Plugin-Owned Data*
