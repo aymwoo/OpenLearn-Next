@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
 status: verifying
-last_updated: "2026-06-02T10:14:00.851Z"
+last_updated: "2026-06-02T11:30:00.000Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 6
@@ -20,13 +20,13 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 67 — declarative-plugin-owned-data-model-migration-proof
+**Current focus:** Phase 68 — governed-declarative-data-access-verbs
 
 ## Current Position
 
-Phase: 67 (declarative-plugin-owned-data-model-migration-proof) — COMPLETE
-Plan: 3 of 3
-Status: Phase 67 verified (9/9) + CR-01 BLOCKER fixed; ready for Phase 68
+Phase: 68 (governed-declarative-data-access-verbs) — PLANNED
+Plan: 5 plans across 5 waves (planned, not executed)
+Status: Plans verified (plan-check PASSED iter 2/2); ready for `/gsd-execute-phase 68`
 Last activity: 2026-06-02
 
 ## Performance Metrics
@@ -125,7 +125,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Plan Phase 68 (Governed Declarative Data-Access Verbs) via `/gsd-discuss-phase 68` → `/gsd-plan-phase 68`.
+- Execute Phase 68 (Governed Declarative Data-Access Verbs) via `/gsd-execute-phase 68`. Heads-up: Plan 68-01 Task 1 is the drizzle-zod spike (first in-codebase use, zod v4 + SQLite text-enum) — its degraded-path decision must land in 68-01-SUMMARY before Tasks 2/3 lock the allowlist shape.
 - Phase 70 是 UI phase（题目统计/课后复盘对齐 Stitch 5322129002350954765 + DESIGN.md）；执行前考虑 `/gsd-ui-phase 70` 生成 UI-SPEC。
 
 ### Blockers/Concerns
@@ -150,10 +150,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-02T10:14:00.712Z
-Stopped at: Phase 68 context gathered
-Resume file: .planning/phases/68-governed-declarative-data-access-verbs/68-CONTEXT.md
+Last session: 2026-06-02T11:30:00.000Z
+Stopped at: Phase 68 planned (5 plans, plan-check PASSED)
+Resume file: .planning/phases/68-governed-declarative-data-access-verbs/68-01-PLAN.md
 
 ## Operator Next Steps
 
-- Plan Phase 68 (Governed Declarative Data-Access Verbs) via `/gsd-discuss-phase 68` → `/gsd-plan-phase 68`.
+- Execute Phase 68 (Governed Declarative Data-Access Verbs) via `/gsd-execute-phase 68`.
