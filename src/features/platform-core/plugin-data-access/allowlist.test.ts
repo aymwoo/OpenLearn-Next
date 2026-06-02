@@ -1,8 +1,19 @@
+import { getTableName } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
 
 import { pluginDataAccessAllowlist } from "@/db/schema/generated/plugin-owned/data-access-allowlist";
 import { pluginOwnedQuizResponses } from "@/db/schema/generated/plugin-owned/quiz";
+import {
+  PLUGIN_DATA_ACCESS_REASONS,
+  PluginDataAccessError,
+  assertGroupByAllowed,
+  assertIndexAllowed,
+  resolvePluginTable,
+  validateInsertPayload,
+} from "@/features/platform-core/plugin-data-access/allowlist";
 
 /**
  * A1 spike — drizzle-zod `createInsertSchema`（zod v4 + SQLite `text(col,{enum})`）行为验证。
@@ -104,5 +115,176 @@ describe("allowlist generation", () => {
   it("uniques 来自声明（responses 有、questions 无）", () => {
     expect(responses.uniques).toEqual([["classroomSession", "student", "question"]]);
     expect(questions.uniques).toEqual([]);
+  });
+});
+
+/**
+ * Task 3 —— 白名单消费层：表/列/索引/groupBy/payload 形状校验 + 具名拒因（D-07/D-08）。
+ * 本层只读生成 const + 生成 drizzle 表，零硬编码白名单；不写 audit、不做 lifecycle 判定。
+ */
+describe("allowlist consumer layer", () => {
+  const PLUGIN = "quiz";
+  const RESPONSES = "plugin_owned_quiz_responses";
+  const QUESTIONS = "plugin_owned_quiz_questions";
+
+  const validResponsePayload = {
+    classroomSession: "session-1",
+    student: "student-1",
+    question: "question-1",
+    selectedOption: "A",
+  } as const;
+
+  function reasonOf(fn: () => unknown): string {
+    try {
+      fn();
+    } catch (error) {
+      if (error instanceof PluginDataAccessError) return error.reason;
+      throw error;
+    }
+    throw new Error("expected PluginDataAccessError, but no throw");
+  }
+
+  describe("PLUGIN_DATA_ACCESS_REASONS", () => {
+    it("含 D-08 七类形状拒因 + 三类治理拒因", () => {
+      for (const reason of [
+        "raw_sql_rejected",
+        "free_where_rejected",
+        "unknown_column_rejected",
+        "unknown_table_rejected",
+        "cross_school_rejected",
+        "invalid_payload_rejected",
+        "unindexed_column_rejected",
+        "lifecycle_not_executable",
+        "kill_switch_rejected",
+        "non_school_actor_rejected",
+      ]) {
+        expect(PLUGIN_DATA_ACCESS_REASONS).toContain(reason);
+      }
+    });
+  });
+
+  describe("resolvePluginTable", () => {
+    it("返回对应 drizzle 表对象", () => {
+      const table = resolvePluginTable(PLUGIN, RESPONSES);
+      expect(getTableName(table)).toBe(RESPONSES);
+    });
+    it("未知表 → unknown_table_rejected", () => {
+      expect(reasonOf(() => resolvePluginTable(PLUGIN, "plugin_owned_unknown"))).toBe(
+        "unknown_table_rejected",
+      );
+    });
+    it("未知插件 → unknown_table_rejected", () => {
+      expect(reasonOf(() => resolvePluginTable("nope", RESPONSES))).toBe("unknown_table_rejected");
+    });
+  });
+
+  describe("assertIndexAllowed", () => {
+    it("命中声明复合索引（全列）→ 通过", () => {
+      expect(() =>
+        assertIndexAllowed(PLUGIN, RESPONSES, [
+          "schoolId",
+          "classroomSession",
+          "student",
+          "question",
+        ]),
+      ).not.toThrow();
+    });
+    it("命中索引最左前缀 → 通过", () => {
+      expect(() => assertIndexAllowed(PLUGIN, RESPONSES, ["schoolId"])).not.toThrow();
+    });
+    it("不存在的列 → unknown_column_rejected", () => {
+      expect(reasonOf(() => assertIndexAllowed(PLUGIN, RESPONSES, ["foo"]))).toBe(
+        "unknown_column_rejected",
+      );
+    });
+    it("存在但非索引前缀的列 → unindexed_column_rejected", () => {
+      expect(reasonOf(() => assertIndexAllowed(PLUGIN, RESPONSES, ["student"]))).toBe(
+        "unindexed_column_rejected",
+      );
+    });
+  });
+
+  describe("assertGroupByAllowed", () => {
+    it("groupByColumns 成员 → 通过", () => {
+      expect(() => assertGroupByAllowed(PLUGIN, RESPONSES, "student")).not.toThrow();
+    });
+    it("reserved 列 → unknown_column_rejected", () => {
+      expect(reasonOf(() => assertGroupByAllowed(PLUGIN, RESPONSES, "schoolId"))).toBe(
+        "unknown_column_rejected",
+      );
+    });
+    it("未知列 → unknown_column_rejected", () => {
+      expect(reasonOf(() => assertGroupByAllowed(PLUGIN, RESPONSES, "foo"))).toBe(
+        "unknown_column_rejected",
+      );
+    });
+  });
+
+  describe("validateInsertPayload", () => {
+    it("合法 payload → 返回解析后数据", () => {
+      const parsed = validateInsertPayload(PLUGIN, RESPONSES, { ...validResponsePayload });
+      expect(parsed.selectedOption).toBe("A");
+    });
+    it("多余字段 → invalid_payload_rejected", () => {
+      expect(
+        reasonOf(() =>
+          validateInsertPayload(PLUGIN, RESPONSES, { ...validResponsePayload, bogus: 1 }),
+        ),
+      ).toBe("invalid_payload_rejected");
+    });
+    it("enum 越界值 → invalid_payload_rejected（ideal 路径，allowlist 层拒）", () => {
+      expect(
+        reasonOf(() =>
+          validateInsertPayload(PLUGIN, RESPONSES, {
+            ...validResponsePayload,
+            selectedOption: "Z",
+          }),
+        ),
+      ).toBe("invalid_payload_rejected");
+    });
+    it("payload 含 schoolId → cross_school_rejected", () => {
+      expect(
+        reasonOf(() =>
+          validateInsertPayload(PLUGIN, RESPONSES, {
+            ...validResponsePayload,
+            schoolId: "school-x",
+          }),
+        ),
+      ).toBe("cross_school_rejected");
+    });
+    it("值含 DDL/原始 SQL 关键字 → raw_sql_rejected", () => {
+      expect(
+        reasonOf(() =>
+          validateInsertPayload(PLUGIN, RESPONSES, {
+            ...validResponsePayload,
+            question: "DROP TABLE plugin_owned_quiz_responses",
+          }),
+        ),
+      ).toBe("raw_sql_rejected");
+    });
+    it("值含 SQL 注释/分号 → raw_sql_rejected", () => {
+      expect(
+        reasonOf(() =>
+          validateInsertPayload(PLUGIN, RESPONSES, {
+            ...validResponsePayload,
+            student: "x'; --",
+          }),
+        ),
+      ).toBe("raw_sql_rejected");
+    });
+    it("嵌套对象值（自由 where 偷渡）→ free_where_rejected", () => {
+      expect(
+        reasonOf(() =>
+          validateInsertPayload(PLUGIN, RESPONSES, {
+            ...validResponsePayload,
+            question: { gt: 1 },
+          }),
+        ),
+      ).toBe("free_where_rejected");
+    });
+  });
+
+  it("questions 表也可被消费层解析（多表回归）", () => {
+    expect(getTableName(resolvePluginTable(PLUGIN, QUESTIONS))).toBe(QUESTIONS);
   });
 });
