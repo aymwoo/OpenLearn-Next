@@ -1,6 +1,7 @@
 import { createInsertSchema } from "drizzle-zod";
 import { describe, expect, it } from "vitest";
 
+import { pluginDataAccessAllowlist } from "@/db/schema/generated/plugin-owned/data-access-allowlist";
 import { pluginOwnedQuizResponses } from "@/db/schema/generated/plugin-owned/quiz";
 
 /**
@@ -47,5 +48,61 @@ describe("A1 drizzle-zod spike", () => {
     const result = insertSchema.safeParse({ ...validBase, selectedOption: "A", bogusField: 1 });
     // 不报错 = 默认剥离未知字段，验证了 validateInsertPayload 必须 .strict() 才能拒多余字段。
     expect(result.success).toBe(true);
+  });
+});
+
+/**
+ * Task 2 —— 编译期派生的 checked-in 白名单 const（D-06 单一真相源、零漂移、零并行手写）。
+ * 断言生成结构与声明源 `quizDataModel` 同源，且 reserved 列被正确排除。
+ */
+describe("allowlist generation", () => {
+  const RESERVED_COLUMNS = ["id", "schoolId", "pluginId", "createdAt", "updatedAt"];
+  const responses = pluginDataAccessAllowlist.quiz["plugin_owned_quiz_responses"];
+  const questions = pluginDataAccessAllowlist.quiz["plugin_owned_quiz_questions"];
+
+  it("indexes 深等于声明的复合索引列序（D-12/D-07）", () => {
+    expect(responses.indexes).toEqual([["schoolId", "classroomSession", "student", "question"]]);
+    expect(questions.indexes).toEqual([["schoolId", "classroomSession", "question"]]);
+  });
+
+  it("insertableColumns 不含任何 RESERVED_COLUMN", () => {
+    for (const reserved of RESERVED_COLUMNS) {
+      expect(responses.insertableColumns).not.toContain(reserved);
+      expect(questions.insertableColumns).not.toContain(reserved);
+    }
+    expect(responses.insertableColumns).toEqual([
+      "classroomSession",
+      "student",
+      "question",
+      "selectedOption",
+    ]);
+  });
+
+  it("groupByColumns 为非 reserved 标量列集合", () => {
+    expect(responses.groupByColumns).toEqual([
+      "classroomSession",
+      "student",
+      "question",
+      "selectedOption",
+    ]);
+    for (const reserved of RESERVED_COLUMNS) {
+      expect(responses.groupByColumns).not.toContain(reserved);
+    }
+  });
+
+  it("enum 列附带 enumValues", () => {
+    expect(responses.enumColumns.selectedOption).toEqual(["A", "B", "C", "D"]);
+    expect(questions.enumColumns.correctOption).toEqual(["A", "B", "C", "D"]);
+  });
+
+  it("columns 包含全部物理列（含 reserved），供 unknown vs unindexed 区分", () => {
+    expect(responses.columns).toContain("schoolId");
+    expect(responses.columns).toContain("selectedOption");
+    expect(questions.columns).toContain("prompt");
+  });
+
+  it("uniques 来自声明（responses 有、questions 无）", () => {
+    expect(responses.uniques).toEqual([["classroomSession", "student", "question"]]);
+    expect(questions.uniques).toEqual([]);
   });
 });
