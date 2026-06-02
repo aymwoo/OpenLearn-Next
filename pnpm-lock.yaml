@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 2.0.48
+        specifier: ~2.0.48
         version: 2.0.48(zod@4.4.3)
       '@auth/drizzle-adapter':
         specifier: ^1.11.2
@@ -24,7 +24,7 @@ importers:
         specifier: 1.2.4
         version: 1.2.4(@types/react@19.2.15)(react@19.2.5)
       ai:
-        specifier: 6.0.193
+        specifier: ~6.0.193
         version: 6.0.193(zod@4.4.3)
       bcryptjs:
         specifier: ^3.0.3
@@ -38,6 +38,9 @@ importers:
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@libsql/client@0.17.3)(@opentelemetry/api@1.9.1)
+      drizzle-zod:
+        specifier: ^0.8.3
+        version: 0.8.3(drizzle-orm@0.45.2(@libsql/client@0.17.3)(@opentelemetry/api@1.9.1))(zod@4.4.3)
       ioredis:
         specifier: ^5.10.1
         version: 5.10.1
@@ -71,6 +74,9 @@ importers:
       reveal.js:
         specifier: ^6.0.1
         version: 6.0.1
+      semver:
+        specifier: ^7.8.1
+        version: 7.8.1
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
@@ -108,6 +114,9 @@ importers:
       '@types/react-dom':
         specifier: latest
         version: 19.2.3(@types/react@19.2.15)
+      '@types/semver':
+        specifier: ^7.7.1
+        version: 7.7.1
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
@@ -1829,6 +1838,9 @@ packages:
   '@types/react@19.2.15':
     resolution: {integrity: sha512-eRwcGNHve+E8qtEQSSRl6urh+rFop4v8gm6O8rGv25CodbvFdLjA1vVQ1KkiFE0w0UPOnb8tDiFKL5lp0rtY5Q==}
 
+  '@types/semver@7.7.1':
+    resolution: {integrity: sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA==}
+
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
@@ -2794,6 +2806,12 @@ packages:
         optional: true
       sqlite3:
         optional: true
+
+  drizzle-zod@0.8.3:
+    resolution: {integrity: sha512-66yVOuvGhKJnTdiqj1/Xaaz9/qzOdRJADpDa68enqS6g3t0kpNkwNYjUuaeXgZfO/UWuIM9HIhSlJ6C5ZraMww==}
+    peerDependencies:
+      drizzle-orm: '>=0.36.0'
+      zod: ^3.25.0 || ^4.0.0
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -6539,6 +6557,8 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
+  '@types/semver@7.7.1': {}
+
   '@types/trusted-types@2.0.7':
     optional: true
 
@@ -7457,6 +7477,11 @@ snapshots:
     optionalDependencies:
       '@libsql/client': 0.17.3
       '@opentelemetry/api': 1.9.1
+
+  drizzle-zod@0.8.3(drizzle-orm@0.45.2(@libsql/client@0.17.3)(@opentelemetry/api@1.9.1))(zod@4.4.3):
+    dependencies:
+      drizzle-orm: 0.45.2(@libsql/client@0.17.3)(@opentelemetry/api@1.9.1)
+      zod: 4.4.3
 
   dunder-proto@1.0.1:
     dependencies:
