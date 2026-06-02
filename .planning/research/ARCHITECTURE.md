@@ -1,470 +1,274 @@
-# Architecture Research — OpenLearn Next v3.1
+# Architecture Research — OpenLearn Next v4.0
 
-**主题：** 单校试点生产可用，插件能力先行，课堂互动插件 + 教师设计到学生课堂完成作为真实样板  
-**Researched:** 2026-05-24  
-**Confidence:** HIGH
+**主题：** 插件市场（Plugin Marketplace）与插件自有数据（Plugin-Owned Data）—— 声明式插件数据模型、市场化安装/升级/卸载生命周期、安装态数据治理（保留/清理/迁移），并以「考试插件」作为端到端样板。
+**Researched:** 2026-06-02
+**Confidence:** HIGH（结论基于对现有代码库的直接核验，而非训练数据）
 
-## Existing Architecture Baseline
+## 关键判断（先于细节）
 
-v3.1 不应重写架构，而应建立在已经完成的 v2.0 / v2.2 / v2.3 / v3.0 基线之上继续加层。当前已经成立的骨架如下：
+v4.0 **不是从零搭建市场，而是把已经冻结的 v2.4 脚手架收尾、泛化、并补上市场 UX + 考试持久化 + 统计读路径**。代码库核验显示：扩展表、插件自有表、完整生命周期命令处理器、迁移/清理 DAL、运行时宿主写路径、市场 surface 均已存在。真正的增量集中在三处缺口（见下文 Gap 标注）：
 
-### 1. 已成立的系统主骨架
+1. **声明式 per-plugin 结构化表** —— 当前只有通用 `plugin_owned_business_data(key + payloadJson)`，缺少「声明 → 集中编译进 Drizzle migration」的链路。
+2. **市场化外部插件生命周期 UX** —— 当前 `PluginMarketplaceSurface` 只 `.filter(builtIn)` 展示内置环节，只有启停语义，无安装/升级/卸载/清理确认的市场化界面。
+3. **考试插件持久化 + 统计** —— 当前 `scoreExam` 是纯函数，未落库、未接入运行时 submit 链路、无统计读路径。
 
-- **Next.js 16 App Router 单体** 仍是唯一应用承载体。
-- **React 19.2 + Server Actions + DAL** 已经形成正式写路径。
-- **SQLite + Drizzle + centralized migrations** 是唯一 durable truth 存储。
-- **WebSocket-first classroom transport** 已经承接课堂实时交付；SSE 仅保留 rollback surface。
-- **Redis / ioredis fanout** 已是 optional delivery substrate，不持有业务真相。
-- **BullMQ + dedicated worker + SQLite task ledger** 已是 async orchestration substrate，不持有业务真相。
-- **v3.0 Command Bus / action registry / plugin lifecycle governance / platform event ledger** 已经提供平台内核基础，不需要另起第二套平台。
+## Standard Architecture
 
-### 2. 现有 authoritative write path
+### System Overview
 
-v3.1 必须延续现有权威写路径，而不是引入旁路：
-
-```text
-UI / teacher action / student submit / plugin command / operator action
-  -> Server Action / Node entrypoint
-  -> Command Bus or domain application service
-  -> DAL
-  -> SQLite
-  -> audit / ledger / outbox
-  -> delivery substrate (WebSocket / Redis / BullMQ) 负责分发或编排
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                         UI / Surface 层 (RSC + Server Actions)         │
+├──────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────┐  ┌────────────────┐  ┌──────────────────────────┐ │
+│  │ Marketplace     │  │ Lifecycle       │  │ Classroom Runtime Player │ │
+│  │ Surface         │  │ Operator Surface│  │ (exam iframe runtime)    │ │
+│  │ (装/升/卸/清理) │  │ (治理/恢复)     │  │                          │ │
+│  └───────┬────────┘  └───────┬────────┘  └────────────┬─────────────┘ │
+│          │                   │                          │              │
+├──────────┴───────────────────┴──────────────────────────┴─────────────┤
+│                    平台内核 (platform-core, 已存在)                    │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐ │
+│  │ Command Bus │  │ Event Ledger │  │ Action       │  │ Runtime Host│ │
+│  │ + handlers  │→ │ + subscribers│  │ Registry     │  │ (guarded)   │ │
+│  │ /plugins    │  │ (governance) │  │ (静态白名单) │  │             │ │
+│  └──────┬──────┘  └──────────────┘  └──────┬───────┘  └──────┬──────┘ │
+│         │                                   │                 │        │
+├─────────┴───────────────────────────────────┴─────────────────┴───────┤
+│                       DAL 层（唯一写真相入口，已存在）                 │
+│  ┌──────────────┐ ┌─────────────────┐ ┌──────────────┐ ┌────────────┐ │
+│  │ plugins.ts    │ │ plugin-data.ts   │ │ plugin-      │ │ runtime-   │ │
+│  │ install/      │ │ ext + owned      │ │ migration.ts │ │ session.ts │ │
+│  │ uninstall/    │ │ (scope-asserted) │ │ backfill/    │ │ save/submit│ │
+│  │ lifecycle/    │ │                  │ │ verify/      │ │ (append-   │ │
+│  │ killswitch    │ │                  │ │ cutover      │ │  only)     │ │
+│  └──────┬───────┘ └────────┬─────────┘ └──────┬───────┘ └─────┬──────┘ │
+├─────────┴──────────────────┴──────────────────┴────────────────┴───────┤
+│            SQLite + Drizzle（集中式 migration，唯一 durable truth）     │
+│  ┌─────────────────┐ ┌──────────────────────┐ ┌─────────────────────┐ │
+│  │ pluginRegistra- │ │ plugin_ext_lesson /   │ │ plugin_owned_*       │ │
+│  │ tions + lifecyc-│ │ step / resource       │ │ (通用 KV → v4 声明式 │ │
+│  │ le/hook/action  │ │ (FK cascade)          │ │ 结构表)              │ │
+│  │ audit tables    │ │                       │ │ + runtime/task 提交  │ │
+│  └─────────────────┘ └──────────────────────┘ └─────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-这里最重要的结论是：
+### Component Responsibilities
 
-- **课堂状态真相** 在 SQLite，不在 WebSocket channel。
-- **任务执行真相** 在 SQLite task ledger，不在 BullMQ queue。
-- **插件治理真相** 在 SQLite governance / lifecycle / command / event ledger，不在内存 registry。
-- **缓存只是一层投影**，不是事实源。
+| Component | Responsibility（拥有什么） | 现状 / Implementation |
+|-----------|----------------------------|------------------------|
+| Marketplace Surface | 外部插件目录的发现、安装、升级、卸载/清理确认入口 | **已存在但需扩展**：`src/components/surfaces/plugin-marketplace-surface.tsx` 当前仅展示 `builtIn` 内置环节且仅启停，无外部插件市场语义 |
+| Lifecycle Operator Surface | 治理态可视化与恢复动作（confirm_cleanup 等） | **已存在**：`plugin-lifecycle-operator-surface.tsx` |
+| Command Bus + plugin handlers | 接收 `plugin.install/enable/disable/reconcile/retry/suspend/resume/uninstall/kill_switch` 命令，编排事务 | **已存在**：`src/features/platform-core/commands/handlers/plugins.ts` |
+| Governance projection / lifecycle-contracts | 对外生命周期态（installed/enabled/active/suspended/uninstalled）、reason code、recovery action 枚举 | **已存在**：`plugins/lifecycle-contracts.ts`（含 `cleanup_confirmation_required` / `confirm_cleanup`） |
+| `plugins.ts` DAL | 安装/卸载/预检/生命周期迁移/killswitch + 清理确认 token | **已存在**：`installOrReconcilePluginWithTx` / `uninstallPluginWithTx` / `preflightUninstallPluginWithTx` / `transitionPluginLifecycleWithTx` / `buildCleanupConfirmationToken` |
+| `plugin-data.ts` DAL | 核心实体扩展（lesson/step/resource ext）+ 插件自有 KV 数据的 scope-asserted 读写 | **已存在**：`upsertPluginExtension` / `getPluginExtension` / `upsertPluginOwnedBusinessData` |
+| `plugin-migration.ts` DAL | JSON → schema 的 backfill / verify / cutover（DML-only，教师范围） | **已存在**：`backfillPluginJsonToSchema` / `verifyBackfillData` / `cutoverPluginJsonToSchema` |
+| Runtime Host + runtime-session | 插件 iframe 运行时的 ready/save/submit 守卫式写入（append-only, isLatest） | **已存在**：`runtime-host.ts` → `saveRuntimeState` / `submitRuntimeState` → `taskSubmissions` |
+| Exam 样板插件 | 声明式数据模型 + 持久化 + 课堂提交 + 统计的端到端示范 | **部分存在**：`src/plugins/exam/`（manifest + 纯函数 `scoreExam`，**无持久化、无统计**）|
 
-### 3. v3.1 的正确定位
+## Recommended Project Structure
 
-v3.1 的目标不是“平台升级第二次重构”，而是把已有平台能力接到**单校试点可生产运行**所需的系统层：
+```
+src/
+├── db/
+│   └── schema.ts                          # ★新增 plugin_owned_exam_question / _response 声明式结构表
+├── drizzle/                               # 集中式 migration（drizzle-kit generate + migrate）
+│   └── 00XX_phase4x_exam_owned_tables.sql # ★新增 migration（绝不运行时 DDL）
+├── lib/
+│   ├── plugins/
+│   │   ├── owned-schema/                   # ★新增：声明式 owned-schema 注册 + 校验（编译期）
+│   │   │   ├── registry.ts                 # 插件声明 → 已编译表的映射与校验
+│   │   │   └── contracts.ts                # Zod 校验声明式 schema 形状
+│   │   └── ranking/                        # 已有约定
+│   └── dal/
+│       ├── plugins.ts                      # 生命周期（已存在，卸载清理需覆盖 owned 表计数）
+│       ├── plugin-data.ts                  # ext + owned KV（已存在）
+│       ├── plugin-owned-exam.ts            # ★新增：考试 owned 表的 scope-asserted 读写 + 统计读
+│       └── plugin-migration.ts             # JSON→schema 迁移（已存在）
+├── features/
+│   ├── platform-core/
+│   │   ├── commands/handlers/plugins.ts    # 生命周期命令处理（已存在）
+│   │   ├── commands/producers/plugin-governance.ts
+│   │   └── plugins/lifecycle-contracts.ts  # 治理态契约（已存在）
+│   └── runtime-platform/
+│       ├── host-actions/runtime-host.ts    # 守卫式宿主动作（已存在）
+│       └── classroom/runtime-session.ts    # save/submit append-only（已存在；exam 接入点）
+├── plugins/
+│   └── exam/
+│       ├── manifest.json                   # 已声明 submitTarget=task-submission（已存在）
+│       ├── dto/exam-schemas.ts             # Zod schema（已存在）
+│       ├── dal/exam.ts                      # 纯函数评分（已存在）
+│       └── persistence/                     # ★新增：把答卷写入 owned 表 + 统计聚合
+└── components/surfaces/
+    ├── plugin-marketplace-surface.tsx       # ★扩展：外部插件装/升/卸/清理 UX
+    └── plugin-lifecycle-operator-surface.tsx
+```
 
-1. 让真实课堂互动插件可以走完整链路。
-2. 让 operator 可以部署、观测、恢复、降级，而不是只看开发者日志。
-3. 让单校试点环境具备 backup / recovery / load test / degraded honesty。
-4. 让“教师设计 -> 发布 -> 开课 -> 学生参与 -> 课堂证据 -> 插件产物”成为真实样板链，而不是 demo-only proof。
+### Structure Rationale
 
----
+- **`lib/plugins/owned-schema/`：** 声明式数据模型的核心新增点。插件「声明」结构 → 编译期校验 → 集中生成 Drizzle migration。把「声明」与「物理表」解耦，但**编译产物仍是主仓库 migration**，杜绝运行时 DDL。
+- **`lib/dal/plugin-owned-exam.ts`：** owned 结构表必须经 DAL 出入，复用 `plugin-data.ts` 已有的 `assertTeacherManagerScope` / `assertPluginBelongsToSchool` 跨校边界与 manifest 权限校验模式，禁止插件直连 DB。
+- **`plugins/exam/persistence/`：** 把现有纯函数评分与运行时 submit 链路缝合，作为「声明式数据 → 运行时写入 → 统计读出」的可复制样板。
+- **集中式 `drizzle/`：** 所有 owned 表 DDL 只能以生成的 migration 文件存在，由 `pnpm db:migrate`（`scripts/prepare-dev-db.ts`）应用，受 `verify:phase46` 的 `sqlite-migration-proof` 守护。
+
+## Architectural Patterns
+
+### Pattern 1: 声明式 Owned-Schema → 集中编译为 Migration
+
+**What:** 插件以声明（Zod 校验的 schema 描述）表达需要的结构化表；构建期把声明编译进主仓库 Drizzle schema 与生成的 migration，运行期只做 DML。
+**When to use:** 插件需要结构化、可查询、可统计的自有数据（如考试题目/答卷），而通用 `key+payloadJson` 无法支撑聚合统计时。
+**Trade-offs:** ✅ 类型安全、可索引、可统计、无运行时 DDL 风险；❌ 新增 owned 表需走一次 migration 发布周期，无法「插件即时自助建表」——这是安全权衡的有意取舍。
+
+**Example:**
+```typescript
+// lib/plugins/owned-schema/registry.ts — 声明只产出"待编译"描述，不触碰 DB
+export const examOwnedSchema = definePluginOwnedSchema({
+  pluginKey: "exam-plugin",
+  tables: {
+    response: {
+      physicalName: "plugin_owned_exam_response", // 强制 plugin_owned_ 前缀命名治理
+      columns: { /* studentId, examId, payloadJson, totalScore, isLatest ... */ },
+      // 编译期生成 schema.ts 片段 + migration；运行期只 INSERT/UPDATE
+    },
+  },
+});
+```
+
+### Pattern 2: 命令总线驱动的生命周期事务（已落地）
+
+**What:** 所有装/升/卸/启停经 Command Bus → `handlers/plugins.ts` → DAL `*WithTx` 在单事务内完成迁移 + 审计 + 生命周期跃迁。
+**When to use:** 任何改变 `pluginRegistrations.lifecycleState` 的操作。
+**Trade-offs:** ✅ 原子性、可审计（`pluginLifecycleTransition` / `governanceAudits`）、幂等 reconcile；❌ 调用方不能绕过命令直接改表。
+
+**Example:**
+```typescript
+// 卸载必须带 cleanup 确认 token，token 由预检按各类数据计数派生
+// cleanup:{pluginId}:{lessonExt}:{stepExt}:{resourceExt}:{ownedBusiness}:{total}
+if (retentionMode === "cleanup" && input.confirmationToken !== preflight.cleanupConfirmationToken) {
+  throw new Error("PLUGIN_CLEANUP_CONFIRMATION_REQUIRED");
+}
+```
+
+### Pattern 3: 运行时 append-only 提交桥接（exam 复用 voting 路径）
+
+**What:** 学生端 iframe 运行时经守卫宿主 `runtime-submit` → `submitRuntimeState` 追加 `isLatest` 状态 → 桥接到 `taskSubmissions`。考试插件 manifest 已声明 `submitTarget.targets: ["task-submission"]`。
+**When to use:** 学生在课堂中产生需留痕、可重试、可统计的提交（答卷）。
+**Trade-offs:** ✅ 追加式留痕、读最新、与既有课堂链路一致；❌ 统计需对 `isLatest` 做聚合读，不能就地覆盖历史。
+
+## Data Flow
+
+### 安装 / 升级 / 卸载治理数据流
+
+```
+[教师在 Marketplace 点击 安装/升级/卸载]
+    ↓ (Server Action)
+[Command Bus] → [handlers/plugins.ts] → [plugins.ts DAL *WithTx]
+    ↓                                          ↓
+  install/reconcile:  upsert pluginRegistrations(dbNamespace 唯一) + lifecycle transition
+  upgrade:            reconcile manifest + （如需）backfill/verify/cutover JSON→owned 表
+  uninstall(retain):  enabled=false, lifecycleState=disabled, uninstalledAt, retentionMode=retain
+  uninstall(cleanup): 预检派生 cleanupConfirmationToken → 校验 → cascade delete pluginRegistrations
+    ↓
+[Event Ledger / governance subscribers] ← 审计 + 生命周期投影
+```
+
+### 数据治理：保留 / 清理 / 迁移
+
+```
+保留 (retain，默认):  软禁用，owned/ext 数据原样保留 → 重装可复用
+清理 (cleanup):        FK cascade 删除 plugin_ext_* 与 plugin_owned_*（需确认 token，计数防误删）
+迁移 (migrate/升级):    backfillPluginJsonToSchema → verifyBackfillData → cutoverPluginJsonToSchema
+                       (DML-only，教师范围鉴权，绝不运行时 DDL)
+```
+
+### 考试插件读 / 写路径（端到端样板）
+
+```
+[学生作答 (iframe runtime)]
+    ↓ runtime-submit (capability: runtime:submission:create)
+[runtime-host guards] → [submitRuntimeState] → append runtime state (isLatest)
+    ↓                                              ↓
+[scoreExam 纯函数评分] ──★新增──→ [plugin-owned-exam DAL] → plugin_owned_exam_response
+    ↓                                              ↓
+[bridge → taskSubmissions]              [统计读: 聚合 isLatest 答卷 → 教师统计面板]
+```
+
+### Key Data Flows
+
+1. **声明式表落地：** 插件声明 → 编译期校验 → 主仓库 schema + 生成 migration → `db:migrate` 应用（无运行时 DDL）。
+2. **卸载安全：** 预检按 `lessonExt/stepExt/resourceExt/ownedBusiness/total` 计数派生确认 token，UI 回显数量，教师确认后才 cascade delete。
+
+## Scaling Considerations
+
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| 0-1k 用户（单校试点） | 当前 SQLite 单体足够；owned 表加 `(schoolId, pluginId, isLatest)` 复合索引即可支撑统计读 |
+| 1k-100k 用户 | 统计聚合从「请求时实时聚合」转为「事件订阅增量物化」到统计快照表；考虑 libSQL/Turso 远程 SQLite |
+| 100k+ 用户 | owned 数据按 schoolId 分片或迁移 Postgres；统计走独立读模型，运行时提交走队列削峰 |
+
+### Scaling Priorities
+
+1. **首个瓶颈：统计读** —— 大班并发提交后实时聚合 `isLatest` 会变慢；先加复合索引，再上物化快照。
+2. **次个瓶颈：migration 发布节奏** —— owned 表多了后集中 migration 成为协调点；用 owned-schema registry 自动生成片段缓解，但保持单一 migration 真相源。
+
+## Anti-Patterns
+
+### Anti-Pattern 1: 插件运行时自助建表 / 动态 DDL
+
+**What people do:** 让插件在安装时执行 `CREATE TABLE` 或动态 SQL 迁移以「自由」管理自有数据。
+**Why it's wrong:** 违反 K-12 安全约束与集中迁移治理，无法审计、易 schema 漂移、`verify:phase46` 会拒绝。
+**Do this instead:** 声明式 owned-schema → 编译进主仓库 migration（`drizzle-kit generate`），运行期仅 DML。
+
+### Anti-Pattern 2: 用通用 `plugin_owned_business_data(KV)` 硬塞结构化统计数据
+
+**What people do:** 把考试答卷整包塞进通用 `key + payloadJson`，再在应用层 JSON 解析做统计。
+**Why it's wrong:** 无法索引/聚合，统计随数据量退化；跨答卷查询要全表扫 JSON。
+**Do this instead:** 为需要统计的数据声明 per-plugin 结构表（`plugin_owned_exam_response`），保留通用 KV 仅用于非统计型零散配置。
+
+### Anti-Pattern 3: 卸载即物理删除而不计数确认
+
+**What people do:** 卸载直接 cascade delete，或保留模式也不区分。
+**Why it's wrong:** 误删不可逆的学生答卷/教学数据。
+**Do this instead:** 默认 `retain` 软禁用；`cleanup` 必须匹配按真实计数派生的 `cleanupConfirmationToken`，UI 显式回显将删除的数据量。
 
 ## Integration Points
 
-v3.1 应优先通过“接入点”推进，而不是新增大块平行系统。
-
-### 1. 平台内核接入点
-
-#### A. Command Bus 继续作为统一系统动作入口
-
-新 milestone 的新增系统动作都应复用 v3.0 command path：
-
-- plugin install / enable / disable / reconcile
-- classroom interaction plugin trigger
-- operator retry / replay / degrade / resume
-- post-class async projection
-- backup / recovery operator commands
-
-**建议：** v3.1 新增能力不要直接挂在独立 service helper 或 route handler 内，应统一通过 command producer 接入。
-
-#### B. Dynamic Action Registry 作为 discoverability 与装配面
-
-v3.1 不需要新建第二套 plugin runtime。应让课堂互动插件继续使用：
-
-- 现有 action descriptor contract
-- capability gating
-- lifecycle-aware registry projection
-- command-backed execution
-
-**正确方向：** 动态的是“可发现元数据”和“可用性状态”，静态的是“仓库内受控实现”。
-
-#### C. Platform Event / Runtime Transport / Async Queue 三层分离
-
-v3.1 要明确三条线不能混：
-
-| 层 | 作用 | 是否 durable truth |
-|---|---|---|
-| Platform Event Ledger | 平台事实事件、审计、插件治理、operator 时间线 | 否，但其事实来自 SQLite authoritative write |
-| WebSocket / Redis fanout | 课堂实时交付、teacher/student 同步 | 否 |
-| BullMQ worker | 长任务编排、重试、异步投影 | 否 |
-
-### 2. 产品主链路接入点
-
-v3.1 应围绕一个真实样板链来接：
-
-```text
-教师设计 lesson
-  -> lesson publish
-  -> classroom launch
-  -> student runtime follow / interact / submit
-  -> classroom interaction plugin consume event / command
-  -> plugin 写回受控产物或证据
-  -> operator / teacher 可见结果
-```
-
-建议把这条链作为 v3.1 的 architecture anchor。所有新增系统层都必须回答：
-
-- 它接在这条链的哪一段？
-- 它是否绕过了 SQLite + DAL？
-- 它失败时谁可见？
-- 它降级时课堂主链能否继续？
-
-### 3. 现有 feature root 的推荐挂接位置
-
-| 系统层 | 推荐落点 | 说明 |
-|---|---|---|
-| 课堂编排与发布 | 继续留在 lesson / editor / publish 现有 feature roots | 不重写 authoring 主体 |
-| 课堂运行与 transport | 继续留在 runtime-platform / classroom transport | 不重开 WebSocket blast radius |
-| 插件治理与样板插件 | platform-core + plugin feature root | 通过 action/command/lifecycle 接线 |
-| 异步投影 / summary / post-processing | async-tasks | 只做 orchestration，不持有真相 |
-| operator surfaces | settings / operator / diagnostics surfaces | 面向部署与运行，不污染教师主产品心智 |
-| observability / backup / recovery | platform ops layer + worker / transport adapters | 属于生产层，不属于教学领域对象本身 |
-
----
-
-## New Production Layers
-
-v3.1 真正新增的不是新的业务核心，而是“生产可用层”。建议按以下层次补齐。
-
-### 1. Deployment Layer
-
-目标：支撑**单校试点生产可用**，但仍保持单体内平台化。
-
-#### 推荐部署拓扑
-
-```text
-[Next.js app / Node runtime]
-  - App Router
-  - Server Actions
-  - Command Bus producers
-  - WebSocket transport host
-
-[SQLite authoritative database]
-  - app truth
-  - command/event/governance/task ledger
-
-[Worker process]
-  - BullMQ processors
-  - post-class projections
-  - backup jobs / maintenance jobs
-
-[Redis optional]
-  - WebSocket fanout
-  - BullMQ queue transport
-  - degraded if unavailable, but system truth remains intact
-```
-
-#### 部署原则
-
-- **单校试点优先单区、低复杂度部署**，不要引入多 region、多主数据库、分布式 event bus。
-- **应用节点、worker 节点可分离**，但都只通过 DAL / command contracts 接 SQLite truth。
-- **Redis 是加速与编排组件**，不可成为“必须才能读到课堂状态”的真相源。
-- **备份、恢复、迁移、灰度开关** 必须有 operator 可操作入口，而不是只靠 shell 手工执行。
-
-### 2. Operator Surfaces
-
-v3.1 必须把生产操作面当成正式系统层，而不是零散后台页面。
-
-#### 应该落在 operator surface 的内容
-
-| operator surface | 系统层 | 应展示内容 |
-|---|---|---|
-| Transport health | runtime transport layer | WebSocket online ratio、Redis fanout posture、SSE fallback status |
-| Task health | async-tasks layer | queue backlog、attempt history、dead-letter、safe retry |
-| Plugin governance | platform-core layer | installation、lifecycle、dependency failure、reconcile、kill switch |
-| Command / event timeline | platform-core ledger layer | commandId、actor、scope、result、causation |
-| Backup / recovery console | ops layer | last backup time、restore readiness、snapshot validity |
-| Load / degradation dashboard | ops + delivery layer | queue lag、broadcast lag、DB write latency、degraded mode flags |
-
-#### 关键判断
-
-operator surface 必须**消费正式 read models**，不能重新本地拼装 raw DTO 推断状态。否则生产时看到的状态会和真实执行不一致。
-
-### 3. Plugin Sample Chain
-
-v3.1 必须优先做“真实样板插件链”，因为这是插件先行路线的最佳证明。
-
-#### 推荐样板：课堂互动插件链
-
-建议选择一个不会破坏主课堂模型、但能证明插件价值的链路，例如：
-
-1. 教师在 lesson editor 配置互动步骤或互动插件参数。
-2. lesson publish 时生成正式 plugin-bound runtime config。
-3. classroom launch 时 plugin activation snapshot 进入当前 session。
-4. 学生在课堂中完成互动输入、投票、简答、快速反馈或小任务提交。
-5. runtime authoritative write path 先写 SQLite。
-6. plugin 通过 command/event contract 消费事实并生成派生产物：
-   - 课堂互动统计
-   - 教师即时提示
-   - 课后 summary artifact
-   - 学生参与证据聚合
-7. teacher / operator 在正式 read model 中可见。
-
-#### 样板链的边界要求
-
-- plugin **不能直接写 DB**。
-- plugin **不能直接操作 transport channel** 作为事实提交。
-- plugin **不能把 Redis / WebSocket message 当事实源**。
-- plugin 只能通过：
-  - action descriptor
-  - command bus
-  - governed core API
-  - post-commit platform events
-
-#### 为什么先做这条链
-
-因为它同时覆盖：
-
-- teacher design
-- plugin configuration
-- classroom runtime
-- student interaction
-- evidence capture
-- async projection
-- operator observability
-
-这比单独做 marketplace、plugin install UI 或纯 demo action 更能检验架构是否成立。
-
-### 4. Observability Layer
-
-v3.1 的 observability 应明确分层，不要只堆 logs。
-
-#### 最低要求
-
-| 观测对象 | 应落层 | 观测键 |
-|---|---|---|
-| command execution | platform-core | commandId / correlationId / actor / scope / result |
-| plugin lifecycle | governance layer | pluginId / installation / lifecycle state / failure reason |
-| classroom transport | transport layer | sessionId / connection count / fanout lag / fallback posture |
-| async jobs | worker layer | taskId / queue / attempts / duration / failure class |
-| DB truth writes | DAL / SQLite layer | entity id / write latency / error class / migration version |
-
-#### 观测原则
-
-- **command 是系统动作主索引**。
-- **sessionId 是课堂运行主索引**。
-- **taskId 是异步执行主索引**。
-- **pluginInstallationId / pluginId 是插件治理主索引**。
-
-建议在 v3.1 统一这些 trace keys，并让 operator UI 可跨层跳转，而不是每个子系统各有一套无法关联的 ID。
-
-### 5. Backup / Recovery Layer
-
-这部分是单校试点生产可用的硬门槛，且必须落在 durable truth 边界之上。
-
-#### 应落在哪一层
-
-- **SQLite snapshot / backup**：durable truth layer
-- **command / event / task / governance ledger backup**：同属 durable truth layer
-- **Redis state**：不做 authoritative backup；允许 cold rebuild
-- **BullMQ queue transient state**：不做 authoritative backup；由 SQLite ledger + retry/reconcile 恢复
-- **WebSocket connection state**：不做 backup；由 reconnect + session snapshot 恢复
-
-#### 恢复原则
-
-1. 先恢复 SQLite authoritative state。
-2. 再由 ledger / snapshot / reconcile 重建 delivery/orchestration 层。
-3. 再开放 operator resume / retry / replay。
-
-**结论：** 恢复策略必须是“truth-first, substrate-rebuild-later”，不能相反。
-
-### 6. Load Test Layer
-
-v3.1 必须把 load test 放在系统层而不是页面层思考。
-
-#### 应覆盖的层
-
-| 测试面 | 主要层 | 关注指标 |
-|---|---|---|
-| 教师设计与发布 | app + DAL + SQLite | publish latency、cache invalidation correctness |
-| 课堂进入与同步 | transport + runtime | join latency、fanout lag、fallback correctness |
-| 学生互动提交 | runtime write path + DAL + SQLite | write latency、duplicate protection、truth consistency |
-| 插件后处理 | command/event/worker | backlog、projection delay、retry correctness |
-| operator diagnostics | read model layer | freshness、cross-system consistency |
-
-#### 负载测试结论
-
-对 v3.1 来说，最应该测的不是极限并发，而是：
-
-- 单校真实班级规模下，是否仍然保持一致性与可观测性。
-- Redis 不稳定时，课堂主链是否还能 honest degrade。
-- worker 积压时，课堂实时主链是否仍不被拖垮。
-- backup / restore 后，是否能重建 operator truth view。
-
----
-
-## Durable Truth Boundaries
-
-这一节是 v3.1 最关键的架构原则，必须写死。
-
-### 1. Authoritative durable truth
-
-以下内容只能由 **SQLite + DAL + canonical write path** 持有：
-
-- users / memberships / auth-related persistent state
-- courses / lessons / published versions / step configuration
-- classroom sessions / participants / classroom evidence / progress / submissions
-- plugin installations / lifecycle transitions / governance audits
-- platform command ledger / platform event ledger
-- async task ledger / retry state / result summary
-- operator-visible recovery / backup metadata
-
-### 2. Delivery / orchestration substrate only
-
-以下组件只能做 delivery 或 orchestration substrate：
-
-| 组件 | 允许角色 | 禁止角色 |
-|---|---|---|
-| Redis | fanout、queue transport、ephemeral coordination | 业务真相、插件状态真相、课堂状态真相 |
-| WebSocket | 实时消息交付、连接会话 | durable classroom truth、submission truth |
-| BullMQ | 异步执行编排、retry/backoff、worker dispatch | task truth source、业务事实源 |
-| in-memory registry/cache | 加速读取、运行时装配 | authoritative lifecycle / capability truth |
-
-### 3. Command / event / task 的真相关系
-
-- **Command**：系统请求动作，authoritative record 应写入 SQLite ledger。
-- **Event**：command 或 domain write 之后的事实投影，authoritative record 也应进入 SQLite ledger/outbox。
-- **Task**：异步执行载体，其 durable progress 仍应回写 SQLite task ledger。
-
-即使实际执行时经过 Redis/BullMQ/WebSocket，它们也只是“运输层”。
-
-### 4. v3.1 明确禁止的错误方向
-
-- 让 plugin runtime state 只存在 Redis/in-memory。
-- 让 WebSocket ack 成为学生提交成功的唯一依据。
-- 让 BullMQ job status 成为 operator 唯一可信状态。
-- 为了方便而让 plugin sample chain 直接写某张 plugin-owned 表绕过 DAL。
-- 在生产层引入第二套 truth database 或 event sourcing rewrite。
-
----
-
-## Suggested Build Order
-
-v3.1 的 build order 应是“先接真实样板链，再补生产层支撑”，而不是先搭一个大而空的 ops shell。
-
-### Phase 1 — Freeze v3.1 integration contract
-
-**目标：** 把 v3.1 作为“接入现有架构”的 milestone 明确写死。  
-**应完成：**
-
-- 明确单校试点 deployment topology
-- 明确 durable truth boundary 文档与 code ownership
-- 明确 plugin sample chain 的 authoritative flow
-- 明确 operator surfaces 分层
-
-**Integration points:** PROJECT / roadmap / operator read model contracts / deployment runbook。
-
-### Phase 2 — Plugin sample chain first
-
-**目标：** 先做“教师设计 -> 学生课堂完成 -> plugin 产物”真实链路。  
-**应完成：**
-
-- lesson editor 的 plugin-bound config contract
-- publish 到 classroom launch 的 activation wiring
-- student interaction -> authoritative write -> plugin post-commit consumption
-- teacher / operator 可见结果
-
-**为什么先做：** 没有真实样板链，后续 observability / load test / backup 都会失焦。
-
-### Phase 3 — Production operator surfaces
-
-**目标：** 让部署与运行可见。  
-**应完成：**
-
-- transport health
-- plugin governance diagnostics
-- task backlog / retry surfaces
-- command / event timeline viewer
-- degraded posture honesty
-
-**Integration points:** settings / operator / labs / diagnostics 现有正式 read models。
-
-### Phase 4 — Observability unification
-
-**目标：** 打通 command、plugin、session、task 四类 trace。  
-**应完成：**
-
-- commandId / correlationId / sessionId / taskId 映射
-- cross-surface drill-down
-- structured logs + metrics + operator-facing summaries
-- plugin failure attribution
-
-**Integration points:** platform-core ledger、transport metrics、worker metrics、DAL instrumentation。
-
-### Phase 5 — Backup / recovery hardening
-
-**目标：** 让单校试点具备恢复能力。  
-**应完成：**
-
-- SQLite snapshot/backups
-- restore runbook 与 operator visibility
-- queue / transport rebuild strategy
-- reconcile / replay / retry tools
-
-**Integration points:** SQLite truth layer、task ledger、plugin reconcile command、runtime snapshot recovery。
-
-### Phase 6 — Load / degrade verification
-
-**目标：** 证明可生产运行，而不是只在 happy path 下运行。  
-**应完成：**
-
-- classroom join / submit / broadcast load tests
-- Redis degraded posture tests
-- worker backlog tests
-- backup/restore 验证
-- end-to-end sample chain verification
-
-**Integration points:** verify gates、demo runbook、ops dashboard、closeout artifact。
-
----
-
-## Phase Sequencing Hints
-
-### 建议顺序原则
-
-1. **先样板链，后平台补强。**
-2. **先 authoritative flow，后 operator projection。**
-3. **先 SQLite truth recovery，后 Redis/BullMQ rebuild。**
-4. **先 honest degradation，后性能优化。**
-5. **先复用现有 command / lifecycle / event seams，后考虑扩展新 runtime。**
-
-### 不建议的顺序
-
-- 先做 marketplace 或华丽插件 UI，再补真实课堂链路。
-- 先做复杂 observability stack，再没有 sample chain 可观测。
-- 先做 Redis/BullMQ 高可用，再没有 SQLite backup/recovery。
-- 先做“多校 / 多租户平台化”扩展，忽略单校试点 production hardening。
-
----
-
-## Integration Points by System Layer
-
-| 主题 | 应接入的系统层 | 不应接入 |
-|---|---|---|
-| 单校试点部署 | app runtime + SQLite + worker + optional Redis | 新增第二主数据库、分布式事件平台 |
-| operator surfaces | formal read models / diagnostics / settings | raw logs-only、local state 推断 |
-| plugin sample chain | command bus + action registry + runtime authoritative write path | plugin direct DB writes、transport direct writes |
-| observability | platform-core + transport + worker + DAL | 每层各自孤立日志 |
-| backup/recovery | SQLite truth layer first，substrate rebuild second | 直接备份 Redis 当业务真相 |
-| load test | end-to-end chain + delivery degradation + worker backlog | 只压页面渲染，不测 truth consistency |
-
----
-
-## Final Recommendation
-
-v3.1 的正确架构路线是：**保持现有单体内平台化骨架不变，以 SQLite + DAL 继续持有唯一 durable truth，把 Redis / WebSocket / BullMQ 明确限制为 delivery/orchestration substrate；然后围绕“课堂互动插件真实样板链”补齐 deployment、operator surfaces、observability、backup/recovery、load verification 这几层生产能力。**
-
-这条路线的优点是：
-
-- 不重写现有架构；
-- 不破坏 v2.2 / v2.3 / v3.0 已收口的边界；
-- 能以最小 blast radius 证明插件能力先行是成立的；
-- 能让 v3.1 真正成为“单校试点生产可用”，而不是另一个 platform-only milestone。
+### External Services
+
+| Service | Integration Pattern | Notes |
+|---------|---------------------|-------|
+| 外部插件来源（市场） | manifest（Zod 校验）→ install 命令 → registry | `sourceType` 区分 `default`(builtIn) / `external`；v4 市场 UX 需放开 `external` 展示 |
+| 插件 iframe 运行时 | sandbox=iframe，bootstrap `/runtime/exam`，能力快照 session-scoped | 经 `runtime-host` 守卫，禁止直连 DB/Core API |
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| Marketplace Surface ↔ 生命周期 | Server Action → Command Bus | 不直接调 DAL，统一经命令以保审计与原子性 |
+| 命令 handlers ↔ DAL | 直接调 `*WithTx`，共享事务 | DAL 是唯一写真相入口 |
+| 插件 ↔ 自有数据 | 经 `plugin-owned-*` DAL（scope + manifest 权限断言） | 禁止插件直连 DB；命名前缀 `plugin_owned_` / `plugin_ext_` 治理 |
+| 运行时提交 ↔ taskSubmissions | append-only + isLatest | exam 复用 voting 已验证的桥接路径 |
+
+## Build Order（按依赖排序，供 roadmap 参考）
+
+1. **声明式 owned-schema 注册 + 校验**（`lib/plugins/owned-schema/`）—— 无依赖，定义编译契约。
+2. **考试 owned 结构表 + migration**（`schema.ts` + 生成 migration + `verify` 扩展）—— 依赖 1。
+3. **考试持久化 DAL + 统计读**（`plugin-owned-exam.ts`、`exam/persistence/`）—— 依赖 2，复用 `plugin-data.ts` 鉴权模式。
+4. **考试运行时 submit 接入**（缝合 `runtime-session` submit → 持久化）—— 依赖 3。
+5. **卸载清理覆盖 owned 表计数**（扩展 `preflightUninstallPluginWithTx` token 计数纳入 exam owned 行）—— 依赖 2/3。
+6. **市场化外部插件 UX**（扩展 `plugin-marketplace-surface` 放开 external + 装/升/卸/清理确认）—— 依赖 1-5 的治理语义。
 
 ## Sources
 
-- `/home/wuxf/Develop/OpenLearn-Next/.planning/PROJECT.md` — 当前系统基线、durable truth posture、约束与下一 milestone 目标。Confidence: HIGH.
-- `/home/wuxf/Develop/OpenLearn-Next/.planning/MILESTONES.md` — v2.2、v2.3、v3.0 已归档能力与 authoritative handoff。Confidence: HIGH.
-- `/home/wuxf/Develop/OpenLearn-Next/.planning/research/ARCHITECTURE.md`（旧版）— v3.0 platform-core 接入策略与 build order。Confidence: HIGH.
-- `/home/wuxf/Develop/OpenLearn-Next/.planning/research/SUMMARY.md` — 现有平台内核研究总结、phase ordering 原则与边界约束。Confidence: HIGH.
+- 代码库直接核验（HIGH）：`src/lib/dal/plugins.ts`（卸载/预检/清理 token，行 973-1077、buildCleanupConfirmationToken ~399）、`src/lib/dal/plugin-data.ts`（ext+owned 读写鉴权）、`src/lib/dal/plugin-migration.ts`（backfill/verify/cutover）、`src/features/platform-core/commands/handlers/plugins.ts`、`src/features/platform-core/plugins/lifecycle-contracts.ts`。
+- 运行时链路（HIGH）：`src/features/runtime-platform/host-actions/runtime-host.ts`、`src/features/runtime-platform/classroom/runtime-session.ts`（`saveRuntimeState`/`submitRuntimeState`，taskSubmissions、isLatest）。
+- 样板插件（HIGH）：`src/plugins/exam/{manifest.json,dal/exam.ts,actions/exam-actions.ts,dto/exam-schemas.ts}` —— 确认仅纯函数评分、无持久化。
+- 市场 surface（HIGH）：`src/components/surfaces/plugin-marketplace-surface.tsx` —— 确认当前仅 `.filter(builtIn)`、仅启停语义。
+- 迁移治理（HIGH）：`drizzle.config.ts`、`scripts/prepare-dev-db.ts`、`scripts/verify-phase4{4,5,6,7}-*.ts`、`scripts/lib/sqlite-migration-proof`。
+- 约束来源（HIGH）：`.planning/PROJECT.md`、`AGENTS.md`（DAL-only 写路径、无运行时 DDL、SQLite-first、cascade delete、命名前缀治理）。
+
+---
+*Architecture research for: v4.0 Plugin Marketplace & Plugin-Owned Data*
+*Researched: 2026-06-02*

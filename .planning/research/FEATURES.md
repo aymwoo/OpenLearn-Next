@@ -1,285 +1,288 @@
-# Feature Landscape — v3.1 单校试点生产可用 / 课堂互动插件样板
+# Feature Research
 
-**Milestone:** v3.1  
-**主题:** 单校试点生产可用，插件能力先行，围绕“教师设计 → 发布 → 开课 → 课堂互动插件执行 → 学生完成 → 教师/运营验证”主链路交付真实样板  
-**Researched:** 2026-05-24  
-**Confidence:** HIGH
-
-## Milestone Framing
-
-这一轮不是“泛生产化补全清单”，也不是“把整个平台做成通用插件市场”。
-
-这一轮要解决的是更具体的问题：
-
-> **OpenLearn Next 是否已经能在单校试点场景里，以一个真实可用的课堂互动插件样板，稳定跑通教师端设计到学生端课堂完成的主链路，并且让运维/产品团队敢上线、敢观测、敢回滚、敢恢复。**
-
-因此，本 milestone 的 feature 取舍必须服从下面三个判断：
-
-1. **必须服务真实样板链路**，不是脱离产品主链路的抽象平台能力。
-2. **必须服务试点生产可用**，不是只在本地 demo 可跑。
-3. **必须优先让插件 action 真正可用**，不是只有 registry / descriptor / mock 调用。
-
-### 本轮真实样板主链路
-
-1. 教师创建/编辑一节课，配置课堂互动插件步骤
-2. 教师发布 lesson / classroom-ready 版本
-3. 教师发起课堂，会话与学生入班成功
-4. 课堂中插件 action 被真实触发，并能影响学生端体验/状态
-5. 学生完成互动、提交结果、进度落库
-6. 教师看到结果与课堂状态，运营能观测异常并排障
-7. 出现失败时，系统可以重试、补偿、恢复，而不是只能人工改库
-
-### 本轮不应误入的方向
-
-- 不做“全平台生产化百科全书”
-- 不做完整插件 marketplace 生态
-- 不做多校、多租户、大规模 SaaS 运维体系
-- 不做完整 workflow engine / agent runtime 扩张
-- 不重写课堂实时主链路，只验证它能承载真实插件样板
+**Domain:** v4.0 声明式第三方插件 marketplace + 插件自有数据 + 互动答题样板 + 题目统计复盘（K-12 课堂编排系统的受治理插件生态）
+**Researched:** 2026-06-02
+**Confidence:** HIGH（对既有 baseline 与项目约束的判定）/ MEDIUM（对互动答题与统计的“典型期望行为”判定，参照 Kahoot/Mentimeter/Wooclap/Plickers 类课堂答题工具的成熟形态）
 
 ---
 
-## Table Stakes
+## 研究范围与方法
 
-下面这些能力不是“锦上添花”，而是 v3.1 要称为“单校试点生产可用”时必须具备的基础面。
+本研究只聚焦 v4.0 的**新增价值**，不重研已交付 baseline。下列能力已是 validated baseline，作为依赖前提而非待研功能：
 
-| Feature Category | Table Stakes | Why It Is Required | Complexity | Notes |
-|---|---|---|---|---|
-| 多环境配置 | 本地 / staging / pilot-prod 环境变量分层、插件开关、外部依赖连接策略清晰 | 没有环境分层就无法做试点演练、灰度、回滚 | 中 | 重点不是环境数量，而是配置边界清楚、不会手改常量上线 |
-| CI/CD | 最小可用发布流水线：lint/typecheck/test/build/migrate/deploy/health-check | 单校试点也需要可重复发布，不可依赖手工 SSH 发布 | 中 | 要支持数据库迁移前置检查和失败中止 |
-| 可观测性与运维 | 课堂会话、插件 action、Command Bus、异步任务、WebSocket/Redis degraded posture 可观测 | 样板能不能跑，不看主观感觉，要看日志、指标、审计与 operator surface | 中-高 | 必须能按 school/classroom/plugin/action 查问题 |
-| 备份恢复 | SQLite 文件/数据快照、恢复演练、恢复后最小校验 | 单校试点最怕一次误操作或部署事故直接丢课堂数据 | 中 | 先做可执行 runbook，不追求企业级灾备 |
-| 幂等/补偿 | 发布、开课、插件 action、异步后处理具备重复调用保护或补偿动作 | 课堂现场最常见问题不是代码报错，而是“点了两次”“网络抖动”“半成功” | 高 | 本轮至少覆盖样板主链路的关键写操作 |
-| 数据校验 | lesson/plugin config/student submission/operator input 都有强校验与错误分类 | 插件样板一旦配置脏数据，课堂现场无法救火 | 中 | 必须区分用户可修复 vs 系统异常 |
-| 高并发课堂压测 | 单课堂高并发学生加入、同步、互动提交、教师广播有可重复压测结果 | “单校试点”不等于低并发；一节公开课就能把链路压穿 | 高 | 重点是典型班级峰值与极端峰值，不是互联网级规模 |
-| 插件 action 真实可用 | 至少一类课堂互动插件 action 从教师配置到学生执行、结果写回完全真实 | 这是本 milestone 的样板核心，不成立则整轮偏题 | 高 | 不能只停留在 descriptor、catalog、governance UI |
+- 教师教案编辑器、学生播放器、课堂运行/锁定/证据闭环、评价分析页面（v1–v2）。
+- Command Bus、governed action registry、event bus、plugin lifecycle/governance audit、WebSocket-first classroom、SQLite + DAL truth（v2.2/v2.3/v3.0）。
+- 受控 marketplace surface（`/settings/plugins`）、课堂投票样板插件全链路（authoring → publish → launch → student → teacher/operator verify，v3.1）。
+- LessonAgent AI 起草闭环（v3.2）。
 
-### Table Stakes 的产品/运维拆分
+**关键发现 — 大量插件数据原语已作为冻结脚手架存在（源自被冻结的 v2.4）**，v4.0 的真实工作量更多是「把已有原语组装成可重复跑通的端到端样板 + 治理可见行为 + 统计面」，而不是从零造数据层。已存在于代码：
 
-#### 产品侧必须成立
+| 已存在原语 | 位置 | v4.0 中的角色 |
+|-----------|------|--------------|
+| `pluginRegistrations`（含 `dbNamespace`、`lifecycleState`、`sourceType`、`uninstallRetentionMode: retain\|cleanup`、`enabled`、`killSwitch`） | `src/db/schema.ts` | marketplace 生命周期 + 卸载保留/清理的存储底座 |
+| extension tables：`plugin_ext_lesson` / `plugin_ext_lesson_step` / `plugin_ext_resource`（`schoolId+pluginId+entityId` 唯一，`payloadJson`） | `src/db/schema.ts` | 插件挂接核心实体的扩展数据 |
+| 插件自有表：`plugin_owned_business_data`（`schoolId+pluginId+key`，`payloadJson`） | `src/db/schema.ts` | 互动答题作答记录的候选承载 |
+| DAL：`upsert/getPluginExtension`、`upsert/getPluginOwnedBusinessData`、`listPluginStepExtensions` | `src/lib/dal/plugin-data.ts` | 插件数据读写边界（已带 teacher scope 鉴权 + 实体归属校验） |
+| 迁移工具：`backfillPluginJsonToSchema` / `verifyBackfillData` / `cutoverPluginJsonToSchema` | `src/lib/dal/plugin-migration.ts` | 升级时的数据迁移/回填/校验 |
+| lifecycle/hook/action/governance audit 表 | `src/db/schema.ts` | 治理可见行为的审计真相源 |
 
-- 教师能理解并完成插件步骤配置
-- 课堂前存在 readiness/preflight，能提前发现插件未启用、依赖缺失、配置非法
-- 学生端交互结果能形成明确完成态，而不是“看起来点过了”
-- 教师端能看到互动是否开始、是否完成、是否失败、失败了多少人
-
-#### 运维侧必须成立
-
-- 能知道当前发布的是哪个版本、哪个 migration、哪个 plugin build
-- 能快速判断故障在配置、插件 action、课堂 transport、异步任务还是外部依赖
-- 能在不改库的前提下做 retry / reconcile / suspend / fallback
-- 能在试点学校现场提供最小可执行 runbook
+> 结论：v4.0 不是「能不能做数据层」，而是「把这套数据治理模型用一个真实插件（互动答题）走通，并补齐 marketplace 生命周期可见行为与统计复盘面」。**默认/样板插件必须复用正式插件数据治理模型，而非 built-in 特例**（已是 Key Decision）。
 
 ---
 
-## Sample-Chain Must-Haves
+## Feature Landscape
 
-这部分不是通用 table stakes，而是**为了让真实样板链路成立**必须交付的功能簇。它们应该优先于泛化能力进入 roadmap。
+> 复杂度口径：LOW = 复用既有原语小幅组装；MEDIUM = 新链路/新 UI 但有可复用底座；HIGH = 跨层新行为、迁移正确性或治理边界硬约束。
+> 依赖列标注对既有 baseline 的依赖（哪些已 validated）。
 
-### 1. 教师设计链路必须具备的能力
+### 功能域 1：声明式插件数据模型
 
-#### Must-Haves
+#### Table Stakes（用户/operator 默认期望）
 
-- **互动插件步骤可插入 lesson editor**，且与现有 step model 正常共存
-- **插件步骤配置表单**：有 schema 驱动校验、默认值、必填提示、错误回显
-- **插件能力可见性**：教师只能看到本校可用、已启用、当前版本兼容的插件 action
-- **预览/模拟执行**：教师在发布前至少能做最小预检，而不是上课才发现不能用
-- **发布前 preflight**：检查 plugin enabled state、action resolvable、配置合法、依赖完备
+| Feature | Why Expected | Complexity | 依赖 baseline | Notes |
+|---------|--------------|------------|---------------|-------|
+| 插件 manifest 声明自有数据形状（owned table / 字段 schema / 关联实体） | 「声明式插件」承诺的前提；没有声明就只能动态 DDL（红线） | MEDIUM | `manifestJson` 字段、Zod 校验、governance audit 已存在 | manifest 增加 `dataModel` 段（owned entities + 关联 lesson/step/classroom/student/result 的声明）；用 Zod 在安装/升级时校验 |
+| 插件数据由主仓库迁移体系统一管理（无 runtime DDL、无动态建表） | 项目红线，operator 信任前提 | MEDIUM | 已有 extension/owned 物理表 + Drizzle migration | 物理表预置在主 schema，插件只在预置表内按 `pluginId` 分区写 `payloadJson`；声明只是「逻辑形状」，不触发物理 DDL |
+| 课堂链路按声明把数据写入/读取插件自有数据 | 数据若不能被课堂写入就没有价值 | MEDIUM | `plugin-data.ts` DAL + action registry + classroom write path | 写入必须经受控 action/DAL，不允许插件直连 DB；写入路径带幂等与 school/plugin scope |
+| 数据与课堂/学生/结果的关联可被查询（按 classroom、student、step 维度取数） | 统计与复盘的取数基础 | MEDIUM | extension 表已有 `lessonStepId`/唯一索引；owned 表有 `key` | owned 表的 `key` 需要能编码 `classroomSessionId:studentId:questionId` 之类关联，或新增受治理关联列 |
+| 数据隔离：按 `schoolId + pluginId` 严格租户/插件隔离 | 多插件共存、避免越权读他人数据 | LOW | 唯一索引 + DAL scope 校验已存在 | 已有 `school_plugin_*_unique` 约束，复用即可 |
+| 卸载时按声明级联清理插件自有数据（cascade delete） | 项目约束「所有关联 cascade delete」 | LOW | 所有插件表已 `onDelete: cascade` 到 `pluginRegistration` | 删除 registration 即清空，已有测试覆盖（`plugin-data.test.ts` 验证 cascade） |
 
-#### Why must ship
+#### Differentiators
 
-如果教师配置环节不稳，后面所有“生产可用”都只是运维替教师兜底。
+| Feature | Value Proposition | Complexity | 依赖 baseline | Notes |
+|---------|-------------------|------------|---------------|-------|
+| JSON 影子层 → 结构化 schema 的渐进迁移（backfill + verify + cutover） | 让插件先用 `payloadJson` 快速落地，再在升级时收敛为强类型查询，兼顾灵活与可统计性 | HIGH | `plugin-migration.ts` 三件套已存在 | 这是项目区别于「纯 JSON blob 插件」的核心治理优势；用于答题数据从松散 payload 收敛到可统计列 |
+| 声明式数据模型 contract 校验（安装即拒绝越界声明） | 把「不污染核心表」从约定变成可执行 gate | MEDIUM | governance audit + Zod | 声明若试图引用核心表写权限/未授权实体 → 安装 preflight 直接拒绝 |
 
-### 2. 发布与版本切换必须具备的能力
+#### Anti-Features
 
-#### Must-Haves
-
-- lesson publish 必须把插件配置固化进可执行版本，而不是课中读草稿态
-- publish / republish 必须具备 **幂等性**，避免重复发布产生多份模糊状态
-- 版本失败要有 **可解释错误**，不是统一的“发布失败”
-- migration 与 plugin compatibility 有最小门禁，避免旧配置上线后在运行期爆炸
-
-#### Why must ship
-
-试点阶段最危险的问题不是“不能发布”，而是“发布成功但课堂时才发现版本不一致”。
-
-### 3. 开课与课堂运行必须具备的能力
-
-#### Must-Haves
-
-- 教师发起课堂时，系统能验证本节课涉及的插件样板已 ready
-- classroom session 启动时，插件 runtime state 与 lesson version 对齐
-- 课堂中教师触发插件 action 时，有明确的 command/result/audit 记录
-- 插件 action 触发失败时，教师 UI 必须收到可理解反馈，operator 能看到失败原因
-- 课堂 transport 继续以既有 WebSocket-first posture 为主，但要验证插件样板不会破坏实时链路
-
-#### Why must ship
-
-“插件能力先行”的含义不是后台能装插件，而是**课堂里真的能用，而且不会把既有课堂链路打穿**。
-
-### 4. 学生完成链路必须具备的能力
-
-#### Must-Haves
-
-- 学生端能接收并渲染插件交互状态
-- 学生动作提交有输入校验、重复提交保护、超时/失败反馈
-- 插件结果能回写 canonical progress / submission / evidence 体系
-- 学生刷新、掉线、重连后，能恢复到合理状态，不因插件步骤直接丢失上下文
-- 教师可看到学生完成率、失败率、未响应名单或聚合结果
-
-#### Why must ship
-
-只有学生端真的完成并写回真相源，这条样板链路才有产品价值；否则只是教师端的“插件演示”。
-
-### 5. 运营与故障处理必须具备的能力
-
-#### Must-Haves
-
-- operator 可以看到：school、classroom、lesson version、plugin、action、command、task 的关联视图
-- 对可恢复故障提供显式动作：retry、reconcile、resume、suspend、fallback
-- 有最小告警/异常汇总面：例如 action failure spike、classroom join failure、submission timeout
-- 关键日志与审计信息可追溯到具体课堂与插件步骤
-- 有备份、恢复、试点现场排障 runbook
-
-#### Why must ship
-
-单校试点不是开发团队坐在本地盯控制台；它要求现场出问题时别人也能处理。
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| 插件运行时动态建表 / 动态执行 SQL migration | 看起来最灵活、最「真插件」 | 红线；不可审计、迁移不可控、SQLite-first 下灾难 | 主仓库迁移体系预置物理表 + 声明式逻辑形状 |
+| 为每个插件在核心表加 nullable 列 | 实现最快 | core schema 被插件污染（已列入 Out of Scope） | extension 表 + owned 表分区承载 |
+| 按 school/plugin 动态创建物理表或 schema-per-plugin | 「真正隔离」 | 已列 Out of Scope；SQLite 不支持、运维爆炸 | 单物理表 + `schoolId+pluginId` 分区 + 唯一索引 |
+| 通用「插件可自定义任意关系型 schema + 任意 join」 | 想做成 mini-database | 治理/统计/迁移全部失控 | 受限声明（owned entity + 预定义关联键），样板只需答题够用 |
 
 ---
 
-## Deferred / Future
+### 功能域 2：Marketplace 生命周期（发布 → 安装 → 升级 → 卸载）
 
-下面这些不是“不重要”，而是**不应该抢走 v3.1 对真实样板主链路的火力**。
+#### Table Stakes
 
-| Deferred / Future Item | Why Defer | What To Do Instead In v3.1 |
-|---|---|---|
-| 通用插件 marketplace、安装评分、商店工作流 | 会把样板验证变成生态建设 | 只交付受控内置/试点插件安装与启停治理 |
-| 多校多租户完整运营体系 | 当前目标是单校试点，不是 SaaS 扩张 | 把 school scope、数据隔离、operator 查询边界做干净 |
-| 全量平台生产化清单 | 范围太散，会淹没样板主链路 | 只围绕课堂互动插件样板所需的生产能力建设 |
-| 完整灾备/跨地域恢复 | 超出 SQLite-first 单校试点合理投入 | 做可执行备份恢复与恢复校验演练 |
-| 全面 OTel/Tracing 平台、复杂可视化运维中台 | 实施成本高，收益超前 | 先把 command/action/classroom/task 级日志、指标、审计打通 |
-| 通用工作流引擎/审批引擎 | 会把插件 action 样板拖入平台泛化 | 只保留最小 retry/reconcile/compensation 语义 |
-| Agent Runtime / Skill Runtime 真执行 | 与当前主题不匹配，风险高 | 仅保留 agent-callable descriptor 与审计位 |
-| 任意第三方插件远程执行 | 安全边界不可控 | 继续坚持声明式、受控 action、无 arbitrary code execution |
-| 大规模互联网级压测体系 | 与单校试点容量不匹配 | 做“单课堂峰值 + 多课堂有限并发”的定向压测 |
+| Feature | Why Expected | Complexity | 依赖 baseline | Notes |
+|---------|--------------|------------|---------------|-------|
+| 浏览/查看可安装插件（catalog surface），展示 manifest 摘要、所需权限、声明的数据 | 没有目录就无法「安装第三方插件」 | LOW | `/settings/plugins` surface + `pluginRegistrations` 已存在 | v3.1 已有受控 marketplace surface，扩展展示 dataModel + 权限 |
+| 安装（含安装审核 preflight：权限/数据声明/兼容性检查） | 受治理安装是项目核心承诺 | MEDIUM | install path（`sourceType: external`、`installSource: manual`）+ compatibility check（v3.1 已有 publish preflight 雏形） | 安装前展示「将获得哪些权限 / 将创建哪些数据」，operator 显式确认 |
+| 启用/停用 + kill switch（不卸载即可止血） | operator 治理基本动作 | LOW | `enabled`、`killSwitchEnabled`、lifecycleState 已存在 | 复用既有 lifecycle 字段与 governance audit |
+| 升级到新版本（含数据迁移：backfill → verify → cutover） | 插件演进必备；迁移错误会丢学生作答 | HIGH | `plugin-migration.ts` 三件套 + lifecycle transitions | **v4.0 close gate 的硬骨头**：迁移正确性必须被 `verify:phase` 守住 |
+| 卸载：数据保留 vs 清理两种模式可选并可见 | manifest 已有 `uninstallRetentionMode: retain\|cleanup`，operator 必须能选 | MEDIUM | `uninstalledAt`、`uninstallRetentionMode` 字段已存在 | retain = 软卸载保留作答证据；cleanup = cascade 清空。需明确「保留后能否重装恢复」 |
+| 全过程治理审计（谁在何时安装/升级/卸载、授予了哪些能力） | 安装第三方代码进学校，审计是信任底线 | LOW | `governanceAudits`、`pluginLifecycleTransitions`、`pluginActionAudits` 已存在 | 复用既有审计表，补 UI 可见 |
+| 升级/卸载的兼容性与依赖检查（被课堂正在使用时阻止破坏性操作） | 防止删掉正在上课用的插件 | MEDIUM | `dependency-graph.ts`、`getPluginUninstallBlockReason`（plugins.ts 已有） | 已有 uninstall block reason 雏形，扩展到「正在进行的课堂会话」 |
 
-### 本轮明确不该做的 anti-features
+#### Differentiators
 
-- 以“生产化”为名重开数据库、实时链路、插件执行沙箱三条大改造
-- 以“插件先行”为名交付一套只有 operator 能看懂、教师不会用的系统
-- 以“样板”为名只做 happy path，不做失败恢复、重复提交、重试补偿
-- 以“可观测性”为名只堆原始日志，不提供 classroom/plugin/action 维度定位能力
+| Feature | Value Proposition | Complexity | 依赖 baseline | Notes |
+|---------|-------------------|------------|---------------|-------|
+| 升级 dry-run / 迁移预演（先 verify 再 cutover，可回滚） | operator 敢点「升级」的关键；区别于「升级即赌博」 | HIGH | `verifyBackfillData` 已存在 | backfill 后 verify 通过才允许 cutover；失败不影响旧数据 |
+| 卸载保留态下的「重装恢复」可见承诺 | retain 模式的实际价值兑现 | MEDIUM | `uninstalledAt` + 唯一索引（school+pluginKey） | 重装同 pluginKey 时识别保留数据并复用 |
+| operator 端生命周期可观测（与课堂/command/task 关联的恢复动作） | v3.1 operator recovery posture 的自然延伸 | MEDIUM | operator read-model（v3.1 已有） | 复用既有 operator 观测面，挂插件生命周期事件 |
 
----
+#### Anti-Features
 
-## Notes For Requirement Categories
-
-为了后续写 REQUIREMENTS / ROADMAP，建议按下面的 requirement categories 切，而不是按技术组件散写。
-
-### 1. `SAMPLE-CHAIN`：样板主链路需求
-
-关注教师设计 → 发布 → 开课 → 插件互动 → 学生完成 → 教师验证这条链路本身。
-
-建议包含：
-
-- 插件步骤 authoring
-- lesson versioning / publish preflight
-- classroom runtime readiness
-- student interaction completion
-- teacher evidence / summary visibility
-
-**判断标准：** 没有它，样板链路就断。
-
-### 2. `PLUGIN-PROD`：插件真实可用需求
-
-关注“插件 action 真能在产品里工作”，不是 registry 演示。
-
-建议包含：
-
-- action resolve / dispatch / result contract
-- plugin enabled/install/version compatibility
-- action input/output schema validation
-- action failure reason taxonomy
-- operator recovery actions
-
-**判断标准：** 没有它，插件只是平台能力，不是产品能力。
-
-### 3. `ENV-RELEASE`：多环境与发布安全需求
-
-关注从开发到试点环境的交付稳定性。
-
-建议包含：
-
-- env layering / secrets discipline
-- migration gate
-- build artifact/version traceability
-- staged deployment / rollback posture
-- release checklist / health-check
-
-**判断标准：** 没有它，就不该叫试点生产可用。
-
-### 4. `OPS-OBS`：可观测性与运维需求
-
-关注现场能否看得见、查得出、处理得了。
-
-建议包含：
-
-- command / plugin / classroom / task 关联观测
-- degraded posture honesty
-- operator diagnostics
-- runbook / alert surface
-- school/classroom/plugin/action drill-down
-
-**判断标准：** 没有它，出问题只能靠开发者猜。
-
-### 5. `DATA-SAFETY`：数据安全与恢复需求
-
-关注配置、课堂结果、提交真相源的正确性与可恢复性。
-
-建议包含：
-
-- schema/input validation
-- backup / restore / post-restore checks
-- append-only 或 canonical write discipline
-- idempotency key / dedupe / compensation
-- replay-safe mutation semantics
-
-**判断标准：** 没有它，试点越真实，风险越高。
-
-### 6. `PERF-LOAD`：课堂峰值与压测需求
-
-关注真实课堂容量，而不是理论扩展性。
-
-建议包含：
-
-- 单课堂加入峰值
-- 课堂内互动 action fanout
-- 学生提交高峰
-- reconnect / retry 行为
-- 压测基线与通过阈值
-
-**判断标准：** 没有它，样板一到公开课或年级演示就可能失真。
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| 付费/计费/订阅 | 「marketplace」联想 | 明确 Out of Scope（商店运营层 deferred） | 只做受治理发布→安装→升级→卸载核心闭环 |
+| 评分/评论/排行榜 | 商店感 | Out of Scope；引入社交/审核负担 | 不做；catalog 只展示 manifest 事实 |
+| 公开开发者门户 + 自动化审核流水线 | 想做开放生态 | Out of Scope；安全/运营成本巨大 | 受控安装 + 人工 operator 审核（manual install source） |
+| 一键安装任意外部 URL/包 | 「真 marketplace」 | 触碰任意代码执行红线 | 声明式 manifest 注册，无远程代码加载 |
+| 自动后台静默升级 | 省心 | 静默迁移可能毁学生数据、不可审计 | operator 显式触发 + dry-run + 审计 |
+| 同时支持多种插件类型的完整生命周期矩阵 | 想一次做全 | 稀释样板验证、放大迁移风险 | 只用「互动答题」一种样板打穿，复用投票链路经验 |
 
 ---
 
-## MVP Recommendation
+### 功能域 3：互动答题样板插件
 
-v3.1 的 MVP 不是“插件平台更完整”，而是：
+> 参照成熟课堂答题工具（Kahoot/Mentimeter/Wooclap/Plickers）的最小成熟形态，但裁剪到「证明数据治理模型成立」所需。
 
-> **一所学校里，教师能稳定配置并发布一节含课堂互动插件的课；课堂中教师能真实触发插件 action；学生能完成互动并写回结果；运营能观测、重试、恢复并完成一次真实试点交付。**
+#### Table Stakes
 
-优先顺序建议：
+| Feature | Why Expected | Complexity | 依赖 baseline | Notes |
+|---------|--------------|------------|---------------|-------|
+| 老师配置题目（题干 + 选项 + 正确答案标记） | 「答题」的最小定义 | MEDIUM | 教案编辑器 + extension 表（挂 lesson step）+ 投票插件 authoring 经验 | 题目配置写入插件自有数据/扩展，复用 v3.1 投票 authoring 模式 |
+| 单选题型（至少一种成熟题型走通） | 统计正确率/选项分布的最小题型 | LOW | 投票插件已证明单选交互 | 单选是统计面成立的最小集；其余题型 defer |
+| 学生课堂作答并提交 | 主链路核心动作 | MEDIUM | 学生播放器 + classroom runtime + WebSocket transport | 复用投票插件的 student completion 链路 |
+| 作答记录写入插件自有数据（带 classroom/student/question 关联） | v4.0 要证明的核心：插件数据被课堂写入 | MEDIUM | `plugin_owned_business_data` + `plugin-data.ts` + action registry | append-only 作答记录，幂等（同一 student×question 一次有效），replay-safe（复用 v3.1 提交语义） |
+| 课堂内基本作答反馈（已交/未交、是否锁定后可改） | 学生/老师即时确认 | LOW | classroom locked/unlocked 语义已存在 | 复用既有锁定模式 |
+| 作答与课堂会话生命周期一致（开课才可答、结束即定格） | 数据完整性 | LOW | `classroomSessions`/`classroomParticipants` | 复用既有会话边界 |
 
-1. **样板主链路打通**：教师设计 → 学生完成
-2. **插件 action 真可用**：不是 registry demo
-3. **上线/回滚/恢复能力**：试点生产可用底线
-4. **课堂峰值验证**：证明样板不是只适合小范围演示
-5. **再做泛化整理**：将经验沉淀回平台 contract
+#### Differentiators
+
+| Feature | Value Proposition | Complexity | 依赖 baseline | Notes |
+|---------|-------------------|------------|---------------|-------|
+| 多题型（多选/判断/简答） | 课堂表达更丰富 | MEDIUM-HIGH | 单选走通后扩展 | **v4.0 建议只做单选样板，多题型 defer 到 v4.x**；否则放大统计/迁移面 |
+| 实时作答进度广播（老师看到实时答题人数曲线） | 课堂掌控感（Kahoot 招牌体验） | MEDIUM | WebSocket fanout 已存在 | 可作为 differentiator，但非证明数据模型所必需；可后置 |
+| LessonAgent 辅助生成题目 | 复用 v3.2 起草闭环 | MEDIUM | LessonAgent draft loop | 诱人但属另一条价值线，建议 defer 避免里程碑膨胀 |
+
+#### Anti-Features
+
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| 插件自带任意前端 JS 渲染答题 UI | 「灵活答题体验」 | 任意代码执行红线 | 声明式题目 schema + 宿主渲染受控题型组件 |
+| 计时/抢答/积分排行榜/游戏化 | Kahoot 既视感 | 过度做，偏离「证明数据治理」目标 | 只做作答 + 统计；游戏化 defer |
+| 富媒体题目（图片/视频/公式编辑器） | 教学丰富度 | 引入资源/渲染复杂度，拖慢样板 | 纯文本题干 + 文本选项起步 |
+| 自适应/分支答题逻辑 | 智能教学 | 复杂度爆炸，超出样板目标 | 线性单题序列 |
+
+---
+
+### 功能域 4：题目统计与课后复盘
+
+> 项目明确「先做题目统计」：每题正确率、选项分布、作答/未作答人数。
+
+#### Table Stakes
+
+| Feature | Why Expected | Complexity | 依赖 baseline | Notes |
+|---------|--------------|------------|---------------|-------|
+| 每题正确率统计 | 项目点名的核心指标 | MEDIUM | 作答数据（owned table）+ DAL 聚合 + 评价分析页面框架 | 从插件自有数据聚合，DAL 出 DTO，不让 UI 直连 DB |
+| 选项分布（每个选项被选人数/比例） | 项目点名指标；看错误集中在哪 | MEDIUM | 同上 | 单选下直接 group by option |
+| 作答 / 未作答人数（按课堂名册对账） | 项目点名指标；覆盖率 | MEDIUM | `classroomParticipants` 名册 + 作答记录左连接 | 需要「应答名册」与「实际作答」对账，注意缺答 = 名册有人但无记录 |
+| 课后复盘入口（教师在课后查看统计面） | 「课后复盘」主链路终点 | LOW | 既有评价/分析页面 + Stitch/DESIGN 对齐 | 复用评价分析页面 IA，新增题目统计视图 |
+| 统计基于插件自有数据（而非核心表） | 证明「插件数据驱动统计」闭环 | MEDIUM | `plugin-data.ts` 读路径 | 这是 v4.0 要证明的：插件数据 → 自动统计，无需核心表改造 |
+| 统计数据缓存与失效（写入后 tag 失效） | 项目缓存约束；复盘数据要准 | LOW | `cacheTag`/`revalidateTag`（`plugin-data.ts` 已用 revalidateTag） | 作答写入后失效统计 tag，避免陈旧复盘 |
+
+#### Differentiators
+
+| Feature | Value Proposition | Complexity | 依赖 baseline | Notes |
+|---------|-------------------|------------|---------------|-------|
+| 学生维度复盘（某生答了哪些、错在哪） | 因材施教 | MEDIUM | 作答记录已带 studentId | 题目维度走通后扩展；可后置 |
+| 跨课堂/历史趋势统计 | 长期教学洞察 | HIGH | 需跨会话聚合 | defer；v4.0 只做单次课堂题目统计 |
+| 统计结果导出（CSV/打印） | 教师存档 | LOW | DTO 已成形即可导出 | 低成本 differentiator，可选 |
+
+#### Anti-Features
+
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| 实时大屏统计动画/排行榜直播 | Kahoot 体验 | 偏离「课后复盘」核心，增前端复杂度 | 课后静态统计面优先 |
+| AI 自动生成「教学诊断报告/建议」 | 智能复盘 | 属 AI 价值线，膨胀里程碑 | 先出准确的数字统计，诊断 defer |
+| 通用 BI/自定义图表 dashboard | 「数据平台」 | 严重过度做 | 固定三类指标（正确率/分布/作答数）够样板 |
+| 把统计结果回写核心 analytics 表 | 「统一分析」 | 污染核心表，违反插件数据边界 | 统计是插件数据上的读模型/投影，不回写核心 |
+
+---
+
+## Feature Dependencies
+
+```
+[功能域1 声明式数据模型]
+    └──requires──> [既有: pluginRegistrations / extension+owned 表 / plugin-data DAL]
+    └──requires──> [既有: governance audit + Zod manifest 校验]
+
+[功能域3 互动答题样板]
+    └──requires──> [功能域1 数据模型]（作答必须有处可写）
+    └──requires──> [既有: classroom runtime + WebSocket + 学生播放器 + v3.1 投票链路]
+
+[功能域4 题目统计复盘]
+    └──requires──> [功能域3 作答数据]（无数据则无统计）
+    └──requires──> [既有: 评价分析页面 + cacheTag 失效]
+
+[功能域2 Marketplace 生命周期]
+    ├──requires──> [既有: 受控 marketplace surface + lifecycle 字段 + governance audit]
+    ├──升级──requires──> [功能域1 数据模型 + plugin-migration backfill/verify/cutover]
+    └──卸载保留/清理──requires──> [功能域1 cascade + uninstallRetentionMode]
+
+[功能域2 升级数据迁移] ──conflicts──> [功能域3 进行中的课堂作答]
+    （正在上课时不允许破坏性升级/卸载 → 需 uninstall/upgrade block reason 扩展到 active session）
+
+[v4.0 close gate verify:phase] ──gates──> [迁移正确性 + 治理边界 + 样板链路可重复跑通]
+```
+
+### Dependency Notes
+
+- **域3 依赖 域1：** 作答记录是插件自有数据的写入证明；数据模型不成立则样板无意义。
+- **域4 依赖 域3：** 统计是作答数据的读模型/投影；必须能按 classroom×student×question 取数对账。
+- **域2 升级依赖 域1 迁移工具：** 升级最危险的是数据迁移；`backfill→verify→cutover` 三段必须串成可回滚链路，是 close gate 的硬骨头。
+- **域2 升级/卸载 与 域3 进行中课堂冲突：** 必须扩展既有 `getPluginUninstallBlockReason` 到「active classroom session 正在使用该插件」场景，否则会破坏正在进行的课堂。
+- **样板复用约束（Key Decision）：** 互动答题样板**必须复用正式插件数据治理模型**，不得退化为 built-in 特例——否则插件架构未被真实证明。
+
+---
+
+## MVP Definition
+
+### Launch With (v4.0 committed)
+
+样板主链路必须端到端可重复跑通：**老师配置答题 → 学生课堂作答 → 数据入插件自有表 → 课后题目统计复盘**。
+
+- [ ] 域1：manifest 声明式数据模型（owned entity + 关联声明）+ 安装时 Zod/治理校验 + cascade 清理 — 证明「不污染核心表、无 runtime DDL」。
+- [ ] 域1：课堂链路按声明把作答写入插件自有数据（受控 action/DAL，幂等、scope 隔离）。
+- [ ] 域2：发布→安装（含 preflight 审核：权限+数据声明+兼容性）→ 升级（backfill→verify→cutover 可回滚）→ 卸载（retain/cleanup 可选）的受治理闭环 + 全程审计。
+- [ ] 域2：升级/卸载对「进行中课堂」的破坏性保护（block reason）。
+- [ ] 域3：互动答题样板插件 — 单选题配置 + 学生课堂作答 + append-only 作答记录入插件自有数据。
+- [ ] 域4：题目统计面 — 每题正确率 / 选项分布 / 作答·未作答人数（基于插件数据，DAL 出 DTO，写后失效缓存）+ 课后复盘入口（Stitch/DESIGN 对齐）。
+- [ ] close gate：`verify:phase` 守住迁移正确性 + 治理边界（红线不破）+ 样板链路可重复跑通。
+
+### Add After Validation (v4.x)
+
+- [ ] 多题型（多选/判断/简答）— 单选样板验证统计模型成立后扩展。
+- [ ] 实时作答进度广播（老师看实时答题曲线）— 体验增强，非数据模型必需。
+- [ ] 学生维度复盘 / 统计导出 — 题目维度统计稳定后追加。
+- [ ] 卸载保留态的重装恢复兑现 — retain 模式价值的完整闭环。
+
+### Future Consideration (v5+)
+
+- [ ] LessonAgent 辅助生成题目 — 属 AI 价值线，避免与 marketplace 里程碑耦合。
+- [ ] 跨课堂/历史趋势统计、AI 教学诊断报告 — 数据平台/AI 扩张方向。
+- [ ] 多种插件类型的完整生命周期矩阵 — 先用单样板打穿再泛化。
+- [ ] 商店运营层（付费/评分/公开开发者门户/自动化审核流水线）— 明确 Out of Scope。
+
+---
+
+## Feature Prioritization Matrix
+
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| 声明式数据模型 + 安装校验 + cascade（域1） | HIGH | MEDIUM | P1 |
+| 课堂链路写入插件自有数据（域1） | HIGH | MEDIUM | P1 |
+| 安装 preflight 审核 + 启停/killswitch（域2） | HIGH | LOW-MEDIUM | P1 |
+| 升级数据迁移 backfill→verify→cutover（域2） | HIGH | HIGH | P1 |
+| 卸载 retain/cleanup + 进行中课堂保护（域2） | HIGH | MEDIUM | P1 |
+| 互动答题单选样板 + 作答入库（域3） | HIGH | MEDIUM | P1 |
+| 题目统计三指标 + 课后复盘入口（域4） | HIGH | MEDIUM | P1 |
+| 生命周期治理审计可见（域2） | MEDIUM | LOW | P1（复用既有审计） |
+| 升级 dry-run / 卸载重装恢复（域2） | MEDIUM | HIGH/MEDIUM | P2 |
+| 实时作答进度广播（域3） | MEDIUM | MEDIUM | P2 |
+| 多题型（域3） | MEDIUM | MEDIUM-HIGH | P2 |
+| 学生维度复盘 / 统计导出（域4） | MEDIUM | MEDIUM/LOW | P2 |
+| LessonAgent 出题、跨课堂趋势、AI 诊断 | MEDIUM | HIGH | P3 |
+| 商店运营层（付费/评分/门户/自动审核） | LOW（本里程碑） | HIGH | P3（Out of Scope） |
+
+**Priority key:** P1 = v4.0 必须；P2 = 验证后追加；P3 = 后续/明确不做。
+
+---
+
+## Competitor Feature Analysis
+
+参照课堂答题工具的成熟形态，对照本项目的受治理插件取舍（Confidence MEDIUM）。
+
+| Feature | Kahoot / Mentimeter | Wooclap / Plickers | Our Approach (v4.0) |
+|---------|---------------------|--------------------|--------------------|
+| 题目配置 | 富题型 + 媒体 + 游戏化 | 多题型 + LMS 集成 | 单选样板、纯文本、声明式 schema、宿主渲染（无插件任意 JS） |
+| 学生作答 | 实时抢答/计时/积分 | 实时 + 异步 | 课堂内作答 + 锁定语义，无游戏化，append-only 幂等入库 |
+| 统计 | 实时大屏 + 课后报告 + 导出 | 题目/学生报告 | 课后题目统计三指标（正确率/分布/作答数），插件数据驱动，导出 P2 |
+| 扩展生态 | 闭源 SaaS | 闭源 SaaS | 开源 + 声明式受治理插件 + 插件自有数据 + 主仓库统一迁移（差异化核心） |
+| 数据所有权 | 厂商托管 | 厂商托管 | 学校自托管 SQLite，cascade 清理，retain/cleanup 可选（信任/合规优势） |
+
+> 本项目的真正差异化不在答题体验丰富度，而在**「声明式受治理插件 + 插件自有数据 + 统一迁移 + 课堂数据所有权」**。答题只是证明这套模型成立的样板，因此答题体验应刻意克制，把复杂度投入到数据治理与迁移正确性。
 
 ---
 
 ## Sources
 
-- `/home/wuxf/Develop/OpenLearn-Next/.planning/PROJECT.md` — 当前产品定位、约束、既有能力、下一 milestone 边界。Confidence: HIGH.
-- `/home/wuxf/Develop/OpenLearn-Next/.planning/MILESTONES.md` — 已归档 milestone 的交付面与 deferred 边界，帮助识别 v3.1 不应重开的范围。Confidence: HIGH.
-- `/home/wuxf/Develop/OpenLearn-Next/.planning/STATE.md` — 当前处于 milestone planning 状态、遗留 tech debt 与 deferred items。Confidence: HIGH.
+- `.planning/PROJECT.md` — v4.0 milestone goal、target features、约束、Out of Scope、Key Decisions（HIGH）。
+- `src/db/schema.ts` — `pluginRegistrations`、extension 表、`plugin_owned_business_data`、lifecycle/audit 表（HIGH，一手代码）。
+- `src/lib/dal/plugin-data.ts` / `plugin-migration.ts` / `plugins.ts` — 既有插件数据读写、迁移三件套、uninstall block reason（HIGH，一手代码）。
+- `src/app/settings/plugins/page.tsx` — 既有受控 marketplace surface（HIGH）。
+- v3.1 课堂投票样板链路、v3.2 LessonAgent 闭环 — validated baseline（HIGH，来自 PROJECT.md 归档记录）。
+- 课堂答题工具成熟形态（Kahoot/Mentimeter/Wooclap/Plickers）作为「典型期望行为」参照系（MEDIUM，行业通识，未逐一抓取当前文档）。
+
+---
+*Feature research for: v4.0 Plugin Marketplace & Plugin-Owned Data（互动答题样板 + 题目统计复盘）*
+*Researched: 2026-06-02*
