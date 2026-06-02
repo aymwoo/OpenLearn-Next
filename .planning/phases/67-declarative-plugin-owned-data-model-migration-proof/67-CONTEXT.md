@@ -41,7 +41,7 @@
 
 ### 静态零-DDL 闸门（DATA-02 / DATA-04）
 - **D-08:** `verify:phase` 加 `scripts/gate-no-runtime-ddl.ts`：ripgrep 扫运行时目录（`src/app/`、`src/server/`、`src/lib/`、`src/features/`、`src/actions/`、`plugins/`）。
-- **D-09:** 命中即 fail 的模式：`CREATE TABLE` / `ALTER TABLE` / `DROP TABLE` / `` sql`...CREATE `` 拼接 / `db.run(`/`db.exec(` 接裸 DDL。白名单仅 `src/db/migrations/**` 与 `src/db/schema/generated/**`（后者是声明产物，非运行时执行）。
+- **D-09:** 命中即 fail 的模式：`CREATE TABLE` / `ALTER TABLE` / `DROP TABLE` / `` sql`...CREATE `` 拼接 / `db.run(`/`db.exec(` 接裸 DDL。白名单仅 `drizzle/**`（项目真实迁移目录，drizzle.config `out: './drizzle'`——非 `src/db/migrations/`）与 `src/db/schema/generated/**`（后者是声明产物，非运行时执行）。
 
 ### 命名前缀与索引约定（DATA-03）
 - **D-10:** 物理表名 `plugin_owned_<pluginKey>_<table>`（如 `plugin_owned_quiz_questions` / `plugin_owned_quiz_responses`）；meta-schema 强制前缀，缺前缀边界处拒绝。
@@ -91,7 +91,7 @@
 - `src/lib/dal/plugin-migration.ts` + `.test.ts` — 既有 backfill/verify/cutover 迁移治理基线（migration-proof 闸门扩展点）。
 - `src/lib/dal/plugin-data.ts` + `.test.ts` — 既有通用插件数据 DAL（本 phase 不替换其读写动词，Phase 68 才治理动词；67 只建结构表）。
 - `src/lib/dal/plugins.ts` — 插件注册/命名空间/生命周期 DAL。
-- `src/db/migrations/**` — drizzle checked-in 迁移目录（静态闸门白名单之一）。
+ - `drizzle/**` — drizzle checked-in 迁移目录（drizzle.config `out: './drizzle'`；静态闸门白名单之一；注意非 `src/db/migrations/`）。
 
 </canonical_refs>
 
