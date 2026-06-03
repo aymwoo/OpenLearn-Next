@@ -36,8 +36,22 @@ const MODELS = [
 const GENERATED_ROOT = path.join("src", "db", "schema", "generated");
 const PLUGIN_OWNED_DIR = path.join(GENERATED_ROOT, "plugin-owned");
 
-/** 编译器固定注入、声明面不可表达的列名（D-11/隔离）。声明若重名一律跳过。 */
-const RESERVED_COLUMNS = new Set(["id", "schoolId", "pluginId", "createdAt", "updatedAt"]);
+/**
+ * 编译器固定注入、声明面不可表达的列名（D-11/隔离）。声明若重名一律跳过。
+ *
+ * 含 append-only 列 `attemptNo`/`isLatest`：这两列**仅对声明了 `uniques` 的去重表**注入
+ * （见 `renderTable`），但无论是否注入，插件声明面都**不得**自表达它们 —— 入此 reserved
+ * 集后，任何插件声明的同名列一律被过滤、永不可写（镜像 `taskSubmissions` 的 append-only 约定）。
+ */
+const RESERVED_COLUMNS = new Set([
+  "id",
+  "schoolId",
+  "pluginId",
+  "attemptNo",
+  "isLatest",
+  "createdAt",
+  "updatedAt",
+]);
 
 /** snake/kebab 表名 → camelCase 导出标识符（`plugin_owned_quiz_questions` → `pluginOwnedQuizQuestions`）。 */
 function toCamelCase(name: string): string {
@@ -101,15 +115,29 @@ function renderOn(columns: readonly string[]): string {
 function renderTable(table: TableSpec): string {
   const exportName = toCamelCase(table.name);
 
+  // D-11 append-only 判定：声明了 `uniques` 的表 = 去重/追加写表，注入 attemptNo/isLatest；
+  // 无 `uniques` 的配置/参照表（如 plugin_owned_quiz_questions）不注入，保持原状。
+  const isAppendOnly = (table.uniques?.length ?? 0) > 0;
+
   const declaredColumns = table.columns
     .filter((column) => !RESERVED_COLUMNS.has(column.name))
     .map(renderDeclaredColumn);
+
+  // append-only 注入列：物理列序紧随声明列、在 createdAt/updatedAt 之前
+  // （镜像 src/db/schema.ts `taskSubmissions`：attemptNo notNull 无默认、isLatest 默认 true）。
+  const appendOnlyColumns = isAppendOnly
+    ? [
+        `    attemptNo: integer("attemptNo").notNull(),`,
+        `    isLatest: integer("isLatest", { mode: "boolean" }).notNull().default(true),`,
+      ]
+    : [];
 
   const columnLines = [
     `    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),`,
     `    schoolId: text("schoolId").notNull().references(() => schools.id, { onDelete: "cascade" }),`,
     `    pluginId: text("pluginId").notNull().references(() => pluginRegistrations.id, { onDelete: "cascade" }),`,
     ...declaredColumns,
+    ...appendOnlyColumns,
     `    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),`,
     `    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),`,
   ];
@@ -119,10 +147,18 @@ function renderTable(table: TableSpec): string {
       `    index(${JSON.stringify(constraintName(table.name, spec.columns, "idx"))}).on(${renderOn(spec.columns)}),`,
   );
 
-  const uniqueLines = (table.uniques ?? []).map(
-    (spec: ConstraintSpec) =>
-      `    uniqueIndex(${JSON.stringify(constraintName(table.name, spec.columns, "unique"))}).on(${renderOn(spec.columns)}),`,
-  );
+  // D-11 append-only 物化：每个声明的去重键 spec 同时落两个约束，取代旧的「裸
+  // uniqueIndex(去重键)」（后者物理上禁止 append-only 写）：
+  //   - uniqueIndex(去重键 + attemptNo)  ——同一去重键可追加多次尝试，(去重键,attemptNo) 唯一；
+  //   - index(去重键 + isLatest)          ——latest-lookup 物理性能索引。
+  const uniqueLines = (table.uniques ?? []).flatMap((spec: ConstraintSpec) => {
+    const attemptCols = [...spec.columns, "attemptNo"];
+    const latestCols = [...spec.columns, "isLatest"];
+    return [
+      `    uniqueIndex(${JSON.stringify(constraintName(table.name, attemptCols, "unique"))}).on(${renderOn(attemptCols)}),`,
+      `    index(${JSON.stringify(constraintName(table.name, latestCols, "idx"))}).on(${renderOn(latestCols)}),`,
+    ];
+  });
 
   return [
     `export const ${exportName} = sqliteTable(`,
@@ -140,7 +176,10 @@ function renderTable(table: TableSpec): string {
 
 /** 整文件渲染：固定头 + 按需 import + 表片段（表间空行分隔，尾随换行确保字节稳定）。 */
 function renderFile(source: string, tables: readonly TableSpec[]): string {
-  const hasIndex = tables.some((table) => (table.indexes?.length ?? 0) > 0);
+  // `index` 在以下任一情形需要：表声明了 indexes，或表声明了 uniques（后者物化出 isLatest 索引）。
+  const hasIndex = tables.some(
+    (table) => (table.indexes?.length ?? 0) > 0 || (table.uniques?.length ?? 0) > 0,
+  );
   const hasUnique = tables.some((table) => (table.uniques?.length ?? 0) > 0);
 
   const imports = [
@@ -205,16 +244,23 @@ type TableAccessEntry = {
  *
  * 列序严格按声明顺序，不排序打乱，保证重编译零 diff（D-06）。`columns` 字段镜像
  * `renderTable` 的物理列序：固定注入 id/schoolId/pluginId → 声明非 reserved 列 →
- * createdAt/updatedAt。
+ * （append-only 表）attemptNo/isLatest → createdAt/updatedAt。
+ *
+ * 注：`insertableColumns`/`groupByColumns`/`indexes`/`uniques` **不**含注入的 attemptNo/isLatest：
+ *   - attemptNo/isLatest 为 reserved，插件永不可写（不入 insertable）、不可 groupBy；
+ *   - `indexes` 只保留声明索引（注入的 isLatest 物理索引非 getByIndex 目标，D-07 语义不变）；
+ *   - `uniques` 保留声明的逻辑去重键（不含 attemptNo），供写动作 supersede 逻辑使用。
  */
 function buildTableAccessEntry(table: TableSpec): TableAccessEntry {
   const declared = table.columns.filter((column) => !RESERVED_COLUMNS.has(column.name));
+  const isAppendOnly = (table.uniques?.length ?? 0) > 0;
 
   const columns = [
     "id",
     "schoolId",
     "pluginId",
     ...declared.map((column) => column.name),
+    ...(isAppendOnly ? ["attemptNo", "isLatest"] : []),
     "createdAt",
     "updatedAt",
   ];
