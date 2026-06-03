@@ -39,6 +39,8 @@ describe("A1 drizzle-zod spike", () => {
     classroomSession: "session-1",
     student: "student-1",
     question: "question-1",
+    // append-only 校正：attemptNo 现为 notNull 且无 default，裸 createInsertSchema 将其判为必填。
+    attemptNo: 1,
   } as const;
 
   it("ideal 路径：enum 列被派生为枚举——合法值通过", () => {
