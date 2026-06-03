@@ -18,6 +18,7 @@
 //   node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase68-data-access-verbs.ts
 
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import type { InStatement } from "@libsql/client";
@@ -32,6 +33,10 @@ process.env.DB_FILE_NAME = `file:${DB_PATH}`;
 // Seed identifiers (SEEDED_TEACHER_ID is shared with the auth stub).
 const SCHOOL_ID = "school-68-05";
 const TEACHER_ID = SEEDED_TEACHER_ID; // "teacher-68-05"
+// A REAL authenticated user who is NOT this school's active teacher. Must exist in `user`
+// because the denial audit's `actorId` FK references `user.id`; a phantom id would fail the FK
+// (crashing the very audit that records the rejection) rather than surface non_school_actor_rejected.
+const INTRUDER_ID = "intruder-not-teacher";
 const QUIZ_KEY = "quiz";
 const QUIZ_DISABLED_KEY = "quiz-disabled";
 const QUIZ_KILL_KEY = "quiz-kill";
@@ -46,6 +51,27 @@ function assert(condition: unknown, message: string): asserts condition {
   }
 }
 
+/**
+ * Rule-3 (blocking-issue) catch-up: the checked-in `drizzle/meta/_journal.json` is a curated
+ * subset that DROPS `0013_phase54_audit_summary_truth.sql` (the ALTER that adds `auditSummaryJson`
+ * to `platformCommand` / `platformEvent`). Replaying the journal alone therefore yields a
+ * `platformCommand` table missing that column, so the REAL command-bus write path (legal
+ * insert/upsert) fails with `no such column: auditSummaryJson`. Phase 67's verifier never hit
+ * this because it does not dispatch through the command bus. We replay ONLY that one checked-in,
+ * journal-omitted migration file (two `ALTER ... ADD COLUMN` statements) so the seeded throwaway
+ * DB matches schema.ts. This does NOT touch production migrations or the journal.
+ */
+async function applyJournalDroppedCatchUp(client: SeedClient): Promise<void> {
+  const sqlPath = path.join(process.cwd(), "drizzle", "0013_phase54_audit_summary_truth.sql");
+  const statements = readFileSync(sqlPath, "utf8")
+    .split("--> statement-breakpoint")
+    .map((statement) => statement.trim())
+    .filter((statement) => statement.length > 0);
+  for (const statement of statements) {
+    await client.execute(statement);
+  }
+}
+
 /** Raw-SQL seed: one teacher + school + active teacher membership + 3 plugin registrations. */
 async function seedFixtures(client: SeedClient): Promise<void> {
   const quizManifest = JSON.stringify({ id: QUIZ_KEY, version: "1.0.0", anchors: [], actions: [] });
@@ -54,6 +80,10 @@ async function seedFixtures(client: SeedClient): Promise<void> {
 
   const statements: InStatement[] = [
     { sql: `INSERT INTO user (id) VALUES (?)`, args: [TEACHER_ID] },
+    // Intruder is a real authenticated user but holds no membership in SCHOOL_ID, so the
+    // governance gate rejects with non_school_actor_rejected while the denial audit's
+    // actorId FK still resolves.
+    { sql: `INSERT INTO user (id) VALUES (?)`, args: [INTRUDER_ID] },
     { sql: `INSERT INTO school (id, name, createdAt) VALUES (?, ?, 0)`, args: [SCHOOL_ID, "Phase68 School"] },
     {
       sql: `INSERT INTO membership (id, userId, schoolId, role, status) VALUES (?, ?, ?, 'teacher', 'active')`,
@@ -95,6 +125,7 @@ async function main(): Promise<void> {
   // 1) Materialize checked-in migrations + seed, then CLOSE the seed client so the runtime
   //    `db` (dynamic-imported below) is the single open libsql client (avoids WAL lock).
   const seedClient = await materializeDrizzleMigrations(`file:${DB_PATH}`);
+  await applyJournalDroppedCatchUp(seedClient);
   await seedFixtures(seedClient);
   await (seedClient as { close?: () => Promise<void> | void }).close?.();
 
@@ -133,12 +164,17 @@ async function main(): Promise<void> {
     console.log("[1/3] Legal five-verb pass (insert/upsert/getByIndex/count/aggregate)...");
     const deniedBeforeLegal = await totalDenied();
 
+    // Writes target the RESPONSES table: the generic append-only write handler hard-requires
+    // `attemptNo` + `isLatest` columns (it stamps attemptNo = max+1 and isLatest=true), which only
+    // the responses table declares. The questions table has neither, so it is intentionally NOT a
+    // legal write target here. Two distinct logical keys (stu-1, stu-2) keep the read assertions
+    // crisp: getByIndex(stu-1)=1 row, count=2 total rows, aggregate(student)=2 groups of count 1.
     await dispatchPluginDataAccess({
       verb: "insert",
       actor: TEACHER_ID,
       pluginKey: QUIZ_KEY,
-      table: QUESTIONS_TABLE,
-      values: { classroomSession: "sess-1", question: "q1", prompt: "What is 1+1?", correctOption: "B" },
+      table: RESPONSES_TABLE,
+      values: { classroomSession: "sess-1", student: "stu-1", question: "q1", selectedOption: "B" },
     });
 
     await dispatchPluginDataAccess({
@@ -146,37 +182,42 @@ async function main(): Promise<void> {
       actor: TEACHER_ID,
       pluginKey: QUIZ_KEY,
       table: RESPONSES_TABLE,
-      values: { classroomSession: "sess-1", student: "stu-1", question: "q1", selectedOption: "B" },
+      values: { classroomSession: "sess-1", student: "stu-2", question: "q1", selectedOption: "C" },
     });
 
     const found = await dispatchPluginDataAccess({
       verb: "getByIndex",
       actor: TEACHER_ID,
       pluginKey: QUIZ_KEY,
-      table: QUESTIONS_TABLE,
-      index: ["schoolId", "classroomSession", "question"],
-      eq: { classroomSession: "sess-1", question: "q1" },
+      table: RESPONSES_TABLE,
+      index: ["schoolId", "classroomSession", "student", "question"],
+      eq: { classroomSession: "sess-1", student: "stu-1", question: "q1" },
     });
-    assert(Array.isArray(found) && found.length === 1, `legal getByIndex expected 1 row, got ${Array.isArray(found) ? found.length : "non-array"}`);
+    assert(
+      Array.isArray(found) && found.length === 1,
+      `legal getByIndex expected 1 row, got ${Array.isArray(found) ? found.length : "non-array"}`,
+    );
 
     const total = await dispatchPluginDataAccess({
       verb: "count",
       actor: TEACHER_ID,
       pluginKey: QUIZ_KEY,
-      table: QUESTIONS_TABLE,
+      table: RESPONSES_TABLE,
     });
-    assert(total === 1, `legal count expected 1, got ${String(total)}`);
+    assert(total === 2, `legal count expected 2, got ${String(total)}`);
 
     const grouped = await dispatchPluginDataAccess({
       verb: "aggregate",
       actor: TEACHER_ID,
       pluginKey: QUIZ_KEY,
-      table: QUESTIONS_TABLE,
-      groupBy: "classroomSession",
+      table: RESPONSES_TABLE,
+      groupBy: "student",
     });
     assert(
-      Array.isArray(grouped) && grouped.length === 1 && Number(grouped[0]?.count) === 1,
-      `legal aggregate expected 1 group of count 1, got ${JSON.stringify(grouped)}`,
+      Array.isArray(grouped) &&
+        grouped.length === 2 &&
+        grouped.every((row) => Number(row?.count) === 1),
+      `legal aggregate expected 2 groups of count 1, got ${JSON.stringify(grouped)}`,
     );
 
     const deniedAfterLegal = await totalDenied();
@@ -241,7 +282,7 @@ async function main(): Promise<void> {
       {
         reason: "non_school_actor_rejected",
         label: "count with an actor that is not the seeded in-school teacher",
-        input: { verb: "count", actor: "intruder-not-teacher", pluginKey: QUIZ_KEY, table: QUESTIONS_TABLE },
+        input: { verb: "count", actor: INTRUDER_ID, pluginKey: QUIZ_KEY, table: QUESTIONS_TABLE },
       },
     ];
 
