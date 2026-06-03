@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
 status: executing
-last_updated: "2026-06-03T01:36:24.231Z"
+last_updated: "2026-06-03T01:55:33.764Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 17
 ---
 
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-02)
 ## Current Position
 
 Phase: 68 (governed-declarative-data-access-verbs) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-06-03
 
@@ -75,6 +75,7 @@ Last activity: 2026-06-03
 | Phase 68 P01 | 35min | 3 tasks | 4 files |
 | Phase 68-governed-declarative-data-access-verbs P02 | 6min | 3 tasks | 4 files |
 | Phase 68 P03 | 55min | 3 tasks | 7 files |
+| Phase 68 P04 | 10min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -131,6 +132,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 68] 68-01: A1 spike = IDEAL — drizzle-zod 在 zod v4 对 SQLite text(col,{enum}) 派生 z.enum；picked schema 需 .strict() 才能拒多余字段(invalid_payload_rejected)
 - [Phase ?]: 68-02: schoolId 仅由 session 派生，治理门不接受 schoolId 入参 (SC2)
 - [Phase ?]: 68-02: 动词级审计复用既有 governanceAudits 表，无第二审计真相源
+- [Phase 68]: Plan 68-04: dispatchPluginDataAccess facade routes 5 verbs (writes→Command Bus producers, reads→direct governed DAL); read verbs getByIndex/count/aggregate force session-derived schoolId scope, denied-only audit (D-04), aggregate projects {key,count} only (D-05)
 
 ### Pending Todos
 

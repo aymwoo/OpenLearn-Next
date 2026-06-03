@@ -96,7 +96,7 @@
 - [x] 68-01-PLAN.md — 白名单单一真相源：drizzle-zod 同源派生 + 编译生成 checked-in allowlist（零漂移）+ 校验/具名拒因
 - [x] 68-02-PLAN.md — 动词契约判别联合 + 前置治理门 assertActionExecutable + tx-aware 动词级审计
 - [x] 68-03-PLAN.md — 写动词 insert/upsert 经 Command Bus（contracts/registry/handler append-only/producer）
-- [ ] 68-04-PLAN.md — 统一入口 dispatchPluginDataAccess + 读动词 getByIndex/count/aggregate 受治理直连
+- [x] 68-04-PLAN.md — 统一入口 dispatchPluginDataAccess + 读动词 getByIndex/count/aggregate 受治理直连
 - [ ] 68-05-PLAN.md — 负样本 close gate（10 类拒因+审计）+ verify:phase68 串联零漂移/单测
 
 ### Phase 69: Interactive Single-Choice Quiz Sample Plugin
@@ -152,7 +152,7 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 67. Declarative Plugin-Owned Data Model & Migration-Proof | v4.0 | 3/3 | Complete   | 2026-06-02 |
-| 68. Governed Declarative Data-Access Verbs | v4.0 | 3/5 | In Progress|  |
+| 68. Governed Declarative Data-Access Verbs | v4.0 | 4/5 | In Progress|  |
 | 69. Interactive Single-Choice Quiz Sample Plugin | v4.0 | 0/TBD | Not started | - |
 | 70. Question Stats & Post-Class Recap | v4.0 | 0/TBD | Not started | - |
 | 71. Marketplace Lifecycle (Install/Upgrade/Uninstall) | v4.0 | 0/TBD | Not started | - |
