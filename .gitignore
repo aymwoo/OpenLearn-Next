@@ -11,6 +11,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 local.db
+*.db
+*.db-shm
+*.db-wal
+verify*.db
+# stray phase verification screenshots
+/66-*.png
 /.claude
 /.opencode
 /.playwright-mcp
