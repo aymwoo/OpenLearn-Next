@@ -1,7 +1,7 @@
 # ROADMAP
 
 **Current milestone:** v4.0 Plugin Marketplace & Plugin-Owned Data
-**Status:** 🚧 In progress (Phases 67-72)
+**Status:** 🚧 In progress (Phases 70-72)
 **Current requirements file:** `.planning/REQUIREMENTS.md`
 **Latest archive:** `.planning/milestones/v3.2-ROADMAP.md`
 
@@ -30,9 +30,9 @@
 <summary>🚧 v4.0 Plugin Marketplace & Plugin-Owned Data (Phases 67-72) — IN PROGRESS</summary>
 
 - [x] **Phase 67: Declarative Plugin-Owned Data Model & Migration-Proof** - 声明式 `dataModel` DSL + Zod meta-schema + 编译器产出 checked-in Drizzle 迁移（独立片段文件），运行时零 DDL，迁移-proof 闸门覆盖插件自有表。 (DATA-01, DATA-02, DATA-03, DATA-04) (completed 2026-06-02)
-- [ ] **Phase 68: Governed Declarative Data-Access Verbs** - 白名单具名、Zod 校验、参数化的受治理读写动词，经 Command Bus + governed action registry，禁直连/禁原始 SQL，单一真相源。 (ACCESS-01, ACCESS-02, ACCESS-03)
-- [ ] **Phase 69: Interactive Single-Choice Quiz Sample Plugin** - 老师配置单选题 + 学生课堂作答 + append-only/isLatest 写入插件自有结构表，全程走第三方同款治理路径、无后门。 (QUIZ-01, QUIZ-02, QUIZ-03)
-- [ ] **Phase 70: Question Stats & Post-Class Recap** - 基于插件自有作答数据的只读统计投影（正确率/选项分布/作答人数，SQL GROUP BY 单一聚合源）+ Stitch/DESIGN 对齐课后复盘界面。 (STATS-01, STATS-02)
+- [x] **Phase 68: Governed Declarative Data-Access Verbs** - 白名单具名、Zod 校验、参数化的受治理读写动词，经 Command Bus + governed action registry，禁直连/禁原始 SQL，单一真相源。 (ACCESS-01, ACCESS-02, ACCESS-03) (completed 2026-06-03)
+- [x] **Phase 69: Interactive Single-Choice Quiz Sample Plugin** - 老师配置单选题 + 学生课堂作答 + append-only/isLatest 写入插件自有结构表，全程走第三方同款治理路径、无后门。 (QUIZ-01, QUIZ-02, QUIZ-03) (completed 2026-06-03)
+- [ ] **Phase 70: Question Stats & Post-Class Recap** - 基于插件自有作答数据的只读统计投影（正确率/选项分布/作答人数，SQL GROUP BY 单一聚合源）+ Stitch/DESIGN 对齐课后复盘界面。 (STATS-01, STATS-02) (implementation landed 2026-06-03; close gate in progress)
 - [ ] **Phase 71: Marketplace Lifecycle — Install Governance, Semver Upgrade & Retain/Cleanup Uninstall** - external 插件发现/安装治理、semver backfill→verify→cutover 零丢失升级、retain/cleanup 卸载确认与审计、active-session 阻断。 (MKT-01, MKT-02, MKT-03, MKT-04, MKT-05)
 - [ ] **Phase 72: End-to-End verify:phase Close Gate** - 对「声明→安装→老师配置→学生作答→统计复盘→升级/卸载治理」整链做单一权威可重复回归闸门。 (GATE-01)
 
@@ -108,7 +108,12 @@
   2. 学生能在课堂运行链路提交作答，记录经受治理动词写入 `plugin_owned_*` 答题表，关联 `(classroomSession, student, question)` 且具唯一约束、append-only + isLatest（重复提交更新 latest，不重复计入分母）。
   3. 样板完全复用 v4.0 声明式模型 + 受治理访问 + 生命周期：不 import core DB client、不写任何 core 表、所有数据动作在 governance audit 可见（可被 close gate 断言）。
 **Pitfalls mitigated**: #1 结构化答题表、#8 单一写真相、#10 样板无后门。
-**Plans**: TBD
+**Plans**: 5 plans
+- [x] 69-01-PLAN.md — 扩展 quiz sample question snapshot schema（A-D 文本槽位）+ built-in plugin host/bootstrap 入口落位
+- [x] 69-02-PLAN.md — 老师侧插件专属配置卡 + lesson step/plugin extension 受治理保存 + 保存前硬校验
+- [x] 69-03-PLAN.md — launchClassroomSession 冻结 session-scoped question snapshot + 课堂 open/close 控制接缝
+- [x] 69-04-PLAN.md — 学生端独立答题卡 + governed plugin-owned append-only/isLatest 提交链（无 core quiz backdoor）
+- [x] 69-05-PLAN.md — phase69 close gate（authoring→launch→answer→no-core-backdoor）+ verify:phase69 + roadmap 收口
 **UI hint**: yes
 
 ### Phase 70: Question Stats & Post-Class Recap
@@ -120,7 +125,11 @@
   2. 统计来自单一 DAL 聚合函数（SQL `GROUP BY` 走复合索引，无应用层 `JSON.parse`、无 Redis/第二源）；写答题时 `updateTag('quizStats:${sessionId}')` 失效缓存保持复盘新鲜。
   3. 教师能在课后复盘界面查看题目统计；界面对齐 Stitch `5322129002350954765` + DESIGN.md（Lexend、无 1px 分隔线、tonal surface、glass/gradient CTA），并明确标注作答/未作答口径。
 **Pitfalls mitigated**: #1 SQL 聚合非 JSON 扫描、#2 scope 隔离读、#8 实时与复盘同一聚合源。
-**Plans**: TBD
+**Plans**: 4 plans
+- [x] 70-01-PLAN.md — latest-only quiz stats contract: cache tag + recap DTO section + plugin-owned DAL aggregate seam
+- [x] 70-02-PLAN.md — integrate quiz sample stats into ended-session recap DTO and submit-side cache invalidation without core analytics writeback
+- [x] 70-03-PLAN.md — Stitch/DESIGN-aligned question recap section inside existing `ClassroomSessionRecapSurface`
+- [x] 70-04-PLAN.md — phase70 close gate (`verify:phase70`) + roadmap/state sync
 **UI hint**: yes
 
 ### Phase 71: Marketplace Lifecycle — Install Governance, Semver Upgrade & Retain/Cleanup Uninstall
@@ -153,11 +162,11 @@
 |-------|-----------|----------------|--------|-----------|
 | 67. Declarative Plugin-Owned Data Model & Migration-Proof | v4.0 | 3/3 | Complete   | 2026-06-02 |
 | 68. Governed Declarative Data-Access Verbs | v4.0 | 5/5 | Complete   | 2026-06-03 |
-| 69. Interactive Single-Choice Quiz Sample Plugin | v4.0 | 0/TBD | Not started | - |
-| 70. Question Stats & Post-Class Recap | v4.0 | 0/TBD | Not started | - |
+| 69. Interactive Single-Choice Quiz Sample Plugin | v4.0 | 5/5 | Complete | 2026-06-03 |
+| 70. Question Stats & Post-Class Recap | v4.0 | 4/4 | In verification | 2026-06-03 |
 | 71. Marketplace Lifecycle (Install/Upgrade/Uninstall) | v4.0 | 0/TBD | Not started | - |
 | 72. End-to-End verify:phase Close Gate | v4.0 | 0/TBD | Not started | - |
 
 ## Next Step
 
-- 用 `/gsd-plan-phase 67` 开始规划 v4.0 第一阶段（声明式插件自有数据模型 + 迁移-proof 契约）。
+- 运行并收口 `pnpm verify:phase70`，确认 Phase 70 close gate 绿灯后再进入 Phase 71。

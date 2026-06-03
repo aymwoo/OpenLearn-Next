@@ -1,0 +1,24 @@
+{
+  "//": "Phase 69 close-gate runner tsconfig. Remaps auth() only for headless actor switching.",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "allowJs": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "paths": {
+      "@/lib/auth/auth": ["./scripts/lib/phase69-auth-stub.ts"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "scripts/verify-phase69-quiz-sample.ts",
+    "scripts/lib/phase69-auth-stub.ts"
+  ]
+}
