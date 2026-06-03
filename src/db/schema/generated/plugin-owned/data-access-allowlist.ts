@@ -53,6 +53,8 @@ export const pluginDataAccessAllowlist = {
         "student",
         "question",
         "selectedOption",
+        "attemptNo",
+        "isLatest",
         "createdAt",
         "updatedAt"
       ],

@@ -32,11 +32,14 @@ export const pluginOwnedQuizResponses = sqliteTable(
     student: text("student").notNull(),
     question: text("question").notNull(),
     selectedOption: text("selectedOption", { enum: ["A", "B", "C", "D"] }).notNull(),
+    attemptNo: integer("attemptNo").notNull(),
+    isLatest: integer("isLatest", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
     updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
   (table) => [
     index("plugin_owned_quiz_responses_schoolId_classroomSession_student_question_idx").on(table.schoolId, table.classroomSession, table.student, table.question),
-    uniqueIndex("plugin_owned_quiz_responses_classroomSession_student_question_unique").on(table.classroomSession, table.student, table.question),
+    uniqueIndex("plugin_owned_quiz_responses_classroomSession_student_question_attemptNo_unique").on(table.classroomSession, table.student, table.question, table.attemptNo),
+    index("plugin_owned_quiz_responses_classroomSession_student_question_isLatest_idx").on(table.classroomSession, table.student, table.question, table.isLatest),
   ],
 );
