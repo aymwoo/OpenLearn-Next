@@ -67,7 +67,11 @@ export async function dispatchPluginDataAccess(input: PluginDataAccessInput) {
         actor: { actorId: input.actor, actorScope: FACADE_ACTOR_SCOPE },
         scope: { schoolId, pluginId: projectionRow.pluginId },
         payload: { pluginKey: input.pluginKey, table: input.table, values: input.values },
-        correlation: { correlationId, producer: "dispatchPluginDataAccess" },
+        // 写命令身份（commandId = type:correlationId）必须含 payload：facade correlationId 仅由
+        // verb+actor+plugin+table 派生（不含 values），若作为写 correlationId 会令同表不同 payload
+        // 的多次 insert/upsert 折叠为同一 commandId → 第二次命中已存在命令缓存结果、永不落库（数据丢失）。
+        // 故仅以 facade correlationId 作 causationId（保留追踪链），由 producer 从 payload 派生写 correlationId。
+        correlation: { causationId: correlationId, producer: "dispatchPluginDataAccess" },
         source: FACADE_SOURCE,
       });
     case "upsert":
@@ -75,7 +79,8 @@ export async function dispatchPluginDataAccess(input: PluginDataAccessInput) {
         actor: { actorId: input.actor, actorScope: FACADE_ACTOR_SCOPE },
         scope: { schoolId, pluginId: projectionRow.pluginId },
         payload: { pluginKey: input.pluginKey, table: input.table, values: input.values },
-        correlation: { correlationId, producer: "dispatchPluginDataAccess" },
+        // 同 insert：以 facade correlationId 作 causationId，写 correlationId 由 producer 含-payload 派生。
+        correlation: { causationId: correlationId, producer: "dispatchPluginDataAccess" },
         source: FACADE_SOURCE,
       });
     case "getByIndex":

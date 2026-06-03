@@ -55,7 +55,13 @@ export async function appendPlatformEvents(input: PersistPlatformEventsInput): P
   events: PersistedPlatformEventRecord[];
   dispatches: PersistedPlatformEventDispatchRecord[];
 }> {
-  const insertedEvents = await db.insert(platformEvents).values(toEventInsert(input)).returning();
+  // 零事件成功命令（如 plugin.data.insert/upsert——append-only 写经 governanceAudit 审计而非平台事件）
+  // 合法返回 emittedEvents:[]；drizzle `.values([])` 会抛 "values() must be called with at least one value"，
+  // 故空事件时跳过 platformEvents 插入（命令/尝试摘要仍需更新）。镜像下方 dispatches 已有的空保护。
+  const eventInserts = toEventInsert(input);
+  const insertedEvents = eventInserts.length
+    ? await db.insert(platformEvents).values(eventInserts).returning()
+    : [];
 
   const dispatches = insertedEvents.length
     ? await db.insert(platformEventDispatches).values(
