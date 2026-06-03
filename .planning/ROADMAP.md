@@ -97,7 +97,7 @@
 - [x] 68-02-PLAN.md — 动词契约判别联合 + 前置治理门 assertActionExecutable + tx-aware 动词级审计
 - [x] 68-03-PLAN.md — 写动词 insert/upsert 经 Command Bus（contracts/registry/handler append-only/producer）
 - [x] 68-04-PLAN.md — 统一入口 dispatchPluginDataAccess + 读动词 getByIndex/count/aggregate 受治理直连
-- [ ] 68-05-PLAN.md — 负样本 close gate（10 类拒因+审计）+ verify:phase68 串联零漂移/单测
+- [x] 68-05-PLAN.md — 负样本 close gate（10 类拒因+审计）+ verify:phase68 串联零漂移/单测
 
 ### Phase 69: Interactive Single-Choice Quiz Sample Plugin
 **Goal**: 以单选互动答题样板，用与第三方完全相同的受治理路径打通「老师配置 → 学生作答 → 自有结构表持久化」：老师配置一道单选题，学生在课堂运行链路提交作答，作答经受治理动词 append-only/isLatest 落入插件自有表，绝无 built-in 后门。
@@ -152,7 +152,7 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 67. Declarative Plugin-Owned Data Model & Migration-Proof | v4.0 | 3/3 | Complete   | 2026-06-02 |
-| 68. Governed Declarative Data-Access Verbs | v4.0 | 4/5 | In Progress|  |
+| 68. Governed Declarative Data-Access Verbs | v4.0 | 5/5 | Complete   | 2026-06-03 |
 | 69. Interactive Single-Choice Quiz Sample Plugin | v4.0 | 0/TBD | Not started | - |
 | 70. Question Stats & Post-Class Recap | v4.0 | 0/TBD | Not started | - |
 | 71. Marketplace Lifecycle (Install/Upgrade/Uninstall) | v4.0 | 0/TBD | Not started | - |

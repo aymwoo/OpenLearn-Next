@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
-status: executing
-last_updated: "2026-06-03T01:55:33.764Z"
+status: verifying
+last_updated: "2026-06-03T03:36:04.564Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 7
-  percent: 17
+  completed_plans: 8
+  percent: 33
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 Phase: 68 (governed-declarative-data-access-verbs) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-03
 
 > Corrective applied 2026-06-02 (mid-phase-68, before 68-03): plugin data-model compiler now injects append-only `attemptNo`/`isLatest` for tables with `uniques`; hand-authored migration `0006_worried_wallow.sql`. See `.planning/phases/68-governed-declarative-data-access-verbs/67-CORRECTIVE-isLatest.md`. No plan counters advanced.
@@ -76,6 +76,7 @@ Last activity: 2026-06-03
 | Phase 68-governed-declarative-data-access-verbs P02 | 6min | 3 tasks | 4 files |
 | Phase 68 P03 | 55min | 3 tasks | 7 files |
 | Phase 68 P04 | 10min | 2 tasks | 4 files |
+| Phase 68 P05 | ~3h | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -133,6 +134,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 68-02: schoolId 仅由 session 派生，治理门不接受 schoolId 入参 (SC2)
 - [Phase ?]: 68-02: 动词级审计复用既有 governanceAudits 表，无第二审计真相源
 - [Phase 68]: Plan 68-04: dispatchPluginDataAccess facade routes 5 verbs (writes→Command Bus producers, reads→direct governed DAL); read verbs getByIndex/count/aggregate force session-derived schoolId scope, denied-only audit (D-04), aggregate projects {key,count} only (D-05)
+- [Phase 68]: Phase 68 close gate uses Option A: only auth() stubbed via runner tsconfig remap; all else real against seeded temp libsql DB
+- [Phase 68]: Fixed two production command-bus bugs surfaced by the real write path: zero-event ledger .values([]) crash and write-command correlation collapse causing silent data loss
 
 ### Pending Todos
 
@@ -161,8 +164,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-03T01:35:54.768Z
-Stopped at: Completed 68-02-PLAN.md
+Last session: 2026-06-03T03:36:04.559Z
+Stopped at: Completed 68-05-PLAN.md (phase 68 closed, 5/5)
 Resume file: None
 
 ## Operator Next Steps
