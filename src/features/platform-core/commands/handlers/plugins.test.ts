@@ -583,6 +583,8 @@ describe("platform plugin command registry", () => {
       "lesson.draft.persist",
       "lesson.draft.accept",
       "lesson.draft.discard",
+      "plugin.data.insert",
+      "plugin.data.upsert",
     ]);
     expect((platformCommandRegistry as Record<string, unknown>)["plugin.transition"]).toBeUndefined();
   });
