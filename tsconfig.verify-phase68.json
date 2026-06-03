@@ -1,0 +1,28 @@
+{
+  "//": "Phase 68 close-gate runner tsconfig (Option A). Standalone (NOT extends base) so the",
+  "//2": "`paths` remap of `@/lib/auth/auth` -> scripts/lib/phase68-auth-stub.ts takes effect for the",
+  "//3": "headless verifier ONLY. Production src/lib/auth/auth.ts is untouched. Everything else (`@/*`)",
+  "//4": "resolves to real ./src so the REAL governance gate / allowlist / write-bus / audit run against",
+  "//5": "the seeded throwaway libsql DB. Invoked via TSX_TSCONFIG_PATH for scripts/verify-phase68-*.ts.",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "allowJs": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "paths": {
+      "@/lib/auth/auth": ["./scripts/lib/phase68-auth-stub.ts"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "scripts/verify-phase68-data-access-verbs.ts",
+    "scripts/lib/phase68-auth-stub.ts"
+  ]
+}
