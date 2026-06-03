@@ -28,9 +28,14 @@ export const PlatformPluginGovernanceCommandTypes = [
 // scope.pluginId 携带保留 sentinel "core.lesson-agent"（内置系统 agent 身份）。
 export const LessonDraftCommandTypes = ["lesson.draft.run", "lesson.draft.persist", "lesson.draft.accept", "lesson.draft.discard"] as const;
 
+// 受治理数据访问**写动词**命令类型（Phase 68, ACCESS-02/ACCESS-03, D-02）。
+// 仅两写动词进入命令面；读动词（getByIndex/count/aggregate）绝不声明命令类型（D-03，见 Plan 04）。
+export const PluginDataCommandTypes = ["plugin.data.insert", "plugin.data.upsert"] as const;
+
 export const PlatformCommandTypeSchema = z.enum([
   ...PlatformPluginGovernanceCommandTypes,
   ...LessonDraftCommandTypes,
+  ...PluginDataCommandTypes,
 ]);
 
 export const PlatformCommandActorSchema = z.object({
@@ -169,6 +174,25 @@ const LessonDraftDiscardPayloadSchema = z.object({
   draftVersionId: z.string().min(1),
 }).strict();
 
+// plugin.data.insert / plugin.data.upsert payload —— 写动词命令边界校验（Phase 68, D-02）。
+// 形状仅 {pluginKey, table, values}，复用 plugin-data-access/contracts.ts 的 insert/upsert 面：
+// - `values` 为扁平等值映射；表/列的 drizzle-zod 同源深校验在 handler.authorize 经
+//   `validateInsertPayload(pluginKey, table, values)` 完成（pluginKey/table 为运行时值，
+//   无法在契约层绑定单表 schema，故此处不重复造第二套 step/values schema）。
+// - `.strict()` 使顶层多余键（如 schoolId）被拒；schoolId 绝不入 payload，仅由 session 派生
+//   注入（cross_school 在白名单层再次拦截）。
+const PluginDataInsertPayloadSchema = z.object({
+  pluginKey: z.string().min(1),
+  table: z.string().min(1),
+  values: z.record(z.string(), z.unknown()),
+}).strict();
+
+const PluginDataUpsertPayloadSchema = z.object({
+  pluginKey: z.string().min(1),
+  table: z.string().min(1),
+  values: z.record(z.string(), z.unknown()),
+}).strict();
+
 export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,
   "plugin.enable": PluginEnablePayloadSchema,
@@ -184,6 +208,8 @@ export const PlatformCommandPayloadSchemas = {
   "lesson.draft.persist": LessonDraftPersistPayloadSchema,
   "lesson.draft.accept": LessonDraftAcceptPayloadSchema,
   "lesson.draft.discard": LessonDraftDiscardPayloadSchema,
+  "plugin.data.insert": PluginDataInsertPayloadSchema,
+  "plugin.data.upsert": PluginDataUpsertPayloadSchema,
 } as const;
 
 export const PlatformCommandSchema = z.discriminatedUnion("type", [
@@ -242,6 +268,14 @@ export const PlatformCommandSchema = z.discriminatedUnion("type", [
   PlatformCommandEnvelopeSchema.extend({
     type: z.literal("lesson.draft.discard"),
     payload: LessonDraftDiscardPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("plugin.data.insert"),
+    payload: PluginDataInsertPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("plugin.data.upsert"),
+    payload: PluginDataUpsertPayloadSchema,
   }),
 ]);
 

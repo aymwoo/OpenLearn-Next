@@ -5,6 +5,7 @@ import {
 } from "./contracts";
 import { pluginCommandHandlers } from "./handlers/plugins";
 import { lessonDraftCommandHandlers } from "./handlers/lesson-draft";
+import { pluginDataInsertHandler, pluginDataUpsertHandler } from "./handlers/plugin-data";
 
 export function createPlatformCommandDefinition<TType extends PlatformCommandType>(
   input: PlatformCommandDefinition<TType>,
@@ -110,5 +111,19 @@ export const platformCommandRegistry = {
     dedupe: "required",
     authorize: lessonDraftCommandHandlers["lesson.draft.discard"].authorize,
     execute: lessonDraftCommandHandlers["lesson.draft.discard"].execute,
+  }),
+  "plugin.data.insert": createPlatformCommandDefinition({
+    commandType: "plugin.data.insert",
+    payloadSchema: PlatformCommandPayloadSchemas["plugin.data.insert"],
+    dedupe: "required",    // dedupe 键基于声明 uniques + command.id（replay-safe，写入唯一权威）
+    authorize: pluginDataInsertHandler.authorize,
+    execute: pluginDataInsertHandler.execute,
+  }),
+  "plugin.data.upsert": createPlatformCommandDefinition({
+    commandType: "plugin.data.upsert",
+    payloadSchema: PlatformCommandPayloadSchemas["plugin.data.upsert"],
+    dedupe: "required",    // upsert 同 dedupe 键二次写：旧行 isLatest=false、新行 attemptNo+1（append-only）
+    authorize: pluginDataUpsertHandler.authorize,
+    execute: pluginDataUpsertHandler.execute,
   }),
 } satisfies Record<PlatformCommandType, PlatformCommandDefinition>;
