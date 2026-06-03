@@ -29,6 +29,8 @@ Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-06-02
 
+> Corrective applied 2026-06-02 (mid-phase-68, before 68-03): plugin data-model compiler now injects append-only `attemptNo`/`isLatest` for tables with `uniques`; hand-authored migration `0006_worried_wallow.sql`. See `.planning/phases/68-governed-declarative-data-access-verbs/67-CORRECTIVE-isLatest.md`. No plan counters advanced.
+
 ## Performance Metrics
 
 **Velocity:**
