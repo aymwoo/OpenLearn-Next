@@ -30,9 +30,9 @@
 
 ### 互动答题样板插件 (QUIZ)
 
-- [ ] **QUIZ-01**: 老师能通过该样板插件配置一道单选互动答题（题干 + 选项 + 正确答案），配置经声明式受治理路径持久化（多题型为 v2 deferred）。
-- [ ] **QUIZ-02**: 学生能在课堂运行链路中提交作答，作答记录经受治理动词写入插件自有结构表（append-only / `isLatest`），关联 `(classroomSession, student, question)` 且具唯一约束。
-- [ ] **QUIZ-03**: 样板插件完全复用 v4.0 声明式数据模型 + 受治理访问 + 生命周期，不引入任何绕过治理的后门或 built-in 特例。
+- [x] **QUIZ-01**: 老师能通过该样板插件配置一道单选互动答题（题干 + 选项 + 正确答案），配置经声明式受治理路径持久化（多题型为 v2 deferred）。
+- [x] **QUIZ-02**: 学生能在课堂运行链路中提交作答，作答记录经受治理动词写入插件自有结构表（append-only / `isLatest`），关联 `(classroomSession, student, question)` 且具唯一约束。
+- [x] **QUIZ-03**: 样板插件完全复用 v4.0 声明式数据模型 + 受治理访问 + 生命周期，不引入任何绕过治理的后门或 built-in 特例。
 
 ### 题目统计与课后复盘 (STATS)
 
@@ -89,9 +89,9 @@ Populated during roadmap creation.
 | ACCESS-01 | Phase 68 | Complete |
 | ACCESS-02 | Phase 68 | Complete |
 | ACCESS-03 | Phase 68 | Complete |
-| QUIZ-01 | Phase 69 | Pending |
-| QUIZ-02 | Phase 69 | Pending |
-| QUIZ-03 | Phase 69 | Pending |
+| QUIZ-01 | Phase 69 | Complete |
+| QUIZ-02 | Phase 69 | Complete |
+| QUIZ-03 | Phase 69 | Complete |
 | STATS-01 | Phase 70 | Pending |
 | STATS-02 | Phase 70 | Pending |
 | MKT-01 | Phase 71 | Pending |

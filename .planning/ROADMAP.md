@@ -162,7 +162,7 @@
 |-------|-----------|----------------|--------|-----------|
 | 67. Declarative Plugin-Owned Data Model & Migration-Proof | v4.0 | 3/3 | Complete   | 2026-06-02 |
 | 68. Governed Declarative Data-Access Verbs | v4.0 | 5/5 | Complete   | 2026-06-03 |
-| 69. Interactive Single-Choice Quiz Sample Plugin | v4.0 | 5/5 | Complete | 2026-06-03 |
+| 69. Interactive Single-Choice Quiz Sample Plugin | v4.0 | 5/5 | Complete   | 2026-06-03 |
 | 70. Question Stats & Post-Class Recap | v4.0 | 4/4 | In verification | 2026-06-03 |
 | 71. Marketplace Lifecycle (Install/Upgrade/Uninstall) | v4.0 | 0/TBD | Not started | - |
 | 72. End-to-End verify:phase Close Gate | v4.0 | 0/TBD | Not started | - |

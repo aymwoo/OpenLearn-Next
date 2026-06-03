@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
-status: phase_complete
-last_updated: "2026-06-03T00:00:00.000Z"
+status: executing
+last_updated: "2026-06-03T11:38:01.090Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 6
-  completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
-  percent: 33
+  completed_phases: 4
+  total_plans: 17
+  completed_plans: 17
+  percent: 67
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 69 — Interactive Single-Choice Quiz Sample Plugin (next)
+**Current focus:** Phase 70 — question-stats-post-class-recap
 
 ## Current Position
 
-Phase: 68 (governed-declarative-data-access-verbs) — COMPLETE & VERIFIED (5/5, PASS 3/3 requirements)
-Plan: 5 of 5
-Status: Phase 68 verified PASS — ready to start Phase 69
-Last activity: 2026-06-03
+Phase: 70 (question-stats-post-class-recap) — EXECUTING
+Plan: 1 of 4
+Status: Verification pending
+Last activity: 2026-06-03 -- Phase 69 completed; Phase 70 close gate pending
 
 > Corrective applied 2026-06-02 (mid-phase-68, before 68-03): plugin data-model compiler now injects append-only `attemptNo`/`isLatest` for tables with `uniques`; hand-authored migration `0006_worried_wallow.sql`. See `.planning/phases/68-governed-declarative-data-access-verbs/67-CORRECTIVE-isLatest.md`. No plan counters advanced.
 
@@ -77,6 +77,7 @@ Last activity: 2026-06-03
 | Phase 68 P03 | 55min | 3 tasks | 7 files |
 | Phase 68 P04 | 10min | 2 tasks | 4 files |
 | Phase 68 P05 | ~3h | 2 tasks | 6 files |
+| Phase 69 P05 | 8 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -136,11 +137,13 @@ Recent decisions affecting current work:
 - [Phase 68]: Plan 68-04: dispatchPluginDataAccess facade routes 5 verbs (writes→Command Bus producers, reads→direct governed DAL); read verbs getByIndex/count/aggregate force session-derived schoolId scope, denied-only audit (D-04), aggregate projects {key,count} only (D-05)
 - [Phase 68]: Phase 68 close gate uses Option A: only auth() stubbed via runner tsconfig remap; all else real against seeded temp libsql DB
 - [Phase 68]: Fixed two production command-bus bugs surfaced by the real write path: zero-event ledger .values([]) crash and write-command correlation collapse causing silent data loss
+- [Phase 69]: Phase 69 close gate uses verifier-only OPENLEARN_VERIFY_ACTOR_ID override — Headless close-gate scripts cannot call Next request-scoped auth(); the bypass is explicit and verifier-only
+- [Phase 69]: Phase 69 ships verify:phase69 without switching the global verify:phase alias — Phase 72 remains the planned convergence point for the single milestone gate
 
 ### Pending Todos
 
-- Execute Phase 68 (Governed Declarative Data-Access Verbs) via `/gsd-execute-phase 68`. Heads-up: Plan 68-01 Task 1 is the drizzle-zod spike (first in-codebase use, zod v4 + SQLite text-enum) — its degraded-path decision must land in 68-01-SUMMARY before Tasks 2/3 lock the allowlist shape.
-- Phase 70 是 UI phase（题目统计/课后复盘对齐 Stitch 5322129002350954765 + DESIGN.md）；执行前考虑 `/gsd-ui-phase 70` 生成 UI-SPEC。
+- Run `pnpm verify:phase70` and fix any remaining close-gate issues.
+- Re-run `pnpm verify:phase69` to confirm Phase 70 recap work did not regress the interactive quiz sample baseline.
 
 ### Blockers/Concerns
 
@@ -164,10 +167,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-03T03:36:04.559Z
-Stopped at: Completed 68-05-PLAN.md (phase 68 closed, 5/5)
+Last session: 2026-06-03T11:36:29.037Z
+Stopped at: Phase 70 implementation landed; close gate verification pending
 Resume file: None
 
 ## Operator Next Steps
 
-- Execute Phase 68 (Governed Declarative Data-Access Verbs) via `/gsd-execute-phase 68`.
+- Run `pnpm verify:phase70`, then confirm `pnpm verify:phase69` still passes before advancing to Phase 71.
