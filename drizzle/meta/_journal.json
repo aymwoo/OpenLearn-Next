@@ -43,6 +43,13 @@
       "when": 1780390609236,
       "tag": "0005_lean_sage",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1780447755877,
+      "tag": "0006_worried_wallow",
+      "breakpoints": true
     }
   ]
 }
