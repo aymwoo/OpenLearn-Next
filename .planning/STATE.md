@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
-status: executing
-last_updated: "2026-06-03T11:38:01.090Z"
-last_activity: 2026-06-03
+status: verifying
+last_updated: "2026-06-04T05:09:31.683Z"
+last_activity: 2026-06-03 -- Phase 69 completed; Phase 70 close gate pending
 progress:
   total_phases: 6
   completed_phases: 4
@@ -137,7 +137,7 @@ Recent decisions affecting current work:
 - [Phase 68]: Plan 68-04: dispatchPluginDataAccess facade routes 5 verbs (writes→Command Bus producers, reads→direct governed DAL); read verbs getByIndex/count/aggregate force session-derived schoolId scope, denied-only audit (D-04), aggregate projects {key,count} only (D-05)
 - [Phase 68]: Phase 68 close gate uses Option A: only auth() stubbed via runner tsconfig remap; all else real against seeded temp libsql DB
 - [Phase 68]: Fixed two production command-bus bugs surfaced by the real write path: zero-event ledger .values([]) crash and write-command correlation collapse causing silent data loss
-- [Phase 69]: Phase 69 close gate uses verifier-only OPENLEARN_VERIFY_ACTOR_ID override — Headless close-gate scripts cannot call Next request-scoped auth(); the bypass is explicit and verifier-only
+- [Phase 69]: Phase 69 close gate uses a phase-specific auth stub via runner tsconfig remap; headless verification switches actors without changing production DAL/auth behavior
 - [Phase 69]: Phase 69 ships verify:phase69 without switching the global verify:phase alias — Phase 72 remains the planned convergence point for the single milestone gate
 
 ### Pending Todos
@@ -167,9 +167,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-03T11:36:29.037Z
-Stopped at: Phase 70 implementation landed; close gate verification pending
-Resume file: None
+Last session: 2026-06-04T05:09:31.603Z
+Stopped at: Phase 71 context gathered
+Resume file: .planning/phases/71-marketplace-lifecycle-install-governance-semver-upgrade-reta/71-CONTEXT.md
 
 ## Operator Next Steps
 
