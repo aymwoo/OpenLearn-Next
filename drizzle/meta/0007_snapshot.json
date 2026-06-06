@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "929e1234-3621-4433-88c2-c4edcae69820",
-  "prevId": "1eacd6c4-8699-40fa-8c9c-5f08d2b82aa8",
+  "id": "f505c29e-c214-4380-9583-72f0ca8b508a",
+  "prevId": "c76fc64b-ac06-40a2-a604-2e5e024d3970",
   "tables": {
     "account": {
       "name": "account",
@@ -9812,6 +9812,34 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "optionAText": {
+          "name": "optionAText",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "optionBText": {
+          "name": "optionBText",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "optionCText": {
+          "name": "optionCText",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "optionDText": {
+          "name": "optionDText",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "correctOption": {

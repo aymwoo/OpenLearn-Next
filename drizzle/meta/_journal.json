@@ -50,6 +50,13 @@
       "when": 1780447755877,
       "tag": "0006_worried_wallow",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1780477916406,
+      "tag": "0007_hard_echo",
+      "breakpoints": true
     }
   ]
 }

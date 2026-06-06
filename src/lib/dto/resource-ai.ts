@@ -443,6 +443,34 @@ export const ClassroomVotingAuthoringContractSchema = z.object({
 }).strict();
 export type ClassroomVotingAuthoringContract = z.infer<typeof ClassroomVotingAuthoringContractSchema>;
 
+export const QuizSampleAuthoringOptionSchema = z.object({
+  slot: z.enum(["A", "B", "C", "D"]),
+  label: z.string().min(1),
+  enabled: z.boolean().default(true),
+}).strict();
+export type QuizSampleAuthoringOption = z.infer<typeof QuizSampleAuthoringOptionSchema>;
+
+export const QuizSampleAuthoringConfigSchema = z.object({
+  prompt: z.string().min(1),
+  options: z.array(QuizSampleAuthoringOptionSchema).min(2).max(4),
+  correctOption: z.enum(["A", "B", "C", "D"]),
+}).strict();
+export type QuizSampleAuthoringConfig = z.infer<typeof QuizSampleAuthoringConfigSchema>;
+
+export const QuizSampleAuthoringContractSchema = z.object({
+  kind: z.literal("quiz-sample"),
+  contractVersion: z.literal("v1").default("v1"),
+  publicMetadata: z.object({
+    builtInKey: z.literal("quizSample"),
+    pluginKey: z.string().min(1),
+    pluginName: z.string().min(1),
+    stepType: z.literal("quiz"),
+  }).strict(),
+  defaultConfig: QuizSampleAuthoringConfigSchema,
+  teacherSummary: z.string().min(1),
+}).strict();
+export type QuizSampleAuthoringContract = z.infer<typeof QuizSampleAuthoringContractSchema>;
+
 export const BuiltInTeachingStepTemplatePayloadSchema = z.object({
   builtInKey: BuiltInTeachingStepKeySchema,
   pluginKey: z.string().nullable().optional(),
@@ -452,7 +480,10 @@ export const BuiltInTeachingStepTemplatePayloadSchema = z.object({
   stepType: z.enum(["content", "task", "quiz"]),
   initialTitle: z.string(),
   initialPayload: lessonStepPayloadSchema,
-  authoringContract: ClassroomVotingAuthoringContractSchema.optional(),
+  authoringContract: z.union([
+    ClassroomVotingAuthoringContractSchema,
+    QuizSampleAuthoringContractSchema,
+  ]).optional(),
 });
 export type BuiltInTeachingStepTemplatePayload = z.infer<typeof BuiltInTeachingStepTemplatePayloadSchema>;
 
@@ -586,6 +617,47 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
         resultsDisplay: "bar",
       },
       teacherSummary: "默认生成 3 个投票选项、90 秒作答窗口、匿名且展示实时结果。",
+    },
+  },
+  {
+    builtInKey: "quizSample",
+    pluginKey: "builtin-teaching-step-quiz-sample",
+    pluginName: "互动答题（样板）",
+    title: "互动答题（样板）",
+    summary: "提供可冻结题面快照的单选互动答题样板，供插件宿主链路验证使用。",
+    stepType: "quiz",
+    initialTitle: "互动答题（样板）",
+    initialPayload: {
+      type: "quiz",
+      question: "以下哪一项最符合本节内容的关键判断？",
+      options: ["选项 A", "选项 B", "选项 C", "选项 D"],
+      materialRefs: [],
+      correctOptionIndex: 0,
+      explanation: "这是 Phase 69 的受治理样板题目。",
+      allowRetry: true,
+      retryPolicy: "unlimited",
+      revealCorrectAnswer: true,
+    },
+    authoringContract: {
+      kind: "quiz-sample",
+      contractVersion: "v1",
+      publicMetadata: {
+        builtInKey: "quizSample",
+        pluginKey: "builtin-teaching-step-quiz-sample",
+        pluginName: "互动答题（样板）",
+        stepType: "quiz",
+      },
+      defaultConfig: {
+        prompt: "请选择你认为正确的答案。",
+        options: [
+          { slot: "A", label: "选项 A", enabled: true },
+          { slot: "B", label: "选项 B", enabled: true },
+          { slot: "C", label: "选项 C", enabled: true },
+          { slot: "D", label: "选项 D", enabled: true },
+        ],
+        correctOption: "A",
+      },
+      teacherSummary: "默认提供 A-D 四个固定槽位，供开课时冻结完整题面快照。",
     },
   },
   {

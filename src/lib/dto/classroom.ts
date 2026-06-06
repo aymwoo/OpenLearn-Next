@@ -362,6 +362,33 @@ export const ClassroomSessionRecapStepSummaryDTOSchema = z.object({
   totalStudents: z.number().int().nonnegative(),
 });
 
+export const ClassroomSessionRecapQuizOptionStatDTOSchema = z.object({
+  slot: z.enum(["A", "B", "C", "D"]),
+  label: z.string(),
+  count: z.number().int().nonnegative(),
+  percentage: z.number().min(0).max(1),
+  isCorrect: z.boolean(),
+});
+
+export const ClassroomSessionRecapQuizQuestionStatDTOSchema = z.object({
+  stepId: z.string(),
+  stepTitle: z.string(),
+  prompt: z.string(),
+  correctOption: z.enum(["A", "B", "C", "D"]),
+  answeredCount: z.number().int().nonnegative(),
+  unansweredCount: z.number().int().nonnegative(),
+  participantCount: z.number().int().nonnegative(),
+  correctCount: z.number().int().nonnegative(),
+  correctRate: z.number().min(0).max(1),
+  denominatorLabel: z.string(),
+  options: z.array(ClassroomSessionRecapQuizOptionStatDTOSchema),
+});
+
+export const ClassroomSessionRecapQuizStatsSectionDTOSchema = z.object({
+  questionCount: z.number().int().nonnegative(),
+  questions: z.array(ClassroomSessionRecapQuizQuestionStatDTOSchema),
+});
+
 export const GetClassroomSessionRecapInputSchema = z.object({
   sessionId: z.string().min(1),
   studentId: z.string().min(1).optional(),
@@ -386,6 +413,7 @@ export const ClassroomSessionRecapDTOSchema = z.object({
   studentSummaries: z.array(ClassroomSessionRecapStudentSummaryDTOSchema),
   selectedStudent: ClassroomSessionRecapStudentDetailDTOSchema.nullable(),
   stepSummaries: z.array(ClassroomSessionRecapStepSummaryDTOSchema),
+  quizSampleStats: ClassroomSessionRecapQuizStatsSectionDTOSchema,
   selectedStepId: z.string().nullable(),
 });
 
@@ -837,6 +865,9 @@ export type ClassroomSessionWorkloadDTO = z.infer<typeof ClassroomSessionWorkloa
 export type ClassroomSessionRecapStudentSummaryDTO = z.infer<typeof ClassroomSessionRecapStudentSummaryDTOSchema>;
 export type ClassroomSessionRecapStudentDetailDTO = z.infer<typeof ClassroomSessionRecapStudentDetailDTOSchema>;
 export type ClassroomSessionRecapStepSummaryDTO = z.infer<typeof ClassroomSessionRecapStepSummaryDTOSchema>;
+export type ClassroomSessionRecapQuizOptionStatDTO = z.infer<typeof ClassroomSessionRecapQuizOptionStatDTOSchema>;
+export type ClassroomSessionRecapQuizQuestionStatDTO = z.infer<typeof ClassroomSessionRecapQuizQuestionStatDTOSchema>;
+export type ClassroomSessionRecapQuizStatsSectionDTO = z.infer<typeof ClassroomSessionRecapQuizStatsSectionDTOSchema>;
 export type ClassroomSessionSummaryTriggerMode = z.infer<typeof ClassroomSessionSummaryTriggerModeSchema>;
 export type ClassroomSessionSummaryTaskPayload = z.infer<typeof ClassroomSessionSummaryTaskPayloadSchema>;
 export type ClassroomSessionSummaryArtifact = z.infer<typeof ClassroomSessionSummaryArtifactSchema>;

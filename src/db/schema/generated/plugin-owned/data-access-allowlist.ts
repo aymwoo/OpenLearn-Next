@@ -11,6 +11,10 @@ export const pluginDataAccessAllowlist = {
         "classroomSession",
         "question",
         "prompt",
+        "optionAText",
+        "optionBText",
+        "optionCText",
+        "optionDText",
         "correctOption",
         "createdAt",
         "updatedAt"
@@ -19,6 +23,10 @@ export const pluginDataAccessAllowlist = {
         "classroomSession",
         "question",
         "prompt",
+        "optionAText",
+        "optionBText",
+        "optionCText",
+        "optionDText",
         "correctOption"
       ],
       "indexes": [
@@ -32,6 +40,10 @@ export const pluginDataAccessAllowlist = {
         "classroomSession",
         "question",
         "prompt",
+        "optionAText",
+        "optionBText",
+        "optionCText",
+        "optionDText",
         "correctOption"
       ],
       "uniques": [],

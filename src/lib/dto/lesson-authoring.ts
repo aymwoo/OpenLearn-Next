@@ -8,6 +8,7 @@ const builtInTeachingStepKeys = [
   "markdownDeck",
   "htmlCourseware",
   "classroomVoting",
+  "quizSample",
   "survey",
   "inquiry",
   "inClassQuiz",
@@ -239,6 +240,68 @@ export const ClassroomVotingFrozenContractSchema = z.object({
   executableConfig: ClassroomVotingFrozenExecutableConfigSchema,
 }).strict();
 
+export const QuizSampleOptionSlotSchema = z.enum(["A", "B", "C", "D"]);
+
+export const QuizSampleLessonStepOptionSchema = z.object({
+  slot: QuizSampleOptionSlotSchema,
+  label: z.string(),
+  enabled: z.boolean(),
+}).strict();
+
+export const QuizSampleLessonStepConfigSchema = z.object({
+  prompt: z.string(),
+  options: z.array(QuizSampleLessonStepOptionSchema).min(2).max(4),
+  correctOption: QuizSampleOptionSlotSchema,
+}).strict().superRefine((value, ctx) => {
+  const seenSlots = new Set<string>();
+  const enabledOptions = value.options.filter((option) => option.enabled);
+
+  if (!value.prompt.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["prompt"],
+      message: "请填写题干。",
+    });
+  }
+
+  value.options.forEach((option, index) => {
+    if (seenSlots.has(option.slot)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["options", index, "slot"],
+        message: "选项槽位不能重复。",
+      });
+      return;
+    }
+
+    seenSlots.add(option.slot);
+
+    if (option.enabled && !option.label.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["options", index, "label"],
+        message: `请填写选项 ${option.slot} 的内容。`,
+      });
+    }
+  });
+
+  if (enabledOptions.length < 2) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["options"],
+      message: "至少启用 2 个有效选项。",
+    });
+  }
+
+  if (!enabledOptions.some((option) => option.slot === value.correctOption)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["correctOption"],
+      message: "正确答案必须命中已启用选项。",
+    });
+  }
+});
+
 export const LessonMaterialDTOSchema = z.object({
   id: z.string(),
   lessonId: z.string(),
@@ -386,6 +449,7 @@ export type LessonStepDTO = z.infer<typeof LessonStepDTOSchema>;
 export type ClassroomVotingFrozenOption = z.infer<typeof ClassroomVotingFrozenOptionSchema>;
 export type ClassroomVotingFrozenExecutableConfig = z.infer<typeof ClassroomVotingFrozenExecutableConfigSchema>;
 export type ClassroomVotingFrozenContract = z.infer<typeof ClassroomVotingFrozenContractSchema>;
+export type QuizSampleLessonStepConfig = z.infer<typeof QuizSampleLessonStepConfigSchema>;
 export type LessonMaterialDTO = z.infer<typeof LessonMaterialDTOSchema>;
 export type LessonEditorDTO = z.infer<typeof LessonEditorDTOSchema>;
 export type TeacherAuthoringOverviewDTO = z.infer<typeof TeacherAuthoringOverviewDTOSchema>;

@@ -23,7 +23,7 @@ describe("db sqlite concurrency bootstrap", () => {
     drizzleMock.mockReturnValue({ kind: "db" });
   });
 
-  it("applies local sqlite pragmas once and preserves the singleton db export", async () => {
+  it("applies local sqlite pragmas eagerly and preserves the singleton db export", async () => {
     process.env.DB_FILE_NAME = "file:local.db";
 
     const dbModule = await import("./index");
@@ -80,5 +80,31 @@ describe("db sqlite concurrency bootstrap", () => {
 
     expect(createClientMock).toHaveBeenCalledTimes(1);
     expect(executeMock).not.toHaveBeenCalled();
+  });
+
+  it("retries sqlite busy execute calls for local file databases", async () => {
+    process.env.DB_FILE_NAME = "file:local.db";
+
+    const busyError = new Error("SQLITE_BUSY: database is locked");
+    Object.assign(busyError, { code: "SQLITE_BUSY" });
+
+    executeMock
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(busyError)
+      .mockResolvedValueOnce({ rows: [] });
+
+    await import("./index");
+    const client = createClientMock.mock.results[0]?.value as { execute: (sql: string) => Promise<unknown> };
+
+    await expect(client.execute("select 1")).resolves.toEqual({ rows: [] });
+    expect(executeMock.mock.calls.map(([sql]) => sql)).toEqual([
+      "PRAGMA journal_mode = WAL",
+      "PRAGMA busy_timeout = 5000",
+      "PRAGMA synchronous = NORMAL",
+      "select 1",
+      "select 1",
+    ]);
   });
 });

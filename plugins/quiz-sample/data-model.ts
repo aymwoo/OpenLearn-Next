@@ -22,6 +22,10 @@ export const quizDataModel = {
         { name: "classroomSession", type: "text", notNull: true },
         { name: "question", type: "text", notNull: true },
         { name: "prompt", type: "text", notNull: true },
+        { name: "optionAText", type: "text", notNull: true },
+        { name: "optionBText", type: "text", notNull: true },
+        { name: "optionCText", type: "text", notNull: false },
+        { name: "optionDText", type: "text", notNull: false },
         {
           name: "correctOption",
           type: "enum",
