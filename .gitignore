@@ -21,3 +21,4 @@ verify*.db
 /.opencode
 /.playwright-mcp
 /.tmp
+.local
