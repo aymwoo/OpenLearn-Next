@@ -80,6 +80,14 @@ const allowlist = pluginDataAccessAllowlist as unknown as Record<
   Record<string, TableAccessEntry>
 >;
 
+const PLUGIN_DATA_ACCESS_ALIASES = {
+  "builtin-teaching-step-quiz-sample": "quiz",
+} as const satisfies Record<string, string>;
+
+function resolveAllowlistPluginKey(pluginKey: string) {
+  return PLUGIN_DATA_ACCESS_ALIASES[pluginKey as keyof typeof PLUGIN_DATA_ACCESS_ALIASES] ?? pluginKey;
+}
+
 /**
  * 生成 drizzle 表注册表：`物理表名 → SQLiteTable`，经 `getTableName` 反射构建，
  * **不**硬编码任何字面表名（满足"零硬编码白名单"）。
@@ -96,7 +104,8 @@ const tablesByPhysicalName: ReadonlyMap<string, SQLiteTable> = (() => {
 
 /** 取白名单条目；插件/表未声明 → `unknown_table_rejected`。 */
 function getAccessEntry(pluginKey: string, tableName: string): TableAccessEntry {
-  const entry = allowlist[pluginKey]?.[tableName];
+  const resolvedPluginKey = resolveAllowlistPluginKey(pluginKey);
+  const entry = allowlist[resolvedPluginKey]?.[tableName];
   if (!entry) {
     throw new PluginDataAccessError(
       "unknown_table_rejected",
@@ -238,4 +247,8 @@ export function validateInsertPayload(
   }
 
   return result.data as Record<string, unknown>;
+}
+
+export function resolvePluginDataAccessAlias(pluginKey: string): string {
+  return resolveAllowlistPluginKey(pluginKey);
 }

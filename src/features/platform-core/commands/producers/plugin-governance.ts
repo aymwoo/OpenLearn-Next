@@ -46,6 +46,21 @@ type DispatchPluginGovernanceCommandInput =
       name: string;
       installSource: "manual" | "bootstrap" | "repair" | "seed";
       manifestJson: Record<string, unknown>;
+      marketplace?: {
+        pluginKey: string;
+        version: string;
+        recoveryMode?: "fresh" | "recover";
+      };
+    }>
+  | BaseProducerInput<"plugin.upgrade.preflight", {
+      schoolId: string;
+      pluginId: string;
+      targetVersion: string;
+    }>
+  | BaseProducerInput<"plugin.upgrade", {
+      schoolId: string;
+      pluginId: string;
+      targetVersion: string;
     }>
   | BaseProducerInput<"plugin.enable", {
       schoolId: string;
@@ -269,6 +284,14 @@ export async function dispatchPluginGovernanceCommand(input: DispatchPluginGover
 
 export async function producePluginInstallCommand(input: Omit<Extract<DispatchPluginGovernanceCommandInput, { type: "plugin.install" }>, "type">) {
   return dispatchPluginGovernanceCommand({ ...input, type: "plugin.install" });
+}
+
+export async function producePluginUpgradePreflightCommand(input: Omit<Extract<DispatchPluginGovernanceCommandInput, { type: "plugin.upgrade.preflight" }>, "type">) {
+  return dispatchPluginGovernanceCommand({ ...input, type: "plugin.upgrade.preflight" });
+}
+
+export async function producePluginUpgradeCommand(input: Omit<Extract<DispatchPluginGovernanceCommandInput, { type: "plugin.upgrade" }>, "type">) {
+  return dispatchPluginGovernanceCommand({ ...input, type: "plugin.upgrade" });
 }
 
 export async function producePluginEnableCommand(input: Omit<Extract<DispatchPluginGovernanceCommandInput, { type: "plugin.enable" }>, "type">) {

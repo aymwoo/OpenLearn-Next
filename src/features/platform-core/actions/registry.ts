@@ -1,8 +1,14 @@
 import {
+  deriveDbNamespace,
+  listExternalMarketplaceCatalog,
   listPluginGovernanceSnapshotRecords,
+  listPluginsForMarketplace,
   listPluginsForSchool,
+  preflightExternalPluginInstall,
+  preflightPluginUpgrade,
 } from "@/lib/dal/plugins";
 import type { PluginRegistrationDTO } from "@/lib/dto/resource-ai";
+import { compare, valid } from "semver";
 
 import type {
   ActionBlockedReasonCode,
@@ -103,6 +109,84 @@ export type GovernanceDashboardBundle = {
   pluginLifecycleRows: GovernanceDashboardPluginLifecycleRow[];
 };
 
+export type MarketplaceBuiltInRow = Pick<
+  PluginRegistrationDTO,
+  | "id"
+  | "schoolId"
+  | "name"
+  | "pluginKey"
+  | "dbNamespace"
+  | "sourceType"
+  | "installSource"
+  | "enabled"
+  | "builtIn"
+  | "defaultEnabled"
+  | "nonDeletable"
+>;
+
+export type MarketplaceExternalCardPosture =
+  | "not-installed"
+  | "installed-usable"
+  | "upgrade-available"
+  | "retained-recoverable"
+  | "active-blocked";
+
+export type MarketplaceExternalRow = {
+  pluginKey: string;
+  displayName: string;
+  posture: MarketplaceExternalCardPosture;
+  installedPluginId: string | null;
+  retainedPluginId: string | null;
+  currentVersion: string | null;
+  availableVersion: string;
+  lifecycleState: ExecutableActionCatalogRow["lifecycleState"] | null;
+  reasonCode: PluginGovernanceReasonCode | null;
+  recommendedRecoveryAction: PluginRecoveryAction | null;
+  installSource: PluginRegistrationDTO["installSource"] | null;
+  dbNamespace: string;
+  sourceType: "external";
+  requestedPermissions: readonly string[];
+  declaredDataTables: readonly string[];
+  installRejectReason: string | null;
+  activeSessions: Array<{
+    sessionId: string;
+    lessonId: string;
+    classId: string;
+    status: "live";
+  }>;
+  uninstall: {
+    blocked: boolean;
+    reasonCode: string | null;
+    cleanupConfirmationToken: string | null;
+    preflightSummary: {
+      lessonExtCount: number;
+      stepExtCount: number;
+      resourceExtCount: number;
+      ownedBusinessCount: number;
+      ownedQuestionCount: number;
+      ownedResponseCount: number;
+      affectedEndedSessionCount: number;
+      totalCount: number;
+    };
+  };
+  upgrade: {
+    available: boolean;
+    targetVersion: string | null;
+    preflight: Awaited<ReturnType<typeof preflightPluginUpgrade>> | null;
+  };
+};
+
+export type MarketplaceSurfaceBundle = {
+  builtInRows: MarketplaceBuiltInRow[];
+  externalRows: MarketplaceExternalRow[];
+  metrics: {
+    builtInCount: number;
+    externalInstallableCount: number;
+    externalInstalledCount: number;
+    pendingUpgradeCount: number;
+  };
+};
+
 type RegistryProjectionBundle = {
   pluginsById: Map<string, PluginRegistrationDTO>;
   governanceById: ReturnType<typeof projectPluginGovernance>["plugins"] extends Array<infer T> ? Map<string, T> : never;
@@ -110,6 +194,41 @@ type RegistryProjectionBundle = {
   executableActionCatalog: ExecutableActionCatalogRow[];
   blockedActionDiagnostics: BlockedActionDiagnosticRow[];
 };
+
+function compareMarketplaceVersions(left: string, right: string) {
+  const leftValid = valid(left);
+  const rightValid = valid(right);
+
+  if (leftValid && rightValid) {
+    return compare(leftValid, rightValid);
+  }
+
+  if (leftValid) {
+    return 1;
+  }
+
+  if (rightValid) {
+    return -1;
+  }
+
+  return left.localeCompare(right);
+}
+
+function selectLatestCatalogEntries() {
+  const latestByPluginKey = new Map<string, ReturnType<typeof listExternalMarketplaceCatalog>[number]>();
+
+  for (const entry of listExternalMarketplaceCatalog()) {
+    const current = latestByPluginKey.get(entry.pluginKey);
+
+    if (!current || compareMarketplaceVersions(entry.manifest.version, current.manifest.version) > 0) {
+      latestByPluginKey.set(entry.pluginKey, entry);
+    }
+  }
+
+  return Array.from(latestByPluginKey.values()).sort((left, right) =>
+    left.displayName.localeCompare(right.displayName, "zh-CN"),
+  );
+}
 
 function resolveOwnerType(plugin: PluginRegistrationDTO): ExecutableActionCatalogRow["ownerType"] {
   if (plugin.builtIn) {
@@ -201,9 +320,14 @@ function buildRegistryProjectionRows(
   };
 }
 
-async function readRegistryProjectionBundle(input: RegistryReadInput): Promise<RegistryProjectionBundle> {
+async function readRegistryProjectionBundle(
+  input: RegistryReadInput,
+  options?: { actorScope?: "operator" },
+): Promise<RegistryProjectionBundle> {
   const [plugins, governanceSnapshots] = await Promise.all([
-    listPluginsForSchool(input),
+    options?.actorScope === "operator"
+      ? listPluginsForMarketplace({ ...input, actorScope: "operator" })
+      : listPluginsForSchool(input),
     listPluginGovernanceSnapshotRecords(input),
   ]);
   const governanceProjection = projectPluginGovernance(governanceSnapshots);
@@ -281,6 +405,144 @@ export async function readExecutableActionCatalog(input: RegistryReadInput) {
 export async function readBlockedActionDiagnostics(input: RegistryReadInput) {
   const bundle = await readRegistryProjectionBundle(input);
   return bundle.blockedActionDiagnostics;
+}
+
+export async function readMarketplaceSurfaceBundle(
+  input: RegistryReadInput,
+): Promise<MarketplaceSurfaceBundle> {
+  const [plugins, snapshots, dashboard] = await Promise.all([
+    listPluginsForMarketplace({ ...input, actorScope: "operator" }),
+    listPluginGovernanceSnapshotRecords(input),
+    (async () => {
+      const bundle = await readRegistryProjectionBundle(input, { actorScope: "operator" });
+      return projectGovernanceDashboardBundle(bundle);
+    })(),
+  ]);
+  const latestCatalogEntries = selectLatestCatalogEntries();
+  const pluginById = new Map(plugins.map((plugin) => [plugin.id, plugin]));
+  const dashboardByPluginId = new Map(
+    dashboard.pluginLifecycleRows.map((row) => [row.pluginId, row]),
+  );
+  const snapshotByPluginKey = new Map(
+    snapshots
+      .filter((snapshot) => snapshot.sourceType === "external")
+      .map((snapshot) => [snapshot.pluginKey, snapshot]),
+  );
+
+  const externalRows = await Promise.all(
+    latestCatalogEntries.map(async (entry) => {
+      const snapshot = snapshotByPluginKey.get(entry.pluginKey) ?? null;
+      const installedPlugin = snapshot ? pluginById.get(snapshot.pluginId) ?? null : null;
+      const lifecycle = snapshot ? dashboardByPluginId.get(snapshot.pluginId) ?? null : null;
+      const currentVersion = installedPlugin?.manifestJson.version ?? null;
+      const hasRetainedInstall = Boolean(
+        snapshot && snapshot.uninstallRetentionMode === "retain" && snapshot.uninstalledAt !== null,
+      );
+      const upgradeAvailable = Boolean(
+        currentVersion
+          && compareMarketplaceVersions(entry.manifest.version, currentVersion) > 0
+          && !hasRetainedInstall,
+      );
+      const [installPreflight, upgradePreflight] = await Promise.all([
+        preflightExternalPluginInstall({
+          actorId: input.actorId,
+          schoolId: input.schoolId,
+          pluginKey: entry.pluginKey,
+          version: entry.manifest.version,
+          actorScope: "operator",
+        }),
+        upgradeAvailable && snapshot
+          ? preflightPluginUpgrade({
+              actorId: input.actorId,
+              schoolId: input.schoolId,
+              pluginId: snapshot.pluginId,
+              targetVersion: entry.manifest.version,
+              actorScope: "operator",
+            })
+          : Promise.resolve(null),
+      ]);
+      const activeSessions = upgradePreflight?.activeSessions ?? snapshot?.uninstall.activeSessions ?? [];
+      const posture: MarketplaceExternalCardPosture = hasRetainedInstall
+        ? "retained-recoverable"
+        : activeSessions.length > 0
+          ? "active-blocked"
+          : upgradeAvailable
+            ? "upgrade-available"
+            : installedPlugin
+              ? "installed-usable"
+              : "not-installed";
+
+      return {
+        pluginKey: entry.pluginKey,
+        displayName: entry.displayName,
+        posture,
+        installedPluginId: hasRetainedInstall ? null : installedPlugin?.id ?? null,
+        retainedPluginId: hasRetainedInstall ? snapshot?.pluginId ?? null : null,
+        currentVersion,
+        availableVersion: entry.manifest.version,
+        lifecycleState: lifecycle?.lifecycleState ?? null,
+        reasonCode: lifecycle?.reasonCode ?? null,
+        recommendedRecoveryAction: lifecycle?.recommendedRecoveryAction ?? null,
+        installSource: installedPlugin?.installSource ?? null,
+        dbNamespace: installedPlugin?.dbNamespace ?? installPreflight.dbNamespace ?? deriveDbNamespace(entry.pluginKey),
+        sourceType: "external",
+        requestedPermissions: entry.manifest.permissions,
+        declaredDataTables: entry.dataModel.tables.map((table) => table.name),
+        installRejectReason:
+          !installedPlugin && !hasRetainedInstall && !installPreflight.ok && !installPreflight.canRecover
+            ? installPreflight.rejectReason
+            : null,
+        activeSessions,
+        uninstall: {
+          blocked: snapshot?.uninstall.blocked ?? false,
+          reasonCode: snapshot?.uninstall.reason ?? null,
+          cleanupConfirmationToken: snapshot?.uninstall.cleanupConfirmationToken ?? null,
+          preflightSummary: {
+            lessonExtCount: snapshot?.uninstall.lessonExtCount ?? 0,
+            stepExtCount: snapshot?.uninstall.stepExtCount ?? 0,
+            resourceExtCount: snapshot?.uninstall.resourceExtCount ?? 0,
+            ownedBusinessCount: snapshot?.uninstall.ownedBusinessCount ?? 0,
+            ownedQuestionCount: snapshot?.uninstall.ownedQuestionCount ?? 0,
+            ownedResponseCount: snapshot?.uninstall.ownedResponseCount ?? 0,
+            affectedEndedSessionCount: snapshot?.uninstall.affectedEndedSessionCount ?? 0,
+            totalCount: snapshot?.uninstall.totalCount ?? 0,
+          },
+        },
+        upgrade: {
+          available: upgradeAvailable,
+          targetVersion: upgradeAvailable ? entry.manifest.version : null,
+          preflight: upgradePreflight,
+        },
+      } satisfies MarketplaceExternalRow;
+    }),
+  );
+
+  const builtInRows = plugins
+    .filter((plugin) => plugin.builtIn)
+    .map((plugin) => ({
+      id: plugin.id,
+      schoolId: plugin.schoolId,
+      name: plugin.name,
+      pluginKey: plugin.pluginKey,
+      dbNamespace: plugin.dbNamespace,
+      sourceType: plugin.sourceType,
+      installSource: plugin.installSource,
+      enabled: plugin.enabled,
+      builtIn: plugin.builtIn,
+      defaultEnabled: plugin.defaultEnabled,
+      nonDeletable: plugin.nonDeletable,
+    }));
+
+  return {
+    builtInRows,
+    externalRows,
+    metrics: {
+      builtInCount: builtInRows.length,
+      externalInstallableCount: externalRows.filter((row) => row.posture === "not-installed").length,
+      externalInstalledCount: externalRows.filter((row) => row.posture !== "not-installed" && row.posture !== "retained-recoverable").length,
+      pendingUpgradeCount: externalRows.filter((row) => row.upgrade.available).length,
+    },
+  };
 }
 
 export async function readPluginGovernanceLifecycle(

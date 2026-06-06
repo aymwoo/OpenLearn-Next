@@ -21,6 +21,20 @@ export const platformCommandRegistry = {
     authorize: pluginCommandHandlers["plugin.install"].authorize,
     execute: pluginCommandHandlers["plugin.install"].execute,
   }),
+  "plugin.upgrade.preflight": createPlatformCommandDefinition({
+    commandType: "plugin.upgrade.preflight",
+    payloadSchema: PlatformCommandPayloadSchemas["plugin.upgrade.preflight"],
+    dedupe: "optional",
+    authorize: pluginCommandHandlers["plugin.upgrade.preflight"].authorize,
+    execute: pluginCommandHandlers["plugin.upgrade.preflight"].execute,
+  }),
+  "plugin.upgrade": createPlatformCommandDefinition({
+    commandType: "plugin.upgrade",
+    payloadSchema: PlatformCommandPayloadSchemas["plugin.upgrade"],
+    dedupe: "required",
+    authorize: pluginCommandHandlers["plugin.upgrade"].authorize,
+    execute: pluginCommandHandlers["plugin.upgrade"].execute,
+  }),
   "plugin.enable": createPlatformCommandDefinition({
     commandType: "plugin.enable",
     payloadSchema: PlatformCommandPayloadSchemas["plugin.enable"],

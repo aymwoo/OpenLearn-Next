@@ -17,7 +17,11 @@ import type { PlatformAuditMetadata } from "@/features/platform-core/ai-contract
 import {
   installOrReconcilePluginWithTx,
   listPluginsForSchool,
+  preflightExternalPluginInstall,
+  preflightPluginUpgrade,
   preflightUninstallPluginWithTx,
+  recoverRetainedPluginInstallWithTx,
+  executePluginUpgradeWithTx,
   setPluginKillSwitchWithTx,
   transitionPluginLifecycleWithTx,
   uninstallPluginWithTx,
@@ -36,6 +40,8 @@ import {
 } from "../contracts";
 
 type InstallCommand = Extract<PlatformCommand, { type: "plugin.install" }>;
+type UpgradePreflightCommand = Extract<PlatformCommand, { type: "plugin.upgrade.preflight" }>;
+type UpgradeCommand = Extract<PlatformCommand, { type: "plugin.upgrade" }>;
 type EnableCommand = Extract<PlatformCommand, { type: "plugin.enable" }>;
 type DisableCommand = Extract<PlatformCommand, { type: "plugin.disable" }>;
 type ReconcileCommand = Extract<PlatformCommand, { type: "plugin.reconcile" }>;
@@ -194,22 +200,70 @@ function throwCommandFailure(input: {
 async function executeInstall(input: ExecutionInput<InstallCommand>): Promise<ExecutionResult> {
   const { command } = input;
   const manifestJson = command.payload.manifestJson as PluginManifest;
-  const record = await db.transaction(async (tx) => installOrReconcilePluginWithTx({
-    schoolId: command.payload.schoolId,
-    pluginId: command.payload.existingRegistrationId,
-    name: command.payload.name,
-    installSource: command.payload.installSource,
-    manifestJson,
-    actorId: command.actor.actorId,
-    actorScope: command.actor.actorScope,
-    tx,
-    commandContext: createCommandContext(input),
-  }));
+  const marketplace = command.payload.marketplace;
+
+  if (marketplace) {
+    const preflight = await preflightExternalPluginInstall({
+      actorId: command.actor.actorId,
+      schoolId: command.payload.schoolId,
+      pluginKey: marketplace.pluginKey,
+      version: marketplace.version,
+      actorScope: command.actor.actorScope,
+    });
+
+    if (!preflight.ok && !(marketplace.recoveryMode === "recover" && preflight.canRecover)) {
+      throwCommandFailure({
+        commandType: command.type,
+        pluginId: command.scope.pluginId,
+        message: preflight.rejectReason ?? "PLUGIN_INSTALL_PREFLIGHT_FAILED",
+        scope: "plugin",
+        reasonCode: preflight.rejectReason ?? "not_installed",
+        recommendedRecoveryAction: preflight.canRecover ? "recover" : "install",
+        audit: command.audit,
+      });
+    }
+  }
+
+  const record = await db.transaction(async (tx) => {
+    if (marketplace?.recoveryMode === "recover") {
+      return recoverRetainedPluginInstallWithTx({
+        actorId: command.actor.actorId,
+        schoolId: command.payload.schoolId,
+        pluginKey: marketplace.pluginKey,
+        version: marketplace.version,
+        actorScope: command.actor.actorScope,
+        tx,
+        commandContext: createCommandContext(input),
+      });
+    }
+
+    return installOrReconcilePluginWithTx({
+      schoolId: command.payload.schoolId,
+      pluginId: command.payload.existingRegistrationId,
+      name: command.payload.name,
+      installSource: command.payload.installSource,
+      manifestJson,
+      actorId: command.actor.actorId,
+      actorScope: command.actor.actorScope,
+      tx,
+      commandContext: createCommandContext(input),
+    });
+  });
+  const recoveredRecord = "recoveredFromPluginId" in record
+    ? record as typeof record & { recoveredFromPluginId: string; recoveredDataTakeover: true }
+    : null;
 
   const resultSummary = {
     commandType: "plugin.install",
     pluginId: record.id,
     lifecycleState: record.lifecycleState,
+    ...(marketplace ? { marketplace } : {}),
+    ...(recoveredRecord
+      ? {
+          recoveredFromPluginId: recoveredRecord.recoveredFromPluginId,
+          recoveredDataTakeover: recoveredRecord.recoveredDataTakeover,
+        }
+      : {}),
   };
   const invalidation = buildPluginTags(record.id);
 
@@ -236,6 +290,73 @@ async function executeInstall(input: ExecutionInput<InstallCommand>): Promise<Ex
           lifecycleState: record.lifecycleState,
         },
       }, command.audit),
+    ],
+  });
+}
+
+async function executeUpgradePreflight(input: ExecutionInput<UpgradePreflightCommand>): Promise<ExecutionResult> {
+  const { command } = input;
+  const result = await preflightPluginUpgrade({
+    actorId: command.actor.actorId,
+    schoolId: command.scope.schoolId,
+    pluginId: command.scope.pluginId,
+    targetVersion: command.payload.targetVersion,
+    actorScope: command.actor.actorScope,
+  });
+
+  return successResult({
+    resultSummary: {
+      commandType: "plugin.upgrade.preflight",
+      ...result,
+    },
+    invalidation: { tags: [] },
+    emittedEvents: [
+      buildSuccessEvent({
+        aggregateId: command.scope.pluginId,
+        commandType: command.type,
+        invalidationTags: [],
+        resultSummary: {
+          commandType: "plugin.upgrade.preflight",
+          ...result,
+        },
+        audit: command.audit,
+      }),
+    ],
+  });
+}
+
+async function executeUpgrade(input: ExecutionInput<UpgradeCommand>): Promise<ExecutionResult> {
+  const { command } = input;
+  const result = await db.transaction(async (tx) => executePluginUpgradeWithTx({
+    actorId: command.actor.actorId,
+    schoolId: command.scope.schoolId,
+    pluginId: command.scope.pluginId,
+    targetVersion: command.payload.targetVersion,
+    actorScope: command.actor.actorScope,
+    tx,
+    commandContext: createCommandContext(input),
+  }));
+  const invalidation = buildPluginTags(command.scope.pluginId, [
+    ...result.invalidatedSessionIds.map((sessionId: string) => `quiz-stats:${sessionId}`),
+  ]);
+
+  return successResult({
+    resultSummary: {
+      commandType: "plugin.upgrade",
+      ...result,
+    },
+    invalidation,
+    emittedEvents: [
+      buildSuccessEvent({
+        aggregateId: command.scope.pluginId,
+        commandType: command.type,
+        invalidationTags: invalidation.tags,
+        resultSummary: {
+          commandType: "plugin.upgrade",
+          ...result,
+        },
+        audit: command.audit,
+      }),
     ],
   });
 }
@@ -913,6 +1034,14 @@ export const pluginCommandHandlers = {
   "plugin.install": {
     authorize: ({ command }) => authorizePluginGovernanceCommand(command),
     execute: (input) => executeInstall(input as ExecutionInput<InstallCommand>),
+  },
+  "plugin.upgrade.preflight": {
+    authorize: ({ command }) => authorizePluginGovernanceCommand(command),
+    execute: (input) => executeUpgradePreflight(input as ExecutionInput<UpgradePreflightCommand>),
+  },
+  "plugin.upgrade": {
+    authorize: ({ command }) => authorizePluginGovernanceCommand(command),
+    execute: (input) => executeUpgrade(input as ExecutionInput<UpgradeCommand>),
   },
   "plugin.enable": {
     authorize: ({ command }) => authorizePluginGovernanceCommand(command),

@@ -12,6 +12,7 @@ import {
   assertGroupByAllowed,
   assertIndexAllowed,
   resolvePluginTable,
+  resolvePluginDataAccessAlias,
   validateInsertPayload,
 } from "@/features/platform-core/plugin-data-access/allowlist";
 
@@ -117,6 +118,15 @@ describe("allowlist generation", () => {
   it("uniques 来自声明（responses 有、questions 无）", () => {
     expect(responses.uniques).toEqual([["classroomSession", "student", "question"]]);
     expect(questions.uniques).toEqual([]);
+  });
+});
+
+describe("plugin data access aliases", () => {
+  it("maps quiz sample built-in key to the compiled quiz allowlist", () => {
+    expect(resolvePluginDataAccessAlias("builtin-teaching-step-quiz-sample")).toBe("quiz");
+    expect(getTableName(resolvePluginTable("builtin-teaching-step-quiz-sample", "plugin_owned_quiz_responses"))).toBe(
+      "plugin_owned_quiz_responses",
+    );
   });
 });
 

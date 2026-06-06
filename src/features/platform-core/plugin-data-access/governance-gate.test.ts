@@ -4,12 +4,17 @@ vi.mock("server-only", () => ({}));
 
 import type { PluginGovernanceSnapshotRecord } from "@/lib/dal/plugins";
 
-const assertActiveTeacher = vi.fn();
+const getCurrentUserDTO = vi.fn();
+const getUserMembershipsDTO = vi.fn();
 const listPluginGovernanceSnapshotRecords = vi.fn();
 const writePluginDataAccessAudit = vi.fn();
 
-vi.mock("@/lib/dal/lesson-authoring", () => ({
-  assertActiveTeacher: () => assertActiveTeacher(),
+vi.mock("@/lib/dal/auth", () => ({
+  getCurrentUserDTO: () => getCurrentUserDTO(),
+}));
+
+vi.mock("@/lib/dal/membership", () => ({
+  getUserMembershipsDTO: () => getUserMembershipsDTO(),
 }));
 
 vi.mock("@/lib/dal/plugins", () => ({
@@ -63,15 +68,17 @@ function makeSnapshot(overrides: Partial<PluginGovernanceSnapshotRecord> = {}): 
 }
 
 beforeEach(() => {
-  assertActiveTeacher.mockReset();
+  getCurrentUserDTO.mockReset();
+  getUserMembershipsDTO.mockReset();
   listPluginGovernanceSnapshotRecords.mockReset();
   writePluginDataAccessAudit.mockReset();
   writePluginDataAccessAudit.mockResolvedValue(undefined);
+  getCurrentUserDTO.mockResolvedValue({ id: ACTOR_ID });
+  getUserMembershipsDTO.mockResolvedValue([{ id: "membership-1", schoolId: SCHOOL_ID, role: "teacher", status: "active" }]);
 });
 
 describe("assertActionExecutable governance gate", () => {
   it("returns scope + projectionRow when plugin executable and actor is in-school", async () => {
-    assertActiveTeacher.mockResolvedValue({ userId: ACTOR_ID, schoolIds: [SCHOOL_ID] });
     listPluginGovernanceSnapshotRecords.mockResolvedValue([makeSnapshot()]);
 
     const result = await assertActionExecutable({
@@ -88,7 +95,6 @@ describe("assertActionExecutable governance gate", () => {
   });
 
   it("rejects with kill_switch_rejected + denial audit when kill switch enabled", async () => {
-    assertActiveTeacher.mockResolvedValue({ userId: ACTOR_ID, schoolIds: [SCHOOL_ID] });
     listPluginGovernanceSnapshotRecords.mockResolvedValue([makeSnapshot({ killSwitchEnabled: true })]);
 
     await expect(
@@ -102,7 +108,6 @@ describe("assertActionExecutable governance gate", () => {
   });
 
   it("rejects with lifecycle_not_executable + denial audit when suspended (no kill switch)", async () => {
-    assertActiveTeacher.mockResolvedValue({ userId: ACTOR_ID, schoolIds: [SCHOOL_ID] });
     listPluginGovernanceSnapshotRecords.mockResolvedValue([
       makeSnapshot({ killSwitchEnabled: false, lifecycleState: "suspended" }),
     ]);
@@ -117,7 +122,6 @@ describe("assertActionExecutable governance gate", () => {
   });
 
   it("rejects non-school actor (plugin not in any of actor's schools) with non_school_actor_rejected", async () => {
-    assertActiveTeacher.mockResolvedValue({ userId: ACTOR_ID, schoolIds: [SCHOOL_ID] });
     listPluginGovernanceSnapshotRecords.mockResolvedValue([]);
 
     await expect(
@@ -130,7 +134,7 @@ describe("assertActionExecutable governance gate", () => {
   });
 
   it("maps missing actor identity to non_school_actor_rejected (no internal error leak)", async () => {
-    assertActiveTeacher.mockRejectedValue(new Error("TEACHER_AUTH_REQUIRED"));
+    getCurrentUserDTO.mockResolvedValue(null);
 
     await expect(
       assertActionExecutable({ actorId: "", pluginKey: PLUGIN_KEY, verb: "insert", correlationId: "corr-1" }),
@@ -142,12 +146,29 @@ describe("assertActionExecutable governance gate", () => {
   });
 
   it("rejects when session actor identity does not match claimed actorId", async () => {
-    assertActiveTeacher.mockResolvedValue({ userId: "someone-else", schoolIds: [SCHOOL_ID] });
+    getCurrentUserDTO.mockResolvedValue({ id: "someone-else" });
 
     await expect(
       assertActionExecutable({ actorId: ACTOR_ID, pluginKey: PLUGIN_KEY, verb: "insert", correlationId: "corr-1" }),
     ).rejects.toBeInstanceOf(PluginDataAccessError);
 
     expect(listPluginGovernanceSnapshotRecords).not.toHaveBeenCalled();
+  });
+
+  it("allows active student memberships to use governed plugin-owned writes", async () => {
+    getCurrentUserDTO.mockResolvedValue({ id: "student-1" });
+    getUserMembershipsDTO.mockResolvedValue([{ id: "membership-student-1", schoolId: SCHOOL_ID, role: "student", status: "active" }]);
+    listPluginGovernanceSnapshotRecords.mockResolvedValue([makeSnapshot()]);
+
+    const result = await assertActionExecutable({
+      actorId: "student-1",
+      pluginKey: PLUGIN_KEY,
+      verb: "upsert",
+      correlationId: "corr-student-1",
+    });
+
+    expect(result.schoolId).toBe(SCHOOL_ID);
+    expect(result.scope.userId).toBe("student-1");
+    expect(result.projectionRow.executable).toBe(true);
   });
 });

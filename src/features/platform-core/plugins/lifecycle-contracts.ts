@@ -27,6 +27,7 @@ export const PluginGovernanceReasonCodeValues = [
   "kill_switch",
   "not_enabled",
   "not_installed",
+  "PLUGIN_ACTIVE_CLASSROOM_BLOCKED",
   "cleanup_confirmation_required",
 ] as const;
 

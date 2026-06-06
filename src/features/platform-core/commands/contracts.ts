@@ -13,6 +13,8 @@ import {
 
 export const PlatformPluginGovernanceCommandTypes = [
   "plugin.install",
+  "plugin.upgrade.preflight",
+  "plugin.upgrade",
   "plugin.enable",
   "plugin.disable",
   "plugin.reconcile",
@@ -73,12 +75,29 @@ const PluginInstallPayloadSchema = z.object({
   name: z.string().min(1),
   installSource: z.enum(["manual", "bootstrap", "repair", "seed"]),
   manifestJson: z.record(z.string(), z.unknown()),
+  marketplace: z.object({
+    pluginKey: z.string().min(1),
+    version: z.string().min(1),
+    recoveryMode: z.enum(["fresh", "recover"]).optional(),
+  }).optional(),
 });
 
 const PluginEnablePayloadSchema = z.object({
   schoolId: z.string().min(1),
   pluginId: z.string().min(1),
   enabledBy: z.string().min(1),
+});
+
+const PluginUpgradePreflightPayloadSchema = z.object({
+  schoolId: z.string().min(1),
+  pluginId: z.string().min(1),
+  targetVersion: z.string().min(1),
+});
+
+const PluginUpgradePayloadSchema = z.object({
+  schoolId: z.string().min(1),
+  pluginId: z.string().min(1),
+  targetVersion: z.string().min(1),
 });
 
 const PluginDisablePayloadSchema = z.object({
@@ -195,6 +214,8 @@ const PluginDataUpsertPayloadSchema = z.object({
 
 export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,
+  "plugin.upgrade.preflight": PluginUpgradePreflightPayloadSchema,
+  "plugin.upgrade": PluginUpgradePayloadSchema,
   "plugin.enable": PluginEnablePayloadSchema,
   "plugin.disable": PluginDisablePayloadSchema,
   "plugin.reconcile": PluginReconcilePayloadSchema,
@@ -216,6 +237,14 @@ export const PlatformCommandSchema = z.discriminatedUnion("type", [
   PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.install"),
     payload: PluginInstallPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("plugin.upgrade.preflight"),
+    payload: PluginUpgradePreflightPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("plugin.upgrade"),
+    payload: PluginUpgradePayloadSchema,
   }),
   PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.enable"),

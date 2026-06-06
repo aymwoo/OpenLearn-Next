@@ -9,6 +9,7 @@ import { pluginDataAccessAllowlist } from "@/db/schema/generated/plugin-owned/da
 import {
   PluginDataAccessError,
   resolvePluginTable,
+  resolvePluginDataAccessAlias,
   validateInsertPayload,
 } from "../../plugin-data-access/allowlist";
 import { assertActionExecutable, type AssertActionExecutableResult } from "../../plugin-data-access/governance-gate";
@@ -73,7 +74,7 @@ function resolveDedupeColumns(pluginKey: string, tableName: string): string[] {
     string,
     Record<string, { uniques: readonly (readonly string[])[] }>
   >;
-  const uniques = allowlist[pluginKey]?.[tableName]?.uniques ?? [];
+  const uniques = allowlist[resolvePluginDataAccessAlias(pluginKey)]?.[tableName]?.uniques ?? [];
   return uniques.length > 0 ? [...uniques[0]] : [];
 }
 

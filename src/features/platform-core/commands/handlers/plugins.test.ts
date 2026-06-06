@@ -9,6 +9,10 @@ const mocks = vi.hoisted(() => ({
   getUserMembershipsDTO: vi.fn(),
   installOrReconcilePluginWithTx: vi.fn(),
   listPluginsForSchool: vi.fn(),
+  preflightExternalPluginInstall: vi.fn(),
+  recoverRetainedPluginInstallWithTx: vi.fn(),
+  preflightPluginUpgrade: vi.fn(),
+  executePluginUpgradeWithTx: vi.fn(),
   transitionPluginLifecycleWithTx: vi.fn(),
   setPluginKillSwitchWithTx: vi.fn(),
   preflightUninstallPluginWithTx: vi.fn(),
@@ -43,6 +47,10 @@ vi.mock("@/lib/dal/membership", () => ({
 vi.mock("@/lib/dal/plugins", () => ({
   installOrReconcilePluginWithTx: mocks.installOrReconcilePluginWithTx,
   listPluginsForSchool: mocks.listPluginsForSchool,
+  preflightExternalPluginInstall: mocks.preflightExternalPluginInstall,
+  recoverRetainedPluginInstallWithTx: mocks.recoverRetainedPluginInstallWithTx,
+  preflightPluginUpgrade: mocks.preflightPluginUpgrade,
+  executePluginUpgradeWithTx: mocks.executePluginUpgradeWithTx,
   transitionPluginLifecycleWithTx: mocks.transitionPluginLifecycleWithTx,
   setPluginKillSwitchWithTx: mocks.setPluginKillSwitchWithTx,
   preflightUninstallPluginWithTx: mocks.preflightUninstallPluginWithTx,
@@ -74,7 +82,14 @@ function createCommand(type: "plugin.install", payload: {
   name: string;
   installSource: "manual" | "bootstrap" | "repair" | "seed";
   manifestJson: Record<string, unknown>;
+  marketplace?: {
+    pluginKey: string;
+    version: string;
+    recoveryMode?: "fresh" | "recover";
+  };
 }): PluginCommandOf<"plugin.install">;
+function createCommand(type: "plugin.upgrade.preflight", payload: { schoolId: string; pluginId: string; targetVersion: string }): PluginCommandOf<"plugin.upgrade.preflight">;
+function createCommand(type: "plugin.upgrade", payload: { schoolId: string; pluginId: string; targetVersion: string }): PluginCommandOf<"plugin.upgrade">;
 function createCommand(type: "plugin.enable", payload: { schoolId: string; pluginId: string; enabledBy: string }): PluginCommandOf<"plugin.enable">;
 function createCommand(type: "plugin.resume", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): PluginCommandOf<"plugin.resume">;
 function createCommand(type: "plugin.reconcile", payload: { schoolId: string; pluginId: string; reason: string; targetState?: "enabled" | "mounted" | "ready" }): PluginCommandOf<"plugin.reconcile">;
@@ -154,6 +169,57 @@ describe("platform plugin command registry", () => {
       impactedBusinessKeys: [],
     });
     mocks.uninstallPluginWithTx.mockResolvedValue({ id: "plugin-1", schoolId: "school-1" });
+    mocks.preflightExternalPluginInstall.mockResolvedValue({
+      ok: true,
+      pluginKey: "external-marketplace.quiz-sample",
+      version: "1.0.0",
+      sourceType: "external",
+      builtIn: false,
+      dbNamespace: "external_marketplace_quiz_sample",
+      requestedPermissions: [],
+      declaredDataTables: [],
+      rejectReason: null,
+      canRecover: false,
+      retainedRegistrationId: null,
+    });
+    mocks.recoverRetainedPluginInstallWithTx.mockResolvedValue({
+      id: "plugin-2",
+      schoolId: "school-1",
+      lifecycleState: "installed",
+      manifestJson: { theme: null },
+      recoveredFromPluginId: "plugin-retained-1",
+      recoveredDataTakeover: true,
+    });
+    mocks.preflightPluginUpgrade.mockResolvedValue({
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      currentVersion: "1.0.0",
+      targetVersion: "1.1.0",
+      hasOwnedQuizData: true,
+      stages: ["backfill", "verify", "cutover"],
+      blockers: [],
+      statsParityPreview: {
+        questionCount: 1,
+        responseCount: 2,
+        latestResponseHash: "hash-1",
+      },
+    });
+    mocks.executePluginUpgradeWithTx.mockResolvedValue({
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      currentVersion: "1.0.0",
+      targetVersion: "1.1.0",
+      upgraded: true,
+      verifyPassed: true,
+      lifecycleState: "enabled",
+      stages: [
+        { name: "backfill", status: "completed" },
+        { name: "verify", status: "completed" },
+        { name: "cutover", status: "completed" },
+      ],
+      failureDetail: null,
+      invalidatedSessionIds: ["session-1"],
+    });
     mocks.findPlatformCommand.mockResolvedValue({
       id: "command-existing",
       actorId: "teacher-1",
@@ -244,6 +310,79 @@ describe("platform plugin command registry", () => {
     expect(mocks.installOrReconcilePluginWithTx).toHaveBeenCalledWith(expect.objectContaining({
       pluginId: "plugin-1",
     }));
+  });
+
+  it("preflights marketplace install before running plugin.install", async () => {
+    const command = createCommand("plugin.install", {
+      schoolId: "school-1",
+      pluginId: "external-marketplace.quiz-sample",
+      name: "互动答题（外部插件）",
+      installSource: "manual",
+      manifestJson: { id: "external-marketplace.quiz-sample" },
+      marketplace: {
+        pluginKey: "external-marketplace.quiz-sample",
+        version: "1.0.0",
+        recoveryMode: "fresh",
+      },
+    });
+
+    await platformCommandRegistry["plugin.install"].execute({ command, attemptNumber: 1 });
+
+    expect(mocks.preflightExternalPluginInstall).toHaveBeenCalledWith({
+      actorId: "teacher-1",
+      actorScope: "teacher",
+      schoolId: "school-1",
+      pluginKey: "external-marketplace.quiz-sample",
+      version: "1.0.0",
+    });
+    expect(mocks.installOrReconcilePluginWithTx).toHaveBeenCalledTimes(1);
+    expect(mocks.recoverRetainedPluginInstallWithTx).not.toHaveBeenCalled();
+  });
+
+  it("routes marketplace recover through retained recovery seam and returns takeover fields", async () => {
+    const command = createCommand("plugin.install", {
+      schoolId: "school-1",
+      pluginId: "external-marketplace.quiz-sample",
+      name: "互动答题（外部插件）",
+      installSource: "manual",
+      manifestJson: { id: "external-marketplace.quiz-sample" },
+      marketplace: {
+        pluginKey: "external-marketplace.quiz-sample",
+        version: "1.0.0",
+        recoveryMode: "recover",
+      },
+    });
+
+    mocks.preflightExternalPluginInstall.mockResolvedValueOnce({
+      ok: false,
+      pluginKey: "external-marketplace.quiz-sample",
+      version: "1.0.0",
+      sourceType: "external",
+      builtIn: false,
+      dbNamespace: "external_marketplace_quiz_sample",
+      requestedPermissions: [],
+      declaredDataTables: [],
+      rejectReason: "PLUGIN_KEY_CONFLICT",
+      canRecover: true,
+      retainedRegistrationId: "plugin-retained-1",
+    });
+
+    const result = await platformCommandRegistry["plugin.install"].execute({ command, attemptNumber: 1 });
+
+    expect(mocks.recoverRetainedPluginInstallWithTx).toHaveBeenCalledWith(expect.objectContaining({
+      actorId: "teacher-1",
+      schoolId: "school-1",
+      pluginKey: "external-marketplace.quiz-sample",
+      version: "1.0.0",
+    }));
+    expect(mocks.installOrReconcilePluginWithTx).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      resultSummary: expect.objectContaining({
+        pluginId: "plugin-2",
+        recoveredFromPluginId: "plugin-retained-1",
+        recoveredDataTakeover: true,
+      }),
+    });
   });
 
   it("authorizes explicit governance commands through teacher-manager scope before execute", async () => {
@@ -409,6 +548,96 @@ describe("platform plugin command registry", () => {
     });
   });
 
+  it("exposes plugin upgrade preflight as read-only, preflight-first contract", async () => {
+    const command = createCommand("plugin.upgrade.preflight", {
+      schoolId: "school-1",
+      pluginId: "plugin-1",
+      targetVersion: "1.1.0",
+    });
+
+    const result = await platformCommandRegistry["plugin.upgrade.preflight"].execute({ command, attemptNumber: 1 });
+
+    expect(platformCommandRegistry["plugin.upgrade.preflight"].dedupe).toBe("optional");
+    expect(mocks.preflightPluginUpgrade).toHaveBeenCalledWith(expect.objectContaining({
+      actorId: "teacher-1",
+      pluginId: "plugin-1",
+      targetVersion: "1.1.0",
+    }));
+    expect(result).toMatchObject({
+      resultSummary: expect.objectContaining({
+        commandType: "plugin.upgrade.preflight",
+        currentVersion: "1.0.0",
+        targetVersion: "1.1.0",
+      }),
+      invalidation: { tags: [] },
+    });
+  });
+
+  it("executes plugin upgrade through three-stage result DTO and quiz stats invalidation", async () => {
+    const command = createCommand("plugin.upgrade", {
+      schoolId: "school-1",
+      pluginId: "plugin-1",
+      targetVersion: "1.1.0",
+    });
+
+    const result = await platformCommandRegistry["plugin.upgrade"].execute({ command, attemptNumber: 1 });
+
+    expect(mocks.executePluginUpgradeWithTx).toHaveBeenCalledWith(expect.objectContaining({
+      actorId: "teacher-1",
+      pluginId: "plugin-1",
+      targetVersion: "1.1.0",
+      commandContext: {
+        commandId: command.id,
+        correlationId: command.correlation.correlationId,
+        attemptNumber: 1,
+      },
+    }));
+    expect(result).toMatchObject({
+      resultSummary: expect.objectContaining({
+        commandType: "plugin.upgrade",
+        upgraded: true,
+        verifyPassed: true,
+      }),
+      invalidation: { tags: ["plugin:registry", "plugin:plugin-1", "quiz-stats:session-1"] },
+    });
+  });
+
+  it("keeps old version usable when plugin upgrade verify fails", async () => {
+    const command = createCommand("plugin.upgrade", {
+      schoolId: "school-1",
+      pluginId: "plugin-1",
+      targetVersion: "1.1.0",
+    });
+
+    mocks.executePluginUpgradeWithTx.mockResolvedValueOnce({
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      currentVersion: "1.0.0",
+      targetVersion: "1.1.0",
+      upgraded: false,
+      verifyPassed: false,
+      lifecycleState: "enabled",
+      stages: [
+        { name: "backfill", status: "completed" },
+        { name: "verify", status: "failed" },
+        { name: "cutover", status: "skipped" },
+      ],
+      failureDetail: "VERIFY_FAILED",
+      invalidatedSessionIds: [],
+    });
+
+    const result = await platformCommandRegistry["plugin.upgrade"].execute({ command, attemptNumber: 1 });
+
+    expect(result).toMatchObject({
+      resultSummary: expect.objectContaining({
+        upgraded: false,
+        verifyPassed: false,
+        failureDetail: "VERIFY_FAILED",
+        lifecycleState: "enabled",
+      }),
+    });
+  });
+
   it("preserves mounted and ready when resuming lifecycle through explicit command payload", async () => {
     const mountedCommand = {
       ...createCommand("plugin.resume", {
@@ -570,6 +799,8 @@ describe("platform plugin command registry", () => {
   it("exposes all explicit governance commands and no plugin.transition primary contract", () => {
     expect(Object.keys(platformCommandRegistry)).toEqual([
       "plugin.install",
+      "plugin.upgrade.preflight",
+      "plugin.upgrade",
       "plugin.enable",
       "plugin.disable",
       "plugin.reconcile",

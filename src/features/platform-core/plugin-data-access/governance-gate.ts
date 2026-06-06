@@ -1,6 +1,7 @@
 import "server-only";
 
-import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
+import { getCurrentUserDTO } from "@/lib/dal/auth";
+import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { listPluginGovernanceSnapshotRecords } from "@/lib/dal/plugins";
 import type { PluginLifecycleState } from "@/features/runtime-platform/contracts/permissions";
 
@@ -32,7 +33,7 @@ export type AssertActionExecutableResult = {
  * lifecycle/kill-switch 拒绝）。
  *
  * 在任何数据触达之前断言：
- *   1. actor 身份由认证 session（assertActiveTeacher）派生，schoolId 绝不入参；
+ *   1. actor 身份由认证 session + active membership 派生，schoolId 绝不入参；
  *   2. 目标插件经 projectPluginGovernance 投影 `executable`（lifecycle/kill-switch）；
  *   3. 不可执行 / 越校一律抛具名拒因并写 denial governance audit。
  *
@@ -46,10 +47,10 @@ export async function assertActionExecutable(input: {
   correlationId: string;
   commandId?: string | null;
 }): Promise<AssertActionExecutableResult> {
-  // 1) schoolId 仅由认证 session 派生，函数签名不接受外部 schoolId 覆盖（SC2）。
+  // 1) schoolId 仅由认证 session + active membership 派生，函数签名不接受外部 schoolId 覆盖（SC2）。
   let scope: DerivedTeacherScope;
   try {
-    scope = await assertActiveTeacher();
+    scope = await deriveActiveSchoolScope();
   } catch {
     await writeDenial(input, { schoolId: "", lifecycleState: "disabled", killSwitchEnabled: false });
     throw new PluginDataAccessError("non_school_actor_rejected", "actor is not an active in-school teacher");
@@ -98,6 +99,27 @@ export async function assertActionExecutable(input: {
     killSwitchEnabled: false,
   });
   throw new PluginDataAccessError("non_school_actor_rejected", "plugin not visible in actor school scope");
+}
+
+async function deriveActiveSchoolScope(): Promise<DerivedTeacherScope> {
+  const user = await getCurrentUserDTO();
+  if (!user) {
+    throw new Error("NON_SCHOOL_ACTOR");
+  }
+
+  const memberships = await getUserMembershipsDTO(user.id);
+  const schoolIds = memberships
+    .filter((membership) => membership.status === "active")
+    .map((membership) => membership.schoolId);
+
+  if (schoolIds.length === 0) {
+    throw new Error("NON_SCHOOL_ACTOR");
+  }
+
+  return {
+    userId: user.id,
+    schoolIds: [...new Set(schoolIds)],
+  };
 }
 
 async function writeDenial(

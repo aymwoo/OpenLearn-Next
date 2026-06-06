@@ -80,7 +80,7 @@ function mapLifecycleState(input: PluginGovernanceProjectionInput): GovernanceLi
     return "suspended";
   }
 
-  if (input.lifecycleState === "mounted" || input.lifecycleState === "ready") {
+  if (input.lifecycleState === "enabled" || input.lifecycleState === "mounted" || input.lifecycleState === "ready") {
     return "active";
   }
 
@@ -210,7 +210,7 @@ export function projectPluginGovernance(
       Boolean(plugin.uninstallRequest?.confirmationToken) &&
       plugin.uninstallRequest?.confirmationToken === plugin.uninstall.cleanupConfirmationToken;
     const uninstallReasonCode = plugin.uninstall.blocked
-      ? null
+      ? (plugin.uninstall.reason as PluginGovernanceReasonCode | null)
       : cleanupRequested && !cleanupConfirmed
         ? "cleanup_confirmation_required"
         : null;
