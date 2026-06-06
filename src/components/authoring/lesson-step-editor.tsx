@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Clock3, Eye, FileText } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
-import { autosaveLessonStepAction, saveVotingLessonStepAction, uploadLessonMarkdownAssetAction } from "@/actions/lesson-authoring-actions";
+import { autosaveLessonStepAction, saveQuizSampleLessonStepAction, saveVotingLessonStepAction, uploadLessonMarkdownAssetAction } from "@/actions/lesson-authoring-actions";
 import {
   lessonStepEditorResetRequestEvent,
   lessonStepEditorSaveRequestEvent,
@@ -13,7 +13,7 @@ import { MarkdownRenderer } from "@/components/markdown/markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { lessonStepPayloadSchema, type LessonStepDTO, type LessonStepPayload } from "@/lib/dto/lesson-authoring";
-import { BUILT_IN_TEACHING_STEP_DEFINITIONS, ClassroomVotingAuthoringConfigSchema } from "@/lib/dto/resource-ai";
+import { BUILT_IN_TEACHING_STEP_DEFINITIONS, ClassroomVotingAuthoringConfigSchema, QuizSampleAuthoringConfigSchema } from "@/lib/dto/resource-ai";
 
 type LessonStepEditorProps = {
   step: LessonStepDTO | null;
@@ -77,6 +77,17 @@ type VotingValidationState = {
   };
 };
 
+type QuizSampleValidationState = {
+  general: string | null;
+  fallback: string | null;
+  fields: {
+    prompt?: string;
+    options?: string;
+    correctOption?: string;
+    optionLabels?: Record<number, string>;
+  };
+};
+
 const classroomVotingDefinition = BUILT_IN_TEACHING_STEP_DEFINITIONS.find((item) => item.builtInKey === "classroomVoting");
 const classroomVotingDefaultConfig = classroomVotingDefinition?.authoringContract?.defaultConfig;
 
@@ -85,11 +96,24 @@ if (!classroomVotingDefaultConfig || !classroomVotingDefinition?.authoringContra
 }
 
 const guaranteedVotingDefaultConfig = ClassroomVotingAuthoringConfigSchema.parse(classroomVotingDefaultConfig);
+const quizSampleDefinition = BUILT_IN_TEACHING_STEP_DEFINITIONS.find((item) => item.builtInKey === "quizSample");
+
+if (!quizSampleDefinition?.authoringContract) {
+  throw new Error("Quiz sample authoring contract missing");
+}
+
+const quizSampleDefaultConfig = QuizSampleAuthoringConfigSchema.parse(quizSampleDefinition?.authoringContract?.defaultConfig);
 
 function isClassroomVotingStep(step: LessonStepDTO) {
   return step.type === "quiz"
     && step.payload.type === "quiz"
     && step.payload.builtInSource?.builtInKey === "classroomVoting";
+}
+
+function isQuizSampleStep(step: LessonStepDTO) {
+  return step.type === "quiz"
+    && step.payload.type === "quiz"
+    && step.payload.builtInSource?.builtInKey === "quizSample";
 }
 
 function getPersistedVotingConfig(step: LessonStepDTO) {
@@ -115,6 +139,52 @@ function resolveVotingSeed(step: LessonStepDTO) {
   }
 
   return seed;
+}
+
+function getPersistedQuizSampleConfig(step: LessonStepDTO) {
+  const persisted = step.pluginAuthoring?.persistedConfigJson as { executableConfig?: unknown } | undefined;
+  const parsed = QuizSampleAuthoringConfigSchema.safeParse(persisted?.executableConfig);
+
+  if (parsed.success) {
+    return { config: parsed.data, fallback: null as string | null };
+  }
+
+  return {
+    config: quizSampleDefaultConfig,
+    fallback: step.pluginAuthoring?.fallbackMessage ?? null,
+  };
+}
+
+function buildQuizSampleValidation(state: EditorState): QuizSampleValidationState {
+  const options = state.quizOptions
+    .split("\n")
+    .map((line, index) => ({ index, label: line.trim() }))
+    .filter((option) => option.label.length > 0);
+
+      const optionLabels: Record<number, string> = {};
+
+  const selected = state.correctOptionIndex.trim();
+  const enabledLetters = options.map((option) => String.fromCharCode(65 + option.index));
+
+  return {
+    general: null,
+    fallback: null,
+    fields: {
+      prompt: state.quizQuestion.trim() ? undefined : "请填写题干。",
+      options: options.length >= 2 ? undefined : "至少启用 2 个有效选项。",
+      correctOption: selected && enabledLetters.includes(selected) ? undefined : "正确答案必须命中已启用选项。",
+      optionLabels: Object.values(optionLabels).length > 0 ? optionLabels : undefined,
+    },
+  };
+}
+
+function hasQuizSampleValidationErrors(validation: QuizSampleValidationState) {
+  return Boolean(
+    validation.fields.prompt
+      || validation.fields.options
+      || validation.fields.correctOption
+      || (validation.fields.optionLabels && Object.keys(validation.fields.optionLabels).length > 0),
+  );
 }
 
 function buildVotingValidation(state: EditorState): VotingValidationState {
@@ -183,6 +253,7 @@ function materialRefsToText(step: LessonStepDTO) {
 
 function buildInitialState(step: LessonStepDTO): EditorState {
   const votingSeed = resolveVotingSeed(step);
+  const quizSampleSeed = isQuizSampleStep(step) ? getPersistedQuizSampleConfig(step).config : quizSampleDefaultConfig;
 
   return {
     title: step.title,
@@ -197,11 +268,15 @@ function buildInitialState(step: LessonStepDTO): EditorState {
     taskPrompt: step.payload.type === "task" ? step.payload.prompt : "",
     submissionType: step.payload.type === "task" ? step.payload.submissionType : "text",
     successCriteria: step.payload.type === "task" ? step.payload.successCriteria ?? "" : "",
-    quizQuestion: step.payload.type === "quiz" ? step.payload.question : "",
-    quizOptions: step.payload.type === "quiz" ? step.payload.options.join("\n") : "",
-    correctOptionIndex: step.payload.type === "quiz" && typeof step.payload.correctOptionIndex === "number"
-      ? String(step.payload.correctOptionIndex)
-      : "",
+    quizQuestion: isQuizSampleStep(step) ? quizSampleSeed.prompt : step.payload.type === "quiz" ? step.payload.question : "",
+    quizOptions: isQuizSampleStep(step)
+      ? quizSampleSeed.options.map((option) => option.enabled ? option.label : "").join("\n")
+      : step.payload.type === "quiz" ? step.payload.options.join("\n") : "",
+    correctOptionIndex: isQuizSampleStep(step)
+      ? quizSampleSeed.correctOption
+      : step.payload.type === "quiz" && typeof step.payload.correctOptionIndex === "number"
+        ? String(step.payload.correctOptionIndex)
+        : "",
     explanation: step.payload.type === "quiz" ? step.payload.explanation ?? "" : "",
     materialRefsText: materialRefsToText(step),
     votingPrompt: votingSeed.prompt,
@@ -308,11 +383,13 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
   const [status, setStatus] = useState<string | null>(null);
   const [stateByStepId, setStateByStepId] = useState<Record<string, EditorState>>({});
   const [votingValidationByStepId, setVotingValidationByStepId] = useState<Record<string, VotingValidationState>>({});
+  const [quizSampleValidationByStepId, setQuizSampleValidationByStepId] = useState<Record<string, QuizSampleValidationState>>({});
   const pendingStep = step;
   const pendingState = pendingStep ? stateByStepId[pendingStep.id] ?? buildInitialState(pendingStep) : null;
   const latestStepRef = useRef<LessonStepDTO | null>(null);
   const latestStateRef = useRef<EditorState | null>(null);
   const latestVotingValidationRef = useRef<VotingValidationState | null>(null);
+  const latestQuizSampleValidationRef = useRef<QuizSampleValidationState | null>(null);
 
   const stepTypeLabel = useMemo(() => {
     if (!step) return "";
@@ -364,9 +441,15 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
     fallback: isClassroomVotingStep(activeStep) ? getPersistedVotingConfig(activeStep).fallback : null,
     fields: {},
   };
+  const activeQuizSampleValidation = quizSampleValidationByStepId[activeStep.id] ?? {
+    general: null,
+    fallback: isQuizSampleStep(activeStep) ? getPersistedQuizSampleConfig(activeStep).fallback : null,
+    fields: {},
+  };
   latestStepRef.current = activeStep;
   latestStateRef.current = activeState;
   latestVotingValidationRef.current = activeVotingValidation;
+  latestQuizSampleValidationRef.current = activeQuizSampleValidation;
   const previewMaterialRefs = parsePreviewMaterialRefs(activeState.materialRefsText);
   const previewTitle = activeState.title.trim() || activeStep.title;
   const previewDescription = getPreviewDescription(activeStep, activeState);
@@ -399,6 +482,22 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
       }));
       setStatus((currentStatus) => (currentStatus === "配置未通过校验，请先修正红色标记字段。" ? null : currentStatus));
     }
+
+    if (isQuizSampleStep(activeStep)) {
+      setQuizSampleValidationByStepId((prev) => ({
+        ...prev,
+        [activeStep.id]: {
+          ...((prev[activeStep.id] ?? {
+            general: null,
+            fallback: activeQuizSampleValidation.fallback,
+            fields: {},
+          }) as QuizSampleValidationState),
+          general: null,
+          fields: {},
+        },
+      }));
+      setStatus((currentStatus) => (currentStatus === "当前题目配置不完整，请补全题干、有效选项和正确答案后再继续。" ? null : currentStatus));
+    }
   }
 
   function updateVotingValidation(next: VotingValidationState) {
@@ -412,7 +511,8 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
     const currentStep = latestStepRef.current;
     const currentState = latestStateRef.current;
     const currentVotingValidation = latestVotingValidationRef.current;
-    if (!currentStep || !currentState || !currentVotingValidation) {
+    const currentQuizSampleValidation = latestQuizSampleValidationRef.current;
+    if (!currentStep || !currentState || !currentVotingValidation || !currentQuizSampleValidation) {
       setStatus(validationCopy);
       return;
     }
@@ -505,6 +605,63 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
         }
         updateVotingValidation(nextValidation);
         setStatus(result.error === "CONFLICT" ? "检测到更新冲突，请刷新课时后重新应用修改。" : (result.message || validationCopy));
+        return;
+      }
+
+      if (isQuizSampleStep(currentStep)) {
+        const clientValidation = buildQuizSampleValidation(nextState);
+        clientValidation.fallback = currentQuizSampleValidation.fallback;
+        if (hasQuizSampleValidationErrors(clientValidation)) {
+          clientValidation.general = "当前题目配置不完整，请补全题干、有效选项和正确答案后再继续。";
+          setQuizSampleValidationByStepId((prev) => ({ ...prev, [currentStep.id]: clientValidation }));
+          setStatus(clientValidation.general);
+          return;
+        }
+
+        const options = nextState.quizOptions
+          .split("\n")
+          .slice(0, 4)
+          .map((line, index) => ({
+            slot: String.fromCharCode(65 + index) as "A" | "B" | "C" | "D",
+            label: line.trim(),
+            enabled: Boolean(line.trim()),
+          }));
+
+        const result = await saveQuizSampleLessonStepAction({
+          stepId: currentStep.id,
+          title: nextState.title.trim(),
+          pluginId: currentStep.payload.builtInSource!.pluginId,
+          expectedUpdatedAt: currentStep.updatedAt,
+          executableConfig: {
+            prompt: nextState.quizQuestion.trim(),
+            options,
+            correctOption: nextState.correctOptionIndex.trim() as "A" | "B" | "C" | "D",
+          },
+        });
+
+        if (result.ok) {
+          setQuizSampleValidationByStepId((prev) => ({
+            ...prev,
+            [currentStep.id]: { general: null, fallback: null, fields: {} },
+          }));
+          setStatus("题目配置已保存，开课时会冻结为本次 session 的题目快照。");
+          router.refresh();
+          return;
+        }
+
+        const nextValidation: QuizSampleValidationState = {
+          general: result.message || "当前题目配置不完整，请补全题干、有效选项和正确答案后再继续。",
+          fallback: currentQuizSampleValidation.fallback,
+          fields: {},
+        };
+        if (result.fieldErrors) {
+          nextValidation.fields.prompt = getFieldError(result.fieldErrors, "executableConfig.prompt", "prompt");
+          nextValidation.fields.options = getFieldError(result.fieldErrors, "executableConfig.options", "options");
+          nextValidation.fields.correctOption = getFieldError(result.fieldErrors, "executableConfig.correctOption", "correctOption");
+          nextValidation.fields.optionLabels = getOptionLabelFieldErrors(result.fieldErrors);
+        }
+        setQuizSampleValidationByStepId((prev) => ({ ...prev, [currentStep.id]: nextValidation }));
+        setStatus(result.error === "CONFLICT" ? "检测到更新冲突，请刷新课时后重新应用修改。" : nextValidation.general);
         return;
       }
 
@@ -835,6 +992,104 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
                         </label>
                       </div>
                     </div>
+                  ) : isQuizSampleStep(activeStep) ? (
+                    <div className="grid gap-4 rounded-[1.5rem] bg-surface-container-low p-5" aria-label="互动单选题插件专属配置">
+                      <div className="grid gap-3 rounded-[1.25rem] bg-surface-container-lowest p-4">
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary">Sample Plugin</span>
+                          <span className="rounded-full bg-surface-container-high px-3 py-1 font-medium text-on-surface-variant">单选题</span>
+                          <span className="rounded-full bg-surface-container-high px-3 py-1 font-medium text-on-surface-variant">2–4 个选项</span>
+                        </div>
+                        <div>
+                          <h3 className="text-base font-semibold text-on-surface">互动单选题 · 插件专属配置</h3>
+                          <p className="mt-1 text-sm text-on-surface-variant">课堂开始时会冻结为本次 session 的题目快照</p>
+                          {activeQuizSampleValidation.fallback ? (
+                            <p className="mt-2 text-sm text-[#b31b25]">{activeQuizSampleValidation.fallback}</p>
+                          ) : null}
+                          {activeQuizSampleValidation.general ? (
+                            <p className="mt-2 text-sm text-[#b31b25]">{activeQuizSampleValidation.general}</p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <label className="grid gap-2" htmlFor="lesson-step-quiz-question">
+                        <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">题干</span>
+                        <textarea
+                          id="lesson-step-quiz-question"
+                          aria-describedby={activeQuizSampleValidation.fields.prompt ? "lesson-step-quiz-question-error" : undefined}
+                          className={`${fieldClassName} min-h-24 rounded-[1.25rem]`}
+                          value={activeState.quizQuestion}
+                          onChange={(event) => updateField("quizQuestion", event.target.value)}
+                        />
+                      </label>
+                      {activeQuizSampleValidation.fields.prompt ? (
+                        <span id="lesson-step-quiz-question-error" className="text-sm text-[#b31b25]">{activeQuizSampleValidation.fields.prompt}</span>
+                      ) : null}
+
+                      <div className="grid gap-3 rounded-[1.25rem] bg-surface-container-lowest p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">选项 A-D</span>
+                          <span className="text-xs text-on-surface-variant">至少 2 个选项 / 未启用槽位不可作答</span>
+                        </div>
+                        {activeState.quizOptions.split("\n").slice(0, 4).map((line, index) => (
+                          <div key={`quiz-sample-option-${index}`} className="grid gap-2">
+                            <div className="flex items-center gap-3 rounded-[1rem] bg-surface-container-high px-3 py-2">
+                              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-container text-sm font-semibold text-on-surface">
+                                {String.fromCharCode(65 + index)}
+                              </span>
+                              <input
+                                aria-label={`选项 ${String.fromCharCode(65 + index)}`}
+                                className="w-full rounded-none border-0 bg-transparent text-on-surface outline-none"
+                                value={line}
+                                placeholder="未启用"
+                                onChange={(event) => {
+                                  const nextLines = activeState.quizOptions.split("\n").slice(0, 4);
+                                  while (nextLines.length < 4) nextLines.push("");
+                                  nextLines[index] = event.target.value;
+                                  updateField("quizOptions", nextLines.join("\n"));
+                                }}
+                              />
+                            </div>
+                            {activeQuizSampleValidation.fields.optionLabels?.[index] ? (
+                              <span className="text-sm text-[#b31b25]">{activeQuizSampleValidation.fields.optionLabels[index]}</span>
+                            ) : null}
+                          </div>
+                        ))}
+                        {activeQuizSampleValidation.fields.options ? (
+                          <span className="text-sm text-[#b31b25]">{activeQuizSampleValidation.fields.options}</span>
+                        ) : null}
+                      </div>
+
+                      <label className="grid gap-2" htmlFor="lesson-step-correct-option-index">
+                        <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">正确答案</span>
+                        <select
+                          id="lesson-step-correct-option-index"
+                          aria-describedby={activeQuizSampleValidation.fields.correctOption ? "lesson-step-correct-option-error" : undefined}
+                          className={`${fieldClassName} rounded-[1.25rem]`}
+                          value={activeState.correctOptionIndex}
+                          onChange={(event) => updateField("correctOptionIndex", event.target.value)}
+                        >
+                          <option value="">请选择正确答案</option>
+                          {activeState.quizOptions
+                            .split("\n")
+                            .slice(0, 4)
+                            .map((line, index) => ({ label: line.trim(), slot: String.fromCharCode(65 + index) }))
+                            .filter((option) => option.label)
+                            .map((option) => (
+                              <option key={option.slot} value={option.slot}>{option.slot}</option>
+                            ))}
+                        </select>
+                      </label>
+                      {activeQuizSampleValidation.fields.correctOption ? (
+                        <span id="lesson-step-correct-option-error" className="text-sm text-[#b31b25]">{activeQuizSampleValidation.fields.correctOption}</span>
+                      ) : null}
+
+                      <div className="grid gap-2 rounded-[1.25rem] bg-surface-container-lowest p-4 text-sm text-on-surface-variant">
+                        <p>至少 2 个选项</p>
+                        <p>正确答案必须命中已启用选项</p>
+                        <p>已开课会话不会同步后续修改</p>
+                      </div>
+                    </div>
                   ) : (
                   <>
                     <label className="grid gap-2" htmlFor="lesson-step-quiz-question">
@@ -893,15 +1148,25 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
 
             <div className="mt-4 flex justify-end gap-3">
               <div aria-live="polite" className="mr-auto self-center text-sm text-on-surface-variant">
-                {isPending ? savingCopy : status}
-              </div>
-              <Button type="button" variant="tertiary" className="px-6" disabled={isPending} onClick={onCancel}>
-                取消
-              </Button>
-              <Button type="button" onClick={saveStep} disabled={isPending} className="px-6">
-                {isPending ? (isClassroomVotingStep(activeStep) ? "正在保存投票配置..." : savingCopy) : (isClassroomVotingStep(activeStep) ? "保存投票配置" : "保存步骤")}
-              </Button>
-            </div>
+                 {isPending ? savingCopy : status}
+               </div>
+               <Button type="button" variant="tertiary" className="px-6" disabled={isPending} onClick={onCancel}>
+                 取消
+               </Button>
+               <Button type="button" onClick={saveStep} disabled={isPending} className="px-6">
+                 {isPending
+                   ? (isClassroomVotingStep(activeStep)
+                     ? "正在保存投票配置..."
+                     : isQuizSampleStep(activeStep)
+                       ? "正在保存题目配置..."
+                       : savingCopy)
+                   : (isClassroomVotingStep(activeStep)
+                     ? "保存投票配置"
+                     : isQuizSampleStep(activeStep)
+                       ? "保存题目配置"
+                       : "保存步骤")}
+               </Button>
+             </div>
           </div>
         </div>
 
@@ -942,7 +1207,24 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
                 ) : null}
               </div>
 
-              <p className="mt-3 text-sm leading-6 text-on-surface">{previewSupport}</p>
+               <p className="mt-3 text-sm leading-6 text-on-surface">{previewSupport}</p>
+
+               {isQuizSampleStep(activeStep) ? (
+                 <div className="mt-4 grid gap-3 rounded-[1.25rem] bg-surface-container p-4">
+                   <div className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">正式答题卡预览</div>
+                   {activeState.quizOptions
+                     .split("\n")
+                     .slice(0, 4)
+                     .map((line, index) => ({ slot: String.fromCharCode(65 + index), label: line.trim() }))
+                     .filter((option) => option.label)
+                     .map((option) => (
+                       <div key={option.slot} className="flex items-center gap-3 rounded-[1rem] bg-surface-container-low px-4 py-3">
+                         <span className="grid size-10 place-items-center rounded-full bg-surface-container-high text-sm font-semibold text-on-surface">{option.slot}</span>
+                         <span className="text-sm text-on-surface">{option.label}</span>
+                       </div>
+                     ))}
+                 </div>
+               ) : null}
 
               {activeStep.type === "content" && activeState.markdownSource.trim() ? (
                 <div className="mt-4 rounded-[1.25rem] bg-surface-container p-4">
@@ -994,7 +1276,7 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
   );
 }
 
-function getPreviewDescription(step: LessonStepDTO, state: EditorState) {
+  function getPreviewDescription(step: LessonStepDTO, state: EditorState) {
   if (step.type === "content") {
     return state.contentBody.trim() || "在这里补充教学内容，右侧学生视图会同步展示正文摘要。";
   }
@@ -1005,6 +1287,10 @@ function getPreviewDescription(step: LessonStepDTO, state: EditorState) {
 
   if (isClassroomVotingStep(step)) {
     return state.votingPrompt.trim() || "系统已载入默认投票模板。请补充题目和至少 2 个选项后保存。";
+  }
+
+  if (isQuizSampleStep(step)) {
+    return state.quizQuestion.trim() || "请填写题干、至少 2 个选项，并指定正确答案后再保存；保存后学生端才能在开课时冻结为课堂题目。";
   }
 
   return state.quizQuestion.trim() || "填写测验题目后，右侧会即时展示题目摘要与作答提示。";
@@ -1023,6 +1309,11 @@ function getPreviewSupport(step: LessonStepDTO, state: EditorState) {
     const optionCount = state.votingOptions.filter((option) => option.label.trim()).length;
     const selectionMode = state.votingAllowMultiple ? "多选" : "单选";
     return `${optionCount} 个选项 · ${selectionMode} · ${state.votingParticipationWindowSeconds || "90"} 秒`;
+  }
+
+  if (isQuizSampleStep(step)) {
+    const lines = state.quizOptions.split("\n").map((line) => line.trim()).filter(Boolean);
+    return `${lines.length} 个选项 · 正确答案 ${state.correctOptionIndex.trim() || "未设置"} · 正式答题卡预览`;
   }
 
   const optionCount = state.quizOptions.split("\n").map((line) => line.trim()).filter(Boolean).length;

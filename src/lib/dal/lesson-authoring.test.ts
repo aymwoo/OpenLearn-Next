@@ -1448,6 +1448,156 @@ describe("lesson authoring DAL boundary", () => {
     ).rejects.toThrow("CONFLICT");
   });
 
+  it("validates and saves quiz sample config through lesson step shell plus plugin extension only", async () => {
+    const { saveQuizSampleLessonStepConfig } = await import("./lesson-authoring");
+
+    const txUpdateReturning = vi.fn().mockResolvedValue([{ id: "step-quiz-sample" }]);
+    findFirstLessonSteps.mockResolvedValueOnce({
+      id: "step-quiz-sample",
+      lessonId: "lesson-owned",
+      type: "quiz",
+      title: "互动答题（样板）",
+      rank: "a2",
+      payloadJson: {
+        type: "quiz",
+        question: "旧题目",
+        options: ["旧A", "旧B"],
+        materialRefs: [],
+        correctOptionIndex: 0,
+        explanation: "旧说明",
+        allowRetry: true,
+        retryPolicy: "unlimited",
+        revealCorrectAnswer: true,
+        builtInSource: {
+          pluginId: "plugin-quiz-sample",
+          builtInKey: "quizSample",
+          pluginName: "互动答题（样板）",
+        },
+      },
+      archivedAt: null,
+      updatedAt: new Date("2026-06-03T08:00:00.000Z"),
+    });
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      {
+        id: "plugin-quiz-sample",
+        schoolId: "school-1",
+        pluginKey: "builtin-teaching-step-quiz-sample",
+        name: "互动答题（样板）",
+        enabled: true,
+        killSwitchEnabled: false,
+        lifecycleState: "ready",
+        manifestJson: { builtIn: true, manifestVersion: 2, governance: { contractVersion: "v2" } },
+      },
+    ]);
+    findManyLessonSteps.mockResolvedValue([
+      {
+        id: "step-quiz-sample",
+        lessonId: "lesson-owned",
+        type: "quiz",
+        title: "互动答题（样板）",
+        rank: "a2",
+        payloadJson: {
+          type: "quiz",
+          question: "哪一项判断正确？",
+          options: ["选项 A", "选项 B", "选项 D"],
+          materialRefs: [],
+          correctOptionIndex: 1,
+          explanation: "旧说明",
+          allowRetry: true,
+          retryPolicy: "unlimited",
+          revealCorrectAnswer: true,
+          builtInSource: {
+            pluginId: "plugin-quiz-sample",
+            builtInKey: "quizSample",
+            pluginName: "互动答题（样板）",
+          },
+        },
+        archivedAt: null,
+        updatedAt: new Date("2026-06-03T08:00:00.000Z"),
+      },
+    ]);
+
+    transaction.mockImplementationOnce(async (callback: (tx: Record<string, unknown>) => Promise<unknown>) => {
+      const tx = {
+        update: () => ({ set: () => ({ where: () => ({ returning: txUpdateReturning }) }) }),
+        select: () => ({ from: () => ({ where: () => ({ limit: vi.fn().mockResolvedValue([]) }) }) }),
+        insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
+        __upsertPluginStepExtensionWithTx: vi.fn().mockResolvedValue(undefined),
+      };
+      return callback(tx);
+    });
+
+    const result = await saveQuizSampleLessonStepConfig({
+      stepId: "step-quiz-sample",
+      title: "互动答题（样板）",
+      pluginId: "plugin-quiz-sample",
+      expectedUpdatedAt: "2026-06-03T08:00:00.000Z",
+      executableConfig: {
+        prompt: "哪一项判断正确？",
+        options: [
+          { slot: "A", label: "选项 A", enabled: true },
+          { slot: "B", label: "选项 B", enabled: true },
+          { slot: "C", label: "", enabled: false },
+          { slot: "D", label: "选项 D", enabled: true },
+        ],
+        correctOption: "B",
+      },
+    });
+
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(txUpdateReturning).toHaveBeenCalledTimes(1);
+    expect(result.publishState.blockingIssues).toBeDefined();
+    expect(source).not.toContain("plugin_owned_quiz_questions");
+  });
+
+  it("rejects invalid quiz sample config before persistence", async () => {
+    const { saveQuizSampleLessonStepConfig } = await import("./lesson-authoring");
+
+    findFirstLessonSteps.mockResolvedValueOnce({
+      id: "step-quiz-sample-invalid",
+      lessonId: "lesson-owned",
+      type: "quiz",
+      title: "互动答题（样板）",
+      rank: "a3",
+      payloadJson: {
+        type: "quiz",
+        question: "旧题目",
+        options: ["旧A", "旧B"],
+        materialRefs: [],
+        correctOptionIndex: 0,
+        explanation: undefined,
+        allowRetry: true,
+        retryPolicy: "unlimited",
+        revealCorrectAnswer: true,
+        builtInSource: {
+          pluginId: "plugin-quiz-sample",
+          builtInKey: "quizSample",
+          pluginName: "互动答题（样板）",
+        },
+      },
+      archivedAt: null,
+      updatedAt: new Date("2026-06-03T08:10:00.000Z"),
+    });
+
+    await expect(
+      saveQuizSampleLessonStepConfig({
+        stepId: "step-quiz-sample-invalid",
+        title: "互动答题（样板）",
+        pluginId: "plugin-quiz-sample",
+        expectedUpdatedAt: "2026-06-03T08:10:00.000Z",
+        executableConfig: {
+          prompt: "",
+          options: [
+            { slot: "A", label: "", enabled: true },
+            { slot: "B", label: "", enabled: false },
+          ],
+          correctOption: "C",
+        },
+      }),
+    ).rejects.toThrow();
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
   it("keeps getLessonEditorDTO resilient when one persisted payload is invalid", async () => {
     const { getLessonEditorDTO } = await import("./lesson-authoring");
 

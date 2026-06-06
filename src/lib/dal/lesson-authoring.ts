@@ -28,6 +28,7 @@ import { ACTIVE_PLUGIN_STATES, isRunnablePluginState } from "@/lib/dal/plugins";
 import {
   ClassroomVotingAuthoringConfigSchema,
   BUILT_IN_TEACHING_STEP_DEFINITIONS,
+  QuizSampleAuthoringConfigSchema,
 } from "@/lib/dto/resource-ai";
 import { resolveTeachingDesignInput } from "@/lib/teaching-design";
 import {
@@ -42,6 +43,7 @@ import {
   LessonSummaryDTOSchema,
   LessonStepDTOSchema,
   PublishResultDTOSchema,
+  QuizSampleLessonStepConfigSchema,
   TeacherLessonPreviewDTOSchema,
   TeacherAuthoringOverviewDTOSchema,
   buildLessonDraftDiffRows,
@@ -102,7 +104,19 @@ type SaveVotingLessonStepConfigInput = {
   executableConfig: ReturnType<typeof ClassroomVotingAuthoringConfigSchema.parse>;
 };
 
+type SaveQuizSampleLessonStepConfigInput = {
+  stepId: string;
+  title: string;
+  pluginId: string;
+  expectedUpdatedAt: string;
+  executableConfig: ReturnType<typeof QuizSampleLessonStepConfigSchema.parse>;
+};
+
 type SaveVotingLessonStepConfigResult = AutosaveResultDTO & {
+  publishState: Awaited<ReturnType<typeof getLessonPublishReadinessDTO>>;
+};
+
+type SaveQuizSampleLessonStepConfigResult = AutosaveResultDTO & {
   publishState: Awaited<ReturnType<typeof getLessonPublishReadinessDTO>>;
 };
 
@@ -147,6 +161,88 @@ function buildVotingQuizShell(input: {
     allowRetry: false,
     retryPolicy: "none",
     revealCorrectAnswer: false,
+    materialRefs: input.currentPayload.materialRefs ?? [],
+  };
+}
+
+function getQuizSampleAuthoringContract() {
+  const definition = BUILT_IN_TEACHING_STEP_DEFINITIONS.find((item) => item.builtInKey === "quizSample");
+  if (!definition?.authoringContract) {
+    throw new Error("QUIZ_SAMPLE_PLUGIN_CONTRACT_MISSING");
+  }
+
+  return definition.authoringContract;
+}
+
+function isQuizSampleBuiltInSource(payload: LessonStepPayload) {
+  return payload.builtInSource?.builtInKey === "quizSample";
+}
+
+function isQuizSamplePluginCompatible(plugin: PublishPluginRegistryEntry) {
+  return plugin.manifestJson?.manifestVersion === 2;
+}
+
+function assertQuizSamplePluginWritable(input: {
+  payload: LessonStepPayload;
+  plugin: PublishPluginRegistryEntry | null;
+  pluginId: string;
+}) {
+  if (input.payload.type !== "quiz") {
+    throw new Error("QUIZ_SAMPLE_STEP_NOT_QUIZ");
+  }
+
+  const builtInSource = input.payload.builtInSource;
+  if (!builtInSource || builtInSource.builtInKey !== "quizSample") {
+    throw new Error("QUIZ_SAMPLE_STEP_NOT_PLUGIN");
+  }
+
+  if (builtInSource.pluginId !== input.pluginId) {
+    throw new Error("QUIZ_SAMPLE_PLUGIN_MISMATCH");
+  }
+
+  if (!input.plugin || !isVotingPluginActive(input.plugin)) {
+    throw new Error("QUIZ_SAMPLE_PLUGIN_DISABLED");
+  }
+
+  if (!isQuizSamplePluginCompatible(input.plugin)) {
+    throw new Error("QUIZ_SAMPLE_PLUGIN_INCOMPATIBLE");
+  }
+}
+
+function buildQuizSampleExtensionPayload(input: {
+  pluginId: string;
+  executableConfig: ReturnType<typeof QuizSampleLessonStepConfigSchema.parse>;
+}) {
+  const contract = getQuizSampleAuthoringContract();
+  return {
+    kind: "quiz-sample",
+    contractVersion: "v1",
+    executableConfig: input.executableConfig,
+    builtInSource: {
+      pluginId: input.pluginId,
+      builtInKey: contract.publicMetadata.builtInKey,
+      pluginName: contract.publicMetadata.pluginName,
+    },
+  } as const;
+}
+
+function buildQuizSampleQuizShell(input: {
+  currentPayload: Extract<LessonStepPayload, { type: "quiz" }>;
+  executableConfig: ReturnType<typeof QuizSampleLessonStepConfigSchema.parse>;
+}): Extract<LessonStepPayload, { type: "quiz" }> {
+  const enabledOptions = input.executableConfig.options.filter((option) => option.enabled);
+  const correctOptionIndex = enabledOptions.findIndex((option) => option.slot === input.executableConfig.correctOption);
+
+  return {
+    ...input.currentPayload,
+    type: "quiz",
+    question: input.executableConfig.prompt,
+    options: enabledOptions.map((option) => option.label.trim()),
+    correctOptionIndex: correctOptionIndex >= 0 ? correctOptionIndex : undefined,
+    explanation: input.currentPayload.explanation,
+    allowRetry: true,
+    retryPolicy: "unlimited",
+    revealCorrectAnswer: true,
     materialRefs: input.currentPayload.materialRefs ?? [],
   };
 }
@@ -578,6 +674,23 @@ function resolveVotingExecutableContract(input: {
   };
 }
 
+function resolveQuizSampleAuthoringState(step: LessonStepDTO, extension: PluginStepExtensionRecord | null) {
+  const persisted = extension?.payloadJson as { executableConfig?: unknown } | null;
+  const parsed = QuizSampleAuthoringConfigSchema.safeParse(persisted?.executableConfig);
+
+  if (parsed.success) {
+    return {
+      persistedConfigJson: extension?.payloadJson ?? null,
+      fallbackMessage: null,
+    };
+  }
+
+  return {
+    persistedConfigJson: extension?.payloadJson ?? null,
+    fallbackMessage: extension ? "当前题目配置无法解析，已回退到默认值，请重新确认并保存。" : null,
+  };
+}
+
 async function getVotingPluginContext(input: {
   actorId: string;
   schoolId: string;
@@ -586,13 +699,15 @@ async function getVotingPluginContext(input: {
 }) {
   const votingSteps = input.stepDtos
     ? input.stepDtos.flatMap((step) =>
-        isVotingBuiltInSource(step.payload) ? [{ stepId: step.id, pluginId: step.payload.builtInSource!.pluginId }] : [],
+        isVotingBuiltInSource(step.payload) || isQuizSampleBuiltInSource(step.payload)
+          ? [{ stepId: step.id, pluginId: step.payload.builtInSource!.pluginId }]
+          : [],
       )
     : input.stepRows
         .filter((step) => !step.archivedAt)
         .flatMap((step) => {
           const parsed = parseStepPayloadWithIssues(step);
-          return parsed.ok && isVotingBuiltInSource(parsed.payload)
+          return parsed.ok && (isVotingBuiltInSource(parsed.payload) || isQuizSampleBuiltInSource(parsed.payload))
             ? [{ stepId: step.id, pluginId: parsed.payload.builtInSource!.pluginId }]
             : [];
         });
@@ -1022,8 +1137,27 @@ export async function getLessonEditorDTO(lessonId: string) {
                     ? null
                     : "当前投票配置无法解析，已回退到默认值，请重新确认并保存。";
                 })()),
-          }
+            }
         : undefined;
+
+      const nextPluginAuthoring = hydrated.payload.builtInSource?.builtInKey === "quizSample"
+        ? resolveQuizSampleAuthoringState(
+            {
+              id: step.id,
+              lessonId: step.lessonId,
+              type: step.type as "content" | "task" | "quiz",
+              title: step.title,
+              rank: step.rank,
+              payload: hydrated.payload,
+              teachingDesignStatus: hydrated.teachingDesignStatus,
+              needsTeachingDesignRefinement: hydrated.needsTeachingDesignRefinement,
+              teachingDesignFallbackReason: hydrated.teachingDesignFallbackReason,
+              archivedAt: nullableIso(step.archivedAt),
+              updatedAt: toIso(step.updatedAt),
+            },
+            votingContext.extensionByStepId.get(step.id) ?? null,
+          )
+        : pluginAuthoring;
 
       return [{
         id: step.id,
@@ -1035,7 +1169,7 @@ export async function getLessonEditorDTO(lessonId: string) {
         teachingDesignStatus: hydrated.teachingDesignStatus,
         needsTeachingDesignRefinement: hydrated.needsTeachingDesignRefinement,
         teachingDesignFallbackReason: hydrated.teachingDesignFallbackReason,
-        pluginAuthoring,
+        pluginAuthoring: nextPluginAuthoring,
         archivedAt: nullableIso(step.archivedAt),
         updatedAt: toIso(step.updatedAt),
       }];
@@ -1100,6 +1234,90 @@ export async function saveVotingLessonStepConfig(input: SaveVotingLessonStepConf
     executableConfig,
   });
   const extensionPayload = buildVotingExtensionPayload({
+    pluginId: input.pluginId,
+    executableConfig,
+  });
+
+  const savedAt = new Date();
+
+  await db.transaction(async (tx) => {
+    const updatedSteps = await tx
+      .update(lessonSteps)
+      .set({
+        title: input.title,
+        type: "quiz",
+        payloadJson: nextPayload,
+        updatedAt: savedAt,
+      })
+      .where(and(eq(lessonSteps.id, input.stepId), eq(lessonSteps.updatedAt, expectedUpdatedAt)))
+      .returning({ id: lessonSteps.id });
+
+    if (updatedSteps.length === 0) {
+      throw new Error("CONFLICT");
+    }
+
+    await upsertPluginStepExtensionWithTx({
+      tx,
+      schoolId: course.schoolId,
+      pluginId: input.pluginId,
+      lessonStepId: input.stepId,
+      payloadJson: extensionPayload,
+    });
+
+    await tx
+      .update(lessons)
+      .set({ revision: lesson.revision + 1, updatedAt: savedAt })
+      .where(eq(lessons.id, lesson.id));
+  });
+
+  const publishState = await getLessonPublishReadinessDTO({ lessonId: lesson.id });
+
+  return {
+    ok: true,
+    lessonId: lesson.id,
+    courseId: course.id,
+    stepId: input.stepId,
+    savedAt: toIso(savedAt),
+    publishState,
+  };
+}
+
+export async function saveQuizSampleLessonStepConfig(input: SaveQuizSampleLessonStepConfigInput): Promise<SaveQuizSampleLessonStepConfigResult> {
+  const scope = await assertActiveTeacher();
+  const { step, lesson, course } = await getScopedStep(input.stepId, scope);
+  const expectedUpdatedAt = new Date(input.expectedUpdatedAt);
+  if (Number.isNaN(expectedUpdatedAt.getTime())) {
+    throw new Error("CONFLICT");
+  }
+
+  const payload = lessonStepPayloadSchema.parse(step.payloadJson);
+  const executableConfig = QuizSampleLessonStepConfigSchema.parse(input.executableConfig);
+
+  const pluginRows = await db.query.pluginRegistrations.findMany({
+    where: eq(pluginRegistrations.schoolId, course.schoolId),
+    columns: {
+      id: true,
+      pluginKey: true,
+      name: true,
+      enabled: true,
+      killSwitchEnabled: true,
+      lifecycleState: true,
+      manifestJson: true,
+    },
+  });
+  const plugin = pluginRows.find((item) => item.id === input.pluginId) as PublishPluginRegistryEntry | undefined;
+
+  assertQuizSamplePluginWritable({
+    payload,
+    plugin: plugin ?? null,
+    pluginId: input.pluginId,
+  });
+
+  const nextPayload = buildQuizSampleQuizShell({
+    currentPayload: payload as Extract<LessonStepPayload, { type: "quiz" }>,
+    executableConfig,
+  });
+  const extensionPayload = buildQuizSampleExtensionPayload({
     pluginId: input.pluginId,
     executableConfig,
   });

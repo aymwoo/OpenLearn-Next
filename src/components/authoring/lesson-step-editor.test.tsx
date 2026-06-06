@@ -23,6 +23,7 @@ const { RevealMock } = vi.hoisted(() => {
 });
 
 const autosaveLessonStepAction = vi.fn();
+const saveQuizSampleLessonStepAction = vi.fn();
 const saveVotingLessonStepAction = vi.fn();
 const uploadLessonMarkdownAssetAction = vi.fn();
 const refresh = vi.fn();
@@ -33,6 +34,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/actions/lesson-authoring-actions", () => ({
   autosaveLessonStepAction: (...args: unknown[]) => autosaveLessonStepAction(...args),
+  saveQuizSampleLessonStepAction: (...args: unknown[]) => saveQuizSampleLessonStepAction(...args),
   saveVotingLessonStepAction: (...args: unknown[]) => saveVotingLessonStepAction(...args),
   uploadLessonMarkdownAssetAction: (...args: unknown[]) => uploadLessonMarkdownAssetAction(...args),
 }));
@@ -68,10 +70,12 @@ describe("lesson step editor persistence", () => {
 
   beforeEach(() => {
     autosaveLessonStepAction.mockReset();
+    saveQuizSampleLessonStepAction.mockReset();
     saveVotingLessonStepAction.mockReset();
     uploadLessonMarkdownAssetAction.mockReset();
     refresh.mockReset();
     autosaveLessonStepAction.mockResolvedValue({ ok: true, data: { lessonId: "lesson-1", stepId: "step-1" } });
+    saveQuizSampleLessonStepAction.mockResolvedValue({ ok: true, data: { lessonId: "lesson-1", stepId: "step-1", publishState: { blockingIssues: [] } } });
     saveVotingLessonStepAction.mockResolvedValue({ ok: true, data: { lessonId: "lesson-1", stepId: "step-1", publishState: { blockingIssues: [] } } });
     uploadLessonMarkdownAssetAction.mockResolvedValue({ ok: true, data: { id: "resource-md-1" } });
   });
@@ -552,6 +556,136 @@ describe("lesson step editor persistence", () => {
     fireEvent.change(screen.getByLabelText("参与时长（秒）"), { target: { value: "90" } });
     fireEvent.click(screen.getByRole("button", { name: /保存投票配置|正在保存投票配置/ }));
     await waitFor(() => expect(saveVotingLessonStepAction).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it("renders quiz sample plugin config card and saves dedicated authoring config", async () => {
+    const step = makeStep({
+      id: "step-quiz-sample",
+      lessonId: "lesson-1",
+      type: "quiz",
+      title: "互动答题（样板）",
+      rank: "a10",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      pluginAuthoring: {
+        persistedConfigJson: null,
+        fallbackMessage: null,
+      },
+      payload: {
+        type: "quiz",
+        question: "旧题目",
+        options: ["A", "B"],
+        materialRefs: [],
+        allowRetry: true,
+        retryPolicy: "unlimited",
+        revealCorrectAnswer: true,
+        correctOptionIndex: 0,
+        builtInSource: {
+          pluginId: "plugin-quiz-sample",
+          builtInKey: "quizSample",
+          pluginName: "互动答题（样板）",
+        },
+      },
+    });
+
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
+        <LessonStepEditor step={step} />
+      </div>,
+    );
+
+    expect(screen.getByLabelText("互动单选题插件专属配置")).toBeTruthy();
+    expect(screen.getByText("互动单选题 · 插件专属配置")).toBeTruthy();
+    expect(screen.queryByText("课堂投票配置")).toBeNull();
+    expect(screen.getByText("正式答题卡预览")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("题干"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("选项 A"), { target: { value: "选项 A" } });
+    fireEvent.change(screen.getByLabelText("选项 B"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("正确答案"), { target: { value: "D" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存题目配置" }));
+
+    expect(saveQuizSampleLessonStepAction).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByText("请填写题干。")).toBeTruthy());
+
+    saveQuizSampleLessonStepAction.mockResolvedValueOnce({
+      ok: false,
+      error: "VALIDATION_ERROR",
+      message: "当前题目配置不完整，请补全题干、有效选项和正确答案后再继续。",
+      fieldErrors: {
+        "executableConfig.correctOption": ["正确答案必须命中已启用选项。"],
+      },
+    });
+
+    fireEvent.change(screen.getByLabelText("题干"), { target: { value: "以下哪一项是正确答案？" } });
+    fireEvent.change(screen.getByLabelText("选项 B"), { target: { value: "选项 B" } });
+    fireEvent.change(screen.getByLabelText("选项 C"), { target: { value: "选项 C" } });
+    fireEvent.change(screen.getByLabelText("正确答案"), { target: { value: "B" } });
+    fireEvent.click(screen.getByRole("button", { name: /保存题目配置|正在保存题目配置/ }));
+
+    await waitFor(() => expect(saveQuizSampleLessonStepAction).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("正确答案必须命中已启用选项。")) .toBeTruthy();
+    expect(saveQuizSampleLessonStepAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pluginId: "plugin-quiz-sample",
+        expectedUpdatedAt: step.updatedAt,
+        executableConfig: expect.objectContaining({
+          prompt: "以下哪一项是正确答案？",
+          correctOption: "B",
+        }),
+      }),
+    );
+  });
+
+  it("refreshes route after successful quiz sample save", async () => {
+    const step = makeStep({
+      id: "step-quiz-sample-success",
+      lessonId: "lesson-1",
+      type: "quiz",
+      title: "互动答题（样板）",
+      rank: "a11",
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+      pluginAuthoring: {
+        persistedConfigJson: null,
+        fallbackMessage: null,
+      },
+      payload: {
+        type: "quiz",
+        question: "旧题目",
+        options: ["A", "B"],
+        materialRefs: [],
+        allowRetry: true,
+        retryPolicy: "unlimited",
+        revealCorrectAnswer: true,
+        correctOptionIndex: 0,
+        builtInSource: {
+          pluginId: "plugin-quiz-sample",
+          builtInKey: "quizSample",
+          pluginName: "互动答题（样板）",
+        },
+      },
+    });
+
+    render(
+      <div role="dialog" aria-modal="true" aria-label="编辑教学环节">
+        <LessonStepEditor step={step} />
+      </div>,
+    );
+
+    saveQuizSampleLessonStepAction.mockResolvedValueOnce({
+      ok: true,
+      data: { lessonId: "lesson-1", stepId: "step-quiz-sample-success", publishState: { blockingIssues: [] } },
+    });
+
+    fireEvent.change(screen.getByLabelText("题干"), { target: { value: "新的题目" } });
+    fireEvent.change(screen.getByLabelText("选项 A"), { target: { value: "选项 A" } });
+    fireEvent.change(screen.getByLabelText("选项 B"), { target: { value: "选项 B" } });
+    fireEvent.change(screen.getByLabelText("正确答案"), { target: { value: "A" } });
+    fireEvent.click(screen.getByRole("button", { name: /保存题目配置|正在保存题目配置/ }));
+
+    await waitFor(() => expect(saveQuizSampleLessonStepAction).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
   });
 

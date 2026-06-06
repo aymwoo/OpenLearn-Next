@@ -12,6 +12,7 @@ const mockDuplicateLesson = vi.fn();
 const mockArchiveLesson = vi.fn();
 const mockAddLessonStep = vi.fn();
 const mockReorderLessonStep = vi.fn();
+const mockSaveQuizSampleLessonStepConfig = vi.fn();
 const mockSaveVotingLessonStepConfig = vi.fn();
 
 vi.mock("server-only", () => ({}));
@@ -47,6 +48,7 @@ vi.mock("@/lib/dal/lesson-authoring", () => ({
   getLessonPublishReadinessDTO,
   publishLesson,
   reorderLessonStep: mockReorderLessonStep,
+  saveQuizSampleLessonStepConfig: mockSaveQuizSampleLessonStepConfig,
   saveVotingLessonStepConfig: mockSaveVotingLessonStepConfig,
   updateLessonDraft: vi.fn(),
   updateLessonStep: vi.fn(),
@@ -57,6 +59,7 @@ describe("lesson authoring Server Actions — extended", () => {
     vi.resetModules();
     vi.clearAllMocks();
     assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
+    mockSaveQuizSampleLessonStepConfig.mockReset();
     mockSaveVotingLessonStepConfig.mockReset();
   });
 
@@ -596,5 +599,72 @@ describe("lesson authoring Server Actions — extended", () => {
     expect(result).toMatchObject({ ok: false, error: "VALIDATION_ERROR" });
     if (result.ok) throw new Error("expected validation failure");
     expect(result.fieldErrors?.["executableConfig.options.1.label"]).toEqual(["Too small: expected string to have >=1 characters"]);
+  });
+
+  it("returns structured fieldErrors for invalid quiz sample config payload", async () => {
+    const { saveQuizSampleLessonStepAction } = await import("./lesson-authoring-actions");
+
+    const result = await saveQuizSampleLessonStepAction({
+      stepId: "step-1",
+      title: "互动答题（样板）",
+      pluginId: "plugin-quiz-sample",
+      expectedUpdatedAt: "2026-06-03T08:00:00.000Z",
+      executableConfig: {
+        prompt: "",
+        options: [
+          { slot: "A", label: "", enabled: true },
+          { slot: "B", label: "", enabled: false },
+        ],
+        correctOption: "D",
+      },
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "VALIDATION_ERROR",
+      message: "当前题目配置不完整，请补全题干、有效选项和正确答案后再继续。",
+    });
+    if (result.ok) throw new Error("expected validation failure");
+    expect(result.fieldErrors).toBeTruthy();
+  });
+
+  it("invalidates lesson, steps, and draft tags after saving quiz sample config", async () => {
+    const { saveQuizSampleLessonStepAction } = await import("./lesson-authoring-actions");
+
+    mockSaveQuizSampleLessonStepConfig.mockResolvedValueOnce({
+      ok: true,
+      lessonId: "lesson-1",
+      courseId: "course-1",
+      stepId: "step-quiz-sample",
+      savedAt: new Date().toISOString(),
+      publishState: {
+        lessonId: "lesson-1",
+        courseId: "course-1",
+        canPublish: true,
+        blockingIssues: [],
+      },
+    });
+
+    const result = await saveQuizSampleLessonStepAction({
+      stepId: "step-quiz-sample",
+      title: "互动答题（样板）",
+      pluginId: "plugin-quiz-sample",
+      expectedUpdatedAt: "2026-06-03T08:00:00.000Z",
+      executableConfig: {
+        prompt: "哪一项正确？",
+        options: [
+          { slot: "A", label: "A", enabled: true },
+          { slot: "B", label: "B", enabled: true },
+        ],
+        correctOption: "A",
+      },
+    });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(updateTag).toHaveBeenCalledWith("teacher-courses:teacher-1");
+    expect(updateTag).toHaveBeenCalledWith("course:course-1");
+    expect(updateTag).toHaveBeenCalledWith("lesson:lesson-1");
+    expect(updateTag).toHaveBeenCalledWith("steps:lesson-1");
+    expect(updateTag).toHaveBeenCalledWith("draft:lesson-1");
   });
 });

@@ -14,12 +14,13 @@ import {
   getLessonPublishReadinessDTO,
   publishLesson,
   reorderLessonStep,
+  saveQuizSampleLessonStepConfig,
   saveVotingLessonStepConfig,
   updateLessonDraft,
   updateLessonStep,
 } from "@/lib/dal/lesson-authoring";
-import { lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
-import { ClassroomVotingAuthoringConfigSchema } from "@/lib/dto/resource-ai";
+import { QuizSampleLessonStepConfigSchema, lessonStepPayloadSchema } from "@/lib/dto/lesson-authoring";
+import { ClassroomVotingAuthoringConfigSchema, QuizSampleAuthoringConfigSchema } from "@/lib/dto/resource-ai";
 import { createTeacherResource } from "@/lib/dal/resources";
 import { cacheTags } from "@/lib/cache-policy";
 import { dispatchPlatformCommand } from "@/features/platform-core/commands/bus";
@@ -104,6 +105,14 @@ const votingSaveSchema = z.object({
   executableConfig: ClassroomVotingAuthoringConfigSchema,
 });
 
+const quizSampleSaveSchema = z.object({
+  stepId: z.string().min(1),
+  title: z.string().min(1),
+  pluginId: z.string().min(1),
+  expectedUpdatedAt: z.string().datetime(),
+  executableConfig: QuizSampleLessonStepConfigSchema,
+});
+
 type ActionResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string; message: string; issues?: unknown[]; fieldErrors?: Record<string, string[] | undefined>; publishState?: unknown };
@@ -146,11 +155,38 @@ function votingValidationError(error: z.ZodError) {
   };
 }
 
+function quizSampleValidationError(error: z.ZodError) {
+  const flattenedFieldErrors = error.flatten().fieldErrors;
+  const issueFieldErrors = error.issues.reduce<Record<string, string[]>>((acc, issue) => {
+    const key = issue.path.map((segment) => String(segment)).join(".");
+    if (!key) return acc;
+    acc[key] ??= [];
+    acc[key].push(issue.message);
+    return acc;
+  }, {});
+
+  return {
+    ok: false as const,
+    error: "VALIDATION_ERROR",
+    message: "当前题目配置不完整，请补全题干、有效选项和正确答案后再继续。",
+    issues: error.issues,
+    fieldErrors: {
+      ...flattenedFieldErrors,
+      ...issueFieldErrors,
+    },
+  };
+}
+
 function invalidateLessonAuthoringTags(actorId: string, courseId: string, lessonId: string) {
   updateTag(cacheTags.teacherCourses(actorId));
   updateTag(cacheTags.course(courseId));
   updateTag(cacheTags.lesson(lessonId));
   updateTag(cacheTags.steps(lessonId));
+}
+
+function invalidateLessonAuthoringDraftTags(actorId: string, courseId: string, lessonId: string) {
+  invalidateLessonAuthoringTags(actorId, courseId, lessonId);
+  updateTag(cacheTags.draftLesson(lessonId));
 }
 
 function handleActionError(error: unknown) {
@@ -323,6 +359,59 @@ export async function saveVotingLessonStepAction(input: FormData | Record<string
           ok: false,
           error: "INCOMPATIBLE",
           message: "课堂投票插件版本不兼容，请刷新页面或联系管理员。",
+          issues: [{ code: error.message }],
+        };
+      }
+    }
+
+    return handleActionError(error);
+  }
+}
+
+export async function saveQuizSampleLessonStepAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = quizSampleSaveSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return quizSampleValidationError(parsed.error);
+
+  try {
+    const actor = await assertActiveTeacher();
+    const result = await saveQuizSampleLessonStepConfig(parsed.data);
+    if (result.lessonId && result.courseId) {
+      invalidateLessonAuthoringDraftTags(actor.userId, result.courseId, result.lessonId);
+    }
+    return { ok: true, data: result };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return quizSampleValidationError(error);
+    }
+
+    if (error instanceof Error) {
+      if (error.message === "CONFLICT") {
+        return { ok: false, error: "CONFLICT", message: "检测到更新冲突，请刷新课时后重新应用修改。" };
+      }
+
+      if (["QUIZ_SAMPLE_STEP_NOT_QUIZ", "QUIZ_SAMPLE_STEP_NOT_PLUGIN", "QUIZ_SAMPLE_PLUGIN_MISMATCH", "STEP_NOT_FOUND", "LESSON_NOT_FOUND"].includes(error.message)) {
+        return {
+          ok: false,
+          error: "VALIDATION_ERROR",
+          message: "当前题目配置不完整，请补全题干、有效选项和正确答案后再继续。",
+          issues: [{ code: error.message }],
+        };
+      }
+
+      if (error.message === "QUIZ_SAMPLE_PLUGIN_DISABLED") {
+        return {
+          ok: false,
+          error: "PLUGIN_DISABLED",
+          message: "互动答题样板插件当前不可用，暂时无法保存题目配置。",
+          issues: [{ code: error.message }],
+        };
+      }
+
+      if (error.message === "QUIZ_SAMPLE_PLUGIN_INCOMPATIBLE") {
+        return {
+          ok: false,
+          error: "INCOMPATIBLE",
+          message: "互动答题样板插件版本不兼容，请刷新页面或联系管理员。",
           issues: [{ code: error.message }],
         };
       }
