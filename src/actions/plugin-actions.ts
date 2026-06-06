@@ -12,7 +12,10 @@ import { dispatchPluginGovernanceCommand } from "@/features/platform-core/comman
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import {
   getPluginForSchool,
+  getPluginForMarketplace,
+  listExternalMarketplaceCatalog,
   listPluginsForSchool,
+  preflightExternalPluginInstall,
   runPluginHook,
 } from "@/lib/dal/plugins";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
@@ -72,6 +75,22 @@ const PluginListSchema = z.object({
   schoolId: z.string().min(1),
 });
 
+const MarketplaceCatalogSchema = z.object({
+  schoolId: z.string().min(1),
+});
+
+const MarketplaceInstallSchema = z.object({
+  schoolId: z.string().min(1),
+  pluginKey: z.string().min(1),
+  version: z.string().min(1),
+});
+
+const PluginUpgradeSchema = z.object({
+  schoolId: z.string().min(1),
+  pluginId: z.string().min(1),
+  targetVersion: z.string().min(1),
+});
+
 const PluginGovernanceReadSchema = z.object({
   schoolId: z.string().min(1),
   pluginId: z.string().min(1),
@@ -122,6 +141,10 @@ async function resolvePluginSchoolId(actorId: string, pluginId: string) {
 }
 
 async function resolveOperatorSchoolId(actorId: string, pluginId: string, explicitSchoolId?: string) {
+  return resolveOperatorPluginSchoolId(actorId, pluginId, explicitSchoolId);
+}
+
+async function resolveOperatorPluginSchoolId(actorId: string, pluginId: string, explicitSchoolId?: string) {
   const memberships = (await getUserMembershipsDTO(actorId)).filter(
     (membership) =>
       membership.status === "active"
@@ -137,10 +160,11 @@ async function resolveOperatorSchoolId(actorId: string, pluginId: string, explic
     : memberships.map((membership) => membership.schoolId);
 
   for (const schoolId of [...new Set(candidateSchoolIds)]) {
-    const plugin = await getPluginForSchool({
+    const plugin = await getPluginForMarketplace({
       actorId,
       schoolId,
       pluginId,
+      actorScope: "operator",
     });
 
     if (plugin) {
@@ -149,6 +173,27 @@ async function resolveOperatorSchoolId(actorId: string, pluginId: string, explic
   }
 
   throw new Error("PLUGIN_NOT_FOUND");
+}
+
+async function resolveMarketplaceSchoolId(actorId: string, explicitSchoolId?: string) {
+  const memberships = (await getUserMembershipsDTO(actorId)).filter(
+    (membership) =>
+      membership.status === "active"
+      && (membership.role === "admin" || membership.role === "developer"),
+  );
+
+  if (memberships.length === 0) {
+    throw new Error("OPERATOR_AUTH_REQUIRED");
+  }
+
+  if (explicitSchoolId) {
+    if (!memberships.some((membership) => membership.schoolId === explicitSchoolId)) {
+      throw new Error("OPERATOR_AUTH_REQUIRED");
+    }
+    return explicitSchoolId;
+  }
+
+  return memberships[0]!.schoolId;
 }
 
 function updateInferredTags(tags: string[]) {
@@ -580,6 +625,199 @@ export async function listPluginsAction(data: z.infer<typeof PluginListSchema>) 
   }
 }
 
+export async function listMarketplaceCatalogAction(data: z.infer<typeof MarketplaceCatalogSchema>) {
+  const parsed = MarketplaceCatalogSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    await requireCurrentActorId();
+    return { success: true, data: listExternalMarketplaceCatalog() };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_MARKETPLACE_CATALOG_FAILED") };
+  }
+}
+
+export async function preflightMarketplaceInstallAction(data: z.infer<typeof MarketplaceInstallSchema>) {
+  const parsed = MarketplaceInstallSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveMarketplaceSchoolId(actorId, parsed.data.schoolId);
+    const result = await preflightExternalPluginInstall({
+      actorId,
+      schoolId,
+      pluginKey: parsed.data.pluginKey,
+      version: parsed.data.version,
+      actorScope: "operator",
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_MARKETPLACE_PREFLIGHT_FAILED") };
+  }
+}
+
+export async function installMarketplacePluginAction(data: z.infer<typeof MarketplaceInstallSchema>) {
+  const parsed = MarketplaceInstallSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveMarketplaceSchoolId(actorId, parsed.data.schoolId);
+    const preflight = await preflightExternalPluginInstall({
+      actorId,
+      schoolId,
+      pluginKey: parsed.data.pluginKey,
+      version: parsed.data.version,
+      actorScope: "operator",
+    });
+    const catalogEntry = listExternalMarketplaceCatalog().find((entry) => entry.pluginKey === parsed.data.pluginKey && entry.manifest.version === parsed.data.version);
+
+    if (!catalogEntry) {
+      return { success: false, error: "PLUGIN_MANIFEST_INVALID" };
+    }
+    if (!preflight.ok) {
+      return { success: false, error: preflight.rejectReason ?? "PLUGIN_MARKETPLACE_PREFLIGHT_FAILED", data: preflight };
+    }
+
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.install",
+      actor: { actorId, actorScope: "operator" },
+      scope: { schoolId, pluginId: catalogEntry.manifest.id },
+      payload: {
+        schoolId,
+        pluginId: catalogEntry.manifest.id,
+        name: catalogEntry.displayName,
+        installSource: "manual",
+        manifestJson: catalogEntry.manifest,
+        marketplace: {
+          pluginKey: parsed.data.pluginKey,
+          version: parsed.data.version,
+          recoveryMode: "fresh",
+        },
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.marketplace-install" },
+    });
+    updateTag(cacheTags.pluginRegistry);
+    const installedPluginId = String((result.data as { pluginId?: string } | null)?.pluginId ?? catalogEntry.manifest.id);
+    updateTag(cacheTags.plugin(installedPluginId));
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(installedPluginId)));
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_MARKETPLACE_INSTALL_FAILED") };
+  }
+}
+
+export async function recoverMarketplacePluginAction(data: z.infer<typeof MarketplaceInstallSchema>) {
+  const parsed = MarketplaceInstallSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveMarketplaceSchoolId(actorId, parsed.data.schoolId);
+    const preflight = await preflightExternalPluginInstall({
+      actorId,
+      schoolId,
+      pluginKey: parsed.data.pluginKey,
+      version: parsed.data.version,
+      actorScope: "operator",
+    });
+    const catalogEntry = listExternalMarketplaceCatalog().find((entry) => entry.pluginKey === parsed.data.pluginKey && entry.manifest.version === parsed.data.version);
+
+    if (!catalogEntry) {
+      return { success: false, error: "PLUGIN_MANIFEST_INVALID" };
+    }
+    if (!preflight.canRecover) {
+      return { success: false, error: preflight.rejectReason ?? "PLUGIN_RECOVERY_NOT_AVAILABLE", data: preflight };
+    }
+
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.install",
+      actor: { actorId, actorScope: "operator" },
+      scope: { schoolId, pluginId: catalogEntry.manifest.id },
+      payload: {
+        schoolId,
+        pluginId: catalogEntry.manifest.id,
+        name: catalogEntry.displayName,
+        installSource: "manual",
+        manifestJson: catalogEntry.manifest,
+        marketplace: {
+          pluginKey: parsed.data.pluginKey,
+          version: parsed.data.version,
+          recoveryMode: "recover",
+        },
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.marketplace-recover" },
+    });
+    updateTag(cacheTags.pluginRegistry);
+    const installedPluginId = String((result.data as { pluginId?: string } | null)?.pluginId ?? catalogEntry.manifest.id);
+    updateTag(cacheTags.plugin(installedPluginId));
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(installedPluginId)));
+    return {
+      success: true,
+      data: {
+        ...result.data,
+        recoveredFromPluginId: preflight.retainedRegistrationId,
+        recoveredDataTakeover: true,
+        recoveryMessage: "已接管保留数据",
+      },
+    };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_MARKETPLACE_RECOVER_FAILED") };
+  }
+}
+
+export async function preflightPluginUpgradeAction(data: z.infer<typeof PluginUpgradeSchema>) {
+  const parsed = PluginUpgradeSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveOperatorSchoolId(actorId, parsed.data.pluginId, parsed.data.schoolId);
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.upgrade.preflight",
+      actor: { actorId, actorScope: "operator" },
+      scope: { schoolId, pluginId: parsed.data.pluginId },
+      payload: { ...parsed.data, schoolId },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.upgrade-preflight" },
+    });
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_UPGRADE_PREFLIGHT_FAILED") };
+  }
+}
+
+export async function upgradePluginAction(data: z.infer<typeof PluginUpgradeSchema>) {
+  const parsed = PluginUpgradeSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveOperatorSchoolId(actorId, parsed.data.pluginId, parsed.data.schoolId);
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.upgrade",
+      actor: { actorId, actorScope: "operator" },
+      scope: { schoolId, pluginId: parsed.data.pluginId },
+      payload: { ...parsed.data, schoolId },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.upgrade" },
+    });
+    updateTag(cacheTags.pluginRegistry);
+    updateTag(cacheTags.plugin(parsed.data.pluginId));
+    const invalidatedQuizStats = ((result.data as { invalidatedSessionIds?: string[] } | null)?.invalidatedSessionIds ?? []);
+    for (const sessionId of invalidatedQuizStats) {
+      updateTag(cacheTags.quizStats(sessionId));
+    }
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId) && !invalidatedQuizStats.map((sessionId) => cacheTags.quizStats(sessionId)).includes(tag)));
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_UPGRADE_FAILED") };
+  }
+}
+
 export async function listExecutableActionCatalogAction(data: z.infer<typeof PluginListSchema>) {
   const parsed = PluginListSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.message };
@@ -676,11 +914,12 @@ export async function preflightUninstallPluginAction(data: z.infer<typeof Plugin
 
   try {
     const actorId = await requireCurrentActorId();
+    const schoolId = await resolveOperatorSchoolId(actorId, parsed.data.pluginId, parsed.data.schoolId);
     const result = await dispatchPluginGovernanceCommand({
       type: "plugin.uninstall.preflight",
-      actor: { actorId, actorScope: "teacher" },
-      scope: { schoolId: parsed.data.schoolId, pluginId: parsed.data.pluginId },
-      payload: parsed.data,
+      actor: { actorId, actorScope: "operator" },
+      scope: { schoolId, pluginId: parsed.data.pluginId },
+      payload: { ...parsed.data, schoolId },
       source: "server-action",
       correlation: { producer: "plugin-actions.uninstall-preflight" },
     });
@@ -691,7 +930,32 @@ export async function preflightUninstallPluginAction(data: z.infer<typeof Plugin
 }
 
 export async function uninstallPluginAction(data: z.infer<typeof UninstallPluginSchema>) {
-  return deletePluginAction(data);
+  const parsed = UninstallPluginSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+
+  try {
+    const actorId = await requireCurrentActorId();
+    const schoolId = await resolveOperatorSchoolId(actorId, parsed.data.pluginId, parsed.data.schoolId);
+    const result = await dispatchPluginGovernanceCommand({
+      type: "plugin.uninstall",
+      actor: { actorId, actorScope: "operator" },
+      scope: { schoolId, pluginId: parsed.data.pluginId },
+      payload: {
+        schoolId,
+        pluginId: parsed.data.pluginId,
+        retentionMode: parsed.data.retentionMode,
+        confirmationToken: parsed.data.confirmationToken,
+      },
+      source: "server-action",
+      correlation: { producer: "plugin-actions.uninstall" },
+    });
+    updateTag(cacheTags.pluginRegistry);
+    updateTag(cacheTags.plugin(parsed.data.pluginId));
+    updateInferredTags(result.invalidationTags.filter((tag) => tag !== cacheTags.pluginRegistry && tag !== cacheTags.plugin(parsed.data.pluginId)));
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: getPluginActionError(error, "PLUGIN_DELETE_FAILED") };
+  }
 }
 
 export async function runPluginHookAction(data: z.infer<typeof RunHookSchema>) {

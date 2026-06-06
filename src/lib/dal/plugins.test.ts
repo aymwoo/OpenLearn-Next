@@ -62,6 +62,7 @@ vi.mock("@/server/plugins/registry", () => ({
 
 const source = readFileSync("src/lib/dal/plugins.ts", "utf8");
 const registrySource = readFileSync("src/server/plugins/registry.ts", "utf8");
+const bootstrapSource = readFileSync("scripts/bootstrap-dev-db.ts", "utf8");
 
 function createManifest(overrides: Record<string, unknown> = {}) {
   return {
@@ -104,12 +105,39 @@ describe("plugin DAL security boundary", () => {
     vi.resetModules();
     vi.clearAllMocks();
 
-    insertValues.mockReturnValue({ returning: insertReturning });
-    updateSet.mockReturnValue({ where: updateWhere });
-    updateWhere.mockReturnValue({ returning: updateReturning });
-    deleteWhere.mockReturnValue({ returning: deleteReturning });
+    findManyPluginRegistrations.mockReset();
+    findFirstPluginRegistrations.mockReset();
+    assertActiveTeacher.mockReset();
+    getUserMembershipsDTO.mockReset();
+    dispatchPluginAction.mockReset();
+    registerThemeTokensMock.mockReset();
+    insertReturning.mockReset();
+    insertValues.mockReset();
+    dbInsert.mockReset();
+    updateReturning.mockReset();
+    updateWhere.mockReset();
+    updateSet.mockReset();
+    dbUpdate.mockReset();
+    deleteReturning.mockReset();
+    deleteWhere.mockReset();
+    dbDelete.mockReset();
+    selectWhere.mockReset();
+    selectFrom.mockReset();
+    dbSelect.mockReset();
+    transactionMock.mockReset();
+
+    dbInsert.mockImplementation(() => ({ values: insertValues }));
+    insertValues.mockImplementation(() => ({ returning: insertReturning }));
+    dbUpdate.mockImplementation(() => ({ set: updateSet }));
+    updateSet.mockImplementation(() => ({ where: updateWhere }));
+    updateWhere.mockImplementation(() => ({ returning: updateReturning }));
+    dbDelete.mockImplementation(() => ({ where: deleteWhere }));
+    deleteWhere.mockImplementation(() => ({ returning: deleteReturning }));
+    dbSelect.mockImplementation(() => ({ from: selectFrom }));
+    selectFrom.mockImplementation(() => ({ where: selectWhere }));
     selectWhere.mockResolvedValue([]);
     transactionMock.mockImplementation(async (callback) => callback({
+      select: dbSelect,
       insert: dbInsert,
       update: dbUpdate,
       delete: dbDelete,
@@ -191,9 +219,10 @@ describe("plugin DAL security boundary", () => {
     expect(source).toContain("requiredPermission");
     expect(source).toContain("denied: true");
     expect(source).toContain("plugin.schoolId !== input.schoolId");
-    expect(source).toContain("await createHookRun");
-    expect(source).toContain("await createPluginAudit");
-    expect(source).toContain("await createGovernanceAudit");
+    expect(source).toContain("await runBestEffortPluginObservation");
+    expect(source).toContain('"hook-run"');
+    expect(source).toContain('"plugin-audit"');
+    expect(source).toContain('"governance-audit"');
   });
 
   it("persists lifecycle transitions and governance audit metadata", () => {
@@ -309,7 +338,7 @@ describe("plugin DAL security boundary", () => {
   it("rejects manual duplicate pluginKey installs with explicit conflict tokens", async () => {
     const { installOrReconcilePlugin, PLUGIN_KEY_CONFLICT } = await import("./plugins");
 
-    findManyPluginRegistrations.mockResolvedValueOnce([
+    selectWhere.mockResolvedValueOnce([
       createPluginRecord({ id: "plugin-existing", pluginKey: "vendor/plugin-name", dbNamespace: "vendor_plugin_name" }),
     ]);
 
@@ -327,7 +356,7 @@ describe("plugin DAL security boundary", () => {
   it("rejects same-school namespace collisions with explicit conflict tokens", async () => {
     const { installOrReconcilePlugin, PLUGIN_DB_NAMESPACE_CONFLICT } = await import("./plugins");
 
-    findManyPluginRegistrations.mockResolvedValueOnce([
+    selectWhere.mockResolvedValueOnce([
       createPluginRecord({
         id: "plugin-existing",
         pluginKey: "vendor--plugin..name",
@@ -349,7 +378,7 @@ describe("plugin DAL security boundary", () => {
   it("reconciles existing plugin rows in place without changing operator-managed posture", async () => {
     const { installOrReconcilePlugin } = await import("./plugins");
 
-    findManyPluginRegistrations.mockResolvedValueOnce([
+    selectWhere.mockResolvedValueOnce([
       createPluginRecord({
         id: "plugin-existing",
         name: "Old Name",
@@ -402,7 +431,7 @@ describe("plugin DAL security boundary", () => {
   it("rejects namespace overrides once a plugin namespace is frozen", async () => {
     const { installOrReconcilePlugin, PLUGIN_DB_NAMESPACE_FROZEN } = await import("./plugins");
 
-    findManyPluginRegistrations.mockResolvedValueOnce([
+    selectWhere.mockResolvedValueOnce([
       createPluginRecord({ id: "plugin-existing", dbNamespace: "vendor_plugin_name" }),
     ]);
 
@@ -424,6 +453,14 @@ describe("plugin DAL security boundary", () => {
     expect(registrySource).toContain('addStepSuggestion: "lesson:write:suggestion"');
     expect(registrySource).toContain('annotateLesson: "lesson:write:annotation"');
     expect(registrySource).toContain('createNotificationStub: "notification:create:stub"');
+  });
+
+  it("registers the quiz sample built-in through the bootstrap install path", () => {
+    expect(bootstrapSource).toContain('name: "互动答题（样板）"');
+    expect(bootstrapSource).toContain('id: "builtin-teaching-step-quiz-sample"');
+    expect(bootstrapSource).toContain("builtIn: true");
+    expect(bootstrapSource).toContain("defaultEnabled: true");
+    expect(bootstrapSource).toContain('installSource: "bootstrap"');
   });
 
   it("exposes getPluginIdentityMetadataForSchool with correct authentication and DTO fields", async () => {
@@ -720,6 +757,7 @@ describe("plugin DAL security boundary", () => {
 
     await installOrReconcilePluginWithTx({
       tx: {
+        select: dbSelect,
         insert: dbInsert,
         update: dbUpdate,
         delete: dbDelete,
@@ -733,6 +771,168 @@ describe("plugin DAL security boundary", () => {
     });
 
     expect(assertActiveTeacher).not.toHaveBeenCalled();
+  });
+
+  it("lists checked-in external marketplace catalog entries", async () => {
+    const { listExternalMarketplaceCatalog } = await import("./plugins");
+
+    const result = listExternalMarketplaceCatalog();
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          pluginKey: "external-marketplace.quiz-sample",
+          displayName: "互动答题（外部插件）",
+          manifest: expect.objectContaining({
+            id: "external-marketplace.quiz-sample",
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it("preflights external install with explicit reject reasons and retained recovery posture", async () => {
+    const { preflightExternalPluginInstall } = await import("./plugins");
+
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      createPluginRecord({
+        id: "plugin-retained",
+        pluginKey: "external-marketplace.quiz-sample",
+        dbNamespace: "external_marketplace_quiz_sample",
+        sourceType: "external",
+        uninstallRetentionMode: "retain",
+        uninstalledAt: new Date("2026-05-22T00:00:00Z"),
+      }),
+    ]);
+
+    const retained = await preflightExternalPluginInstall({
+      actorId: "teacher-1",
+      schoolId: "school-1",
+      pluginKey: "external-marketplace.quiz-sample",
+      version: "1.0.0",
+    });
+
+    expect(retained).toMatchObject({
+      ok: true,
+      canRecover: true,
+      retainedRegistrationId: "plugin-retained",
+      dbNamespace: "external_marketplace_quiz_sample",
+    });
+
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      createPluginRecord({
+        id: "plugin-conflict",
+        pluginKey: "external-marketplace.quiz-sample",
+        dbNamespace: "external_marketplace_quiz_sample",
+      }),
+    ]);
+
+    const conflict = await preflightExternalPluginInstall({
+      actorId: "teacher-1",
+      schoolId: "school-1",
+      pluginKey: "external-marketplace.quiz-sample",
+      version: "1.0.0",
+    });
+
+    expect(conflict).toMatchObject({
+      ok: false,
+      rejectReason: "PLUGIN_KEY_CONFLICT",
+      canRecover: false,
+    });
+  });
+
+  it("rejects external install preflight when catalog entry is missing", async () => {
+    const { preflightExternalPluginInstall } = await import("./plugins");
+
+    const result = await preflightExternalPluginInstall({
+      actorId: "teacher-1",
+      schoolId: "school-1",
+      pluginKey: "missing-marketplace-plugin",
+      version: "9.9.9",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      rejectReason: "PLUGIN_MANIFEST_INVALID",
+      canRecover: false,
+    });
+  });
+
+  it("retained recovery creates a new plugin identity and rewrites owned rows", async () => {
+    const { recoverRetainedPluginInstallWithTx } = await import("./plugins");
+
+    const txUpdateWhere = vi.fn(() => ({ returning: updateReturning }));
+    const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
+    const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
+    const txSelectLimit = vi.fn().mockResolvedValue([
+      createPluginRecord({
+        id: "plugin-retained",
+        pluginKey: "external-marketplace.quiz-sample",
+        dbNamespace: "external_marketplace_quiz_sample",
+        sourceType: "external",
+        uninstallRetentionMode: "retain",
+        uninstalledAt: new Date("2026-05-22T00:00:00Z"),
+      }),
+    ]);
+    const txSelectWhere = vi.fn()
+      .mockImplementationOnce(() => ({ limit: txSelectLimit }))
+      .mockResolvedValueOnce([]);
+    const txSelectFrom = vi.fn(() => ({ where: txSelectWhere }));
+    const txSelect = vi.fn(() => ({ from: txSelectFrom }));
+
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      createPluginRecord({
+        id: "plugin-retained",
+        pluginKey: "external-marketplace.quiz-sample",
+        dbNamespace: "external_marketplace_quiz_sample",
+        sourceType: "external",
+        uninstallRetentionMode: "retain",
+        uninstalledAt: new Date("2026-05-22T00:00:00Z"),
+      }),
+    ]);
+    findFirstPluginRegistrations.mockResolvedValueOnce(createPluginRecord({
+      id: "plugin-retained",
+      pluginKey: "external-marketplace.quiz-sample",
+      dbNamespace: "external_marketplace_quiz_sample",
+      sourceType: "external",
+      uninstallRetentionMode: "retain",
+      uninstalledAt: new Date("2026-05-22T00:00:00Z"),
+    }));
+    insertReturning.mockResolvedValueOnce([
+      createPluginRecord({
+        id: "plugin-reinstalled",
+        pluginKey: "external-marketplace.quiz-sample",
+        dbNamespace: "external_marketplace_quiz_sample",
+        sourceType: "external",
+      }),
+    ]);
+
+    const result = await recoverRetainedPluginInstallWithTx({
+      actorId: "teacher-1",
+      schoolId: "school-1",
+      pluginKey: "external-marketplace.quiz-sample",
+      version: "1.0.0",
+      tx: {
+        select: txSelect,
+        insert: dbInsert,
+        update: txUpdate,
+        delete: dbDelete,
+      } as never,
+    });
+
+    expect(result).toMatchObject({
+      id: "plugin-reinstalled",
+      recoveredFromPluginId: "plugin-retained",
+      recoveredDataTakeover: true,
+    });
+    expect(txUpdate).toHaveBeenCalledTimes(8);
+    expect(txUpdateSet).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      pluginKey: expect.stringContaining("#retained:plugin-retained"),
+      dbNamespace: expect.stringContaining("external_marketplace"),
+    }));
+    expect(txUpdateSet).toHaveBeenCalledWith(expect.objectContaining({
+      pluginId: "plugin-reinstalled",
+    }));
   });
 
   it("preflights uninstall counts across all plugin-owned physical tables", async () => {
@@ -789,7 +989,7 @@ describe("plugin DAL security boundary", () => {
 
     const records = await listPluginGovernanceSnapshotRecords({
       schoolId: "school-1",
-      actorId: "teacher-1",
+      actorId: "student-1",
     });
 
     expect(records).toMatchObject([
@@ -802,7 +1002,7 @@ describe("plugin DAL security boundary", () => {
         uninstall: {
           blocked: false,
           totalCount: 0,
-          cleanupConfirmationToken: "cleanup:plugin-1:0:0:0:0:0",
+          cleanupConfirmationToken: "cleanup:plugin-1:0:0:0:0:0:0:0:0",
         },
       },
     ]);
@@ -834,6 +1034,26 @@ describe("plugin DAL security boundary", () => {
         uninstallRetentionMode: "retain",
       },
     ]);
+  });
+
+  it("allows active student memberships to read governance snapshot rows", async () => {
+    const { listPluginGovernanceSnapshotRecords } = await import("./plugins");
+
+    getUserMembershipsDTO.mockResolvedValueOnce([
+      { schoolId: "school-1", role: "student", status: "active" },
+    ]);
+    findManyPluginRegistrations.mockResolvedValueOnce([
+      createPluginRecord({ enabled: true, lifecycleState: "ready" }),
+    ]);
+    selectWhere.mockResolvedValue([]);
+
+    const records = await listPluginGovernanceSnapshotRecords({
+      schoolId: "school-1",
+      actorId: "teacher-1",
+    });
+
+    expect(records).toHaveLength(1);
+    expect(records[0]?.pluginKey).toBe("vendor/plugin-name");
   });
 
   it("blocks default plugin uninstall in preflight and operation", async () => {
@@ -874,7 +1094,7 @@ describe("plugin DAL security boundary", () => {
       schoolId: "school-1",
       actorId: "teacher-1",
       retentionMode: "cleanup",
-      confirmationToken: "cleanup:plugin-1:1:0:0:0:1",
+      confirmationToken: "cleanup:plugin-1:1:0:0:0:0:0:0:1",
     } as never);
 
     expect(dbDelete).toHaveBeenCalled();
@@ -898,7 +1118,7 @@ describe("plugin DAL security boundary", () => {
     });
 
     expect(result).toMatchObject({
-      cleanupConfirmationToken: "cleanup:plugin-1:1:2:2:1:6",
+      cleanupConfirmationToken: "cleanup:plugin-1:1:2:2:1:0:0:0:6",
     });
   });
 
@@ -974,7 +1194,7 @@ describe("plugin DAL security boundary", () => {
         schoolId: "school-1",
         actorId: "teacher-1",
         retentionMode: "cleanup",
-        confirmationToken: "cleanup:plugin-1:0:0:0:0:0",
+        confirmationToken: "cleanup:plugin-1:0:0:0:0:0:0:0:0",
       } as never),
     ).rejects.toThrow("PLUGIN_CLEANUP_CONFIRMATION_REQUIRED");
   });

@@ -1,9 +1,13 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import { and, eq } from "drizzle-orm";
+import { gt, valid } from "semver";
 
 import { db } from "@/db";
 import {
+  classroomSessions,
   courses,
   lessons,
   lessonSteps,
@@ -14,7 +18,9 @@ import {
   publishedLessonVersions,
   resources,
 } from "@/db/schema";
+import { pluginOwnedQuizQuestions, pluginOwnedQuizResponses } from "@/db/schema/generated/plugin-owned/quiz";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
+import { getUserMembershipsDTO } from "@/lib/dal/membership";
 
 type JsonObject = Record<string, unknown>;
 
@@ -38,8 +44,31 @@ async function assertTeacherManagerScope(actorId: string, schoolId: string) {
   return scope;
 }
 
-function ownedCourseScope(scope: Awaited<ReturnType<typeof assertTeacherManagerScope>>, schoolId: string) {
-  return and(eq(courses.schoolId, schoolId), eq(courses.ownerId, scope.userId));
+async function assertMarketplaceManagerScope(actorId: string, schoolId: string, actorScope?: string) {
+  if (actorScope === "operator") {
+    if (!actorId?.trim()) {
+      throw new Error("PLUGIN_ACTOR_REQUIRED");
+    }
+
+    const memberships = await getUserMembershipsDTO(actorId);
+    const hasOperatorMembership = memberships.some((membership) =>
+      membership.schoolId === schoolId
+      && membership.status === "active"
+      && (membership.role === "admin" || membership.role === "developer")
+    );
+
+    if (!hasOperatorMembership) {
+      throw new Error("OPERATOR_AUTH_REQUIRED");
+    }
+
+    return;
+  }
+
+  await assertTeacherManagerScope(actorId, schoolId);
+}
+
+function schoolCourseScope(schoolId: string) {
+  return eq(courses.schoolId, schoolId);
 }
 
 export interface MigrationResult {
@@ -48,6 +77,45 @@ export interface MigrationResult {
   failed: number;
   errors: Array<{ entityId: string; reason: string }>;
 }
+
+type MigrationDbExecutor = typeof db;
+
+export type PluginUpgradePreflightResult = {
+  pluginId: string;
+  schoolId: string;
+  currentVersion: string;
+  targetVersion: string;
+  hasOwnedQuizData: boolean;
+  stages: Array<"backfill" | "verify" | "cutover">;
+  blockers: string[];
+  statsParityPreview: {
+    questionCount: number;
+    responseCount: number;
+    latestResponseHash: string;
+  };
+  activeSessions: Array<{
+    sessionId: string;
+    lessonId: string;
+    classId: string;
+    status: "live";
+  }>;
+};
+
+export type PluginUpgradeExecutionResult = {
+  pluginId: string;
+  schoolId: string;
+  currentVersion: string;
+  targetVersion: string;
+  upgraded: boolean;
+  verifyPassed: boolean;
+  lifecycleState: "installed" | "enabled" | "mounted" | "ready" | "suspended" | "disabled" | "failed";
+  stages: Array<{
+    name: "backfill" | "verify" | "cutover";
+    status: "completed" | "failed" | "skipped";
+  }>;
+  failureDetail: string | null;
+  invalidatedSessionIds: string[];
+};
 
 /**
  * deepEquals 辅助方法，用于判断两个复杂 JSON 对象是否一致
@@ -98,6 +166,38 @@ function extractResourcePluginPayload(content: string | null, pluginKey: string)
   }
 }
 
+function buildLatestQuizResponseHash(rows: Array<{ classroomSession: string; student: string; question: string; selectedOption: string; isLatest: boolean }>) {
+  const latestRows = rows
+    .filter((row) => row.isLatest)
+    .sort((left, right) => `${left.classroomSession}:${left.student}:${left.question}`.localeCompare(`${right.classroomSession}:${right.student}:${right.question}`));
+
+  return createHash("sha256").update(JSON.stringify(latestRows)).digest("hex");
+}
+
+async function listUpgradeActiveSessions(schoolId: string, pluginId: string) {
+  const rows = await db
+    .select({
+      sessionId: classroomSessions.id,
+      lessonId: classroomSessions.lessonId,
+      classId: classroomSessions.classId,
+      status: classroomSessions.status,
+    })
+    .from(pluginOwnedQuizQuestions)
+    .innerJoin(classroomSessions, eq(pluginOwnedQuizQuestions.classroomSession, classroomSessions.id))
+    .where(and(
+      eq(pluginOwnedQuizQuestions.schoolId, schoolId),
+      eq(pluginOwnedQuizQuestions.pluginId, pluginId),
+      eq(classroomSessions.status, "live"),
+    ));
+
+  return rows.map((row) => ({
+    sessionId: String(row.sessionId),
+    lessonId: String(row.lessonId),
+    classId: String(row.classId),
+    status: "live" as const,
+  }));
+}
+
 function physicalPayloadMatches(
   legacyPayload: unknown,
   physicalPayload: unknown,
@@ -117,12 +217,14 @@ export async function backfillPluginJsonToSchema(
   schoolId: string,
   pluginId: string,
   entityType: "lesson" | "step" | "resource",
+  executor: MigrationDbExecutor = db,
+  actorScope?: string,
 ): Promise<MigrationResult> {
   // 1. 鉴权
-  const scope = await assertTeacherManagerScope(actorId, schoolId);
+  await assertMarketplaceManagerScope(actorId, schoolId, actorScope);
 
   // 2. 捞取插件登记稳定身份
-  const [pluginReg] = await db
+  const [pluginReg] = await executor
     .select({ pluginKey: pluginRegistrations.pluginKey, schoolId: pluginRegistrations.schoolId })
     .from(pluginRegistrations)
     .where(eq(pluginRegistrations.id, pluginId))
@@ -137,12 +239,12 @@ export async function backfillPluginJsonToSchema(
 
   // 3. 根据 entityType 路由
   if (entityType === "lesson") {
-    const list = await db
+      const list = await executor
       .select({ id: lessons.id, snapshotJson: publishedLessonVersions.snapshotJson })
       .from(lessons)
       .innerJoin(publishedLessonVersions, eq(lessons.publishedVersionId, publishedLessonVersions.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
-      .where(ownedCourseScope(scope, schoolId));
+      .where(schoolCourseScope(schoolId));
 
     for (const item of list) {
       const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey);
@@ -150,7 +252,7 @@ export async function backfillPluginJsonToSchema(
         result.processed++;
         try {
           const extracted = payload[pluginKey];
-          await db
+          await executor
             .insert(pluginLessonExtensions)
             .values({
               schoolId,
@@ -177,12 +279,12 @@ export async function backfillPluginJsonToSchema(
       }
     }
   } else if (entityType === "step") {
-    const list = await db
+      const list = await executor
       .select({ id: lessonSteps.id, payloadJson: lessonSteps.payloadJson })
       .from(lessonSteps)
       .innerJoin(lessons, eq(lessonSteps.lessonId, lessons.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
-      .where(ownedCourseScope(scope, schoolId));
+      .where(schoolCourseScope(schoolId));
 
     for (const item of list) {
       const payload = item.payloadJson as JsonObject;
@@ -190,7 +292,7 @@ export async function backfillPluginJsonToSchema(
         result.processed++;
         try {
           const extracted = payload[pluginKey];
-          await db
+          await executor
             .insert(pluginLessonStepExtensions)
             .values({
               schoolId,
@@ -217,7 +319,7 @@ export async function backfillPluginJsonToSchema(
       }
     }
   } else if (entityType === "resource") {
-    const list = await db
+      const list = await executor
       .select({ id: resources.id, content: resources.content })
       .from(resources)
       .where(eq(resources.schoolId, schoolId));
@@ -228,7 +330,7 @@ export async function backfillPluginJsonToSchema(
         result.processed++;
         try {
           const extracted = payload[pluginKey];
-          await db
+          await executor
             .insert(pluginResourceExtensions)
             .values({
               schoolId,
@@ -267,11 +369,13 @@ export async function verifyBackfillData(
   schoolId: string,
   pluginId: string,
   entityType: "lesson" | "step" | "resource",
+  executor: MigrationDbExecutor = db,
+  actorScope?: string,
 ): Promise<{ matches: boolean; mismatches: string[] }> {
   // 1. 鉴权
-  const scope = await assertTeacherManagerScope(actorId, schoolId);
+  await assertMarketplaceManagerScope(actorId, schoolId, actorScope);
 
-  const [pluginReg] = await db
+  const [pluginReg] = await executor
     .select({ pluginKey: pluginRegistrations.pluginKey, schoolId: pluginRegistrations.schoolId })
     .from(pluginRegistrations)
     .where(eq(pluginRegistrations.id, pluginId))
@@ -285,18 +389,18 @@ export async function verifyBackfillData(
   const mismatches: string[] = [];
 
   if (entityType === "lesson") {
-    const list = await db
+      const list = await executor
       .select({ id: lessons.id, snapshotJson: publishedLessonVersions.snapshotJson })
       .from(lessons)
       .innerJoin(publishedLessonVersions, eq(lessons.publishedVersionId, publishedLessonVersions.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
-      .where(ownedCourseScope(scope, schoolId));
+      .where(schoolCourseScope(schoolId));
 
     for (const item of list) {
       const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey);
       if (payload && typeof payload === "object" && pluginKey in payload) {
         const legacyVal = payload[pluginKey];
-        const [physicalRow] = await db
+        const [physicalRow] = await executor
           .select({ payloadJson: pluginLessonExtensions.payloadJson })
           .from(pluginLessonExtensions)
           .where(
@@ -314,18 +418,18 @@ export async function verifyBackfillData(
       }
     }
   } else if (entityType === "step") {
-    const list = await db
+      const list = await executor
       .select({ id: lessonSteps.id, payloadJson: lessonSteps.payloadJson })
       .from(lessonSteps)
       .innerJoin(lessons, eq(lessonSteps.lessonId, lessons.id))
       .innerJoin(courses, eq(lessons.courseId, courses.id))
-      .where(ownedCourseScope(scope, schoolId));
+      .where(schoolCourseScope(schoolId));
 
     for (const item of list) {
       const payload = item.payloadJson as JsonObject;
       if (payload && typeof payload === "object" && pluginKey in payload) {
         const legacyVal = payload[pluginKey];
-        const [physicalRow] = await db
+        const [physicalRow] = await executor
           .select({ payloadJson: pluginLessonStepExtensions.payloadJson })
           .from(pluginLessonStepExtensions)
           .where(
@@ -343,7 +447,7 @@ export async function verifyBackfillData(
       }
     }
   } else if (entityType === "resource") {
-    const list = await db
+      const list = await executor
       .select({ id: resources.id, content: resources.content })
       .from(resources)
       .where(eq(resources.schoolId, schoolId));
@@ -352,7 +456,7 @@ export async function verifyBackfillData(
       const payload = extractResourcePluginPayload(item.content, pluginKey);
       if (payload && typeof payload === "object" && pluginKey in payload) {
         const legacyVal = payload[pluginKey];
-        const [physicalRow] = await db
+        const [physicalRow] = await executor
           .select({ payloadJson: pluginResourceExtensions.payloadJson })
           .from(pluginResourceExtensions)
           .where(
@@ -386,19 +490,21 @@ export async function cutoverPluginJsonToSchema(
   schoolId: string,
   pluginId: string,
   entityType: "lesson" | "step" | "resource",
+  executor: MigrationDbExecutor = db,
+  actorScope?: string,
 ): Promise<MigrationResult> {
   // 1. 鉴权
-  const scope = await assertTeacherManagerScope(actorId, schoolId);
+  await assertMarketplaceManagerScope(actorId, schoolId, actorScope);
 
   // 2. 前置校验数据完整性 (Verify)
-  const verifyRes = await verifyBackfillData(actorId, schoolId, pluginId, entityType);
+  const verifyRes = await verifyBackfillData(actorId, schoolId, pluginId, entityType, executor, actorScope);
   if (!verifyRes.matches) {
     throw new Error(
       `CUTOVER_ABORTED: Verification failed for mismatching entity IDs: ${verifyRes.mismatches.join(", ")}`,
     );
   }
 
-  const [pluginReg] = await db
+  const [pluginReg] = await executor
     .select({ pluginKey: pluginRegistrations.pluginKey, schoolId: pluginRegistrations.schoolId })
     .from(pluginRegistrations)
     .where(eq(pluginRegistrations.id, pluginId))
@@ -412,14 +518,14 @@ export async function cutoverPluginJsonToSchema(
   const result: MigrationResult = { processed: 0, succeeded: 0, failed: 0, errors: [] };
 
   // 3. 物理数据库事务割接 (DDL 审计防护，仅使用 DML)
-  await db.transaction(async (tx) => {
+  await executor.transaction(async (tx) => {
     if (entityType === "lesson") {
       const list = await tx
         .select({ id: lessons.id, publishedVersionId: publishedLessonVersions.id, snapshotJson: publishedLessonVersions.snapshotJson })
         .from(lessons)
         .innerJoin(publishedLessonVersions, eq(lessons.publishedVersionId, publishedLessonVersions.id))
         .innerJoin(courses, eq(lessons.courseId, courses.id))
-        .where(ownedCourseScope(scope, schoolId));
+        .where(schoolCourseScope(schoolId));
 
       for (const item of list) {
         const payload = extractLessonPluginPayload(item.snapshotJson, pluginKey);
@@ -478,7 +584,7 @@ export async function cutoverPluginJsonToSchema(
         .from(lessonSteps)
         .innerJoin(lessons, eq(lessonSteps.lessonId, lessons.id))
         .innerJoin(courses, eq(lessons.courseId, courses.id))
-        .where(ownedCourseScope(scope, schoolId));
+        .where(schoolCourseScope(schoolId));
 
       for (const item of list) {
         const payload = item.payloadJson as JsonObject;
@@ -570,4 +676,159 @@ export async function cutoverPluginJsonToSchema(
   });
 
   return result;
+}
+
+export async function preflightPluginUpgrade(input: {
+  actorId: string;
+  schoolId: string;
+  pluginId: string;
+  targetVersion: string;
+  actorScope?: string;
+}) : Promise<PluginUpgradePreflightResult> {
+  await assertMarketplaceManagerScope(input.actorId, input.schoolId, input.actorScope);
+
+  const [pluginReg] = await db
+    .select({ manifestJson: pluginRegistrations.manifestJson, schoolId: pluginRegistrations.schoolId, lifecycleState: pluginRegistrations.lifecycleState })
+    .from(pluginRegistrations)
+    .where(eq(pluginRegistrations.id, input.pluginId))
+    .limit(1);
+
+  if (!pluginReg || pluginReg.schoolId !== input.schoolId) {
+    throw new Error("PLUGIN_NOT_FOUND");
+  }
+
+  const currentVersion = String((pluginReg.manifestJson as { version?: unknown } | null)?.version ?? "0.0.0");
+  const normalizedCurrentVersion = valid(currentVersion);
+  const normalizedTargetVersion = valid(input.targetVersion);
+  const activeSessions = await listUpgradeActiveSessions(input.schoolId, input.pluginId);
+  const [questionRows, responseRows] = await Promise.all([
+    db.select({ classroomSession: pluginOwnedQuizQuestions.classroomSession }).from(pluginOwnedQuizQuestions).where(and(eq(pluginOwnedQuizQuestions.schoolId, input.schoolId), eq(pluginOwnedQuizQuestions.pluginId, input.pluginId))),
+    db.select({ classroomSession: pluginOwnedQuizResponses.classroomSession, student: pluginOwnedQuizResponses.student, question: pluginOwnedQuizResponses.question, selectedOption: pluginOwnedQuizResponses.selectedOption, isLatest: pluginOwnedQuizResponses.isLatest }).from(pluginOwnedQuizResponses).where(and(eq(pluginOwnedQuizResponses.schoolId, input.schoolId), eq(pluginOwnedQuizResponses.pluginId, input.pluginId))),
+  ]);
+
+  const blockers = [
+    ...(activeSessions.length > 0 ? ["PLUGIN_ACTIVE_CLASSROOM_BLOCKED"] : []),
+    ...(!normalizedCurrentVersion || !normalizedTargetVersion || !gt(normalizedTargetVersion, normalizedCurrentVersion) ? ["PLUGIN_UPGRADE_VERSION_INVALID"] : []),
+  ];
+
+  return {
+    pluginId: input.pluginId,
+    schoolId: input.schoolId,
+    currentVersion,
+    targetVersion: input.targetVersion,
+    hasOwnedQuizData: questionRows.length > 0 || responseRows.length > 0,
+    stages: ["backfill", "verify", "cutover"],
+    blockers,
+    statsParityPreview: {
+      questionCount: questionRows.length,
+      responseCount: responseRows.length,
+      latestResponseHash: buildLatestQuizResponseHash(responseRows.map((row) => ({
+        classroomSession: String(row.classroomSession),
+        student: String(row.student),
+        question: String(row.question),
+        selectedOption: String(row.selectedOption),
+        isLatest: Boolean(row.isLatest),
+      }))),
+    },
+    activeSessions,
+  };
+}
+
+export async function executePluginUpgradeWithTx(input: {
+  actorId: string;
+  schoolId: string;
+  pluginId: string;
+  targetVersion: string;
+  tx: unknown;
+  actorScope?: string;
+  commandContext?: { commandId: string; correlationId: string; attemptNumber: number };
+}) : Promise<PluginUpgradeExecutionResult> {
+  const preflight = await preflightPluginUpgrade({
+    actorId: input.actorId,
+    schoolId: input.schoolId,
+    pluginId: input.pluginId,
+    targetVersion: input.targetVersion,
+    actorScope: input.actorScope,
+  });
+
+  if (preflight.blockers.length > 0) {
+    throw new Error(preflight.blockers[0] ?? "PLUGIN_UPGRADE_BLOCKED");
+  }
+
+  const stages: PluginUpgradeExecutionResult["stages"] = [
+    { name: "backfill", status: "completed" },
+    { name: "verify", status: "completed" },
+    { name: "cutover", status: "skipped" },
+  ];
+
+  await backfillPluginJsonToSchema(input.actorId, input.schoolId, input.pluginId, "lesson", input.tx as MigrationDbExecutor, input.actorScope);
+  await backfillPluginJsonToSchema(input.actorId, input.schoolId, input.pluginId, "step", input.tx as MigrationDbExecutor, input.actorScope);
+  await backfillPluginJsonToSchema(input.actorId, input.schoolId, input.pluginId, "resource", input.tx as MigrationDbExecutor, input.actorScope);
+
+  const verifyResults = await Promise.all([
+    verifyBackfillData(input.actorId, input.schoolId, input.pluginId, "lesson", input.tx as MigrationDbExecutor, input.actorScope),
+    verifyBackfillData(input.actorId, input.schoolId, input.pluginId, "step", input.tx as MigrationDbExecutor, input.actorScope),
+    verifyBackfillData(input.actorId, input.schoolId, input.pluginId, "resource", input.tx as MigrationDbExecutor, input.actorScope),
+  ]);
+
+  if (verifyResults.some((result) => !result.matches)) {
+    stages[1] = { name: "verify", status: "failed" };
+    return {
+      pluginId: input.pluginId,
+      schoolId: input.schoolId,
+      currentVersion: preflight.currentVersion,
+      targetVersion: input.targetVersion,
+      upgraded: false,
+      verifyPassed: false,
+      lifecycleState: "enabled",
+      stages,
+      failureDetail: "VERIFY_FAILED",
+      invalidatedSessionIds: preflight.activeSessions.map((session) => session.sessionId),
+    };
+  }
+
+  await cutoverPluginJsonToSchema(input.actorId, input.schoolId, input.pluginId, "lesson", input.tx as MigrationDbExecutor, input.actorScope);
+  await cutoverPluginJsonToSchema(input.actorId, input.schoolId, input.pluginId, "step", input.tx as MigrationDbExecutor, input.actorScope);
+  await cutoverPluginJsonToSchema(input.actorId, input.schoolId, input.pluginId, "resource", input.tx as MigrationDbExecutor, input.actorScope);
+  stages[2] = { name: "cutover", status: "completed" };
+
+  const [pluginReg] = await (input.tx as MigrationDbExecutor)
+    .select({
+      manifestJson: pluginRegistrations.manifestJson,
+      lifecycleState: pluginRegistrations.lifecycleState,
+      dataVersion: pluginRegistrations.dataVersion,
+    })
+    .from(pluginRegistrations)
+    .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
+    .limit(1);
+
+  if (!pluginReg) {
+    throw new Error("PLUGIN_NOT_FOUND");
+  }
+
+  await (input.tx as MigrationDbExecutor)
+    .update(pluginRegistrations)
+    .set({
+      manifestJson: {
+        ...(pluginReg.manifestJson as Record<string, unknown>),
+        version: input.targetVersion,
+      },
+      dataVersion: Number(pluginReg.dataVersion ?? 1) + 1,
+      lifecycleState: pluginReg.lifecycleState,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)));
+
+  return {
+    pluginId: input.pluginId,
+    schoolId: input.schoolId,
+    currentVersion: preflight.currentVersion,
+    targetVersion: input.targetVersion,
+    upgraded: true,
+    verifyPassed: true,
+    lifecycleState: "enabled",
+    stages,
+    failureDetail: null,
+    invalidatedSessionIds: preflight.activeSessions.map((session) => session.sessionId),
+  };
 }

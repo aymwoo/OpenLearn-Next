@@ -15,6 +15,9 @@ const mockGovernanceProducer = vi.hoisted(() => ({
 const mockPluginDAL = vi.hoisted(() => ({
   listPluginsForSchool: vi.fn(),
   getPluginForSchool: vi.fn(),
+  getPluginForMarketplace: vi.fn(),
+  listExternalMarketplaceCatalog: vi.fn(),
+  preflightExternalPluginInstall: vi.fn(),
   runPluginHook: vi.fn(),
 }));
 
@@ -80,12 +83,18 @@ describe("plugin-actions", () => {
     mockGovernanceProducer.dispatchPluginGovernanceCommand.mockReset();
     mockPluginDAL.listPluginsForSchool.mockReset();
     mockPluginDAL.getPluginForSchool.mockReset();
+    mockPluginDAL.getPluginForMarketplace.mockReset();
+    mockPluginDAL.listExternalMarketplaceCatalog.mockReset();
+    mockPluginDAL.preflightExternalPluginInstall.mockReset();
     mockPluginDAL.runPluginHook.mockReset();
     mockRegistryReads.readExecutableActionCatalog.mockReset();
     mockRegistryReads.readBlockedActionDiagnostics.mockReset();
     mockRegistryReads.readPluginGovernanceLifecycle.mockReset();
     getCurrentUserDTOMock.mockResolvedValue({ id: "user-1", name: "Teacher" });
-    getUserMembershipsDTOMock.mockResolvedValue([{ schoolId: "school-1", status: "active", role: "teacher" }]);
+    getUserMembershipsDTOMock.mockResolvedValue([
+      { schoolId: "school-1", status: "active", role: "teacher" },
+      { schoolId: "school-1", status: "active", role: "admin" },
+    ]);
     mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValue({
       success: true,
       data: mockPluginDTO,
@@ -94,6 +103,32 @@ describe("plugin-actions", () => {
       invalidationTags: ["plugin:registry", "plugin:plugin-1"],
     });
     mockPluginDAL.getPluginForSchool.mockResolvedValue(mockPluginDTO);
+    mockPluginDAL.getPluginForMarketplace.mockResolvedValue(mockPluginDTO);
+    mockPluginDAL.listExternalMarketplaceCatalog.mockReturnValue([
+      {
+        pluginKey: "external-marketplace.quiz-sample",
+        displayName: "互动答题（外部插件）",
+        manifest: {
+          ...mockManifest,
+          id: "external-marketplace.quiz-sample",
+          version: "1.0.0",
+        },
+        dataModel: { tables: [] },
+      },
+    ]);
+    mockPluginDAL.preflightExternalPluginInstall.mockResolvedValue({
+      ok: true,
+      pluginKey: "external-marketplace.quiz-sample",
+      version: "1.0.0",
+      sourceType: "external",
+      builtIn: false,
+      dbNamespace: "external_marketplace_quiz_sample",
+      requestedPermissions: [],
+      declaredDataTables: [],
+      rejectReason: null,
+      canRecover: false,
+      retainedRegistrationId: null,
+    });
     mockRegistryReads.readExecutableActionCatalog.mockResolvedValue([]);
     mockRegistryReads.readBlockedActionDiagnostics.mockResolvedValue([]);
     mockRegistryReads.readPluginGovernanceLifecycle.mockResolvedValue(null);
@@ -210,6 +245,148 @@ describe("plugin-actions", () => {
       });
 
       expect(result).toMatchObject({ success: false, error: "PLUGIN_DB_NAMESPACE_CONFLICT" });
+    });
+  });
+
+  describe("marketplace lifecycle actions", () => {
+    it("lists checked-in marketplace catalog for authenticated users", async () => {
+      const { listMarketplaceCatalogAction } = await import("./plugin-actions");
+
+      const result = await listMarketplaceCatalogAction({ schoolId: "school-1" });
+
+      expect(result).toMatchObject({
+        success: true,
+        data: [
+          expect.objectContaining({
+            pluginKey: "external-marketplace.quiz-sample",
+            displayName: "互动答题（外部插件）",
+          }),
+        ],
+      });
+      expect(mockPluginDAL.listExternalMarketplaceCatalog).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns named preflight result for marketplace install", async () => {
+      const { preflightMarketplaceInstallAction } = await import("./plugin-actions");
+
+      const result = await preflightMarketplaceInstallAction({
+        schoolId: "school-1",
+        pluginKey: "external-marketplace.quiz-sample",
+        version: "1.0.0",
+      });
+
+      expect(result).toMatchObject({
+        success: true,
+        data: expect.objectContaining({
+          pluginKey: "external-marketplace.quiz-sample",
+          version: "1.0.0",
+          ok: true,
+        }),
+      });
+      expect(mockPluginDAL.preflightExternalPluginInstall).toHaveBeenCalledWith({
+        actorId: "user-1",
+        schoolId: "school-1",
+        pluginKey: "external-marketplace.quiz-sample",
+        version: "1.0.0",
+        actorScope: "operator",
+      });
+    });
+
+    it("dispatches marketplace install through plugin.install and invalidates tags", async () => {
+      const { installMarketplacePluginAction } = await import("./plugin-actions");
+
+      const result = await installMarketplacePluginAction({
+        schoolId: "school-1",
+        pluginKey: "external-marketplace.quiz-sample",
+        version: "1.0.0",
+      });
+
+      expect(result).toMatchObject({ success: true });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith(expect.objectContaining({
+        type: "plugin.install",
+        actor: { actorId: "user-1", actorScope: "operator" },
+        correlation: { producer: "plugin-actions.marketplace-install" },
+        payload: expect.objectContaining({
+          marketplace: {
+            pluginKey: "external-marketplace.quiz-sample",
+            version: "1.0.0",
+            recoveryMode: "fresh",
+          },
+        }),
+      }));
+      expect(updateTag).toHaveBeenCalledWith("plugin:registry");
+      expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
+    });
+
+    it("returns named reject reason without dispatching install when preflight fails", async () => {
+      const { installMarketplacePluginAction } = await import("./plugin-actions");
+
+      mockPluginDAL.preflightExternalPluginInstall.mockResolvedValueOnce({
+        ok: false,
+        pluginKey: "external-marketplace.quiz-sample",
+        version: "1.0.0",
+        sourceType: "external",
+        builtIn: false,
+        dbNamespace: "external_marketplace_quiz_sample",
+        requestedPermissions: [],
+        declaredDataTables: [],
+        rejectReason: "PLUGIN_KEY_CONFLICT",
+        canRecover: false,
+        retainedRegistrationId: null,
+      });
+
+      const result = await installMarketplacePluginAction({
+        schoolId: "school-1",
+        pluginKey: "external-marketplace.quiz-sample",
+        version: "1.0.0",
+      });
+
+      expect(result).toMatchObject({ success: false, error: "PLUGIN_KEY_CONFLICT" });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).not.toHaveBeenCalled();
+    });
+
+    it("dispatches marketplace recover and returns takeover posture fields", async () => {
+      const { recoverMarketplacePluginAction } = await import("./plugin-actions");
+
+      mockPluginDAL.preflightExternalPluginInstall.mockResolvedValueOnce({
+        ok: false,
+        pluginKey: "external-marketplace.quiz-sample",
+        version: "1.0.0",
+        sourceType: "external",
+        builtIn: false,
+        dbNamespace: "external_marketplace_quiz_sample",
+        requestedPermissions: [],
+        declaredDataTables: [],
+        rejectReason: "PLUGIN_KEY_CONFLICT",
+        canRecover: true,
+        retainedRegistrationId: "plugin-retained-1",
+      });
+
+      const result = await recoverMarketplacePluginAction({
+        schoolId: "school-1",
+        pluginKey: "external-marketplace.quiz-sample",
+        version: "1.0.0",
+      });
+
+      expect(result).toMatchObject({
+        success: true,
+        data: expect.objectContaining({
+          recoveredFromPluginId: "plugin-retained-1",
+          recoveredDataTakeover: true,
+          recoveryMessage: "已接管保留数据",
+        }),
+      });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith(expect.objectContaining({
+        actor: { actorId: "user-1", actorScope: "operator" },
+        correlation: { producer: "plugin-actions.marketplace-recover" },
+        payload: expect.objectContaining({
+          marketplace: {
+            pluginKey: "external-marketplace.quiz-sample",
+            version: "1.0.0",
+            recoveryMode: "recover",
+          },
+        }),
+      }));
     });
   });
 
@@ -581,7 +758,7 @@ describe("plugin-actions", () => {
       getUserMembershipsDTOMock.mockResolvedValueOnce([
         { schoolId: "school-1", status: "active", role: "admin" },
       ]);
-      mockPluginDAL.getPluginForSchool.mockResolvedValueOnce(null);
+      mockPluginDAL.getPluginForMarketplace.mockResolvedValueOnce(null);
 
       const result = await operatorKillSwitch({
         pluginId: "plugin-foreign",
@@ -925,11 +1102,128 @@ describe("plugin-actions", () => {
       });
       expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
         type: "plugin.uninstall.preflight",
-        actor: { actorId: "user-1", actorScope: "teacher" },
+        actor: { actorId: "user-1", actorScope: "operator" },
         scope: { schoolId: "school-1", pluginId: "plugin-1" },
         payload: { pluginId: "plugin-1", schoolId: "school-1" },
         source: "server-action",
         correlation: { producer: "plugin-actions.uninstall-preflight" },
+      });
+    });
+  });
+
+  describe("plugin upgrade actions", () => {
+    it("dispatches plugin upgrade preflight before execute", async () => {
+      const { preflightPluginUpgradeAction } = await import("./plugin-actions");
+
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-upgrade-preflight",
+        attemptNumber: 1,
+        invalidationTags: [],
+        data: {
+          pluginId: "plugin-1",
+          schoolId: "school-1",
+          currentVersion: "1.0.0",
+          targetVersion: "1.1.0",
+          hasOwnedQuizData: true,
+          stages: ["backfill", "verify", "cutover"],
+          blockers: [],
+        },
+      });
+
+      const result = await preflightPluginUpgradeAction({
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        targetVersion: "1.1.0",
+      });
+
+      expect(result).toMatchObject({
+        success: true,
+        data: expect.objectContaining({
+          currentVersion: "1.0.0",
+          targetVersion: "1.1.0",
+          stages: ["backfill", "verify", "cutover"],
+        }),
+      });
+      expect(mockGovernanceProducer.dispatchPluginGovernanceCommand).toHaveBeenCalledWith({
+        type: "plugin.upgrade.preflight",
+        actor: { actorId: "user-1", actorScope: "operator" },
+        scope: { schoolId: "school-1", pluginId: "plugin-1" },
+        payload: { schoolId: "school-1", pluginId: "plugin-1", targetVersion: "1.1.0" },
+        source: "server-action",
+        correlation: { producer: "plugin-actions.upgrade-preflight" },
+      });
+    });
+
+    it("upgrades plugin and invalidates plugin plus quiz stats tags", async () => {
+      const { upgradePluginAction } = await import("./plugin-actions");
+
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-upgrade",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1", "quiz-stats:session-1"],
+        data: {
+          pluginId: "plugin-1",
+          targetVersion: "1.1.0",
+          upgraded: true,
+          verifyPassed: true,
+          invalidatedSessionIds: ["session-1"],
+        },
+      });
+
+      const result = await upgradePluginAction({
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        targetVersion: "1.1.0",
+      });
+
+      expect(result).toMatchObject({
+        success: true,
+        data: expect.objectContaining({ upgraded: true, verifyPassed: true }),
+      });
+      expect(updateTag).toHaveBeenCalledWith("plugin:registry");
+      expect(updateTag).toHaveBeenCalledWith("plugin:plugin-1");
+      expect(updateTag).toHaveBeenCalledWith("quiz-stats:session-1");
+    });
+
+    it("returns verify failure detail without pretending cutover succeeded", async () => {
+      const { upgradePluginAction } = await import("./plugin-actions");
+
+      mockGovernanceProducer.dispatchPluginGovernanceCommand.mockResolvedValueOnce({
+        success: true,
+        commandId: "command-upgrade-failed",
+        attemptNumber: 1,
+        invalidationTags: ["plugin:registry", "plugin:plugin-1"],
+        data: {
+          pluginId: "plugin-1",
+          currentVersion: "1.0.0",
+          targetVersion: "1.1.0",
+          upgraded: false,
+          verifyPassed: false,
+          failureDetail: "VERIFY_FAILED",
+          stages: [
+            { name: "backfill", status: "completed" },
+            { name: "verify", status: "failed" },
+            { name: "cutover", status: "skipped" },
+          ],
+          invalidatedSessionIds: [],
+        },
+      });
+
+      const result = await upgradePluginAction({
+        schoolId: "school-1",
+        pluginId: "plugin-1",
+        targetVersion: "1.1.0",
+      });
+
+      expect(result).toMatchObject({
+        success: true,
+        data: expect.objectContaining({
+          upgraded: false,
+          verifyPassed: false,
+          failureDetail: "VERIFY_FAILED",
+        }),
       });
     });
   });

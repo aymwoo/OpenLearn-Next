@@ -12,16 +12,7 @@ import {
 } from "@/lib/dto/user";
 
 export async function getCurrentUserDTO(): Promise<UserDTO | null> {
-  /**
-   * Headless verifier escape hatch.
-   *
-   * Close-gate scripts run outside a Next.js request scope, so `auth()` cannot read
-   * request headers/cookies there. A verifier may set `OPENLEARN_VERIFY_ACTOR_ID`
-   * explicitly to exercise the real DAL/DB path against a seeded actor without
-   * changing production auth behavior for normal requests.
-   */
-  const verifyActorId = process.env.OPENLEARN_VERIFY_ACTOR_ID?.trim() || null;
-  const sessionUserId = verifyActorId || (await auth())?.user?.id || null;
+  const sessionUserId = (await auth())?.user?.id || null;
   if (!sessionUserId) {
     return null;
   }

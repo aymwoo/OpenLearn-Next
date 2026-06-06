@@ -4,6 +4,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
+  classroomSessions,
   governanceAudits,
   pluginActionAudits,
   pluginHookRuns,
@@ -14,10 +15,14 @@ import {
   pluginRegistrations,
   pluginResourceExtensions,
 } from "@/db/schema";
+import { pluginOwnedQuizQuestions, pluginOwnedQuizResponses } from "@/db/schema/generated/plugin-owned/quiz";
 import type { PluginLifecycleState, RuntimeActorScope } from "@/features/runtime-platform/contracts/permissions";
 import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
+import { PluginDataModelSchema, type PluginDataModel } from "@/lib/dto/plugin-data-model";
 import { PluginActionInput, PluginActionResult, PluginManifest, PluginManifestSchema, PluginRegistrationDTO, PluginRegistrationDTOSchema } from "@/lib/dto/resource-ai";
+import { getExternalMarketplaceCatalogEntry, listExternalMarketplaceCatalog as listExternalMarketplaceCatalogEntries } from "@/lib/plugins/external-catalog";
+import { executePluginUpgradeWithTx as executePluginUpgradeMigrationWithTx, preflightPluginUpgrade as preflightPluginUpgradeMigration } from "@/lib/dal/plugin-migration";
 import { dispatchPluginAction, PLUGIN_ACTION_PERMISSION_REQUIREMENTS } from "@/server/plugins/registry";
 import { registerThemeTokens } from "@/lib/dal/themes";
 import { RUNTIME_CONTRACT_VERSION } from "@/features/runtime-platform/contracts/version";
@@ -28,6 +33,38 @@ import type { PluginGovernanceProjectionInput } from "@/features/platform-core/p
 export const PLUGIN_KEY_CONFLICT = "PLUGIN_KEY_CONFLICT";
 export const PLUGIN_DB_NAMESPACE_CONFLICT = "PLUGIN_DB_NAMESPACE_CONFLICT";
 export const PLUGIN_DB_NAMESPACE_FROZEN = "PLUGIN_DB_NAMESPACE_FROZEN";
+export const PLUGIN_MANIFEST_INVALID = "PLUGIN_MANIFEST_INVALID";
+export const PLUGIN_DATA_MODEL_INVALID = "PLUGIN_DATA_MODEL_INVALID";
+export const PLUGIN_RECOVERY_NOT_AVAILABLE = "PLUGIN_RECOVERY_NOT_AVAILABLE";
+
+export type ExternalMarketplaceInstallPreflightResult = {
+  ok: boolean;
+  pluginKey: string;
+  version: string;
+  sourceType: "external";
+  builtIn: false;
+  dbNamespace: string;
+  requestedPermissions: readonly string[];
+  declaredDataTables: readonly string[];
+  rejectReason: string | null;
+  canRecover: boolean;
+  retainedRegistrationId: string | null;
+};
+
+type RecoverRetainedPluginInstallWithTxInput = {
+  actorId: string;
+  schoolId: string;
+  pluginKey: string;
+  version: string;
+  tx: PluginDalTx;
+  actorScope?: RuntimeActorScope;
+  commandContext?: PluginCommandContext;
+};
+
+type RecoverRetainedPluginInstallResult = PluginRegistrationDTO & {
+  recoveredFromPluginId: string;
+  recoveredDataTakeover: true;
+};
 
 export function deriveDbNamespace(pluginKey: string) {
   const normalized = pluginKey
@@ -88,6 +125,7 @@ export type PluginCommandContext = {
 };
 
 type PluginDalTx = {
+  select: typeof db.select;
   insert: typeof db.insert;
   update: typeof db.update;
   delete: typeof db.delete;
@@ -137,13 +175,83 @@ export type PreflightUninstallPluginResult = {
   stepExtCount: number;
   resourceExtCount: number;
   ownedBusinessCount: number;
+  ownedQuestionCount: number;
+  ownedResponseCount: number;
+  affectedEndedSessionCount: number;
   totalCount: number;
   impactedLessonIds: string[];
   impactedLessonStepIds: string[];
   impactedResourceIds: string[];
   impactedBusinessKeys: string[];
+  activeSessions: Array<{
+    sessionId: string;
+    lessonId: string;
+    classId: string;
+    status: "live";
+  }>;
   cleanupConfirmationToken: string;
 };
+
+export type PluginUpgradePreflightResult = {
+  pluginId: string;
+  schoolId: string;
+  currentVersion: string;
+  targetVersion: string;
+  hasOwnedQuizData: boolean;
+  stages: Array<"backfill" | "verify" | "cutover">;
+  blockers: string[];
+  statsParityPreview: {
+    questionCount: number;
+    responseCount: number;
+    latestResponseHash: string;
+  };
+  activeSessions: Array<{
+    sessionId: string;
+    lessonId: string;
+    classId: string;
+    status: "live";
+  }>;
+};
+
+export type PluginUpgradeExecutionResult = {
+  pluginId: string;
+  schoolId: string;
+  currentVersion: string;
+  targetVersion: string;
+  upgraded: boolean;
+  verifyPassed: boolean;
+  lifecycleState: PluginLifecycleState;
+  stages: Array<{
+    name: "backfill" | "verify" | "cutover";
+    status: "completed" | "failed" | "skipped";
+  }>;
+  failureDetail: string | null;
+  invalidatedSessionIds: string[];
+};
+
+export async function preflightPluginUpgrade(input: {
+  actorId: string;
+  schoolId: string;
+  pluginId: string;
+  targetVersion: string;
+  actorScope?: RuntimeActorScope;
+}) {
+  await assertMarketplaceManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
+  return preflightPluginUpgradeMigration(input);
+}
+
+export async function executePluginUpgradeWithTx(input: {
+  actorId: string;
+  schoolId: string;
+  pluginId: string;
+  targetVersion: string;
+  tx: PluginDalTx;
+  actorScope?: RuntimeActorScope;
+  commandContext?: PluginCommandContext;
+}) {
+  await assertMarketplaceManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
+  return executePluginUpgradeMigrationWithTx(input);
+}
 
 export type PluginGovernanceSnapshotRecord = PluginGovernanceProjectionInput;
 
@@ -171,6 +279,35 @@ function assertActorId(actorId: string) {
   }
 }
 
+function parseManifestOrThrow(manifest: PluginManifest) {
+  try {
+    return PluginManifestSchema.parse(manifest);
+  } catch {
+    throw new Error(PLUGIN_MANIFEST_INVALID);
+  }
+}
+
+function parseDataModelOrThrow(dataModel: PluginDataModel) {
+  try {
+    return PluginDataModelSchema.parse(dataModel);
+  } catch {
+    throw new Error(PLUGIN_DATA_MODEL_INVALID);
+  }
+}
+
+function buildRetainedRecoveryArchivePluginKey(pluginKey: string, pluginId: string) {
+  return `${pluginKey}#retained:${pluginId}`;
+}
+
+function buildRetainedRecoveryArchiveNamespace(dbNamespace: string, pluginId: string) {
+  const suffix = pluginId
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")
+    .slice(-8) || "retained";
+
+  return `${dbNamespace}_ret_${suffix}`.slice(0, 48);
+}
+
 async function assertTeacherManagerScope(input: PluginManagerScopeInput, actorScope?: RuntimeActorScope) {
   assertActorId(input.actorId);
 
@@ -187,6 +324,47 @@ async function assertTeacherManagerScope(input: PluginManagerScopeInput, actorSc
   }
 
   return scope;
+}
+
+async function assertOperatorScope(input: PluginManagerScopeInput, actorScope?: RuntimeActorScope) {
+  assertActorId(input.actorId);
+
+  if (actorScope === "system") {
+    return;
+  }
+
+  if (actorScope !== "operator") {
+    throw new Error("OPERATOR_AUTH_REQUIRED");
+  }
+
+  const memberships = await getUserMembershipsDTO(input.actorId);
+  const hasOperatorMembership = memberships.some((membership) =>
+    membership.schoolId === input.schoolId
+    && membership.status === "active"
+    && (membership.role === "admin" || membership.role === "developer")
+  );
+
+  if (!hasOperatorMembership) {
+    throw new Error("OPERATOR_AUTH_REQUIRED");
+  }
+}
+
+async function assertMarketplaceManagerScope(input: PluginManagerScopeInput, actorScope?: RuntimeActorScope) {
+  if (actorScope === "operator") {
+    await assertOperatorScope(input, actorScope);
+    return;
+  }
+
+  await assertTeacherManagerScope(input, actorScope);
+}
+
+async function assertActiveSchoolMembershipScope(input: PluginManagerScopeInput) {
+  assertActorId(input.actorId);
+
+  const hasMembership = await hasActiveSchoolMembership(input.actorId, input.schoolId);
+  if (!hasMembership) {
+    throw new Error("TEACHER_AUTH_REQUIRED");
+  }
 }
 
 async function hasActiveSchoolMembership(actorId: string, schoolId: string) {
@@ -323,6 +501,74 @@ async function createHookRun(pluginId: string, hookAnchor: string, status: "succ
   return record;
 }
 
+function collectPluginObservationErrorParts(error: unknown) {
+  const seen = new Set<unknown>();
+  const parts: string[] = [];
+  let current: unknown = error;
+
+  while (current && !seen.has(current)) {
+    seen.add(current);
+
+    if (typeof current === "string") {
+      parts.push(current);
+      break;
+    }
+
+    if (current instanceof Error) {
+      if (current.message) {
+        parts.push(current.message);
+      }
+      const code = (current as Error & { code?: unknown }).code;
+      if (typeof code === "string") {
+        parts.push(code);
+      }
+      current = (current as Error & { cause?: unknown }).cause;
+      continue;
+    }
+
+    if (typeof current === "object") {
+      const candidate = current as { message?: unknown; code?: unknown; cause?: unknown };
+      if (typeof candidate.message === "string") {
+        parts.push(candidate.message);
+      }
+      if (typeof candidate.code === "string") {
+        parts.push(candidate.code);
+      }
+      current = candidate.cause;
+      continue;
+    }
+
+    break;
+  }
+
+  return parts;
+}
+
+function isPluginObservationLockError(error: unknown) {
+  return collectPluginObservationErrorParts(error).some((part) =>
+    part.includes("SQLITE_BUSY") || part.includes("database is locked")
+  );
+}
+
+async function runBestEffortPluginObservation(
+  pluginId: string,
+  label: "hook-run" | "plugin-audit" | "governance-audit",
+  operation: () => Promise<unknown>,
+) {
+  try {
+    await operation();
+  } catch (error) {
+    if (!isPluginObservationLockError(error)) {
+      throw error;
+    }
+
+    const [summary] = collectPluginObservationErrorParts(error);
+    console.warn(
+      `[plugins] best-effort plugin hook observation write skipped (${label}) for ${pluginId}: ${summary ?? "unknown lock error"}`,
+    );
+  }
+}
+
 const PLUGIN_LIFECYCLE_TRANSITION_MATRIX: Record<PluginLifecycleState, readonly PluginLifecycleState[]> = {
   installed: ["enabled", "disabled"],
   enabled: ["mounted", "ready", "suspended", "disabled", "failed"],
@@ -394,15 +640,53 @@ function buildCleanupConfirmationToken(input: {
   stepExtCount: number;
   resourceExtCount: number;
   ownedBusinessCount: number;
+  ownedQuestionCount: number;
+  ownedResponseCount: number;
+  affectedEndedSessionCount: number;
   totalCount: number;
 }) {
-  return `cleanup:${input.pluginId}:${input.lessonExtCount}:${input.stepExtCount}:${input.resourceExtCount}:${input.ownedBusinessCount}:${input.totalCount}`;
+  return `cleanup:${input.pluginId}:${input.lessonExtCount}:${input.stepExtCount}:${input.resourceExtCount}:${input.ownedBusinessCount}:${input.ownedQuestionCount}:${input.ownedResponseCount}:${input.affectedEndedSessionCount}:${input.totalCount}`;
+}
+
+async function listPluginActiveSessions(input: { schoolId: string; pluginId: string }) {
+  const questionRows = await db
+    .select({ classroomSession: pluginOwnedQuizQuestions.classroomSession })
+    .from(pluginOwnedQuizQuestions)
+    .where(and(
+      eq(pluginOwnedQuizQuestions.schoolId, input.schoolId),
+      eq(pluginOwnedQuizQuestions.pluginId, input.pluginId),
+    ));
+
+  if (questionRows.length === 0) {
+    return [];
+  }
+
+  const sessions = await db
+    .select({
+      sessionId: classroomSessions.id,
+      lessonId: classroomSessions.lessonId,
+      classId: classroomSessions.classId,
+      status: classroomSessions.status,
+    })
+    .from(classroomSessions)
+    .where(eq(classroomSessions.status, "live"));
+
+  const activeSessionIds = new Set(questionRows.map((row) => String(row.classroomSession)));
+
+  return sessions
+    .filter((row) => activeSessionIds.has(String(row.sessionId)))
+    .map((row) => ({
+      sessionId: String(row.sessionId),
+      lessonId: String(row.lessonId),
+      classId: String(row.classId),
+      status: "live" as const,
+    }));
 }
 
 export async function listPluginGovernanceSnapshotRecords(
   input: PluginManagerScopeInput,
 ): Promise<PluginGovernanceSnapshotRecord[]> {
-  await assertTeacherManagerScope(input);
+  await assertActiveSchoolMembershipScope(input);
 
   const rows = await db.query.pluginRegistrations.findMany({
     where: eq(pluginRegistrations.schoolId, input.schoolId),
@@ -416,6 +700,11 @@ export async function listPluginGovernanceSnapshotRecords(
         schoolId: input.schoolId,
         pluginId: row.id,
         tx: db,
+      }).catch((error) => {
+        if (error instanceof Error && error.message === "TEACHER_AUTH_REQUIRED") {
+          return null;
+        }
+        throw error;
       }),
     })),
   );
@@ -439,34 +728,41 @@ export async function listPluginGovernanceSnapshotRecords(
     dependencies: getGovernanceDependencies(row),
     activationStatus: getActivationStatus(row),
     failureDetail: row.lifecycleState === "failed" ? "activation failed" : null,
-    uninstall: uninstallByPluginId.get(row.id) ?? {
-      pluginId: row.id,
-      schoolId: row.schoolId,
-      blocked: false,
-      reason: null,
-      lessonExtCount: 0,
-      stepExtCount: 0,
-      resourceExtCount: 0,
-      ownedBusinessCount: 0,
-      totalCount: 0,
-      impactedLessonIds: [],
-      impactedLessonStepIds: [],
-      impactedResourceIds: [],
-      impactedBusinessKeys: [],
-      cleanupConfirmationToken: buildCleanupConfirmationToken({
-        pluginId: row.id,
-        lessonExtCount: 0,
-        stepExtCount: 0,
-        resourceExtCount: 0,
-        ownedBusinessCount: 0,
-        totalCount: 0,
-      }),
-    },
+     uninstall: uninstallByPluginId.get(row.id) ?? {
+       pluginId: row.id,
+       schoolId: row.schoolId,
+       blocked: false,
+       reason: null,
+       lessonExtCount: 0,
+       stepExtCount: 0,
+       resourceExtCount: 0,
+       ownedBusinessCount: 0,
+       ownedQuestionCount: 0,
+       ownedResponseCount: 0,
+       affectedEndedSessionCount: 0,
+       totalCount: 0,
+       impactedLessonIds: [],
+       impactedLessonStepIds: [],
+       impactedResourceIds: [],
+       impactedBusinessKeys: [],
+       activeSessions: [],
+       cleanupConfirmationToken: buildCleanupConfirmationToken({
+         pluginId: row.id,
+         lessonExtCount: 0,
+         stepExtCount: 0,
+         resourceExtCount: 0,
+         ownedBusinessCount: 0,
+         ownedQuestionCount: 0,
+         ownedResponseCount: 0,
+         affectedEndedSessionCount: 0,
+         totalCount: 0,
+       }),
+     },
   }));
 }
 
 export async function installOrReconcilePluginWithTx(input: InstallOrReconcilePluginWithTxInput) {
-  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
+  await assertMarketplaceManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
 
   const parsedManifest = PluginManifestSchema.parse(input.manifestJson);
   const pluginKey = parsedManifest.id;
@@ -475,9 +771,10 @@ export async function installOrReconcilePluginWithTx(input: InstallOrReconcilePl
   const sourceType = parsedManifest.builtIn ? "default" : "external";
   const hasExplicitRegistrationId = Boolean(input.pluginId);
   const shouldReconcileExisting = input.installSource !== "manual" || hasExplicitRegistrationId;
-  const scopedPlugins = await db.query.pluginRegistrations.findMany({
-    where: eq(pluginRegistrations.schoolId, input.schoolId),
-  });
+  const scopedPlugins = await input.tx
+    .select()
+    .from(pluginRegistrations)
+    .where(eq(pluginRegistrations.schoolId, input.schoolId));
 
   let targetRecord = input.pluginId
     ? scopedPlugins.find((plugin) => plugin.id === input.pluginId) ?? null
@@ -602,39 +899,45 @@ async function denyHook(input: {
   correlationId: string;
   startedAt: number;
 }) {
-  await createHookRun(input.pluginId, input.hookAnchor, "failed", Date.now() - input.startedAt);
-  await createPluginAudit({
-    pluginId: input.pluginId,
-    action: input.action,
-    decision: "denied",
-    reason: input.reason,
-    schoolId: input.schoolId,
-    actorScope: "teacher",
-    lifecycleState: input.lifecycleState,
-    correlationId: input.correlationId,
-    payloadJson: {
-      ...input.payload,
-      denied: true,
+  await runBestEffortPluginObservation(input.pluginId, "hook-run", () =>
+    createHookRun(input.pluginId, input.hookAnchor, "failed", Date.now() - input.startedAt)
+  );
+  await runBestEffortPluginObservation(input.pluginId, "plugin-audit", () =>
+    createPluginAudit({
+      pluginId: input.pluginId,
+      action: input.action,
+      decision: "denied",
       reason: input.reason,
-      ...(input.requiredPermission ? { requiredPermission: input.requiredPermission } : {}),
-    },
-    actorId: input.actorId,
-  });
-  await createGovernanceAudit({
-    pluginId: input.pluginId,
-    schoolId: input.schoolId,
-    action: input.action,
-    decision: "denied",
-    reason: input.reason,
-    actorId: input.actorId,
-    actorScope: "teacher",
-    lifecycleState: input.lifecycleState,
-    killSwitchEnabled: input.killSwitchEnabled,
-    requestedCapabilities: input.requestedCapabilities ?? [],
-    requiredPermission: input.requiredPermission ?? null,
-    correlationId: input.correlationId,
-    payloadJson: input.payload,
-  });
+      schoolId: input.schoolId,
+      actorScope: "teacher",
+      lifecycleState: input.lifecycleState,
+      correlationId: input.correlationId,
+      payloadJson: {
+        ...input.payload,
+        denied: true,
+        reason: input.reason,
+        ...(input.requiredPermission ? { requiredPermission: input.requiredPermission } : {}),
+      },
+      actorId: input.actorId,
+    })
+  );
+  await runBestEffortPluginObservation(input.pluginId, "governance-audit", () =>
+    createGovernanceAudit({
+      pluginId: input.pluginId,
+      schoolId: input.schoolId,
+      action: input.action,
+      decision: "denied",
+      reason: input.reason,
+      actorId: input.actorId,
+      actorScope: "teacher",
+      lifecycleState: input.lifecycleState,
+      killSwitchEnabled: input.killSwitchEnabled,
+      requestedCapabilities: input.requestedCapabilities ?? [],
+      requiredPermission: input.requiredPermission ?? null,
+      correlationId: input.correlationId,
+      payloadJson: input.payload,
+    })
+  );
 
   return null;
 }
@@ -644,6 +947,176 @@ export async function registerPluginManifest(input: RegisterPluginManifestInput)
     ...input,
     installSource: "manual",
   });
+}
+
+export function listExternalMarketplaceCatalog() {
+  return listExternalMarketplaceCatalogEntries();
+}
+
+export async function preflightExternalPluginInstall(input: {
+  actorId: string;
+  schoolId: string;
+  pluginKey: string;
+  version: string;
+  actorScope?: RuntimeActorScope;
+}): Promise<ExternalMarketplaceInstallPreflightResult> {
+  await assertMarketplaceManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
+
+  const catalogEntry = getExternalMarketplaceCatalogEntry(input.pluginKey, input.version);
+  if (!catalogEntry) {
+    return {
+      ok: false,
+      pluginKey: input.pluginKey,
+      version: input.version,
+      sourceType: "external",
+      builtIn: false,
+      dbNamespace: deriveDbNamespace(input.pluginKey),
+      requestedPermissions: [],
+      declaredDataTables: [],
+      rejectReason: PLUGIN_MANIFEST_INVALID,
+      canRecover: false,
+      retainedRegistrationId: null,
+    };
+  }
+
+  const manifest = parseManifestOrThrow(catalogEntry.manifest);
+  const dataModel = parseDataModelOrThrow(catalogEntry.dataModel);
+  const dbNamespace = deriveDbNamespace(manifest.id);
+  const scopedPlugins = await db.query.pluginRegistrations.findMany({
+    where: eq(pluginRegistrations.schoolId, input.schoolId),
+  });
+  const retainedRegistration = scopedPlugins.find((plugin) =>
+    plugin.pluginKey === manifest.id
+    && plugin.sourceType === "external"
+    && plugin.uninstallRetentionMode === "retain"
+    && plugin.uninstalledAt !== null,
+  ) ?? null;
+  const pluginKeyConflict = scopedPlugins.find((plugin) => plugin.pluginKey === manifest.id && plugin.id !== retainedRegistration?.id);
+  const namespaceConflict = scopedPlugins.find((plugin) => plugin.dbNamespace === dbNamespace && plugin.id !== retainedRegistration?.id);
+
+  return {
+    ok: !pluginKeyConflict && !namespaceConflict,
+    pluginKey: manifest.id,
+    version: manifest.version,
+    sourceType: "external",
+    builtIn: false,
+    dbNamespace,
+    requestedPermissions: manifest.permissions,
+    declaredDataTables: dataModel.tables.map((table) => table.name),
+    rejectReason: pluginKeyConflict
+      ? PLUGIN_KEY_CONFLICT
+      : namespaceConflict
+        ? PLUGIN_DB_NAMESPACE_CONFLICT
+        : null,
+    canRecover: Boolean(retainedRegistration),
+    retainedRegistrationId: retainedRegistration?.id ?? null,
+  };
+}
+
+export async function recoverRetainedPluginInstallWithTx(
+  input: RecoverRetainedPluginInstallWithTxInput,
+): Promise<RecoverRetainedPluginInstallResult> {
+  await assertMarketplaceManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
+
+  const catalogEntry = getExternalMarketplaceCatalogEntry(input.pluginKey, input.version);
+  if (!catalogEntry) {
+    throw new Error(PLUGIN_MANIFEST_INVALID);
+  }
+
+  const preflight = await preflightExternalPluginInstall({
+    actorId: input.actorId,
+    schoolId: input.schoolId,
+    pluginKey: input.pluginKey,
+    version: input.version,
+    actorScope: input.actorScope,
+  });
+
+  if (!preflight.canRecover || !preflight.retainedRegistrationId) {
+    throw new Error(PLUGIN_RECOVERY_NOT_AVAILABLE);
+  }
+
+  const [retainedRegistration] = await input.tx
+    .select()
+    .from(pluginRegistrations)
+    .where(and(
+      eq(pluginRegistrations.id, preflight.retainedRegistrationId),
+      eq(pluginRegistrations.schoolId, input.schoolId),
+    ))
+    .limit(1);
+
+  if (!retainedRegistration) {
+    throw new Error(PLUGIN_RECOVERY_NOT_AVAILABLE);
+  }
+
+  const archivedPluginKey = buildRetainedRecoveryArchivePluginKey(retainedRegistration.pluginKey, retainedRegistration.id);
+  const archivedDbNamespace = buildRetainedRecoveryArchiveNamespace(retainedRegistration.dbNamespace, retainedRegistration.id);
+
+  await input.tx
+    .update(pluginRegistrations)
+    .set({
+      pluginKey: archivedPluginKey,
+      dbNamespace: archivedDbNamespace,
+      enabled: false,
+      killSwitchEnabled: false,
+      lifecycleState: "disabled",
+      uninstallRetentionMode: "retain",
+      updatedAt: new Date(),
+    })
+    .where(and(eq(pluginRegistrations.id, retainedRegistration.id), eq(pluginRegistrations.schoolId, input.schoolId)));
+
+  const newRecord = await installOrReconcilePluginWithTx({
+    schoolId: input.schoolId,
+    name: catalogEntry.displayName,
+    manifestJson: catalogEntry.manifest,
+    installSource: "manual",
+    tx: input.tx,
+    actorId: input.actorId,
+    actorScope: input.actorScope,
+    commandContext: input.commandContext,
+  });
+
+  await Promise.all([
+    input.tx
+      .update(pluginLessonExtensions)
+      .set({ pluginId: newRecord.id, updatedAt: new Date() })
+      .where(and(eq(pluginLessonExtensions.schoolId, input.schoolId), eq(pluginLessonExtensions.pluginId, retainedRegistration.id))),
+    input.tx
+      .update(pluginLessonStepExtensions)
+      .set({ pluginId: newRecord.id, updatedAt: new Date() })
+      .where(and(eq(pluginLessonStepExtensions.schoolId, input.schoolId), eq(pluginLessonStepExtensions.pluginId, retainedRegistration.id))),
+    input.tx
+      .update(pluginResourceExtensions)
+      .set({ pluginId: newRecord.id, updatedAt: new Date() })
+      .where(and(eq(pluginResourceExtensions.schoolId, input.schoolId), eq(pluginResourceExtensions.pluginId, retainedRegistration.id))),
+    input.tx
+      .update(pluginOwnedBusinessData)
+      .set({ pluginId: newRecord.id, updatedAt: new Date() })
+      .where(and(eq(pluginOwnedBusinessData.schoolId, input.schoolId), eq(pluginOwnedBusinessData.pluginId, retainedRegistration.id))),
+    input.tx
+      .update(pluginOwnedQuizQuestions)
+      .set({ pluginId: newRecord.id, updatedAt: new Date() })
+      .where(and(eq(pluginOwnedQuizQuestions.schoolId, input.schoolId), eq(pluginOwnedQuizQuestions.pluginId, retainedRegistration.id))),
+    input.tx
+      .update(pluginOwnedQuizResponses)
+      .set({ pluginId: newRecord.id, updatedAt: new Date() })
+      .where(and(eq(pluginOwnedQuizResponses.schoolId, input.schoolId), eq(pluginOwnedQuizResponses.pluginId, retainedRegistration.id))),
+    input.tx
+      .update(pluginRegistrations)
+      .set({
+        enabled: false,
+        killSwitchEnabled: false,
+        lifecycleState: "disabled",
+        uninstallRetentionMode: "retain",
+        updatedAt: new Date(),
+      })
+      .where(and(eq(pluginRegistrations.id, retainedRegistration.id), eq(pluginRegistrations.schoolId, input.schoolId))),
+  ]);
+
+  return {
+    ...newRecord,
+    recoveredFromPluginId: retainedRegistration.id,
+    recoveredDataTakeover: true,
+  };
 }
 
 export async function setPluginEnabled(input: SetPluginEnabledInput) {
@@ -765,8 +1238,28 @@ export async function listPluginsForSchool(input: PluginManagerScopeInput) {
   return rows.map(toPluginDTO);
 }
 
+export async function listPluginsForMarketplace(input: PluginManagerScopeInput & { actorScope?: RuntimeActorScope }) {
+  await assertMarketplaceManagerScope(input, input.actorScope);
+
+  const rows = await db.query.pluginRegistrations.findMany({
+    where: eq(pluginRegistrations.schoolId, input.schoolId),
+  });
+
+  return rows.map(toPluginDTO);
+}
+
 export async function getPluginForSchool(input: PluginBySchoolInput) {
   await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId });
+
+  const row = await db.query.pluginRegistrations.findFirst({
+    where: and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)),
+  });
+
+  return row ? toPluginDTO(row) : null;
+}
+
+export async function getPluginForMarketplace(input: PluginBySchoolInput & { actorScope?: RuntimeActorScope }) {
+  await assertMarketplaceManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
 
   const row = await db.query.pluginRegistrations.findFirst({
     where: and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)),
@@ -874,7 +1367,7 @@ export async function transitionPluginLifecycle(input: TransitionPluginLifecycle
 }
 
 export async function preflightUninstallPluginWithTx(input: PreflightUninstallPluginWithTxInput): Promise<PreflightUninstallPluginResult | null> {
-  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
+  await assertMarketplaceManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
 
   const plugin = await db.query.pluginRegistrations.findFirst({
     where: and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)),
@@ -896,23 +1389,30 @@ export async function preflightUninstallPluginWithTx(input: PreflightUninstallPl
       stepExtCount: 0,
       resourceExtCount: 0,
       ownedBusinessCount: 0,
+      ownedQuestionCount: 0,
+      ownedResponseCount: 0,
+      affectedEndedSessionCount: 0,
       totalCount: 0,
       impactedLessonIds: [],
       impactedLessonStepIds: [],
       impactedResourceIds: [],
       impactedBusinessKeys: [],
+      activeSessions: [],
       cleanupConfirmationToken: buildCleanupConfirmationToken({
         pluginId: plugin.id,
         lessonExtCount: 0,
         stepExtCount: 0,
         resourceExtCount: 0,
         ownedBusinessCount: 0,
+        ownedQuestionCount: 0,
+        ownedResponseCount: 0,
+        affectedEndedSessionCount: 0,
         totalCount: 0,
       }),
     };
   }
 
-  const [lessonExtensions, stepExtensions, resourceExtensions, ownedBusiness] = await Promise.all([
+  const [lessonExtensions, stepExtensions, resourceExtensions, ownedBusiness, ownedQuestions, ownedResponses, activeSessions] = await Promise.all([
     db
       .select({ lessonId: pluginLessonExtensions.lessonId })
       .from(pluginLessonExtensions)
@@ -929,35 +1429,56 @@ export async function preflightUninstallPluginWithTx(input: PreflightUninstallPl
       .select({ key: pluginOwnedBusinessData.key })
       .from(pluginOwnedBusinessData)
       .where(and(eq(pluginOwnedBusinessData.schoolId, input.schoolId), eq(pluginOwnedBusinessData.pluginId, input.pluginId))),
+    db
+      .select({ classroomSession: pluginOwnedQuizQuestions.classroomSession })
+      .from(pluginOwnedQuizQuestions)
+      .where(and(eq(pluginOwnedQuizQuestions.schoolId, input.schoolId), eq(pluginOwnedQuizQuestions.pluginId, input.pluginId))),
+    db
+      .select({ classroomSession: pluginOwnedQuizResponses.classroomSession, isLatest: pluginOwnedQuizResponses.isLatest, student: pluginOwnedQuizResponses.student, question: pluginOwnedQuizResponses.question, selectedOption: pluginOwnedQuizResponses.selectedOption })
+      .from(pluginOwnedQuizResponses)
+      .where(and(eq(pluginOwnedQuizResponses.schoolId, input.schoolId), eq(pluginOwnedQuizResponses.pluginId, input.pluginId))),
+    listPluginActiveSessions({ schoolId: input.schoolId, pluginId: input.pluginId }),
   ]);
 
   const lessonExtCount = lessonExtensions.length;
   const stepExtCount = stepExtensions.length;
   const resourceExtCount = resourceExtensions.length;
   const ownedBusinessCount = ownedBusiness.length;
-
-  const totalCount = lessonExtCount + stepExtCount + resourceExtCount + ownedBusinessCount;
+  const ownedQuestionCount = ownedQuestions.length;
+  const ownedResponseCount = ownedResponses.length;
+  const affectedEndedSessionCount = new Set([
+    ...ownedQuestions.map((row) => row.classroomSession),
+    ...ownedResponses.map((row) => row.classroomSession),
+  ]).size - activeSessions.length;
+  const totalCount = lessonExtCount + stepExtCount + resourceExtCount + ownedBusinessCount + ownedQuestionCount + ownedResponseCount;
 
   return {
     pluginId: plugin.id,
     schoolId: plugin.schoolId,
-    blocked: false,
-    reason: null,
+    blocked: activeSessions.length > 0,
+    reason: activeSessions.length > 0 ? "PLUGIN_ACTIVE_CLASSROOM_BLOCKED" : null,
     lessonExtCount,
     stepExtCount,
     resourceExtCount,
     ownedBusinessCount,
+    ownedQuestionCount,
+    ownedResponseCount,
+    affectedEndedSessionCount: Math.max(affectedEndedSessionCount, 0),
     totalCount,
     impactedLessonIds: lessonExtensions.map((row) => row.lessonId),
     impactedLessonStepIds: stepExtensions.map((row) => row.lessonStepId),
     impactedResourceIds: resourceExtensions.map((row) => row.resourceId),
     impactedBusinessKeys: ownedBusiness.map((row) => row.key),
+    activeSessions,
     cleanupConfirmationToken: buildCleanupConfirmationToken({
       pluginId: plugin.id,
       lessonExtCount,
       stepExtCount,
       resourceExtCount,
       ownedBusinessCount,
+      ownedQuestionCount,
+      ownedResponseCount,
+      affectedEndedSessionCount: Math.max(affectedEndedSessionCount, 0),
       totalCount,
     }),
   };
@@ -971,7 +1492,7 @@ export async function preflightUninstallPlugin(input: PluginBySchoolInput): Prom
 }
 
 export async function uninstallPluginWithTx(input: UninstallPluginWithTxInput) {
-  await assertTeacherManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
+  await assertMarketplaceManagerScope({ actorId: input.actorId, schoolId: input.schoolId }, input.actorScope);
 
   const plugin = await db.query.pluginRegistrations.findFirst({
     where: and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)),
@@ -1000,17 +1521,86 @@ export async function uninstallPluginWithTx(input: UninstallPluginWithTxInput) {
     return null;
   }
 
+  if (preflight.blocked) {
+    throw new Error(preflight.reason ?? "PLUGIN_UNINSTALL_BLOCKED");
+  }
+
   const manifest = PluginManifestSchema.parse(plugin.manifestJson);
   const correlationId = input.commandContext?.correlationId ?? `${plugin.id}:uninstall:${Date.now()}`;
+  if (retentionMode === "cleanup") {
+    if (input.confirmationToken !== preflight.cleanupConfirmationToken) {
+      await createGovernanceAudit({
+        tx: input.tx,
+        pluginId: plugin.id,
+        schoolId: plugin.schoolId,
+        action: "plugin.uninstall",
+        decision: "denied",
+        reason: "cleanup_confirmation_required",
+        actorId: input.actorId,
+        actorScope: input.actorScope ?? "teacher",
+        lifecycleState: plugin.lifecycleState,
+        killSwitchEnabled: plugin.killSwitchEnabled,
+        requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
+        requiredPermission: null,
+        correlationId,
+        commandId: input.commandContext?.commandId ?? null,
+        payloadJson: {
+          pluginKey: plugin.pluginKey,
+          sourceType: plugin.sourceType,
+          dbNamespace: plugin.dbNamespace,
+          lifecycleState: plugin.lifecycleState,
+          retentionMode,
+          confirmationToken: input.confirmationToken ?? null,
+          expectedConfirmationToken: preflight.cleanupConfirmationToken,
+          attemptNumber: input.commandContext?.attemptNumber ?? null,
+        },
+      });
+      throw new Error("PLUGIN_CLEANUP_CONFIRMATION_REQUIRED");
+    }
+
+    await createGovernanceAudit({
+      tx: input.tx,
+      pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      action: "plugin.uninstall",
+      decision: "allowed",
+      reason: null,
+      actorId: input.actorId,
+      actorScope: input.actorScope ?? "teacher",
+      lifecycleState: plugin.lifecycleState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
+      requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
+      requiredPermission: null,
+      correlationId,
+      commandId: input.commandContext?.commandId ?? null,
+      payloadJson: {
+        pluginKey: plugin.pluginKey,
+        sourceType: plugin.sourceType,
+        dbNamespace: plugin.dbNamespace,
+        lifecycleState: plugin.lifecycleState,
+        retentionMode,
+        confirmationToken: input.confirmationToken ?? null,
+        attemptNumber: input.commandContext?.attemptNumber ?? null,
+      },
+    });
+
+    const [deleted] = await input.tx
+      .delete(pluginRegistrations)
+      .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
+      .returning();
+
+    return deleted ?? null;
+  }
+
   await createGovernanceAudit({
     tx: input.tx,
-    pluginId: null,
+    pluginId: plugin.id,
     schoolId: plugin.schoolId,
     action: "plugin.uninstall",
     decision: "allowed",
     reason: null,
     actorId: input.actorId,
-    actorScope: "teacher",
+    actorScope: input.actorScope ?? "teacher",
     lifecycleState: plugin.lifecycleState,
     killSwitchEnabled: plugin.killSwitchEnabled,
     requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
@@ -1027,19 +1617,6 @@ export async function uninstallPluginWithTx(input: UninstallPluginWithTxInput) {
       attemptNumber: input.commandContext?.attemptNumber ?? null,
     },
   });
-
-  if (retentionMode === "cleanup") {
-    if (input.confirmationToken !== preflight.cleanupConfirmationToken) {
-      throw new Error("PLUGIN_CLEANUP_CONFIRMATION_REQUIRED");
-    }
-
-    const [deleted] = await input.tx
-      .delete(pluginRegistrations)
-      .where(and(eq(pluginRegistrations.id, input.pluginId), eq(pluginRegistrations.schoolId, input.schoolId)))
-      .returning();
-
-    return deleted ?? null;
-  }
 
   const [updated] = await input.tx
     .update(pluginRegistrations)
@@ -1247,39 +1824,45 @@ export async function runPluginHook(input: RunPluginHookInput) {
 
   const result = dispatchPluginAction(actionInput);
 
-  await createHookRun(plugin.id, input.hookAnchor, "success", Date.now() - startedAt);
+  await runBestEffortPluginObservation(plugin.id, "hook-run", () =>
+    createHookRun(plugin.id, input.hookAnchor, "success", Date.now() - startedAt)
+  );
   const correlationId = `${plugin.id}:${input.input.action}:${startedAt}`;
-  await createPluginAudit({
-    pluginId: plugin.id,
-    action: input.input.action,
-    decision: "allowed",
-    schoolId: plugin.schoolId,
-    actorScope: "teacher",
-    lifecycleState: plugin.lifecycleState,
-    correlationId,
-    payloadJson: {
-      ...input.input.payload,
-      result,
-    },
-    actorId: input.actorId,
-  });
-  await createGovernanceAudit({
-    pluginId: plugin.id,
-    schoolId: plugin.schoolId,
-    action: input.input.action,
-    decision: "allowed",
-    actorId: input.actorId,
-    actorScope: "teacher",
-    lifecycleState: plugin.lifecycleState,
-    killSwitchEnabled: plugin.killSwitchEnabled,
-    requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
-    requiredPermission,
-    correlationId,
-    payloadJson: {
-      ...input.input.payload,
-      result,
-    },
-  });
+  await runBestEffortPluginObservation(plugin.id, "plugin-audit", () =>
+    createPluginAudit({
+      pluginId: plugin.id,
+      action: input.input.action,
+      decision: "allowed",
+      schoolId: plugin.schoolId,
+      actorScope: "teacher",
+      lifecycleState: plugin.lifecycleState,
+      correlationId,
+      payloadJson: {
+        ...input.input.payload,
+        result,
+      },
+      actorId: input.actorId,
+    })
+  );
+  await runBestEffortPluginObservation(plugin.id, "governance-audit", () =>
+    createGovernanceAudit({
+      pluginId: plugin.id,
+      schoolId: plugin.schoolId,
+      action: input.input.action,
+      decision: "allowed",
+      actorId: input.actorId,
+      actorScope: "teacher",
+      lifecycleState: plugin.lifecycleState,
+      killSwitchEnabled: plugin.killSwitchEnabled,
+      requestedCapabilities: manifest.governance?.requestedCapabilities ?? [],
+      requiredPermission,
+      correlationId,
+      payloadJson: {
+        ...input.input.payload,
+        result,
+      },
+    })
+  );
 
   return result;
 }

@@ -301,6 +301,28 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
         migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-2", "lesson"),
       ).rejects.toThrow("SCHOOL_CROSS_BOUNDARY_FORBIDDEN");
     });
+
+    it("should allow operator-scoped upgrade preflight for active admin membership", async () => {
+      const { migrationModule } = await loadSubject();
+
+      getUserMembershipsDTO.mockResolvedValueOnce([
+        { schoolId: "school-1", status: "active", role: "admin" },
+      ]);
+
+      await expect(
+        migrationModule.preflightPluginUpgrade({
+          actorId: "teacher-1",
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          targetVersion: "1.1.0",
+          actorScope: "operator",
+        }),
+      ).resolves.toMatchObject({
+        pluginId: "plugin-1",
+        schoolId: "school-1",
+        targetVersion: "1.1.0",
+      });
+    });
   });
 
   describe("B. Phase 46-01: Backfill Operations", () => {
@@ -370,7 +392,7 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       ]);
     });
 
-    it("should only backfill lessons owned by the acting teacher inside the same school", async () => {
+    it("should backfill all same-school lessons regardless of teacher owner", async () => {
       const { migrationModule } = await loadSubject();
 
       await client.execute(
@@ -394,8 +416,8 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       const result = await migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson");
 
       expect(result).toEqual({
-        processed: 1,
-        succeeded: 1,
+        processed: 2,
+        succeeded: 2,
         failed: 0,
         errors: [],
       });
@@ -405,6 +427,12 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
           pluginId: "plugin-1",
           lessonId: "lesson-1",
           payloadJson: { reminderRule: "daily" },
+        },
+        {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          lessonId: "lesson-3",
+          payloadJson: { reminderRule: "manager-only" },
         },
       ]);
     });
@@ -453,7 +481,7 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       ]);
     });
 
-    it("should only backfill steps whose parent lesson belongs to the acting teacher", async () => {
+    it("should backfill all same-school steps regardless of teacher owner", async () => {
       const { migrationModule } = await loadSubject();
 
       await client.execute(
@@ -485,8 +513,8 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       const result = await migrationModule.backfillPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "step");
 
       expect(result).toEqual({
-        processed: 1,
-        succeeded: 1,
+        processed: 2,
+        succeeded: 2,
         failed: 0,
         errors: [],
       });
@@ -496,6 +524,12 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
           pluginId: "plugin-1",
           lessonStepId: "step-1",
           payloadJson: { stepConfig: "interactive" },
+        },
+        {
+          schoolId: "school-1",
+          pluginId: "plugin-1",
+          lessonStepId: "step-3",
+          payloadJson: { stepConfig: "manager-only" },
         },
       ]);
     });
@@ -726,7 +760,7 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       });
     });
 
-    it("should not cut over lessons owned by another teacher in the same school", async () => {
+    it("should cut over all same-school lessons regardless of teacher owner", async () => {
       const { migrationModule } = await loadSubject();
 
       await client.execute(
@@ -752,15 +786,13 @@ describe("Phase 46 DAL Migration & Backfill Service", () => {
       const result = await migrationModule.cutoverPluginJsonToSchema("teacher-1", "school-1", "plugin-1", "lesson");
 
       expect(result).toEqual({
-        processed: 1,
-        succeeded: 1,
+        processed: 2,
+        succeeded: 2,
         failed: 0,
         errors: [],
       });
       await expect(getPublishedLessonPayload(client, "pub-1")).resolves.toEqual({});
-      await expect(getPublishedLessonPayload(client, "pub-3")).resolves.toEqual({
-        "vendor/plugin-1": { reminderRule: "manager-only" },
-      });
+      await expect(getPublishedLessonPayload(client, "pub-3")).resolves.toEqual({});
     });
   });
 

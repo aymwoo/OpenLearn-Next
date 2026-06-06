@@ -248,6 +248,50 @@ describe("built-in plugin template resolution", () => {
     });
   });
 
+  it("keeps built-in template discovery alive when hook observation writes hit SQLITE_BUSY", async () => {
+    const plugin = createBuiltInPlugin();
+    const busyError = new Error("SQLITE_BUSY: database is locked");
+    Object.assign(busyError, { code: "SQLITE_BUSY" });
+
+    findManyPluginRegistrations.mockResolvedValue([plugin]);
+    findFirstPluginRegistration.mockResolvedValue(plugin);
+    insertReturning.mockRejectedValueOnce(busyError);
+    dispatchPluginAction.mockReturnValue({
+      proposalType: "builtInTeachingStepTemplate",
+      payload: {
+        builtInKey: "directInstruction",
+        pluginName: "教师讲授",
+        title: "教师讲授",
+        summary: "面向全班进行重点讲授。",
+        stepType: "content",
+        initialTitle: "教师讲授",
+        initialPayload: {
+          type: "content",
+          title: "教师讲授",
+          body: "聚焦本课重点。",
+          teacherNotes: "先讲结论，再做示范。",
+          materialRefs: [],
+        },
+      },
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { listBuiltInTeachingStepTemplates } = await import("./plugins");
+    const templates = await listBuiltInTeachingStepTemplates({
+      actorId: "teacher-1",
+      schoolId: "school-1",
+    });
+
+    expect(templates).toHaveLength(1);
+    expect(templates[0]).toMatchObject({
+      pluginId: "plugin-built-in-1",
+      pluginName: "教师讲授",
+    });
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("best-effort plugin hook observation write skipped"));
+
+    warnSpy.mockRestore();
+  });
+
   it("hides suspended, failed, and kill-switched built-ins from template lists", async () => {
     findManyPluginRegistrations.mockResolvedValue([
       createBuiltInPlugin({ id: "plugin-ready", name: "教师讲授" }),
@@ -322,6 +366,30 @@ describe("built-in plugin template resolution", () => {
       },
     });
     expect(definition?.authoringContract?.defaultConfig.options).toHaveLength(3);
+  });
+
+  it("supports the quiz sample built-in teaching definition with stable plugin identity metadata", async () => {
+    const { BUILT_IN_TEACHING_STEP_DEFINITIONS } = await import("@/lib/dto/resource-ai");
+
+    const definition = BUILT_IN_TEACHING_STEP_DEFINITIONS.find((item) => item.builtInKey === "quizSample");
+
+    expect(definition).toBeTruthy();
+    expect(definition).toMatchObject({
+      builtInKey: "quizSample",
+      pluginKey: "builtin-teaching-step-quiz-sample",
+      pluginName: "互动答题（样板）",
+      stepType: "quiz",
+      authoringContract: {
+        kind: "quiz-sample",
+        publicMetadata: {
+          builtInKey: "quizSample",
+          pluginKey: "builtin-teaching-step-quiz-sample",
+          pluginName: "互动答题（样板）",
+          stepType: "quiz",
+        },
+      },
+    });
+    expect(definition?.authoringContract?.defaultConfig.options).toHaveLength(4);
   });
 
   it("hides the classroom voting built-in when the plugin contract version is incompatible", async () => {
