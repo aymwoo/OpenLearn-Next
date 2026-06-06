@@ -22,11 +22,11 @@
 
 ### Marketplace 生命周期 (MKT)
 
-- [ ] **MKT-01**: operator 能在 marketplace surface 发现并安装非内置（external）插件，安装经治理校验（manifest、`dataModel` 校验、命名冲突检查）通过后才进入可用状态。
-- [ ] **MKT-02**: 插件版本遵循 semver；升级走 backfill→verify→cutover 受控数据迁移链路，可在出错时回滚，不丢失既有学习数据。
-- [ ] **MKT-03**: 卸载遵循既有 `uninstallRetentionMode`：默认 `retain`（软禁用、保留数据并要求确认 token），`cleanup` 才级联清理；卸载动作写入 governance audit。
-- [ ] **MKT-04**: 卸载后以 `retain` 保留的数据，能在同 `pluginKey` 重新安装时被接管恢复（完整跨版本恢复承诺为 v2 deferred）。
-- [ ] **MKT-05**: 升级/卸载在存在进行中（active）课堂作答时被安全阻断或受控延迟，给出明确可读原因（扩展 `getPluginUninstallBlockReason` 至 active session）。
+- [x] **MKT-01**: operator 能在 marketplace surface 发现并安装非内置（external）插件，安装经治理校验（manifest、`dataModel` 校验、命名冲突检查）通过后才进入可用状态。
+- [x] **MKT-02**: 插件版本遵循 semver；升级走 backfill→verify→cutover 受控数据迁移链路，可在出错时回滚，不丢失既有学习数据。
+- [x] **MKT-03**: 卸载遵循既有 `uninstallRetentionMode`：默认 `retain`（软禁用、保留数据并要求确认 token），`cleanup` 才级联清理；卸载动作写入 governance audit。
+- [x] **MKT-04**: 卸载后以 `retain` 保留的数据，能在同 `pluginKey` 重新安装时被接管恢复（完整跨版本恢复承诺为 v2 deferred）。
+- [x] **MKT-05**: 升级/卸载在存在进行中（active）课堂作答时被安全阻断或受控延迟，给出明确可读原因（扩展 `getPluginUninstallBlockReason` 至 active session）。
 
 ### 互动答题样板插件 (QUIZ)
 
@@ -36,12 +36,12 @@
 
 ### 题目统计与课后复盘 (STATS)
 
-- [ ] **STATS-01**: 系统基于插件自有作答数据，按题计算正确率、各选项作答分布、作答/未作答人数，统计为插件数据之上的只读投影，不回写核心 analytics 表。
-- [ ] **STATS-02**: 教师能在课后复盘界面查看题目统计；界面对齐 Stitch 项目 `5322129002350954765` 与 `DESIGN.md`（Lexend、无 1px 分隔线、tonal surface、glass/gradient CTA）。
+- [x] **STATS-01**: 系统基于插件自有作答数据，按题计算正确率、各选项作答分布、作答/未作答人数，统计为插件数据之上的只读投影，不回写核心 analytics 表。
+- [x] **STATS-02**: 教师能在课后复盘界面查看题目统计；界面对齐 Stitch 项目 `5322129002350954765` 与 `DESIGN.md`（Lexend、无 1px 分隔线、tonal surface、glass/gradient CTA）。
 
 ### Close Gate (GATE)
 
-- [ ] **GATE-01**: 提供 `verify:phase` 端到端 close gate，对「声明数据模型 → 安装 → 老师配置答题 → 学生作答 → 统计复盘 → 升级/卸载治理」整条链路做回归校验，作为里程碑 close 的单一权威闸门。
+- [x] **GATE-01**: 提供 `verify:phase` 端到端 close gate，对「声明数据模型 → 安装 → 老师配置答题 → 学生作答 → 统计复盘 → 升级/卸载治理」整条链路做回归校验，作为里程碑 close 的单一权威闸门。
 
 ## v2 Requirements
 
@@ -92,14 +92,14 @@ Populated during roadmap creation.
 | QUIZ-01 | Phase 69 | Complete |
 | QUIZ-02 | Phase 69 | Complete |
 | QUIZ-03 | Phase 69 | Complete |
-| STATS-01 | Phase 70 | Pending |
-| STATS-02 | Phase 70 | Pending |
-| MKT-01 | Phase 71 | Pending |
-| MKT-02 | Phase 71 | Pending |
-| MKT-03 | Phase 71 | Pending |
-| MKT-04 | Phase 71 | Pending |
-| MKT-05 | Phase 71 | Pending |
-| GATE-01 | Phase 72 | Pending |
+| STATS-01 | Phase 70 | Complete |
+| STATS-02 | Phase 70 | Complete |
+| MKT-01 | Phase 71 | Complete |
+| MKT-02 | Phase 71 | Complete |
+| MKT-03 | Phase 71 | Complete |
+| MKT-04 | Phase 71 | Complete |
+| MKT-05 | Phase 71 | Complete |
+| GATE-01 | Phase 72 | Complete |
 
 **Coverage:**
 - v1 requirements: 18 total
@@ -108,4 +108,4 @@ Populated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-02*
-*Last updated: 2026-06-02 after initial definition*
+*Last updated: 2026-06-05 after Phase 72 close gate completion*

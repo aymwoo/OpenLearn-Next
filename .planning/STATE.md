@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
 status: verifying
-last_updated: "2026-06-04T05:09:31.683Z"
-last_activity: 2026-06-03 -- Phase 69 completed; Phase 70 close gate pending
+last_updated: "2026-06-05T08:45:57.865Z"
+last_activity: "2026-06-05 -- Phase 72 close gate landed and v4.0 reached a single verify:phase milestone gate"
 progress:
-  total_phases: 6
-  completed_phases: 4
-  total_plans: 17
-  completed_plans: 17
-  percent: 67
+  total_phases: 7
+  completed_phases: 6
+  total_plans: 22
+  completed_plans: 22
+  percent: 86
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 70 — question-stats-post-class-recap
+**Current focus:** v4.0 complete — milestone ready for audit/archive or next-milestone handoff
 
 ## Current Position
 
-Phase: 70 (question-stats-post-class-recap) — EXECUTING
-Plan: 1 of 4
-Status: Verification pending
-Last activity: 2026-06-03 -- Phase 69 completed; Phase 70 close gate pending
+Phase: 72.1 (close-gap-gate-01-authoritative-milestone-close-gate) — INSERTED
+Plan: 1 of 1
+Status: Phase 72 completed and both `pnpm verify:phase72` / `pnpm verify:phase` passed
+Last activity: 2026-06-05 -- Phase 72 close gate landed and v4.0 reached a single verify:phase milestone gate
 
 > Corrective applied 2026-06-02 (mid-phase-68, before 68-03): plugin data-model compiler now injects append-only `attemptNo`/`isLatest` for tables with `uniques`; hand-authored migration `0006_worried_wallow.sql`. See `.planning/phases/68-governed-declarative-data-access-verbs/67-CORRECTIVE-isLatest.md`. No plan counters advanced.
 
@@ -86,6 +86,7 @@ Last activity: 2026-06-03 -- Phase 69 completed; Phase 70 close gate pending
 - v3.2 roadmap 按 provider layer → tool layer → draft chain → review surface → eval/guardrails → closure wiring 的顺序执行完毕。
 - `v3.2` 已归档到 `.planning/milestones/v3.2-ROADMAP.md`；根级 `ROADMAP.md` 现在只保留已归档 milestone 摘要与“等待下一里程碑”入口。
 - milestone audit 先识别了 teacher trigger、run→persist、accept/discard command-bus 三个关键断缝；收尾 Phase 66 把这些跨 phase seam 作为真实 blocker 修复，而不是接受为 tech debt。
+- Phase 72.1 inserted after Phase 72: Close gap: GATE-01 authoritative milestone close gate (URGENT)
 
 ### Decisions
 
@@ -139,16 +140,15 @@ Recent decisions affecting current work:
 - [Phase 68]: Fixed two production command-bus bugs surfaced by the real write path: zero-event ledger .values([]) crash and write-command correlation collapse causing silent data loss
 - [Phase 69]: Phase 69 close gate uses a phase-specific auth stub via runner tsconfig remap; headless verification switches actors without changing production DAL/auth behavior
 - [Phase 69]: Phase 69 ships verify:phase69 without switching the global verify:phase alias — Phase 72 remains the planned convergence point for the single milestone gate
+- [Phase 69]: 2026-06-05 corrective: quiz sample classroom submit path must send governed plugin key `quiz` (not built-in registration id) into `dispatchPluginDataAccess`, otherwise `verify:phase69` fails with `non_school_actor_rejected`
 
 ### Pending Todos
 
-- Run `pnpm verify:phase70` and fix any remaining close-gate issues.
-- Re-run `pnpm verify:phase69` to confirm Phase 70 recap work did not regress the interactive quiz sample baseline.
+- None.
 
 ### Blockers/Concerns
 
-- v4.0 红线必须在每个 phase success criteria 中显式断言：no eval / no arbitrary code、no plugin direct DB、no runtime DDL（compile-time Drizzle only）、SQLite+DAL 单一真相、no core-table pollution、样板插件无后门。
-- Current working tree still contains unrelated source changes; future commits should stage only intended planning + fix files.
+- Current working tree still contains unrelated source changes; future commits should stage only intended Phase 72 / milestone-close files.
 
 ## Deferred Items
 
@@ -167,10 +167,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-04T05:09:31.603Z
-Stopped at: Phase 71 context gathered
-Resume file: .planning/phases/71-marketplace-lifecycle-install-governance-semver-upgrade-reta/71-CONTEXT.md
+Last session: 2026-06-05T06:02:49.000Z
+Stopped at: Phase 72 close gate completed
+Resume file: .planning/ROADMAP.md
 
 ## Operator Next Steps
 
-- Run `pnpm verify:phase70`, then confirm `pnpm verify:phase69` still passes before advancing to Phase 71.
+- If desired, run milestone audit/archive for v4.0 or begin scoping the next milestone.

@@ -60,10 +60,11 @@ Exceptions: 所有主操作按钮与切换控件最小高度 44px；插件卡主
 |------|-------|-------|
 | Dominant (60%) | `#f5f7f9` | 页面背景、外层工作区、section 底色 |
 | Secondary (30%) | `#eef1f3` / `#ffffff` | plugin cards、detail panel、影响面 tiles、治理摘要容器 |
-| Accent (10%) | `#0050d4` + `#7b9cff` | 安装按钮、升级预检入口、升级阶段当前态、恢复成功态、retain 恢复提示 |
+| Accent (10%) | `#0050d4` | 语义强调色；仅用于安装按钮、升级预检入口、升级阶段当前态、恢复成功态、retain 恢复提示 |
+| Accent companion (decorative only) | `#7b9cff` | 仅作为 gradient / glow / highlight 的装饰性 stop；不可单独承担语义状态 |
 | Destructive | `#b31b25` | cleanup、active-blocked 危险提示、破坏性确认 |
 
-Accent reserved for: `安装插件`、`查看升级预检`、`开始升级`、三阶段进度中的当前/完成状态、`已接管保留数据` 恢复 badge、当前可执行推荐动作。不得把 accent 用于普通 metadata badge、插件来源说明、全部交互按钮或整页大面积铺底。
+Accent reserved for: `安装插件`、`查看升级预检`、`开始升级`、三阶段进度中的当前/完成状态、`已接管保留数据` 恢复 badge、当前可执行推荐动作。`#7b9cff` 仅可附着在上述元素的 gradient 边缘、高光描边或柔光背景中，不能脱离 `#0050d4` 独立表达可点击、成功、进行中或任何语义状态。不得把 accent 用于普通 metadata badge、插件来源说明、全部交互按钮或整页大面积铺底。
 
 ---
 
@@ -118,6 +119,7 @@ Accent reserved for: `安装插件`、`查看升级预检`、`开始升级`、�
 
 3. **External Section**
    - 本 phase 主舞台
+   - 首屏视觉锚点固定为 External Section 顶部第一张 external governance / upgrade-preflight card；hero metrics 只做概览，不得与主操作争抢第一注意力
    - 卡片先展示治理摘要，再展示主操作
    - 支持 4 种卡片态：未安装、已安装可用、可升级、已卸载但可恢复
 

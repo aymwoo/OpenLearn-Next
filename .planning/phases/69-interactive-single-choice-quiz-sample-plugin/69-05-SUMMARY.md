@@ -25,10 +25,10 @@ key-files:
     - package.json
     - .planning/ROADMAP.md
 key-decisions:
-  - "Phase 69 close gate uses a verifier-only actor override instead of changing production request auth behavior"
+  - "Phase 69 close gate uses a phase-specific auth stub via tsconfig remap instead of changing production auth or DAL behavior"
   - "verify:phase69 remains a dedicated phase script; global verify:phase alias stays on phase68 until phase72"
 patterns-established:
-  - "Close-gate scripts may use explicit env-gated actor injection when Next request context is unavailable"
+  - "Close-gate scripts may remap auth() to a phase-local stub when Next request context is unavailable"
   - "Phase roadmap sections must replace Plans: TBD with concrete plan bullets once plan files exist"
 requirements-completed: [QUIZ-01, QUIZ-02, QUIZ-03]
 duration: 8 min
@@ -63,14 +63,13 @@ Each task was committed atomically:
 
 ## Files Created/Modified
 - `scripts/verify-phase69-quiz-sample.ts` - Phase 69 端到端 close gate runner
-- `src/lib/dal/auth.ts` - 增加 verifier-only actor override，解决 headless auth 阻塞
 - `scripts/lib/phase69-auth-stub.ts` - Phase 69 verifier auth stub
 - `tsconfig.verify-phase69.json` - Phase 69 runner tsconfig 路径映射
 - `package.json` - 新增 `verify:phase69`
 - `.planning/ROADMAP.md` - 同步 Phase 69/70 计划与进度状态
 
 ## Decisions Made
-- 使用 `OPENLEARN_VERIFY_ACTOR_ID` 作为 **仅 close-gate verifier 使用** 的显式旁路，避免在 headless 脚本里触发 Next.js request-scope `auth()` 崩溃，同时不改变默认生产鉴权路径。
+- 使用 `tsconfig.verify-phase69.json` 将 `@/lib/auth/auth` 重映射到 phase-local auth stub，避免在 headless 脚本里触发 Next.js request-scope `auth()` 崩溃，同时不改变默认生产鉴权路径。
 - 保持 `verify:phase` alias 指向 Phase 68，不在 Phase 69 提前切换；仅新增 `verify:phase69` 作为独立 close gate 入口。
 
 ## Deviations from Plan
@@ -80,8 +79,8 @@ Each task was committed atomically:
 **1. [Rule 3 - Blocking] 修复 headless close gate 的请求上下文鉴权阻塞**
 - **Found during:** Task 1 (编写 verify-phase69 close gate)
 - **Issue:** 独立运行 `node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase69-quiz-sample.ts` 时，DAL 走到 `getCurrentUserDTO -> auth()`，在无 Next request scope 下抛出 `headers was called outside a request scope`，导致 close gate 不能独立执行。
-- **Fix:** 在 `src/lib/dal/auth.ts` 增加 verifier-only `OPENLEARN_VERIFY_ACTOR_ID` 旁路；由 `scripts/verify-phase69-quiz-sample.ts` 在 teacher/student 切换前显式设置该环境变量。
-- **Files modified:** `src/lib/dal/auth.ts`, `scripts/verify-phase69-quiz-sample.ts`
+- **Fix:** 使用 `tsconfig.verify-phase69.json` 将 `@/lib/auth/auth` 重映射到 `scripts/lib/phase69-auth-stub.ts`；由 `scripts/verify-phase69-quiz-sample.ts` 在 teacher/student 切换前显式调用 `setPhase69Actor(...)`。
+- **Files modified:** `scripts/verify-phase69-quiz-sample.ts`, `scripts/lib/phase69-auth-stub.ts`, `tsconfig.verify-phase69.json`
 - **Verification:** `node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase69-quiz-sample.ts`; `pnpm verify:phase69`
 - **Committed in:** `4e87eae`
 
@@ -99,7 +98,7 @@ Each task was committed atomically:
 **Impact on plan:** 两项偏差都用于保证 close gate 真正可运行、可复现，没有扩大产品范围。
 
 ## Issues Encountered
-- headless verifier 初次运行时被 Next/Auth.js request-scope 动态 API 阻塞；通过 verifier-only actor override 修复。
+- headless verifier 初次运行时被 Next/Auth.js request-scope 动态 API 阻塞；通过 phase-local auth stub remap 修复。
 
 ## User Setup Required
 
