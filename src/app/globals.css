@@ -1,4 +1,8 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "../app";
+@source "../components";
+@source "../features/runtime-platform/host";
+@source not "../**/*.test.{ts,tsx,js,jsx}";
 
 @theme {
   --font-lexend: "Lexend", sans-serif;

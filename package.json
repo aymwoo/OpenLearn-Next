@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev:setup": "bash scripts/start-dev-environment.sh",
+    "dev:stop": "bash scripts/stop-dev-environment.sh",
+    "dev:restart": "pnpm dev:stop && pnpm dev:setup",
     "dev": "node --require ./scripts/server-only-node-shim.cjs --import next/dist/server/node-environment.js --import tsx server.ts",
     "worker:dev": "node --require ./scripts/server-only-node-shim.cjs --import next/dist/server/node-environment.js --import tsx src/server/workers/async-task-worker.ts",
     "build": "next build --turbopack",
