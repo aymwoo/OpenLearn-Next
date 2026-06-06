@@ -13,6 +13,7 @@ import {
   recordStudentFormativeEvaluation,
   recordStudentQuickResponse,
   refreshClassroomSnapshot,
+  submitQuizSampleAnswer,
   updateClassroomParticipantConnection,
 } from "@/lib/dal/classroom";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
@@ -33,6 +34,7 @@ const mockRecordClassroomEvidence = vi.fn();
 const mockRecordClassroomIntervention = vi.fn();
 const mockRecordStudentFormativeEvaluation = vi.fn();
 const mockRecordStudentQuickResponse = vi.fn();
+const mockSubmitQuizSampleAnswer = vi.fn();
 const mockRefreshClassroomSnapshot = vi.fn();
 const mockRecordRuntimeReady = vi.fn();
 const mockUpdateClassroomParticipantConnection = vi.fn();
@@ -50,11 +52,13 @@ vi.mock("@/lib/dal/classroom", () => ({
   recordClassroomIntervention: mockRecordClassroomIntervention,
   recordStudentFormativeEvaluation: mockRecordStudentFormativeEvaluation,
   recordStudentQuickResponse: mockRecordStudentQuickResponse,
+  submitQuizSampleAnswer: mockSubmitQuizSampleAnswer,
   refreshClassroomSnapshot: mockRefreshClassroomSnapshot,
   recordRuntimeReady: mockRecordRuntimeReady,
   recordRuntimeTeacherControl: mockRecordRuntimeTeacherControl,
   recordClassroomVotingRoundControl: mockRecordClassroomVotingRoundControl,
   updateClassroomParticipantConnection: mockUpdateClassroomParticipantConnection,
+  QuizSampleAnswerSlotSchema: z.enum(["A", "B", "C", "D"]),
 }));
 
 const mockGetCurrentUserDTO = vi.fn();
@@ -799,6 +803,69 @@ describe("classroom-actions", () => {
         }),
       }));
       expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+    });
+
+    it("exposes dedicated quiz sample submit action and invalidates governed truth tags", async () => {
+      mockSubmitQuizSampleAnswer.mockResolvedValue({
+        questionId: "step-1",
+        studentId: "student-1",
+        selectedOption: "B",
+        attemptNo: 2,
+        successMessage: "答案已更新",
+      });
+
+      const { submitQuizSampleAnswerAction } = await import("./classroom-actions");
+      const result = await submitQuizSampleAnswerAction({
+        lessonId: "lesson-1",
+        sessionId: "session-1",
+        stepId: "step-1",
+        selectedOption: "B",
+      });
+
+      expect(result).toEqual({
+        ok: true,
+        data: {
+          questionId: "step-1",
+          studentId: "student-1",
+          selectedOption: "B",
+          attemptNo: 2,
+          successMessage: "答案已更新",
+        },
+      });
+      expect(mockSubmitQuizSampleAnswer).toHaveBeenCalledWith({
+        lessonId: "lesson-1",
+        sessionId: "session-1",
+        stepId: "step-1",
+        selectedOption: "B",
+      });
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.classroom("session-1"));
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.progress("lesson-1", "student-1"));
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.submission("lesson-1", "student-1"));
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.teacherReview("lesson-1"));
+      expect(mockUpdateTag).toHaveBeenCalledWith(cacheTags.quizStats("session-1"));
+    });
+
+    it("rejects invalid quiz sample submit payloads before reaching DAL", async () => {
+      const { submitQuizSampleAnswerAction } = await import("./classroom-actions");
+      const result = await submitQuizSampleAnswerAction({
+        lessonId: "lesson-1",
+        sessionId: "session-1",
+        stepId: "step-1",
+      });
+
+      expect(result).toEqual({
+        ok: false,
+        error: "VALIDATION_ERROR",
+        message: "输入内容不完整，请检查后重试。",
+      });
+      expect(mockSubmitQuizSampleAnswer).not.toHaveBeenCalled();
+    });
+
+    it("keeps quiz sample submit on dedicated governed boundary instead of runtime submit bridge", () => {
+      expect(actionSource).toContain("submitQuizSampleAnswerAction");
+      expect(actionSource).toContain("submitQuizSampleAnswer(parsed.data)");
+      expect(actionSource).toContain("updateTag(cacheTags.teacherReview(parsed.data.lessonId))");
+      expect(actionSource).toContain("updateTag(cacheTags.quizStats(parsed.data.sessionId))");
     });
   });
 });

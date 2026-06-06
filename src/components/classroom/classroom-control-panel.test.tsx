@@ -12,6 +12,7 @@ const classroomActionMocks = vi.hoisted(() => ({
   changeClassroomSlideAction: vi.fn(),
   changeClassroomStepAction: vi.fn(),
   endClassroomSessionAction: vi.fn(),
+  recordClassroomParticipationControlAction: vi.fn(),
   recordClassroomVotingRoundControlAction: vi.fn(),
   recordRuntimeTeacherControlAction: vi.fn(),
   runCurrentVotingRecoveryAction: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock('@/actions/classroom-actions', () => ({
   changeClassroomSlideAction: classroomActionMocks.changeClassroomSlideAction,
   changeClassroomStepAction: classroomActionMocks.changeClassroomStepAction,
   endClassroomSessionAction: classroomActionMocks.endClassroomSessionAction,
+  recordClassroomParticipationControlAction: classroomActionMocks.recordClassroomParticipationControlAction,
   recordClassroomVotingRoundControlAction: classroomActionMocks.recordClassroomVotingRoundControlAction,
   recordRuntimeTeacherControlAction: classroomActionMocks.recordRuntimeTeacherControlAction,
   runCurrentVotingRecoveryAction: classroomActionMocks.runCurrentVotingRecoveryAction,
@@ -288,7 +290,7 @@ describe('ClassroomControlPanel websocket cutover', () => {
   })
 
   it('falls back to classroom voting round action when the voting step has no runtime descriptor', async () => {
-    classroomActionMocks.recordClassroomVotingRoundControlAction.mockResolvedValue({ ok: true, data: { sessionId: 'session-1' } })
+    classroomActionMocks.recordClassroomParticipationControlAction.mockResolvedValue({ ok: true, data: { sessionId: 'session-1' } })
 
     render(
       <ClassroomControlPanel
@@ -340,13 +342,108 @@ describe('ClassroomControlPanel websocket cutover', () => {
     fireEvent.click(screen.getAllByRole('button', { name: '开始本轮投票' })[0]!)
 
     await waitFor(() => {
-      expect(classroomActionMocks.recordClassroomVotingRoundControlAction).toHaveBeenCalledWith({
+      expect(classroomActionMocks.recordClassroomParticipationControlAction).toHaveBeenCalledWith({
         sessionId: 'session-1',
         stepId: 'step-1',
         command: 'start-voting-round',
       })
       expect(refreshMock).toHaveBeenCalled()
     })
+  })
+
+  it('shows quiz sample open close copy and falls back through participation control action', async () => {
+    classroomActionMocks.recordClassroomParticipationControlAction.mockResolvedValue({ ok: true, data: { sessionId: 'session-1' } })
+
+    render(
+      <ClassroomControlPanel
+        initialSnapshot={{
+          ...snapshot,
+          activeStepId: 'step-1',
+          steps: [
+            {
+              id: 'step-1',
+              title: '互动答题（样板）',
+              rank: 'a0',
+              type: 'quiz',
+              payload: {
+                type: 'quiz',
+                question: '以下哪项正确？',
+                options: ['A 选项', 'B 选项'],
+                correctOptionIndex: 0,
+                builtInSource: {
+                  pluginId: 'builtin-teaching-step-quiz-sample',
+                  builtInKey: 'quizSample',
+                  pluginName: '互动答题（样板）',
+                },
+              },
+              pluginContract: null,
+            },
+          ],
+          currentVotingRound: {
+            ...snapshot.currentVotingRound!,
+            stepId: 'step-1',
+            stepTitle: '互动答题（样板）',
+            roundStatusCopy: '开放作答',
+            isFrozen: false,
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('课堂答题控制')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '开放作答' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '已关闭' })).toBeTruthy()
+
+    for (const instance of MockWebSocket.instances) {
+      instance.readyState = 0
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: '已关闭' }))
+
+    await waitFor(() => {
+      expect(classroomActionMocks.recordClassroomParticipationControlAction).toHaveBeenCalledWith({
+        sessionId: 'session-1',
+        stepId: 'step-1',
+        command: 'end-voting-round',
+      })
+      expect(classroomActionMocks.recordRuntimeTeacherControlAction).not.toHaveBeenCalled()
+    })
+  })
+
+  it('shows quiz sample controls before the round starts', () => {
+    render(
+      <ClassroomControlPanel
+        initialSnapshot={{
+          ...snapshot,
+          activeStepId: 'step-1',
+          steps: [
+            {
+              id: 'step-1',
+              title: '互动答题（样板）',
+              rank: 'a0',
+              type: 'quiz',
+              payload: {
+                type: 'quiz',
+                question: '以下哪项正确？',
+                options: ['A 选项', 'B 选项'],
+                correctOptionIndex: 0,
+                builtInSource: {
+                  pluginId: 'builtin-teaching-step-quiz-sample',
+                  builtInKey: 'quizSample',
+                  pluginName: '互动答题（样板）',
+                },
+              },
+              pluginContract: null,
+            },
+          ],
+          currentVotingRound: null,
+        }}
+      />,
+    )
+
+    expect(screen.getByText('课堂答题控制')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '开放作答' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '已关闭' })).toBeTruthy()
   })
 
   it('hides named results and live aggregates when frozen contract requires it', () => {

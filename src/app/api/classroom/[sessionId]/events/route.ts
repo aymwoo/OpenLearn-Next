@@ -16,6 +16,7 @@ export async function GET(
     async start(controller) {
       const encoder = new TextEncoder();
       let lastVersion = 0;
+      let lastUpdatedAt = "";
 
         const fetchSnapshot = async () => {
           try {
@@ -37,12 +38,15 @@ export async function GET(
 
           if (parsed.success) {
             const snapshot = parsed.data;
-            if (snapshot.version > lastVersion) {
+            const snapshotAdvanced = snapshot.version > lastVersion
+              || (snapshot.version === lastVersion && snapshot.updatedAt > lastUpdatedAt);
+
+            if (snapshotAdvanced) {
               const payload = JSON.stringify(snapshot);
               controller.enqueue(encoder.encode(`event: snapshot\nid: ${snapshot.version}\ndata: ${payload}\n\n`));
               void recordTransportConsumerTrace({
                 sessionId,
-                correlationId: `classroom:${sessionId}:snapshot:${snapshot.version}`,
+                correlationId: `classroom:${sessionId}:snapshot:${snapshot.version}:${snapshot.updatedAt}`,
                 adapterId: "transport-sse-adapter",
                 adapterMode: "sse",
                 traceType: "snapshot",
@@ -53,11 +57,12 @@ export async function GET(
                 },
               });
               lastVersion = snapshot.version;
+              lastUpdatedAt = snapshot.updatedAt;
             } else {
               controller.enqueue(encoder.encode(`: keepalive\n\n`));
               void recordTransportConsumerTrace({
                 sessionId,
-                correlationId: `classroom:${sessionId}:keepalive:${lastVersion}`,
+                correlationId: `classroom:${sessionId}:keepalive:${lastVersion}:${lastUpdatedAt}`,
                 adapterId: "transport-sse-adapter",
                 adapterMode: "sse",
                 traceType: "keepalive",

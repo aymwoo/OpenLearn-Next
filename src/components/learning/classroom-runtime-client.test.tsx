@@ -19,6 +19,7 @@ vi.mock('@/actions/learning-actions', () => ({
 }))
 
 vi.mock('@/components/learning/quick-response-step-card', () => ({ QuickResponseStepCard: () => <div>Quick Response</div> }))
+vi.mock('@/components/learning/quiz-sample-step-card', () => ({ QuizSampleStepCard: () => <div>Quiz Sample</div> }))
 vi.mock('@/components/learning/quiz-step-card', () => ({ QuizStepCard: () => <div>Quiz</div> }))
 vi.mock('@/components/learning/task-step-card', () => ({ TaskStepCard: () => <div>Task</div> }))
 vi.mock('@/components/markdown/markdown-renderer', () => ({ MarkdownRenderer: () => <div>Markdown</div> }))
@@ -129,6 +130,32 @@ const shell: StudentPlayerShellDTO = {
           entry: { sandbox: 'iframe', bootstrap: '/runtime/html-courseware/pilot' },
           submitTarget: { primary: 'classroom-evidence', additional: [] },
           requestedCapabilities: [],
+        },
+      } as never,
+    },
+  ],
+}
+
+const shellWithQuizSample: StudentPlayerShellDTO = {
+  ...shell,
+  steps: [
+    ...shell.steps,
+    {
+      id: 'step-quiz-sample',
+      lessonId: 'lesson-1',
+      type: 'quiz',
+      title: '互动答题（样板）',
+      rank: 'a1',
+      pluginContract: null,
+      payload: {
+        type: 'quiz',
+        question: '以下哪项正确？',
+        options: ['选项 A', '选项 B'],
+        correctOptionIndex: 0,
+        builtInSource: {
+          pluginId: 'builtin-teaching-step-quiz-sample',
+          builtInKey: 'quizSample',
+          pluginName: '互动答题（样板）',
         },
       } as never,
     },
@@ -454,5 +481,183 @@ describe('ClassroomRuntimeClient websocket consumer', () => {
 
     expect(screen.getByText('已提交，等待老师结束本轮投票')).toBeTruthy()
     expect(screen.getAllByRole('heading', { name: '互动 Runtime' }).length).toBeGreaterThan(0)
+  })
+
+  it('follows the teacher active step after a voting round is closed', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        sessionId: 'session-1',
+        lessonId: 'lesson-1',
+        publishedVersionId: 'pub-1',
+        classId: 'class-1',
+        className: '一班',
+        teacherId: 'teacher-1',
+        lessonTitle: '古诗导读',
+        activeStepId: 'step-1',
+        locked: true,
+        status: 'live',
+        version: 6,
+        updatedAt: '2026-05-18T09:03:00.000Z',
+        participants: [],
+        monitoringSummary: {
+          connectedCount: 1,
+          reconnectingCount: 0,
+          offlineCount: 0,
+          needsAttentionCount: 0,
+          submittedCount: 0,
+        },
+        steps: [],
+        slideState: null,
+        currentVotingRound: {
+          status: 'closed',
+          stepId: 'step-quiz-sample',
+          stepTitle: '互动答题（样板）',
+          startedAt: '2026-05-18T09:02:00.000Z',
+          endedAt: '2026-05-18T09:03:00.000Z',
+          submittedCount: 1,
+          remainingCount: 0,
+          isFrozen: true,
+        },
+        teacherTimeline: [],
+        copy: {
+          staleRefreshRequired: 'stale',
+          pendingAction: 'pending',
+          reconnecting: 'reconnecting',
+          restored: 'restored',
+        },
+      }),
+    })) as unknown as typeof fetch)
+
+    render(
+      <ClassroomRuntimeClient
+        shell={shellWithQuizSample}
+        personal={{
+          ...personal,
+          progress: {
+            ...personal.progress,
+            resumeStepId: 'step-quiz-sample',
+            steps: [
+              { stepId: 'step-1', state: 'not_started', completedAt: null },
+              { stepId: 'step-quiz-sample', state: 'in_progress', completedAt: null },
+            ],
+          },
+          stepActivities: [
+            {
+              stepId: 'step-quiz-sample',
+              activityModeLabel: '课堂单选题',
+              estimatedMinutesLabel: '预计 1 分钟',
+              activityGuidance: '请独立作答',
+              expectedOutput: '选择 1 个答案并提交',
+              evidenceExpectationSummary: '系统会记录 latest answer',
+              completionStateCopy: '等待提交',
+              evidenceCapturePath: 'none',
+            },
+          ],
+          runtime: {
+            ...personal.runtime,
+            forcedStepId: 'step-quiz-sample',
+            locked: true,
+            roundEnded: true,
+            roundStatusCopy: '老师已结束本轮投票，当前结果已冻结。',
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('Quiz Sample')).toBeTruthy()
+
+    MockWebSocket.instances[0]?.emit('message', {
+      messageId: 'msg-5',
+      sessionId: 'session-1',
+      actor: { userId: 'teacher-1', scope: 'teacher', schoolId: 'school-1' },
+      kind: 'classroom.snapshot',
+      sentAt: '2026-05-18T09:03:00.000Z',
+      correlation: { correlationId: 'corr-5', truthPersisted: true },
+      payload: {
+        snapshot: {
+          sessionId: 'session-1',
+          lessonId: 'lesson-1',
+          publishedVersionId: 'pub-1',
+          classId: 'class-1',
+          className: '一班',
+          teacherId: 'teacher-1',
+          lessonTitle: '古诗导读',
+          activeStepId: 'step-1',
+          locked: true,
+          status: 'live',
+          version: 6,
+          updatedAt: '2026-05-18T09:03:00.000Z',
+          participants: [],
+          monitoringSummary: {
+            connectedCount: 1,
+            reconnectingCount: 0,
+            offlineCount: 0,
+            needsAttentionCount: 0,
+            submittedCount: 0,
+          },
+          steps: [],
+          slideState: null,
+          currentVotingRound: {
+            status: 'closed',
+            stepId: 'step-quiz-sample',
+            stepTitle: '互动答题（样板）',
+            startedAt: '2026-05-18T09:02:00.000Z',
+            endedAt: '2026-05-18T09:03:00.000Z',
+            submittedCount: 1,
+            remainingCount: 0,
+            isFrozen: true,
+          },
+          teacherTimeline: [],
+          copy: {
+            staleRefreshRequired: 'stale',
+            pendingAction: 'pending',
+            reconnecting: 'reconnecting',
+            restored: 'restored',
+          },
+        },
+      },
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByText('Quiz Sample')).toBeNull()
+      expect(screen.getAllByRole('heading', { name: '互动 Runtime' }).length).toBeGreaterThan(0)
+    })
+  })
+
+  it('routes quiz sample steps to the dedicated student answer card', () => {
+    render(
+      <ClassroomRuntimeClient
+        shell={shellWithQuizSample}
+        personal={{
+          ...personal,
+          progress: {
+            ...personal.progress,
+            resumeStepId: 'step-quiz-sample',
+            steps: [{ stepId: 'step-quiz-sample', state: 'in_progress', completedAt: null }],
+          },
+          stepActivities: [
+            {
+              stepId: 'step-quiz-sample',
+              activityModeLabel: '课堂单选题',
+              estimatedMinutesLabel: '预计 1 分钟',
+              activityGuidance: '请独立作答',
+              expectedOutput: '选择 1 个答案并提交',
+              evidenceExpectationSummary: '系统会记录 latest answer',
+              completionStateCopy: '等待提交',
+              evidenceCapturePath: 'none',
+            },
+          ],
+          runtime: {
+            ...personal.runtime,
+            forcedStepId: 'step-quiz-sample',
+            roundStatusCopy: '开放作答',
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('Quiz Sample')).toBeTruthy()
+    expect(screen.queryByText('Quiz')).toBeNull()
   })
 })

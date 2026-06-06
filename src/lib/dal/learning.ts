@@ -873,11 +873,12 @@ export async function getStudentPlayerPersonalDTO(input: { lessonId: string; sel
       locked = false;
     }
 
-    if (classroomRuntime.currentVotingRound?.stepId) {
+    if (classroomRuntime.currentVotingRound?.status === "live" && classroomRuntime.currentVotingRound.stepId) {
       forcedStepId = classroomRuntime.currentVotingRound.stepId;
       teacherRecommendedStepId = classroomRuntime.currentVotingRound.stepId;
-      roundEnded = classroomRuntime.currentVotingRound.status === "closed";
     }
+
+    roundEnded = classroomRuntime.currentVotingRound?.status === "closed";
   }
 
   const latestVotingSubmissionRows = classroomSessionId && classroomRuntime?.currentVotingRound?.stepId

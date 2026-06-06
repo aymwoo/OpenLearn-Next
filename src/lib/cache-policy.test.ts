@@ -7,5 +7,6 @@ describe("Phase 04 cache tags", () => {
     expect(cacheTags.progress("lesson-1", "student-1")).toBe("progress:lesson-1:student-1");
     expect(cacheTags.submission("lesson-1", "student-1")).toBe("submission:lesson-1:student-1");
     expect(cacheTags.teacherReview("lesson-1")).toBe("teacher-review:lesson-1");
+    expect(cacheTags.quizStats("session-1")).toBe("quiz-stats:session-1");
   });
 });

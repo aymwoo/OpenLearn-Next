@@ -10,6 +10,7 @@ export const cacheTags = {
   submission: (lessonId: string, userId: string) => `submission:${lessonId}:${userId}`,
   teacherReview: (lessonId: string) => `teacher-review:${lessonId}`,
   classroom: (sessionId: string) => `classroom:${sessionId}`,
+  quizStats: (sessionId: string) => `quiz-stats:${sessionId}`,
   resource: (id: string) => `resource:${id}`,
   resources: (schoolId: string) => `resources:${schoolId}`,
   agentRegistry: 'ai:agent-registry',

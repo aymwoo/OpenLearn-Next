@@ -113,6 +113,10 @@ const recap: ClassroomSessionRecapDTO = {
   studentSummaries: [],
   selectedStudent: null,
   stepSummaries: [],
+  quizSampleStats: {
+    questionCount: 0,
+    questions: [],
+  },
   selectedStepId: null,
 }
 

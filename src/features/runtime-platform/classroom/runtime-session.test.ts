@@ -118,6 +118,11 @@ describe("runtime session service", () => {
     expect(source).toContain("samePayload: true");
   });
 
+  it("keeps the runtime submit bridge limited to classroomVoting instead of quiz sample", () => {
+    expect(source).toContain('return stepPayload.builtInSource?.builtInKey === "classroomVoting"');
+    expect(source).not.toContain('builtInKey === "quizSample"');
+  });
+
   it("returns existing latest truth on duplicate voting payload before any new durable write", () => {
     const submitStart = source.indexOf("export async function submitRuntimeState");
     const teacherControlStart = source.indexOf("export async function recordTeacherControlEvent");

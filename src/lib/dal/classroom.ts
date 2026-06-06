@@ -1,6 +1,7 @@
 import "server-only";
 
-import { and, desc, eq, inArray, lte, or } from "drizzle-orm";
+import { and, count as countAgg, desc, eq, inArray, lte, or } from "drizzle-orm";
+import { z } from "zod";
 
 import { db } from "@/db";
 import {
@@ -24,6 +25,10 @@ import {
   taskSubmissions,
   users,
 } from "@/db/schema";
+import {
+  pluginOwnedQuizQuestions,
+  pluginOwnedQuizResponses,
+} from "@/db/schema/generated/plugin-owned/quiz";
 import { assertActiveTeacher } from "@/lib/dal/lesson-authoring";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { classroomRedisFanoutManager } from "@/features/runtime-platform/seams/transport/redis-fanout-manager";
@@ -35,6 +40,7 @@ import {
   ClassroomRecentSessionTrendDTOSchema,
   ClassroomEvidenceDTOSchema,
   ClassroomSessionRecapDTOSchema,
+  ClassroomSessionRecapQuizStatsSectionDTOSchema,
   ClassroomSessionParticipationLabelSchema,
   ClassroomSessionRecapDetailTabSchema,
   ClassroomStudentDetailDTOSchema,
@@ -65,9 +71,11 @@ import {
   QuizAttemptDTOSchema,
   TaskAttemptDTOSchema,
 } from "@/lib/dto/learning";
+import { dispatchPluginDataAccess } from "@/features/platform-core/plugin-data-access/facade";
 import {
   lessonStepPayloadSchema,
   ClassroomVotingFrozenContractSchema,
+  QuizSampleLessonStepConfigSchema,
   type TeachingDesign,
   type ClassroomVotingFrozenContract,
 } from "@/lib/dto/lesson-authoring";
@@ -158,6 +166,137 @@ function getVotingContract(step?: { pluginContract?: ClassroomVotingFrozenContra
 
 function isClassroomVotingStep(step?: { type?: string; payload?: { builtInSource?: { builtInKey?: string } } | null; pluginContract?: ClassroomVotingFrozenContract | null } | null) {
   return step?.type === "quiz" && getVotingContract(step) !== null;
+}
+
+function isQuizSampleStep(step?: {
+  type?: string;
+  payload?: { builtInSource?: { builtInKey?: string; pluginId?: string } } | null;
+} | null) {
+  return step?.type === "quiz" && step.payload?.builtInSource?.builtInKey === "quizSample";
+}
+
+const QUIZ_SAMPLE_OPTION_SLOTS = ["A", "B", "C", "D"] as const;
+const QUIZ_SAMPLE_PLUGIN_KEY = "quiz";
+
+export const QuizSampleAnswerSlotSchema = z.enum(QUIZ_SAMPLE_OPTION_SLOTS);
+
+type QuizSampleQuestionSnapshotRow = {
+  question: string;
+  prompt: string;
+  optionAText: string;
+  optionBText: string;
+  optionCText: string | null;
+  optionDText: string | null;
+  correctOption: "A" | "B" | "C" | "D";
+};
+
+function buildQuizSampleQuestionSnapshot(input: {
+  step: ReturnType<typeof parseSnapshotSteps>[number];
+  schoolId: string;
+  classroomSessionId: string;
+}) {
+  if (!isQuizSampleStep(input.step) || input.step.payload.type !== "quiz") {
+    throw new Error("QUIZ_SAMPLE_CONFIG_INVALID");
+  }
+
+  const pluginId = input.step.payload.builtInSource?.pluginId;
+  if (!pluginId) {
+    throw new Error("QUIZ_SAMPLE_PLUGIN_DISABLED");
+  }
+
+  const parsedConfig = QuizSampleLessonStepConfigSchema.safeParse({
+    prompt: input.step.payload.question,
+    options: input.step.payload.options.map((label, index) => ({
+      slot: QUIZ_SAMPLE_OPTION_SLOTS[index]!,
+      label,
+      enabled: true,
+    })),
+    correctOption:
+      typeof input.step.payload.correctOptionIndex === "number"
+      && input.step.payload.correctOptionIndex >= 0
+      && input.step.payload.correctOptionIndex < QUIZ_SAMPLE_OPTION_SLOTS.length
+        ? QUIZ_SAMPLE_OPTION_SLOTS[input.step.payload.correctOptionIndex]!
+        : undefined,
+  });
+
+  if (!parsedConfig.success) {
+    throw new Error("QUIZ_SAMPLE_CONFIG_INVALID");
+  }
+
+  const optionBySlot = new Map(parsedConfig.data.options.map((option) => [option.slot, option.label.trim()]));
+
+  return {
+    schoolId: input.schoolId,
+    pluginId,
+    classroomSession: input.classroomSessionId,
+    question: input.step.id,
+    prompt: parsedConfig.data.prompt,
+    optionAText: optionBySlot.get("A")!,
+    optionBText: optionBySlot.get("B")!,
+    optionCText: optionBySlot.get("C") ?? null,
+    optionDText: optionBySlot.get("D") ?? null,
+    correctOption: parsedConfig.data.correctOption,
+  };
+}
+
+function buildQuizSamplePayloadFromSnapshot(input: {
+  payload: Extract<ReturnType<typeof lessonStepPayloadSchema.parse>, { type: "quiz" }>;
+  question: QuizSampleQuestionSnapshotRow;
+}) {
+  const options = [
+    input.question.optionAText,
+    input.question.optionBText,
+    input.question.optionCText,
+    input.question.optionDText,
+  ].filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+
+  return {
+    ...input.payload,
+    question: input.question.prompt,
+    options,
+    correctOptionIndex: QUIZ_SAMPLE_OPTION_SLOTS.indexOf(input.question.correctOption),
+  };
+}
+
+function buildQuizSampleStudentSubmission(input: {
+  stepId: string;
+  selectedOption: z.infer<typeof QuizSampleAnswerSlotSchema>;
+  submittedAt: string;
+}) {
+  return {
+    stepId: input.stepId,
+    submittedAt: input.submittedAt,
+    summary: "已记录你的答案",
+    payload: {
+      selectedOptionId: input.selectedOption,
+      selectedOptionIds: [input.selectedOption],
+    },
+  };
+}
+
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function freezeQuizSampleQuestionsForSession(input: {
+  tx: DbTransaction;
+  schoolId: string;
+  classroomSessionId: string;
+  steps: ReturnType<typeof parseSnapshotSteps>;
+}) {
+  const rows = input.steps
+    .filter((step) => isQuizSampleStep(step))
+    .map((step) =>
+      buildQuizSampleQuestionSnapshot({
+        step,
+        schoolId: input.schoolId,
+        classroomSessionId: input.classroomSessionId,
+      }),
+    );
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  await input.tx.insert(pluginOwnedQuizQuestions).values(rows);
 }
 
 async function getVotingPluginRuntimeRegistryEntry(input: {
@@ -533,6 +672,116 @@ function buildVotingRoundState(input: {
   } as const;
 }
 
+function buildQuizSampleRoundState(input: {
+  step: ReturnType<typeof parseSnapshotSteps>[number] | undefined;
+  participants: Array<{
+    studentId: string;
+    studentName: string;
+    connectionState: "connected" | "reconnecting" | "offline";
+  }>;
+  latestVotingRoundArtifact: ReturnType<typeof extractVotingRoundArtifact>;
+  questionRow: QuizSampleQuestionSnapshotRow | null;
+  responseRows: Array<{
+    student: string;
+    selectedOption: "A" | "B" | "C" | "D";
+    createdAt: Date | number | null | undefined;
+  }>;
+}) {
+  if (
+    !input.step
+    || !isQuizSampleStep(input.step)
+    || !input.latestVotingRoundArtifact?.stepId
+    || input.latestVotingRoundArtifact.stepId !== input.step.id
+    || !input.questionRow
+  ) {
+    return null;
+  }
+
+  const optionEntries = [
+    { optionId: "A", optionLabel: input.questionRow.optionAText },
+    { optionId: "B", optionLabel: input.questionRow.optionBText },
+    { optionId: "C", optionLabel: input.questionRow.optionCText },
+    { optionId: "D", optionLabel: input.questionRow.optionDText },
+  ].filter(
+    (entry): entry is { optionId: "A" | "B" | "C" | "D"; optionLabel: string } =>
+      typeof entry.optionLabel === "string" && entry.optionLabel.trim().length > 0,
+  );
+
+  const participantById = new Map(input.participants.map((participant) => [participant.studentId, participant]));
+  const optionCounts = new Map(optionEntries.map((entry) => [entry.optionId, 0]));
+  const latestByStudent = new Map<string, (typeof input.responseRows)[number]>();
+
+  for (const row of input.responseRows) {
+    if (!latestByStudent.has(row.student)) {
+      latestByStudent.set(row.student, row);
+    }
+  }
+
+  const namedResults = [...latestByStudent.values()].flatMap((row) => {
+    optionCounts.set(row.selectedOption, Number(optionCounts.get(row.selectedOption) ?? 0) + 1);
+    const participant = participantById.get(row.student);
+    if (!participant) {
+      return [];
+    }
+
+    const selectedOptionLabel = optionEntries.find((entry) => entry.optionId === row.selectedOption)?.optionLabel ?? row.selectedOption;
+    return [{
+      studentId: participant.studentId,
+      studentName: participant.studentName,
+      selectedOptionIds: [row.selectedOption],
+      selectedOptionLabels: [selectedOptionLabel],
+      submittedAt: toIso(row.createdAt),
+    }];
+  });
+
+  const submittedCount = latestByStudent.size;
+  const incompleteStudents = input.participants
+    .filter((participant) => !latestByStudent.has(participant.studentId))
+    .map((participant) => ({
+      studentId: participant.studentId,
+      studentName: participant.studentName,
+      statusToken:
+        participant.connectionState === "offline"
+          ? "离线"
+          : participant.connectionState === "reconnecting"
+            ? "重新连接中"
+            : "未提交",
+    }));
+  const maxCount = Math.max(0, ...Array.from(optionCounts.values()));
+  const isClosed = input.latestVotingRoundArtifact.kind === "voting-round-closed";
+
+  return {
+    status: isClosed ? "closed" : "live",
+    stepId: input.step.id,
+    stepTitle: input.step.title,
+    startedAt: input.latestVotingRoundArtifact.openedAt ?? null,
+    endedAt: input.latestVotingRoundArtifact.closedAt ?? null,
+    submittedCount,
+    remainingCount: incompleteStudents.length,
+    optionResults: optionEntries.map((entry) => {
+      const count = Number(optionCounts.get(entry.optionId) ?? 0);
+      return {
+        optionId: entry.optionId,
+        optionLabel: entry.optionLabel,
+        count,
+        percentage: submittedCount > 0 ? (count / submittedCount) * 100 : 0,
+        isLeading: submittedCount > 0 && count === maxCount,
+      };
+    }),
+    incompleteStudents,
+    namedResults,
+    failureCount: 0,
+    namedResultsFoldedByDefault: true,
+    roundStatusCopy: isClosed ? "已关闭" : "开放作答",
+    failureCopy: null,
+    recoveryActions: [],
+    isFrozen: isClosed,
+    resultsDisplay: "compact",
+    anonymousResults: true,
+    liveResultsVisible: false,
+  } as const;
+}
+
 function toParticipationLabel(level: "active" | "normal" | "attention" | null | undefined) {
   if (level === "active") {
     return ClassroomSessionParticipationLabelSchema.parse("积极参与");
@@ -621,6 +870,7 @@ function buildClassroomSignalWorkload(studentSignals: Array<{ studentId: string;
 type ClassroomSessionRecapComputation = {
   artifact: ClassroomSessionSummaryArtifact;
   detailTab: "students" | "steps";
+  quizSampleStats: z.infer<typeof ClassroomSessionRecapQuizStatsSectionDTOSchema>;
   selectedStudent: {
     studentId: string;
     studentName: string;
@@ -636,6 +886,102 @@ type ClassroomSessionRecapComputation = {
   } | null;
   selectedStepId: string | null;
 };
+
+async function buildQuizSampleRecapStats(input: {
+  sessionId: string;
+  steps: ReturnType<typeof parseSnapshotSteps>;
+  participantCount: number;
+}) {
+  const quizSteps = input.steps.filter((step) => isQuizSampleStep(step));
+  if (quizSteps.length === 0) {
+    return ClassroomSessionRecapQuizStatsSectionDTOSchema.parse({
+      questionCount: 0,
+      questions: [],
+    });
+  }
+
+  const quizStepIds = quizSteps.map((step) => step.id);
+  const questionRows = await db
+    .select({
+      question: pluginOwnedQuizQuestions.question,
+      prompt: pluginOwnedQuizQuestions.prompt,
+      optionAText: pluginOwnedQuizQuestions.optionAText,
+      optionBText: pluginOwnedQuizQuestions.optionBText,
+      optionCText: pluginOwnedQuizQuestions.optionCText,
+      optionDText: pluginOwnedQuizQuestions.optionDText,
+      correctOption: pluginOwnedQuizQuestions.correctOption,
+    })
+    .from(pluginOwnedQuizQuestions)
+    .where(
+      and(
+        eq(pluginOwnedQuizQuestions.classroomSession, input.sessionId),
+        inArray(pluginOwnedQuizQuestions.question, quizStepIds),
+      ),
+    );
+
+  const distributionRows = await db
+    .select({
+      question: pluginOwnedQuizResponses.question,
+      selectedOption: pluginOwnedQuizResponses.selectedOption,
+      count: countAgg(),
+    })
+    .from(pluginOwnedQuizResponses)
+    .where(
+      and(
+        eq(pluginOwnedQuizResponses.classroomSession, input.sessionId),
+        inArray(pluginOwnedQuizResponses.question, quizStepIds),
+        eq(pluginOwnedQuizResponses.isLatest, true),
+      ),
+    )
+    .groupBy(pluginOwnedQuizResponses.question, pluginOwnedQuizResponses.selectedOption);
+
+  const distributionByQuestion = new Map<string, Map<"A" | "B" | "C" | "D", number>>();
+  for (const row of distributionRows) {
+    const counts = distributionByQuestion.get(row.question) ?? new Map<"A" | "B" | "C" | "D", number>();
+    counts.set(row.selectedOption, row.count);
+    distributionByQuestion.set(row.question, counts);
+  }
+
+  const stepMap = new Map(quizSteps.map((step) => [step.id, step]));
+  return ClassroomSessionRecapQuizStatsSectionDTOSchema.parse({
+    questionCount: questionRows.length,
+    questions: questionRows.map((question) => {
+      const counts = distributionByQuestion.get(question.question) ?? new Map<"A" | "B" | "C" | "D", number>();
+      const answeredCount = [...counts.values()].reduce((sum, value) => sum + value, 0);
+      const correctCount = counts.get(question.correctOption) ?? 0;
+      const step = stepMap.get(question.question);
+
+      const options = [
+        { slot: "A" as const, label: question.optionAText },
+        { slot: "B" as const, label: question.optionBText },
+        { slot: "C" as const, label: question.optionCText },
+        { slot: "D" as const, label: question.optionDText },
+      ]
+        .filter((option): option is { slot: "A" | "B" | "C" | "D"; label: string } => typeof option.label === "string" && option.label.trim().length > 0)
+        .map((option) => ({
+          slot: option.slot,
+          label: option.label,
+          count: counts.get(option.slot) ?? 0,
+          percentage: answeredCount > 0 ? (counts.get(option.slot) ?? 0) / answeredCount : 0,
+          isCorrect: option.slot === question.correctOption,
+        }));
+
+      return {
+        stepId: question.question,
+        stepTitle: step?.title ?? "课堂单选题",
+        prompt: question.prompt,
+        correctOption: question.correctOption,
+        answeredCount,
+        unansweredCount: Math.max(input.participantCount - answeredCount, 0),
+        participantCount: input.participantCount,
+        correctCount,
+        correctRate: answeredCount > 0 ? correctCount / answeredCount : 0,
+        denominatorLabel: `正确率按已作答 ${answeredCount} 人计算；本次课堂共 ${input.participantCount} 名参与者。`,
+        options,
+      };
+    }),
+  });
+}
 
 function buildTrendPrimaryRecapHref(sessionId: string, studentId?: string) {
   const params = new URLSearchParams({
@@ -1320,7 +1666,7 @@ export async function recordClassroomVotingRoundControl(input: {
 
   const steps = await getPublishedSessionSteps(session);
   const step = steps.find((item) => item.id === input.stepId);
-  if (!isClassroomVotingStep(step)) {
+  if (!isClassroomVotingStep(step) && !isQuizSampleStep(step)) {
     throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
   }
 
@@ -1416,9 +1762,47 @@ async function buildClassroomSnapshotDTOForActor(input: {
 
   const snapshot = parseSnapshot(published?.snapshotJson);
   const steps = parseSnapshotSteps(snapshot, session.lessonId);
+  const quizSampleStepIds = steps.filter((step) => isQuizSampleStep(step)).map((step) => step.id);
+  const quizSampleQuestionRows = quizSampleStepIds.length > 0
+    ? await db
+        .select({
+          question: pluginOwnedQuizQuestions.question,
+          prompt: pluginOwnedQuizQuestions.prompt,
+          optionAText: pluginOwnedQuizQuestions.optionAText,
+          optionBText: pluginOwnedQuizQuestions.optionBText,
+          optionCText: pluginOwnedQuizQuestions.optionCText,
+          optionDText: pluginOwnedQuizQuestions.optionDText,
+          correctOption: pluginOwnedQuizQuestions.correctOption,
+        })
+        .from(pluginOwnedQuizQuestions)
+        .where(
+          and(
+            eq(pluginOwnedQuizQuestions.classroomSession, session.id),
+            inArray(pluginOwnedQuizQuestions.question, quizSampleStepIds),
+          ),
+        )
+    : [];
+  const quizSampleQuestionByStepId = new Map(quizSampleQuestionRows.map((row) => [row.question, row]));
   const stepOrder = new Map(steps.map((step, index) => [step.id, index]));
   const activeStepIndex = stepOrder.get(session.activeStepId) ?? 0;
   const activeStep = steps.find((step) => step.id === session.activeStepId);
+  const activeQuizSampleResponseRows = activeStep && isQuizSampleStep(activeStep)
+    ? await db
+        .select({
+          student: pluginOwnedQuizResponses.student,
+          selectedOption: pluginOwnedQuizResponses.selectedOption,
+          createdAt: pluginOwnedQuizResponses.createdAt,
+        })
+        .from(pluginOwnedQuizResponses)
+        .where(
+          and(
+            eq(pluginOwnedQuizResponses.classroomSession, session.id),
+            eq(pluginOwnedQuizResponses.question, activeStep.id),
+            eq(pluginOwnedQuizResponses.isLatest, true),
+          ),
+        )
+        .orderBy(desc(pluginOwnedQuizResponses.createdAt))
+    : [];
   const transportDegradedReason = await classroomRedisFanoutManager.getLatestDegradedReason(
     session.id,
   );
@@ -1500,16 +1884,28 @@ async function buildClassroomSnapshotDTOForActor(input: {
     needsAttentionCount: participantDtos.filter((participant) => participant.needsAttention).length,
     submittedCount: participantDtos.filter((participant) => participant.submissionCount > 0).length,
   };
-  const currentVotingRound = buildVotingRoundState({
-    step: steps.find((step) => step.id === latestVotingRoundArtifact?.stepId),
-    participants: participantDtos.map((participant) => ({
-      studentId: participant.studentId,
-      studentName: participant.studentName,
-      connectionState: participant.connectionState,
-    })),
-    evidenceRows,
-    latestVotingRoundArtifact,
-  });
+  const roundStep = latestVotingRoundArtifact?.stepId === session.activeStepId
+    ? steps.find((step) => step.id === latestVotingRoundArtifact?.stepId)
+    : undefined;
+  const roundParticipants = participantDtos.map((participant) => ({
+    studentId: participant.studentId,
+    studentName: participant.studentName,
+    connectionState: participant.connectionState,
+  }));
+  const currentVotingRound = isQuizSampleStep(roundStep)
+    ? buildQuizSampleRoundState({
+        step: roundStep,
+        participants: roundParticipants,
+        latestVotingRoundArtifact,
+        questionRow: roundStep ? quizSampleQuestionByStepId.get(roundStep.id) ?? null : null,
+        responseRows: activeQuizSampleResponseRows,
+      })
+    : buildVotingRoundState({
+        step: roundStep,
+        participants: roundParticipants,
+        evidenceRows,
+        latestVotingRoundArtifact,
+      });
   const teacherTimeline = isTeacher
     ? buildTeacherTimeline({
         timelineRows,
@@ -1541,7 +1937,14 @@ async function buildClassroomSnapshotDTOForActor(input: {
       title: step.title,
       rank: step.rank,
       type: step.type,
-      payload: step.payload,
+      payload:
+        isQuizSampleStep(step) && step.payload.type === "quiz" && quizSampleQuestionByStepId.has(step.id)
+          ? buildQuizSamplePayloadFromSnapshot({
+              payload: step.payload,
+              question: quizSampleQuestionByStepId.get(step.id)!,
+            })
+          : step.payload,
+      pluginContract: step.pluginContract,
     })),
     slideState: await getLatestSlideState(session.id),
     transportStatus: {
@@ -1864,6 +2267,102 @@ export async function recordStudentQuickResponse(input: unknown) {
     body: payload.body,
     successMessage: "已记录为新的课堂回应",
     createdAt: evidence.createdAt,
+  };
+}
+
+export async function submitQuizSampleAnswer(input: {
+  lessonId: string;
+  sessionId: string;
+  stepId: string;
+  selectedOption: z.infer<typeof QuizSampleAnswerSlotSchema>;
+}) {
+  const payload = z.object({
+    lessonId: z.string().min(1),
+    sessionId: z.string().min(1),
+    stepId: z.string().min(1),
+    selectedOption: QuizSampleAnswerSlotSchema,
+  }).parse(input);
+
+  const user = await getCurrentUserDTO();
+  if (!user?.id) {
+    throw new Error("CLASSROOM_PARTICIPANT_REQUIRED");
+  }
+
+  const session = await getSessionWithLessonSteps(payload.sessionId);
+  await ensureSessionStudentParticipant(session.id, user.id);
+
+  if (session.status !== "live") {
+    throw new Error("CLASSROOM_ENDED");
+  }
+
+  if (session.activeStepId !== payload.stepId) {
+    throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
+  }
+
+  const snapshot = await buildClassroomSnapshotDTOForActor({
+    session,
+    actor: { actorId: user.id, actorScope: "student" },
+  });
+  const currentRound = snapshot.currentVotingRound;
+  if (!currentRound || currentRound.stepId !== payload.stepId || currentRound.status !== "live") {
+    throw new Error("QUIZ_SAMPLE_SUBMISSION_CLOSED");
+  }
+
+  const currentStep = snapshot.steps.find((step) => step.id === payload.stepId);
+  const currentStepPayload = currentStep?.payload as { type?: string; options?: string[]; builtInSource?: { builtInKey?: string } } | undefined;
+  if (!currentStep || !isQuizSampleStep({ type: currentStep.type, payload: currentStepPayload }) || currentStepPayload?.type !== "quiz") {
+    throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
+  }
+
+  const enabledSlots = QUIZ_SAMPLE_OPTION_SLOTS.slice(0, currentStepPayload.options?.length ?? 0);
+  if (!enabledSlots.includes(payload.selectedOption)) {
+    throw new Error("QUIZ_SAMPLE_OPTION_INVALID");
+  }
+
+  const hadPreviousAnswer = currentRound.namedResults.some((entry) => entry.studentId === user.id);
+  const submittedAt = new Date().toISOString();
+  const writeResult = await dispatchPluginDataAccess({
+    actor: user.id,
+    pluginKey: QUIZ_SAMPLE_PLUGIN_KEY,
+    verb: "upsert",
+    table: "plugin_owned_quiz_responses",
+    values: {
+      classroomSession: session.id,
+      student: user.id,
+      question: payload.stepId,
+      selectedOption: payload.selectedOption,
+    },
+  });
+
+  await recordRuntimeClassroomEvidence({
+    sessionId: session.id,
+    studentId: user.id,
+    stepId: payload.stepId,
+    sourceType: "student-submission",
+    evidenceType: "quiz-response",
+    capturedById: user.id,
+    payload: {
+      ...buildQuizSampleStudentSubmission({
+        stepId: payload.stepId,
+        selectedOption: payload.selectedOption,
+        submittedAt,
+      }),
+      pluginOwned: true,
+      pluginTable: "plugin_owned_quiz_responses",
+      pluginKey: QUIZ_SAMPLE_PLUGIN_KEY,
+    },
+  });
+
+  const attemptNo = typeof writeResult === "object" && writeResult !== null && "data" in writeResult
+    ? (((writeResult.data as { attemptNo?: number } | null | undefined)?.attemptNo) ?? 1)
+    : 1;
+
+  return {
+    questionId: payload.stepId,
+    studentId: user.id,
+    selectedOption: payload.selectedOption,
+    attemptNo,
+    successMessage: hadPreviousAnswer ? "答案已更新" : "已记录你的答案",
   };
 }
 
@@ -2647,6 +3146,11 @@ async function computeClassroomSessionRecap(input: {
 
   const snapshot = parseSnapshot(published?.snapshotJson);
   const steps = parseSnapshotSteps(snapshot, session.lessonId);
+  const quizSampleStats = await buildQuizSampleRecapStats({
+    sessionId: session.id,
+    steps,
+    participantCount: participants.length,
+  });
   const stepMap = new Map(steps.map((step) => [step.id, step]));
   const userMap = new Map(studentUsers.map((user) => [user.id, user.name ?? "学生"]));
   const progressByStudent = new Map<string, Array<typeof lessonStepProgress.$inferSelect>>();
@@ -2902,6 +3406,7 @@ async function computeClassroomSessionRecap(input: {
   return {
     artifact,
     detailTab,
+    quizSampleStats,
     selectedStudent: selectedStudent
       ? {
           studentId: selectedStudent.studentId,
@@ -3206,6 +3711,7 @@ export async function getClassroomSessionRecapDTO(rawInput: unknown) {
     studentSummaries: recap.artifact.studentSummaries,
     selectedStudent: recap.selectedStudent,
     stepSummaries: recap.artifact.stepSummaries,
+    quizSampleStats: recap.quizSampleStats,
     selectedStepId: recap.selectedStepId,
   });
 }
@@ -3744,17 +4250,32 @@ export async function launchClassroomSession(input: unknown) {
 
   for (const step of steps) {
     const votingContract = getVotingContract(step);
-    if (!votingContract) {
+    if (votingContract) {
+      const plugin = await getVotingPluginRuntimeRegistryEntry({
+        schoolId: clazz.schoolId,
+        pluginId: votingContract.pluginId,
+      });
+      const readiness = isVotingPluginRuntimeReady(plugin ?? null);
+      if (!readiness.ok) {
+        throw new Error(readiness.code);
+      }
       continue;
     }
 
-    const plugin = await getVotingPluginRuntimeRegistryEntry({
-      schoolId: clazz.schoolId,
-      pluginId: votingContract.pluginId,
-    });
-    const readiness = isVotingPluginRuntimeReady(plugin ?? null);
-    if (!readiness.ok) {
-      throw new Error(readiness.code);
+    if (isQuizSampleStep(step)) {
+      const pluginId = step.payload.builtInSource?.pluginId;
+      if (!pluginId) {
+        throw new Error("QUIZ_SAMPLE_PLUGIN_DISABLED");
+      }
+
+      const plugin = await getVotingPluginRuntimeRegistryEntry({
+        schoolId: clazz.schoolId,
+        pluginId,
+      });
+      const readiness = isVotingPluginRuntimeReady(plugin ?? null);
+      if (!readiness.ok) {
+        throw new Error(readiness.code === "VOTING_PLUGIN_INCOMPATIBLE" ? "QUIZ_SAMPLE_PLUGIN_INCOMPATIBLE" : "QUIZ_SAMPLE_PLUGIN_DISABLED");
+      }
     }
   }
   const firstStep = steps[0];
@@ -3772,6 +4293,13 @@ export async function launchClassroomSession(input: unknown) {
       status: "live",
       version: 1,
     }).returning();
+
+    await freezeQuizSampleQuestionsForSession({
+      tx,
+      schoolId: clazz.schoolId,
+      classroomSessionId: newSession.id,
+      steps,
+    });
 
     const participantValues = members.map(m => ({
       sessionId: newSession.id,

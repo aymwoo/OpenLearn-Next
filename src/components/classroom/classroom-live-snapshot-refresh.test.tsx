@@ -97,8 +97,8 @@ describe("ClassroomLiveSnapshotRefresh", () => {
     vi.unstubAllGlobals();
   });
 
-  it("prefers websocket classroom.snapshot envelopes and refreshes only on newer versions", () => {
-    render(<ClassroomLiveSnapshotRefresh sessionId="session-1" initialVersion={3} />);
+  it("prefers websocket classroom.snapshot envelopes and refreshes on newer version or fresher updatedAt", () => {
+    render(<ClassroomLiveSnapshotRefresh sessionId="session-1" initialVersion={3} initialUpdatedAt="2026-05-17T08:00:00.000Z" />);
 
     expect(MockWebSocket.instances).toHaveLength(1);
     expect(MockWebSocket.instances[0]?.url).toContain('/api/ws/classroom/session-1?actor=teacher');
@@ -204,7 +204,7 @@ describe("ClassroomLiveSnapshotRefresh", () => {
 
     vi.stubGlobal('WebSocket', ThrowingWebSocket as unknown as typeof WebSocket)
 
-    const view = render(<ClassroomLiveSnapshotRefresh sessionId="session-1" initialVersion={1} />);
+    const view = render(<ClassroomLiveSnapshotRefresh sessionId="session-1" initialVersion={1} initialUpdatedAt="2026-05-17T08:00:00.000Z" />);
 
     const source = MockEventSource.instances[0];
     expect(source).toBeTruthy();
@@ -245,5 +245,53 @@ describe("ClassroomLiveSnapshotRefresh", () => {
 
     view.unmount();
     expect(source?.closed).toBe(true);
+  });
+
+  it("refreshes on equal version when updatedAt becomes newer", () => {
+    render(<ClassroomLiveSnapshotRefresh sessionId="session-1" initialVersion={2} initialUpdatedAt="2026-05-17T08:00:00.000Z" />);
+
+    MockWebSocket.instances[0]?.emit('message', {
+      messageId: 'msg-3',
+      sessionId: 'session-1',
+      actor: { userId: 'teacher-1', scope: 'teacher', schoolId: 'school-1' },
+      kind: 'classroom.snapshot',
+      sentAt: '2026-05-17T08:00:01.000Z',
+      correlation: { correlationId: 'corr-3', truthPersisted: true },
+      payload: {
+        snapshot: {
+          sessionId: 'session-1',
+          lessonId: 'lesson-1',
+          publishedVersionId: 'pub-1',
+          classId: 'class-1',
+          className: '一班',
+          teacherId: 'teacher-1',
+          lessonTitle: '古诗导读',
+          activeStepId: 'step-1',
+          locked: false,
+          status: 'live',
+          version: 2,
+          updatedAt: '2026-05-17T08:00:02.000Z',
+          participants: [],
+          monitoringSummary: {
+            connectedCount: 1,
+            reconnectingCount: 0,
+            offlineCount: 0,
+            needsAttentionCount: 0,
+            submittedCount: 1,
+          },
+          steps: [],
+          slideState: null,
+          teacherTimeline: [],
+          copy: {
+            staleRefreshRequired: 'stale',
+            pendingAction: 'pending',
+            reconnecting: 'reconnecting',
+            restored: 'restored',
+          },
+        },
+      },
+    });
+
+    expect(refreshMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -194,6 +194,11 @@ describe("learning DAL student read boundary", () => {
     expect(source).toContain("disabledStepIds: locked ? steps.map(s => s.id).filter(id => id !== forcedStepId) : []");
   });
 
+  it("does not let a closed voting round override the teacher's current active step", () => {
+    expect(source).toContain('classroomRuntime.currentVotingRound?.status === "live" && classroomRuntime.currentVotingRound.stepId');
+    expect(source).toContain('roundEnded = classroomRuntime.currentVotingRound?.status === "closed"');
+  });
+
   it("sanitizes task attempt payloads before returning DTOs", () => {
     expect(dtoSource).toContain("TaskAttemptPayloadDTOSchema");
     expect(source).toContain("const rawPayload = row.payloadJson");

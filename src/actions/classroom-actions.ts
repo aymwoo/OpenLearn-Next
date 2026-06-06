@@ -20,6 +20,7 @@ import {
   recordStudentQuickResponse,
   refreshClassroomSnapshot,
   saveRuntimeSessionState,
+  submitQuizSampleAnswer,
   submitRuntimeSessionState,
   updateClassroomParticipantConnection,
 } from "@/lib/dal/classroom";
@@ -45,16 +46,24 @@ import {
   TouchClassroomPresenceInputSchema,
 } from "@/lib/dto/classroom";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
+import { QuizSampleAnswerSlotSchema } from "@/lib/dal/classroom";
 import { createRuntimeBridgeMessageId } from "@/features/runtime-platform/host/runtime-host-bridge";
 import { RUNTIME_CONTRACT_VERSION } from "@/features/runtime-platform/contracts/version";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; message: string; latest?: unknown; attemptedAction?: unknown };
 type VotingRecoveryAction = "retry" | "reconcile" | "suspend" | "fallback";
+type ClassroomParticipationControlCommand = "start-voting-round" | "end-voting-round";
 
 const validationMessage = "输入内容不完整，请检查后重试。";
 const launchMessage = "正在创建课堂，请稍候。";
 const modeMessage = "正在更新课堂模式。";
 const conflictMessage = "课堂状态已经被更新。请先恢复最新状态，再继续操作。";
+const quizSampleSubmitSchema = z.object({
+  lessonId: z.string().min(1),
+  sessionId: z.string().min(1),
+  stepId: z.string().min(1),
+  selectedOption: QuizSampleAnswerSlotSchema,
+});
 
 function normalizeInput(input: FormData | Record<string, unknown>) {
   if (!(input instanceof FormData)) {
@@ -306,6 +315,23 @@ export async function submitStudentQuickResponseAction(input: FormData | Record<
   }
 }
 
+export async function submitQuizSampleAnswerAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
+  const parsed = quizSampleSubmitSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    const result = await submitQuizSampleAnswer(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.sessionId));
+    updateTag(cacheTags.progress(parsed.data.lessonId, result.studentId));
+    updateTag(cacheTags.submission(parsed.data.lessonId, result.studentId));
+    updateTag(cacheTags.teacherReview(parsed.data.lessonId));
+    updateTag(cacheTags.quizStats(parsed.data.sessionId));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleClassroomActionError(error);
+  }
+}
+
 export async function bootstrapRuntimeSessionAction(input: FormData | Record<string, unknown>): Promise<ActionResult<unknown>> {
   const parsed = BootstrapRuntimeSessionInputSchema.safeParse(normalizeInput(input));
   if (!parsed.success) return validationError();
@@ -390,7 +416,7 @@ export async function recordRuntimeTeacherControlAction(input: FormData | Record
 export async function recordClassroomVotingRoundControlAction(input: {
   sessionId: string;
   stepId: string;
-  command: "start-voting-round" | "end-voting-round";
+  command: ClassroomParticipationControlCommand;
 }): Promise<ActionResult<unknown>> {
   if (!input.sessionId || !input.stepId || !input.command) {
     return validationError();
@@ -405,6 +431,14 @@ export async function recordClassroomVotingRoundControlAction(input: {
   } catch (error) {
     return handleClassroomActionError(error);
   }
+}
+
+export async function recordClassroomParticipationControlAction(input: {
+  sessionId: string;
+  stepId: string;
+  command: ClassroomParticipationControlCommand;
+}): Promise<ActionResult<unknown>> {
+  return recordClassroomVotingRoundControlAction(input);
 }
 
 export async function runCurrentVotingRecoveryAction(input: {

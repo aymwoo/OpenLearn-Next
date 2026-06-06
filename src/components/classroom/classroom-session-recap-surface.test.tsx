@@ -93,6 +93,10 @@ const recap: ClassroomSessionRecapDTO = {
       totalStudents: 2,
     },
   ],
+  quizSampleStats: {
+    questionCount: 0,
+    questions: [],
+  },
   selectedStepId: 'step-1',
 }
 
@@ -134,6 +138,53 @@ describe('ClassroomSessionRecapSurface', () => {
     expect(screen.getAllByText('提交与反馈').length).toBeGreaterThan(0)
     expect(screen.getAllByText('过程评价').length).toBeGreaterThan(0)
     expect(screen.getAllByText('课堂时间线').length).toBeGreaterThan(0)
+  })
+
+  it('shows a calm empty state for question recap when no quiz sample stats exist', () => {
+    render(<ClassroomSessionRecapSurface recap={recap} />)
+
+    expect(screen.getByText('题目复盘')).toBeTruthy()
+    expect(screen.getByText('看清这道题答得怎样，再决定该回看谁')).toBeTruthy()
+    expect(screen.getByText('当前课堂没有 quiz sample 题目，或还没有可用于复盘的作答记录。')).toBeTruthy()
+  })
+
+  it('renders quiz sample question recap cards with denominator copy and option distribution', () => {
+    render(
+      <ClassroomSessionRecapSurface
+        recap={{
+          ...recap,
+          quizSampleStats: {
+            questionCount: 1,
+            questions: [
+              {
+                stepId: 'step-quiz',
+                stepTitle: '互动单选题',
+                prompt: '这首诗主要描写哪个季节？',
+                correctOption: 'A',
+                answeredCount: 2,
+                unansweredCount: 1,
+                participantCount: 3,
+                correctCount: 1,
+                correctRate: 0.5,
+                denominatorLabel: '正确率按已作答 2 人计算；作答 / 未作答人数相对本次课堂参与者名单。',
+                options: [
+                  { slot: 'A', label: '春天', count: 1, percentage: 0.5, isCorrect: true },
+                  { slot: 'B', label: '秋天', count: 1, percentage: 0.5, isCorrect: false },
+                ],
+              },
+            ],
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('正确率')).toBeTruthy()
+    expect(screen.getByText('正确答案 A')).toBeTruthy()
+    expect(screen.getByText('已作答 2')).toBeTruthy()
+    expect(screen.getByText('未作答 1')).toBeTruthy()
+    expect(screen.getByText('春天')).toBeTruthy()
+    expect(screen.getByText('秋天')).toBeTruthy()
+    expect(screen.getByText('正确率按已作答 2 人计算；作答 / 未作答人数相对本次课堂参与者名单。')).toBeTruthy()
   })
 
   it('shows calm Chinese empty copy for missing grouped evidence', () => {

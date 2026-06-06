@@ -46,7 +46,7 @@ export default async function ClassroomPage({
   return (
     <>
       {activeSession?.status === 'live' && snapshot ? (
-        <ClassroomLiveSnapshotRefresh sessionId={activeSession.id} initialVersion={snapshot.version} />
+        <ClassroomLiveSnapshotRefresh sessionId={activeSession.id} initialVersion={snapshot.version} initialUpdatedAt={snapshot.updatedAt} />
       ) : null}
       <ClassroomConsoleSurface
         consoleData={consoleData}

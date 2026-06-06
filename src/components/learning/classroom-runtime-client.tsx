@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { QuickResponseStepCard } from '@/components/learning/quick-response-step-card'
+import { QuizSampleStepCard } from '@/components/learning/quiz-sample-step-card'
 import { QuizStepCard } from '@/components/learning/quiz-step-card'
 import { TaskStepCard } from '@/components/learning/task-step-card'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
@@ -185,6 +186,18 @@ function CurrentStepRenderer({
   }
 
   if (step.type === 'quiz') {
+    const isQuizSample = step.payload?.builtInSource?.builtInKey === 'quizSample'
+    if (isQuizSample && player.runtime.classroomSessionId) {
+      return (
+        <QuizSampleStepCard
+          lessonId={player.shell.lessonId}
+          sessionId={player.runtime.classroomSessionId}
+          step={step}
+          runtime={player.runtime}
+        />
+      )
+    }
+
     const latestAttempt = player.latestSubmissions.quizzes.find((attempt) => attempt.stepId === step.id) ?? null
     return (
       <QuizStepCard
@@ -412,7 +425,7 @@ export function ClassroomRuntimeClient({
     const locked = Boolean(snapshot.locked)
     const currentVotingRound = snapshot.currentVotingRound
 
-    if (currentVotingRound?.stepId) {
+    if (currentVotingRound?.status === 'live' && currentVotingRound.stepId) {
       forcedStepId = currentVotingRound.stepId
       teacherRecommendedStepId = currentVotingRound.stepId
     } else if (locked) {

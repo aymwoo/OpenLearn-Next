@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
 
-import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction, recordClassroomVotingRoundControlAction, recordRuntimeTeacherControlAction, runCurrentVotingRecoveryAction } from '@/actions/classroom-actions'
+import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction, recordClassroomParticipationControlAction, recordRuntimeTeacherControlAction, runCurrentVotingRecoveryAction } from '@/actions/classroom-actions'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { RuntimeDescriptorSchema } from '@/features/runtime-platform/contracts/descriptors'
 import { createRuntimeBridgeMessageId } from '@/features/runtime-platform/host/runtime-host-bridge'
@@ -111,6 +111,26 @@ export function ClassroomControlPanel({
   const showEscalatedIncidentCta = currentSnapshot.transportStatus.degraded
     || (currentSnapshot.currentVotingRound?.failureCount ?? 0) > 0
   const markdownStep = getMarkdownClassroomStep(currentStep, currentSnapshot.slideState)
+  const isQuizSampleControlStep = Boolean(
+    currentStep
+    && currentStep.type === 'quiz'
+    && currentStep.payload
+    && typeof currentStep.payload === 'object'
+    && 'builtInSource' in currentStep.payload
+    && currentStep.payload.builtInSource
+    && typeof currentStep.payload.builtInSource === 'object'
+    && 'builtInKey' in currentStep.payload.builtInSource
+    && currentStep.payload.builtInSource.builtInKey === 'quizSample',
+  )
+  const showParticipationControl = Boolean(
+    currentStep
+    && (
+      currentRuntimeDescriptor
+      || currentSnapshot.currentVotingRound
+      || isQuizSampleControlStep
+      || (currentStep.type === 'quiz' && currentStep.pluginContract?.publicMetadata?.builtInKey === 'classroomVoting')
+    ),
+  )
 
   useEffect(() => {
     const subscription = subscribeClassroomSocket({
@@ -303,12 +323,16 @@ export function ClassroomControlPanel({
     if (!currentStep || conflict || isPending) return
 
     startTransition(async () => {
-      const wsResult = currentRuntimeDescriptor ? sendRuntimeCommand(command) : { ok: false as const, reason: 'socket_unavailable' as const }
+      const shouldUseParticipationControl = isQuizSampleControlStep || !currentRuntimeDescriptor
+      const wsResult = shouldUseParticipationControl
+        ? { ok: false as const, reason: 'socket_unavailable' as const }
+        : sendRuntimeCommand(command)
+
       if (!wsResult.ok) {
-        if (currentRuntimeDescriptor) {
+        if (!shouldUseParticipationControl && currentRuntimeDescriptor) {
           await fallbackRuntimeCommand(command)
         } else {
-          await recordClassroomVotingRoundControlAction({
+          await recordClassroomParticipationControlAction({
             sessionId: currentSnapshot.sessionId,
             stepId: currentStep.id,
             command,
@@ -472,21 +496,23 @@ export function ClassroomControlPanel({
             })}
           </div>
 
-          {currentStep && (currentRuntimeDescriptor || currentSnapshot.currentVotingRound || (currentStep.type === 'quiz' && currentStep.pluginContract?.publicMetadata?.builtInKey === 'classroomVoting')) ? (
-            <div className="mt-5 rounded-[1.6rem] bg-surface-container-lowest p-4 shadow-ambient">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-on-surface-variant">本轮投票控制</p>
+          {showParticipationControl ? (
+          <div className="mt-5 rounded-[1.6rem] bg-surface-container-lowest p-4 shadow-ambient">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                  <p className="text-sm text-on-surface-variant">{isQuizSampleControlStep ? '课堂答题控制' : '本轮投票控制'}</p>
                   <p className="mt-1 text-sm text-on-surface-variant">
-                    在当前 runtime 教学环节内开始或结束本轮投票，学生会沿既有课堂链路聚焦到当前环节。
+                    {isQuizSampleControlStep
+                      ? '在当前课堂环节内控制 quiz sample 的开放作答与关闭状态；关闭后学生将不能继续改答。'
+                      : '在当前 runtime 教学环节内开始或结束本轮投票，学生会沿既有课堂链路聚焦到当前环节。'}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <Button type="button" className="min-h-[44px] px-5" disabled={isPending || !!conflict} onClick={() => handleVotingRoundControl('start-voting-round')}>
-                    开始本轮投票
+                    {isQuizSampleControlStep ? '开放作答' : '开始本轮投票'}
                   </Button>
                   <Button type="button" variant="secondary" className="min-h-[44px] px-5" disabled={isPending || !!conflict} onClick={() => handleVotingRoundControl('end-voting-round')}>
-                    结束本轮投票
+                    {isQuizSampleControlStep ? '已关闭' : '结束本轮投票'}
                   </Button>
                 </div>
               </div>

@@ -10,6 +10,7 @@ const findManyCourses = vi.fn();
 const findManyClasses = vi.fn();
 const findFirstClasses = vi.fn();
 const findManyCourseClasses = vi.fn();
+const findFirstCourseClasses = vi.fn();
 const findManyPublishedLessonVersions = vi.fn();
 const findFirstPublishedLessonVersions = vi.fn();
 const findManyClassroomParticipants = vi.fn();
@@ -27,6 +28,15 @@ const findManyTaskSubmissions = vi.fn();
 const findManyQuizAttempts = vi.fn();
 const findManyAttemptFeedback = vi.fn();
 const findManyCourseEnrollments = vi.fn();
+const findFirstPluginRegistrations = vi.fn();
+const findFirstSystemTransportSettings = vi.fn();
+const findManyMemberships = vi.fn();
+const selectFromMock = vi.fn();
+const selectWhereMock = vi.fn();
+const selectOrderByMock = vi.fn();
+const selectFromWhereMock = vi.fn();
+const selectFromOrderByMock = vi.fn();
+const transactionMock = vi.fn();
 const insertValues = vi.fn();
 const insertMock = vi.fn();
 const insertOnConflictDoUpdate = vi.fn();
@@ -35,6 +45,8 @@ const updateWhere = vi.fn();
 const assertActiveTeacher = vi.fn();
 const getCurrentUserDTO = vi.fn();
 const enqueueAsyncTask = vi.fn();
+const publishTransportEvent = vi.fn();
+const dispatchPluginDataAccess = vi.fn();
 
 vi.mock("server-only", () => ({}));
 
@@ -45,7 +57,7 @@ vi.mock("@/db", () => ({
       lessons: { findMany: findManyLessons, findFirst: findFirstLessons },
       courses: { findMany: findManyCourses },
       classes: { findMany: findManyClasses, findFirst: findFirstClasses },
-      courseClasses: { findMany: findManyCourseClasses },
+      courseClasses: { findMany: findManyCourseClasses, findFirst: findFirstCourseClasses },
       publishedLessonVersions: { findMany: findManyPublishedLessonVersions, findFirst: findFirstPublishedLessonVersions },
       classroomParticipants: { findMany: findManyClassroomParticipants, findFirst: findFirstClassroomParticipants },
       classroomSessionSummary: { findFirst: findFirstClassroomSessionSummary },
@@ -59,8 +71,13 @@ vi.mock("@/db", () => ({
       quizAttempts: { findMany: findManyQuizAttempts },
       attemptFeedback: { findMany: findManyAttemptFeedback },
       courseEnrollments: { findMany: findManyCourseEnrollments },
+      memberships: { findMany: findManyMemberships },
+      pluginRegistrations: { findFirst: findFirstPluginRegistrations },
+      systemTransportSettings: { findFirst: findFirstSystemTransportSettings },
     },
     insert: insertMock,
+    select: selectFromMock,
+    transaction: transactionMock,
     update: vi.fn(() => ({ set: updateSet })),
   },
 }));
@@ -77,10 +94,47 @@ vi.mock("@/features/async-tasks/server/enqueue", () => ({
   enqueueAsyncTask,
 }));
 
+vi.mock("@/features/runtime-platform/seams", () => ({
+  publishTransportEvent,
+}));
+
+vi.mock("@/features/platform-core/plugin-data-access/facade", () => ({
+  dispatchPluginDataAccess,
+}));
+
+vi.mock("@/features/runtime-platform/seams/transport/redis-fanout-connection", () => ({
+  probeRedisFanoutHealth: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/features/runtime-platform/seams/transport/redis-fanout-manager", () => ({
+  classroomRedisFanoutManager: {
+    getSnapshot: vi.fn(() => ({
+      deployAllowsRedis: false,
+      redisConfigured: false,
+      redisReachable: false,
+      degraded: false,
+      degradedReason: null,
+      connectionState: "disabled",
+      desiredTopicCount: 0,
+      subscribedTopicCount: 0,
+      lastError: null,
+      lastHealthyAt: null,
+      instanceId: "vitest-local",
+    })),
+    getLatestDegradedReason: vi.fn().mockResolvedValue(null),
+  },
+}));
+
 describe("getClassroomConsoleDTO", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+
+    selectFromMock.mockReset();
+    selectWhereMock.mockReset();
+    selectOrderByMock.mockReset();
+    selectFromWhereMock.mockReset();
+    selectFromOrderByMock.mockReset();
 
     insertValues.mockReturnValue({
       onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
@@ -90,6 +144,14 @@ describe("getClassroomConsoleDTO", () => {
     insertMock.mockReturnValue({
       values: insertValues,
     });
+    selectOrderByMock.mockReturnValue([]);
+    selectFromOrderByMock.mockReturnValue([]);
+    selectFromWhereMock.mockReturnValue({ orderBy: selectFromOrderByMock });
+    selectWhereMock.mockReturnValue({ orderBy: selectOrderByMock });
+    selectFromMock.mockReturnValue({ where: selectWhereMock, from: vi.fn(() => ({ where: selectFromWhereMock, orderBy: selectFromOrderByMock })) });
+    transactionMock.mockImplementation(async (callback) => callback({
+      insert: insertMock,
+    }));
     updateWhere.mockResolvedValue([]);
     const updateReturning = vi.fn().mockResolvedValue([]);
     updateSet.mockReturnValue({
@@ -102,6 +164,15 @@ describe("getClassroomConsoleDTO", () => {
       schoolIds: ["school-1"],
     });
     findManyClassroomSessions.mockResolvedValue([]);
+    publishTransportEvent.mockResolvedValue({
+      attemptId: "transport-attempt-1",
+      adapterId: null,
+      adapterMode: null,
+      truthPersisted: true,
+      deliveryAttempted: false,
+      attemptStatus: "skipped",
+      failureReason: "TRANSPORT_ADAPTER_NOT_FOUND",
+    });
     findManyCourses.mockResolvedValue([
       { id: "course-in-scope", schoolId: "school-1", title: "语文课程" },
       { id: "course-out-of-scope", schoolId: "school-2", title: "外校课程" },
@@ -118,6 +189,7 @@ describe("getClassroomConsoleDTO", () => {
     findManyClasses.mockResolvedValue([
       { id: "class-in-scope", name: "一班", schoolId: "school-1" },
     ]);
+    findFirstCourseClasses.mockResolvedValue({ courseId: "course-in-scope", classId: "class-in-scope" });
     findManyCourseClasses.mockResolvedValue([
       { courseId: "course-in-scope", classId: "class-in-scope" },
       { courseId: "course-in-scope", classId: "class-out-of-scope" },
@@ -234,6 +306,15 @@ describe("getClassroomConsoleDTO", () => {
     findManyQuizAttempts.mockResolvedValue([]);
     findManyAttemptFeedback.mockResolvedValue([]);
     findManyCourseEnrollments.mockResolvedValue([]);
+    findManyMemberships.mockResolvedValue([
+      {
+        id: "membership-1",
+        userId: "teacher-1",
+        schoolId: "school-1",
+        role: "developer",
+        status: "active",
+      },
+    ]);
     findFirstClassroomParticipants.mockResolvedValue({
       sessionId: "session-1",
       studentId: "student-1",
@@ -485,10 +566,48 @@ describe("runtime bridge boundaries", () => {
 
     expect(source).toContain('"Content-Type": "text/event-stream; charset=utf-8"');
     expect(source).toContain("recordTransportConsumerTrace");
+    expect(source).toContain("snapshot.updatedAt > lastUpdatedAt");
     expect(source).toContain('traceType: "snapshot"');
     expect(source).toContain('traceType: "keepalive"');
     expect(source).toContain('traceType: "stream_closed"');
     expect(source).toContain('traceType: "stream_failed"');
+  });
+});
+
+describe("submitQuizSampleAnswer", () => {
+  it("keeps quiz sample persistence on governed plugin-owned writes instead of core quiz attempts", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+    const submitStart = source.indexOf("export async function submitQuizSampleAnswer");
+    const nextExport = source.indexOf("export async function", submitStart + 1);
+    const submitSource = source.slice(submitStart, nextExport === -1 ? undefined : nextExport);
+
+    expect(submitSource).toContain("dispatchPluginDataAccess({");
+    expect(submitSource).toContain('table: "plugin_owned_quiz_responses"');
+    expect(submitSource).not.toContain("quizAttempts");
+  });
+
+  it("guards closed rounds and active-step mismatches before governed writes", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+    const submitStart = source.indexOf("export async function submitQuizSampleAnswer");
+    const nextExport = source.indexOf("export async function", submitStart + 1);
+    const submitSource = source.slice(submitStart, nextExport === -1 ? undefined : nextExport);
+
+    expect(submitSource).toContain('throw new Error("QUIZ_SAMPLE_SUBMISSION_CLOSED")');
+    expect(submitSource).toContain('if (session.activeStepId !== payload.stepId)');
+    expect(submitSource).toContain('throw new Error("CLASSROOM_STEP_NOT_IN_LESSON")');
+  });
+
+  it("records plugin-owned classroom evidence with latest-answer semantics", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+    const submitStart = source.indexOf("export async function submitQuizSampleAnswer");
+    const nextExport = source.indexOf("export async function", submitStart + 1);
+    const submitSource = source.slice(submitStart, nextExport === -1 ? undefined : nextExport);
+
+    expect(submitSource).toContain("recordRuntimeClassroomEvidence({");
+    expect(submitSource).toContain('evidenceType: "quiz-response"');
+    expect(submitSource).toContain('pluginOwned: true');
+    expect(submitSource).toContain('pluginKey: QUIZ_SAMPLE_PLUGIN_KEY');
+    expect(submitSource).toContain('successMessage: hadPreviousAnswer ? "答案已更新" : "已记录你的答案"');
   });
 });
 
@@ -1364,6 +1483,18 @@ describe("same-route classroom student detail contracts", () => {
 describe("phase 25 session recap contracts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    selectFromMock.mockReset();
+    selectWhereMock.mockReset();
+    selectOrderByMock.mockReset();
+    selectFromWhereMock.mockReset();
+    selectFromOrderByMock.mockReset();
+
+    selectOrderByMock.mockReturnValue([]);
+    selectFromOrderByMock.mockReturnValue([]);
+    selectFromWhereMock.mockReturnValue({ orderBy: selectFromOrderByMock });
+    selectWhereMock.mockReturnValue({ orderBy: selectOrderByMock });
+    selectFromMock.mockReturnValue({ where: selectWhereMock, from: vi.fn(() => ({ where: selectFromWhereMock, orderBy: selectFromOrderByMock })) });
   });
 
   it("extends classroom dto/contracts with recap and session history shapes", async () => {
@@ -1374,6 +1505,7 @@ describe("phase 25 session recap contracts", () => {
     expect(classroomDto.ClassroomConsoleSessionEntryDTOSchema).toBeDefined();
     expect(classroomDto.ClassroomSessionRecapStudentSummaryDTOSchema).toBeDefined();
     expect(classroomDto.ClassroomSessionRecapStepSummaryDTOSchema).toBeDefined();
+    expect(classroomDto.ClassroomSessionRecapQuizStatsSectionDTOSchema).toBeDefined();
   });
 
   it("adds session entries to the classroom console read model for same-domain history reopen", async () => {
@@ -1556,6 +1688,30 @@ describe("phase 25 session recap contracts", () => {
         createdAt: new Date('2026-05-01T00:00:00Z'),
       },
     ]);
+    selectFromMock.mockReturnValueOnce({
+      from: vi.fn(() => ({
+        where: vi.fn().mockResolvedValue([
+          {
+            question: 'step-2',
+            prompt: '课堂问题',
+            optionAText: '春天',
+            optionBText: '秋天',
+            optionCText: null,
+            optionDText: null,
+            correctOption: 'A',
+          },
+        ]),
+      })),
+    });
+    selectFromMock.mockReturnValueOnce({
+      from: vi.fn(() => ({
+        where: vi.fn().mockReturnValue({
+          groupBy: vi.fn().mockResolvedValue([
+            { question: 'step-2', selectedOption: 'A', count: 1 },
+          ]),
+        }),
+      })),
+    });
 
     const { getClassroomSessionRecapDTO } = await import('./classroom');
     const recap = await getClassroomSessionRecapDTO({ sessionId: 'session-ended', studentId: 'student-2' });
@@ -1577,6 +1733,101 @@ describe("phase 25 session recap contracts", () => {
     );
     expect(recap.selectedStudent?.studentId).toBe('student-2');
     expect(recap.selectedStudent?.pendingFeedbackCount).toBe(1);
+    expect(recap.quizSampleStats.questionCount).toBe(0);
+  });
+
+  it("computes quiz sample unanswered counts from classroom participants", async () => {
+    findFirstClassroomSessions.mockResolvedValueOnce({
+      id: 'session-ended',
+      lessonId: 'lesson-in-scope',
+      publishedVersionId: 'pub-1',
+      classId: 'class-in-scope',
+      teacherId: 'teacher-1',
+      activeStepId: 'step-2',
+      locked: true,
+      status: 'ended',
+      version: 4,
+      updatedAt: new Date('2026-05-14T09:40:00Z'),
+      createdAt: new Date('2026-05-14T09:00:00Z'),
+      endedAt: new Date('2026-05-14T09:40:00Z'),
+    });
+    findFirstLessons.mockResolvedValueOnce({ id: 'lesson-in-scope', title: '古诗导读', courseId: 'course-in-scope' });
+    findFirstClasses.mockResolvedValueOnce({ id: 'class-in-scope', name: '一班', schoolId: 'school-1' });
+    findFirstPublishedLessonVersions.mockResolvedValueOnce({
+      id: 'pub-1',
+      snapshotJson: {
+        lesson: { title: '古诗导读' },
+        steps: [
+          {
+            id: 'step-2',
+            lessonId: 'lesson-in-scope',
+            type: 'quiz',
+            title: '互动单选题',
+            rank: 'b0',
+            payload: {
+              type: 'quiz',
+              question: '课堂问题',
+              options: ['春天', '秋天'],
+              correctOptionIndex: 0,
+              builtInSource: { builtInKey: 'quizSample', pluginId: 'plugin-quiz-sample', pluginName: '互动单选题' },
+            },
+          },
+        ],
+        materials: [],
+      },
+    });
+    findManyClassroomParticipants.mockResolvedValueOnce([
+      { sessionId: 'session-ended', studentId: 'student-1', connectionState: 'connected', currentStepId: 'step-2', lastSeenAt: new Date('2026-05-14T09:35:00Z') },
+      { sessionId: 'session-ended', studentId: 'student-2', connectionState: 'connected', currentStepId: 'step-2', lastSeenAt: new Date('2026-05-14T09:20:00Z') },
+      { sessionId: 'session-ended', studentId: 'student-3', connectionState: 'offline', currentStepId: 'step-1', lastSeenAt: new Date('2026-05-14T09:10:00Z') },
+    ]);
+    findManyUsers.mockResolvedValueOnce([
+      { id: 'student-1', name: '李雷' },
+      { id: 'student-2', name: '韩梅梅' },
+      { id: 'student-3', name: '王芳' },
+    ]);
+    findManyClassroomEvidence.mockResolvedValueOnce([]);
+    findManyClassroomTimeline.mockResolvedValueOnce([]);
+    findManyLessonStepProgress.mockResolvedValueOnce([]);
+    findManyTaskSubmissions.mockResolvedValueOnce([]);
+    findManyQuizAttempts.mockResolvedValueOnce([]);
+    findManyAttemptFeedback.mockResolvedValueOnce([]);
+    findManyCourseEnrollments.mockResolvedValueOnce([]);
+    selectFromMock.mockReturnValueOnce({
+      from: vi.fn(() => ({
+        where: vi.fn().mockResolvedValue([
+          {
+            question: 'step-2',
+            prompt: '课堂问题',
+            optionAText: '春天',
+            optionBText: '秋天',
+            optionCText: null,
+            optionDText: null,
+            correctOption: 'A',
+          },
+        ]),
+      })),
+    });
+    selectFromMock.mockReturnValueOnce({
+      from: vi.fn(() => ({
+        where: vi.fn().mockReturnValue({
+          groupBy: vi.fn().mockResolvedValue([
+            { question: 'step-2', selectedOption: 'B', count: 1 },
+          ]),
+        }),
+      })),
+    });
+
+    const { getClassroomSessionRecapDTO } = await import('./classroom');
+    const recap = await getClassroomSessionRecapDTO({ sessionId: 'session-ended' });
+
+    expect(recap.quizSampleStats.questions[0]).toMatchObject({
+      answeredCount: 1,
+      unansweredCount: 2,
+      participantCount: 3,
+      correctCount: 0,
+      correctRate: 0,
+    });
   });
 
   it("keeps classroom summary task hooks on canonical event writes with incremental and finalize triggers", async () => {
@@ -1589,6 +1840,16 @@ describe("phase 25 session recap contracts", () => {
     expect(source).toContain('eventType: "lock_mode_changed"');
     expect(source).toContain('eventType: "slide_changed"');
     expect(source).toContain('eventType: "ended"');
+  });
+
+  it("keeps quiz sample stats in recap dto only and out of summary artifact persistence", () => {
+    const dtoSource = readFileSync("src/lib/dto/classroom.ts", "utf8");
+    const dalSource = readFileSync("src/lib/dal/classroom.ts", "utf8");
+
+    expect(dtoSource).toContain("quizSampleStats: ClassroomSessionRecapQuizStatsSectionDTOSchema");
+    expect(dtoSource).not.toContain("quizSampleStats: ClassroomSessionRecapQuizStatsSectionDTOSchema,\n}).strict();\n\nexport const ClassroomSessionSummaryArtifactSchema");
+    expect(dalSource).toContain("quizSampleStats: recap.quizSampleStats");
+    expect(dalSource).not.toContain("quizSampleStats: recap.artifact");
   });
 
   it("builds classroom session summary artifacts from derived facts only and keeps recap vocabulary aligned", async () => {
@@ -2288,5 +2549,227 @@ describe("getTeacherRecentSessionTrendDTO", () => {
     expect(source).not.toContain("analyticsSnapshot");
     expect(source).not.toContain("insert(classroomAnalytics");
     expect(source).not.toContain("update(classroomAnalytics");
+  });
+});
+
+describe("launch quiz sample freeze", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+
+    selectFromMock.mockReset();
+    selectWhereMock.mockReset();
+    selectOrderByMock.mockReset();
+    selectFromWhereMock.mockReset();
+    selectFromOrderByMock.mockReset();
+
+    assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
+    getCurrentUserDTO.mockResolvedValue({ id: 'teacher-1' });
+    findManyCourses.mockResolvedValue([{ id: "course-in-scope", schoolId: "school-1", title: "语文课程" }]);
+    findFirstLessons.mockResolvedValue({
+      id: "lesson-in-scope",
+      title: "古诗导读",
+      courseId: "course-in-scope",
+      status: "published",
+      publishedVersionId: "pub-1",
+    });
+    findFirstClasses.mockResolvedValue({ id: "class-in-scope", name: "一班", schoolId: "school-1" });
+    findFirstCourseClasses.mockResolvedValue({ courseId: "course-in-scope", classId: "class-in-scope" });
+    findManyClassMembers.mockResolvedValue([
+      { id: "member-1", classId: "class-in-scope", userId: "student-1", role: "student" },
+    ]);
+    findManyClassroomParticipants.mockResolvedValue([]);
+    publishTransportEvent.mockResolvedValue({
+      attemptId: "transport-attempt-1",
+      adapterId: null,
+      adapterMode: null,
+      truthPersisted: true,
+      deliveryAttempted: false,
+      attemptStatus: "skipped",
+      failureReason: "TRANSPORT_ADAPTER_NOT_FOUND",
+    });
+    findManyUsers.mockResolvedValue([]);
+    findManyClassroomEvidence.mockResolvedValue([]);
+    findManyClassroomEvents.mockResolvedValue([]);
+    findManyClassroomTimeline.mockResolvedValue([]);
+    findManyLessonStepProgress.mockResolvedValue([]);
+    findManyTaskSubmissions.mockResolvedValue([]);
+    findManyQuizAttempts.mockResolvedValue([]);
+    findManyAttemptFeedback.mockResolvedValue([]);
+    findManyCourseEnrollments.mockResolvedValue([]);
+    findManyMemberships.mockResolvedValue([
+      {
+        id: "membership-1",
+        userId: "teacher-1",
+        schoolId: "school-1",
+        role: "developer",
+        status: "active",
+      },
+    ]);
+    findFirstClassroomSessions.mockResolvedValue({
+      id: "session-1",
+      lessonId: "lesson-in-scope",
+      publishedVersionId: "pub-1",
+      classId: "class-in-scope",
+      teacherId: "teacher-1",
+      activeStepId: "step-quiz-sample",
+      locked: false,
+      status: "live",
+      version: 1,
+      updatedAt: new Date("2026-06-03T10:00:00Z"),
+    });
+    findFirstPluginRegistrations.mockResolvedValue({
+      id: "builtin-teaching-step-quiz-sample",
+      enabled: true,
+      killSwitchEnabled: false,
+      lifecycleState: "active",
+      manifestJson: {
+        manifestVersion: 2,
+        governance: { contractVersion: "v2" },
+      },
+    });
+    findFirstSystemTransportSettings.mockResolvedValue({
+      id: 'default',
+      classroomTransportMode: 'local_only',
+      updatedById: 'teacher-1',
+      updatedAt: new Date('2026-06-03T09:00:00Z'),
+    });
+    selectOrderByMock.mockReturnValue([]);
+    selectFromOrderByMock.mockReturnValue([]);
+    selectFromWhereMock.mockReturnValue({ orderBy: selectFromOrderByMock });
+    selectWhereMock.mockReturnValue({ orderBy: selectOrderByMock });
+    selectFromMock.mockReturnValue({ where: selectWhereMock, from: vi.fn(() => ({ where: selectFromWhereMock, orderBy: selectFromOrderByMock })) });
+  });
+
+  it("launch quiz sample freeze writes session-scoped question snapshot rows", async () => {
+    findFirstPublishedLessonVersions.mockResolvedValue({
+      id: "pub-1",
+      snapshotJson: {
+        lesson: { title: "古诗导读" },
+        steps: [
+          {
+            id: "step-quiz-sample",
+            lessonId: "lesson-in-scope",
+            type: "quiz",
+            title: "互动答题（样板）",
+            rank: "a0",
+            payload: {
+              type: "quiz",
+              question: "以下哪项正确？",
+              options: ["选项 A", "选项 B", "选项 C"],
+              correctOptionIndex: 1,
+              builtInSource: {
+                pluginId: "builtin-teaching-step-quiz-sample",
+                builtInKey: "quizSample",
+                pluginName: "互动答题（样板）",
+              },
+            },
+          },
+        ],
+        materials: [],
+      },
+    });
+
+    const txInsertMock = vi.fn((table) => ({
+      values: vi.fn((values) => {
+        if (Array.isArray(values) && values[0] && typeof values[0] === "object" && "question" in values[0]) {
+          expect(values).toEqual([
+            expect.objectContaining({
+              schoolId: "school-1",
+              pluginId: "builtin-teaching-step-quiz-sample",
+              classroomSession: "session-1",
+              question: "step-quiz-sample",
+              prompt: "以下哪项正确？",
+              optionAText: "选项 A",
+              optionBText: "选项 B",
+              optionCText: "选项 C",
+              optionDText: null,
+              correctOption: "B",
+            }),
+          ]);
+          return Promise.resolve(undefined);
+        }
+
+        return {
+          returning: vi.fn()
+            .mockResolvedValueOnce([{ id: "session-1", activeStepId: "step-quiz-sample", locked: false, version: 1 }])
+            .mockResolvedValueOnce([{ id: "event-1" }]),
+        };
+      }),
+    }));
+
+    transactionMock.mockImplementation(async (callback) => callback({
+      insert: txInsertMock,
+    }));
+    selectFromMock.mockReturnValueOnce({
+      from: vi.fn(() => ({
+        where: vi.fn().mockResolvedValue([
+          {
+            question: "step-quiz-sample",
+            prompt: "以下哪项正确？",
+            optionAText: "选项 A",
+            optionBText: "选项 B",
+            optionCText: "选项 C",
+            optionDText: null,
+            correctOption: "B",
+          },
+        ]),
+      })),
+    });
+    selectFromMock.mockReturnValueOnce({
+      from: vi.fn(() => ({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue([]),
+        }),
+      })),
+    });
+
+    const { launchClassroomSession } = await import("./classroom");
+    await launchClassroomSession({
+      lessonId: "lesson-in-scope",
+      publishedVersionId: "pub-1",
+      classId: "class-in-scope",
+    });
+  });
+
+  it("launch quiz sample freeze fails when plugin readiness is not met and leaves no partial snapshot", async () => {
+    findFirstPluginRegistrations.mockResolvedValue(null);
+    findFirstPublishedLessonVersions.mockResolvedValue({
+      id: "pub-1",
+      snapshotJson: {
+        lesson: { title: "古诗导读" },
+        steps: [
+          {
+            id: "step-quiz-sample",
+            lessonId: "lesson-in-scope",
+            type: "quiz",
+            title: "互动答题（样板）",
+            rank: "a0",
+            payload: {
+              type: "quiz",
+              question: "以下哪项正确？",
+              options: ["选项 A", "选项 B"],
+              correctOptionIndex: 0,
+              builtInSource: {
+                pluginId: "builtin-teaching-step-quiz-sample",
+                builtInKey: "quizSample",
+                pluginName: "互动答题（样板）",
+              },
+            },
+          },
+        ],
+        materials: [],
+      },
+    });
+
+    await expect((async () => {
+      const { launchClassroomSession } = await import("./classroom");
+      return launchClassroomSession({
+        lessonId: "lesson-in-scope",
+        publishedVersionId: "pub-1",
+        classId: "class-in-scope",
+      });
+    })()).rejects.toThrow("QUIZ_SAMPLE_PLUGIN_DISABLED");
+    expect(transactionMock).not.toHaveBeenCalled();
   });
 });

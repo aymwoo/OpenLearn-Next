@@ -8,24 +8,37 @@ import { subscribeClassroomSocket } from "./classroom-ws-client";
 export function ClassroomLiveSnapshotRefresh({
   sessionId,
   initialVersion,
+  initialUpdatedAt,
 }: {
   sessionId: string;
   initialVersion: number;
+  initialUpdatedAt: string;
 }) {
   const router = useRouter();
   const latestVersionRef = useRef(initialVersion);
+  const latestUpdatedAtRef = useRef(initialUpdatedAt);
+
+  const shouldRefreshForSnapshot = (version: number, updatedAt: string) => {
+    if (version > latestVersionRef.current) {
+      return true;
+    }
+
+    return version === latestVersionRef.current && updatedAt > latestUpdatedAtRef.current;
+  };
 
   useEffect(() => {
     latestVersionRef.current = initialVersion;
-  }, [initialVersion]);
+    latestUpdatedAtRef.current = initialUpdatedAt;
+  }, [initialUpdatedAt, initialVersion]);
 
   useEffect(() => {
-    const applySnapshot = (version: number, status: "live" | "ended") => {
-      if (version <= latestVersionRef.current) {
+    const applySnapshot = (version: number, updatedAt: string, status: "live" | "ended") => {
+      if (!shouldRefreshForSnapshot(version, updatedAt)) {
         return;
       }
 
       latestVersionRef.current = version;
+      latestUpdatedAtRef.current = updatedAt;
       router.refresh();
 
       if (status !== "live") {
@@ -41,10 +54,10 @@ export function ClassroomLiveSnapshotRefresh({
           return;
         }
 
-        applySnapshot(snapshot.version, snapshot.status);
+        applySnapshot(snapshot.version, snapshot.updatedAt, snapshot.status);
       },
       onFallbackSnapshot(snapshot) {
-        applySnapshot(snapshot.version, snapshot.status);
+        applySnapshot(snapshot.version, snapshot.updatedAt, snapshot.status);
       },
     });
 
