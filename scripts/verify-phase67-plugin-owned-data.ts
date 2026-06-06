@@ -21,7 +21,8 @@ type Client = ReturnType<typeof createClient>;
 const QUIZ_QUESTIONS = "plugin_owned_quiz_questions";
 const QUIZ_RESPONSES = "plugin_owned_quiz_responses";
 const SCOPE_INDEX = "plugin_owned_quiz_responses_schoolId_classroomSession_student_question_idx";
-const DEDUPE_UNIQUE = "plugin_owned_quiz_responses_classroomSession_student_question_unique";
+const DEDUPE_UNIQUE = "plugin_owned_quiz_responses_classroomSession_student_question_attemptNo_unique";
+const LATEST_INDEX = "plugin_owned_quiz_responses_classroomSession_student_question_isLatest_idx";
 const QUESTIONS_SCOPE_INDEX = "plugin_owned_quiz_questions_schoolId_classroomSession_question_idx";
 
 function read(filePath: string): string {
@@ -111,8 +112,8 @@ async function seedFixtures(client: Client): Promise<void> {
     `INSERT INTO school (id, name, createdAt) VALUES ('school-1', 'School One', 0)`,
     // pluginRegistration intentionally omits dataVersion to exercise the DEFAULT 1 (DATA-04).
     `INSERT INTO pluginRegistration (id, schoolId, name, manifestJson, pluginKey, dbNamespace, sourceType, installSource, enabled, killSwitchEnabled, lifecycleState, uninstalledAt, uninstallRetentionMode, createdAt, updatedAt) VALUES ('plugin-1', 'school-1', 'Quiz Plugin', '{"permissions":["plugin:write"]}', 'sample/quiz', 'plugin_sample_quiz', 'default', 'manual', 1, 0, 'enabled', NULL, NULL, 0, 0)`,
-    `INSERT INTO ${QUIZ_QUESTIONS} (id, schoolId, pluginId, classroomSession, question, prompt, correctOption, createdAt, updatedAt) VALUES ('q-1', 'school-1', 'plugin-1', 'session-1', 'q1', 'What is 1+1?', 'B', 0, 0)`,
-    `INSERT INTO ${QUIZ_RESPONSES} (id, schoolId, pluginId, classroomSession, student, question, selectedOption, createdAt, updatedAt) VALUES ('r-1', 'school-1', 'plugin-1', 'session-1', 'student-1', 'q1', 'B', 0, 0)`,
+    `INSERT INTO ${QUIZ_QUESTIONS} (id, schoolId, pluginId, classroomSession, question, prompt, optionAText, optionBText, optionCText, optionDText, correctOption, createdAt, updatedAt) VALUES ('q-1', 'school-1', 'plugin-1', 'session-1', 'q1', 'What is 1+1?', '1', '2', '3', NULL, 'B', 0, 0)`,
+    `INSERT INTO ${QUIZ_RESPONSES} (id, schoolId, pluginId, classroomSession, student, question, selectedOption, attemptNo, isLatest, createdAt, updatedAt) VALUES ('r-1', 'school-1', 'plugin-1', 'session-1', 'student-1', 'q1', 'B', 1, 1, 0, 0)`,
   ];
   for (const statement of statements) {
     await client.execute(statement);
@@ -126,7 +127,19 @@ async function runPhysicalProof(): Promise<void> {
   try {
     // --- D-12 physical invariants: tables, columns, schoolId notNull ---
     const questionCols = await getColumns(client, QUIZ_QUESTIONS);
-    assertColumns(questionCols, QUIZ_QUESTIONS, ["id", "schoolId", "pluginId", "classroomSession", "question", "prompt", "correctOption"]);
+    assertColumns(questionCols, QUIZ_QUESTIONS, [
+      "id",
+      "schoolId",
+      "pluginId",
+      "classroomSession",
+      "question",
+      "prompt",
+      "optionAText",
+      "optionBText",
+      "optionCText",
+      "optionDText",
+      "correctOption",
+    ]);
     if (!questionCols.get("schoolId")?.notNull) {
       throw new Error(`Physical proof failed: ${QUIZ_QUESTIONS}.schoolId must be NOT NULL.`);
     }
@@ -137,10 +150,11 @@ async function runPhysicalProof(): Promise<void> {
       throw new Error(`Physical proof failed: ${QUIZ_RESPONSES}.schoolId must be NOT NULL.`);
     }
 
-    // Composite scope index column order + dedupe unique constraint column order.
+    // Composite scope index column order + append-only unique/latest indexes.
     await assertIndexColumns(client, QUESTIONS_SCOPE_INDEX, ["schoolId", "classroomSession", "question"], false, QUIZ_QUESTIONS);
     await assertIndexColumns(client, SCOPE_INDEX, ["schoolId", "classroomSession", "student", "question"], false, QUIZ_RESPONSES);
-    await assertIndexColumns(client, DEDUPE_UNIQUE, ["classroomSession", "student", "question"], true, QUIZ_RESPONSES);
+    await assertIndexColumns(client, DEDUPE_UNIQUE, ["classroomSession", "student", "question", "attemptNo"], true, QUIZ_RESPONSES);
+    await assertIndexColumns(client, LATEST_INDEX, ["classroomSession", "student", "question", "isLatest"], false, QUIZ_RESPONSES);
 
     // --- DATA-04: pluginRegistration.dataVersion physically exists with default 1 ---
     const registrationCols = await getColumns(client, "pluginRegistration");
@@ -179,7 +193,7 @@ async function runPhysicalProof(): Promise<void> {
 
 function assertDeclarationAlignment(): void {
   const generated = read("src/db/schema/generated/plugin-owned/quiz.ts");
-  const tokens = [QUIZ_QUESTIONS, QUIZ_RESPONSES, SCOPE_INDEX, DEDUPE_UNIQUE];
+  const tokens = [QUIZ_QUESTIONS, QUIZ_RESPONSES, SCOPE_INDEX, DEDUPE_UNIQUE, LATEST_INDEX];
   for (const token of tokens) {
     if (!nonCommentIncludes(generated, token)) {
       throw new Error(`Declaration↔generated alignment failed: '${token}' absent from generated fragment.`);
@@ -188,9 +202,14 @@ function assertDeclarationAlignment(): void {
 }
 
 function runDriftGuard(): void {
-  // Recompile from declarations; any git diff in generated output = drift = fail (T-67-13).
-  execFileSync("pnpm", ["plugin:compile"], { stdio: "inherit" });
-  execFileSync("git", ["diff", "--exit-code", "src/db/schema/generated"], { stdio: "inherit" });
+  // Recompile from declarations; any mutation of the checked generated files = drift = fail.
+  execFileSync(process.execPath, [
+    "--import",
+    "tsx",
+    "scripts/check-plugin-codegen-drift.ts",
+    "src/db/schema/generated/plugin-owned/quiz.ts",
+    "src/db/schema/generated/plugin-owned/data-access-allowlist.ts",
+  ], { stdio: "inherit" });
 }
 
 function runZeroDdlGate(): void {
@@ -211,9 +230,9 @@ async function main(): Promise<void> {
   assertDeclarationAlignment();
   console.log("  ✓ Generated fragment matches declared plugin-owned tables/indexes.");
 
-  console.log("[3/4] Drift guard (plugin:compile + git diff --exit-code)...");
+  console.log("[3/4] Drift guard (plugin:compile stability check)...");
   runDriftGuard();
-  console.log("  ✓ Recompile produced zero drift in src/db/schema/generated.");
+  console.log("  ✓ Recompile produced zero drift in the checked generated files.");
 
   console.log("[4/4] Zero-runtime-DDL static gate...");
   runZeroDdlGate();

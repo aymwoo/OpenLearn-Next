@@ -5,11 +5,10 @@ import path from "node:path";
 import type { InStatement } from "@libsql/client";
 
 import { cleanupSqliteArtifacts, materializeDrizzleMigrations } from "./lib/sqlite-migration-proof";
-import { getPhase69Actor, setPhase69Actor } from "./lib/phase69-auth-stub";
+import { setPhase69Actor } from "./lib/phase69-auth-stub";
 
 const DB_PATH = path.join("/tmp/opencode", `phase69-verify-${randomUUID()}.db`);
 process.env.DB_FILE_NAME = `file:${DB_PATH}`;
-process.env.OPENLEARN_VERIFY_ACTOR_ID = "";
 
 const SCHOOL_ID = "school-69-01";
 const TEACHER_ID = "teacher-69-01";
@@ -187,7 +186,6 @@ async function main() {
 
     console.log("[2/6] Teacher authoring save path...");
     setPhase69Actor(TEACHER_ID);
-    process.env.OPENLEARN_VERIFY_ACTOR_ID = TEACHER_ID;
     const saveResult = await saveQuizSampleLessonStepConfig({
       stepId: STEP_ID,
       title: "互动答题（样板）",
@@ -212,7 +210,6 @@ async function main() {
     console.log("  ✓ Teacher config save works and does not backdoor snapshot table writes.");
 
     console.log("[3/6] Launch freeze question snapshot...");
-    process.env.OPENLEARN_VERIFY_ACTOR_ID = TEACHER_ID;
     const launchedSnapshot = await launchClassroomSession({
       lessonId: LESSON_ID,
       publishedVersionId: PUBLISHED_VERSION_ID,
@@ -232,10 +229,18 @@ async function main() {
     console.log("  ✓ Launch froze session-scoped question snapshot rows.");
 
     console.log("[4/6] Student first answer and re-answer append-only latest semantics...");
-    process.env.OPENLEARN_VERIFY_ACTOR_ID = TEACHER_ID;
     await recordClassroomVotingRoundControl({ sessionId, stepId: STEP_ID, command: "start-voting-round" });
     setPhase69Actor(STUDENT_ID);
-    process.env.OPENLEARN_VERIFY_ACTOR_ID = STUDENT_ID;
+    const studentAnswerAuditCountBefore = await db
+      .select({ c: countFn() })
+      .from(governanceAudits)
+      .where(
+        and(
+          eq(governanceAudits.action, "plugin.data.upsert"),
+          eq(governanceAudits.pluginId, QUIZ_SAMPLE_PLUGIN_ID),
+          eq(governanceAudits.decision, "allowed"),
+        ),
+      );
     const firstAnswer = await submitQuizSampleAnswer({
       lessonId: LESSON_ID,
       sessionId,
@@ -271,16 +276,24 @@ async function main() {
     const coreQuizAttemptRows = await db.select({ c: countFn() }).from(quizAttempts);
     assert(Number(coreQuizAttemptRows[0]?.c ?? 0) === 0, "quiz sample path must not write core quizAttempts");
 
-    const writeAudits = await db.select({ c: countFn() }).from(governanceAudits).where(eq(governanceAudits.action, "plugin.data.upsert"));
-    assert(Number(writeAudits[0]?.c ?? 0) >= 2, "expected governance-visible plugin.data.upsert audits for student answers");
+    const writeAudits = await db
+      .select({ c: countFn() })
+      .from(governanceAudits)
+      .where(
+        and(
+          eq(governanceAudits.action, "plugin.data.upsert"),
+          eq(governanceAudits.pluginId, QUIZ_SAMPLE_PLUGIN_ID),
+          eq(governanceAudits.decision, "allowed"),
+        ),
+      );
+    const auditDelta = Number(writeAudits[0]?.c ?? 0) - Number(studentAnswerAuditCountBefore[0]?.c ?? 0);
+    assert(auditDelta === 2, `expected exactly 2 governed plugin.data.upsert audits for quiz sample answers, got delta=${auditDelta}`);
     console.log("  ✓ No core backdoor writes; governed plugin-owned write audits are visible.");
 
     console.log("[6/6] Closed round rejects further answer updates...");
     setPhase69Actor(TEACHER_ID);
-    process.env.OPENLEARN_VERIFY_ACTOR_ID = TEACHER_ID;
     await recordClassroomVotingRoundControl({ sessionId, stepId: STEP_ID, command: "end-voting-round" });
     setPhase69Actor(STUDENT_ID);
-    process.env.OPENLEARN_VERIFY_ACTOR_ID = STUDENT_ID;
     let rejected = false;
     try {
       await submitQuizSampleAnswer({
@@ -300,7 +313,6 @@ async function main() {
     console.log("==================================================");
   } finally {
     setPhase69Actor(null);
-    process.env.OPENLEARN_VERIFY_ACTOR_ID = "";
     cleanupSqliteArtifacts(DB_PATH);
   }
 }

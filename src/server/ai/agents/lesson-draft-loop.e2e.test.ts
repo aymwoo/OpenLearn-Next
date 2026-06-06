@@ -158,6 +158,31 @@ vi.mock("@/features/platform-core/commands/handlers/plugins", () => ({
   ),
 }));
 
+// registry 还会 eager-load plugin.data handlers；本 e2e 只验证 lesson draft 链路，故将
+// plugin.data 隔离掉，避免治理门继续经 auth DAL 拉起 next-auth。
+vi.mock("@/features/platform-core/commands/handlers/plugin-data", () => ({
+  pluginDataInsertHandler: {
+    authorize: async () => {},
+    execute: async () => ({
+      resultSummary: null,
+      invalidation: { tags: [] },
+      emittedEvents: [],
+      failureEvent: null,
+      failureAttribution: null,
+    }),
+  },
+  pluginDataUpsertHandler: {
+    authorize: async () => {},
+    execute: async () => ({
+      resultSummary: null,
+      invalidation: { tags: [] },
+      emittedEvents: [],
+      failureEvent: null,
+      failureAttribution: null,
+    }),
+  },
+}));
+
 // in-process 适配器：避免 import 期触达真实 db；publishPersisted 永不被调用（dispatches 空）。
 vi.mock("@/features/platform-core/events/adapters/in-process", () => ({
   defaultInProcessPlatformEventAdapter: {

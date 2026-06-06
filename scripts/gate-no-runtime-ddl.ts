@@ -27,9 +27,10 @@ const WHITELIST_PREFIXES = ["drizzle/", "src/db/schema/generated/"] as const;
 const EXEMPT_FILES = new Set<string>(["scripts/prepare-dev-db.ts"]);
 const SELF_BASENAME = "gate-no-runtime-ddl.ts";
 
-/** Strips `// ...` line comments so commented examples never count as violations. */
-function withoutLineComments(source: string): string {
+/** Strips block + line comments so documented SQL examples never count as violations. */
+function withoutComments(source: string): string {
   return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
     .split("\n")
     .map((line) => line.replace(/\/\/.*$/, ""))
     .join("\n");
@@ -96,7 +97,7 @@ const EXECUTION_CHANNEL_RE = /(\.execute\(|\.run\(|\.exec\(|sql\.raw\(|client\.e
 
 function scanFile(absolutePath: string): Violation[] {
   const relative = toPosixRelative(absolutePath);
-  const cleaned = withoutLineComments(readFileSync(absolutePath, "utf8"));
+  const cleaned = withoutComments(readFileSync(absolutePath, "utf8"));
   const lines = cleaned.split("\n");
   const violations: Violation[] = [];
 

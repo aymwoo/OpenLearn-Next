@@ -177,6 +177,19 @@ const BUILT_IN_PLUGIN_DEFINITIONS = [
     },
   },
   {
+    name: "互动答题（样板）",
+    manifest: {
+      id: "builtin-teaching-step-quiz-sample",
+      version: "1.0.0",
+      permissions: ["lesson:write:suggestion"],
+      anchors: ["lesson.sidebar"],
+      actions: ["suggestBuiltInTeachingStep", "insertBuiltInTeachingStepTemplate"],
+      builtIn: true,
+      defaultEnabled: true,
+      nonDeletable: true,
+    },
+  },
+  {
     name: "评价",
     manifest: {
       id: "builtin-teaching-step-evaluation",

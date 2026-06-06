@@ -58,6 +58,17 @@ function readMigrationByTag(tag: string) {
   };
 }
 
+function readMigrationStatements(tag: string) {
+  const journal = readMigrationJournal();
+  const entry = journal.entries.find((candidate) => candidate.tag === tag);
+  const fileTag = entry?.tag ?? tag;
+
+  return readFileSync(`${MIGRATIONS_FOLDER}/${fileTag}.sql`, "utf8")
+    .split("--> statement-breakpoint")
+    .map((statement) => statement.trim())
+    .filter((statement) => statement.length > 0);
+}
+
 function migrationTagExists(tag: string) {
   return readMigrationJournal().entries.some((entry) => entry.tag === tag);
 }
@@ -147,6 +158,61 @@ async function detectExistingSchemaTag() {
   const hasDaffyXavinSchema =
     hasPhase53PlatformEventFoundationSchema
     && await indexExists("plugin_owned_biz_school_plugin_key_unique");
+
+  const hasPhase63DraftLessonVersionsSchema =
+    hasDaffyXavinSchema
+    && await tableExists("draftLessonVersion")
+    && await columnExists("draftLessonVersion", "lessonId")
+    && await columnExists("draftLessonVersion", "version")
+    && await columnExists("draftLessonVersion", "snapshotJson")
+    && await columnExists("draftLessonVersion", "sourceCommandId")
+    && await indexExists("draftLessonVersions_lessonId_version_idx")
+    && await indexExists("draftLessonVersions_idempotency_unique");
+
+  const hasPhase64DraftReviewLifecycleSchema =
+    hasPhase63DraftLessonVersionsSchema
+    && await columnExists("draftLessonVersion", "status")
+    && await columnExists("draftLessonVersion", "archivedAt")
+    && await columnExists("lesson", "aiDraftAppliedAt")
+    && await columnExists("lesson", "latestDraftVersionId");
+
+  const hasLeanSageSchema =
+    hasPhase64DraftReviewLifecycleSchema
+    && await tableExists("plugin_owned_quiz_questions")
+    && await tableExists("plugin_owned_quiz_responses")
+    && await columnExists("pluginRegistration", "dataVersion");
+
+  const hasWorriedWallowSchema =
+    hasLeanSageSchema
+    && await columnExists("plugin_owned_quiz_responses", "attemptNo")
+    && await columnExists("plugin_owned_quiz_responses", "isLatest")
+    && await indexExists("plugin_owned_quiz_responses_classroomSession_student_question_attemptNo_unique")
+    && await indexExists("plugin_owned_quiz_responses_classroomSession_student_question_isLatest_idx");
+
+  const hasHardEchoSchema =
+    hasWorriedWallowSchema
+    && await columnExists("plugin_owned_quiz_questions", "optionAText")
+    && await columnExists("plugin_owned_quiz_questions", "optionBText");
+
+  if (hasHardEchoSchema && migrationTagExists("0007_hard_echo")) {
+    return "0007_hard_echo";
+  }
+
+  if (hasWorriedWallowSchema && migrationTagExists("0006_worried_wallow")) {
+    return "0006_worried_wallow";
+  }
+
+  if (hasLeanSageSchema && migrationTagExists("0005_lean_sage")) {
+    return "0005_lean_sage";
+  }
+
+  if (hasPhase64DraftReviewLifecycleSchema && migrationTagExists("0015_phase64_draft_review_lifecycle")) {
+    return "0015_phase64_draft_review_lifecycle";
+  }
+
+  if (hasPhase63DraftLessonVersionsSchema && migrationTagExists("0014_phase63_draft_lesson_versions")) {
+    return "0014_phase63_draft_lesson_versions";
+  }
 
   if (hasDaffyXavinSchema && migrationTagExists("0002_daffy_xavin")) {
     return "0002_daffy_xavin";
@@ -311,8 +377,33 @@ async function bridgeExistingSchemaIfNeeded() {
   return true;
 }
 
+async function applyJournalDroppedCatchUpsIfNeeded() {
+  const catchUps = [
+    {
+      tag: "0013_phase54_audit_summary_truth",
+      needsApply: async () => {
+        const platformCommandReady = await columnExists("platformCommand", "auditSummaryJson");
+        const platformEventReady = await columnExists("platformEvent", "auditSummaryJson");
+        return !platformCommandReady || !platformEventReady;
+      },
+    },
+  ] as const;
+
+  for (const catchUp of catchUps) {
+    if (!(await catchUp.needsApply())) {
+      continue;
+    }
+
+    console.log(`检测到开发库缺少 ${catchUp.tag} 的补齐列，正在执行 catch-up。`);
+    for (const statement of readMigrationStatements(catchUp.tag)) {
+      await db.run(sql.raw(statement));
+    }
+  }
+}
+
 export async function prepareDevDb() {
   await bridgeExistingSchemaIfNeeded();
+  await applyJournalDroppedCatchUpsIfNeeded();
   await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
 }
 

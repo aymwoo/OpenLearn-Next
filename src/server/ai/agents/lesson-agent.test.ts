@@ -45,6 +45,31 @@ vi.mock("@/features/platform-core/commands/handlers/plugins", () => ({
   ),
 }));
 
+// registry 还会 eager-load plugin.data handlers；对本测试无关，但其治理门会继续拉起
+// `@/lib/dal/auth -> next-auth`。这里一并 stub，保持 lesson.draft 链路真实、其余命令隔离。
+vi.mock("@/features/platform-core/commands/handlers/plugin-data", () => ({
+  pluginDataInsertHandler: {
+    authorize: async () => {},
+    execute: async () => ({
+      resultSummary: null,
+      invalidation: { tags: [] },
+      emittedEvents: [],
+      failureEvent: null,
+      failureAttribution: null,
+    }),
+  },
+  pluginDataUpsertHandler: {
+    authorize: async () => {},
+    execute: async () => ({
+      resultSummary: null,
+      invalidation: { tags: [] },
+      emittedEvents: [],
+      failureEvent: null,
+      failureAttribution: null,
+    }),
+  },
+}));
+
 import type {
   PlatformCommand,
   PlatformCommandStatus,
