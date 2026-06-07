@@ -209,10 +209,11 @@ Plans:
 | 70. Question Stats & Post-Class Recap | v4.0 | 4/4 | Complete | 2026-06-05 |
 | 71. Marketplace Lifecycle (Install/Upgrade/Uninstall) | v4.0 | 4/4 | Complete | 2026-06-05 |
 | 72. End-to-End verify:phase Close Gate | v4.0 | 1/1 | Complete | 2026-06-05 |
+| 72.1. Close gap: GATE-01 authoritative milestone close gate | v4.0 | 3/3 | Complete | 2026-06-07 |
 
 ## Next Step
 
-- v4.0 里程碑已具备单一 `verify:phase` close gate；如无新增范围，下一步应做 milestone audit/archive 或开启下一里程碑。
+- v4.0 里程碑已具备 authoritative close gate：`pnpm verify:phase` hard-fails unless `72.1-PROOF-MAPPING.md` / `72-VERIFICATION.md` / `72.1-CLOSEOUT.md` exist and the Manual Surface Sign-Off Ledger records `status: passed`。Archive-ready double entry 已落地。下一步可做 milestone audit/archive 或开启下一里程碑。
 
 ### Phase 72.1: Close gap: GATE-01 authoritative milestone close gate (INSERTED)
 
@@ -222,6 +223,6 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 72.1-01-PLAN.md — Strengthen Phase 71 lifecycle executable proof and formalize Phase 70/71 verification artifacts
-- [ ] 72.1-02-PLAN.md — Strengthen `verify:phase72` first, then formalize Phase 72 verification on the final gate behavior
-- [ ] 72.1-03-PLAN.md — Write milestone closeout / proof mapping and close the strengthened authoritative gate
+- [x] 72.1-01-PLAN.md — Strengthen Phase 71 lifecycle executable proof and formalize Phase 70/71 verification artifacts
+- [x] 72.1-02-PLAN.md — Strengthen `verify:phase72` first, then formalize Phase 72 verification on the final gate behavior
+- [x] 72.1-03-PLAN.md — Write milestone closeout / proof mapping and close the strengthened authoritative gate

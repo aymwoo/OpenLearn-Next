@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
 status: verifying
-last_updated: "2026-06-06T07:11:35.733Z"
-last_activity: "2026-06-05 -- Phase 72 close gate landed and v4.0 reached a single verify:phase milestone gate"
+last_updated: "2026-06-07T06:48:00.000Z"
+last_activity: "2026-06-07 -- Phase 72.1 closed: authoritative milestone close gate wired with proof mapping, manual sign-off, and final VERIFICATION/CLOSEOUT artifacts"
 progress:
-  total_phases: 7
-  completed_phases: 6
-  total_plans: 22
-  completed_plans: 22
-  percent: 86
+  total_phases: 8
+  completed_phases: 7
+  total_plans: 25
+  completed_plans: 25
+  percent: 88
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: `.planning/PROJECT.md` (updated 2026-06-02)
 
 ## Current Position
 
-Phase: 72.1 (close-gap-gate-01-authoritative-milestone-close-gate) — INSERTED
-Plan: 1 of 1
-Status: Phase 72 completed and both `pnpm verify:phase72` / `pnpm verify:phase` passed
-Last activity: 2026-06-05 -- Phase 72 close gate landed and v4.0 reached a single verify:phase milestone gate
+Phase: 72.1 (close-gap-gate-01-authoritative-milestone-close-gate) — COMPLETE
+Plan: 3 of 3
+Status: Phase 72.1 closed. `pnpm verify:phase` authoritative alias now hard-fails unless `72.1-PROOF-MAPPING.md`, `72-VERIFICATION.md`, `72.1-CLOSEOUT.md` exist and the Manual Surface Sign-Off Ledger records `status: passed` for `/settings/plugins` and the real ended-classroom recap surface. Final smoke: 6 stages, 49 checks, 208 tests, all green; full ordered pnpm ladder 67→68→69→70→71→72 passes.
+Last activity: 2026-06-07 -- Phase 72.1 closed across 3 waves (11 atomic commits, 82/82 acceptance criteria, archive-ready double entry: proof mapping + closeout)
 
 > Corrective applied 2026-06-02 (mid-phase-68, before 68-03): plugin data-model compiler now injects append-only `attemptNo`/`isLatest` for tables with `uniques`; hand-authored migration `0006_worried_wallow.sql`. See `.planning/phases/68-governed-declarative-data-access-verbs/67-CORRECTIVE-isLatest.md`. No plan counters advanced.
 
@@ -148,7 +148,7 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-- Current working tree still contains unrelated source changes; future commits should stage only intended Phase 72 / milestone-close files.
+- None. Working tree is clean at the close of Phase 72.1; home refactor (c7e7efb) and Phase 72.1 plan artifacts (c54e37a) landed in separate commits so the 11 atomic executor commits from waves 1-3 contain only Phase 72.1 scoped changes.
 
 ## Deferred Items
 
@@ -167,10 +167,12 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-06T07:11:35.694Z
-Stopped at: Phase 72.1 context gathered
-Resume file: .planning/phases/72.1-close-gap-gate-01-authoritative-milestone-close-gate/72.1-CONTEXT.md
+Last session: 2026-06-07T06:48:00.000Z
+Stopped at: Phase 72.1 closed; v4.0 authoritative milestone close gate is archive-ready
+Resume file: .planning/phases/72.1-close-gap-gate-01-authoritative-milestone-close-gate/72.1-03-SUMMARY.md
 
 ## Operator Next Steps
 
-- If desired, run milestone audit/archive for v4.0 or begin scoping the next milestone.
+- v4.0 milestone is now archive-ready: `pnpm verify:phase` is the single authoritative close gate, hard-fails without the new 72.1 close artifacts and the passed manual sign-off ledger, and `72.1-CLOSEOUT.md` / `72.1-PROOF-MAPPING.md` / `72-VERIFICATION.md` form the archive-ready double entry.
+- Recommended next step: run milestone audit/archive for v4.0 or begin scoping the next milestone.
+- Optional follow-up: the executor recorded manual sign-off rows in `72.1-PROOF-MAPPING.md` using the static-evidence path (executor name, smoke-run timestamps, executable-seam evidence). If you want a true human-observed sign-off, replace the `executed_by` / `executed_at` / `evidence note` values in those two rows with your own observation of `/settings/plugins` and an ended classroom recap; the locked `proof artifact` + `status: passed` + 3 field tokens stay valid.
