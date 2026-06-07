@@ -26,6 +26,13 @@ export const quizDataModel = {
         { name: "optionBText", type: "text", notNull: true },
         { name: "optionCText", type: "text", notNull: false },
         { name: "optionDText", type: "text", notNull: false },
+             {
+          name: "questionType",
+          type: "enum",
+          notNull: true,
+          default: "single_choice",
+          enumValues: ["single_choice", "multi_choice", "true_false", "fill_blank", "ordering"],
+        },
         {
           name: "correctOption",
           type: "enum",

@@ -15,6 +15,7 @@ export const pluginDataAccessAllowlist = {
         "optionBText",
         "optionCText",
         "optionDText",
+        "questionType",
         "correctOption",
         "createdAt",
         "updatedAt"
@@ -27,6 +28,7 @@ export const pluginDataAccessAllowlist = {
         "optionBText",
         "optionCText",
         "optionDText",
+        "questionType",
         "correctOption"
       ],
       "indexes": [
@@ -44,10 +46,18 @@ export const pluginDataAccessAllowlist = {
         "optionBText",
         "optionCText",
         "optionDText",
+        "questionType",
         "correctOption"
       ],
       "uniques": [],
       "enumColumns": {
+        "questionType": [
+          "single_choice",
+          "multi_choice",
+          "true_false",
+          "fill_blank",
+          "ordering"
+        ],
         "correctOption": [
           "A",
           "B",

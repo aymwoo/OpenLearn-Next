@@ -17,6 +17,7 @@ export const pluginOwnedQuizQuestions = sqliteTable(
     optionBText: text("optionBText").notNull(),
     optionCText: text("optionCText"),
     optionDText: text("optionDText"),
+    questionType: text("questionType", { enum: ["single_choice", "multi_choice", "true_false", "fill_blank", "ordering"] }).notNull().default("single_choice"),
     correctOption: text("correctOption", { enum: ["A", "B", "C", "D"] }).notNull(),
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
     updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
