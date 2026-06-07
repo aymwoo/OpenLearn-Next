@@ -107,14 +107,7 @@ export const pluginDataAccessAllowlist = {
           "question"
         ]
       ],
-      "enumColumns": {
-        "selectedOption": [
-          "A",
-          "B",
-          "C",
-          "D"
-        ]
-      }
+      "enumColumns": {}
     }
   }
 } as const;

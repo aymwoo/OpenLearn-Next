@@ -51,9 +51,14 @@ export const quizDataModel = {
         { name: "question", type: "text", notNull: true },
         {
           name: "selectedOption",
-          type: "enum",
+          // Phase 73: changed from enum to text to support:
+          // - single_choice: "A"/"B"/"C"/"D"
+          // - multi_choice: "A,B" or "A,C,D" etc. (JSON string)
+          // - true_false: "A" (True) / "B" (False)
+          // - fill_blank: text answer
+          // - ordering: rank string e.g. "A,B,C"
+          type: "text",
           notNull: true,
-          enumValues: ["A", "B", "C", "D"],
         },
       ],
       // D-12 复合索引列序

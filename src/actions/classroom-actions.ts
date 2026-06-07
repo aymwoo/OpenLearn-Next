@@ -47,6 +47,7 @@ import {
 } from "@/lib/dto/classroom";
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import { QuizSampleAnswerSlotSchema } from "@/lib/dal/classroom";
+import { QuestionTypeSchema } from "@/lib/dto/plugin-data-model";
 import { createRuntimeBridgeMessageId } from "@/features/runtime-platform/host/runtime-host-bridge";
 import { RUNTIME_CONTRACT_VERSION } from "@/features/runtime-platform/contracts/version";
 
@@ -58,12 +59,40 @@ const validationMessage = "输入内容不完整，请检查后重试。";
 const launchMessage = "正在创建课堂，请稍候。";
 const modeMessage = "正在更新课堂模式。";
 const conflictMessage = "课堂状态已经被更新。请先恢复最新状态，再继续操作。";
+
+/** 5-type discriminated union for quiz answer submission (Phase 73, Task 4). */
+const QuizSampleSubmitSingleChoiceSchema = z.object({
+  questionType: z.literal("single_choice"),
+  selectedOption: QuizSampleAnswerSlotSchema,
+});
+const QuizSampleSubmitMultiChoiceSchema = z.object({
+  questionType: z.literal("multi_choice"),
+  selectedOption: z.string(), // "A,B" comma-separated
+});
+const QuizSampleSubmitTrueFalseSchema = z.object({
+  questionType: z.literal("true_false"),
+  selectedOption: z.union([z.literal("A"), z.literal("B")]), // A=True, B=False
+});
+const QuizSampleSubmitFillBlankSchema = z.object({
+  questionType: z.literal("fill_blank"),
+  selectedOption: z.string().min(1), // text answer
+});
+const QuizSampleSubmitOrderingSchema = z.object({
+  questionType: z.literal("ordering"),
+  selectedOption: z.string().min(1), // rank string e.g. "A,B,C"
+});
+
 const quizSampleSubmitSchema = z.object({
   lessonId: z.string().min(1),
   sessionId: z.string().min(1),
   stepId: z.string().min(1),
-  selectedOption: QuizSampleAnswerSlotSchema,
-});
+}).and(z.discriminatedUnion("questionType", [
+  QuizSampleSubmitSingleChoiceSchema,
+  QuizSampleSubmitMultiChoiceSchema,
+  QuizSampleSubmitTrueFalseSchema,
+  QuizSampleSubmitFillBlankSchema,
+  QuizSampleSubmitOrderingSchema,
+]));
 
 function normalizeInput(input: FormData | Record<string, unknown>) {
   if (!(input instanceof FormData)) {

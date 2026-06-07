@@ -72,6 +72,7 @@ import {
   TaskAttemptDTOSchema,
 } from "@/lib/dto/learning";
 import { dispatchPluginDataAccess } from "@/features/platform-core/plugin-data-access/facade";
+import { QuestionTypeSchema } from "@/lib/dto/plugin-data-model";
 import {
   lessonStepPayloadSchema,
   ClassroomVotingFrozenContractSchema,
@@ -938,7 +939,8 @@ async function buildQuizSampleRecapStats(input: {
   const distributionByQuestion = new Map<string, Map<"A" | "B" | "C" | "D", number>>();
   for (const row of distributionRows) {
     const counts = distributionByQuestion.get(row.question) ?? new Map<"A" | "B" | "C" | "D", number>();
-    counts.set(row.selectedOption, row.count);
+    // TODO (Phase 73-05): Remove cast when 5-type aggregation is implemented
+    counts.set(row.selectedOption as "A" | "B" | "C" | "D", row.count);
     distributionByQuestion.set(row.question, counts);
   }
 
@@ -1786,7 +1788,7 @@ async function buildClassroomSnapshotDTOForActor(input: {
   const stepOrder = new Map(steps.map((step, index) => [step.id, index]));
   const activeStepIndex = stepOrder.get(session.activeStepId) ?? 0;
   const activeStep = steps.find((step) => step.id === session.activeStepId);
-  const activeQuizSampleResponseRows = activeStep && isQuizSampleStep(activeStep)
+  const activeQuizSampleResponseRows = (activeStep && isQuizSampleStep(activeStep)
     ? await db
         .select({
           student: pluginOwnedQuizResponses.student,
@@ -1802,7 +1804,7 @@ async function buildClassroomSnapshotDTOForActor(input: {
           ),
         )
         .orderBy(desc(pluginOwnedQuizResponses.createdAt))
-    : [];
+    : []) as Array<{ student: string; selectedOption: "A" | "B" | "C" | "D"; createdAt: Date | null }>;
   const transportDegradedReason = await classroomRedisFanoutManager.getLatestDegradedReason(
     session.id,
   );
@@ -2270,18 +2272,23 @@ export async function recordStudentQuickResponse(input: unknown) {
   };
 }
 
-export async function submitQuizSampleAnswer(input: {
-  lessonId: string;
-  sessionId: string;
-  stepId: string;
-  selectedOption: z.infer<typeof QuizSampleAnswerSlotSchema>;
-}) {
-  const payload = z.object({
-    lessonId: z.string().min(1),
-    sessionId: z.string().min(1),
-    stepId: z.string().min(1),
-    selectedOption: QuizSampleAnswerSlotSchema,
-  }).parse(input);
+/** 5-type discriminated union input for submitQuizSampleAnswer (Phase 73, Task 4). */
+const SubmitQuizSampleAnswerInputSchema = z.object({
+  lessonId: z.string().min(1),
+  sessionId: z.string().min(1),
+  stepId: z.string().min(1),
+}).and(z.discriminatedUnion("questionType", [
+  z.object({ questionType: z.literal("single_choice"), selectedOption: QuizSampleAnswerSlotSchema }),
+  z.object({ questionType: z.literal("multi_choice"), selectedOption: z.string().min(1) }),
+  z.object({ questionType: z.literal("true_false"), selectedOption: z.union([z.literal("A"), z.literal("B")]) }),
+  z.object({ questionType: z.literal("fill_blank"), selectedOption: z.string().min(1) }),
+  z.object({ questionType: z.literal("ordering"), selectedOption: z.string().min(1) }),
+]));
+
+type SubmitQuizSampleAnswerInput = z.infer<typeof SubmitQuizSampleAnswerInputSchema>;
+
+export async function submitQuizSampleAnswer(input: SubmitQuizSampleAnswerInput) {
+  const payload = SubmitQuizSampleAnswerInputSchema.parse(input);
 
   const user = await getCurrentUserDTO();
   if (!user?.id) {
@@ -2314,24 +2321,102 @@ export async function submitQuizSampleAnswer(input: {
     throw new Error("CLASSROOM_STEP_NOT_IN_LESSON");
   }
 
+  // Validate selectedOption based on questionType
   const enabledSlots = QUIZ_SAMPLE_OPTION_SLOTS.slice(0, currentStepPayload.options?.length ?? 0);
-  if (!enabledSlots.includes(payload.selectedOption)) {
-    throw new Error("QUIZ_SAMPLE_OPTION_INVALID");
+  if (payload.questionType === "single_choice" || payload.questionType === "true_false") {
+    if (!enabledSlots.includes(payload.selectedOption as "A" | "B" | "C" | "D")) {
+      throw new Error("QUIZ_SAMPLE_OPTION_INVALID");
+    }
+  } else if (payload.questionType === "multi_choice") {
+    const selectedOptions = (payload.selectedOption as string).split(",");
+    for (const opt of selectedOptions) {
+      if (!enabledSlots.includes(opt.trim() as "A" | "B" | "C" | "D")) {
+        throw new Error("QUIZ_SAMPLE_OPTION_INVALID");
+      }
+    }
+  } else if (payload.questionType === "fill_blank" || payload.questionType === "ordering") {
+    if (typeof payload.selectedOption !== "string" || payload.selectedOption.trim().length === 0) {
+      throw new Error("QUIZ_SAMPLE_OPTION_INVALID");
+    }
   }
 
   const hadPreviousAnswer = currentRound.namedResults.some((entry) => entry.studentId === user.id);
   const submittedAt = new Date().toISOString();
-  const writeResult = await dispatchPluginDataAccess({
-    actor: user.id,
-    pluginKey: QUIZ_SAMPLE_PLUGIN_KEY,
-    verb: "upsert",
-    table: "plugin_owned_quiz_responses",
-    values: {
-      classroomSession: session.id,
-      student: user.id,
-      question: payload.stepId,
-      selectedOption: payload.selectedOption,
-    },
+
+  // Resolve schoolId from classId
+  const [classRow] = await db
+    .select({ schoolId: classes.schoolId })
+    .from(classes)
+    .where(eq(classes.id, session.classId))
+    .limit(1);
+
+  if (!classRow) {
+    throw new Error("CLASSROOM_PARTICIPANT_REQUIRED");
+  }
+
+  // Append-only + isLatest flip: clear previous isLatest, insert new row
+  const writeResult = await db.transaction(async (tx) => {
+    // Find max attemptNo for this (classroomSession, student, question)
+    const previous = await tx
+      .select({ maxAttemptNo: pluginOwnedQuizResponses.attemptNo })
+      .from(pluginOwnedQuizResponses)
+      .where(
+        and(
+          eq(pluginOwnedQuizResponses.classroomSession, session.id),
+          eq(pluginOwnedQuizResponses.student, user.id),
+          eq(pluginOwnedQuizResponses.question, payload.stepId),
+        ),
+      )
+      .orderBy(desc(pluginOwnedQuizResponses.attemptNo))
+      .limit(1);
+
+    const attemptNo = (previous[0]?.maxAttemptNo ?? 0) + 1;
+
+    // Resolve pluginId for quiz plugin in this school
+    const [pluginReg] = await tx
+      .select({ id: pluginRegistrations.id })
+      .from(pluginRegistrations)
+      .where(
+        and(
+          eq(pluginRegistrations.schoolId, classRow.schoolId),
+          eq(pluginRegistrations.pluginKey, QUIZ_SAMPLE_PLUGIN_KEY),
+        ),
+      )
+      .limit(1);
+
+    if (!pluginReg) {
+      throw new Error("PLUGIN_NOT_FOUND");
+    }
+
+    // Clear isLatest on previous rows for this (classroomSession, student, question)
+    await tx
+      .update(pluginOwnedQuizResponses)
+      .set({ isLatest: false, updatedAt: new Date() })
+      .where(
+        and(
+          eq(pluginOwnedQuizResponses.classroomSession, session.id),
+          eq(pluginOwnedQuizResponses.student, user.id),
+          eq(pluginOwnedQuizResponses.question, payload.stepId),
+          eq(pluginOwnedQuizResponses.isLatest, true),
+        ),
+      );
+
+    // Insert new row with isLatest = true
+    const [inserted] = await tx
+      .insert(pluginOwnedQuizResponses)
+      .values({
+        schoolId: classRow.schoolId,
+        pluginId: pluginReg.id,
+        classroomSession: session.id,
+        student: user.id,
+        question: payload.stepId,
+        selectedOption: payload.selectedOption,
+        attemptNo,
+        isLatest: true,
+      })
+      .returning();
+
+    return inserted;
   });
 
   await recordRuntimeClassroomEvidence({
@@ -2344,24 +2429,26 @@ export async function submitQuizSampleAnswer(input: {
     payload: {
       ...buildQuizSampleStudentSubmission({
         stepId: payload.stepId,
-        selectedOption: payload.selectedOption,
+        // For non-single-choice, selectedOption is a string (e.g., "A,B" for multi_choice)
+        selectedOption: payload.selectedOption as "A" | "B" | "C" | "D",
         submittedAt,
       }),
+      questionType: payload.questionType,
       pluginOwned: true,
       pluginTable: "plugin_owned_quiz_responses",
       pluginKey: QUIZ_SAMPLE_PLUGIN_KEY,
     },
   });
 
-  const attemptNo = typeof writeResult === "object" && writeResult !== null && "data" in writeResult
-    ? (((writeResult.data as { attemptNo?: number } | null | undefined)?.attemptNo) ?? 1)
-    : 1;
+  // TODO (Phase 73-02): Dispatch quiz.answer.received hook via dispatchPlatformCommand
+  // This will notify the live teacher dashboard when a student submits an answer.
 
   return {
     questionId: payload.stepId,
+    questionType: payload.questionType,
     studentId: user.id,
     selectedOption: payload.selectedOption,
-    attemptNo,
+    attemptNo: writeResult.attemptNo,
     successMessage: hadPreviousAnswer ? "答案已更新" : "已记录你的答案",
   };
 }

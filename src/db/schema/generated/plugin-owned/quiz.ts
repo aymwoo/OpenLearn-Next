@@ -36,7 +36,7 @@ export const pluginOwnedQuizResponses = sqliteTable(
     classroomSession: text("classroomSession").notNull(),
     student: text("student").notNull(),
     question: text("question").notNull(),
-    selectedOption: text("selectedOption", { enum: ["A", "B", "C", "D"] }).notNull(),
+    selectedOption: text("selectedOption").notNull(),
     attemptNo: integer("attemptNo").notNull(),
     isLatest: integer("isLatest", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
