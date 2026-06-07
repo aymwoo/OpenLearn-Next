@@ -115,64 +115,223 @@ export function ClassroomSessionRecapSurface({ recap }: { recap: ClassroomSessio
           </div>
         ) : (
           <div className="mt-5 space-y-4">
-            {recap.quizSampleStats.questions.map((question) => (
+            {recap.quizSampleStats.questions.map((question) => {
+            const questionTypeLabel: Record<string, string> = {
+              single_choice: "单选题",
+              multi_choice: "多选题",
+              true_false: "判断题",
+              fill_blank: "填空题",
+              ordering: "排序题",
+            };
+            const isSingleChoice = question.questionType === "single_choice";
+            const isTrueFalse = question.questionType === "true_false";
+            const correctAnswerDisplay = isSingleChoice
+              ? (question as unknown as { correctOption: string }).correctOption
+              : isTrueFalse
+                ? ((question as unknown as { correctAnswer: string }).correctAnswer === "true" ? "True" : "False")
+                : null;
+            return (
               <article key={question.stepId} className="rounded-[1.5rem] bg-surface-container-lowest p-5 shadow-ambient">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="max-w-3xl">
                     <p className="text-sm text-on-surface-variant">{question.stepTitle}</p>
                     <h4 className="mt-2 text-xl font-semibold text-on-surface">{question.prompt}</h4>
+                    <Badge className="mt-2 bg-surface-container-low text-on-surface-variant">{questionTypeLabel[question.questionType] ?? question.questionType}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Badge className="bg-primary/10 text-primary">正确答案 {question.correctOption}</Badge>
+                    {correctAnswerDisplay && (
+                      <Badge className="bg-primary/10 text-primary">正确答案 {correctAnswerDisplay}</Badge>
+                    )}
                     <Badge className="bg-surface-container-low text-on-surface-variant">已作答 {question.answeredCount}</Badge>
                     <Badge className="bg-surface-container-low text-on-surface-variant">未作答 {question.unansweredCount}</Badge>
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-3 md:grid-cols-4">
-                  <MetricCard label="正确率" value={`${Math.round(question.correctRate * 100)}%`} tone={question.correctRate < 0.5 ? "attention" : "neutral"} />
-                  <MetricCard label="答对人数" value={String(question.correctCount)} tone="neutral" />
-                  <MetricCard label="已作答" value={String(question.answeredCount)} tone="neutral" />
-                  <MetricCard label="未作答" value={String(question.unansweredCount)} tone="muted" />
-                </div>
-
-                <div className="mt-5 space-y-3">
-                  {question.options.map((option) => (
-                    <div key={`${question.stepId}-${option.slot}`} className={cn(
-                      "rounded-[1.2rem] p-4 shadow-ambient",
-                      option.isCorrect ? "bg-primary/10" : "bg-surface-container-low",
-                    )}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className={cn(
-                            "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-                            option.isCorrect ? "bg-primary text-white" : "bg-surface-container-lowest text-on-surface",
-                          )}>
-                            {option.slot}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-on-surface">{option.label}</p>
-                            <p className="text-xs text-on-surface-variant">{option.count} 人选择</p>
+                {/* 5-type discriminated union rendering (Phase 73, Task 5) */}
+                {question.questionType === "single_choice" && (
+                  <>
+                    <div className="mt-5 grid gap-3 md:grid-cols-4">
+                      <MetricCard
+                        label="正确率"
+                        value={`${Math.round((question.options.find(o => o.isCorrect)?.percentage ?? 0) * 100)}%`}
+                        tone="neutral"
+                      />
+                      <MetricCard label="答对人数" value={String(question.options.find(o => o.isCorrect)?.count ?? 0)} tone="neutral" />
+                      <MetricCard label="已作答" value={String(question.answeredCount)} tone="neutral" />
+                      <MetricCard label="未作答" value={String(question.unansweredCount)} tone="muted" />
+                    </div>
+                    <div className="mt-5 space-y-3">
+                      {question.options.map((option) => (
+                        <div key={`${question.stepId}-${option.slot}`} className={cn(
+                          "rounded-[1.2rem] p-4 shadow-ambient",
+                          option.isCorrect ? "bg-primary/10" : "bg-surface-container-low",
+                        )}>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span className={cn(
+                                "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+                                option.isCorrect ? "bg-primary text-white" : "bg-surface-container-lowest text-on-surface",
+                              )}>
+                                {option.slot}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="truncate font-medium text-on-surface">{option.label}</p>
+                                <p className="text-xs text-on-surface-variant">{option.count} 人选择</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-on-surface">{Math.round(option.percentage * 100)}%</p>
+                              {option.isCorrect ? <p className="text-xs text-primary">正确答案</p> : null}
+                            </div>
+                          </div>
+                          <div className="mt-3 h-2.5 rounded-full bg-white/70">
+                            <div
+                              className={cn("h-full rounded-full", option.isCorrect ? "bg-linear-135 from-primary to-primary-container" : "bg-surface-container-high")}
+                              style={{ width: `${Math.max(option.percentage * 100, option.count > 0 ? 8 : 0)}%` }}
+                            />
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-on-surface">{Math.round(option.percentage * 100)}%</p>
-                          {option.isCorrect ? <p className="text-xs text-primary">正确答案</p> : null}
+                      ))}
+                    </div>
+                    <p className="mt-4 text-sm leading-7 text-on-surface-variant">
+                      正确率按已作答 {question.answeredCount} 人计算；本次课堂共 {question.participantCount} 名参与者。
+                    </p>
+                  </>
+                )}
+
+                {question.questionType === "multi_choice" && (
+                  <>
+                    <div className="mt-5 grid gap-3 md:grid-cols-3">
+                      <MetricCard label="选项组合数" value={String(question.options.length)} tone="neutral" />
+                      <MetricCard label="已作答" value={String(question.answeredCount)} tone="neutral" />
+                      <MetricCard label="未作答" value={String(question.unansweredCount)} tone="muted" />
+                    </div>
+                    <div className="mt-5 space-y-3">
+                      {question.options.map((option, idx) => (
+                        <div key={`${question.stepId}-${option.combo}-${idx}`} className="rounded-[1.2rem] bg-surface-container-low p-4 shadow-ambient">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-container-lowest text-sm font-semibold text-on-surface">
+                                {idx + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="truncate font-medium text-on-surface">{option.label}</p>
+                                <p className="text-xs text-on-surface-variant">{option.count} 人选择</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-on-surface">{Math.round(option.percentage * 100)}%</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 h-2.5 rounded-full bg-white/70">
+                            <div
+                              className="h-full rounded-full bg-surface-container-high"
+                              style={{ width: `${Math.max(option.percentage * 100, option.count > 0 ? 8 : 0)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {question.questionType === "true_false" && (
+                  <>
+                    <div className="mt-5 grid gap-3 md:grid-cols-4">
+                      <MetricCard
+                        label="正确率"
+                        value={`${Math.round((question.trueCount / question.answeredCount) * 100)}%`}
+                        tone={question.trueCount / question.answeredCount < 0.5 ? "attention" : "neutral"}
+                      />
+                      <MetricCard label="选True人数" value={String(question.trueCount)} tone="neutral" />
+                      <MetricCard label="选False人数" value={String(question.falseCount)} tone="neutral" />
+                      <MetricCard label="已作答" value={String(question.answeredCount)} tone="neutral" />
+                    </div>
+                    <div className="mt-5 grid gap-3 md:grid-cols-2">
+                      <div className="rounded-[1.2rem] bg-surface-container-low p-4 shadow-ambient">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">T</span>
+                            <p className="font-medium text-on-surface">True / 正确</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-on-surface">{Math.round(question.truePercentage * 100)}%</p>
+                            <p className="text-xs text-on-surface-variant">{question.trueCount} 人</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 h-2.5 rounded-full bg-white/70">
+                          <div
+                            className="h-full rounded-full bg-linear-135 from-primary to-primary-container"
+                            style={{ width: `${Math.max(question.truePercentage * 100, question.trueCount > 0 ? 8 : 0)}%` }}
+                          />
                         </div>
                       </div>
-                      <div className="mt-3 h-2.5 rounded-full bg-white/70">
-                        <div
-                          className={cn("h-full rounded-full", option.isCorrect ? "bg-linear-135 from-primary to-primary-container" : "bg-surface-container-high")}
-                          style={{ width: `${Math.max(option.percentage * 100, option.count > 0 ? 8 : 0)}%` }}
-                        />
+                      <div className="rounded-[1.2rem] bg-surface-container-low p-4 shadow-ambient">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-container-lowest text-sm font-semibold text-on-surface">F</span>
+                            <p className="font-medium text-on-surface">False / 错误</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-on-surface">{Math.round(question.falsePercentage * 100)}%</p>
+                            <p className="text-xs text-on-surface-variant">{question.falseCount} 人</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 h-2.5 rounded-full bg-white/70">
+                          <div
+                            className="h-full rounded-full bg-surface-container-high"
+                            style={{ width: `${Math.max(question.falsePercentage * 100, question.falseCount > 0 ? 8 : 0)}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
 
-                <p className="mt-4 text-sm leading-7 text-on-surface-variant">{question.denominatorLabel}</p>
+                {(question.questionType === "fill_blank" || question.questionType === "ordering") && (
+                  <>
+                    <div className="mt-5 grid gap-3 md:grid-cols-3">
+                      <MetricCard label="答案种类" value={String(question.topAnswers.length)} tone="neutral" />
+                      <MetricCard label="已作答" value={String(question.totalAnswers)} tone="neutral" />
+                      <MetricCard label="未作答" value={String(question.unansweredCount)} tone="muted" />
+                    </div>
+                    <div className="mt-5 space-y-3">
+                      {question.topAnswers.length === 0 ? (
+                        <p className="text-sm text-on-surface-variant">暂无答案</p>
+                      ) : (
+                        question.topAnswers.map((answer, idx) => (
+                          <div key={`${question.stepId}-${answer.answer}-${idx}`} className="rounded-[1.2rem] bg-surface-container-low p-4 shadow-ambient">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex min-w-0 items-center gap-3">
+                                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-container-lowest text-sm font-semibold text-on-surface">
+                                  {idx + 1}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="truncate font-medium text-on-surface">
+                                    {question.questionType === "ordering" ? `排名: ${answer.answer}` : answer.answer}
+                                  </p>
+                                  <p className="text-xs text-on-surface-variant">{answer.count} 人回答</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-semibold text-on-surface">{Math.round(answer.percentage * 100)}%</p>
+                              </div>
+                            </div>
+                            <div className="mt-3 h-2.5 rounded-full bg-white/70">
+                              <div
+                                className="h-full rounded-full bg-surface-container-high"
+                                style={{ width: `${Math.max(answer.percentage * 100, answer.count > 0 ? 8 : 0)}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
               </article>
-            ))}
+            );
+          })}
           </div>
         )}
       </Card>

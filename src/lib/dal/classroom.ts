@@ -905,6 +905,7 @@ async function buildQuizSampleRecapStats(input: {
   const questionRows = await db
     .select({
       question: pluginOwnedQuizQuestions.question,
+      questionType: pluginOwnedQuizQuestions.questionType,
       prompt: pluginOwnedQuizQuestions.prompt,
       optionAText: pluginOwnedQuizQuestions.optionAText,
       optionBText: pluginOwnedQuizQuestions.optionBText,
@@ -936,11 +937,11 @@ async function buildQuizSampleRecapStats(input: {
     )
     .groupBy(pluginOwnedQuizResponses.question, pluginOwnedQuizResponses.selectedOption);
 
-  const distributionByQuestion = new Map<string, Map<"A" | "B" | "C" | "D", number>>();
+  // Group distributions by question
+  const distributionByQuestion = new Map<string, Map<string, number>>();
   for (const row of distributionRows) {
-    const counts = distributionByQuestion.get(row.question) ?? new Map<"A" | "B" | "C" | "D", number>();
-    // TODO (Phase 73-05): Remove cast when 5-type aggregation is implemented
-    counts.set(row.selectedOption as "A" | "B" | "C" | "D", row.count);
+    const counts = distributionByQuestion.get(row.question) ?? new Map<string, number>();
+    counts.set(row.selectedOption, row.count);
     distributionByQuestion.set(row.question, counts);
   }
 
@@ -948,39 +949,91 @@ async function buildQuizSampleRecapStats(input: {
   return ClassroomSessionRecapQuizStatsSectionDTOSchema.parse({
     questionCount: questionRows.length,
     questions: questionRows.map((question) => {
-      const counts = distributionByQuestion.get(question.question) ?? new Map<"A" | "B" | "C" | "D", number>();
+      const counts = distributionByQuestion.get(question.question) ?? new Map<string, number>();
       const answeredCount = [...counts.values()].reduce((sum, value) => sum + value, 0);
-      const correctCount = counts.get(question.correctOption) ?? 0;
       const step = stepMap.get(question.question);
-
-      const options = [
-        { slot: "A" as const, label: question.optionAText },
-        { slot: "B" as const, label: question.optionBText },
-        { slot: "C" as const, label: question.optionCText },
-        { slot: "D" as const, label: question.optionDText },
-      ]
-        .filter((option): option is { slot: "A" | "B" | "C" | "D"; label: string } => typeof option.label === "string" && option.label.trim().length > 0)
-        .map((option) => ({
-          slot: option.slot,
-          label: option.label,
-          count: counts.get(option.slot) ?? 0,
-          percentage: answeredCount > 0 ? (counts.get(option.slot) ?? 0) / answeredCount : 0,
-          isCorrect: option.slot === question.correctOption,
-        }));
-
-      return {
+      const baseStats = {
         stepId: question.question,
-        stepTitle: step?.title ?? "课堂单选题",
+        stepTitle: step?.title ?? "课堂投票题",
         prompt: question.prompt,
-        correctOption: question.correctOption,
         answeredCount,
         unansweredCount: Math.max(input.participantCount - answeredCount, 0),
         participantCount: input.participantCount,
-        correctCount,
-        correctRate: answeredCount > 0 ? correctCount / answeredCount : 0,
-        denominatorLabel: `正确率按已作答 ${answeredCount} 人计算；本次课堂共 ${input.participantCount} 名参与者。`,
-        options,
       };
+
+      // 5-type discriminated union based on questionType (Phase 73, Task 5)
+      switch (question.questionType) {
+        case "single_choice": {
+          const correctCount = counts.get(question.correctOption) ?? 0;
+          const options = [
+            { slot: "A" as const, label: question.optionAText },
+            { slot: "B" as const, label: question.optionBText },
+            { slot: "C" as const, label: question.optionCText },
+            { slot: "D" as const, label: question.optionDText },
+          ]
+            .filter((opt): opt is { slot: "A" | "B" | "C" | "D"; label: string } => typeof opt.label === "string" && opt.label.trim().length > 0)
+            .map((opt) => ({
+              slot: opt.slot,
+              label: opt.label,
+              count: counts.get(opt.slot) ?? 0,
+              percentage: answeredCount > 0 ? (counts.get(opt.slot) ?? 0) / answeredCount : 0,
+              isCorrect: opt.slot === question.correctOption,
+            }));
+          return {
+            ...baseStats,
+            questionType: "single_choice" as const,
+            options,
+          };
+        }
+        case "multi_choice": {
+          // Count by combo (each unique selectedOption combo is a "slot")
+          const comboOptions = [...counts.entries()]
+            .map(([combo, count]) => ({
+              combo,
+              label: combo.split(",").map(c => c.trim()).join(", "),
+              count,
+              percentage: answeredCount > 0 ? count / answeredCount : 0,
+            }))
+            .sort((a, b) => b.count - a.count);
+          return {
+            ...baseStats,
+            questionType: "multi_choice" as const,
+            options: comboOptions,
+          };
+        }
+        case "true_false": {
+          const trueCount = counts.get("A") ?? 0;
+          const falseCount = counts.get("B") ?? 0;
+          const correctAnswer = question.correctOption === "A" ? "true" : "false";
+          return {
+            ...baseStats,
+            questionType: "true_false" as const,
+            trueCount,
+            truePercentage: answeredCount > 0 ? trueCount / answeredCount : 0,
+            falseCount,
+            falsePercentage: answeredCount > 0 ? falseCount / answeredCount : 0,
+            correctAnswer,
+          };
+        }
+        case "fill_blank":
+        case "ordering": {
+          // Top N text answers (for ordering, it's the rank string)
+          const topAnswers = [...counts.entries()]
+            .map(([answer, count]) => ({
+              answer,
+              count,
+              percentage: answeredCount > 0 ? count / answeredCount : 0,
+            }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10); // Top 10
+          return {
+            ...baseStats,
+            questionType: question.questionType,
+            topAnswers,
+            totalAnswers: answeredCount,
+          };
+        }
+      }
     }),
   });
 }
