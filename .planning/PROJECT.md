@@ -10,9 +10,25 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## Current Milestone
+## Current Milestone: v4.1 Multi-Question Types & Teacher Live Dashboard
 
-`v4.0 Plugin Marketplace & Plugin-Owned Data` 已于 2026-06-07 归档。当前没有 active milestone；下一里程碑应通过 `/gsd:new-milestone` 在已归档 baseline 之上建立新 scope，而不是重开已交付能力。
+**Goal:** 在 v4.0 互动答题样板（`plugin_owned_quiz_questions` + `plugin_owned_quiz_responses`、governed plugin key `quiz`、append-only/isLatest）之上扩展多题型能力，并交付教师在 `/classroom` 控制台只读查看的实时作答主流水嶀（按题聚合的选项分布随时间变化）。不重建 v4.0 marketplace / 受治理 / 单一 close gate baseline；继续用 `pnpm verify:phase` 作 milestone close gate。
+
+**Target features:**
+
+- **多题型互动答题 (QUIZ-EXT-01)**: 老师能配置多选、判断、填空、排序题型，配置经与单选同样的受治理路径持久化（`plugin_owned_quiz_questions` 同一表 + 新 `questionType` 字段 + 各题型 payload JSON 子集）；学生在课堂运行链路提交对应 payload，append-only/isLatest 写入 `plugin_owned_quiz_responses`。
+- **教师只读实时作答主流水嶀 (QUIZ-EXT-02)**: 老师在 `/classroom` 教师控制台加一个 "作答实时" tab/section，可以看到全班实时作答流水（按题聚合的选项分布随时间变化 / 按时序的最近 N 条作答），复用 v2.2 WebSocket-first classroom transport + 可选 Redis fanout 作 delivery layer，**不创建新事实源**（真实数据仍在 SQLite + DAL）。
+- **close gate 复用**: `pnpm verify:phase` 同时作为 v4.1 的 authoritative close gate；新增多题型 + 实时主流水嶀的端到端验证。
+
+**Key context:**
+
+- 复用 v4.0 baseline：`compile, don't execute` 范式、5 个受治理 verbs（`insert` / `upsert` / `getByIndex` / `count` / `aggregate`）、governed plugin key `quiz`、`plugin_owned_quiz_*` 表。
+- 复用 v2.2 baseline：WebSocket-first classroom transport + 可选 Redis fanout（仅作 delivery layer，不当业务真相源）。
+- 不重起 marketplace 架构：v4.1 是 v4.0 的纵深延展，不新增 plugin type、不改 marketplace 生命周期、不重新打开编译期 DDL 路径。
+- bundle 纪律（N≤2）：v4.1 同一里程碑内同时做多题型 + 教师实时仪表盘，二者均挂在 v4.0 quiz sample 之上；不再 bundle upgrade dry-run / 跨 pluginKey 恢复 / 非答题类插件 / 商店运营层等其它 scope。
+- 风格纪律：与 v3.2 N=1 强样板一致——同一 milestone 内不引入第三个独立用户价值切口。
+- v4.1 阶段的 phase 编号从 **73** 开始延续（v4.0 最后一个 phase 是 72.1）。
+- 计划 phase 数：1-2 phase 收口（先 broad multi-type + live dashboard MVP，再 close-out + 强化 close gate）。
 
 ## Latest Archived Milestone: v4.0 Plugin Marketplace & Plugin-Owned Data
 
@@ -203,9 +219,11 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ### Active
 
-<!-- v4.0 已归档：以下 v4.0 Active 项已随里程碑归档为 validated baseline，详见 .planning/milestones/v4.0-REQUIREMENTS.md。当前无 active milestone，等待 /gsd-new-milestone 建立下一轮 scope。 -->
+**v4.1 Multi-Question Types & Teacher Live Dashboard**
 
-当前无 active milestone。下次 `/gsd-new-milestone` 启动时建立新的 Active 项。
+- [ ] **QUIZ-EXT-01**: 多题型互动答题 —— 老师能配置多选、判断、填空、排序题型，配置经与单选同样的受治理路径持久化；学生提交对应 payload 写入同一 `plugin_owned_quiz_responses` 表，append-only/isLatest 行为不变。
+- [ ] **QUIZ-EXT-02**: 教师只读实时作答主流水嶀 —— 老师在 `/classroom` 教师控制台加一个 "作答实时" tab/section，可看到全班实时作答流水（按题聚合的选项分布随时间变化 + 最近 N 条作答）；复用 v2.2 WebSocket-first classroom transport + 可选 Redis fanout 作 delivery layer，不创建新事实源。
+- [ ] **QUIZ-EXT-CLOSE**: v4.1 close gate —— 复用 v4.0 `pnpm verify:phase` 作 milestone close gate；新增多题型 + 实时主流水嶀的端到端验证。
 
 ### Out of Scope
 
@@ -315,4 +333,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-07 after archiving v4.0 Plugin Marketplace & Plugin-Owned Data*
+*Last updated: 2026-06-07 after starting v4.1 Multi-Question Types & Teacher Live Dashboard*

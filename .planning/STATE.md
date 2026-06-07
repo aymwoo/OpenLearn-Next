@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.0
-milestone_name: Plugin Marketplace & Plugin-Owned Data
-status: archived
-last_updated: "2026-06-07T07:25:00.000Z"
-last_activity: "2026-06-07 -- v4.0 archived to .planning/milestones/v4.0-* (ROADMAP / REQUIREMENTS / MILESTONE-AUDIT). REQUIREMENTS.md removed (fresh for next milestone). RETROSPECTIVE.md appended. State cleared for next-milestone handoff."
+milestone: v4.1
+milestone_name: Multi-Question Types & Teacher Live Dashboard
+status: planning
+last_updated: "2026-06-07T08:14:57.019Z"
+last_activity: 2026-06-07
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 25
-  completed_plans: 25
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -24,11 +24,10 @@ See: `.planning/PROJECT.md` (updated 2026-06-07 after v4.0 archive)
 
 ## Current Position
 
-Phase: All v4.0 phases archived (67-72 + 72.1, 25/25 plans complete, 18/18 v1 requirements satisfied)
-Status: v4.0 milestone shipped and archived. Working tree clean at `f3d408e` on `main`. 2 archive-related commits + 1 retrospective commit on top of Phase 72.1's 14-commit series.
-Last activity: 2026-06-07 -- v4.0 archive complete (commit `ba4c255` for archive files, `1c0fcc3` for REQUIREMENTS.md removal, `f3d408e` for RETROSPECTIVE.md append). All milestone archive files in `.planning/milestones/v4.0-ROADMAP.md` / `v4.0-REQUIREMENTS.md` / `v4.0-MILESTONE-AUDIT.md`.
-
-> Corrective applied 2026-06-02 (mid-phase-68, before 68-03): plugin data-model compiler now injects append-only `attemptNo`/`isLatest` for tables with `uniques`; hand-authored migration `0006_worried_wallow.sql`. See `.planning/phases/68-governed-declarative-data-access-verbs/67-CORRECTIVE-isLatest.md`. No plan counters advanced.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-07 — Milestone v4.1 started
 
 ## Performance Metrics
 
