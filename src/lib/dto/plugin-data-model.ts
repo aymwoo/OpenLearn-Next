@@ -141,6 +141,9 @@ export const PluginDataModelSchema = z.strictObject({
   tables: z.array(TableSpecSchema).min(1),
 });
 
+export const QuestionTypeSchema = z.enum(["single_choice", "multi_choice", "true_false", "fill_blank", "ordering"]);
+export type QuestionType = z.infer<typeof QuestionTypeSchema>;
+
 export type ColumnSpec = z.infer<typeof ColumnSpecSchema>;
 export type TableSpec = z.infer<typeof TableSpecSchema>;
 export type PluginDataModel = z.infer<typeof PluginDataModelSchema>;

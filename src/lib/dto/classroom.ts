@@ -13,6 +13,7 @@ import {
   QuizAttemptDTOSchema,
   TaskAttemptDTOSchema,
 } from "@/lib/dto/learning";
+import { QuestionTypeSchema } from "@/lib/dto/plugin-data-model";
 import {
   RuntimeBootstrapRequestEnvelopeSchema,
   RuntimeReadyRequestEnvelopeSchema,
@@ -370,19 +371,69 @@ export const ClassroomSessionRecapQuizOptionStatDTOSchema = z.object({
   isCorrect: z.boolean(),
 });
 
-export const ClassroomSessionRecapQuizQuestionStatDTOSchema = z.object({
+/** Multi-choice: each combo (e.g. "A,B") is a "slot". */
+export const ClassroomSessionRecapQuizMultiChoiceComboStatDTOSchema = z.object({
+  combo: z.string(),
+  label: z.string(),
+  count: z.number().int().nonnegative(),
+  percentage: z.number().min(0).max(1),
+});
+
+/** Single-choice (A/B/C/D slots) */
+const SingleChoiceStatsSchema = z.object({
+  questionType: z.literal("single_choice"),
+  options: z.array(ClassroomSessionRecapQuizOptionStatDTOSchema),
+});
+
+/** Multi-choice (combo slots) */
+const MultiChoiceStatsSchema = z.object({
+  questionType: z.literal("multi_choice"),
+  options: z.array(ClassroomSessionRecapQuizMultiChoiceComboStatDTOSchema),
+});
+
+/** True/false (bool slots) */
+const TrueFalseStatsSchema = z.object({
+  questionType: z.literal("true_false"),
+  trueCount: z.number().int().nonnegative(),
+  truePercentage: z.number().min(0).max(1),
+  falseCount: z.number().int().nonnegative(),
+  falsePercentage: z.number().min(0).max(1),
+  correctAnswer: z.enum(["true", "false"]),
+});
+
+/** Fill-blank / ordering (top N text answers) */
+const TextAnswerStatSchema = z.object({
+  answer: z.string(),
+  count: z.number().int().nonnegative(),
+  percentage: z.number().min(0).max(1),
+});
+
+const FillBlankStatsSchema = z.object({
+  questionType: z.literal("fill_blank"),
+  topAnswers: z.array(TextAnswerStatSchema),
+  totalAnswers: z.number().int().nonnegative(),
+});
+
+const OrderingStatsSchema = z.object({
+  questionType: z.literal("ordering"),
+  topAnswers: z.array(TextAnswerStatSchema),
+  totalAnswers: z.number().int().nonnegative(),
+});
+
+export const ClassroomSessionRecapQuizQuestionStatDTOSchema = z.discriminatedUnion("questionType", [
+  SingleChoiceStatsSchema,
+  MultiChoiceStatsSchema,
+  TrueFalseStatsSchema,
+  FillBlankStatsSchema,
+  OrderingStatsSchema,
+]).and(z.object({
   stepId: z.string(),
   stepTitle: z.string(),
   prompt: z.string(),
-  correctOption: z.enum(["A", "B", "C", "D"]),
   answeredCount: z.number().int().nonnegative(),
   unansweredCount: z.number().int().nonnegative(),
   participantCount: z.number().int().nonnegative(),
-  correctCount: z.number().int().nonnegative(),
-  correctRate: z.number().min(0).max(1),
-  denominatorLabel: z.string(),
-  options: z.array(ClassroomSessionRecapQuizOptionStatDTOSchema),
-});
+}));
 
 export const ClassroomSessionRecapQuizStatsSectionDTOSchema = z.object({
   questionCount: z.number().int().nonnegative(),
