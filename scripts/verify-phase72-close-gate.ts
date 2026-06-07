@@ -32,6 +32,36 @@ const ORDERED_PHASE_RUNNERS: ReadonlyArray<{ scriptKey: string; gateLabel: strin
   { scriptKey: "verify:phase71", gateLabel: "Phase 71 marketplace lifecycle gate" },
 ];
 
+// Wave-3 final-artifact dependency anchors (D-72.1-16 / T-72.1-06 mitigation).
+// Hard-required by Stage 5 so the authoritative gate cannot pass without the
+// archive-ready 72.1 close artifacts and the formal Phase 72 verification
+// report. Without these the gate would silently regress to "orchestrator-only"
+// and `GATE-01` would re-open in the next milestone audit.
+const FINAL_ARTIFACT_PATHS = {
+  phase72Verification:
+    ".planning/phases/72-end-to-end-verify-phase-close-gate/72-VERIFICATION.md",
+  phase721Closeout:
+    ".planning/phases/72.1-close-gap-gate-01-authoritative-milestone-close-gate/72.1-CLOSEOUT.md",
+  phase721ProofMapping:
+    ".planning/phases/72.1-close-gap-gate-01-authoritative-milestone-close-gate/72.1-PROOF-MAPPING.md",
+} as const;
+
+// Manual sign-off ledger row token (locked schema). The exact substring
+// `| status | \`status: passed\` |` appears ONLY in executed rows of the
+// proof-mapping ledger; the schema-reference table uses backticks around the
+// field name (`| \`status\` | ...`) so the substring does not collide.
+const MANUAL_SIGNOFF_EXECUTED_ROW_TOKEN = "| status | `status: passed` |";
+
+// Two required manual sign-off rows in the ledger (sourced from
+// 72.1-VALIDATION.md manual-only verification rows). The parser hard-fails
+// unless each required field appears at least twice (once per row) and at
+// least two executed rows are present.
+const REQUIRED_SIGNOFF_FIELD_TOKENS = [
+  "| executed_by |",
+  "| executed_at |",
+  "| evidence note |",
+] as const;
+
 function read(filePath: string) {
   const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
   return existsSync(absolutePath) ? readFileSync(absolutePath, "utf8") : "";
@@ -268,6 +298,106 @@ function verifyRecapMilestoneBridge(): StaticCheck[] {
   ];
 }
 
+function countOccurrences(haystack: string, needle: string): number {
+  if (needle.length === 0) {
+    return 0;
+  }
+  let count = 0;
+  let cursor = 0;
+  while (true) {
+    const found = haystack.indexOf(needle, cursor);
+    if (found === -1) {
+      return count;
+    }
+    count += 1;
+    cursor = found + needle.length;
+  }
+}
+
+function verifyFinalArtifactDependencies(): StaticCheck[] {
+  const closeoutSource = read(FINAL_ARTIFACT_PATHS.phase721Closeout);
+  const proofMappingSource = read(FINAL_ARTIFACT_PATHS.phase721ProofMapping);
+  const phase72VerificationSource = read(FINAL_ARTIFACT_PATHS.phase72Verification);
+
+  return [
+    {
+      label: "72.1-CLOSEOUT.md exists at the planned archive path",
+      passed: closeoutSource.length > 0,
+    },
+    {
+      label: "72.1-PROOF-MAPPING.md exists at the planned archive path",
+      passed: proofMappingSource.length > 0,
+    },
+    {
+      label: "72-VERIFICATION.md exists at the planned formal verification path",
+      passed: phase72VerificationSource.length > 0,
+    },
+    {
+      label:
+        "72.1-CLOSEOUT.md names verify:phase67 in the proof chain summary (D-72.1-06 hook)",
+      passed: nonCommentIncludes(closeoutSource, "verify:phase67"),
+    },
+    {
+      label:
+        "72.1-CLOSEOUT.md names verify:phase68 in the proof chain summary (D-72.1-06 hook)",
+      passed: nonCommentIncludes(closeoutSource, "verify:phase68"),
+    },
+    {
+      label:
+        "72.1-PROOF-MAPPING.md names verify:phase68 in the final proof chain (D-72.1-06 hook)",
+      passed: nonCommentIncludes(proofMappingSource, "verify:phase68"),
+    },
+    {
+      label:
+        "72.1-PROOF-MAPPING.md names the forbidden lighter shortcuts (D-72.1-16 auditability)",
+      passed:
+        nonCommentIncludes(proofMappingSource, "D-72.1-16")
+        && nonCommentIncludes(proofMappingSource, "Doc-only closure")
+        && nonCommentIncludes(proofMappingSource, "Missing manual sign-off capture")
+        && nonCommentIncludes(proofMappingSource, "Final-gate wiring without artifact dependency checks"),
+    },
+    {
+      label:
+        "72.1-PROOF-MAPPING.md carries the Manual Surface Sign-Off Ledger section",
+      passed: nonCommentIncludes(proofMappingSource, "Manual Surface Sign-Off Ledger"),
+    },
+  ];
+}
+
+function verifyManualSignOffLedger(): StaticCheck[] {
+  const proofMappingSource = read(FINAL_ARTIFACT_PATHS.phase721ProofMapping);
+  const executedRowCount = countOccurrences(
+    proofMappingSource,
+    MANUAL_SIGNOFF_EXECUTED_ROW_TOKEN,
+  );
+
+  return [
+    {
+      label:
+        "72.1-PROOF-MAPPING.md records two executed manual sign-off rows with status: passed",
+      passed: executedRowCount >= 2,
+    },
+    {
+      label:
+        "72.1-PROOF-MAPPING.md sign-off rows carry executed_by field (>= 2 occurrences)",
+      passed:
+        countOccurrences(proofMappingSource, REQUIRED_SIGNOFF_FIELD_TOKENS[0]) >= 2,
+    },
+    {
+      label:
+        "72.1-PROOF-MAPPING.md sign-off rows carry executed_at field (>= 2 occurrences)",
+      passed:
+        countOccurrences(proofMappingSource, REQUIRED_SIGNOFF_FIELD_TOKENS[1]) >= 2,
+    },
+    {
+      label:
+        "72.1-PROOF-MAPPING.md sign-off rows carry evidence note field (>= 2 occurrences)",
+      passed:
+        countOccurrences(proofMappingSource, REQUIRED_SIGNOFF_FIELD_TOKENS[2]) >= 2,
+    },
+  ];
+}
+
 function summariseStaticChecks(stage: string, checks: StaticCheck[]): Stage {
   const details = checks.map((check) => `- ${check.passed ? "✓" : "✗"} ${check.label}`);
   return {
@@ -302,7 +432,7 @@ function main() {
 
   const stages: Stage[] = [];
 
-  console.log("\n[1/4] Static script wiring checks...");
+  console.log("\n[1/5] Static script wiring checks...");
   const scriptChecks = verifyPackageScripts(read("package.json"));
   const scriptStage = summariseStaticChecks("Static script wiring", scriptChecks);
   stages.push(scriptStage);
@@ -311,7 +441,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log("\n[2/4] Upstream VERIFICATION artifact presence (67-71)...");
+  console.log("\n[2/5] Upstream VERIFICATION artifact presence (67-71)...");
   const verificationChecks = verifyUpstreamVerificationArtifacts();
   const verificationStage = summariseStaticChecks("Upstream VERIFICATION artifacts present", verificationChecks);
   stages.push(verificationStage);
@@ -320,7 +450,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log("\n[3/4] Lifecycle milestone-bridge static seams (MKT-01..05 / D-72.1-07 / D-72.1-08)...");
+  console.log("\n[3/5] Lifecycle milestone-bridge static seams (MKT-01..05 / D-72.1-07 / D-72.1-08)...");
   const lifecycleChecks = verifyLifecycleMilestoneBridge();
   const lifecycleStage = summariseStaticChecks("Lifecycle milestone-bridge seams", lifecycleChecks);
   stages.push(lifecycleStage);
@@ -329,7 +459,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log("\n[4/4] Recap / stats milestone-bridge static seams (STATS-01 / STATS-02 / D-72.1-02 / D-72.1-15)...");
+  console.log("\n[4/5] Recap / stats milestone-bridge static seams (STATS-01 / STATS-02 / D-72.1-02 / D-72.1-15)...");
   const recapChecks = verifyRecapMilestoneBridge();
   const recapStage = summariseStaticChecks("Recap / stats milestone-bridge seams", recapChecks);
   stages.push(recapStage);
@@ -338,8 +468,22 @@ function main() {
     process.exit(1);
   }
 
+  console.log("\n[5/5] Final-artifact dependencies + manual sign-off ledger (D-72.1-16 / T-72.1-06)...");
+  const finalArtifactChecks = verifyFinalArtifactDependencies();
+  const signOffChecks = verifyManualSignOffLedger();
+  const finalArtifactChecksMerged = [...finalArtifactChecks, ...signOffChecks];
+  const finalArtifactStage = summariseStaticChecks(
+    "Final-artifact dependencies + manual sign-off ledger",
+    finalArtifactChecksMerged,
+  );
+  stages.push(finalArtifactStage);
+  reportStage(finalArtifactStage);
+  if (!finalArtifactStage.passed) {
+    process.exit(1);
+  }
+
   if (!smokeOnly) {
-    console.log("\n[5/4] Ordered pnpm runners (67 -> 68 -> 69 -> 70 -> 71)...");
+    console.log("\n[6/5] Ordered pnpm runners (67 -> 68 -> 69 -> 70 -> 71)...");
     let orderedPassed = true;
     const orderedDetails: string[] = [];
     for (const runner of ORDERED_PHASE_RUNNERS) {
@@ -362,7 +506,7 @@ function main() {
       process.exit(1);
     }
   } else {
-    console.log("\n[5/4] Ordered pnpm runners (67 -> 68 -> 69 -> 70 -> 71)...");
+    console.log("\n[6/5] Ordered pnpm runners (67 -> 68 -> 69 -> 70 -> 71)...");
     console.log("  ↺ Smoke mode skips ordered pnpm runners; static + bridge seams above are the bridge proof.");
   }
 
