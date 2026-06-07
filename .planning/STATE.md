@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v4.1
 milestone_name: Multi-Question Types & Teacher Live Dashboard
 status: planning
-last_updated: "2026-06-07T08:14:57.019Z"
+last_updated: "2026-06-07T09:30:00.000Z"
 last_activity: 2026-06-07
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 4
   completed_plans: 0
   percent: 0
 ---
@@ -20,14 +20,15 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-07 after v4.0 archive)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** No active milestone. v4.0 archived 2026-06-07; start next via `/gsd:new-milestone`.
+**Current focus:** v4.1 roadmap drafted (Phases 73-74, 4 plans planned, N=2 bundle `QUIZ-EXT-01 + QUIZ-EXT-02`); awaiting `/gsd:discuss-phase 73` to start wave 1.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 73 (multi-type quiz + live dashboard) — planning
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-07 — Milestone v4.1 started
+Status: Roadmap drafted; awaiting discuss-phase / plan-phase
+Last activity: 2026-06-07 — v4.1 ROADMAP.md written (2 phases, 4 planned plans)
+Next action: `/gsd:discuss-phase 73` (broad implementation wave) or `/gsd:plan-phase 73` (skip discussion given small N=2 bundle).
 
 ## Performance Metrics
 
@@ -77,20 +78,38 @@ Last activity: 2026-06-07 — Milestone v4.1 started
 | Phase 68 P05 | ~3h | 2 tasks | 6 files |
 | Phase 69 P05 | 8 min | 2 tasks | 6 files |
 
+**By v4.1 Phase (planned):**
+
+| Phase | Plans | Status |
+|-------|-------|--------|
+| 73. Multi-Type Quiz & Live Dashboard | 0/2 | planning |
+| 74. v4.1 Authoritative Close Gate | 0/2 | planning |
+
 ## Accumulated Context
 
 ### Roadmap Evolution
 
 - `v4.0` roadmap 按 data contract (67) → access boundary (68) → sample write (69) → stats read (70) → lifecycle (71) → end-to-end close gate (72) → closure-phase 72.1 (hardened authoritative gate) 的顺序执行完毕。
-- `v4.0` 已归档到 `.planning/milestones/v4.0-ROADMAP.md` / `v4.0-REQUIREMENTS.md` / `v4.0-MILESTONE-AUDIT.md`；根级 `ROADMAP.md` 现在只保留已归档 milestone 摘要与「等待下一里程碑」入口。
-- 2026-06-05 milestone audit 暴露 8 个 unsatisfied REQ-ID（STATS-01/02 + MKT-01..05 + GATE-01）+ 1 integration gap；Phase 72.1 用 14 atomic commits + 6-stage / 49-check authoritative close gate 全部关闭。
+- `v4.0` 已归档到 `.planning/milestones/v4.0-ROADMAP.md` / `v4.0-REQUIREMENTS.md` / `v4.0-MILESTONE-AUDIT.md`。
+- 2026-06-07 `v4.1` 启动：scope selection 选定 N=2 bundle (QUIZ-EXT-01 + QUIZ-EXT-02)，同 `pluginKey = "quiz"`，复用 v4.0 单选样板 + v2.2 WebSocket-first transport；v4.1 ROADMAP.md 已落库（Phase 73 broad implementation + Phase 74 close gate）。
 - v3.2 时代依赖项（v3.2 deferred items）继续保留为 historical accepted-risk，不进入 v4.0 closing scope。
-- v4.0 v2 deferred 候选已记录在 `.planning/milestones/v4.0-REQUIREMENTS.md` v2 段：QUIZ-EXT-01..03 / MKT-EXT-01..03 / STORE-01。
+- v4.0 v2 deferred 候选中 `QUIZ-EXT-01` + `QUIZ-EXT-02` 已被 v4.1 选中；剩余 `QUIZ-EXT-03` / `MKT-EXT-01..03` / `STORE-01` 继续 deferred。
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
+
+- [Milestone v4.1]: N=2 small bundle (QUIZ-EXT-01 + QUIZ-EXT-02)，统一 `pluginKey = "quiz"`，复用 v4.0 单选样板 + v2.2 WebSocket-first transport；不重做 marketplace / governance / data-access verbs
+- [Milestone v4.1]: 2 phases (73 + 74)，hard cap 3 — phase 73 是宽幅实施 (QUIZ-EXT-01-A..E + QUIZ-EXT-02-A..E 10 个 sub-ID)，phase 74 是 close gate + retro (QUIZ-EXT-CLOSE-01..03)
+- [Milestone v4.1]: 题型枚举 `single_choice` | `multi_choice` | `true_false` | `fill_blank` | `ordering`（5 种），全部走 D-72.1-04 append-only/`isLatest` 写入路径，`plugin_owned_quiz_responses` 表 schema 不变
+- [Milestone v4.1]: 新增 `plugin_owned_quiz_questions.questionType TEXT NOT NULL` 列（additive migration，兼容旧 `single_choice` 行），D-67 forward + D-68 allowlist 同步
+- [Milestone v4.1]: WS 事件 `quiz.answer.received` 是新 event kind，遵循 v2.2 contract envelope（`kind` / `correlationId` / `truthRef`），teacher-only channel；不创建新 WS endpoint
+- [Milestone v4.1]: `process.env.REDIS_URL` 存在 → 复用 v2.2 Redis fanout 作 delivery layer；不存在 → 进程内总线（contract test 双分支）；SQLite + DAL 仍是真相源（D-72.1-15）
+- [Milestone v4.1]: dashboard tab 是 `/classroom` 控制室内的 sibling tab，不创建新路由；访问控制 `userProfiles.role = 'teacher' && classroomSessionId 拥有者`；零写 Server Action（grep 静态断言）
+- [Milestone v4.1]: 沿用 v4.0 72.1 close gate 范式，stage 5 → 7（保留 v4.0 5 stage + 新增多题型 stage + 新增实时仪表盘 stage）；新脚本 `scripts/verify-phase73-v41-close-gate.ts`
+- [Milestone v4.1]: Manual Surface Sign-Off Ledger 新增 2 行（`/classroom` 实时仪表盘 tab + 多题型课后 recap 表面），沿用 v4.0 schema (proof artifact + status: passed + executed_by + executed_at + evidence note)
+- [Milestone v4.1]: D-72.1-16 锁定 conclusion never leads evidence — phase 74 顺序：先 73-PROOF-MAPPING.md → 后 7 stage gate wiring → 再 73-VERIFICATION.md → 最后 73-CLOSEOUT.md
 
 - [Milestone v3.2]: 只打穿单个 LessonAgent 单条起草链路（N=1 强样板优先），复用 v3.0 Command Bus / action registry / event bus，不重建平台内核。
 - [Milestone v3.2]: provider key 只在服务端 Node runtime，绝不进 Edge / 插件 manifest / 客户端。
@@ -148,7 +167,10 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- None.
+- Run GitNexus `gitnexus_impact` on `ws-server.ts` / `ws-envelope.ts` / `ws-auth.ts` before Phase 73 plan 73-02 edits (v2.2 transport blast radius).
+- Decide whether to run `/gsd:discuss-phase 73` (small N=2 bundle, requirements already explicit) or jump to `/gsd:plan-phase 73` — discuss-phase optional given REQUIREMENTS.md sub-IDs A..E are already decomposed.
+- Decide whether to insert Phase 73.1 (UX/UI research gap) after plan 73-02 — only if a real gap emerges, do not pre-add.
+- Add `pnpm verify:phase73-v41-close-gate` to `package.json` scripts (referenced from ROADMAP phase 74 verify clause; not yet wired).
 
 ### Blockers/Concerns
 
@@ -178,8 +200,9 @@ Resume file: .planning/RETROSPECTIVE.md (read v4.0 section for what worked / wha
 ## Operator Next Steps
 
 - v4.0 milestone 已于 2026-06-07 归档，archive 文件在 `.planning/milestones/v4.0-{ROADMAP,REQUIREMENTS,MILESTONE-AUDIT}.md`。
-- `pnpm verify:phase` 是 v4.0 authoritative close gate，已可用于下一里程碑每个 phase 的回归验证（无需重新设计）。
-- Recommended next step: `/gsd:new-milestone`（questioning → research → requirements → roadmap）；候选 scope 在 v4.0-REQUIREMENTS.md v2 段（QUIZ-EXT-01..03 / MKT-EXT-01..03 / STORE-01）。
-- Optional follow-up: 
+- v4.1 ROADMAP.md 已于 2026-06-07 落库（2 phases, 4 planned plans, N=2 bundle）。STATE.md 已同步到 v4.1 planning 状态。
+- Recommended next step: `/gsd:plan-phase 73` (broad implementation wave: QUIZ-EXT-01 + QUIZ-EXT-02)，复用 v4.0 phase 69/70 plan scaffold + GitNexus 上游分析 v2.2 transport。
+- 然后 `/gsd:plan-phase 74` (close gate + retro)，复用 v4.0 72.1 plan scaffold；产物 `73-VERIFICATION.md` / `73-PROOF-MAPPING.md` / `73-CLOSEOUT.md` 三件套。
+- Optional follow-up:
   1. 67 / 68 phase 的 Nyquist frontmatter 字段回填 `nyquist_compliant: true`（metadata consistency gap，验证本身已通过）。
   2. `72.1-PROOF-MAPPING.md` Manual Surface Sign-Off Ledger 的 2 行 executor 静态证据可被你真实观察 `/settings/plugins` 与课后复盘面板后替换为人类 `executed_by` / `executed_at` / `evidence note`；`proof artifact` + `status: passed` 保持有效。

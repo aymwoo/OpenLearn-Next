@@ -1,72 +1,121 @@
-# ROADMAP
+# v4.1 ROADMAP — Multi-Question Types & Teacher Live Dashboard
 
-**Latest archive:** `.planning/milestones/v4.0-ROADMAP.md`
-**Latest milestone:** `v4.0 Plugin Marketplace & Plugin-Owned Data` (shipped 2026-06-07)
-**Status:** ✅ v4.0 complete; no active milestone — start next via `/gsd:new-milestone`
+**Status:** planning (started 2026-06-07)
+**Milestone:** v4.1 (extends v4.0 baseline; no kernel rebuild)
+**Phases:** 73–74 (2 phases, hard cap 3)
+**Total Plans (planned):** 4 (73: 2 plans; 74: 2 plans)
+**N (committed scope):** 2 — QUIZ-EXT-01 + QUIZ-EXT-02 bundle, both bound to `pluginKey = "quiz"`, both reusing the v4.0 single-choice quiz sample + v2.2 WebSocket-first classroom transport
 
-## Overview
+## Milestone Goal
 
-`v4.0` 已归档。仓库当前同时具备：
-
-- `v3.2` 验证过的 AI LessonAgent 起草闭环（server-only provider abstraction、typed tools、Command Bus 驱动的 run→persist→review→accept/discard 主链、eval/guardrails/`verify:phase` close gate）。
-- `v4.0` 验证过的声明式插件数据模型 + 受治理数据访问 + 互动答题样板 + 题目统计 + marketplace 生命周期（install / semver upgrade / retain/cleanup uninstall / active-session block）+ authoritative end-to-end `verify:phase` close gate。
-
-下一里程碑应在已归档 baseline 之上选择新的 committed 用户价值切口（候选：多题型、实时大屏、AI 出题、跨 pluginKey 完整恢复、非答题类插件二次泛化——见 `v4.0-REQUIREMENTS.md` v2 段），而不是重开已交付能力。
-
-## Milestones
-
-- ✅ **v4.0 Plugin Marketplace & Plugin-Owned Data** — Phases 67-72 + 72.1 (shipped 2026-06-07). See `.planning/milestones/v4.0-ROADMAP.md` / `v4.0-REQUIREMENTS.md` / `v4.0-MILESTONE-AUDIT.md`.
-- ✅ **v3.2 AI LessonAgent 起草闭环** — Archived 2026-06-02. See `.planning/milestones/v3.2-ROADMAP.md`.
-- ✅ **v3.1 Single-School Pilot Production Readiness (Plugin-First)** — Archived 2026-05-30. See `.planning/milestones/v3.1-ROADMAP.md`.
-- ✅ **v3.0 AI Native Educational OS Upgrade** — Archived 2026-05-23. See `.planning/milestones/v3.0-ROADMAP.md`.
-- 🧊 **v2.4 Plugin Data Architecture & Default Plugins** — Phases 44-49 remain frozen historical context.
-- ✅ **v2.3 Async Task Platform** — Archived 2026-05-20 with accepted gaps. See `.planning/milestones/v2.3-ROADMAP.md`.
-- ✅ **v2.2 WebSocket Classroom Transport Cutover** — Archived 2026-05-18. See `.planning/milestones/v2.2-ROADMAP.md`.
-- ✅ **v2.1 Safety Closure and Course Membership Loop** — Archived 2026-05-17.
-- ✅ **v2.0 Runtime Platform Foundations** — Archived 2026-05-17.
-- ✅ **v1.3 Teaching Orchestration & Classroom Intelligence** — Archived 2026-05-15.
+v4.1 extends the v4.0 single-choice quiz sample (`pluginKey = "quiz"`) and the v2.2 classroom WebSocket-first transport to deliver **(a)** a multi-type interactive answer data model (single/multi/true_false/fill_blank/ordering) that flows end-to-end through the same governed verbs (insert/upsert/getByIndex/count/aggregate) and same append-only/`isLatest` response schema used in v4.0, with post-class recap stats per questionType; and **(b)** a **teacher-only, read-only** live answer-flow dashboard tab inside the existing `/classroom` control room, fed by a new `quiz.answer.received` event published on the existing v2.2 `classroom-ws` transport (no new WS endpoint, no second source of truth — SQLite + DAL remain the durable truth, Redis fanout is delivery-only). v4.1 explicitly does **not** redefine the marketplace, governance, or data-access verbs; the close gate extends the v4.0 72.1 authoritative pattern to assert the new multi-type schema, the new WS event schema, the new dashboard tab, and the write-isolation posture of that tab.
 
 ## Phases
 
-<details open>
-<summary>✅ v4.0 Plugin Marketplace & Plugin-Owned Data (Phases 67-72 + 72.1) — SHIPPED 2026-06-07</summary>
+### Phase 73: Multi-Type Quiz Schema, Live WS Event & Teacher Live Dashboard
 
-- [x] **Phase 67: Declarative Plugin-Owned Data Model & Migration-Proof** — 声明式 `dataModel` DSL + Zod meta-schema + 编译器产出 checked-in Drizzle 迁移（独立片段文件），运行时零 DDL，迁移-proof 闸门覆盖插件自有表。 (DATA-01, DATA-02, DATA-03, DATA-04) (completed 2026-06-02)
-- [x] **Phase 68: Governed Declarative Data-Access Verbs** — 白名单具名、Zod 校验、参数化的受治理读写动词，经 Command Bus + governed action registry，禁直连/禁原始 SQL，单一真相源。 (ACCESS-01, ACCESS-02, ACCESS-03) (completed 2026-06-03)
-- [x] **Phase 69: Interactive Single-Choice Quiz Sample Plugin** — 老师配置单选题 + 学生课堂作答 + append-only/isLatest 写入插件自有结构表，全程走第三方同款治理路径、无后门。 (QUIZ-01, QUIZ-02, QUIZ-03) (completed 2026-06-03)
-- [x] **Phase 70: Question Stats & Post-Class Recap** — 基于插件自有作答数据的只读统计投影（正确率/选项分布/作答人数，SQL GROUP BY 单一聚合源）+ Stitch/DESIGN 对齐课后复盘界面。 (STATS-01, STATS-02) (completed 2026-06-05)
-- [x] **Phase 71: Marketplace Lifecycle — Install Governance, Semver Upgrade & Retain/Cleanup Uninstall** — external 插件发现/安装治理、semver backfill→verify→cutover 零丢失升级、retain/cleanup 卸载确认与审计、active-session 阻断。 (MKT-01, MKT-02, MKT-03, MKT-04, MKT-05) (completed 2026-06-05)
-- [x] **Phase 72: End-to-End verify:phase Close Gate** — 对「声明→安装→老师配置→学生作答→统计复盘→升级/卸载治理」整链做单一权威可重复回归闸门。 (GATE-01) (completed 2026-06-05)
-- [x] **Phase 72.1: Close gap: GATE-01 authoritative milestone close gate (INSERTED)** — 把 `verify:phase` 升级为可直接支撑 audit/archive 的 authoritative close gate，并补齐 70/71/72 formal verification + proof mapping + closeout。 (STATS-01/02, MKT-01..05, GATE-01) (completed 2026-06-07)
+- **Goal:** 把 v4.0 `quiz` 样板的题型从「单选」扩到 5 种（`single_choice` / `multi_choice` / `true_false` / `fill_blank` / `ordering`），题型可经 D-72.1-04 append-only/`isLatest` 写入插件自有表（`plugin_owned_quiz_questions.questionType` 列 + 对应 payload 子集），并把学生作答事件经 v2.2 `classroom-ws` 通路以 `quiz.answer.received` 推送到教师端 `/classroom` 控制室的一个新增「作答实时」tab（read-only、零写 Server Action、按题聚合的选项分布 + 最近 N 条作答流水 + 填空题 top answers）。
+- **Depends on:** Phase 72.1 (v4.0 close gate baseline) — reuses `dispatchPluginDataAccess` facade + Command Bus producer (write verbs) + governed read verbs + `cacheTags.quizStats(...)` cache tag + `classroom-ws` v2.2 transport contract.
+- **Sub-IDs covered:**
+  - **QUIZ-EXT-01-A — Schema 扩展**：`plugin_owned_quiz_questions` 新增 `questionType TEXT NOT NULL` (枚举 5 种) + 向前迁移兼容旧 `single_choice` 行。
+  - **QUIZ-EXT-01-B — Data model 声明**：`src/plugins/quiz-sample/data-model.ts` 扩展 `fields` + 类型化 payload union；`src/lib/dto/plugin-data-model.ts` 与 `src/lib/dto/plugin-data-access-allowlist.ts` 同步 allowlist。
+  - **QUIZ-EXT-01-C — DAL 访问**：`dispatchPluginDataAccess` 5 动词 × 5 题型 insert / getByIndex / count / aggregate 测试 (20 用例)。
+  - **QUIZ-EXT-01-D — 学生端提交**：5 题型 payload 经 v4.0 append-only/`isLatest` 写入 `plugin_owned_quiz_responses`，`updateTag(cacheTags.quizStats(sessionId))` 触发 read-your-writes。
+  - **QUIZ-EXT-01-E — 课后统计**：`buildQuizSampleRecapStats` 扩展：`countByOptionSet` (多选) / `countByBool` (判断) / `topAnswers` (填空) / `topOrderings` (排序) + `countByOption` (单选，复用 v4.0)，并按 `questionType` 分组渲染。
+  - **QUIZ-EXT-02-A — WebSocket 事件接入**：v2.2 `classroom-ws` 新增 `quiz.answer.received` 事件（teacher-only channel），payload `{ questionId, studentId, responseType, payload, receivedAt, classroomSessionId }`，DAL 写入后由 server action 触发。
+  - **QUIZ-EXT-02-B — 可选 Redis fanout**：`process.env.REDIS_URL` 存在 → 复用 v2.2 Redis fanout 作 delivery layer；不存在 → 进程内总线（与 v4.0 recap 等价 contract test）。
+  - **QUIZ-EXT-02-C — 教师控制台 tab**：`/classroom` 控制室加「作答实时」tab（不创建新路由，与现有 recap / control tab 并列），访问控制 `userProfiles.role = 'teacher' && classroomSessionId 拥有者`。
+  - **QUIZ-EXT-02-D — 实时视图**：按题聚合选项分布（单选/多选/判断/排序）+ 填空题 top answers + 最近 N 条作答流水（默认 N=20，可配 5/20/50），数据源 = WS 事件客户端临时聚合（下课切 v4.0 recap）。
+  - **QUIZ-EXT-02-E — 只读姿势**：`grep` 校验 dashboard surface 无 `update*` / `delete*` / `grade*` Server Action 调用；写操作全部走 v4.0 command-bus 路径（D-72.1-09）。
+- **Plans:**
+  - **Plan 73-01 — Multi-type quiz data model + DAL + student submit + post-class stats.** Schema 迁移 (QUIZ-EXT-01-A) + data-model 声明 + allowlist (QUIZ-EXT-01-B) + 5×4 DAL 用例 (QUIZ-EXT-01-C) + 学生端 5 题型 append-only/`isLatest` 提交 (QUIZ-EXT-01-D) + `buildQuizSampleRecapStats` 5 题型扩展 (QUIZ-EXT-01-E)。Wave 1，自治，与 Phase 74 独立可跑。
+  - **Plan 73-02 — WS event wiring + teacher live dashboard tab + read-only posture.** `quiz.answer.received` 事件 schema (QUIZ-EXT-02-A) + 可选 Redis fanout (QUIZ-EXT-02-B) + `/classroom` 控制室「作答实时」tab (QUIZ-EXT-02-C) + 客户端实时聚合 (QUIZ-EXT-02-D) + 写操作隔离 grep 断言 (QUIZ-EXT-02-E)。Wave 1，依赖 Plan 73-01 提供的 DAL 写入 hook 点。
+- **Success criteria (3-5 observable truths, must all be true for phase completion):**
+  1. 老师在 5 种题型（单选/多选/判断/填空/排序）上各能 insert 一道题，并在课后 recap 上看到对应分布（多选 `countByOptionSet`、判断 `countByBool`、填空 `topAnswers`、排序 `topOrderings`、单选 `countByOption`）。
+  2. 学生在 5 种题型上反复提交 → 旧 `isLatest` 翻转为 `false`、新行 `isLatest = true`（D-72.1-04 跨 5 题型全部成立），并触发 `updateTag(cacheTags.quizStats(sessionId))` 强制 read-your-writes。
+  3. 老师打开 `/classroom` 控制室「作答实时」tab，30 个并发学生提交 → 30 条 `quiz.answer.received` 事件按 `receivedAt` 顺序到达（毫秒级抖动可接受），tab 渲染按题聚合分布 + 最近 N 条作答流水。
+  4. `REDIS_URL` 存在/缺失两种环境下，行为等价（contract test 覆盖）；Redis 仍是 delivery，SQLite + DAL 仍是真相源（D-72.1-15）。
+  5. 「作答实时」tab 的 dashboard surface 零写操作：`grep` 校验 surface 文件不含 `update*` / `delete*` / `grade*` Server Action 调用（写操作全部走 v4.0 command-bus 路径）。
+- **Verify (`pnpm verify:phase73` → new script `scripts/verify-phase73-quiz-ext.ts`):**
+  - Schema/allowlist 静态断言：`plugin_owned_quiz_questions.questionType` 存在 + 5 题型 enum 完整 + `src/lib/dto/plugin-data-model.ts` 类型化 payload union 存在 + `plugin-data-access-allowlist.ts` `quiz.questions` / `quiz.responses` 接受 `questionType`。
+  - DAL 单元测试：4 verb × 5 questionType = 20 用例（`dispatchPluginDataAccess` smoke）+ append-only/`isLatest` 翻转跨 5 题型测试。
+  - WS 事件 schema 断言：`ws-envelope.ts` 含 `quiz.answer.received` 事件类型 + `ws-server.ts` teacher-only 路由不暴露给学生 + `ws-auth.ts` 鉴权保留 `memberships.status === "active"` + `classMembers.userId` + `classroomSessions.teacherId` 推导 actor scope。
+  - 集成测试：30 个并发学生 → 30 个 teacher-only 事件按 `receivedAt` 顺序到达（毫秒级抖动）。
+  - Redis fanout contract test：env 存在/缺失两种配置下行为等价。
+  - Dashboard tab 路由 + 访问控制：访问控制单元测试 + 渲染测试 + 「作答实时」tab 是 `/classroom` 已存在 control room 内的 sibling tab，不创建新路由。
+  - 写操作隔离 grep：`src/components/classroom/live-answer-dashboard-surface.tsx` (新建) / 同名目录不含 `update*` / `delete*` / `grade*` Server Action 引用。
+  - Recap 渲染：`ClassroomSessionRecapSurface` 按 `questionType` 分组渲染 5 题型 stats（vitest 表格断言 + RSC snapshot）。
+  - DTO 契约：`ClassroomSessionRecapDTOSchema` 接受 5 题型 `quizSampleStats` 段，`cacheTags.quizStats(sessionId)` 仍能 invalidate 新段。
+- **Pattern reuse:**
+  - **D-72.1-04 append-only/`isLatest`**：学生提交跨 5 题型复用 v4.0 同一写入路径；`pluginOwnedQuizResponses` 表 schema 不变，新增 payload 字段语义不破坏旧唯一索引 `(classroomSession, student, question, attemptNo)` 与 `(classroomSession, student, question, isLatest)`。
+  - **v2.2 WebSocket-first transport**：`classroom-ws` (`src/features/runtime-platform/seams/transport/ws-server.ts` + `ws-envelope.ts` + `ws-auth.ts` + `redis-fanout-manager.ts` + `redis-fanout-recovery.ts`) — `quiz.answer.received` 是新事件 kind，遵循 v2.2 contract `transport.keepalive` / `teacher.control` / `runtime.command` / `classroom.snapshot` / `runtime.event` 同款 envelope（`kind` / `correlationId` / `truthRef`）；`ws-server.ts` teacher-only 路由不暴露给学生。
+  - **v4.0 phase 69 quiz sample baseline**：`pluginKey = "quiz"` 走 `dispatchPluginDataAccess` facade（非 built-in registration id），`saveQuizSampleLessonStepAction` / `submitQuizSampleAnswerAction` 路径只增不改。
+  - **v4.0 phase 70 recap surface**：`getClassroomSessionRecapDTO` + `ClassroomSessionRecapSurface` + `buildQuizSampleRecapStats` (latest-only) + `cacheTags.quizStats(sessionId)` cache tag 全部保留；`quizSampleStats` DTO 段按 `questionType` 扩展。
+  - **v4.0 phase 72/72.1 close gate discipline**：`updateTag` 在 `submitQuizSampleAnswerAction` (`src/actions/classroom-actions.ts:328`) 写成功后失效，与 v4.0 一致。
+- **Status:** planning
 
-</details>
+### Phase 74: v4.1 Authoritative Close Gate (Multi-Type + Live Dashboard)
 
-<details>
-<summary>✅ v3.2 AI LessonAgent 起草闭环 (Phases 61-66) — SHIPPED 2026-06-02</summary>
+- **Goal:** 沿用 v4.0 phase 72.1 单一权威 close gate 范式 (D-72.1-16: conclusion never leads evidence；D-72.1-08: 课堂产品链 + 治理生命周期链同覆盖)，把 v4.1 多题型 + 实时仪表盘两层验证合并进 `pnpm verify:phase` 闸门，并补齐 Manual Surface Sign-Off Ledger 2 行新增（`/classroom` 实时仪表盘 tab + 多题型课后 recap 表面）与 CLOSEOUT / PROOF-MAPPING / VERIFICATION 三件套。
+- **Depends on:** Phase 73 (executable `verify:phase73` 已落库)。
+- **Sub-IDs covered:**
+  - **QUIZ-EXT-CLOSE-01 — verify:phase 脚本扩展**：`scripts/verify-phase72-close-gate.ts` 复制为 `scripts/verify-phase73-v41-close-gate.ts`；stage 数 5 → 7（保留 v4.0 5 stage + 新增多题型 stage + 新增实时仪表盘 stage）；`pnpm verify:phase73-v41-close-gate` 顺序接在 `verify:phase72` 之后。
+  - **QUIZ-EXT-CLOSE-02 — Manual Surface Sign-Off Ledger**：仿 v4.0 `72.1-PROOF-MAPPING.md` ledger schema（`proof artifact` + `status: passed` + `executed_by` + `executed_at` + `evidence note`），新增 2 行：`/classroom` 实时仪表盘 tab + 多题型课后 recap 表面。
+  - **QUIZ-EXT-CLOSE-03 — Retro / 归档就绪**：phase 73/74 (本 roadmap) 配齐 CLOSEOUT / PROOF-MAPPING / VERIFICATION 三件套；D-72.1-16 锁定 conclusion 永远不先于 evidence；milestone close gate `pnpm verify:phase` alias 仍指向 v4.0 + v4.1 顺序串联，单一权威入口不破。
+- **Plans:**
+  - **Plan 74-01 — Strengthen Phase 73 executable verifier + write 73-VERIFICATION.md formal report.** 强化 `scripts/verify-phase73-quiz-ext.ts` 至 8+ 静态断言 (5 题型 schema + WS event + dashboard tab + 写操作隔离 + Redis fanout contract + recap 5 段渲染) + 3+ 分支可执行断言 (5 题型 insert/getByIndex/append-only 跨 verb 端到端) + 写 `.planning/phases/73-.../73-VERIFICATION.md` 形式化报告（按 v4.0 69-VERIFICATION scaffold：observable truths + required artifacts + key link + data-flow + behavioral + requirements coverage + anti-patterns + human verification + 结论）。Wave 1。
+  - **Plan 74-02 — Proof mapping + Manual Surface Sign-Off Ledger + archive-ready closeout.** 写 `.planning/phases/73-.../73-PROOF-MAPPING.md` (Requirement → Flow Segment → Proof 三张表 + 新增 2 行 Manual Sign-Off: `/classroom` 实时仪表盘 tab + 多题型课后 recap 表面) + 强化 `scripts/verify-phase73-v41-close-gate.ts` 至 7 stage (script wiring + upstream VERIFICATION + 多题型 stage + 实时仪表盘 stage + lifecycle bridge 复用 + recap bridge 复用 + final-artifact dependencies + manual sign-off ledger 解析) + 写 `.planning/phases/73-.../73-CLOSEOUT.md` (D-72.1-16 锁定：先 PROOF-MAPPING，后 gate wiring，最后 CLOSEOUT)。Wave 2，依赖 Plan 74-01。
+- **Success criteria (3-5 observable truths, must all be true for milestone close):**
+  1. `pnpm verify:phase73-v41-close-gate` 7 stage 全绿，stage 6 (多题型) + stage 7 (实时仪表盘) 静态断言全部 PASS。
+  2. `pnpm verify:phase` alias 顺序串接 `verify:phase72` + `verify:phase73` 全绿，CLI exit 0。
+  3. Manual Surface Sign-Off Ledger 含 4 行（v4.0 既有 2 行 + v4.1 新增 2 行），全部 `status: passed` + `executed_by` + `executed_at` + `evidence note` 字段非空；新增 2 行是 `/classroom` 实时仪表盘 tab + 多题型课后 recap 表面。
+  4. `73-VERIFICATION.md` / `73-PROOF-MAPPING.md` / `73-CLOSEOUT.md` 三件套全部存在；PROOF-MAPPING 显式收录 QUIZ-EXT-01/02/CLOSE 全部 sub-IDs；CLOSEOUT 引用 verify:phase67..72 + verify:phase73 proof chain wording。
+  5. v4.1 archive posture 满足 D-72.1-16：三个 lighter shortcut (doc-only closure / missing manual sign-off / final-gate wiring without artifact dependency checks) 任一出现 → final gate hard-fail。
+- **Verify (`pnpm verify:phase` → `pnpm verify:phase72` + `pnpm verify:phase73-v41-close-gate`):**
+  - 5 stage (v4.0 复用) + 2 新增 stage (多题型 + 实时仪表盘) = 7 stage。
+  - 新增 stage 6 静态断言：`plugin_owned_quiz_questions.questionType` schema 存在 + 5 题型 enum 完整 + DTO payload union 类型化 + allowlist 接受 `questionType` + 5 题型 × 4 verb DAL 测试 + `cacheTags.quizStats(sessionId)` 在 5 题型 stats DTO 段上仍生效。
+  - 新增 stage 7 静态断言：`ws-envelope.ts` 含 `quiz.answer.received` + `ws-server.ts` teacher-only 路由 + dashboard tab 路由 + 访问控制 + 写操作隔离 grep (`grep -q "update.*=\|delete.*=\|grade.*=" src/components/classroom/live-answer-*.tsx` 不命中) + Redis fanout contract test (env 存在/缺失等价)。
+  - final-artifact 依赖：`73-CLOSEOUT.md` / `73-PROOF-MAPPING.md` / `73-VERIFICATION.md` 必须存在；缺一 hard-fail。
+  - Manual sign-off parser：deterministic `\| status \| \`status: passed\` \|` 行 ≥ 4 行（v4.0 2 行 + v4.1 2 行）+ `executed_by` / `executed_at` / `evidence note` 字段每行非空。
+  - 5 stage (v4.0 复用) 回归：lifecycle bridge (Stage 3) + recap bridge (Stage 4) 仍绿 — v4.1 不破 v4.0 既有产品接缝。
+- **Pattern reuse:**
+  - **v4.0 72.1 close gate**：5 stage → 7 stage，结构 discipline 完全复用（script wiring + upstream VERIFICATION + lifecycle bridge + recap bridge + final-artifact dependencies + manual sign-off ledger 解析）。
+  - **D-72.1-16 conclusion never leads evidence**：先写 `73-PROOF-MAPPING.md` → 强化 7 stage gate wiring → 写 `73-VERIFICATION.md` → 最后 `73-CLOSEOUT.md`。
+  - **D-72.1-08 auditability (lifecycle + classroom product chain 同覆盖)**：v4.1 不动 lifecycle，新增 stage 6 (多题型) + stage 7 (实时仪表盘) 均为 classroom product chain 端接缝断言。
+  - **D-72.1-06 proof chain wording**：v4.1 必须在 final-artifact 内容里显式写 `verify:phase67` + `verify:phase68` + `verify:phase72` + `verify:phase73` proof chain wording；stage 6/7 final-artifact grep 双 named。
+  - **v4.0 72.1-PATTERNS.md verification scaffold**：73-VERIFICATION.md 复刻 69-VERIFICATION.md 的 observable truths / required artifacts / key link / data-flow / behavioral / requirements coverage / anti-patterns / human verification / 结论 9 段结构。
+- **Status:** planning
 
-- [x] **Phase 61: AI Provider Abstraction Layer** — 统一 provider 接口、密钥隔离、限流/配额与 typed 错误。 (completed 2026-05-31)
-- [x] **Phase 62: LessonAgent Typed Tool Layer** — Zod 校验 typed tools、AI draft command handler 与 server-only orchestration facade。 (completed 2026-05-31)
-- [x] **Phase 63: AI Draft Chain into Draft Lesson Version** — draft lesson version provenance、幂等写链与 `lesson.draft.persist` 命令落地。 (completed 2026-05-31)
-- [x] **Phase 64: Teacher Review & Accept-Publish Surface** — 审校 diff、编辑、接受/丢弃与 Stitch/DESIGN 对齐的 review workspace。 (completed 2026-05-31)
-- [x] **Phase 65: Eval, Guardrails & verify:phase Close Gate** — shared corpus、guardrails、`lesson.draft.rejected` 与 authoritative `verify:phase`。 (completed 2026-06-01)
-- [x] **Phase 66: Wire AI LessonAgent Draft Loop End-to-End** — 补齐 teacher trigger、run→persist、accept/discard command-bus 路径并关闭 v3.2 audit gaps。 (completed 2026-06-02)
+## Cross-Phase Considerations
 
-</details>
+- **Sequencing (no parallelism within phase; phases are sequential):** Phase 73 wave 1 内部 Plan 73-01 与 Plan 73-02 不并行 — Plan 73-02 依赖 Plan 73-01 落地的 DAL 写入 hook 点（DAL `submitQuizSampleAnswerAction` 写成功后触发 `quiz.answer.received` 事件推送）。Phase 74 wave 1/2 内部 Plan 74-01 与 Plan 74-02 不并行 — Plan 74-02 依赖 Plan 74-01 落地的 73-VERIFICATION.md 与强化后 executable verifier。
+- **Reuse over re-build:** v4.1 不创建新 WS endpoint（沿用 v2.2 `classroom-ws`）— 任何 v4.1 plan 触碰 v2.2 transport 必须先跑 GitNexus `gitnexus_impact` 上游分析，blast radius 在 `ws-server.ts` / `ws-envelope.ts` / `ws-auth.ts` 范围内。`plugin_owned_quiz_responses` 表 schema 不变（避免破坏 v4.0 唯一索引）；新增 `plugin_owned_quiz_questions.questionType` 列是 additive migration，D-67 forward + D-68 allowlist 同步。
+- **Risk — DTO schema drift:** 5 题型 payload union 引入可能让 Zod schema 在 strict mode 下拒绝旧 `single_choice` payload。Mitigation: Plan 73-01 Task 1 显式断言旧 `single_choice` payload 仍合法（D-67 backward compat），用 vitest 负样本覆盖 `payloadMulti` / `payloadTrueFalse` / `payloadFillBlank` / `payloadOrdering` 4 新 payload 子集。
+- **Risk — WS event ordering at scale:** 30 并发学生提交要求事件按 `receivedAt` 顺序到达，毫秒级抖动可接受。Plan 73-02 Task 3 集成测试必须用 libSQL + 真实 `ws-server.ts` (非 mock) 跑出 30 并发；不可降级为 in-memory bus 单元测试。
+- **Risk — Redis fanout config drift:** v2.2 Redis fanout 在 `REDIS_URL` 存在时启用。Plan 73-02 Task 2 contract test 必须在 CI 跑 env 存在/缺失两个分支；env 缺失不能 fake "存在"。
+- **Risk — read-only posture erosion:** dashboard tab 可能误加 `grade*` / `update*` / `delete*` Server Action。Plan 73-02 Task 5 grep 静态断言必须在 `src/components/classroom/live-answer-*` 与 surface 文件上运行；任何命中 → fail。
+- **Risk — close gate regression on v4.0 既有断言:** Phase 74 stage 6/7 强化不能让 v4.0 stage 3 (lifecycle bridge 11) / stage 4 (recap bridge 9) 失绿。Plan 74-01 显式跑 v4.0 stage 3/4 回归；任一失绿 → 不能进入 Plan 74-02。
+- **No UX/UI research gap pre-added:** v4.1 task 描述里说"optional Phase 3: only if a UX/UI research gap emerges during planning — do not pre-add it"。当前 REQUIREMENTS + v4.0 phase 70 UI-SPEC + v4.0 72.1 close gate 都已涵盖 dashboard 视觉契约；plan 73-02 需对照 v4.0 UI-SPEC 复用 4 locked invariants (Lexend / no 1px / tonal surface / glass/gradient CTA)。如 plan 阶段发现真实 UX gap，再决定是否插 phase 73.1。
+- **Operator observation points (handed off to Phase 74 ledger):**
+  - `/classroom` 实时仪表盘 tab — 新增 manual sign-off row。
+  - 多题型课后 recap 表面 — 新增 manual sign-off row（沿用 v4.0 `ClassroomSessionRecapSurface`，5 题型 stats DTO 段按 `questionType` 分组渲染）。
+  - `scripts/verify-phase73-v41-close-gate.ts` — 7 stage 闸门，milestone close 唯一入口（与 v4.0 stage 3/4 顺序串联）。
+  - `.planning/phases/73-multi-type-quiz-and-live-dashboard/73-{PROOF-MAPPING,VERIFICATION,CLOSEOUT}.md` — archive-ready 三件套。
 
-<details>
-<summary>✅ v3.1 Single-School Pilot Production Readiness (Plugin-First) (Phases 55-60, 60.1, 60.2) — SHIPPED 2026-05-30</summary>
+## Excluded from v4.1
 
-- [x] **Phase 55: Pilot Scope & Acceptance Gate** — 冻结单校试点口径、课堂投票样板、40/5 容量目标、proof artifact 与 close gate。 (completed 2026-05-24)
-- [x] **Phase 56: Voting Plugin Contract & Authoring Integration** — 打通课堂投票插件的 authoring、schema validation、compatibility gating、publish preflight 与 version freeze。 (completed 2026-05-25)
-- [x] **Phase 57: Classroom Runtime Sample Chain** — 打通 launch readiness、teacher trigger、student participation、canonical result writes 与 teacher evidence。 (completed 2026-05-25)
-- [x] **Phase 58: Operator Recovery & Production Surfaces** — 交付 classroom/plugin/command/task 关联诊断面、degraded honesty 与可执行恢复动作。 (completed 2026-05-26)
-- [x] **Phase 59: Deploy, Release & Recovery Baseline** — 交付 env discipline、CI/CD、health/ready、release traceability、backup/restore 与 restore drill。 (completed 2026-05-27)
-- [x] **Phase 60: Load, Degrade & Pilot Rehearsal** — 交付 k6/Playwright rehearsal、Redis degraded、worker backlog tests、rollout/rollback checklist 与 closeout evidence。 (completed 2026-05-30)
-- [x] **Phase 60.1: Replace dry-run phase60 proof with live rehearsal evidence** — 用 live smoke/capacity/drills/rollout-rollback rehearsal evidence 替换 dry-run close artifacts。 (completed 2026-05-30)
-- [x] **Phase 60.2: Wire frozen voting contract into launch and runtime** — 把 frozen voting contract 接入 runtime truth，关闭 `PLUG-01` / `CHAIN-03`。 (completed 2026-05-28)
+以下 REQ-IDs 在 `.planning/REQUIREMENTS.md` v4.1 段中明确排除；plan 阶段不得越界：
 
-</details>
+- **`QUIZ-EXT-03` — post-class interactive review** (AI 出题 / 题库复用) — 暂缓，等 v4.1 用户使用情况决定。
+- **`MKT-EXT-01/02/03` — marketplace extras** (upgrade dry-run / 跨 pluginKey 完整恢复 / 非答题类插件二次泛化) — 暂缓，等 v4.2 之后。
+- **`STORE-01` — 商业 storefront** (付费/计费/评分评论/公开开发者门户/自动化审核流水线) — 暂缓。
+- **任何非 quiz 类插件** (lesson / homework / data agent 等) — 明确排除。
+- **任何插件升级 dry-run / 跨 pluginKey 恢复 / 商店运营层** — 明确排除。
+- **任何教师批改 / 评分 / 排名 / 竞争机制** — 明确排除：v4.1 实时仪表盘是只读的，不引入 write-side 特性。
+- **新建 WS endpoint / 第二 transport runtime** — 明确排除：v4.1 沿用 v2.2 `classroom-ws`。
+- **`plugin_owned_quiz_responses` 表 schema 变更** — 明确排除：v4.1 仅扩展 `plugin_owned_quiz_questions.questionType`，不破坏 v4.0 唯一索引与 append-only 写入契约。
+- **真实 LLM / 第三方 AI 集成** — 明确排除：v4.1 不在 scope。
 
-## Next Step
+---
 
-`/gsd:new-milestone` —— 在已归档 v4.0 / v3.2 / v3.1 baseline 之上建立下一 milestone（scope 候选：多题型、实时大屏、AI 出题、跨 pluginKey 完整恢复、非答题类插件二次泛化，详见 `v4.0-REQUIREMENTS.md` v2 段）。
+_For current milestone status, see `.planning/STATE.md` (will be updated by `/gsd:execute-phase 73` first wave)._
