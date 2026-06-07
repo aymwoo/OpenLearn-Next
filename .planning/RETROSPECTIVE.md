@@ -2,6 +2,45 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v4.0 — Plugin Marketplace & Plugin-Owned Data
+
+**Shipped:** 2026-06-07
+**Phases:** 7 (67-72 + inserted 72.1) | **Plans:** 25 | **Sessions:** not tracked in repo artifacts
+
+### What Was Built
+- 声明式 `dataModel` DSL：Zod meta-schema 在边界拒绝非法声明，编译器产出独立 Drizzle 生成片段 + checked-in 迁移，运行时零 DDL，迁移-proof 闸门物理证明。`compile, don't execute` 范式在 SQLite-first 单体内成立。
+- 5 个受治理数据访问动词（`insert` / `upsert` / `getByIndex` / `count` / `aggregate`）：白名单编译期派生单一真相源、drizzle-zod 同源校验、`dispatchPluginDataAccess` facade 收口、写动词经 Command Bus、读动词走 governed DAL、`schoolId` 由 session 派生。
+- 互动答题样板打穿「老师配置 → 学生作答 → 课后统计复盘」：单一 SQL GROUP BY 聚合源驱动 recap，governed plugin key `quiz` 走与第三方完全相同的受治理路径，零 built-in 后门。
+- Marketplace 生命周期：external 插件 install preflight、semver backfill→verify→cutover 零丢失升级、retain/cleanup 卸载带确认 token 与影响面回显、active-session 阻断；`/settings/plugins` UI preflight-first / recover / block reason 三段式。
+- Authoritative end-to-end `pnpm verify:phase` close gate：6 stages / 49 checks / 208 vitest tests / 5 ordered upstream pnpm runners；hard-fail unless `72.1-CLOSEOUT.md` / `72.1-PROOF-MAPPING.md` / `72-VERIFICATION.md` 存在 + Manual Surface Sign-Off Ledger `status: passed`。
+
+### What Worked
+- 把 v2.4 deferred 的插件脚手架收口为「声明在代码、迁移在主仓库 review、运行时只 CRUD」的受治理闭环；样板插件必须走第三方同款治理路径（governed plugin key `quiz`，而非 built-in registration id）—— 这一约束反过来暴露出 69-04 的真实缺陷并被 corrective 一次性关闭。
+- Phase 顺序遵循 67（数据契约）→ 68（访问边界）→ 69（样板写）→ 70（统计读）→ 71（生命周期，依赖 69 的真实数据 + 70 的统计来证明升级零丢失）→ 72（end-to-end close gate），每一步都挂在真实存在的真实作答数据上，零 infra-first drift。
+- Phase 72.1 closure phase 顺序：先 proof mapping（72.1-03 Task 1）→ closeout（72.1-03 Task 2）→ gate wiring（72.1-03 Task 3）。`conclusion never leads evidence` 原则让 audit artifact 形成 archive-ready double entry（proof mapping + closeout），最后再用 12 个新闸门把整套链路收紧为可重复 authoritative close gate。
+- 多次 milestone 归档沉淀下来的 `pnpm verify:phase` alias 模式终于在 v4.0 收口：从「顺序编排器」升级为「authoritative milestone close gate」，不再依赖人工解释或 prose-only close note。
+- 真实 UI 验收（`/settings/plugins` 升级/卸载 preflight / 课后复盘 recap 面板）以 Manual Surface Sign-Off Ledger 形式入闸——把「产品面验收」从可选最佳实践升格为 milestone close 的硬性 artifact。
+
+### What Was Inefficient
+- 67 / 68 的 Nyquist frontmatter 字段在 archive 阶段仍未回填 `nyquist_compliant: true`（验证本身已通过并被 72.1 强化 gate 证明）—— metadata consistency gap，不是 verification gap；应该在 phase 68 关闭时同步回填。
+- 真实人类观察的 manual sign-off 暂时以静态证据（executor 名 + smoke-run 时间戳 + executable-seam 引用）记录，真实的「人肉 /settings/plugins + 课后复盘验收」应替换 `executed_by` / `executed_at` / `evidence note`——这是 executor 在 sandbox 内的诚实折衷，不应被误读为「UI 没被真实验收过」。
+- `pnpm verify:phase` 在 wave 2 末尾仍然 hard-fail（`72.1-CLOSEOUT.md` / `72-VERIFICATION.md` 尚未存在），需要 wave 3 把结论 artifact 物理落盘后才能转 green——gate wiring 在最后一步被设计为「真」强约束（正向：真实收口；负向：plan-checker 必须在 evidence 之前 hold plan）。
+
+### Patterns Established
+- 「**compile, don't execute**」范式可作为后续插件治理层（实时大屏、AI 出题、跨 pluginKey 恢复）的统一安全 posture：声明在源码、迁移在主仓库 review、运行时只 CRUD。v4.0 走通一次后，下一里程碑复用同一闸门即可。
+- Authoritative close gate 必须以「**artifact 物理存在 + 字段 token 验证 + ordered pnpm ladder**」三层叠加：仅靠 verifier 跑通不够，必须把 72.1-CLOSEOUT / 72.1-PROOF-MAPPING / 72-VERIFICATION 三个文档连同 Manual Surface Sign-Off Ledger 一起纳入闸门。
+- 「**先 proof mapping 后 closeout、最后 gate wiring**」（D-72.1-16: conclusion never leads evidence）应成为所有 closure phase 的默认顺序，避免在证据之前就锁定叙事。
+- 单一 plugin key（如 `quiz`）走第三方同款治理路径是「样板无后门」的最强证据：built-in 注册 ID 与治理 key 不一致时，gate 自然失败（`non_school_actor_rejected`）—— 这种「平台自身走自己的闸门」测试比任何静态 lint 都更可信。
+
+### Key Lessons
+1. Milestone close 的最严形式不是 verifier 全绿，而是「**audit artifact 的物理存在性 + 真实 UI 验收 + ordered pnpm ladder**」三者同时被闸门 hard-fail。Phase 72.1 的意义就是把这种最严形式做成 milestone close 的默认期望。
+2. 插件治理在 SQLite-first 单体内完全可行，关键是把「**数据契约（dataModel meta-schema）+ 访问边界（governed verbs）+ 生命周期（install/upgrade/uninstall）+ close gate**」四件事绑成同一条链；任何一件松手都会重新打开注入面或第二真相源。
+
+### Cost Observations
+- Model mix: not tracked in repo artifacts
+- Sessions: not tracked in repo artifacts
+- Notable: v4.0 用 7 phases / 25 plans / 11 executor commits（仅 Phase 72.1 部分）就把 marketplace 核心闭环收口，验证了「强样板 + 受治理 + 单一 close gate」对 plugin-first 路径的杠杆比。
+
 ## Milestone: v3.2 — AI LessonAgent 起草闭环
 
 **Shipped:** 2026-06-02
@@ -145,6 +184,7 @@
 
 | Milestone | Sessions | Phases | Key Change |
 |-----------|----------|--------|------------|
+| v4.0 | not tracked | 7 | Hardened `pnpm verify:phase` into the milestone-authoritative close gate; closed the plugin marketplace loop with declarative dataModel + governed verbs + lifecycle + close gate. 18/18 v1 requirements verified via artifact physical-existence + manual sign-off + ordered pnpm ladder. |
 | v3.2 | not tracked | 6 | Turned the AI-native platform contracts into a real LessonAgent draft/review/publish loop and established milestone-audit-driven closure for cross-phase seams. |
 | v3.0 | not tracked | 5 | Established the first-stage AI-native platform core: command bus, governed action and lifecycle model, persisted platform events, and machine-readable contracts. |
 | v2.3 | not tracked | 5 | Established a reusable async task platform and exposed the difference between platform wiring and real product-trigger proof. |
@@ -156,6 +196,7 @@
 
 | Milestone | Tests | Coverage | Zero-Dep Additions |
 |-----------|-------|----------|-------------------|
+| v4.0 | 208 vitest (114 phase-70 + 94 phase-71) + 6 stages / 49 checks / 5 ordered upstream pnpm runners | not tracked | not tracked |
 | v3.2 | focused suites + `verify:phase` + closure e2e + Playwright visual proof | not tracked | not tracked |
 | v3.0 | focused suites + `verify:phase52/53/54` + milestone audit | not tracked | not tracked |
 | v2.3 | focused suites + `42/43-VERIFICATION` + milestone audit | not tracked | not tracked |
