@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
 status: verifying
-last_updated: "2026-06-05T08:45:57.865Z"
+last_updated: "2026-06-06T07:11:35.733Z"
 last_activity: "2026-06-05 -- Phase 72 close gate landed and v4.0 reached a single verify:phase milestone gate"
 progress:
   total_phases: 7
@@ -167,9 +167,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-05T06:02:49.000Z
-Stopped at: Phase 72 close gate completed
-Resume file: .planning/ROADMAP.md
+Last session: 2026-06-06T07:11:35.694Z
+Stopped at: Phase 72.1 context gathered
+Resume file: .planning/phases/72.1-close-gap-gate-01-authoritative-milestone-close-gate/72.1-CONTEXT.md
 
 ## Operator Next Steps
 

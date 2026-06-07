@@ -216,10 +216,12 @@ Plans:
 
 ### Phase 72.1: Close gap: GATE-01 authoritative milestone close gate (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** 把 v4.0 的 `verify:phase` 从“顺序编排器”补强为可直接支撑 milestone audit/archive 的 authoritative close gate，并补齐 70 / 71 / 72 formal verification 与 milestone closeout / proof mapping artifacts。
+**Requirements**: STATS-01, STATS-02, MKT-01, MKT-02, MKT-03, MKT-04, MKT-05, GATE-01
 **Depends on:** Phase 72
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 72.1 to break down)
+- [ ] 72.1-01-PLAN.md — Strengthen Phase 71 lifecycle executable proof and formalize Phase 70/71 verification artifacts
+- [ ] 72.1-02-PLAN.md — Strengthen `verify:phase72` first, then formalize Phase 72 verification on the final gate behavior
+- [ ] 72.1-03-PLAN.md — Write milestone closeout / proof mapping and close the strengthened authoritative gate
