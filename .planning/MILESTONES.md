@@ -1,5 +1,26 @@
 # Milestones
 
+## v4.0 Plugin Marketplace & Plugin-Owned Data (Shipped: 2026-06-07)
+
+**Phases completed:** 7 phases (67-72 + inserted 72.1), 25 plans, 11 executor commits (Phase 72.1) + 2 prep commits + 1 state commit on top of the 67-72 work.
+
+**Milestone audit:** `passed`（re-audited 2026-06-07 after Phase 72.1 closure）；18/18 v1 requirements, 6/6 phases, 6/6 integration, 3/3 flows。2026-06-05 的 8 个 unsatisfied REQ-ID（STATS-01/02 + MKT-01..05 + GATE-01）与 1 个 integration gap 由 Phase 72.1 全部关闭。
+
+**Close posture:** `pnpm verify:phase` 是 v4.0 单一外部闸门，6 stages / 49 checks / 208 vitest tests / 5 ordered upstream pnpm runners，all green。Hard-fail unless `72.1-CLOSEOUT.md` / `72.1-PROOF-MAPPING.md` / `72-VERIFICATION.md` 存在 + Manual Surface Sign-Off Ledger `status: passed`。
+
+**Key accomplishments:**
+
+- 交付声明式 `dataModel` DSL：Zod meta-schema 在边界拒绝非法声明（5 类具名拒因 + IDENTIFIER 正则 + unrecognized_keys），编译器把声明编译为独立 Drizzle 生成片段 + checked-in 迁移；运行时零 DDL，迁移-proof 闸门物理证明（PRAGMA / 级联 / foreign_key_check / 漂移四关）。`compile, don't execute` 范式在 SQLite-first 单体内成立。
+- 落地 5 个受治理数据访问动词（`insert` / `upsert` / `getByIndex` / `count` / `aggregate`）：白名单编译期派生单一真相源 `pluginDataAccessAllowlist`、drizzle-zod 同源校验、`dispatchPluginDataAccess` facade 收口、写动词经 Command Bus、读动词走 governed DAL、`schoolId` 由 session 派生禁客户端注入、aggregate 仅投影 `{key, count}`。
+- 互动答题样板打穿「老师配置 → 学生作答 → 课后统计复盘」全链：`plugin_owned_quiz_questions` + `plugin_owned_quiz_responses`（append-only / `isLatest`），governed plugin key `quiz` 走与第三方完全相同的受治理路径，零 built-in 后门；单一 SQL GROUP BY 聚合源驱动复盘。
+- Marketplace 生命周期：external 插件 install preflight（manifest + `dataModel` + 命名空间唯一）+ semver backfill→verify→cutover 零丢失升级（对真实答题数据生效）+ retain/cleanup 卸载带确认 token 与影响面回显 + active-session 阻断；`/settings/plugins` UI preflight-first / recover / block reason 三段式。
+- `pnpm verify:phase` authoritative close gate：6 stages / 49 checks / 208 vitest tests / 5 ordered upstream pnpm runners；强约束下 manual sign-off ledger 必须有 `status: passed` + `executed_by` + `executed_at` + `evidence note`，配 proof mapping + closeout + 72-VERIFICATION.md 形成 archive-ready double entry。
+- Phase 72.1 closure phase：14 atomic commits 把 close gate 从"顺序编排器"补强为可直接支撑 audit/archive 的 authoritative close gate，先 proof mapping 后 closeout、最后 gate wiring（conclusion never leads evidence）。
+
+**Deferred to future milestones:** 多题型（QUIZ-EXT-01）、实时大屏 / 游戏化（QUIZ-EXT-02）、AI 出题（QUIZ-EXT-03）、upgrade dry-run（MKT-EXT-01）、跨 pluginKey 完整恢复（MKT-EXT-02）、非答题类插件二次泛化（MKT-EXT-03）、商店运营层（STORE-01）—— 已记录在 `.planning/milestones/v4.0-REQUIREMENTS.md` v2 段。
+
+---
+
 ## v3.2 AI LessonAgent 起草闭环 (Shipped: 2026-06-02)
 
 **Phases completed:** 6 phases, 29 plans, 43 tasks
