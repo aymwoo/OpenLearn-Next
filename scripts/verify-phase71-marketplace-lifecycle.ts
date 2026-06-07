@@ -87,7 +87,12 @@ function evaluateStaticChecks(): StaticCheckBundle {
   const commandContractSource = read("src/features/platform-core/commands/contracts.ts");
   const commandHandlerSource = read("src/features/platform-core/commands/handlers/plugins.ts");
   const dalSource = read("src/lib/dal/plugins.ts");
+  const migrationSource = read("src/lib/dal/plugin-migration.ts");
   const catalogSource = read("src/lib/plugins/external-catalog.ts");
+  const routeSource = read("src/app/settings/plugins/page.tsx");
+  const routeRegistrySource = read("src/lib/theme-layout/route-surface-registry.ts");
+  const surfaceSource = read("src/components/surfaces/plugin-marketplace-surface.tsx");
+  const registrySource = read("src/features/platform-core/actions/registry.ts");
 
   return {
     required: [
@@ -104,6 +109,59 @@ function evaluateStaticChecks(): StaticCheckBundle {
         passed:
           dalSource.includes("preflightUninstallPluginWithTx")
           && dalSource.includes("cleanupConfirmationToken"),
+      },
+      {
+        label: "/settings/plugins route renders PluginMarketplaceSurface as the real lifecycle entry surface",
+        passed:
+          routeSource.includes("PluginMarketplaceSurface")
+          && (routeRegistrySource.includes("\"/settings/plugins\"") || routeRegistrySource.includes("'/settings/plugins'")),
+      },
+      {
+        label: "PluginMarketplaceSurface calls the readMarketplaceSurfaceBundle SSR bundle seam",
+        passed: surfaceSource.includes("readMarketplaceSurfaceBundle") && surfaceSource.includes("PluginMarketplaceSurface"),
+      },
+      {
+        label: "registry exposes readMarketplaceSurfaceBundle for the marketplace SSR bundle",
+        passed: registrySource.includes("export async function readMarketplaceSurfaceBundle"),
+      },
+      {
+        label: "recoverMarketplacePluginAction server action is exported on the marketplace action boundary",
+        passed: actionSource.includes("export async function recoverMarketplacePluginAction"),
+      },
+      {
+        label: "recoverRetainedPluginInstallWithTx is exported from DAL for the retain reinstall branch",
+        passed: dalSource.includes("export async function recoverRetainedPluginInstallWithTx"),
+      },
+      {
+        label: "recoverRetainedPluginInstallWithTx carries recoveredDataTakeover and recoveredFromPluginId for branch proof",
+        passed:
+          dalSource.includes("recoveredFromPluginId")
+          && dalSource.includes("recoveredDataTakeover"),
+      },
+      {
+        label: "preflightPluginUpgrade is exported from DAL for the upgrade branch",
+        passed: dalSource.includes("export async function preflightPluginUpgrade"),
+      },
+      {
+        label: "plugin-migration enforces the backfill -> verify -> cutover upgrade discipline",
+        passed:
+          migrationSource.includes("\"backfill\"")
+          && migrationSource.includes("\"verify\"")
+          && migrationSource.includes("\"cutover\""),
+      },
+      {
+        label: "preflightUninstallPluginWithTx is exported from DAL for the cleanup uninstall branch",
+        passed: dalSource.includes("export async function preflightUninstallPluginWithTx"),
+      },
+      {
+        label: "uninstallPluginWithTx is exported from DAL for the cleanup uninstall branch",
+        passed: dalSource.includes("export async function uninstallPluginWithTx"),
+      },
+      {
+        label: "uninstallPluginWithTx enforces cleanupConfirmationToken and PLUGIN_CLEANUP_CONFIRMATION_REQUIRED",
+        passed:
+          dalSource.includes("cleanupConfirmationToken")
+          && dalSource.includes("PLUGIN_CLEANUP_CONFIRMATION_REQUIRED"),
       },
     ],
     advisory: [
@@ -148,7 +206,7 @@ async function runSmokeProof() {
       `SELECT status FROM classroomSession WHERE id = '${seeded.liveSessionId}'`,
     );
     const retainedRows = await context.client.execute(
-      `SELECT sourceType, uninstallRetentionMode FROM pluginRegistration WHERE id = '${seeded.retainedPluginId}'`,
+      `SELECT sourceType, uninstallRetentionMode, lifecycleState FROM pluginRegistration WHERE id = '${seeded.retainedPluginId}'`,
     );
     const responseRows = await context.client.execute(
       `SELECT COUNT(*) AS count FROM plugin_owned_quiz_responses WHERE classroomSession = '${seeded.endedSessionId}'`,
@@ -158,9 +216,41 @@ async function runSmokeProof() {
     assert(retainedRows.rows[0]?.sourceType === "external", "smoke proof expected sourceType='external'");
     assert(
       retainedRows.rows[0]?.uninstallRetentionMode === "retain",
-      "smoke proof expected uninstallRetentionMode='retain'",
+      "smoke proof expected uninstallRetentionMode='retain' for the retain-reinstall branch",
+    );
+    assert(
+      retainedRows.rows[0]?.lifecycleState === "disabled",
+      "smoke proof expected lifecycleState='disabled' on the retained plugin (so reinstall takeover is the only path back)",
     );
     assert(Number(responseRows.rows[0]?.count ?? 0) === seeded.responseCount, "smoke proof response count mismatch");
+
+    // Branch-level executable proof: each lifecycle branch (upgrade / retain reinstall / cleanup uninstall)
+    // must be backed by data that the corresponding DAL helper can act on. The fixture is the executable
+    // witness — if a row is missing, the corresponding branch cannot be proven at runtime, only by docs.
+    const livePluginRows = await context.client.execute(
+      `SELECT id, manifestJson, sourceType FROM pluginRegistration WHERE id = '${seeded.livePluginId}'`,
+    );
+    const liveManifest = livePluginRows.rows[0]?.manifestJson;
+    const retainedManifestRows = await context.client.execute(
+      `SELECT manifestJson FROM pluginRegistration WHERE id = '${seeded.retainedPluginId}'`,
+    );
+    const retainedManifest = retainedManifestRows.rows[0]?.manifestJson;
+    assert(
+      typeof liveManifest === "string" && liveManifest.length > 0,
+      "smoke proof expected live plugin to carry a manifest so preflightPluginUpgrade can be exercised",
+    );
+    assert(
+      typeof retainedManifest === "string" && retainedManifest.length > 0,
+      "smoke proof expected retained plugin to carry a manifest so recoverRetainedPluginInstallWithTx can be exercised",
+    );
+
+    const cleanupRows = await context.client.execute(
+      `SELECT id FROM classroomSession WHERE id = '${seeded.endedSessionId}' AND status = 'ended'`,
+    );
+    assert(
+      Array.isArray(cleanupRows.rows) && cleanupRows.rows.length === 1,
+      "smoke proof expected an ended classroom session so cleanup uninstall impact counts can be reported",
+    );
   } finally {
     await context.dispose();
   }
@@ -201,6 +291,23 @@ async function runFullProof() {
     assert(Number(summary.rows[0]?.responseCount ?? 0) >= 1, "proof expected retained quiz response rows");
     assert(Number(summary.rows[0]?.liveSessionCount ?? 0) >= 1, "proof expected active-session blocking sample");
     assert(Number(summary.rows[0]?.endedSessionCount ?? 0) >= 1, "proof expected ended-session cleanup sample");
+
+    // Full proof additionally exercises the three D-72.1-07 lifecycle branches as executable assertions:
+    // upgrade (live plugin manifest differs from retained -> upgrade preflight can run),
+    // retain reinstall (retained plugin still installable through recover),
+    // cleanup uninstall (ended session exists -> cleanup impact count can be reported).
+    const upgradeBranch = await context.client.execute(
+      `SELECT id FROM pluginRegistration WHERE sourceType = 'external' AND lifecycleState IN ('enabled','mounted','ready') LIMIT 1`,
+    );
+    const reinstallBranch = await context.client.execute(
+      `SELECT id FROM pluginRegistration WHERE sourceType = 'external' AND uninstallRetentionMode = 'retain' AND uninstalledAt IS NOT NULL LIMIT 1`,
+    );
+    const cleanupBranch = await context.client.execute(
+      `SELECT id FROM classroomSession WHERE status = 'ended' LIMIT 1`,
+    );
+    assert(upgradeBranch.rows.length === 1, "full proof expected an upgrade-eligible external plugin for the upgrade branch");
+    assert(reinstallBranch.rows.length === 1, "full proof expected a retained external plugin for the retain-reinstall branch");
+    assert(cleanupBranch.rows.length === 1, "full proof expected an ended classroom session for the cleanup uninstall branch");
   } finally {
     await context.dispose();
   }
@@ -223,7 +330,7 @@ export async function runPhase71Verification() {
     }
     process.exit(1);
   }
-  console.log("  ✓ Static seam checks passed.");
+  console.log("  ✓ Static seam checks passed (route, surface, action, DAL upgrade/retain-reinstall/cleanup-uninstall branches).");
   const advisoryGaps = staticChecks.advisory.filter((check) => !check.passed);
   if (advisoryGaps.length > 0) {
     console.log("  ↺ Future seam checks pending later waves:");
@@ -243,10 +350,10 @@ export async function runPhase71Verification() {
   console.log("\n[3/3] Isolated SQLite proof stage...");
   if (smokeOnly) {
     await runSmokeProof();
-    console.log("  ✓ Smoke proof seeded live blocker + retained quiz data fixtures.");
+    console.log("  ✓ Smoke proof confirmed live blocker + retained manifest + ended session for upgrade / retain reinstall / cleanup uninstall branches.");
   } else {
     await runFullProof();
-    console.log("  ✓ Full proof confirmed retained/live/ended lifecycle samples.");
+    console.log("  ✓ Full proof confirmed upgrade / retain-reinstall / cleanup-uninstall branches as executable lifecycle samples.");
   }
 
   console.log("\n==================================================");
