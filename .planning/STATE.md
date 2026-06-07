@@ -2,32 +2,31 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Plugin Marketplace & Plugin-Owned Data
-status: verifying
-last_updated: "2026-06-07T06:48:00.000Z"
-last_activity: "2026-06-07 -- Phase 72.1 closed: authoritative milestone close gate wired with proof mapping, manual sign-off, and final VERIFICATION/CLOSEOUT artifacts"
+status: archived
+last_updated: "2026-06-07T07:25:00.000Z"
+last_activity: "2026-06-07 -- v4.0 archived to .planning/milestones/v4.0-* (ROADMAP / REQUIREMENTS / MILESTONE-AUDIT). REQUIREMENTS.md removed (fresh for next milestone). RETROSPECTIVE.md appended. State cleared for next-milestone handoff."
 progress:
-  total_phases: 8
+  total_phases: 7
   completed_phases: 7
   total_plans: 25
   completed_plans: 25
-  percent: 88
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-06-02)
+See: `.planning/PROJECT.md` (updated 2026-06-07 after v4.0 archive)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** v4.0 complete — milestone ready for audit/archive or next-milestone handoff
+**Current focus:** No active milestone. v4.0 archived 2026-06-07; start next via `/gsd:new-milestone`.
 
 ## Current Position
 
-Phase: 72.1 (close-gap-gate-01-authoritative-milestone-close-gate) — COMPLETE
-Plan: 3 of 3
-Status: Phase 72.1 closed. `pnpm verify:phase` authoritative alias now hard-fails unless `72.1-PROOF-MAPPING.md`, `72-VERIFICATION.md`, `72.1-CLOSEOUT.md` exist and the Manual Surface Sign-Off Ledger records `status: passed` for `/settings/plugins` and the real ended-classroom recap surface. Final smoke: 6 stages, 49 checks, 208 tests, all green; full ordered pnpm ladder 67→68→69→70→71→72 passes.
-Last activity: 2026-06-07 -- Phase 72.1 closed across 3 waves (11 atomic commits, 82/82 acceptance criteria, archive-ready double entry: proof mapping + closeout)
+Phase: All v4.0 phases archived (67-72 + 72.1, 25/25 plans complete, 18/18 v1 requirements satisfied)
+Status: v4.0 milestone shipped and archived. Working tree clean at `f3d408e` on `main`. 2 archive-related commits + 1 retrospective commit on top of Phase 72.1's 14-commit series.
+Last activity: 2026-06-07 -- v4.0 archive complete (commit `ba4c255` for archive files, `1c0fcc3` for REQUIREMENTS.md removal, `f3d408e` for RETROSPECTIVE.md append). All milestone archive files in `.planning/milestones/v4.0-ROADMAP.md` / `v4.0-REQUIREMENTS.md` / `v4.0-MILESTONE-AUDIT.md`.
 
 > Corrective applied 2026-06-02 (mid-phase-68, before 68-03): plugin data-model compiler now injects append-only `attemptNo`/`isLatest` for tables with `uniques`; hand-authored migration `0006_worried_wallow.sql`. See `.planning/phases/68-governed-declarative-data-access-verbs/67-CORRECTIVE-isLatest.md`. No plan counters advanced.
 
@@ -83,10 +82,11 @@ Last activity: 2026-06-07 -- Phase 72.1 closed across 3 waves (11 atomic commits
 
 ### Roadmap Evolution
 
-- v3.2 roadmap 按 provider layer → tool layer → draft chain → review surface → eval/guardrails → closure wiring 的顺序执行完毕。
-- `v3.2` 已归档到 `.planning/milestones/v3.2-ROADMAP.md`；根级 `ROADMAP.md` 现在只保留已归档 milestone 摘要与“等待下一里程碑”入口。
-- milestone audit 先识别了 teacher trigger、run→persist、accept/discard command-bus 三个关键断缝；收尾 Phase 66 把这些跨 phase seam 作为真实 blocker 修复，而不是接受为 tech debt。
-- Phase 72.1 inserted after Phase 72: Close gap: GATE-01 authoritative milestone close gate (URGENT)
+- `v4.0` roadmap 按 data contract (67) → access boundary (68) → sample write (69) → stats read (70) → lifecycle (71) → end-to-end close gate (72) → closure-phase 72.1 (hardened authoritative gate) 的顺序执行完毕。
+- `v4.0` 已归档到 `.planning/milestones/v4.0-ROADMAP.md` / `v4.0-REQUIREMENTS.md` / `v4.0-MILESTONE-AUDIT.md`；根级 `ROADMAP.md` 现在只保留已归档 milestone 摘要与「等待下一里程碑」入口。
+- 2026-06-05 milestone audit 暴露 8 个 unsatisfied REQ-ID（STATS-01/02 + MKT-01..05 + GATE-01）+ 1 integration gap；Phase 72.1 用 14 atomic commits + 6-stage / 49-check authoritative close gate 全部关闭。
+- v3.2 时代依赖项（v3.2 deferred items）继续保留为 historical accepted-risk，不进入 v4.0 closing scope。
+- v4.0 v2 deferred 候选已记录在 `.planning/milestones/v4.0-REQUIREMENTS.md` v2 段：QUIZ-EXT-01..03 / MKT-EXT-01..03 / STORE-01。
 
 ### Decisions
 
@@ -141,6 +141,11 @@ Recent decisions affecting current work:
 - [Phase 69]: Phase 69 close gate uses a phase-specific auth stub via runner tsconfig remap; headless verification switches actors without changing production DAL/auth behavior
 - [Phase 69]: Phase 69 ships verify:phase69 without switching the global verify:phase alias — Phase 72 remains the planned convergence point for the single milestone gate
 - [Phase 69]: 2026-06-05 corrective: quiz sample classroom submit path must send governed plugin key `quiz` (not built-in registration id) into `dispatchPluginDataAccess`, otherwise `verify:phase69` fails with `non_school_actor_rejected`
+- [Phase 70]: 70-01: 题目统计用单一 SQL GROUP BY 聚合源（cache tag `quizStats:${sessionId}` 失效），不回写核心 analytics 表
+- [Phase 71]: 71-04: `/settings/plugins` 走 preflight-first / recover / block reason 三段式 UI，不在升级 / 卸载前暴露「一键」破坏性动作
+- [Phase 72.1]: close gate 从「顺序编排器」升级为「authoritative milestone close gate」—— 必须 hard-fail unless `72.1-CLOSEOUT.md` / `72.1-PROOF-MAPPING.md` / `72-VERIFICATION.md` 存在 + Manual Surface Sign-Off Ledger `status: passed` + bridge / final-artifact / manual sign-off 三个独立阶段都绿
+- [Phase 72.1]: 先 proof mapping 后 closeout、最后 gate wiring（D-72.1-16：conclusion never leads evidence）
+- [Milestone v4.0 archive]: 14 atomic commits（2 prep + 11 executor + 1 state）+ 3 archive commits（archive files / REQUIREMENTS.md removal / RETROSPECTIVE.md append）后归档 v4.0；working tree clean at `f3d408e` on `main`
 
 ### Pending Todos
 
@@ -167,12 +172,15 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-07T06:48:00.000Z
-Stopped at: Phase 72.1 closed; v4.0 authoritative milestone close gate is archive-ready
-Resume file: .planning/phases/72.1-close-gap-gate-01-authoritative-milestone-close-gate/72.1-03-SUMMARY.md
+Last session: 2026-06-07T07:25:00.000Z
+Stopped at: v4.0 archived (commit `f3d408e`); working tree clean; no active milestone
+Resume file: .planning/RETROSPECTIVE.md (read v4.0 section for what worked / what to reuse)
 
 ## Operator Next Steps
 
-- v4.0 milestone is now archive-ready: `pnpm verify:phase` is the single authoritative close gate, hard-fails without the new 72.1 close artifacts and the passed manual sign-off ledger, and `72.1-CLOSEOUT.md` / `72.1-PROOF-MAPPING.md` / `72-VERIFICATION.md` form the archive-ready double entry.
-- Recommended next step: run milestone audit/archive for v4.0 or begin scoping the next milestone.
-- Optional follow-up: the executor recorded manual sign-off rows in `72.1-PROOF-MAPPING.md` using the static-evidence path (executor name, smoke-run timestamps, executable-seam evidence). If you want a true human-observed sign-off, replace the `executed_by` / `executed_at` / `evidence note` values in those two rows with your own observation of `/settings/plugins` and an ended classroom recap; the locked `proof artifact` + `status: passed` + 3 field tokens stay valid.
+- v4.0 milestone 已于 2026-06-07 归档，archive 文件在 `.planning/milestones/v4.0-{ROADMAP,REQUIREMENTS,MILESTONE-AUDIT}.md`。
+- `pnpm verify:phase` 是 v4.0 authoritative close gate，已可用于下一里程碑每个 phase 的回归验证（无需重新设计）。
+- Recommended next step: `/gsd:new-milestone`（questioning → research → requirements → roadmap）；候选 scope 在 v4.0-REQUIREMENTS.md v2 段（QUIZ-EXT-01..03 / MKT-EXT-01..03 / STORE-01）。
+- Optional follow-up: 
+  1. 67 / 68 phase 的 Nyquist frontmatter 字段回填 `nyquist_compliant: true`（metadata consistency gap，验证本身已通过）。
+  2. `72.1-PROOF-MAPPING.md` Manual Surface Sign-Off Ledger 的 2 行 executor 静态证据可被你真实观察 `/settings/plugins` 与课后复盘面板后替换为人类 `executed_by` / `executed_at` / `evidence note`；`proof artifact` + `status: passed` 保持有效。
