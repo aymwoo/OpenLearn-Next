@@ -808,6 +808,7 @@ describe("classroom-actions", () => {
     it("exposes dedicated quiz sample submit action and invalidates governed truth tags", async () => {
       mockSubmitQuizSampleAnswer.mockResolvedValue({
         questionId: "step-1",
+        questionType: "single_choice",
         studentId: "student-1",
         selectedOption: "B",
         attemptNo: 2,
@@ -819,6 +820,7 @@ describe("classroom-actions", () => {
         lessonId: "lesson-1",
         sessionId: "session-1",
         stepId: "step-1",
+        questionType: "single_choice",
         selectedOption: "B",
       });
 
@@ -826,6 +828,7 @@ describe("classroom-actions", () => {
         ok: true,
         data: {
           questionId: "step-1",
+          questionType: "single_choice",
           studentId: "student-1",
           selectedOption: "B",
           attemptNo: 2,
@@ -835,6 +838,7 @@ describe("classroom-actions", () => {
       expect(mockSubmitQuizSampleAnswer).toHaveBeenCalledWith({
         lessonId: "lesson-1",
         sessionId: "session-1",
+        questionType: "single_choice",
         stepId: "step-1",
         selectedOption: "B",
       });
