@@ -2,9 +2,10 @@
 gsd_state_version: 1.0
 milestone: v4.1
 milestone_name: Multi-Question Types & Teacher Live Dashboard
-status: planning
-last_updated: "2026-06-07T09:30:00.000Z"
-last_activity: 2026-06-07
+status: Roadmap drafted; awaiting discuss-phase / plan-phase
+stopped_at: Phase 73 context gathered
+last_updated: "2026-06-07T12:12:08.681Z"
+last_activity: 2026-06-07 — v4.1 ROADMAP.md written (2 phases, 4 planned plans)
 progress:
   total_phases: 2
   completed_phases: 0
@@ -193,9 +194,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-07T07:25:00.000Z
-Stopped at: v4.0 archived (commit `f3d408e`); working tree clean; no active milestone
-Resume file: .planning/RETROSPECTIVE.md (read v4.0 section for what worked / what to reuse)
+Last session: 2026-06-07T12:12:08.677Z
+Stopped at: Phase 73 context gathered
+Resume file: .planning/phases/73-multi-type-quiz-schema-live-ws-event-teacher-live-dashboard/73-CONTEXT.md
 
 ## Operator Next Steps
 
