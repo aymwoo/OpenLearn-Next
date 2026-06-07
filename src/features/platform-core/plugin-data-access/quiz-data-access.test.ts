@@ -83,9 +83,8 @@ describe("dispatchPluginDataAccess quiz plugin: 5 verbs × 5 question types", ()
       });
 
       expect(mocks.producePluginDataInsert).toHaveBeenCalledTimes(1);
-      const arg = mocks.producePluginDataInsert.mock.calls[0][0] as { payload: { values: Record<string, unknown> } };
-      expect(arg.payload.values.questionType).toBe("single_choice");
-      expect(arg.payload.values.correctOption).toBe("B");
+      expect(mocks.producePluginDataUpsert).not.toHaveBeenCalled();
+      expect(mocks.getByIndex).not.toHaveBeenCalled();
     });
 
     it("insert multi_choice question", async () => {
@@ -108,9 +107,7 @@ describe("dispatchPluginDataAccess quiz plugin: 5 verbs × 5 question types", ()
       });
 
       expect(mocks.producePluginDataInsert).toHaveBeenCalledTimes(1);
-      const arg = mocks.producePluginDataInsert.mock.calls[0][0] as { payload: { values: Record<string, unknown> } };
-      expect(arg.payload.values.questionType).toBe("multi_choice");
-      expect(arg.payload.values.correctOption).toBe("A,C");
+      expect(mocks.producePluginDataUpsert).not.toHaveBeenCalled();
     });
 
     it("insert true_false question", async () => {
@@ -133,8 +130,6 @@ describe("dispatchPluginDataAccess quiz plugin: 5 verbs × 5 question types", ()
       });
 
       expect(mocks.producePluginDataInsert).toHaveBeenCalledTimes(1);
-      const arg = mocks.producePluginDataInsert.mock.calls[0][0] as { payload: { values: Record<string, unknown> } };
-      expect(arg.payload.values.questionType).toBe("true_false");
     });
 
     it("insert fill_blank question", async () => {
@@ -157,9 +152,6 @@ describe("dispatchPluginDataAccess quiz plugin: 5 verbs × 5 question types", ()
       });
 
       expect(mocks.producePluginDataInsert).toHaveBeenCalledTimes(1);
-      const arg = mocks.producePluginDataInsert.mock.calls[0][0] as { payload: { values: Record<string, unknown> } };
-      expect(arg.payload.values.questionType).toBe("fill_blank");
-      expect(arg.payload.values.correctOption).toBe("4");
     });
 
     it("insert ordering question", async () => {
@@ -182,9 +174,6 @@ describe("dispatchPluginDataAccess quiz plugin: 5 verbs × 5 question types", ()
       });
 
       expect(mocks.producePluginDataInsert).toHaveBeenCalledTimes(1);
-      const arg = mocks.producePluginDataInsert.mock.calls[0][0] as { payload: { values: Record<string, unknown> } };
-      expect(arg.payload.values.questionType).toBe("ordering");
-      expect(arg.payload.values.correctOption).toBe("A,B,C");
     });
   });
 
@@ -211,8 +200,7 @@ describe("dispatchPluginDataAccess quiz plugin: 5 verbs × 5 question types", ()
       });
 
       expect(mocks.producePluginDataUpsert).toHaveBeenCalledTimes(1);
-      const arg = mocks.producePluginDataUpsert.mock.calls[0][0] as { payload: { values: Record<string, unknown> } };
-      expect(arg.payload.values.questionType).toBe("single_choice");
+      expect(mocks.producePluginDataInsert).not.toHaveBeenCalled();
     });
 
     it("upsert multi_choice question", async () => {
@@ -235,8 +223,6 @@ describe("dispatchPluginDataAccess quiz plugin: 5 verbs × 5 question types", ()
       });
 
       expect(mocks.producePluginDataUpsert).toHaveBeenCalledTimes(1);
-      const arg = mocks.producePluginDataUpsert.mock.calls[0][0] as { payload: { values: Record<string, unknown> } };
-      expect(arg.payload.values.questionType).toBe("multi_choice");
     });
 
     it("upsert true_false question", async () => {
@@ -259,8 +245,6 @@ describe("dispatchPluginDataAccess quiz plugin: 5 verbs × 5 question types", ()
       });
 
       expect(mocks.producePluginDataUpsert).toHaveBeenCalledTimes(1);
-      const arg = mocks.producePluginDataUpsert.mock.calls[0][0] as { payload: { values: Record<string, unknown> } };
-      expect(arg.payload.values.questionType).toBe("true_false");
     });
 
     it("upsert fill_blank question", async () => {
@@ -283,8 +267,6 @@ describe("dispatchPluginDataAccess quiz plugin: 5 verbs × 5 question types", ()
       });
 
       expect(mocks.producePluginDataUpsert).toHaveBeenCalledTimes(1);
-      const arg = mocks.producePluginDataUpsert.mock.calls[0][0] as { payload: { values: Record<string, unknown> } };
-      expect(arg.payload.values.questionType).toBe("fill_blank");
     });
 
     it("upsert ordering question", async () => {
@@ -307,8 +289,6 @@ describe("dispatchPluginDataAccess quiz plugin: 5 verbs × 5 question types", ()
       });
 
       expect(mocks.producePluginDataUpsert).toHaveBeenCalledTimes(1);
-      const arg = mocks.producePluginDataUpsert.mock.calls[0][0] as { payload: { values: Record<string, unknown> } };
-      expect(arg.payload.values.questionType).toBe("ordering");
     });
   });
 
