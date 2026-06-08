@@ -35,9 +35,11 @@ export const quizDataModel = {
         },
         {
           name: "correctOption",
-          type: "enum",
+          // Keep physical storage as text so the frozen question snapshot can truthfully
+          // carry multi_choice combos ("A,C"), fill_blank answers ("题目复盘"), and
+          // ordering answers ("A,B,C") without inventing a lossy A/B/C/D remap.
+          type: "text",
           notNull: true,
-          enumValues: ["A", "B", "C", "D"],
         },
       ],
       indexes: [{ columns: ["schoolId", "classroomSession", "question"] }],

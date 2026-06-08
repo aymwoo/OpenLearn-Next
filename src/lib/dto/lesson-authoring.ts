@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { RuntimeDescriptorSchema } from "@/features/runtime-platform/contracts/descriptors";
 import { RuntimeContractVersionSchema } from "@/features/runtime-platform/contracts/version";
+import { QuestionTypeSchema } from "@/lib/dto/plugin-data-model";
 
 const builtInTeachingStepKeys = [
   "directInstruction",
@@ -141,6 +142,8 @@ export const quizStepPayloadSchema = z.object({
   type: z.literal("quiz"),
   question: z.string().min(1),
   options: z.array(z.string().min(1)).min(2),
+  questionType: QuestionTypeSchema.optional(),
+  correctAnswerValue: z.string().min(1).optional(),
   correctOptionIndex: z.number().int().nonnegative().optional(),
   explanation: z.string().optional(),
   allowRetry: z.boolean().optional(),

@@ -105,8 +105,10 @@ describe("allowlist generation", () => {
   });
 
   it("enum 列附带 enumValues", () => {
-    expect(responses.enumColumns.selectedOption).toEqual(["A", "B", "C", "D"]);
-    expect(questions.enumColumns.correctOption).toEqual(["A", "B", "C", "D"]);
+    const responseEnums = responses.enumColumns as Record<string, unknown>;
+    const questionEnums = questions.enumColumns as Record<string, unknown>;
+    expect(responseEnums.selectedOption).toEqual(["A", "B", "C", "D"]);
+    expect(questionEnums.correctOption).toBeUndefined();
   });
 
   it("columns 包含全部物理列（含 reserved），供 unknown vs unindexed 区分", () => {

@@ -189,8 +189,54 @@ type QuizSampleQuestionSnapshotRow = {
   optionBText: string;
   optionCText: string | null;
   optionDText: string | null;
-  correctOption: "A" | "B" | "C" | "D";
+  questionType: z.infer<typeof QuestionTypeSchema>;
+  correctOption: string;
 };
+
+function normalizeQuizSampleQuestionRow(row: {
+  question: string;
+  prompt: string;
+  optionAText: string;
+  optionBText: string;
+  optionCText: string | null;
+  optionDText: string | null;
+  questionType?: z.infer<typeof QuestionTypeSchema> | null;
+  correctOption: string;
+}): QuizSampleQuestionSnapshotRow {
+  return {
+    ...row,
+    questionType: row.questionType ?? "single_choice",
+  };
+}
+
+function resolveQuizSampleCorrectOption(input: {
+  payload: Extract<ReturnType<typeof lessonStepPayloadSchema.parse>, { type: "quiz" }>;
+  questionType: z.infer<typeof QuestionTypeSchema>;
+}) {
+  const directValue = input.payload.correctAnswerValue?.trim();
+
+  if (input.questionType !== "single_choice" && input.questionType !== "true_false") {
+    if (directValue) {
+      return directValue;
+    }
+
+    throw new Error(`QUIZ_SAMPLE_CONFIG_INVALID:${input.questionType}`);
+  }
+
+  if (
+    typeof input.payload.correctOptionIndex === "number"
+    && input.payload.correctOptionIndex >= 0
+    && input.payload.correctOptionIndex < QUIZ_SAMPLE_OPTION_SLOTS.length
+  ) {
+    return QUIZ_SAMPLE_OPTION_SLOTS[input.payload.correctOptionIndex]!;
+  }
+
+  if (directValue) {
+    return directValue;
+  }
+
+  throw new Error(`QUIZ_SAMPLE_CONFIG_INVALID:${input.questionType}`);
+}
 
 function buildQuizSampleQuestionSnapshot(input: {
   step: ReturnType<typeof parseSnapshotSteps>[number];
@@ -206,38 +252,34 @@ function buildQuizSampleQuestionSnapshot(input: {
     throw new Error("QUIZ_SAMPLE_PLUGIN_DISABLED");
   }
 
-  const parsedConfig = QuizSampleLessonStepConfigSchema.safeParse({
-    prompt: input.step.payload.question,
-    options: input.step.payload.options.map((label, index) => ({
-      slot: QUIZ_SAMPLE_OPTION_SLOTS[index]!,
-      label,
-      enabled: true,
-    })),
-    correctOption:
-      typeof input.step.payload.correctOptionIndex === "number"
-      && input.step.payload.correctOptionIndex >= 0
-      && input.step.payload.correctOptionIndex < QUIZ_SAMPLE_OPTION_SLOTS.length
-        ? QUIZ_SAMPLE_OPTION_SLOTS[input.step.payload.correctOptionIndex]!
-        : undefined,
-  });
-
-  if (!parsedConfig.success) {
+  const optionBySlot = new Map(
+    input.step.payload.options
+      .slice(0, QUIZ_SAMPLE_OPTION_SLOTS.length)
+      .map((label, index) => [QUIZ_SAMPLE_OPTION_SLOTS[index]!, label.trim()]),
+  );
+  const optionAText = optionBySlot.get("A");
+  const optionBText = optionBySlot.get("B");
+  if (!optionAText || !optionBText) {
     throw new Error("QUIZ_SAMPLE_CONFIG_INVALID");
   }
-
-  const optionBySlot = new Map(parsedConfig.data.options.map((option) => [option.slot, option.label.trim()]));
+  const questionType = input.step.payload.questionType ?? "single_choice";
+  const correctOption = resolveQuizSampleCorrectOption({
+    payload: input.step.payload,
+    questionType,
+  });
 
   return {
     schoolId: input.schoolId,
     pluginId,
     classroomSession: input.classroomSessionId,
     question: input.step.id,
-    prompt: parsedConfig.data.prompt,
-    optionAText: optionBySlot.get("A")!,
-    optionBText: optionBySlot.get("B")!,
+    prompt: input.step.payload.question.trim(),
+    optionAText,
+    optionBText,
     optionCText: optionBySlot.get("C") ?? null,
     optionDText: optionBySlot.get("D") ?? null,
-    correctOption: parsedConfig.data.correctOption,
+    questionType,
+    correctOption,
   };
 }
 
@@ -252,11 +294,16 @@ function buildQuizSamplePayloadFromSnapshot(input: {
     input.question.optionDText,
   ].filter((value): value is string => typeof value === "string" && value.trim().length > 0);
 
+  const correctOptionIndex = QUIZ_SAMPLE_OPTION_SLOTS.indexOf(
+    input.question.correctOption as (typeof QUIZ_SAMPLE_OPTION_SLOTS)[number],
+  );
   return {
     ...input.payload,
     question: input.question.prompt,
     options,
-    correctOptionIndex: QUIZ_SAMPLE_OPTION_SLOTS.indexOf(input.question.correctOption),
+    questionType: input.question.questionType,
+    correctOptionIndex: correctOptionIndex >= 0 ? correctOptionIndex : undefined,
+    correctAnswerValue: correctOptionIndex >= 0 ? undefined : input.question.correctOption,
   };
 }
 
@@ -1828,6 +1875,7 @@ async function buildClassroomSnapshotDTOForActor(input: {
           optionBText: pluginOwnedQuizQuestions.optionBText,
           optionCText: pluginOwnedQuizQuestions.optionCText,
           optionDText: pluginOwnedQuizQuestions.optionDText,
+          questionType: pluginOwnedQuizQuestions.questionType,
           correctOption: pluginOwnedQuizQuestions.correctOption,
         })
         .from(pluginOwnedQuizQuestions)
@@ -1838,7 +1886,9 @@ async function buildClassroomSnapshotDTOForActor(input: {
           ),
         )
     : [];
-  const quizSampleQuestionByStepId = new Map(quizSampleQuestionRows.map((row) => [row.question, row]));
+  const quizSampleQuestionByStepId = new Map(
+    quizSampleQuestionRows.map((row) => [row.question, normalizeQuizSampleQuestionRow(row)]),
+  );
   const stepOrder = new Map(steps.map((step, index) => [step.id, index]));
   const activeStepIndex = stepOrder.get(session.activeStepId) ?? 0;
   const activeStep = steps.find((step) => step.id === session.activeStepId);

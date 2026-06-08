@@ -57,12 +57,6 @@ export const pluginDataAccessAllowlist = {
           "true_false",
           "fill_blank",
           "ordering"
-        ],
-        "correctOption": [
-          "A",
-          "B",
-          "C",
-          "D"
         ]
       }
     },

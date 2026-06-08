@@ -272,6 +272,10 @@ function buildTableAccessEntry(table: TableSpec): TableAccessEntry {
     }
   }
 
+  // Phase 74 decision A: `plugin_owned_quiz_questions.correctOption` is stored as free text
+  // so ended-session recap fixtures can truthfully persist multi-type answers. Keep the
+  // allowlist enum metadata absent for this column to match the physical/insert contract.
+
   return {
     columns,
     insertableColumns: declared.map((column) => column.name),

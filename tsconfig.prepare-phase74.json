@@ -1,0 +1,26 @@
+{
+  "//": "Phase 74 observation-target runner tsconfig. Remaps auth() only for seeded teacher/student actor switching.",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "allowJs": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "paths": {
+      "next/cache": ["./scripts/lib/phase74-next-cache-stub.ts"],
+      "@/lib/auth/auth": ["./scripts/lib/phase74-observation-auth-stub.ts"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "scripts/prepare-phase74-observation-targets.ts",
+    "scripts/lib/phase74-observation-auth-stub.ts",
+    "scripts/lib/phase74-next-cache-stub.ts"
+  ]
+}
