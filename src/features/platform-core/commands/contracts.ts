@@ -34,10 +34,13 @@ export const LessonDraftCommandTypes = ["lesson.draft.run", "lesson.draft.persis
 // 仅两写动词进入命令面；读动词（getByIndex/count/aggregate）绝不声明命令类型（D-03，见 Plan 04）。
 export const PluginDataCommandTypes = ["plugin.data.insert", "plugin.data.upsert"] as const;
 
+export const QuizTransportCommandTypes = ["quiz.answer.received"] as const;
+
 export const PlatformCommandTypeSchema = z.enum([
   ...PlatformPluginGovernanceCommandTypes,
   ...LessonDraftCommandTypes,
   ...PluginDataCommandTypes,
+  ...QuizTransportCommandTypes,
 ]);
 
 export const PlatformCommandActorSchema = z.object({
@@ -212,6 +215,21 @@ const PluginDataUpsertPayloadSchema = z.object({
   values: z.record(z.string(), z.unknown()),
 }).strict();
 
+const QuizAnswerReceivedPayloadSchema = z.object({
+  questionId: z.string().min(1),
+  studentId: z.string().min(1),
+  responseType: z.enum([
+    "single_choice",
+    "multi_choice",
+    "true_false",
+    "fill_blank",
+    "ordering",
+  ]),
+  payload: z.unknown(),
+  receivedAt: z.number().int().positive(),
+  classroomSessionId: z.string().min(1),
+}).strict();
+
 export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,
   "plugin.upgrade.preflight": PluginUpgradePreflightPayloadSchema,
@@ -231,6 +249,7 @@ export const PlatformCommandPayloadSchemas = {
   "lesson.draft.discard": LessonDraftDiscardPayloadSchema,
   "plugin.data.insert": PluginDataInsertPayloadSchema,
   "plugin.data.upsert": PluginDataUpsertPayloadSchema,
+  "quiz.answer.received": QuizAnswerReceivedPayloadSchema,
 } as const;
 
 export const PlatformCommandSchema = z.discriminatedUnion("type", [
@@ -305,6 +324,10 @@ export const PlatformCommandSchema = z.discriminatedUnion("type", [
   PlatformCommandEnvelopeSchema.extend({
     type: z.literal("plugin.data.upsert"),
     payload: PluginDataUpsertPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("quiz.answer.received"),
+    payload: QuizAnswerReceivedPayloadSchema,
   }),
 ]);
 

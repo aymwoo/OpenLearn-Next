@@ -92,6 +92,7 @@ import {
 import { invokeRuntimeHostAction } from "@/features/runtime-platform/host-actions/runtime-host";
 import { publishTransportEvent } from "@/features/runtime-platform/seams";
 import { enqueueAsyncTask } from "@/features/async-tasks/server/enqueue";
+import { produceQuizAnswerReceived } from "@/features/platform-core/commands/producers/quiz-answer-received";
 import type {
   BootstrapRuntimeSessionInput,
   ClassroomSessionSummaryArtifact,
@@ -2493,8 +2494,18 @@ export async function submitQuizSampleAnswer(input: SubmitQuizSampleAnswerInput)
     },
   });
 
-  // TODO (Phase 73-02): Dispatch quiz.answer.received hook via dispatchPlatformCommand
-  // This will notify the live teacher dashboard when a student submits an answer.
+  await produceQuizAnswerReceived({
+    actorId: user.id,
+    schoolId: classRow.schoolId,
+    payload: {
+      questionId: payload.stepId,
+      studentId: user.id,
+      responseType: payload.questionType,
+      payload: payload.selectedOption,
+      receivedAt: Date.now(),
+      classroomSessionId: session.id,
+    },
+  });
 
   return {
     questionId: payload.stepId,

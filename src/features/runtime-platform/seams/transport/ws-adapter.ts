@@ -20,6 +20,10 @@ const ownership: RuntimeTransportOwnership = RuntimeTransportOwnershipSchema.par
 });
 
 export function resolveWebSocketTransportKind(kind: string) {
+  if (kind === "quiz.answer.received") {
+    return "quiz.answer.received" as const;
+  }
+
   if (kind.startsWith("runtime.") || kind.startsWith("governance.")) {
     return "runtime.event" as const;
   }

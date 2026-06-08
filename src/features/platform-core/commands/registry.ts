@@ -6,6 +6,7 @@ import {
 import { pluginCommandHandlers } from "./handlers/plugins";
 import { lessonDraftCommandHandlers } from "./handlers/lesson-draft";
 import { pluginDataInsertHandler, pluginDataUpsertHandler } from "./handlers/plugin-data";
+import { quizAnswerReceivedHandler } from "./handlers/quiz-answer-received";
 
 export function createPlatformCommandDefinition<TType extends PlatformCommandType>(
   input: PlatformCommandDefinition<TType>,
@@ -139,5 +140,12 @@ export const platformCommandRegistry = {
     dedupe: "required",    // upsert 同 dedupe 键二次写：旧行 isLatest=false、新行 attemptNo+1（append-only）
     authorize: pluginDataUpsertHandler.authorize,
     execute: pluginDataUpsertHandler.execute,
+  }),
+  "quiz.answer.received": createPlatformCommandDefinition({
+    commandType: "quiz.answer.received",
+    payloadSchema: PlatformCommandPayloadSchemas["quiz.answer.received"],
+    dedupe: "required",
+    authorize: quizAnswerReceivedHandler.authorize,
+    execute: quizAnswerReceivedHandler.execute,
   }),
 } satisfies Record<PlatformCommandType, PlatformCommandDefinition>;

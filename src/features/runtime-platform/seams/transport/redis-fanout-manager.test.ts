@@ -138,4 +138,34 @@ describe("redis fanout manager", () => {
 
     expect(findFirstTransportDeliveryAttempts).toHaveBeenCalledOnce();
   });
+
+  it("keeps quiz.answer.received on the runtime subchannel for env parity delivery", async () => {
+    const { classroomRedisFanoutManager } = await import("./redis-fanout-manager");
+
+    await classroomRedisFanoutManager.deliver({
+      envelope: {
+        sessionId: "session-1",
+        channel: "classroom-runtime",
+        kind: "quiz.answer.received",
+        correlationId: "corr-quiz-1",
+        truthRef: {
+          type: "classroom-event",
+          id: "event-quiz-1",
+          classroomSessionId: "session-1",
+        },
+        payload: { classroomSessionId: "session-1" },
+      },
+      serverEnvelope: {
+        messageId: "message-quiz-1",
+        sessionId: "session-1",
+        actor: { userId: "teacher-1", scope: "teacher", schoolId: "school-1" },
+        kind: "quiz.answer.received",
+        sentAt: new Date().toISOString(),
+        correlation: { correlationId: "corr-quiz-1", truthPersisted: true },
+        payload: { classroomSessionId: "session-1", kind: "quiz.answer.received" },
+      },
+    });
+
+    expect(publish).toHaveBeenCalledOnce();
+  });
 });

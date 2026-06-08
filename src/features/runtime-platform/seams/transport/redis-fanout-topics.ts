@@ -19,6 +19,7 @@ export function resolveRedisFanoutSubchannel(input: {
 }): RedisFanoutSubchannel {
   if (
     input.channel.startsWith("classroom-runtime") ||
+    input.kind.startsWith("quiz.") ||
     input.kind.startsWith("runtime.") ||
     input.kind.startsWith("governance.")
   ) {
@@ -33,6 +34,13 @@ export function buildRedisFanoutTopic(input: {
   subchannel: RedisFanoutSubchannel;
 }) {
   return `${getRedisFanoutNamespace()}:classroom-session:${input.sessionId}:${input.subchannel}`;
+}
+
+export function quizAnswerReceivedTopic(classroomSessionId: string) {
+  return buildRedisFanoutTopic({
+    sessionId: classroomSessionId,
+    subchannel: "runtime",
+  });
 }
 
 export function resolveRedisFanoutTopic(envelope: RuntimeTransportEnvelope) {

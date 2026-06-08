@@ -59,4 +59,40 @@ describe("ws adapter", () => {
       }),
     );
   });
+
+  it("maps quiz.answer.received to a dedicated websocket server kind", async () => {
+    const { wsRuntimeTransportAdapter } = await import("./ws-adapter");
+
+    await wsRuntimeTransportAdapter.deliver({
+      sessionId: "session-1",
+      channel: "classroom-runtime",
+      kind: "quiz.answer.received",
+      correlationId: "corr-quiz-1",
+      truthRef: {
+        type: "classroom-event",
+        id: "command-1",
+        classroomSessionId: "session-1",
+        schoolId: "school-1",
+      },
+      payload: {
+        questionId: "question-1",
+        studentId: "student-1",
+        responseType: "single_choice",
+        payload: "A",
+        receivedAt: 1710000000000,
+        classroomSessionId: "session-1",
+      },
+    });
+
+    expect(deliver).toHaveBeenCalledWith(
+      expect.objectContaining({
+        serverEnvelope: expect.objectContaining({
+          kind: "quiz.answer.received",
+          payload: expect.objectContaining({
+            kind: "quiz.answer.received",
+          }),
+        }),
+      }),
+    );
+  });
 });

@@ -245,6 +245,7 @@ async function main() {
       lessonId: LESSON_ID,
       sessionId,
       stepId: STEP_ID,
+      questionType: "single_choice",
       selectedOption: "A",
     });
     assert(firstAnswer.attemptNo === 1, `expected first attemptNo=1, got ${firstAnswer.attemptNo}`);
@@ -253,6 +254,7 @@ async function main() {
       lessonId: LESSON_ID,
       sessionId,
       stepId: STEP_ID,
+      questionType: "single_choice",
       selectedOption: "B",
     });
     assert(secondAnswer.attemptNo === 2, `expected second attemptNo=2, got ${secondAnswer.attemptNo}`);
@@ -300,6 +302,7 @@ async function main() {
         lessonId: LESSON_ID,
         sessionId,
         stepId: STEP_ID,
+        questionType: "single_choice",
         selectedOption: "C",
       });
     } catch (error) {

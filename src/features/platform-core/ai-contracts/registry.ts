@@ -17,7 +17,10 @@ import {
   PlatformAiDescriptorCatalogSchema,
 } from "./contracts";
 import { listStaticActionCatalog } from "../actions/static-catalog";
-import { PlatformPluginGovernanceCommandTypes } from "../commands/contracts";
+import {
+  PlatformPluginGovernanceCommandTypes,
+  QuizTransportCommandTypes,
+} from "../commands/contracts";
 import { RuntimeCapabilityValues } from "@/features/runtime-platform/contracts/permissions";
 
 const PLATFORM_AI_CONTRACT_VERSION = "phase-54.v1";
@@ -57,6 +60,22 @@ const PLATFORM_COMMAND_METADATA = {
     approvalPosture: "operator-review-required",
     stability: "beta",
     implementationVersion: "phase-51-command-bus",
+  },
+  "plugin.upgrade.preflight": {
+    title: "Run plugin upgrade preflight",
+    description: "Run upgrade preflight checks before a plugin upgrade command.",
+    delegationPosture: "operator-delegated",
+    approvalPosture: "operator-review-required",
+    stability: "beta",
+    implementationVersion: "phase-52-uninstall-governance",
+  },
+  "plugin.upgrade": {
+    title: "Upgrade plugin",
+    description: "Upgrade a plugin through the platform command bus.",
+    delegationPosture: "operator-delegated",
+    approvalPosture: "operator-review-required",
+    stability: "beta",
+    implementationVersion: "phase-52-uninstall-governance",
   },
   "plugin.enable": {
     title: "Enable plugin",
@@ -130,7 +149,19 @@ const PLATFORM_COMMAND_METADATA = {
     stability: "beta",
     implementationVersion: "phase-52-uninstall-governance",
   },
-} satisfies Record<(typeof PlatformPluginGovernanceCommandTypes)[number], PlatformAiCommandMetadata>;
+  "quiz.answer.received": {
+    title: "Publish quiz answer received",
+    description: "Bridge a persisted quiz submission into the classroom transport layer.",
+    delegationPosture: "host-only",
+    approvalPosture: "no-human-approval",
+    stability: "beta",
+    implementationVersion: "phase-73-live-answer-dashboard",
+  },
+} satisfies Record<
+  | (typeof PlatformPluginGovernanceCommandTypes)[number]
+  | (typeof QuizTransportCommandTypes)[number],
+  PlatformAiCommandMetadata
+>;
 
 const PLATFORM_ACTION_METADATA = {
   addStepSuggestion: {
@@ -243,7 +274,7 @@ const PLATFORM_CAPABILITY_METADATA = {
 } satisfies Record<(typeof RuntimeCapabilityValues)[number], PlatformAiCapabilityMetadata>;
 
 export function projectPlatformCommandDescriptors(): PlatformAiCommandDescriptor[] {
-  return PlatformPluginGovernanceCommandTypes.map((commandType) => {
+  return [...PlatformPluginGovernanceCommandTypes, ...QuizTransportCommandTypes].map((commandType) => {
     const metadata = PLATFORM_COMMAND_METADATA[commandType];
 
     return PlatformAiCommandDescriptorSchema.parse({

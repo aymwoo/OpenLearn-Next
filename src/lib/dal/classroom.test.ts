@@ -612,6 +612,17 @@ describe("submitQuizSampleAnswer", () => {
     expect(submitSource).toContain('pluginKey: QUIZ_SAMPLE_PLUGIN_KEY');
     expect(submitSource).toContain('successMessage: hadPreviousAnswer ? "答案已更新" : "已记录你的答案"');
   });
+
+  it("dispatches quiz.answer.received through the dedicated command producer after durable write", () => {
+    const source = readFileSync("src/lib/dal/classroom.ts", "utf8");
+    const submitStart = source.indexOf("export async function submitQuizSampleAnswer");
+    const nextExport = source.indexOf("export async function", submitStart + 1);
+    const submitSource = source.slice(submitStart, nextExport === -1 ? undefined : nextExport);
+
+    expect(submitSource).toContain("produceQuizAnswerReceived({");
+    expect(submitSource).toContain('responseType: payload.questionType');
+    expect(submitSource).toContain('classroomSessionId: session.id');
+  });
 });
 
 describe("classroom evidence foundation contracts", () => {
