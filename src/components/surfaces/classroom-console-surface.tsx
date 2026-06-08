@@ -49,12 +49,14 @@ export function ClassroomConsoleSurface({
   recap,
   studentDetail,
   activeDetailTab,
+  activeConsoleTab = 'control',
 }: {
   consoleData: ClassroomConsoleDTO;
   initialSnapshot: ClassroomSnapshotDTO | null;
   recap?: ClassroomSessionRecapDTO | null;
   studentDetail?: ClassroomStudentDetailDTO | null;
   activeDetailTab?: ClassroomStudentDetailTab;
+  activeConsoleTab?: 'control' | 'live-answer';
 }) {
   const classCount = new Set(
     consoleData.publishedLessons.flatMap((lesson) =>
@@ -174,7 +176,7 @@ export function ClassroomConsoleSurface({
           </p>
         </section>
 
-        <ClassroomControlPanel initialSnapshot={initialSnapshot} studentDetail={studentDetail ?? null} activeDetailTab={activeDetailTab ?? 'evidence'} sessionEntries={consoleData.sessionEntries} />
+        <ClassroomControlPanel initialSnapshot={initialSnapshot} studentDetail={studentDetail ?? null} activeDetailTab={activeDetailTab ?? 'evidence'} sessionEntries={consoleData.sessionEntries} initialTab={activeConsoleTab} />
       </div>
     );
   }

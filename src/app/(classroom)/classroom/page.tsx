@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation'
+
 import { ClassroomConsoleSurface } from '@/components/surfaces/classroom-console-surface'
 import { ClassroomLiveSnapshotRefresh } from '@/components/classroom/classroom-live-snapshot-refresh'
 import {
@@ -13,10 +15,11 @@ export default async function ClassroomPage({
 }: {
   searchParams?: Promise<{
     sessionId?: string
-    studentId?: string
-    stepId?: string
-    detailTab?: 'evidence' | 'evaluation'
-    recapTab?: 'students' | 'steps'
+     studentId?: string
+     stepId?: string
+      tab?: 'control' | 'live-answer'
+      detailTab?: 'evidence' | 'evaluation'
+      recapTab?: 'students' | 'steps'
   }>
 }) {
   const consoleData = await getClassroomConsoleDTO()
@@ -24,6 +27,7 @@ export default async function ClassroomPage({
   const requestedSessionId = resolvedSearchParams?.sessionId
   const studentId = resolvedSearchParams?.studentId
   const stepId = resolvedSearchParams?.stepId
+  const requestedTab = resolvedSearchParams?.tab === 'live-answer' ? 'live-answer' : 'control'
   const detailTab = ClassroomStudentDetailTabSchema.safeParse(resolvedSearchParams?.detailTab).success
     ? resolvedSearchParams?.detailTab
     : 'evidence'
@@ -33,6 +37,10 @@ export default async function ClassroomPage({
   const activeSession = requestedSessionId
     ? consoleData.sessionEntries.find((session) => session.id === requestedSessionId) ?? consoleData.sessionEntries[0]
     : consoleData.sessionEntries[0]
+
+  if (requestedSessionId && !consoleData.sessionEntries.some((session) => session.id === requestedSessionId)) {
+    redirect('/unauthorized')
+  }
   const snapshot = activeSession?.status === 'live'
     ? await getClassroomSnapshotDTO({ sessionId: activeSession.id })
     : null
@@ -54,6 +62,7 @@ export default async function ClassroomPage({
         recap={recap}
         studentDetail={studentDetail}
         activeDetailTab={detailTab}
+        activeConsoleTab={requestedTab}
       />
     </>
   )

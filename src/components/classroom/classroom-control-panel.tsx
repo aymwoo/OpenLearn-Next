@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
+import { BarChart3, Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
 
 import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction, recordClassroomParticipationControlAction, recordRuntimeTeacherControlAction, runCurrentVotingRecoveryAction } from '@/actions/classroom-actions'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
@@ -11,6 +11,7 @@ import { RuntimeDescriptorSchema } from '@/features/runtime-platform/contracts/d
 import { createRuntimeBridgeMessageId } from '@/features/runtime-platform/host/runtime-host-bridge'
 import { RuntimeHostClient } from '@/features/runtime-platform/host'
 import { RuntimeTeacherControlRequestSchema } from '@/features/runtime-platform/contracts/bridge'
+import { LiveAnswerDashboardSurface } from './live-answer-dashboard-surface'
 import { ClassroomConflictPanel } from './classroom-conflict-panel'
 import { ClassroomRosterPanel } from './classroom-roster-panel'
 import { ClassroomSessionHistoryPanel } from './classroom-session-history-panel'
@@ -20,8 +21,11 @@ import { subscribeClassroomSocket } from './classroom-ws-client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { ClassroomConsoleSessionEntryDTO, ClassroomSlideStateDTO, ClassroomSnapshotDTO, ClassroomStepDTO, ClassroomStudentDetailDTO, ClassroomStudentDetailTab } from '@/lib/dto/classroom'
 import type { LessonStepDTO } from '@/lib/dto/lesson-authoring'
+import { cn } from '@/lib/utils'
+import { type LiveAnswerDashboardState, useLiveAnswerStore } from './live-answer-dashboard-store'
 
 type ConflictState = { latest?: ClassroomSnapshotDTO } | null
 
@@ -63,17 +67,23 @@ export function ClassroomControlPanel({
   studentDetail = null,
   activeDetailTab = 'evidence',
   sessionEntries = [],
+  initialTab = 'control',
 }: {
   initialSnapshot: ClassroomSnapshotDTO
   studentDetail?: ClassroomStudentDetailDTO | null
   activeDetailTab?: ClassroomStudentDetailTab
   sessionEntries?: ClassroomConsoleSessionEntryDTO[]
+  initialTab?: 'control' | 'live-answer'
 }) {
   const [conflict, setConflict] = useState<ConflictState>(null)
   const [liveSnapshot, setLiveSnapshot] = useState<ClassroomSnapshotDTO | null>(null)
+  const [connectionState, setConnectionState] = useState<'connected' | 'reconnecting' | 'fallback' | 'closed'>('reconnecting')
+  const [activeTab, setActiveTab] = useState<'control' | 'live-answer'>(initialTab)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const socketRef = useRef<ReturnType<typeof subscribeClassroomSocket> | null>(null)
+  const bindLiveAnswerSession = useLiveAnswerStore((state: LiveAnswerDashboardState) => state.bindSession)
+  const pushLiveAnswerEnvelope = useLiveAnswerStore((state: LiveAnswerDashboardState) => state.pushEnvelope)
 
   const currentSnapshot = conflict?.latest || liveSnapshot || initialSnapshot
   const currentStep = currentSnapshot.steps.find((step: ClassroomStepDTO) => step.id === currentSnapshot.activeStepId)
@@ -133,19 +143,37 @@ export function ClassroomControlPanel({
   )
 
   useEffect(() => {
+    bindLiveAnswerSession(currentSnapshot.sessionId)
+  }, [bindLiveAnswerSession, currentSnapshot.sessionId])
+
+  useEffect(() => {
     const subscription = subscribeClassroomSocket({
       sessionId: currentSnapshot.sessionId,
       actorScope: 'teacher',
+      onOpen() {
+        setConnectionState('connected')
+      },
+      onReconnect() {
+        setConnectionState('reconnecting')
+      },
+      onFallbackOpen() {
+        setConnectionState('fallback')
+      },
       onSnapshot(snapshot) {
         setLiveSnapshot(snapshot)
         if (snapshot.status !== 'live') {
           router.refresh()
         }
       },
+      onRuntimeEvent(envelope) {
+        pushLiveAnswerEnvelope(envelope)
+      },
       onTransportError() {
+        setConnectionState('reconnecting')
         socketRef.current = null
       },
       onClose() {
+        setConnectionState('closed')
         socketRef.current = null
       },
     })
@@ -158,7 +186,7 @@ export function ClassroomControlPanel({
         socketRef.current = null
       }
     }
-  }, [currentSnapshot.sessionId, router])
+  }, [currentSnapshot.sessionId, pushLiveAnswerEnvelope, router])
 
   const sendTeacherControl = (payload: { command: 'focus-step' | 'lock' | 'unlock' | 'set-slide'; expectedVersion: number; targetStepId?: string; slideIndex?: number }) => {
     return socketRef.current?.send({
@@ -357,6 +385,18 @@ export function ClassroomControlPanel({
     })
   }
 
+  const handleControlTabChange = (nextTab: 'control' | 'live-answer') => {
+    setActiveTab(nextTab)
+    const params = new URLSearchParams(window.location.search)
+    params.set('sessionId', currentSnapshot.sessionId)
+    if (nextTab === 'live-answer') {
+      params.set('tab', 'live-answer')
+    } else {
+      params.delete('tab')
+    }
+    router.replace(`/classroom?${params.toString()}`, { scroll: false })
+  }
+
   return (
     <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-5">
@@ -450,6 +490,40 @@ export function ClassroomControlPanel({
           </Card>
         </section>
 
+        <Tabs
+          defaultValue="control"
+          value={activeTab}
+          onValueChange={(value) => handleControlTabChange(value as 'control' | 'live-answer')}
+          className="space-y-5"
+        >
+          <TabsList className="flex flex-wrap gap-2 rounded-[1.1rem] bg-surface-container-low p-1">
+            <TabsTrigger
+              value="control"
+              className={cn(
+                'inline-flex min-h-[42px] items-center gap-2 rounded-[1rem] px-4 text-sm font-medium transition-colors',
+                activeTab === 'control'
+                  ? 'bg-surface text-primary shadow-ambient'
+                  : 'text-on-surface-variant hover:bg-surface-container-lowest',
+              )}
+            >
+              <Radio className="size-4" aria-hidden />
+              课堂控制
+            </TabsTrigger>
+            <TabsTrigger
+              value="live-answer"
+              className={cn(
+                'inline-flex min-h-[42px] items-center gap-2 rounded-[1rem] px-4 text-sm font-medium transition-colors',
+                activeTab === 'live-answer'
+                  ? 'bg-surface text-primary shadow-ambient'
+                  : 'text-on-surface-variant hover:bg-surface-container-lowest',
+              )}
+            >
+              <BarChart3 className="size-4" aria-hidden />
+              作答实时
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="control">
         <Card className="bg-surface-container-low p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -605,6 +679,18 @@ export function ClassroomControlPanel({
             </div>
           ) : null}
         </Card>
+          </TabsContent>
+
+          <TabsContent value="live-answer">
+            <LiveAnswerDashboardSurface
+              sessionId={currentSnapshot.sessionId}
+              classroomStatus={currentSnapshot.status}
+              activeStepId={currentSnapshot.activeStepId}
+              steps={currentSnapshot.steps}
+              connectionState={connectionState}
+            />
+          </TabsContent>
+        </Tabs>
 
         {showRuntimeProofFeedback ? (
           <Card className="bg-surface-container-low p-5 sm:p-6">

@@ -115,4 +115,25 @@ describe("ClassroomPage", () => {
       }),
     );
   });
+
+  it("passes live-answer tab state through to the classroom console surface", async () => {
+    getClassroomConsoleDTO.mockResolvedValue({
+      sessionEntries: [{ id: "session-live", status: "live" }],
+    });
+
+    render(
+      await ClassroomPage({
+        searchParams: Promise.resolve({
+          sessionId: "session-live",
+          tab: "live-answer",
+        }),
+      }),
+    );
+
+    expect(classroomConsoleSurface).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activeConsoleTab: "live-answer",
+      }),
+    );
+  });
 });

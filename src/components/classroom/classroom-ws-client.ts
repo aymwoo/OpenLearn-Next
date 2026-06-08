@@ -139,7 +139,7 @@ export function subscribeClassroomSocket(input: SubscribeClassroomSocketInput): 
       return
     }
 
-    if (parsed.envelope?.kind === 'runtime.event') {
+    if (parsed.envelope?.kind === 'runtime.event' || parsed.envelope?.kind === 'quiz.answer.received') {
       input.onRuntimeEvent?.(parsed.envelope)
       return
     }
