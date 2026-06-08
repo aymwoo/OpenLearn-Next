@@ -4,6 +4,7 @@ import {
   ClassroomWebSocketClientEnvelopeSchema,
   ClassroomWebSocketMessageKindSchema,
   ClassroomWebSocketServerEnvelopeSchema,
+  QuizAnswerReceivedPayloadSchema,
   buildClassroomWebSocketServerEnvelope,
 } from "./ws-envelope";
 
@@ -12,11 +13,64 @@ describe("ws envelope contract", () => {
     expect(ClassroomWebSocketMessageKindSchema.options).toEqual([
       "teacher.control",
       "classroom.snapshot",
+      "quiz.answer.received",
       "runtime.command",
       "runtime.event",
       "transport.keepalive",
       "transport.error",
     ]);
+  });
+
+  it("validates quiz.answer.received payload schema and rejects extra fields", () => {
+    expect(
+      QuizAnswerReceivedPayloadSchema.parse({
+        questionId: "question-1",
+        studentId: "student-1",
+        responseType: "multi_choice",
+        payload: ["A", "C"],
+        receivedAt: 1710000000000,
+        classroomSessionId: "session-1",
+      }),
+    ).toMatchObject({
+      responseType: "multi_choice",
+      classroomSessionId: "session-1",
+    });
+
+    expect(() =>
+      QuizAnswerReceivedPayloadSchema.parse({
+        questionId: "question-1",
+        studentId: "student-1",
+        responseType: "single_choice",
+        payload: "A",
+        receivedAt: 1710000000000,
+        classroomSessionId: "session-1",
+        extra: true,
+      }),
+    ).toThrow();
+  });
+
+  it("builds a typed server envelope for quiz.answer.received", () => {
+    const envelope = buildClassroomWebSocketServerEnvelope({
+      sessionId: "session-1",
+      actor: {
+        userId: "teacher-1",
+        scope: "teacher",
+        schoolId: "school-1",
+      },
+      kind: "quiz.answer.received",
+      correlationId: "corr-quiz-1",
+      payload: {
+        questionId: "question-1",
+        studentId: "student-1",
+        responseType: "true_false",
+        payload: "A",
+        receivedAt: 1710000000000,
+        classroomSessionId: "session-1",
+      },
+    });
+
+    expect(envelope.kind).toBe("quiz.answer.received");
+    expect(envelope.correlation.correlationId).toBe("corr-quiz-1");
   });
 
   it("builds a typed server envelope with message, session, actor and correlation metadata", () => {

@@ -9,6 +9,7 @@ export const ClassroomWebSocketActorScopeSchema = z.enum([
 export const ClassroomWebSocketMessageKindSchema = z.enum([
   "teacher.control",
   "classroom.snapshot",
+  "quiz.answer.received",
   "runtime.command",
   "runtime.event",
   "transport.keepalive",
@@ -17,10 +18,30 @@ export const ClassroomWebSocketMessageKindSchema = z.enum([
 
 export const ClassroomWebSocketServerMessageKindSchema = z.enum([
   "classroom.snapshot",
+  "quiz.answer.received",
   "runtime.event",
   "transport.keepalive",
   "transport.error",
 ]);
+
+export const QuizAnswerReceivedQuestionTypeSchema = z.enum([
+  "single_choice",
+  "multi_choice",
+  "true_false",
+  "fill_blank",
+  "ordering",
+]);
+
+export const QuizAnswerReceivedPayloadSchema = z
+  .object({
+    questionId: z.string().uuid().or(z.string().min(1)),
+    studentId: z.string().uuid().or(z.string().min(1)),
+    responseType: QuizAnswerReceivedQuestionTypeSchema,
+    payload: z.unknown(),
+    receivedAt: z.number().int().positive(),
+    classroomSessionId: z.string().uuid().or(z.string().min(1)),
+  })
+  .strict();
 
 export const ClassroomWebSocketClientMessageKindSchema = z.enum([
   "teacher.control",
