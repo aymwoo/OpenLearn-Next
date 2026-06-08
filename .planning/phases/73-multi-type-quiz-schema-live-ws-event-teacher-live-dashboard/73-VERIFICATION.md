@@ -1,16 +1,16 @@
 ---
 phase: 73-multi-type-quiz-schema-live-ws-event-teacher-live-dashboard
-verified: 2026-06-08T08:20:00Z
-status: in_progress
-score: 4/4 product-proof truths verified
+verified: 2026-06-08T08:36:00Z
+status: passed
+score: 7/7 close truths verified
 overrides_applied: 0
 ---
 
 # Phase 73: Multi-Type Quiz & Live Dashboard Verification Report
 
 **Phase Goal:** 把 Phase 73 已交付的多题型课后 recap 与教师端 live dashboard，整理成可归档、可回指的 formal verification artifact：先说明老师真实能看到的两条用户链路，再把它们回接到 `verify:phase73`、`verify:phase73-v41-close-gate` 与 proof mapping。  
-**Verified:** 2026-06-08T08:20:00Z  
-**Status:** in_progress  
+**Verified:** 2026-06-08T08:36:00Z  
+**Status:** passed  
 **Verification posture:** 这里的 evidence 只来自真实代码、tests、`scripts/verify-phase73-quiz-ext.ts`、`scripts/verify-phase73-v41-close-gate.ts` 与 `73-PROOF-MAPPING.md`；`73-01-SUMMARY.md` / `73-02-SUMMARY.md` 只作背景上下文，不作为主证据。
 
 ## Goal Achievement
@@ -34,7 +34,7 @@ overrides_applied: 0
 | `scripts/verify-phase73-quiz-ext.ts` | Phase 73 独立 product truth lane | ✓ VERIFIED | 静态 seam + zero-write guard + focused suites 组成 Phase 73 内层 verifier。 |
 | `scripts/verify-phase73-v41-close-gate.ts` | 薄 outer close gate，消费 product proof lane 并补 artifact/manual/crosswalk readiness | ✓ VERIFIED | 7-stage outer gate 不复制 product assertions，而是把 proof chain、manual ledger 与 alias readiness 收口。 |
 | `73-PROOF-MAPPING.md` | requirement → flow → proof index，以及 manual sign-off ledger | ✓ VERIFIED | 已存在并承载 4-row ledger；本文的人审部分只回指它，不伪造 passed rows。 |
-| `73-VERIFICATION.md` | 用户链路优先的 formal verification artifact | ✓ IN PROGRESS | 本文即该 artifact；将在 task 2 补全 crosswalk 与 overall verdict。 |
+| `73-VERIFICATION.md` | 用户链路优先的 formal verification artifact | ✓ VERIFIED | 本文现已补齐 flow→gate crosswalk、requirements coverage、human verification posture 与 overall verdict。 |
 
 ### Key Link Verification
 
@@ -71,15 +71,18 @@ overrides_applied: 0
 
 | Behavior | Command | Result | Status |
 | --- | --- | --- | --- |
-| Phase 73 product truth lane 可重放 | `pnpm verify:phase73 --smoke` | 待 task 2 完成后记录实际结果 | ↺ PENDING |
-| v4.1 outer close gate 能把本文与 proof mapping 纳入 readiness | `pnpm verify:phase73-v41-close-gate --smoke` | 待 task 2 完成后记录实际结果 | ↺ PENDING |
+| Phase 73 product truth lane 可重放 | `pnpm verify:phase73 --smoke` | 通过；静态 product seams + zero-write guard 全绿，证明 recap/live-answer 两条产品链路可被独立 replay。 | ✓ PASS |
+| v4.1 outer close gate 能把本文与 proof mapping 纳入 readiness | `pnpm verify:phase73-v41-close-gate --smoke` | 命令成功返回，但 Stage 5/6/7 仍是 **blocked readiness**：`73-VERIFICATION.md` 已被纳入 close-proof corpus，`73-CLOSEOUT.md` 与真实 manual sign-off 仍待后续 close steps 收口。 | ✓ PASS (readiness blocked as expected) |
 
 ### Requirements Coverage
 
 | Requirement | Description | Status | Evidence |
 | --- | --- | --- | --- |
 | `QUIZ-EXT-CLOSE-01` | 以独立 `verify:phase73` 证明产品 truth，再由 outer gate 收口 | ✓ COVERED | `scripts/verify-phase73-quiz-ext.ts` 与 `scripts/verify-phase73-v41-close-gate.ts` 已分层落库；本文按两条用户链路解释其覆盖对象。 |
+| `QUIZ-EXT-CLOSE-02` | Manual Surface Sign-Off Ledger 继续作为真实人审账本，而不是被本文替代 | ✓ COVERED | `73-PROOF-MAPPING.md` Row 3 / Row 4 继续是 live-answer tab 与 multi-type recap 的唯一人工签核账本；本文只说明观察对象与证据边界。 |
 | `QUIZ-EXT-CLOSE-03` | verification artifact 需要 archive-ready、可回指 proof chain | ✓ COVERED | 本文采用 table-first scaffold，并把 recap/live dashboard 两条链路回指到代码、tests、scripts 与 `73-PROOF-MAPPING.md`。 |
+
+显式治理说明：项目级 `AGENTS.md` 把课堂广播写成 SSE baseline，但本 phase 按锁定 scope 只验证 Phase 73 已交付的 WebSocket-first teacher-only path。这里是在现有 transport 上收口 proof chain，**no second transport runtime**；不会新建第二条 transport runtime，也不会重开 transport 方案选择。
 
 ### Human Verification
 
@@ -87,7 +90,18 @@ overrides_applied: 0
 - 真实观察对象是 `/classroom?sessionId={id}&tab=live-answer` 与 ended-session `/classroom?sessionId={id}` 路径上的产品 surface，而不是临时验证页。  
 - 因此，这里只说明**应该去看哪里、为什么要看**；具体 `executed_by` / `executed_at` / `evidence note` 仍以后续人工 sign-off ledger 为准。
 
+### user flow -> gate stages
+
+| User flow | Product truth lane | Close-gate stages |
+| --- | --- | --- |
+| Multi-type recap chain | `verify:phase73` 对 `src/lib/dal/classroom.ts` 的 `buildQuizSampleRecapStats` / `getClassroomSessionRecapDTO`、`src/components/classroom/classroom-session-recap-surface.tsx`、focused recap suites 做 product truth replay | `verify:phase73` (product truth) + `verify:phase73-v41-close-gate` Stage 4 recap bridge + Stage 5 final-artifact/manual ledger + Stage 6 multi-type close-proof crosswalk |
+| Live dashboard chain | `verify:phase73` 对 `submitQuizSampleAnswer` → `produceQuizAnswerReceived` → `quiz.answer.received` → teacher-only websocket filter → `LiveAnswerDashboardSurface` 做 product truth replay，并保留 zero-write guard | `verify:phase73` (teacher-only + zero-write truth) + `verify:phase73-v41-close-gate` Stage 5 final-artifact/manual ledger + Stage 7 live-dashboard close-proof crosswalk / alias readiness |
+
+## Overall Verdict: PRODUCT PROOF READY
+
+Phase 73 的 formal verification 现已具备 archive-ready shape：正文先说明 **Multi-type recap chain** 与 **Live dashboard chain** 两条老师真实能感知的产品链路，再把它们显式回接到 `verify:phase73` 与 `verify:phase73-v41-close-gate` 的 gate stages。当前 close gate posture 也已清楚：产品 proof 已就位，`73-PROOF-MAPPING.md` 已作为人工签核 ledger 与 proof index 存在；但 `pnpm verify:phase73-v41-close-gate --smoke` 的 Stage 5/6/7 仍如预期处于 readiness-blocked，因为 `73-CLOSEOUT.md` 与真实 manual sign-off 还要由后续 close steps 收口。换言之，v4.1 在这里已经达到 **product proof ready**，但不会越权把人工签核、final closeout 或 alias cutover 伪装成已完成。
+
 ---
 
-_Verified: 2026-06-08T08:20:00Z_  
-_Verifier: gsd-executor / Phase 74-03 task 1_
+_Verified: 2026-06-08T08:36:00Z_  
+_Verifier: gsd-executor / Phase 74-03 task 2_
