@@ -71,6 +71,7 @@
     "verify:phase70": "pnpm vitest run src/lib/cache-policy.test.ts src/actions/classroom-actions.test.ts src/lib/dal/classroom.test.ts src/components/classroom/classroom-session-recap-surface.test.tsx src/components/surfaces/classroom-console-surface.test.tsx \"src/app/(classroom)/classroom/page.test.tsx\" && node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase70-quiz-stats.ts",
     "verify:phase71": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase71-marketplace-lifecycle.ts",
     "verify:phase72": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase72-close-gate.ts",
+    "verify:phase73": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase73-quiz-ext.ts",
     "test:ci": "pnpm vitest run && pnpm test:live-answer-zero-write",
     "test:live-answer-zero-write": "tsx scripts/verify-live-answer-zero-write.ts",
     "verify:phase": "pnpm verify:phase72",
