@@ -1,61 +1,25 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
-describe("classroom fanout (Phase 73 Wave 0)", () => {
-  describe("Redis fanout parity", () => {
-    it("publishes events to all Redis subscribers in a classroom channel", () => {
-      expect(true).toBe(true);
-    });
+describe("classroom fanout", () => {
+  it("routes quiz.answer.received through runtime subchannel and session topic helper", () => {
+    const topicSource = readFileSync(
+      "src/features/runtime-platform/seams/transport/redis-fanout-topics.ts",
+      "utf8",
+    );
 
-    it("ensures fanout count matches connected client count", () => {
-      expect(true).toBe(true);
-    });
-
-    it("handles concurrent fanout to multiple channels", () => {
-      expect(true).toBe(true);
-    });
-
-    it("recovers from partial fanout failure without dropping events", () => {
-      expect(true).toBe(true);
-    });
-
-    it("cleans up Redis pub/sub state when client disconnects", () => {
-      expect(true).toBe(true);
-    });
+    expect(topicSource).toContain('input.kind.startsWith("quiz.")');
+    expect(topicSource).toContain("export function quizAnswerReceivedTopic");
   });
 
-  describe("event delivery ordering", () => {
-    it("delivers events in the order they were published", () => {
-      expect(true).toBe(true);
-    });
+  it("keeps fail-open local fallback when redis publish fails", () => {
+    const managerSource = readFileSync(
+      "src/features/runtime-platform/seams/transport/redis-fanout-manager.ts",
+      "utf8",
+    );
 
-    it("preserves ordering across reconnection cycles", () => {
-      expect(true).toBe(true);
-    });
-
-    it("handles out-of-order event delivery gracefully", () => {
-      expect(true).toBe(true);
-    });
-
-    it("sequences step_control events with broadcast events correctly", () => {
-      expect(true).toBe(true);
-    });
-
-    it("maintains causal ordering for dependent events", () => {
-      expect(true).toBe(true);
-    });
-  });
-
-  describe("delivery guarantees", () => {
-    it("guarantees at-least-once delivery for broadcast events", () => {
-      expect(true).toBe(true);
-    });
-
-    it("detects and handles duplicate event deliveries", () => {
-      expect(true).toBe(true);
-    });
-
-    it("validates event payload integrity after fanout", () => {
-      expect(true).toBe(true);
-    });
+    expect(managerSource).toContain("classroomWebSocketConnectionRegistry.broadcast(");
+    expect(managerSource).toContain("throw new RedisFanoutDeliveryError");
   });
 });

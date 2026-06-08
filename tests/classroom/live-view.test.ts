@@ -1,42 +1,30 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
-/**
- * Phase 73 Wave 0 - Live View Test Stubs
- *
- * Requirements:
- * - real-time answer display
- * - step sync with SSE stream
- */
-describe("live-view (Phase 73 Wave 0)", () => {
-  describe("real-time answer display", () => {
-    it("renders answer submissions as they arrive via SSE", () => {
-      expect(true).toBe(true);
-    });
+describe("live-view", () => {
+  it("keeps live-answer surface zero-write and websocket-driven", () => {
+    const surfaceSource = readFileSync(
+      "src/components/classroom/live-answer-dashboard-surface.tsx",
+      "utf8",
+    );
+    const storeSource = readFileSync(
+      "src/components/classroom/live-answer-dashboard-store.ts",
+      "utf8",
+    );
 
-    it("displays answer latency indicator", () => {
-      expect(true).toBe(true);
-    });
-
-    it("aggregates multiple student answers in real-time", () => {
-      expect(true).toBe(true);
-    });
+    expect(surfaceSource).toContain("只读聚合作答流，不触发任何写操作");
+    expect(surfaceSource).not.toMatch(/update[A-Z]|delete[A-Z]|grade[A-Z]/);
+    expect(storeSource).toContain("pushEnvelope");
+    expect(storeSource).toContain("latestByQuestionStudent");
   });
 
-  describe("step sync with SSE stream", () => {
-    it("syncs current step to classroom state on SSE connect", () => {
-      expect(true).toBe(true);
-    });
+  it("switches classroom websocket client to consume quiz.answer.received as runtime updates", () => {
+    const clientSource = readFileSync(
+      "src/components/classroom/classroom-ws-client.ts",
+      "utf8",
+    );
 
-    it("receives step change events from SSE stream", () => {
-      expect(true).toBe(true);
-    });
-
-    it("handles locked mode where teacher controls step navigation", () => {
-      expect(true).toBe(true);
-    });
-
-    it("handles unlocked mode where students navigate freely", () => {
-      expect(true).toBe(true);
-    });
+    expect(clientSource).toContain("parsed.envelope?.kind === 'quiz.answer.received'");
   });
 });

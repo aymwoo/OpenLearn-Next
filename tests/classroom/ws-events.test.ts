@@ -1,53 +1,41 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
-describe("classroom WS events (Phase 73 Wave 0)", () => {
-  describe("teacher-only WS channel", () => {
-    it("establishes WebSocket connection on teacher-authenticated channel", () => {
-      expect(true).toBe(true);
-    });
+describe("classroom WS events", () => {
+  it("keeps quiz.answer.received on a dedicated websocket server kind", () => {
+    const envelopeSource = readFileSync(
+      "src/features/runtime-platform/seams/transport/ws-envelope.ts",
+      "utf8",
+    );
+    const adapterSource = readFileSync(
+      "src/features/runtime-platform/seams/transport/ws-adapter.ts",
+      "utf8",
+    );
 
-    it("rejects student connections to teacher channel", () => {
-      expect(true).toBe(true);
-    });
-
-    it("validates teacher role before channel access", () => {
-      expect(true).toBe(true);
-    });
+    expect(envelopeSource).toContain('"quiz.answer.received"');
+    expect(adapterSource).toContain('if (kind === "quiz.answer.received")');
   });
 
-  describe("step control events", () => {
-    it("emits step_control event when teacher advances to next step", () => {
-      expect(true).toBe(true);
-    });
+  it("delivers quiz.answer.received only to teacher scoped sockets", () => {
+    const registrySource = readFileSync(
+      "src/features/runtime-platform/seams/transport/ws-connection-registry.ts",
+      "utf8",
+    );
 
-    it("emits step_control event when teacher retreats to previous step", () => {
-      expect(true).toBe(true);
-    });
-
-    it("broadcasts step change to all students in classroom", () => {
-      expect(true).toBe(true);
-    });
-
-    it("locks student navigation when step_control is locked mode", () => {
-      expect(true).toBe(true);
-    });
-
-    it("unlocks student navigation when step_control is unlocked mode", () => {
-      expect(true).toBe(true);
-    });
+    expect(registrySource).toContain('envelope.kind === "quiz.answer.received"');
+    expect(registrySource).toContain("connection.owner.actorScope !== \"teacher\"");
   });
 
-  describe("broadcast delivery", () => {
-    it("delivers broadcast message to all connected student clients", () => {
-      expect(true).toBe(true);
-    });
+  it("bridges durable quiz submissions into transport through the command producer", () => {
+    const dalSource = readFileSync("src/lib/dal/classroom.ts", "utf8");
+    const commandSource = readFileSync(
+      "src/features/platform-core/commands/handlers/quiz-answer-received.ts",
+      "utf8",
+    );
 
-    it("maintains delivery order for sequential events", () => {
-      expect(true).toBe(true);
-    });
-
-    it("closes broadcast stream when session status becomes ended", () => {
-      expect(true).toBe(true);
-    });
+    expect(dalSource).toContain("produceQuizAnswerReceived({");
+    expect(commandSource).toContain('kind: command.type');
+    expect(commandSource).toContain('channel: "classroom-runtime"');
   });
 });

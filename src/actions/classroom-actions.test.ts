@@ -871,5 +871,10 @@ describe("classroom-actions", () => {
       expect(actionSource).toContain("updateTag(cacheTags.teacherReview(parsed.data.lessonId))");
       expect(actionSource).toContain("updateTag(cacheTags.quizStats(parsed.data.sessionId))");
     });
+
+    it("keeps quiz sample submit action on the DAL boundary while live event dispatch stays downstream", () => {
+      expect(actionSource).not.toContain("dispatchPlatformCommand({ type: \"quiz.answer.received\"");
+      expect(actionSource).toContain("submitQuizSampleAnswer(parsed.data)");
+    });
   });
 });
