@@ -3,7 +3,7 @@
 **Status:** planning (started 2026-06-07)
 **Milestone:** v4.1 (extends v4.0 baseline; no kernel rebuild)
 **Phases:** 73–74 (2 phases, hard cap 3)
-**Total Plans (planned):** 4 (73: 2 plans; 74: 2 plans)
+**Total Plans (planned):** 7 (73: 2 plans; 74: 5 plans)
 **N (committed scope):** 2 — QUIZ-EXT-01 + QUIZ-EXT-02 bundle, both bound to `pluginKey = "quiz"`, both reusing the v4.0 single-choice quiz sample + v2.2 WebSocket-first classroom transport
 
 ## Milestone Goal
@@ -63,8 +63,11 @@ v4.1 extends the v4.0 single-choice quiz sample (`pluginKey = "quiz"`) and the v
   - **QUIZ-EXT-CLOSE-02 — Manual Surface Sign-Off Ledger**：仿 v4.0 `72.1-PROOF-MAPPING.md` ledger schema（`proof artifact` + `status: passed` + `executed_by` + `executed_at` + `evidence note`），新增 2 行：`/classroom` 实时仪表盘 tab + 多题型课后 recap 表面。
   - **QUIZ-EXT-CLOSE-03 — Retro / 归档就绪**：phase 73/74 (本 roadmap) 配齐 CLOSEOUT / PROOF-MAPPING / VERIFICATION 三件套；D-72.1-16 锁定 conclusion 永远不先于 evidence；milestone close gate `pnpm verify:phase` alias 仍指向 v4.0 + v4.1 顺序串联，单一权威入口不破。
 - **Plans:**
-  - **Plan 74-01 — Strengthen Phase 73 executable verifier + write 73-VERIFICATION.md formal report.** 强化 `scripts/verify-phase73-quiz-ext.ts` 至 8+ 静态断言 (5 题型 schema + WS event + dashboard tab + 写操作隔离 + Redis fanout contract + recap 5 段渲染) + 3+ 分支可执行断言 (5 题型 insert/getByIndex/append-only 跨 verb 端到端) + 写 `.planning/phases/73-.../73-VERIFICATION.md` 形式化报告（按 v4.0 69-VERIFICATION scaffold：observable truths + required artifacts + key link + data-flow + behavioral + requirements coverage + anti-patterns + human verification + 结论）。Wave 1。
-  - **Plan 74-02 — Proof mapping + Manual Surface Sign-Off Ledger + archive-ready closeout.** 写 `.planning/phases/73-.../73-PROOF-MAPPING.md` (Requirement → Flow Segment → Proof 三张表 + 新增 2 行 Manual Sign-Off: `/classroom` 实时仪表盘 tab + 多题型课后 recap 表面) + 强化 `scripts/verify-phase73-v41-close-gate.ts` 至 7 stage (script wiring + upstream VERIFICATION + 多题型 stage + 实时仪表盘 stage + lifecycle bridge 复用 + recap bridge 复用 + final-artifact dependencies + manual sign-off ledger 解析) + 写 `.planning/phases/73-.../73-CLOSEOUT.md` (D-72.1-16 锁定：先 PROOF-MAPPING，后 gate wiring，最后 CLOSEOUT)。Wave 2，依赖 Plan 74-01。
+  - **Plan 74-01 — Proof mapping first + independent `verify:phase73` product truth lane.** 先写 `.planning/phases/73-.../73-PROOF-MAPPING.md`（4-row ledger：承接 v4.0 两行 + v4.1 新增两行 pending-human-signoff）再新增 `scripts/verify-phase73-quiz-ext.ts` 与 `package.json#verify:phase73`；inner verifier 只覆盖 multi-type recap / live dashboard / zero-write / transport product seams，不碰 close artifacts，不改 `verify:phase`。Wave 1。
+  - **Plan 74-02 — Thin outer close gate wiring without alias cutover.** 新增 `scripts/verify-phase73-v41-close-gate.ts` 与 `package.json#verify:phase73-v41-close-gate`；outer gate 只消费 `pnpm verify:phase73` 作为 upstream proof lane，并补 close-truth checks：artifact dependencies、proof-chain wording、manual ledger parser、alias readiness；`verify:phase` 继续保持 `pnpm verify:phase72`。Wave 2，依赖 Plan 74-01。
+  - **Plan 74-03 — Write user-flow-first `73-VERIFICATION.md`.** 形式化报告按两条用户链路组织：multi-type recap chain 与 live dashboard chain；文末附显式 `user flow -> gate stages` crosswalk，并覆盖 `QUIZ-EXT-CLOSE-01/02/03`。Wave 3，依赖 Plan 74-02。
+  - **Plan 74-04 — Human-observed manual sign-off checkpoint.** 在真实 `/classroom` 路径上人工观察 live-answer tab 与 multi-type recap surface，回传 `executed_by` / `executed_at` / `evidence_note` 两组 payload；本 plan 不自动把 rows 标成 passed。Wave 4，依赖 Plan 74-03。
+  - **Plan 74-05 — Final closeout + conditional alias cutover.** 用 74-04 的真实 payload 回填 `73-PROOF-MAPPING.md` 两条 v4.1 rows，最后写 `73-CLOSEOUT.md`，并仅在 D-04 条件全部满足时把 `verify:phase` 改为 `pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate`；否则明确保持 phase72 alias。Wave 5，依赖 Plan 74-04。
 - **Success criteria (3-5 observable truths, must all be true for milestone close):**
   1. `pnpm verify:phase73-v41-close-gate` 7 stage 全绿，stage 6 (多题型) + stage 7 (实时仪表盘) 静态断言全部 PASS。
   2. `pnpm verify:phase` alias 顺序串接 `verify:phase72` + `verify:phase73` 全绿，CLI exit 0。
