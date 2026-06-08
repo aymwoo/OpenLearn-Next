@@ -111,6 +111,13 @@ class ClassroomWebSocketConnectionRegistry {
         continue;
       }
 
+      if (
+        envelope.kind === "quiz.answer.received" &&
+        connection.owner.actorScope !== "teacher"
+      ) {
+        continue;
+      }
+
       connection.socket.send(payload);
       deliveredCount += 1;
     }

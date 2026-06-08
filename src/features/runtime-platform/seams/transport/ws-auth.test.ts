@@ -131,4 +131,11 @@ describe("ws handshake auth", () => {
       sessionId: "session-1",
     });
   });
+
+  it("exposes isTeacherActor helper for teacher-only channel checks", async () => {
+    const { isTeacherActor } = await import("./ws-auth");
+
+    await expect(isTeacherActor("teacher-1", "session-1")).resolves.toBe(true);
+    await expect(isTeacherActor("student-1", "session-1")).resolves.toBe(false);
+  });
 });

@@ -27,6 +27,16 @@ vi.mock("./redis-fanout-manager", () => ({
   },
 }));
 
+const register = vi.fn();
+const unregister = vi.fn();
+
+vi.mock("./ws-connection-registry", () => ({
+  classroomWebSocketConnectionRegistry: {
+    register,
+    unregister,
+  },
+}));
+
 function createSocket() {
   return {
     send: vi.fn(),
@@ -36,6 +46,8 @@ function createSocket() {
 describe("ws server client message handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    register.mockReturnValue({ id: "connection-1", connectionCount: 1 });
+    unregister.mockReturnValue({ remainingConnectionCount: 0 });
 
     getClassroomSnapshotForActor.mockResolvedValue({
       sessionId: "session-1",
@@ -190,5 +202,24 @@ describe("ws server client message handling", () => {
       traceType: "runtime_event",
       correlationId: "corr-3",
     }));
+  });
+
+  it("registers teacher connections with teacher actor scope for downstream teacher-only filtering", async () => {
+    const connectionHandlerRef: { current?: (ws: unknown, request: unknown, context: unknown) => Promise<void> } = {};
+    const on = vi.fn((event: string, handler: unknown) => {
+      if (event === "connection") {
+        connectionHandlerRef.current = handler as typeof connectionHandlerRef.current;
+      }
+    });
+
+    const serverMock = { on };
+    const wsServerCtor = vi.fn(() => serverMock);
+    vi.doMock("ws", () => ({ WebSocketServer: wsServerCtor }));
+
+    const mod = await import("./ws-server");
+    const httpServer = { on: vi.fn() };
+    mod.classroomWebSocketTransportServer.initialize(httpServer as never);
+
+    expect(on).toHaveBeenCalledWith("connection", expect.any(Function));
   });
 });

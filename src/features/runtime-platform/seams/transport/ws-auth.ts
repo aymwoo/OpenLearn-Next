@@ -66,6 +66,14 @@ function assertRequestedScope(
   }
 }
 
+export async function isTeacherActor(userId: string, sessionId: string) {
+  const session = await db.query.classroomSessions.findFirst({
+    where: eq(classroomSessions.id, sessionId),
+  });
+
+  return session?.teacherId === userId;
+}
+
 function toTokenRequest(request: IncomingMessage) {
   const headers = new Headers();
 
@@ -130,7 +138,7 @@ export async function authenticateClassroomWebSocket(request: IncomingMessage, s
     throw new ClassroomWebSocketHandshakeError("WEBSOCKET_UNAUTHORIZED", 401);
   }
 
-  if (session.teacherId === userId) {
+  if (await isTeacherActor(userId, sessionId)) {
     const context = {
       userId,
       schoolId: classroom.schoolId,
