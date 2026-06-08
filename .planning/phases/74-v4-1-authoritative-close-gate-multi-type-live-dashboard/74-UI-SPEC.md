@@ -51,6 +51,10 @@ created: 2026-06-08
 3. 所有区块分隔继续靠留白、圆角、tonal shift，不允许出现 1px 实线分隔。
 4. Accent 只用于 active state / live signal / 分布强调，不扩散成“全界面都蓝”。
 
+**Primary visual focus:**
+- `/classroom` 实时作答 tab 首眼必须先落在顶部连接状态 badge 与其相邻的按题分布摘要；它们共同构成 live-answer surface 的 primary proof cluster。
+- ended-session 多题型 recap 首眼必须先落在 `题目复盘` 标题区，再顺势进入首屏题型统计块；这两层构成课后 authoritative recap 的阅读起点。
+
 ---
 
 ## Spacing Scale
@@ -67,7 +71,7 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Major section breaks |
 | 3xl | 64px | Page-level spacing |
 
-Exceptions: interactive buttons keep 44px minimum touch target; desktop-only tab triggers may remain visually 42px high only inside the teacher control shell.
+Exceptions: none.
 
 **Source:** `src/app/globals.css`, `src/components/surfaces/teacher-surface-rhythm.ts`, inherited from `73-UI-SPEC.md`.
 
@@ -106,6 +110,7 @@ Accent reserved for: active `TabsTrigger`, live connection/status emphasis, sele
 ## Interaction Contract
 
 - `作答实时` 与 `课堂控制` 继续作为同级 tab；active tab 只用 tonal background shift + accent text 表示，不加硬边框。
+- 教师控制壳内的 interactive button 与 desktop tab trigger 一律采用 44px hit area / 44px visual height，对齐 4pt grid，不再声明 42px 特例。
 - `作答实时` 内部继续保留 `按题分布` / `作答流水` 双视图；切换后内容区直接切换，不开 modal、不跳新页。
 - 连接状态只通过 badge / inline status 呈现：`connected`、`reconnecting`、`fallback`、`closed`；错误不升级成打断式弹窗。
 - 课堂结束后，实时面板必须退回“课堂已结束 → 跳转 recap”收口卡片；课后 recap 成为 authoritative read surface。
