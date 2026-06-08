@@ -581,8 +581,11 @@ describe("submitQuizSampleAnswer", () => {
     const nextExport = source.indexOf("export async function", submitStart + 1);
     const submitSource = source.slice(submitStart, nextExport === -1 ? undefined : nextExport);
 
-    expect(submitSource).toContain("dispatchPluginDataAccess({");
-    expect(submitSource).toContain('table: "plugin_owned_quiz_responses"');
+    // Phase 73: Direct SQL append-only writes via tx.insert(pluginOwnedQuizResponses) with isLatest flip
+    // This replaces the dispatchPluginDataAccess approach for 5-type payload support
+    expect(submitSource).toContain("pluginOwnedQuizResponses");
+    expect(submitSource).toContain("isLatest: false"); // append-only: clear previous isLatest
+    expect(submitSource).toContain("isLatest: true"); // new row with isLatest = true
     expect(submitSource).not.toContain("quizAttempts");
   });
 
@@ -1693,6 +1696,7 @@ describe("phase 25 session recap contracts", () => {
         where: vi.fn().mockResolvedValue([
           {
             question: 'step-2',
+            questionType: 'single_choice',
             prompt: '课堂问题',
             optionAText: '春天',
             optionBText: '秋天',
@@ -1737,6 +1741,7 @@ describe("phase 25 session recap contracts", () => {
   });
 
   it("computes quiz sample unanswered counts from classroom participants", async () => {
+    assertActiveTeacher.mockResolvedValue({ userId: "teacher-1", schoolIds: ["school-1"] });
     findFirstClassroomSessions.mockResolvedValueOnce({
       id: 'session-ended',
       lessonId: 'lesson-in-scope',
@@ -1798,6 +1803,7 @@ describe("phase 25 session recap contracts", () => {
         where: vi.fn().mockResolvedValue([
           {
             question: 'step-2',
+            questionType: 'single_choice',
             prompt: '课堂问题',
             optionAText: '春天',
             optionBText: '秋天',
@@ -1812,7 +1818,7 @@ describe("phase 25 session recap contracts", () => {
       from: vi.fn(() => ({
         where: vi.fn().mockReturnValue({
           groupBy: vi.fn().mockResolvedValue([
-            { question: 'step-2', selectedOption: 'B', count: 1 },
+            { question: 'step-2', questionType: 'single_choice', selectedOption: 'B', count: 1 },
           ]),
         }),
       })),
@@ -1825,8 +1831,7 @@ describe("phase 25 session recap contracts", () => {
       answeredCount: 1,
       unansweredCount: 2,
       participantCount: 3,
-      correctCount: 0,
-      correctRate: 0,
+      questionType: 'single_choice',
     });
   });
 

@@ -11,7 +11,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["src/**/*.{test,spec}.ts", "src/**/*.{test,spec}.tsx", "scripts/**/*.test.ts"],
+    include: ["src/**/*.{test,spec}.ts", "src/**/*.{test,spec}.tsx", "scripts/**/*.test.ts", "tests/**/*.test.ts"],
     maxWorkers: 4,
     testTimeout: 30000,
     coverage: {
