@@ -1,0 +1,37 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e6]:
+      - navigation [ref=e7]:
+        - generic [ref=e8]:
+          - link "OpenLearn Next 未来课堂操作系统" [ref=e9] [cursor=pointer]:
+            - /url: /
+          - generic [ref=e17]
+          - link "进入系统" [ref=e22] [cursor=pointer]:
+            - /url: /
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - generic [ref=e27]
+          - generic [ref=e31]
+          - generic [ref=e36]
+          - generic [ref=e41]
+        - generic [ref=e108]:
+          - generic [ref=e109]
+          - generic [ref=e118]
+          - generic [ref=e121]
+          - generic [ref=e128]
+          - generic [ref=e152]
+          - generic [ref=e159]
+      - generic [ref=e161]:
+        - article [ref=e162]:
+          - img [ref=e164]
+          - heading "节奏驱动" [level=3] [ref=e170]
+          - paragraph [ref=e171]: 把导入、讲授、互动、练习与总结编排成有张力的课堂舞台。
+        - article [ref=e172]:
+          - img [ref=e174]
+          - heading "师生共屏" [level=3] [ref=e178]
+          - paragraph [ref=e179]: 教师控制课堂进度，学生端实时跟随或切换到自由探索模式。
+        - article [ref=e180]:
+          - img [ref=e182]
+          - heading "Agent 协作" [level=3] [ref=e185]
+          - paragraph [ref=e186]: 让教案、题目、反馈与资源推荐从单点生成变成协同产出。
+  - alert [ref=e187]

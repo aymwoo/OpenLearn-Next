@@ -24,6 +24,53 @@ type LiveAnswerDashboardSurfaceProps = {
   activeStepId: string
   steps: ClassroomStepDTO[]
   connectionState: 'connected' | 'reconnecting' | 'fallback' | 'closed'
+  currentVotingRound?: ClassroomSnapshotDTO['currentVotingRound']
+}
+
+function buildFallbackAggregate(input: NonNullable<ClassroomSnapshotDTO['currentVotingRound']>) {
+  if (!input.stepId || input.optionResults.length === 0) {
+    return null
+  }
+
+  return {
+    questionId: input.stepId,
+    responseType: 'single_choice' as const,
+    totalResponses: input.submittedCount,
+    lastReceivedAt: input.namedResults.reduce((latest, item) => {
+      if (!item.submittedAt) {
+        return latest
+      }
+
+      const timestamp = Date.parse(item.submittedAt)
+      return Number.isNaN(timestamp) ? latest : Math.max(latest, timestamp)
+    }, 0),
+    buckets: input.optionResults.map((item) => ({
+      label: item.optionLabel,
+      count: item.count,
+    })),
+  } satisfies LiveAnswerAggregate
+}
+
+function buildFallbackRecentEvents(
+  input: NonNullable<ClassroomSnapshotDTO['currentVotingRound']>,
+  limit: number,
+) {
+  if (!input.stepId) {
+    return []
+  }
+
+  return input.namedResults
+    .map((item) => ({
+      correlationId: `${input.stepId}:${item.studentId}:${item.submittedAt ?? 'pending'}`,
+      questionId: input.stepId!,
+      studentId: item.studentId,
+      responseType: 'single_choice' as const,
+      payload: item.selectedOptionLabels,
+      receivedAt: item.submittedAt ? Date.parse(item.submittedAt) : 0,
+      classroomSessionId: '',
+    }))
+    .sort((left, right) => right.receivedAt - left.receivedAt)
+    .slice(0, limit)
 }
 
 function formatAnswerPreview(value: unknown) {
@@ -63,6 +110,7 @@ export function LiveAnswerDashboardSurface({
   activeStepId,
   steps,
   connectionState,
+  currentVotingRound = null,
 }: LiveAnswerDashboardSurfaceProps) {
   const bindSession = useLiveAnswerStore((state: LiveAnswerDashboardState) => state.bindSession)
   const setSelectedQuestionId = useLiveAnswerStore((state: LiveAnswerDashboardState) => state.setSelectedQuestionId)
@@ -86,20 +134,26 @@ export function LiveAnswerDashboardSurface({
     () => (Object.values(aggregates) as LiveAnswerAggregate[]).sort((left, right) => right.lastReceivedAt - left.lastReceivedAt),
     [aggregates],
   )
+  const fallbackAggregateList = useMemo(
+    () => (currentVotingRound ? [buildFallbackAggregate(currentVotingRound)].filter(Boolean) as LiveAnswerAggregate[] : []),
+    [currentVotingRound],
+  )
+  const displayAggregateList = aggregateList.length > 0 ? aggregateList : fallbackAggregateList
   const selectedAggregate = selectedQuestionId
-    ? aggregates[selectedQuestionId] ?? null
-    : aggregateList[0] ?? null
+    ? displayAggregateList.find((item) => item.questionId === selectedQuestionId) ?? null
+    : displayAggregateList[0] ?? null
   const selectedStep = quizSteps.find((step) => step.id === (selectedAggregate?.questionId ?? activeStepId))
   const recentEvents = useMemo(
-    () => getRecentLiveAnswerEvents(events, recentLimit),
-    [events, recentLimit],
+    () => (events.length > 0 ? getRecentLiveAnswerEvents(events, recentLimit) : currentVotingRound ? buildFallbackRecentEvents(currentVotingRound, recentLimit) : []),
+    [currentVotingRound, events, recentLimit],
   )
+  const emptyState = displayAggregateList.length === 0 && recentEvents.length === 0
 
   useEffect(() => {
-    if (!selectedQuestionId && (aggregateList[0]?.questionId ?? activeStepId)) {
-      setSelectedQuestionId(aggregateList[0]?.questionId ?? activeStepId)
+    if (!selectedQuestionId && (displayAggregateList[0]?.questionId ?? activeStepId)) {
+      setSelectedQuestionId(displayAggregateList[0]?.questionId ?? activeStepId)
     }
-  }, [activeStepId, aggregateList, selectedQuestionId, setSelectedQuestionId])
+  }, [activeStepId, displayAggregateList, selectedQuestionId, setSelectedQuestionId])
 
   if (classroomStatus === 'ended') {
     return (
@@ -140,12 +194,12 @@ export function LiveAnswerDashboardSurface({
                   : '连接已关闭'}
           </Badge>
           <Badge className="bg-surface-container-low text-on-surface-variant">
-            最新答案 {aggregateList.reduce((total, item) => total + item.totalResponses, 0)} 条
+            最新答案 {displayAggregateList.reduce((total, item) => total + item.totalResponses, 0)} 条
           </Badge>
         </div>
       </div>
 
-      {aggregateList.length === 0 ? (
+      {emptyState ? (
         <div className="mt-5 rounded-[1.6rem] bg-surface-container-low p-6 text-center shadow-ambient">
           <Circle className="mx-auto size-7 text-primary/60" aria-hidden />
           <h4 className="mt-3 text-lg font-semibold text-on-surface">暂无作答数据</h4>
@@ -189,7 +243,7 @@ export function LiveAnswerDashboardSurface({
 
           <TabsContent value="aggregation" className="mt-5 space-y-4">
             <div className="flex flex-wrap gap-2">
-              {aggregateList.map((item) => {
+              {displayAggregateList.map((item) => {
                 const step = quizSteps.find((candidate) => candidate.id === item.questionId)
                 const isActive = (selectedAggregate?.questionId ?? activeStepId) === item.questionId
 

@@ -1186,11 +1186,33 @@ function toClassroomEvidencePayloadDTO(payload: unknown) {
   return sanitized;
 }
 
+function parseLessonStepPayloadWithRuntimeFallback(payload: unknown) {
+  const parsedPayload = lessonStepPayloadSchema.safeParse(payload);
+
+  if (parsedPayload.success) {
+    return parsedPayload.data;
+  }
+
+  if (!payload || typeof payload !== "object" || !("runtime" in payload)) {
+    throw parsedPayload.error;
+  }
+
+  const fallbackPayload = { ...(payload as Record<string, unknown>) };
+  delete fallbackPayload.runtime;
+
+  const fallbackParsedPayload = lessonStepPayloadSchema.safeParse(fallbackPayload);
+  if (fallbackParsedPayload.success) {
+    return fallbackParsedPayload.data;
+  }
+
+  throw parsedPayload.error;
+}
+
 function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string) {
   return [...(snapshot.steps ?? [])]
     .sort((a, b) => a.rank.localeCompare(b.rank))
     .map((step) => {
-      const payload = lessonStepPayloadSchema.parse(step.payload);
+      const payload = parseLessonStepPayloadWithRuntimeFallback(step.payload);
 
       return {
         id: step.id,

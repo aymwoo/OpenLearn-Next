@@ -1,0 +1,33 @@
+Total messages: 2 (Errors: 2, Warnings: 0)
+Returning 30 messages for level "error"
+
+[ERROR] WebSocket connection to 'ws://127.0.0.1:3000/api/ws/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8?actor=teacher' failed: Connection closed before receiving a handshake response @ http://127.0.0.1:3000/_next/static/chunks/1211ihmh6_dv-.js:0
+[ERROR] WebSocket connection to 'ws://127.0.0.1:3000/api/ws/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8?actor=teacher' failed: Connection closed before receiving a handshake response @ http://127.0.0.1:3000/_next/static/chunks/1211ihmh6_dv-.js:0
+[ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events:0
+[ERROR] WebSocket connection to 'ws://127.0.0.1:3000/api/ws/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8?actor=teacher' failed: Connection closed before receiving a handshake response @ http://127.0.0.1:3000/_next/static/chunks/1211ihmh6_dv-.js:0
+[ERROR] WebSocket connection to 'ws://127.0.0.1:3000/api/ws/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8?actor=teacher' failed: Connection closed before receiving a handshake response @ http://127.0.0.1:3000/_next/static/chunks/1211ihmh6_dv-.js:0

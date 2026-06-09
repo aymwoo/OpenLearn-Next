@@ -1,0 +1,132 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e188]:
+    - complementary [ref=e190]:
+      - generic [ref=e191]:
+        - generic [ref=e192]:
+          - generic [ref=e196]: "ON"
+          - generic [ref=e197]:
+            - heading "OpenLearn Next" [level=1] [ref=e198]
+            - generic [ref=e199]: primary-nav
+        - navigation "教师端侧边导航" [ref=e200]:
+          - link "工作台" [ref=e201] [cursor=pointer]:
+            - /url: /teacher
+            - img [ref=e202]
+            - text: 工作台
+          - link "班级管理" [ref=e207] [cursor=pointer]:
+            - /url: /teacher/classes
+            - img [ref=e208]
+            - text: 班级管理
+          - link "课程管理" [ref=e211] [cursor=pointer]:
+            - /url: /teacher/courses
+            - img [ref=e212]
+            - text: 课程管理
+          - link "学生档案" [ref=e214] [cursor=pointer]:
+            - /url: /teacher/students
+            - img [ref=e215]
+            - text: 学生档案
+          - link "班级趋势" [ref=e220] [cursor=pointer]:
+            - /url: /teacher/trends
+            - img [ref=e221]
+            - text: 班级趋势
+          - link "教学资源" [ref=e224] [cursor=pointer]:
+            - /url: /resources
+            - img [ref=e225]
+            - text: 教学资源
+          - link "批改中心" [ref=e227] [cursor=pointer]:
+            - /url: /teacher/review
+            - img [ref=e228]
+            - text: 批改中心
+      - generic [ref=e231]:
+        - link "开启新课堂" [ref=e232] [cursor=pointer]:
+          - /url: /teacher/launch
+          - img [ref=e233]
+          - text: 开启新课堂
+        - link "设置" [ref=e234] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e235]
+          - text: 设置
+        - link "帮助中心" [ref=e238] [cursor=pointer]:
+          - /url: /help
+          - img [ref=e239]
+          - text: 帮助中心
+    - main [ref=e242]:
+      - generic [ref=e247]:
+        - generic [ref=e248]:
+          - generic [ref=e249]:
+            - generic [ref=e250]:
+              - generic [ref=e251]: 教师指挥台
+              - generic [ref=e252]:
+                - heading "今天把《编程基础：让角色动起来》编排成可运行课堂" [level=1] [ref=e253]
+                - paragraph [ref=e254]: 你今天有 3 节课、12 份待批改作业，以及一节正在进行中的培优班直播。先盯住课堂节奏， 再处理需要在今天闭环的批改与通知。
+            - generic [ref=e255]:
+              - generic [ref=e256]:
+                - paragraph [ref=e257]: 今日节奏
+                - paragraph [ref=e258]: 3 节课 / 1 节直播中
+                - paragraph [ref=e259]: 下一节英语课 14:00 开始，当前课堂建议 5 分钟后切换练习。
+              - generic [ref=e260]:
+                - generic [ref=e261]
+                - link "查看班级趋势" [ref=e267] [cursor=pointer]:
+                  - /url: /teacher/trends
+          - generic [ref=e271]:
+            - button "发布作业 保持教学动作集中在同一工作台里。" [ref=e272]:
+              - img [ref=e274]
+              - generic [ref=e278]:
+                - text: 发布作业
+                - paragraph [ref=e279]: 保持教学动作集中在同一工作台里。
+            - button "开始会议 保持教学动作集中在同一工作台里。" [ref=e280]:
+              - img [ref=e282]
+              - generic [ref=e285]:
+                - text: 开始会议
+                - paragraph [ref=e286]: 保持教学动作集中在同一工作台里。
+            - button "上传资料 保持教学动作集中在同一工作台里。" [ref=e287]:
+              - img [ref=e289]
+              - generic [ref=e292]:
+                - text: 上传资料
+                - paragraph [ref=e293]: 保持教学动作集中在同一工作台里。
+            - button "发送通知 保持教学动作集中在同一工作台里。" [ref=e294]:
+              - img [ref=e296]
+              - generic [ref=e299]:
+                - text: 发送通知
+                - paragraph [ref=e300]: 保持教学动作集中在同一工作台里。
+            - button "备课笔记 保持教学动作集中在同一工作台里。" [ref=e301]:
+              - img [ref=e303]
+              - generic [ref=e308]:
+                - text: 备课笔记
+                - paragraph [ref=e309]: 保持教学动作集中在同一工作台里。
+        - generic [ref=e310]:
+          - generic [ref=e312]:
+            - generic [ref=e313]:
+              - generic [ref=e314]:
+                - paragraph [ref=e315]: Co-primary module
+                - heading "今日课表与运行节奏" [level=2] [ref=e316]
+                - paragraph [ref=e317]: 保持上午直播、下午英语课和批改闭环在同一视野里。这里展示的是今天必须推进的课堂节奏， 不再把主信息压缩到狭窄侧栏中。
+              - link "查看课表" [ref=e318] [cursor=pointer]:
+                - /url: /teacher/schedule
+            - generic [ref=e319]:
+              - generic [ref=e320]:
+                - generic [ref=e323]
+                - generic [ref=e331]
+                - generic [ref=e343]
+              - generic [ref=e349]:
+                - generic [ref=e350]
+                - generic [ref=e358]
+                - generic [ref=e364]
+          - generic [ref=e369]:
+            - generic [ref=e370]:
+              - generic [ref=e371]:
+                - generic [ref=e372]
+                - generic [ref=e375]: 提醒与动作保持同屏
+              - generic [ref=e376]:
+                - generic [ref=e377]
+                - generic [ref=e381]
+                - generic [ref=e385]
+            - generic [ref=e389]:
+              - generic [ref=e390]:
+                - generic [ref=e391]: 正在直播
+                - generic [ref=e392]
+                - button [ref=e396]
+              - generic [ref=e401]:
+                - generic [ref=e402]
+                - generic [ref=e423]
+                - generic [ref=e434]
+  - alert [ref=e187]

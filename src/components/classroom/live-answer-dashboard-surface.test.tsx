@@ -91,4 +91,52 @@ describe('LiveAnswerDashboardSurface', () => {
     expect(screen.getByText('课堂已结束')).toBeTruthy()
     expect(screen.getByRole('link', { name: '跳转到 recap' })).toBeTruthy()
   })
+
+  it('renders fallback aggregates from current voting round when websocket events are unavailable', () => {
+    render(
+      <LiveAnswerDashboardSurface
+        sessionId="session-1"
+        classroomStatus="live"
+        activeStepId="question-1"
+        steps={quizSteps}
+        connectionState="fallback"
+        currentVotingRound={{
+          status: 'live',
+          stepId: 'question-1',
+          stepTitle: '互动答题（样板）',
+          startedAt: '2026-06-09T05:00:12.196Z',
+          endedAt: null,
+          submittedCount: 1,
+          remainingCount: 0,
+          optionResults: [
+            { optionId: 'A', optionLabel: 'A 选项', count: 1, percentage: 100, isLeading: true },
+            { optionId: 'B', optionLabel: 'B 选项', count: 0, percentage: 0, isLeading: false },
+          ],
+          incompleteStudents: [],
+          namedResults: [
+            {
+              studentId: 'student-1',
+              studentName: '测试学生',
+              selectedOptionIds: ['A'],
+              selectedOptionLabels: ['A 选项'],
+              submittedAt: '2026-06-09T05:00:13.197Z',
+            },
+          ],
+          failureCount: 0,
+          namedResultsFoldedByDefault: true,
+          roundStatusCopy: '开放作答',
+          failureCopy: null,
+          recoveryActions: [],
+          isFrozen: false,
+          resultsDisplay: 'compact',
+          anonymousResults: true,
+          liveResultsVisible: false,
+        }}
+      />,
+    )
+
+    expect(screen.getByText('A 选项')).toBeTruthy()
+    expect(screen.getAllByText('1 人').length).toBeGreaterThan(0)
+    expect(screen.getByText('作答流水')).toBeTruthy()
+  })
 })

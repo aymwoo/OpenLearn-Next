@@ -1,0 +1,139 @@
+- generic [active] [ref=e1]:
+  - main [ref=e10]:
+    - generic [ref=e14]:
+      - navigation [ref=e15]:
+        - generic [ref=e16]:
+          - link "OpenLearn Next 未来课堂操作系统" [ref=e17] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e18]:
+              - generic [ref=e21]: "ON"
+              - generic [ref=e22]:
+                - generic [ref=e23]: OpenLearn Next
+                - generic [ref=e24]: 未来课堂操作系统
+          - generic [ref=e25]:
+            - link "场景课堂" [ref=e26] [cursor=pointer]:
+              - /url: "#"
+            - link "学习节奏" [ref=e27] [cursor=pointer]:
+              - /url: "#"
+            - link "教师工作台" [ref=e28] [cursor=pointer]:
+              - /url: "#"
+            - link "AI 协作" [ref=e29] [cursor=pointer]:
+              - /url: "#"
+          - link "进入系统" [ref=e30] [cursor=pointer]:
+            - /url: /
+            - text: 进入系统
+            - img [ref=e31]
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - text: 重新定义课堂的空间感、节奏感与协作方式
+          - generic [ref=e39]:
+            - paragraph [ref=e40]: AI-native Learning Stage
+            - heading "把课堂从平面流程 升级成有节奏的学习现场" [level=1] [ref=e41]:
+              - text: 把课堂从平面流程
+              - generic [ref=e42]: 升级成有节奏的学习现场
+            - paragraph [ref=e43]: 这不是传统教育后台的浅色仪表盘，而是一套更像导演台的学习操作系统。教师编排课堂，学生跟随节奏，AI 团队持续补位，让每一节课都像一次被精心设计的现场体验。
+          - generic [ref=e44]:
+            - link "立即进入体验" [ref=e45] [cursor=pointer]:
+              - /url: /
+              - text: 立即进入体验
+              - img [ref=e46]
+            - paragraph [ref=e48]: 适合教师、学生与教学管理者同时在线协作
+          - generic [ref=e49]:
+            - generic [ref=e50]:
+              - generic [ref=e51]:
+                - generic [ref=e52]:
+                  - paragraph [ref=e53]: 实时课堂画布
+                  - heading "一个老师视角，驱动全班学习节奏" [level=2] [ref=e54]
+                - img [ref=e56]
+              - generic [ref=e62]:
+                - generic [ref=e63]:
+                  - paragraph [ref=e64]: 课堂进度
+                  - paragraph [ref=e65]: "08"
+                  - paragraph [ref=e66]: 导入到总结共 8 个原子步骤
+                - generic [ref=e67]:
+                  - paragraph [ref=e68]: 协作 Agent
+                  - paragraph [ref=e69]: "05"
+                  - paragraph [ref=e70]: 教案、练习、反馈、总结与资源联动
+                - generic [ref=e71]:
+                  - paragraph [ref=e72]: 学生在线
+                  - paragraph [ref=e73]: "126"
+                  - paragraph [ref=e74]: 支持锁定跟随与自由浏览双模式
+              - generic [ref=e75]:
+                - paragraph [ref=e77]: 课堂波形
+                - generic [ref=e91]:
+                  - paragraph [ref=e92]: 当前模式
+                  - paragraph [ref=e93]: 锁定跟随
+                  - paragraph [ref=e94]: 教师一键广播当前步骤，学生端同步进入学习任务。
+            - generic [ref=e95]:
+              - generic [ref=e96]:
+                - img [ref=e98]
+                - heading "课堂启动" [level=3] [ref=e101]
+                - paragraph [ref=e102]: 3 分钟完成导入、分组与目标投屏
+              - generic [ref=e103]:
+                - img [ref=e105]
+                - heading "路径编排" [level=3] [ref=e112]
+                - paragraph [ref=e113]: 按教学意图组合步骤，不再被固定模板束缚
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - paragraph [ref=e119]: 统一入口
+              - heading "进入你的课堂现场" [level=2] [ref=e120]
+              - paragraph [ref=e121]: 选择角色后即可继续处理课程、课堂与学习进度。
+            - img [ref=e123]
+          - generic [ref=e126]:
+            - button "学生登录" [pressed] [ref=e127]
+            - button "教师登录" [ref=e128]
+          - generic [ref=e129]:
+            - button "一键填入学生测试账号" [ref=e130]:
+              - generic [ref=e131]: 一键填入学生测试账号
+              - generic [ref=e132]: student@example.com / password
+            - button "一键填入教师测试账号" [ref=e133]:
+              - generic [ref=e134]: 一键填入教师测试账号
+              - generic [ref=e135]: teacher@example.com / password
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - generic [ref=e138]: 学号
+              - generic [ref=e140]:
+                - img [ref=e141]
+                - textbox "学号" [ref=e144]:
+                  - /placeholder: 请输入学号
+            - generic [ref=e145]:
+              - generic [ref=e146]: 密码
+              - generic [ref=e148]:
+                - img [ref=e149]
+                - textbox "密码" [ref=e153]:
+                  - /placeholder: ••••••••
+            - generic [ref=e154]:
+              - generic [ref=e155]:
+                - checkbox "保持登录状态" [ref=e156]
+                - generic [ref=e157]: 保持登录状态
+              - link "忘记密码？" [ref=e158] [cursor=pointer]:
+                - /url: "#"
+            - button "进入控制台" [ref=e159]
+          - generic [ref=e160]:
+            - generic [ref=e161]:
+              - paragraph [ref=e162]: Teacher
+              - paragraph [ref=e163]: 进入课程编排、课堂广播与作业反馈工作区。
+            - generic [ref=e164]:
+              - paragraph [ref=e165]: Student
+              - paragraph [ref=e166]: 继续你的学习步骤、随堂练习与课堂回放。
+          - generic [ref=e167]:
+            - text: 还没有账户？
+            - link "申请试用" [ref=e168] [cursor=pointer]:
+              - /url: "#"
+      - generic [ref=e169]:
+        - article [ref=e170]:
+          - img [ref=e172]
+          - heading "节奏驱动" [level=3] [ref=e178]
+          - paragraph [ref=e179]: 把导入、讲授、互动、练习与总结编排成有张力的课堂舞台。
+        - article [ref=e180]:
+          - img [ref=e182]
+          - heading "师生共屏" [level=3] [ref=e186]
+          - paragraph [ref=e187]: 教师控制课堂进度，学生端实时跟随或切换到自由探索模式。
+        - article [ref=e188]:
+          - img [ref=e190]
+          - heading "Agent 协作" [level=3] [ref=e193]
+          - paragraph [ref=e194]: 让教案、题目、反馈与资源推荐从单点生成变成协同产出。
+  - alert [ref=e9]

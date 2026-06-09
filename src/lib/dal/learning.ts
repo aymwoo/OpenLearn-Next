@@ -167,6 +167,28 @@ function normalizeVotingAnswer(input: unknown, contract: ClassroomVotingFrozenCo
   };
 }
 
+function parseLessonStepPayloadWithRuntimeFallback(payload: unknown) {
+  const parsedPayload = lessonStepPayloadSchema.safeParse(payload);
+
+  if (parsedPayload.success) {
+    return parsedPayload.data;
+  }
+
+  if (!payload || typeof payload !== "object" || !("runtime" in payload)) {
+    throw parsedPayload.error;
+  }
+
+  const fallbackPayload = { ...(payload as Record<string, unknown>) };
+  delete fallbackPayload.runtime;
+
+  const fallbackParsedPayload = lessonStepPayloadSchema.safeParse(fallbackPayload);
+  if (fallbackParsedPayload.success) {
+    return fallbackParsedPayload.data;
+  }
+
+  throw parsedPayload.error;
+}
+
 function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string): LearningStepDTO[] {
   return [...(snapshot.steps ?? [])]
     .sort((a, b) => a.rank.localeCompare(b.rank))
@@ -176,7 +198,7 @@ function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: strin
       type: step.type,
       title: step.title,
       rank: step.rank,
-      payload: lessonStepPayloadSchema.parse(step.payload),
+      payload: parseLessonStepPayloadWithRuntimeFallback(step.payload),
       pluginContract: parseVotingFrozenContract(step.pluginContract),
     }));
 }

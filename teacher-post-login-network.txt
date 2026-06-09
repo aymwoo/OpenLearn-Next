@@ -1,0 +1,35 @@
+20. [POST] http://127.0.0.1:3000/ => [303] See Other
+24. [GET] http://127.0.0.1:3000/teacher/launch?_rsc=q18w7 => [200] OK
+25. [GET] http://127.0.0.1:3000/teacher/review?_rsc=q18w7 => [200] OK
+27. [GET] http://127.0.0.1:3000/teacher/trends?_rsc=q18w7 => [200] OK
+28. [GET] http://127.0.0.1:3000/teacher/students?_rsc=q18w7 => [200] OK
+29. [GET] http://127.0.0.1:3000/teacher/courses?_rsc=q18w7 => [200] OK
+30. [GET] http://127.0.0.1:3000/teacher/classes?_rsc=q18w7 => [200] OK
+38. [GET] http://127.0.0.1:3000/teacher/launch?_rsc=jd2d8 => [200] OK
+39. [GET] http://127.0.0.1:3000/teacher/launch?_rsc=16cqd => [200] OK
+40. [GET] http://127.0.0.1:3000/teacher/launch?_rsc=1l1cw => [200] OK
+41. [GET] http://127.0.0.1:3000/teacher/launch?_rsc=ccyw1 => [200] OK
+42. [GET] http://127.0.0.1:3000/teacher/launch?_rsc=143cs => [200] OK
+43. [GET] http://127.0.0.1:3000/teacher/review?_rsc=jd2d8 => [200] OK
+44. [GET] http://127.0.0.1:3000/teacher/review?_rsc=1j2vc => [200] OK
+45. [GET] http://127.0.0.1:3000/teacher/review?_rsc=1s011 => [200] OK
+50. [GET] http://127.0.0.1:3000/teacher/trends?_rsc=jd2d8 => [200] OK
+51. [GET] http://127.0.0.1:3000/teacher/trends?_rsc=1jk8g => [200] OK
+52. [GET] http://127.0.0.1:3000/teacher/trends?_rsc=wz16j => [200] OK
+53. [GET] http://127.0.0.1:3000/teacher/students?_rsc=jd2d8 => [200] OK
+54. [GET] http://127.0.0.1:3000/teacher/students?_rsc=xse4j => [200] OK
+55. [GET] http://127.0.0.1:3000/teacher/students?_rsc=7geoq => [200] OK
+56. [GET] http://127.0.0.1:3000/teacher/courses?_rsc=jd2d8 => [200] OK
+57. [GET] http://127.0.0.1:3000/teacher/courses?_rsc=1jscg => [200] OK
+58. [GET] http://127.0.0.1:3000/teacher/courses?_rsc=1u9xy => [200] OK
+59. [GET] http://127.0.0.1:3000/teacher/schedule?_rsc=q18w7 => [200] OK
+60. [GET] http://127.0.0.1:3000/teacher/classes?_rsc=jd2d8 => [200] OK
+61. [GET] http://127.0.0.1:3000/teacher/classes?_rsc=1h66r => [200] OK
+62. [GET] http://127.0.0.1:3000/teacher/classes?_rsc=1guje => [200] OK
+63. [GET] http://127.0.0.1:3000/teacher?_rsc=jd2d8 => [200] OK
+64. [GET] http://127.0.0.1:3000/teacher?_rsc=jlylh => [200] OK
+65. [GET] http://127.0.0.1:3000/teacher/schedule?_rsc=jd2d8 => [200] OK
+66. [GET] http://127.0.0.1:3000/teacher/schedule?_rsc=5q8zn => [200] OK
+67. [GET] http://127.0.0.1:3000/teacher/schedule?_rsc=1gm3c => [200] OK
+
+Note: 16 static requests not shown, run with "static" option to see them.

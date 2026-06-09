@@ -1,0 +1,7 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - heading "访问受限" [level=1]
+    - paragraph: 暂无权限访问此工作区，请切换角色或返回。
+    - link "返回首页" [ref=e4] [cursor=pointer]:
+      - /url: /
+  - alert [ref=e5]

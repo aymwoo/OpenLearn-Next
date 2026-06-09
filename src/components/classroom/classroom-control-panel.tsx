@@ -688,6 +688,7 @@ export function ClassroomControlPanel({
               activeStepId={currentSnapshot.activeStepId}
               steps={currentSnapshot.steps}
               connectionState={connectionState}
+              currentVotingRound={currentSnapshot.currentVotingRound}
             />
           </TabsContent>
         </Tabs>

@@ -1,0 +1,354 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - navigation "主导航" [ref=e4]:
+        - link "OpenLearn Next" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e6]:
+            - generic [ref=e9]: "ON"
+            - generic [ref=e11]: OpenLearn Next
+        - generic [ref=e12]:
+          - link "首页" [ref=e13] [cursor=pointer]:
+            - /url: /
+          - link "教师工作台" [ref=e14] [cursor=pointer]:
+            - /url: /teacher
+          - link "学生空间" [ref=e15] [cursor=pointer]:
+            - /url: /student
+          - link "课堂运行" [ref=e16] [cursor=pointer]:
+            - /url: /classroom
+          - link "课程中心" [ref=e17] [cursor=pointer]:
+            - /url: /courses
+          - link "资源中心" [ref=e18] [cursor=pointer]:
+            - /url: /resources
+          - link "管理后台" [ref=e19] [cursor=pointer]:
+            - /url: /admin
+    - generic [ref=e20]:
+      - complementary [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - generic [ref=e27]: "ON"
+            - generic [ref=e28]:
+              - heading "课堂运行" [level=1] [ref=e29]
+              - generic [ref=e30]: primary-nav
+          - navigation "教师端侧边导航" [ref=e31]:
+            - link "课堂运行" [ref=e32] [cursor=pointer]:
+              - /url: /classroom
+            - link "教师工作台" [ref=e33] [cursor=pointer]:
+              - /url: /teacher
+            - link "课时编辑" [ref=e34] [cursor=pointer]:
+              - /url: /teacher/editor
+        - generic [ref=e35]:
+          - link "开启新课堂" [ref=e36] [cursor=pointer]:
+            - /url: /teacher/launch
+            - img [ref=e37]
+            - text: 开启新课堂
+          - link "设置" [ref=e38] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e39]
+            - text: 设置
+          - link "帮助中心" [ref=e42] [cursor=pointer]:
+            - /url: /help
+            - img [ref=e43]
+            - text: 帮助中心
+      - main [ref=e46]:
+        - generic [ref=e47]:
+          - generic [ref=e50]:
+            - generic [ref=e51]:
+              - generic [ref=e52]: 课堂教学运行管理
+              - heading "Phase 74 /classroom 观察课时" [level=1] [ref=e53]
+              - paragraph [ref=e54]: 当前面向 Phase 74 观察班级 进行课堂流程运行。保留现有同步逻辑，仅优化教师控课台的分区、节奏感与信息优先级。
+            - generic [ref=e55]:
+              - generic [ref=e56]:
+                - generic [ref=e57]:
+                  - img [ref=e59]
+                  - text: 当前环节
+                - paragraph [ref=e62]: "1"
+                - paragraph [ref=e63]: 5 个环节
+              - generic [ref=e64]:
+                - generic [ref=e65]:
+                  - img [ref=e67]
+                  - text: 在线学生
+                - paragraph [ref=e71]: "0"
+                - paragraph [ref=e72]: 共 1 人
+              - generic [ref=e73]:
+                - generic [ref=e74]:
+                  - img [ref=e76]
+                  - text: 同步模式
+                - paragraph [ref=e83]: 自由
+                - paragraph [ref=e84]: 第 1 次同步
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - generic [ref=e87]:
+                - paragraph [ref=e88]: 教师运行台
+                - heading "课堂控制与干预记录" [level=2] [ref=e89]
+              - generic [ref=e90]: 单一主舞台 + 次级 tonal panels
+            - paragraph [ref=e91]: 当前课堂保留渐变主舞台承载关键状态，其余控制、名册与干预记录全部回落到稳定的 tonal cards，避免信息挤进同一控制区。
+          - generic [ref=e92]:
+            - generic [ref=e93]:
+              - generic [ref=e94]:
+                - generic [ref=e96]:
+                  - generic [ref=e97]:
+                    - generic [ref=e98]:
+                      - generic [ref=e99]:
+                        - generic [ref=e100]: Phase 74 观察班级
+                        - generic [ref=e101]: 第 1 次同步
+                      - heading "单选题：抓住主旨" [level=2] [ref=e102]
+                      - paragraph [ref=e103]: 课堂正在运行《Phase 74 /classroom 观察课时》。当前以更紧凑的运行面板承接环节切换、模式控制和学生在线状态。
+                    - generic [ref=e104]:
+                      - generic [ref=e105]:
+                        - generic:
+                          - img [ref=e107]
+                          - text: 在线学生
+                        - paragraph: 0/1
+                        - paragraph: 课堂名册实时同步
+                      - generic [ref=e112]:
+                        - generic:
+                          - img [ref=e114]
+                          - text: 当前模式
+                        - paragraph: 自由浏览
+                        - paragraph: 学生可回看已开放步骤
+                      - generic [ref=e120]:
+                        - generic:
+                          - img [ref=e122]
+                          - text: 名册监控
+                        - paragraph: 优先关注 1 名
+                        - paragraph: 已提交 1 人 · 更新于 01:00 PM
+                  - generic [ref=e125]:
+                    - generic [ref=e126]:
+                      - paragraph: 课程名称
+                      - paragraph: Phase 74 /classroom 观察课时
+                    - generic [ref=e127]:
+                      - paragraph: 当前步骤
+                      - paragraph: 单选题：抓住主旨
+                    - generic [ref=e128]:
+                      - paragraph: 课堂状态
+                      - paragraph: 进行中
+                  - generic [ref=e129]:
+                    - link "查看课堂事件" [ref=e130] [cursor=pointer]:
+                      - /url: /settings/labs/incidents/ad51653d-4e98-4ad4-8168-3ea5d10e07a8
+                    - link "查看 Runtime Inspector" [ref=e131] [cursor=pointer]:
+                      - /url: /settings/labs/runtime-inspector
+                - generic [ref=e132]:
+                  - paragraph [ref=e133]: 实时课堂控制
+                  - generic [ref=e134]:
+                    - button "锁定跟随 同步当前步骤" [ref=e135]:
+                      - generic [ref=e136]: 锁定跟随
+                      - generic [ref=e137]: 同步当前步骤
+                    - button "自由浏览 保留课堂上下文" [ref=e138]:
+                      - generic [ref=e139]: 自由浏览
+                      - generic [ref=e140]: 保留课堂上下文
+                    - button "结束课堂" [ref=e141]
+                  - generic [ref=e142]:
+                    - paragraph [ref=e143]: 互动工具
+                    - generic [ref=e144]:
+                      - button "随机点名" [ref=e145]:
+                        - img [ref=e147]
+                        - generic [ref=e150]: 随机点名
+                      - button "快速提问" [ref=e151]:
+                        - img [ref=e153]
+                        - generic [ref=e156]: 快速提问
+                      - button "随堂小测" [ref=e157]:
+                        - img [ref=e159]
+                        - generic [ref=e164]: 随堂小测
+                      - button "白板共享" [ref=e165]:
+                        - img [ref=e167]
+                        - generic [ref=e170]: 白板共享
+              - generic [ref=e171]:
+                - generic [ref=e172]:
+                  - button "课堂控制" [ref=e173]:
+                    - img [ref=e174]
+                    - text: 课堂控制
+                  - button "作答实时" [ref=e180]:
+                    - img [ref=e181]
+                    - text: 作答实时
+                - generic [ref=e184]:
+                  - generic [ref=e185]:
+                    - generic [ref=e186]:
+                      - generic [ref=e187]:
+                        - img [ref=e188]
+                        - generic [ref=e190]: 作答实时监控
+                      - heading "老师侧实时作答面板" [level=3] [ref=e191]
+                      - paragraph [ref=e192]: 只读聚合作答流，不触发任何写操作。学生提交后，最新答案会实时折叠进当前题目的分布统计。
+                    - generic [ref=e193]:
+                      - generic [ref=e194]: 已回退到 fallback
+                      - generic [ref=e195]: 最新答案 1 条
+                  - generic [ref=e196]:
+                    - generic [ref=e197]:
+                      - button "按题分布" [ref=e198]:
+                        - img [ref=e199]
+                        - text: 按题分布
+                      - button "作答流水" [ref=e201]:
+                        - img [ref=e202]
+                        - text: 作答流水
+                    - generic [ref=e205]:
+                      - button "这段材料最核心的主题是什么？" [ref=e207]
+                      - generic [ref=e208]:
+                        - generic [ref=e209]:
+                          - generic [ref=e210]:
+                            - paragraph [ref=e211]: 当前题目
+                            - heading "这段材料最核心的主题是什么？" [level=4] [ref=e212]
+                          - generic [ref=e213]: 1 人已作答
+                        - generic [ref=e214]:
+                          - generic [ref=e216]:
+                            - generic [ref=e217]: 合作学习
+                            - generic [ref=e218]: 1 人
+                          - generic [ref=e222]:
+                            - generic [ref=e223]: 课堂秩序
+                            - generic [ref=e224]: 0 人
+                          - generic [ref=e228]:
+                            - generic [ref=e229]: 评价排名
+                            - generic [ref=e230]: 0 人
+            - generic [ref=e233]:
+              - generic [ref=e234]:
+                - generic [ref=e235]:
+                  - generic [ref=e236]:
+                    - paragraph [ref=e237]: 课堂记录
+                    - heading "在当前课堂域里回看最近记录" [level=3] [ref=e238]
+                  - generic [ref=e239]: 同路由切换
+                - generic [ref=e240]:
+                  - button "Phase 74 /classroom 观察课时 已结束 Phase 74 观察班级 结束于 06/09, 01:00 PM" [ref=e241]:
+                    - generic [ref=e242]:
+                      - generic [ref=e243]: Phase 74 /classroom 观察课时
+                      - generic [ref=e244]: 已结束
+                    - paragraph [ref=e245]: Phase 74 观察班级
+                    - paragraph [ref=e246]: 结束于 06/09, 01:00 PM
+                  - button "Phase 74 /classroom 观察课时 进行中 Phase 74 观察班级 更新于 06/09, 01:00 PM" [ref=e247]:
+                    - generic [ref=e248]:
+                      - generic [ref=e249]: Phase 74 /classroom 观察课时
+                      - generic [ref=e250]: 进行中
+                    - paragraph [ref=e251]: Phase 74 观察班级
+                    - paragraph [ref=e252]: 更新于 06/09, 01:00 PM
+                  - button "Phase 74 /classroom 观察课时 已结束 Phase 74 观察班级 结束于 06/09, 09:49 AM" [ref=e253]:
+                    - generic [ref=e254]:
+                      - generic [ref=e255]: Phase 74 /classroom 观察课时
+                      - generic [ref=e256]: 已结束
+                    - paragraph [ref=e257]: Phase 74 观察班级
+                    - paragraph [ref=e258]: 结束于 06/09, 09:49 AM
+                  - button "Phase 74 /classroom 观察课时 进行中 Phase 74 观察班级 更新于 06/09, 09:49 AM" [ref=e259]:
+                    - generic [ref=e260]:
+                      - generic [ref=e261]: Phase 74 /classroom 观察课时
+                      - generic [ref=e262]: 进行中
+                    - paragraph [ref=e263]: Phase 74 观察班级
+                    - paragraph [ref=e264]: 更新于 06/09, 09:49 AM
+                  - button "Phase 74 /classroom 观察课时 已结束 Phase 74 观察班级 结束于 06/08, 05:29 PM" [ref=e265]:
+                    - generic [ref=e266]:
+                      - generic [ref=e267]: Phase 74 /classroom 观察课时
+                      - generic [ref=e268]: 已结束
+                    - paragraph [ref=e269]: Phase 74 观察班级
+                    - paragraph [ref=e270]: 结束于 06/08, 05:29 PM
+                  - button "Phase 74 /classroom 观察课时 进行中 Phase 74 观察班级 更新于 06/08, 05:29 PM" [ref=e271]:
+                    - generic [ref=e272]:
+                      - generic [ref=e273]: Phase 74 /classroom 观察课时
+                      - generic [ref=e274]: 进行中
+                    - paragraph [ref=e275]: Phase 74 观察班级
+                    - paragraph [ref=e276]: 更新于 06/08, 05:29 PM
+                  - button "Phase 74 /classroom 观察课时 已结束 Phase 74 观察班级 结束于 06/08, 05:29 PM" [ref=e277]:
+                    - generic [ref=e278]:
+                      - generic [ref=e279]: Phase 74 /classroom 观察课时
+                      - generic [ref=e280]: 已结束
+                    - paragraph [ref=e281]: Phase 74 观察班级
+                    - paragraph [ref=e282]: 结束于 06/08, 05:29 PM
+                  - button "Phase 74 /classroom 观察课时 进行中 Phase 74 观察班级 更新于 06/08, 05:29 PM" [ref=e283]:
+                    - generic [ref=e284]:
+                      - generic [ref=e285]: Phase 74 /classroom 观察课时
+                      - generic [ref=e286]: 进行中
+                    - paragraph [ref=e287]: Phase 74 观察班级
+                    - paragraph [ref=e288]: 更新于 06/08, 05:29 PM
+                  - button "Phase 74 /classroom 观察课时 已结束 Phase 74 观察班级 结束于 06/08, 05:26 PM" [ref=e289]:
+                    - generic [ref=e290]:
+                      - generic [ref=e291]: Phase 74 /classroom 观察课时
+                      - generic [ref=e292]: 已结束
+                    - paragraph [ref=e293]: Phase 74 观察班级
+                    - paragraph [ref=e294]: 结束于 06/08, 05:26 PM
+                  - button "Phase 74 /classroom 观察课时 进行中 Phase 74 观察班级 更新于 06/08, 05:26 PM" [ref=e295]:
+                    - generic [ref=e296]:
+                      - generic [ref=e297]: Phase 74 /classroom 观察课时
+                      - generic [ref=e298]: 进行中
+                    - paragraph [ref=e299]: Phase 74 观察班级
+                    - paragraph [ref=e300]: 更新于 06/08, 05:26 PM
+                  - button "Phase 74 /classroom 观察课时 已结束 Phase 74 观察班级 结束于 06/08, 05:26 PM" [ref=e301]:
+                    - generic [ref=e302]:
+                      - generic [ref=e303]: Phase 74 /classroom 观察课时
+                      - generic [ref=e304]: 已结束
+                    - paragraph [ref=e305]: Phase 74 观察班级
+                    - paragraph [ref=e306]: 结束于 06/08, 05:26 PM
+                  - button "Phase 74 /classroom 观察课时 进行中 Phase 74 观察班级 更新于 06/08, 05:26 PM" [ref=e307]:
+                    - generic [ref=e308]:
+                      - generic [ref=e309]: Phase 74 /classroom 观察课时
+                      - generic [ref=e310]: 进行中
+                    - paragraph [ref=e311]: Phase 74 观察班级
+                    - paragraph [ref=e312]: 更新于 06/08, 05:26 PM
+                  - button "Phase 74 /classroom 观察课时 进行中 Phase 74 观察班级 更新于 06/08, 05:24 PM" [ref=e313]:
+                    - generic [ref=e314]:
+                      - generic [ref=e315]: Phase 74 /classroom 观察课时
+                      - generic [ref=e316]: 进行中
+                    - paragraph [ref=e317]: Phase 74 观察班级
+                    - paragraph [ref=e318]: 更新于 06/08, 05:24 PM
+                  - button "Phase 74 /classroom 观察课时 进行中 Phase 74 观察班级 更新于 06/08, 05:24 PM" [ref=e319]:
+                    - generic [ref=e320]:
+                      - generic [ref=e321]: Phase 74 /classroom 观察课时
+                      - generic [ref=e322]: 进行中
+                    - paragraph [ref=e323]: Phase 74 观察班级
+                    - paragraph [ref=e324]: 更新于 06/08, 05:24 PM
+                  - button "未命名课时 进行中 高2025级1班 更新于 06/04, 08:35 AM" [ref=e325]:
+                    - generic [ref=e326]:
+                      - generic [ref=e327]: 未命名课时
+                      - generic [ref=e328]: 进行中
+                    - paragraph [ref=e329]: 高2025级1班
+                    - paragraph [ref=e330]: 更新于 06/04, 08:35 AM
+              - generic [ref=e331]:
+                - generic [ref=e332]:
+                  - generic [ref=e333]:
+                    - img [ref=e334]
+                    - generic [ref=e338]:
+                      - heading "干预记录时间线" [level=2] [ref=e339]
+                      - paragraph [ref=e340]: 仅教师可见的课堂过程记录
+                  - generic [ref=e341]: 0 条记录
+                - generic [ref=e342]:
+                  - paragraph [ref=e343]: 还没有干预记录
+                  - paragraph [ref=e344]: 当你在课堂中记录提醒、点名纠偏或过程性干预后，这里会按时间线展示标题、正文、目标范围与记录时间。
+              - generic [ref=e345]:
+                - generic [ref=e346]:
+                  - generic [ref=e347]:
+                    - img [ref=e348]
+                    - generic [ref=e352]:
+                      - heading "学生状态" [level=2] [ref=e353]
+                      - paragraph [ref=e354]: 课堂名册、进度与课堂回应概览
+                  - generic [ref=e355]: 课堂名册
+                - generic [ref=e356]:
+                  - generic [ref=e357]:
+                    - paragraph [ref=e358]: 已连接
+                    - paragraph [ref=e359]: "0"
+                    - paragraph [ref=e360]: 共 1 人
+                  - generic [ref=e361]:
+                    - paragraph [ref=e362]: 重连中
+                    - paragraph [ref=e363]: "0"
+                    - paragraph [ref=e364]: 等待学生端恢复
+                  - generic [ref=e365]:
+                    - paragraph [ref=e366]: 需要关注
+                    - paragraph [ref=e367]: "1"
+                    - paragraph [ref=e368]: 优先干预对象
+                  - generic [ref=e369]:
+                    - paragraph [ref=e370]: 已提交
+                    - paragraph [ref=e371]: "1"
+                    - paragraph [ref=e372]: 当前环节已有回应
+                - article [ref=e374]:
+                  - generic [ref=e375]:
+                    - generic [ref=e376]:
+                      - paragraph [ref=e377]: 测试学生
+                      - paragraph [ref=e378]: 最近可见：01:00 PM
+                      - generic [ref=e379]:
+                        - generic [ref=e380]: 未连接
+                        - generic [ref=e381]: 跟随当前环节
+                        - generic [ref=e382]: 2 次回应
+                      - generic [ref=e384]: 当前离线
+                      - button "查看证据与评价" [ref=e386]
+                    - generic [ref=e387]: 需要关注
+                - generic [ref=e388]:
+                  - paragraph [ref=e389]: 未完成名单
+                  - paragraph [ref=e390]: 全班已提交，可由老师决定何时结束本轮投票。
+                - generic [ref=e391]:
+                  - img [ref=e392]
+                  - paragraph [ref=e394]: 课堂节奏提示
+                  - paragraph [ref=e395]: 如果需要关注学生持续较多，建议先点名确认，再决定是否推进到练习或测验环节。
+  - alert [ref=e396]

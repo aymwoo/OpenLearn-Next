@@ -1,0 +1,4 @@
+34. [GET] http://127.0.0.1:3000/classroom?_rsc=1f4s4 => [FAILED] net::ERR_ABORTED
+40. [GET] http://127.0.0.1:3000/classroom?_rsc=1f4s4 => [FAILED] net::ERR_ABORTED
+
+Note: 42 static requests not shown, run with "static" option to see them.

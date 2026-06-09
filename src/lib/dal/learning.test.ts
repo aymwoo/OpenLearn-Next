@@ -68,14 +68,14 @@ describe("learning DAL student read boundary", () => {
   it("reads only published snapshots without draft leakage", () => {
     expect(source).toContain("publishedLessonVersions");
     expect(source).toContain("snapshotJson");
-    expect(source).toContain("lessonStepPayloadSchema.parse");
+    expect(source).toContain("parseLessonStepPayloadWithRuntimeFallback");
     expect(source).toContain("StudentPlayerDTOSchema.parse");
     expect(source).toContain("课时暂不可学习");
   });
 
   it("keeps markdown payload and slide runtime data available to the student player", () => {
     expect(source).toContain("function parseSnapshotSteps(snapshot: PublishedSnapshot, fallbackLessonId: string): LearningStepDTO[]");
-    expect(source).toContain("payload: lessonStepPayloadSchema.parse(step.payload)");
+    expect(source).toContain("payload: parseLessonStepPayloadWithRuntimeFallback(step.payload)");
     expect(source).toContain("pluginContract: parseVotingFrozenContract(step.pluginContract)");
     expect(source).toContain("payload.teachingDesign");
     expect(source).toContain("slideIndex = classroomRuntime.slideIndex");

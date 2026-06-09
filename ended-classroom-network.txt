@@ -1,0 +1,3 @@
+38. [GET] http://127.0.0.1:3000/classroom?_rsc=1f4s4
+
+Note: 43 static requests not shown, run with "static" option to see them.

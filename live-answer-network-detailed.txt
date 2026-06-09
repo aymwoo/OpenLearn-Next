@@ -1,0 +1,2 @@
+81. [GET] http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events => [200] OK
+82. [GET] http://127.0.0.1:3000/api/classroom/ad51653d-4e98-4ad4-8168-3ea5d10e07a8/events => [200] OK

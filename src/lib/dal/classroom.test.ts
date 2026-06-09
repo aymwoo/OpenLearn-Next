@@ -465,6 +465,66 @@ describe("getClassroomConsoleDTO", () => {
     expect(step?.evidenceSummary).toContain("默认推断");
   });
 
+  it("drops malformed legacy runtime descriptors instead of failing classroom reads", async () => {
+    const malformedRuntime = {
+      version: "legacy-runtime",
+      kind: "html-courseware",
+      entry: {
+        sandbox: "iframe",
+        bootstrap: "/runtime/html-courseware/pilot",
+      },
+      submitTarget: {
+        primary: "task-submission",
+      },
+    };
+
+    const snapshotWithLegacyRuntime = {
+      lesson: { title: "古诗导读" },
+      steps: [
+        {
+          id: "step-1",
+          lessonId: "lesson-in-scope",
+          type: "content",
+          title: "开场导入",
+          rank: "a0",
+          payload: {
+            type: "content",
+            title: "开场导入",
+            body: "老师先带学生整体感知文本。",
+            teacherNotes: "提示",
+            materialRefs: [],
+            runtime: malformedRuntime,
+          },
+        },
+      ],
+      materials: [],
+    };
+
+    findManyPublishedLessonVersions.mockResolvedValueOnce([
+      {
+        id: "pub-1",
+        snapshotJson: snapshotWithLegacyRuntime,
+      },
+    ]);
+    findFirstPublishedLessonVersions.mockResolvedValueOnce({
+      id: "pub-1",
+      snapshotJson: snapshotWithLegacyRuntime,
+    });
+
+    const { getClassroomConsoleDTO, getClassroomSnapshotDTO } = await import("./classroom");
+
+    const consoleDto = await getClassroomConsoleDTO();
+    const snapshotDto = await getClassroomSnapshotDTO({ sessionId: "session-1" });
+
+    expect(consoleDto.publishedLessons[0]?.launchPreview.steps[0]?.title).toBe("开场导入");
+    expect(snapshotDto.steps[0]?.payload).toMatchObject({
+      type: "content",
+      title: "开场导入",
+      body: "老师先带学生整体感知文本。",
+    });
+    expect(snapshotDto.steps[0]?.payload).not.toHaveProperty("runtime");
+  });
+
   it("fills partial teaching-design data from published snapshots without dropping the launch preview", async () => {
     findManyPublishedLessonVersions.mockResolvedValueOnce([
       {
@@ -523,7 +583,7 @@ describe("getClassroomConsoleDTO", () => {
     const source = (await import("node:fs")).readFileSync("src/lib/dal/classroom.ts", "utf8");
 
     expect(source).toContain("const snapshot = parseSnapshot(publishedVersion?.snapshotJson)");
-    expect(source).toContain("const payload = lessonStepPayloadSchema.parse(step.payload)");
+    expect(source).toContain("const payload = parseLessonStepPayloadWithRuntimeFallback(step.payload)");
     expect(source).toContain("const stepMaterials = (snapshot.materials ?? [])");
     expect(source).toContain("const payloadMaterials = (\"materialRefs\" in payload ? payload.materialRefs : [])");
   });
