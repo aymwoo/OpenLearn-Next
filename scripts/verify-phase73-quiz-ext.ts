@@ -10,6 +10,9 @@ type StaticCheck = {
 export const PHASE_73_VERIFY_SCRIPT =
   "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase73-quiz-ext.ts";
 
+const LEGAL_PRE_CUTOVER_ALIAS = "pnpm verify:phase72";
+const LEGAL_POST_CUTOVER_ALIAS = "pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate";
+
 const PHASE_73_FOCUSED_VITEST_PATHS = [
   "src/features/platform-core/plugin-data-access/quiz-data-access.test.ts",
   "src/features/platform-core/plugin-data-access/allowlist.test.ts",
@@ -84,8 +87,10 @@ function verifyPackageScript(packageSource: string) {
         passed: scripts["verify:phase73"] === PHASE_73_VERIFY_SCRIPT,
       },
       {
-        label: "package.json keeps verify:phase frozen on pnpm verify:phase72",
-        passed: scripts["verify:phase"] === "pnpm verify:phase72",
+        label: "package.json keeps verify:phase in a legal phase72-based posture before or after cutover",
+        passed:
+          scripts["verify:phase"] === LEGAL_PRE_CUTOVER_ALIAS
+          || scripts["verify:phase"] === LEGAL_POST_CUTOVER_ALIAS,
       },
     ] satisfies StaticCheck[];
   } catch {

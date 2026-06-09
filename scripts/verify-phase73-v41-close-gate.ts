@@ -105,7 +105,7 @@ function countOccurrences(haystack: string, needle: string): number {
 
 function isIsoDate(value: string) {
   const trimmed = value.trim();
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(trimmed)) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})$/.test(trimmed)) {
     return false;
   }
   return !Number.isNaN(Date.parse(trimmed));
@@ -221,7 +221,7 @@ function parseManualSignoffSections(source: string): ManualSignoffSection[] {
   return sections;
 }
 
-function verifyPackageScripts(packageSource: string): StaticCheck[] {
+function verifyPackageScripts(packageSource: string, smokeOnly: boolean): StaticCheck[] {
   try {
     const pkg = JSON.parse(packageSource) as { scripts?: Record<string, string> };
     const scripts = pkg.scripts ?? {};
@@ -243,9 +243,11 @@ function verifyPackageScripts(packageSource: string): StaticCheck[] {
         passed: aliasValid,
       },
       {
-        label: "verify:phase alias currently remains in the pre-cutover valid posture",
-        passed: alias === LEGAL_PRE_CUTOVER_ALIAS,
-        blocked: true,
+        label: smokeOnly
+          ? "verify:phase alias currently remains in the pre-cutover valid posture"
+          : "verify:phase alias currently remains in the post-cutover applied posture",
+        passed: smokeOnly ? alias === LEGAL_PRE_CUTOVER_ALIAS : alias === LEGAL_POST_CUTOVER_ALIAS,
+        blocked: smokeOnly,
       },
     ];
   } catch {
@@ -727,7 +729,7 @@ export async function runPhase73V41CloseGate(options?: { smokeOnly?: boolean }):
   console.log(`\n[1/7] ${STAGE_LABELS[0]}...`);
   const staticStage = summariseStage(
     STAGE_LABELS[0],
-    verifyPackageScripts(read("package.json")),
+    verifyPackageScripts(read("package.json"), smokeOnly),
     smokeOnly,
   );
   stageStatuses.push(staticStage);

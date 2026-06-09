@@ -15,13 +15,15 @@ type Stage = {
 
 const PHASE_72_VERIFY_SCRIPT =
   "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase72-close-gate.ts";
+const LEGAL_PHASE72_ALIAS = "pnpm verify:phase72";
+const LEGAL_V41_ALIAS = "pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate";
 
 const UPSTREAM_VERIFICATION_PATHS = {
-  phase67: ".planning/phases/67-declarative-plugin-owned-data-model-migration-proof/67-VERIFICATION.md",
-  phase68: ".planning/phases/68-governed-declarative-data-access-verbs/68-VERIFICATION.md",
-  phase69: ".planning/phases/69-interactive-single-choice-quiz-sample-plugin/69-VERIFICATION.md",
-  phase70: ".planning/phases/70-question-stats-post-class-recap/70-VERIFICATION.md",
-  phase71: ".planning/phases/71-marketplace-lifecycle-install-governance-semver-upgrade-reta/71-VERIFICATION.md",
+  phase67: ".planning/milestones/v4.0-phases/67-declarative-plugin-owned-data-model-migration-proof/67-VERIFICATION.md",
+  phase68: ".planning/milestones/v4.0-phases/68-governed-declarative-data-access-verbs/68-VERIFICATION.md",
+  phase69: ".planning/milestones/v4.0-phases/69-interactive-single-choice-quiz-sample-plugin/69-VERIFICATION.md",
+  phase70: ".planning/milestones/v4.0-phases/70-question-stats-post-class-recap/70-VERIFICATION.md",
+  phase71: ".planning/milestones/v4.0-phases/71-marketplace-lifecycle-install-governance-semver-upgrade-reta/71-VERIFICATION.md",
 } as const;
 
 const ORDERED_PHASE_RUNNERS: ReadonlyArray<{ scriptKey: string; gateLabel: string }> = [
@@ -39,11 +41,11 @@ const ORDERED_PHASE_RUNNERS: ReadonlyArray<{ scriptKey: string; gateLabel: strin
 // and `GATE-01` would re-open in the next milestone audit.
 const FINAL_ARTIFACT_PATHS = {
   phase72Verification:
-    ".planning/phases/72-end-to-end-verify-phase-close-gate/72-VERIFICATION.md",
+    ".planning/milestones/v4.0-phases/72-end-to-end-verify-phase-close-gate/72-VERIFICATION.md",
   phase721Closeout:
-    ".planning/phases/72.1-close-gap-gate-01-authoritative-milestone-close-gate/72.1-CLOSEOUT.md",
+    ".planning/milestones/v4.0-phases/72.1-close-gap-gate-01-authoritative-milestone-close-gate/72.1-CLOSEOUT.md",
   phase721ProofMapping:
-    ".planning/phases/72.1-close-gap-gate-01-authoritative-milestone-close-gate/72.1-PROOF-MAPPING.md",
+    ".planning/milestones/v4.0-phases/72.1-close-gap-gate-01-authoritative-milestone-close-gate/72.1-PROOF-MAPPING.md",
 } as const;
 
 // Manual sign-off ledger row token (locked schema). The exact substring
@@ -132,8 +134,10 @@ function verifyPackageScripts(packageSource: string): StaticCheck[] {
         passed: scripts["verify:phase72"] === PHASE_72_VERIFY_SCRIPT,
       },
       {
-        label: "package.json routes verify:phase alias to phase72",
-        passed: scripts["verify:phase"] === "pnpm verify:phase72",
+        label: "package.json routes verify:phase alias to a legal phase72-based milestone gate",
+        passed:
+          scripts["verify:phase"] === LEGAL_PHASE72_ALIAS
+          || scripts["verify:phase"] === LEGAL_V41_ALIAS,
       },
     ];
   } catch {

@@ -160,13 +160,10 @@ describe('ClassroomSessionRecapSurface', () => {
                 stepId: 'step-quiz',
                 stepTitle: '互动单选题',
                 prompt: '这首诗主要描写哪个季节？',
-                correctOption: 'A',
+                questionType: 'single_choice',
                 answeredCount: 2,
                 unansweredCount: 1,
                 participantCount: 3,
-                correctCount: 1,
-                correctRate: 0.5,
-                denominatorLabel: '正确率按已作答 2 人计算；作答 / 未作答人数相对本次课堂参与者名单。',
                 options: [
                   { slot: 'A', label: '春天', count: 1, percentage: 0.5, isCorrect: true },
                   { slot: 'B', label: '秋天', count: 1, percentage: 0.5, isCorrect: false },
@@ -179,12 +176,12 @@ describe('ClassroomSessionRecapSurface', () => {
     )
 
     expect(screen.getByText('正确率')).toBeTruthy()
-    expect(screen.getByText('正确答案 A')).toBeTruthy()
+    expect(screen.getByText('正确答案')).toBeTruthy()
     expect(screen.getByText('已作答 2')).toBeTruthy()
     expect(screen.getByText('未作答 1')).toBeTruthy()
     expect(screen.getByText('春天')).toBeTruthy()
     expect(screen.getByText('秋天')).toBeTruthy()
-    expect(screen.getByText('正确率按已作答 2 人计算；作答 / 未作答人数相对本次课堂参与者名单。')).toBeTruthy()
+    expect(screen.getByText('正确率按已作答 2 人计算；本次课堂共 3 名参与者。')).toBeTruthy()
   })
 
   it('shows calm Chinese empty copy for missing grouped evidence', () => {

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.1
 milestone_name: Authoritative Close Gate
-status: executing
-last_updated: "2026-06-09T06:20:42.387Z"
+status: completed
+last_updated: "2026-06-09T07:47:41Z"
 last_activity: 2026-06-09
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 5
-  percent: 50
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -20,15 +20,15 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-07 after v4.0 archive)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 74 — v4-1-authoritative-close-gate-multi-type-live-dashboard
+**Current focus:** v4.1 authoritative close gate complete
 
 ## Current Position
 
-Phase: 74 (v4-1-authoritative-close-gate-multi-type-live-dashboard) — EXECUTING
-Plan: 2 of 5
-Status: Ready to execute
+Phase: 74 (v4-1-authoritative-close-gate-multi-type-live-dashboard) — COMPLETE
+Plan: 5 of 5
+Status: Completed Phase 74 authoritative close gate
 Last activity: 2026-06-09
-Next action: `/gsd:discuss-phase 73` (broad implementation wave) or `/gsd:plan-phase 73` (skip discussion given small N=2 bundle).
+Next action: `/gsd-verify-work 74` or `/gsd-complete-milestone`
 
 ## Performance Metrics
 
@@ -82,8 +82,8 @@ Next action: `/gsd:discuss-phase 73` (broad implementation wave) or `/gsd:plan-p
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 73. Multi-Type Quiz & Live Dashboard | 0/2 | planning |
-| 74. v4.1 Authoritative Close Gate | 0/2 | planning |
+| 73. Multi-Type Quiz & Live Dashboard | 2/2 | complete |
+| 74. v4.1 Authoritative Close Gate | 5/5 | complete |
 
 ## Accumulated Context
 
@@ -170,7 +170,6 @@ Recent decisions affecting current work:
 - Run GitNexus `gitnexus_impact` on `ws-server.ts` / `ws-envelope.ts` / `ws-auth.ts` before Phase 73 plan 73-02 edits (v2.2 transport blast radius).
 - Decide whether to run `/gsd:discuss-phase 73` (small N=2 bundle, requirements already explicit) or jump to `/gsd:plan-phase 73` — discuss-phase optional given REQUIREMENTS.md sub-IDs A..E are already decomposed.
 - Decide whether to insert Phase 73.1 (UX/UI research gap) after plan 73-02 — only if a real gap emerges, do not pre-add.
-- Add `pnpm verify:phase73-v41-close-gate` to `package.json` scripts (referenced from ROADMAP phase 74 verify clause; not yet wired).
 
 ### Blockers/Concerns
 

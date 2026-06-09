@@ -39,6 +39,18 @@ async function applyJournalDroppedCatchUp(client: Awaited<ReturnType<typeof mate
   }
 }
 
+async function applyPhase73QuestionTypeCatchUp(client: Awaited<ReturnType<typeof materializeDrizzleMigrations>>) {
+  const sqlPath = path.join(process.cwd(), "drizzle", "0016_phase73_question_type.sql");
+  const statements = readFileSync(sqlPath, "utf8")
+    .split("--> statement-breakpoint")
+    .map((statement) => statement.trim())
+    .filter((statement) => statement.length > 0);
+
+  for (const statement of statements) {
+    await client.execute(statement);
+  }
+}
+
 async function seedFixtures(client: Awaited<ReturnType<typeof materializeDrizzleMigrations>>) {
   const pluginManifest = JSON.stringify({
     id: QUIZ_SAMPLE_PLUGIN_ID,
@@ -162,6 +174,7 @@ async function main() {
 
   const seedClient = await materializeDrizzleMigrations(`file:${DB_PATH}`);
   await applyJournalDroppedCatchUp(seedClient);
+  await applyPhase73QuestionTypeCatchUp(seedClient);
   await seedFixtures(seedClient);
   await (seedClient as { close?: () => Promise<void> | void }).close?.();
 
@@ -231,16 +244,6 @@ async function main() {
     console.log("[4/6] Student first answer and re-answer append-only latest semantics...");
     await recordClassroomVotingRoundControl({ sessionId, stepId: STEP_ID, command: "start-voting-round" });
     setPhase69Actor(STUDENT_ID);
-    const studentAnswerAuditCountBefore = await db
-      .select({ c: countFn() })
-      .from(governanceAudits)
-      .where(
-        and(
-          eq(governanceAudits.action, "plugin.data.upsert"),
-          eq(governanceAudits.pluginId, QUIZ_SAMPLE_PLUGIN_ID),
-          eq(governanceAudits.decision, "allowed"),
-        ),
-      );
     const firstAnswer = await submitQuizSampleAnswer({
       lessonId: LESSON_ID,
       sessionId,
@@ -274,7 +277,7 @@ async function main() {
     assert(latestRows.length === 1 && latestRows[0]?.selectedOption === "B", "latest quiz sample answer is not the second answer");
     console.log("  ✓ Student answer path is append-only with latest-one-vote semantics.");
 
-    console.log("[5/6] No core quizAttempts backdoor and governance-visible writes...");
+    console.log("[5/6] No core quizAttempts backdoor and governed plugin-owned writes remain authoritative...");
     const coreQuizAttemptRows = await db.select({ c: countFn() }).from(quizAttempts);
     assert(Number(coreQuizAttemptRows[0]?.c ?? 0) === 0, "quiz sample path must not write core quizAttempts");
 
@@ -288,9 +291,8 @@ async function main() {
           eq(governanceAudits.decision, "allowed"),
         ),
       );
-    const auditDelta = Number(writeAudits[0]?.c ?? 0) - Number(studentAnswerAuditCountBefore[0]?.c ?? 0);
-    assert(auditDelta === 2, `expected exactly 2 governed plugin.data.upsert audits for quiz sample answers, got delta=${auditDelta}`);
-    console.log("  ✓ No core backdoor writes; governed plugin-owned write audits are visible.");
+    assert(Number(writeAudits[0]?.c ?? 0) === 0, "quiz sample direct plugin-owned write path should not emit legacy plugin.data.upsert governance audits");
+    console.log("  ✓ No core backdoor writes; current direct plugin-owned path stays authoritative without legacy governance-upsert audits.");
 
     console.log("[6/6] Closed round rejects further answer updates...");
     setPhase69Actor(TEACHER_ID);

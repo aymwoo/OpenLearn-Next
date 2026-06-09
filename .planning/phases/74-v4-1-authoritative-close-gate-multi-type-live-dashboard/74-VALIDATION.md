@@ -19,18 +19,24 @@ created: 2026-06-08
 |----------|-------|
 | **Framework** | Vitest 4.1.5 + Node CLI verifier scripts via `tsx` 4.22.3 |
 | **Config file** | `vitest.config.mts` |
-| **Quick run command** | `pnpm test:live-answer-zero-write && pnpm vitest run src/components/classroom/live-answer-dashboard-store.test.ts src/components/classroom/live-answer-dashboard-surface.test.tsx src/features/runtime-platform/seams/transport/ws-envelope.test.ts src/features/runtime-platform/seams/transport/ws-adapter.test.ts src/features/runtime-platform/seams/transport/redis-fanout-manager.test.ts tests/classroom/live-view.test.ts "src/app/(classroom)/classroom/page.test.tsx" src/components/classroom/classroom-control-panel.test.tsx src/lib/dal/classroom.test.ts` |
-| **Full suite command** | `pnpm verify:phase73 && pnpm verify:phase73-v41-close-gate` |
-| **Estimated runtime** | ~180 seconds |
+| **Quick run command** | `test -f scripts/verify-phase73-quiz-ext.ts && test -f scripts/verify-phase73-v41-close-gate.ts && test -f .planning/phases/73-multi-type-quiz-schema-live-ws-event-teacher-live-dashboard/73-VERIFICATION.md && test -f .planning/phases/73-multi-type-quiz-schema-live-ws-event-teacher-live-dashboard/73-PROOF-MAPPING.md && test -f .planning/phases/73-multi-type-quiz-schema-live-ws-event-teacher-live-dashboard/73-CLOSEOUT.md && grep -Eq '"verify:phase73": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase73-quiz-ext.ts"' package.json && grep -Eq '"verify:phase73-v41-close-gate": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase73-v41-close-gate.ts"' package.json` |
+| **Full suite command** | `pnpm verify:phase` |
+| **Estimated runtime** | <30 seconds fast lane / ~180 seconds final gate |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `pnpm test:live-answer-zero-write && pnpm vitest run src/components/classroom/live-answer-dashboard-store.test.ts src/components/classroom/live-answer-dashboard-surface.test.tsx src/features/runtime-platform/seams/transport/ws-envelope.test.ts src/features/runtime-platform/seams/transport/ws-adapter.test.ts src/features/runtime-platform/seams/transport/redis-fanout-manager.test.ts tests/classroom/live-view.test.ts "src/app/(classroom)/classroom/page.test.tsx" src/components/classroom/classroom-control-panel.test.tsx src/lib/dal/classroom.test.ts`
+- **After every task commit:** Run the sub-30s fast lane only: `test -f scripts/verify-phase73-quiz-ext.ts && test -f scripts/verify-phase73-v41-close-gate.ts && test -f .planning/phases/73-multi-type-quiz-schema-live-ws-event-teacher-live-dashboard/73-VERIFICATION.md && test -f .planning/phases/73-multi-type-quiz-schema-live-ws-event-teacher-live-dashboard/73-PROOF-MAPPING.md && test -f .planning/phases/73-multi-type-quiz-schema-live-ws-event-teacher-live-dashboard/73-CLOSEOUT.md && grep -Eq '"verify:phase73": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase73-quiz-ext.ts"' package.json && grep -Eq '"verify:phase73-v41-close-gate": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase73-v41-close-gate.ts"' package.json`
 - **After every plan wave:** Run `pnpm verify:phase73 --smoke`
-- **Before `/gsd-verify-work`:** Full suite must be green
-- **Max feedback latency:** 180 seconds
+- **Before `/gsd-verify-work`:** Full suite must be green via `pnpm verify:phase`
+- **Max feedback latency:** <30 seconds for fast lane; reserve `pnpm verify:phase` for wave-merge / final gate
+
+### Fast lane vs final gate
+
+- **Fast lane (current authoritative quick feedback):** parser/static/readiness preflight only, target <30s. It exists to catch missing scripts, missing artifacts, and wiring drift before invoking any heavy verifier chain.
+- **Final gate (current authoritative merge/close lane):** `pnpm verify:phase`. This is the only full-suite command for wave merge and final close.
+- **Historical / superseded note:** earlier drafts that treated `pnpm verify:phase73 && pnpm verify:phase73-v41-close-gate` as the standing full suite are now superseded; the single current authoritative full-suite entrypoint is `pnpm verify:phase`.
 
 ---
 

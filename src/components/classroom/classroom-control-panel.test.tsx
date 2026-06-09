@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ClassroomControlPanel } from './classroom-control-panel'
 import type { ClassroomSnapshotDTO } from '@/lib/dto/classroom'
@@ -22,6 +23,12 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     refresh: refreshMock,
   }),
+}))
+
+vi.mock('next/link', () => ({
+  default: ({ href, children, ...props }: { href: string; children: ReactNode; className?: string }) => (
+    <a href={href} {...props}>{children}</a>
+  ),
 }))
 
 vi.mock('@/actions/classroom-actions', () => ({
@@ -51,6 +58,7 @@ vi.mock('@/features/runtime-platform/host', () => ({ RuntimeHostClient: () => <d
 class MockWebSocket {
   static instances: MockWebSocket[] = []
   static OPEN = 1
+  static CLOSED = 3
 
   readonly url: string
   readyState = MockWebSocket.OPEN
@@ -60,7 +68,11 @@ class MockWebSocket {
   constructor(url: string) {
     this.url = url
     MockWebSocket.instances.push(this)
-    queueMicrotask(() => this.emit('open'))
+    queueMicrotask(() => {
+      if (this.readyState === MockWebSocket.OPEN) {
+        this.emit('open')
+      }
+    })
   }
 
   addEventListener(type: string, listener: (event: Event | MessageEvent) => void) {
@@ -73,7 +85,10 @@ class MockWebSocket {
     this.sent.push(data)
   }
 
-  close() {}
+  close() {
+    this.readyState = MockWebSocket.CLOSED
+    this.listeners.clear()
+  }
 
   emit(type: string, data?: unknown) {
     const event = type === 'message'
@@ -189,9 +204,14 @@ const snapshot: ClassroomSnapshotDTO = {
 }
 
 describe('ClassroomControlPanel websocket cutover', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
   beforeEach(() => {
     cleanup()
     vi.clearAllMocks()
+    vi.unstubAllGlobals()
     MockWebSocket.instances = []
     vi.stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket)
   })

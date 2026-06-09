@@ -75,7 +75,7 @@
     "verify:phase73-v41-close-gate": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase73-v41-close-gate.ts",
     "test:ci": "pnpm vitest run && pnpm test:live-answer-zero-write",
     "test:live-answer-zero-write": "tsx scripts/verify-live-answer-zero-write.ts",
-    "verify:phase": "pnpm verify:phase72",
+    "verify:phase": "pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate",
     "proof:phase58": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/proof-phase58-operator-recovery.ts",
     "verify:theme-default-regression": "tsx scripts/verify-theme-default-regression.ts",
     "seed:test-accounts": "tsx scripts/seed-test-accounts.ts",
