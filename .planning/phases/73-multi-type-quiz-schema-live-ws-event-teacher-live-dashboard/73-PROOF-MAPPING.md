@@ -9,7 +9,7 @@ score: 13/13 trace rows mapped
 
 **Phase Goal:** 把 Phase 73 已交付的多题型 quiz recap、teacher-only live dashboard、以及 v4.1 close artifacts 的依赖关系收口成 authoritative proof index，并在 gate wiring 前固定 Manual Surface Sign-Off Ledger。
 
-> **Order discipline (D-09).** `73-PROOF-MAPPING.md` 必须先于 gate wiring、`73-VERIFICATION.md` 与 `73-CLOSEOUT.md` 存在；conclusion never leads evidence。v4.1 新增两条 Manual Surface Sign-Off 只允许先记为 `status: pending-human-signoff`，直到真人在真实 `/classroom` product surface 上完成观察。
+> **Order discipline (D-09).** `73-PROOF-MAPPING.md` 必须先于 gate wiring、`73-VERIFICATION.md` 与 `73-CLOSEOUT.md` 存在；conclusion never leads evidence。v4.1 新增两条 Manual Surface Sign-Off 已在真实 `/classroom` product surface 完成观察后回填为 `status: passed`。
 
 ## Requirement → Flow Segment → Proof Files / Scripts / Tests
 
@@ -65,11 +65,11 @@ verify:phase73  → 73-VERIFICATION.md
               + 73-CLOSEOUT.md
 ```
 
-`QUIZ-EXT-CLOSE-03` 只在以上 proof chain 完整、且 v4.1 manual rows 从 `status: pending-human-signoff` 被真人改写为 `status: passed` 之后，才允许讨论 alias cutover；在此之前 `verify:phase` 继续冻结在 `pnpm verify:phase72`。
+`QUIZ-EXT-CLOSE-03` 只在以上 proof chain 完整、且 v4.1 manual rows 已由真人回填为 `status: passed` 之后，才允许讨论 alias cutover；在此之前 `verify:phase` 继续冻结在 `pnpm verify:phase72`。
 
 ## Manual Surface Sign-Off Ledger
 
-> 单文件 parser 只认锁定 schema：`proof artifact`、`status`、`executed_by`、`executed_at`、`evidence note`。carried-forward 的 v4.0 两行保留已完成值；v4.1 两行在真人观察前必须保持 `status: pending-human-signoff`。D-09 / D-05 / D-06 在本表内共同生效。
+> 单文件 parser 只认锁定 schema：`proof artifact`、`status`、`executed_by`、`executed_at`、`evidence note`。carried-forward 的 v4.0 两行保留已完成值；v4.1 两行现已由真人观察回填为 `status: passed`。D-09 / D-05 / D-06 在本表内共同生效。
 
 ### Row 1 — v4.0 carried-forward `/settings/plugins` lifecycle surface
 
@@ -96,20 +96,20 @@ verify:phase73  → 73-VERIFICATION.md
 | field | value |
 |-------|-------|
 | proof artifact | `src/app/(classroom)/classroom/page.tsx` + `src/components/classroom/classroom-control-panel.tsx` + `src/components/classroom/live-answer-dashboard-surface.tsx` |
-| status | `status: pending-human-signoff` |
-| executed_by | pending real observer per D-06 |
-| executed_at | pending real observation timestamp |
-| evidence note | 真人需在真实 `/classroom?sessionId={id}&tab=live-answer` 路径确认 live-answer sibling tab、teacher-only read-only dashboard、连接状态与 recent-answer aggregation；自动化只能提供静态/测试证据，不能代替 D-05 sign-off。 |
+| status | `status: passed` |
+| executed_by | wuxf |
+| executed_at | 2026-06-09T14:02:29+08:00 |
+| evidence note | 页面观察正常。 |
 
 ### Row 4 — v4.1 multi-type ended-session recap surface
 
 | field | value |
 |-------|-------|
 | proof artifact | `src/app/(classroom)/classroom/page.tsx` + `src/components/classroom/classroom-session-recap-surface.tsx` + `src/lib/dal/classroom.ts` |
-| status | `status: pending-human-signoff` |
-| executed_by | pending real observer per D-06 |
-| executed_at | pending real observation timestamp |
-| evidence note | 真人需在真实 ended-session `/classroom` 路径确认 `题目复盘` section 展示多题型 badge / stats blocks / empty states；`classroom-session-recap-surface.tsx` 是 authoritative product surface，自动化只支撑而不替代签核。 |
+| status | `status: passed` |
+| executed_by | wuxf |
+| executed_at | 2026-06-09T14:02:29+08:00 |
+| evidence note | 页面观察正常。 |
 
 ---
 
