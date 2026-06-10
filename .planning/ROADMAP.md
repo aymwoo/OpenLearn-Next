@@ -58,7 +58,7 @@ See `.planning/milestones/` for full archives.
 |-------|-----------|---------------|--------|-----------|
 | 73. Multi-Type Quiz & Live Dashboard | v4.1 | 2/2 | Complete | 2026-06-08 |
 | 74. v4.1 Authoritative Close Gate | v4.1 | 5/5 | Complete | 2026-06-09 |
-| 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 0/? | In Progress | — |
+| 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 1/4 | In Progress|  |
 | 76. v4.2 Authoritative Close Gate | v4.2 | 0/? | Planned | — |
 
 ---

@@ -3,9 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.2
 milestone_name: milestone
 status: executing
-stopped_at: context exhaustion at 75% (2026-06-10)
-last_updated: "2026-06-10T06:27:56.511Z"
-last_activity: 2026-06-10 -- Phase 75 planning complete
+last_updated: "2026-06-10T06:30:45.222Z"
+last_activity: 2026-06-10 -- Phase 75 execution started
 progress:
   total_phases: 3
   completed_phases: 2
@@ -21,14 +20,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-10 after v4.1 archive)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Planning next milestone（v4.1 archived）
+**Current focus:** Phase 75 — second-external-plugin-marketplace-generalization
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Ready to execute
-Last activity: 2026-06-10 -- Phase 75 planning complete
+Phase: 75 (second-external-plugin-marketplace-generalization) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 75
+Last activity: 2026-06-10 -- Phase 75 execution started
 
 ## Performance Metrics
 
