@@ -35,6 +35,8 @@ export const cacheTags = {
   scheduleCalendar: (schoolId: string) => `schedule:calendar:${schoolId}`,
   scheduleReminder: (schoolId: string) => `schedule:reminder:${schoolId}`,
   scheduleAssistantProposal: (proposalId: string) => `schedule:assistant-proposal:${proposalId}`,
+  homeworkAssignments: (sessionId: string) => `homework:assignments:${sessionId}`,
+  homeworkSubmissions: (sessionId: string) => `homework:submissions:${sessionId}`,
 } as const
 
 export const routeCacheBoundaries = [
