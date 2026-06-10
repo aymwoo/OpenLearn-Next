@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card'
 import { QuickResponseStepCard } from '@/components/learning/quick-response-step-card'
 import { QuizSampleStepCard } from '@/components/learning/quiz-sample-step-card'
 import { QuizStepCard } from '@/components/learning/quiz-step-card'
+import { HomeworkAssignmentCard } from '@/components/learning/homework-assignment-card'
 import { TaskStepCard } from '@/components/learning/task-step-card'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
 import { RuntimeHostClient } from '@/features/runtime-platform/host'
@@ -173,6 +174,17 @@ function CurrentStepRenderer({
   }
 
   if (step.type === 'task') {
+    const isHomework = (step.payload as { builtInSource?: { builtInKey?: string } })?.builtInSource?.builtInKey === 'homework'
+    if (isHomework && player.runtime.classroomSessionId) {
+      return (
+        <HomeworkAssignmentCard
+          lessonId={player.shell.lessonId}
+          sessionId={player.runtime.classroomSessionId}
+          step={step}
+          latestSubmission={player.latestSubmissions.tasks.find((a) => a.stepId === step.id) ?? null}
+        />
+      )
+    }
     return (
       <TaskStepCard
         lessonId={player.shell.lessonId}
