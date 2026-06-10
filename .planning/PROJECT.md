@@ -10,6 +10,24 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
+## Current Milestone: v4.2 Marketplace 泛化验证
+
+**Goal:** 构建第二个非 quiz 类型的 external 插件（如 homework），把它推过 v4.0 marketplace 的完整生命周期（install → authoring → classroom runtime → upgrade → uninstall），在过程中修复 quiz-only 的隐式假设，让 marketplace 从「被 quiz 验证过」升级为「多插件类型可重复使用」的通用基础设施。
+
+**Target features:**
+
+- **第二个 external 插件样板 (MKT-EXT-03)**: 选择与 quiz 差异足够大的插件类型（homework / resource / data-agent），构建为 external 插件，走与 quiz 完全相同的受治理路径（governed plugin key + `dispatchPluginDataAccess` + append-only/isLatest）。
+- **Marketplace 生命周期全链路验证**: 新插件 install → authoring → classroom runtime → semver upgrade（backfill→verify→cutover）→ retain/cleanup uninstall → 同 pluginKey 重装恢复，逐环节验证 marketplace 不是 quiz-only。
+- **泛化修复**: 在验证过程中暴露并修复 v4.0 marketplace 中 quiz-hardcoded 的隐式假设（如 plugin_owned_* 表的通用性、DTO/allowlist 的 quiz 默认值、upgrade migration 的题型耦合）。
+- **Close gate 扩展**: 在 v4.1 `verify:phase` 组合 alias 基础上增加第二个插件的跨插件回归（不破 quiz + 新插件全链路 green）。
+
+**Key context:**
+
+- 基于 v4.0 marketplace 闭环 + v4.1 quiz 多题型 + 实时仪表盘基线。
+- 不重做 marketplace 架构、不新建 plugin type、不新建第二 transport runtime。
+- 不涉及跨 pluginKey 数据恢复（MKT-EXT-02）、不涉及商店运营层（STORE-01）。
+- Phase 编号从 **75** 开始延续。
+
 ## Current State
 
 **Latest shipped milestone:** `v4.1 Multi-Question Types & Teacher Live Dashboard`（shipped 2026-06-09, archived 2026-06-10）
@@ -361,4 +379,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-10 after v4.1 Multi-Question Types & Teacher Live Dashboard milestone*
+*Last updated: 2026-06-10 after starting v4.2 Marketplace 泛化验证*
