@@ -17,7 +17,7 @@ export default async function ClassroomPage({
     sessionId?: string
      studentId?: string
      stepId?: string
-      tab?: 'control' | 'live-answer'
+      tab?: 'control' | 'live-answer' | 'homework-submissions'
       detailTab?: 'evidence' | 'evaluation'
       recapTab?: 'students' | 'steps'
   }>
@@ -27,7 +27,10 @@ export default async function ClassroomPage({
   const requestedSessionId = resolvedSearchParams?.sessionId
   const studentId = resolvedSearchParams?.studentId
   const stepId = resolvedSearchParams?.stepId
-  const requestedTab = resolvedSearchParams?.tab === 'live-answer' ? 'live-answer' : 'control'
+  const requestedTab =
+    resolvedSearchParams?.tab === 'live-answer' ? 'live-answer' :
+    resolvedSearchParams?.tab === 'homework-submissions' ? 'homework-submissions' :
+    'control'
   const detailTab = ClassroomStudentDetailTabSchema.safeParse(resolvedSearchParams?.detailTab).success
     ? resolvedSearchParams?.detailTab
     : 'evidence'

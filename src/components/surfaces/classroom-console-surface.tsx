@@ -56,7 +56,7 @@ export function ClassroomConsoleSurface({
   recap?: ClassroomSessionRecapDTO | null;
   studentDetail?: ClassroomStudentDetailDTO | null;
   activeDetailTab?: ClassroomStudentDetailTab;
-  activeConsoleTab?: 'control' | 'live-answer';
+  activeConsoleTab?: 'control' | 'live-answer' | 'homework-submissions';
 }) {
   const classCount = new Set(
     consoleData.publishedLessons.flatMap((lesson) =>

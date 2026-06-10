@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { BarChart3, Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
+import { BarChart3, ClipboardList, Clock3, Radio, Sparkles, TimerReset, Users } from 'lucide-react'
 
 import { changeClassroomModeAction, changeClassroomSlideAction, changeClassroomStepAction, endClassroomSessionAction, recordClassroomParticipationControlAction, recordRuntimeTeacherControlAction, runCurrentVotingRecoveryAction } from '@/actions/classroom-actions'
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer'
@@ -73,12 +73,12 @@ export function ClassroomControlPanel({
   studentDetail?: ClassroomStudentDetailDTO | null
   activeDetailTab?: ClassroomStudentDetailTab
   sessionEntries?: ClassroomConsoleSessionEntryDTO[]
-  initialTab?: 'control' | 'live-answer'
+  initialTab?: 'control' | 'live-answer' | 'homework-submissions'
 }) {
   const [conflict, setConflict] = useState<ConflictState>(null)
   const [liveSnapshot, setLiveSnapshot] = useState<ClassroomSnapshotDTO | null>(null)
   const [connectionState, setConnectionState] = useState<'connected' | 'reconnecting' | 'fallback' | 'closed'>('reconnecting')
-  const [activeTab, setActiveTab] = useState<'control' | 'live-answer'>(initialTab)
+  const [activeTab, setActiveTab] = useState<'control' | 'live-answer' | 'homework-submissions'>(initialTab)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const socketRef = useRef<ReturnType<typeof subscribeClassroomSocket> | null>(null)
@@ -385,12 +385,14 @@ export function ClassroomControlPanel({
     })
   }
 
-  const handleControlTabChange = (nextTab: 'control' | 'live-answer') => {
+  const handleControlTabChange = (nextTab: 'control' | 'live-answer' | 'homework-submissions') => {
     setActiveTab(nextTab)
     const params = new URLSearchParams(window.location.search)
     params.set('sessionId', currentSnapshot.sessionId)
     if (nextTab === 'live-answer') {
       params.set('tab', 'live-answer')
+    } else if (nextTab === 'homework-submissions') {
+      params.set('tab', 'homework-submissions')
     } else {
       params.delete('tab')
     }
@@ -493,7 +495,7 @@ export function ClassroomControlPanel({
         <Tabs
           defaultValue="control"
           value={activeTab}
-          onValueChange={(value) => handleControlTabChange(value as 'control' | 'live-answer')}
+          onValueChange={(value) => handleControlTabChange(value as 'control' | 'live-answer' | 'homework-submissions')}
           className="space-y-5"
         >
           <TabsList className="flex flex-wrap gap-2 rounded-[1.1rem] bg-surface-container-low p-1">
@@ -520,6 +522,18 @@ export function ClassroomControlPanel({
             >
               <BarChart3 className="size-4" aria-hidden />
               作答实时
+            </TabsTrigger>
+            <TabsTrigger
+              value="homework-submissions"
+              className={cn(
+                'inline-flex min-h-[42px] items-center gap-2 rounded-[1rem] px-4 text-sm font-medium transition-colors',
+                activeTab === 'homework-submissions'
+                  ? 'bg-surface text-primary shadow-ambient'
+                  : 'text-on-surface-variant hover:bg-surface-container-lowest',
+              )}
+            >
+              <ClipboardList className="size-4" aria-hidden />
+              作业提交
             </TabsTrigger>
           </TabsList>
 
@@ -690,6 +704,20 @@ export function ClassroomControlPanel({
               connectionState={connectionState}
               currentVotingRound={currentSnapshot.currentVotingRound}
             />
+          </TabsContent>
+
+          <TabsContent value="homework-submissions">
+            <Card className="bg-surface-container-low p-5 sm:p-6">
+              <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+                <ClipboardList className="size-12 text-on-surface-variant/40" aria-hidden />
+                <div>
+                  <h3 className="text-xl font-semibold text-on-surface">作业提交</h3>
+                  <p className="mt-2 text-sm text-on-surface-variant">
+                    学生提交后将在此处显示，教师可进行批改。
+                  </p>
+                </div>
+              </div>
+            </Card>
           </TabsContent>
         </Tabs>
 
