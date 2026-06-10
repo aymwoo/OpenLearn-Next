@@ -12,8 +12,17 @@
 - ✅ **v3.2** — AI LessonAgent 起草闭环 (Phases 61-66, shipped 2026-06-02)
 - ✅ **v4.0** — Plugin Marketplace & Plugin-Owned Data (Phases 67-72 + 72.1, shipped 2026-06-07)
 - ✅ **v4.1** — Multi-Question Types & Teacher Live Dashboard (Phases 73-74, shipped 2026-06-09) → [archive](milestones/v4.1-ROADMAP.md)
+- 🔄 **v4.2** — Marketplace 泛化验证 (Phases 75-76, in progress)
 
 ## Phases
+
+<details>
+<summary>🔄 v4.2 Marketplace 泛化验证 (Phases 75-76) — IN PROGRESS</summary>
+
+- [ ] Phase 75: 第二个 External 插件 + Marketplace 泛化验证 (0/? plans)
+- [ ] Phase 76: v4.2 Authoritative Close Gate (0/? plans)
+
+</details>
 
 <details>
 <summary>✅ v4.1 Multi-Question Types & Teacher Live Dashboard (Phases 73-74) — SHIPPED 2026-06-09</summary>
@@ -49,6 +58,8 @@ See `.planning/milestones/` for full archives.
 |-------|-----------|---------------|--------|-----------|
 | 73. Multi-Type Quiz & Live Dashboard | v4.1 | 2/2 | Complete | 2026-06-08 |
 | 74. v4.1 Authoritative Close Gate | v4.1 | 5/5 | Complete | 2026-06-09 |
+| 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 0/? | In Progress | — |
+| 76. v4.2 Authoritative Close Gate | v4.2 | 0/? | Planned | — |
 
 ---
 
