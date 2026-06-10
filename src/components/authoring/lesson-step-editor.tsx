@@ -64,6 +64,9 @@ type EditorState = {
   votingShowLiveResults: boolean;
   votingParticipationWindowSeconds: string;
   votingResultsDisplay: "bar" | "column" | "compact";
+  homeworkTitle: string;
+  homeworkDescription: string;
+  homeworkAttachmentUrl: string;
 };
 
 type VotingValidationState = {
@@ -114,6 +117,11 @@ function isQuizSampleStep(step: LessonStepDTO) {
   return step.type === "quiz"
     && step.payload.type === "quiz"
     && step.payload.builtInSource?.builtInKey === "quizSample";
+}
+
+function isHomeworkStep(step: LessonStepDTO) {
+  return step.type === "task"
+    && (step.payload as { builtInSource?: { builtInKey?: string } }).builtInSource?.builtInKey === "homework";
 }
 
 function getPersistedVotingConfig(step: LessonStepDTO) {
@@ -286,6 +294,9 @@ function buildInitialState(step: LessonStepDTO): EditorState {
     votingShowLiveResults: votingSeed.showLiveResults,
     votingParticipationWindowSeconds: String(votingSeed.participationWindowSeconds),
     votingResultsDisplay: votingSeed.resultsDisplay,
+      homeworkTitle: isHomeworkStep(step) ? step.title : "",
+      homeworkDescription: isHomeworkStep(step) && step.payload.type === "task" ? step.payload.prompt : "",
+      homeworkAttachmentUrl: isHomeworkStep(step) && step.payload.type === "task" ? (step.payload.materialRefs?.[0]?.url ?? "") : "",
   };
 }
 
@@ -346,6 +357,21 @@ function buildPayload(state: EditorState, step: LessonStepDTO): LessonStepPayloa
   }
 
   if (step.type === "task" && step.payload.type === "task") {
+    if (isHomeworkStep(step)) {
+      const homeworkMaterialRefs = state.homeworkAttachmentUrl.trim()
+        ? [{ title: state.homeworkAttachmentUrl.trim(), kind: "link" as const, url: state.homeworkAttachmentUrl.trim() }]
+        : [];
+      return {
+        type: "task",
+        prompt: state.homeworkDescription.trim(),
+        submissionType: "text" as const,
+        successCriteria: undefined,
+        allowRetry: step.payload.allowRetry,
+        retryPolicy: step.payload.retryPolicy,
+        materialRefs: homeworkMaterialRefs,
+        builtInSource,
+      };
+    }
     return {
       type: "task",
       prompt: state.taskPrompt.trim(),
@@ -393,6 +419,7 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
 
   const stepTypeLabel = useMemo(() => {
     if (!step) return "";
+    if (isHomeworkStep(step)) return "作业";
     return step.type === "content" ? "内容" : step.type === "task" ? "任务" : "测验";
   }, [step]);
   const builtInSourceLabel = useMemo(() => {
@@ -831,7 +858,44 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
                   </>
                 )}
 
-                {activeStep.type === "task" && activeStep.payload.type === "task" && (
+                {isHomeworkStep(activeStep) ? (
+                  <div className="grid gap-3 rounded-none bg-surface-container-low p-4" aria-label="作业配置">
+                    <div>
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-on-surface">作业配置</h3>
+                      <p className="mt-1 text-sm text-on-surface-variant">设置作业标题、描述与可选附件链接</p>
+                    </div>
+                    <label className="grid gap-2" htmlFor="lesson-step-homework-title">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">作业标题</span>
+                      <input
+                        id="lesson-step-homework-title"
+                        className={fieldClassName}
+                        value={activeState.homeworkTitle}
+                        placeholder="输入作业标题"
+                        onChange={(event) => updateField("homeworkTitle", event.target.value)}
+                      />
+                    </label>
+                    <label className="grid gap-2" htmlFor="lesson-step-homework-description">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">作业描述</span>
+                      <textarea
+                        id="lesson-step-homework-description"
+                        className={`${fieldClassName} min-h-24`}
+                        value={activeState.homeworkDescription}
+                        placeholder="描述作业要求…"
+                        onChange={(event) => updateField("homeworkDescription", event.target.value)}
+                      />
+                    </label>
+                    <label className="grid gap-2" htmlFor="lesson-step-homework-attachment">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">附件链接</span>
+                      <input
+                        id="lesson-step-homework-attachment"
+                        className={fieldClassName}
+                        value={activeState.homeworkAttachmentUrl}
+                        placeholder="附件链接（可选）"
+                        onChange={(event) => updateField("homeworkAttachmentUrl", event.target.value)}
+                      />
+                    </label>
+                  </div>
+                ) : activeStep.type === "task" && activeStep.payload.type === "task" && (
                   <>
                     <label className="grid gap-2" htmlFor="lesson-step-task-prompt">
                       <span className="text-sm font-semibold uppercase tracking-wide text-on-surface">任务说明</span>
@@ -1159,12 +1223,16 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
                      ? "正在保存投票配置..."
                      : isQuizSampleStep(activeStep)
                        ? "正在保存题目配置..."
-                       : savingCopy)
+                       : isHomeworkStep(activeStep)
+                         ? "正在保存作业..."
+                         : savingCopy)
                    : (isClassroomVotingStep(activeStep)
                      ? "保存投票配置"
                      : isQuizSampleStep(activeStep)
                        ? "保存题目配置"
-                       : "保存步骤")}
+                       : isHomeworkStep(activeStep)
+                         ? "保存作业"
+                         : "保存步骤")}
                </Button>
              </div>
           </div>
@@ -1293,10 +1361,20 @@ export function LessonStepEditor({ step, schoolId, courseId, className, onCancel
     return state.quizQuestion.trim() || "请填写题干、至少 2 个选项，并指定正确答案后再保存；保存后学生端才能在开课时冻结为课堂题目。";
   }
 
+  if (isHomeworkStep(step)) {
+    return state.homeworkDescription.trim() || state.homeworkTitle.trim() || "设置作业标题和描述，学生将在课堂中看到作业卡片。";
+  }
+
   return state.quizQuestion.trim() || "填写测验题目后，右侧会即时展示题目摘要与作答提示。";
 }
 
 function getPreviewSupport(step: LessonStepDTO, state: EditorState) {
+  if (isHomeworkStep(step)) {
+    return state.homeworkAttachmentUrl.trim()
+      ? `含附件链接 · ${state.homeworkDescription.slice(0, 40)}${state.homeworkDescription.length > 40 ? "…" : ""}`
+      : state.homeworkDescription.slice(0, 60) || "填写作业描述后，学生会看到作业卡片和提交通道。";
+  }
+
   if (step.type === "content") {
     return state.teacherNotes.trim() || "可在这里补充教师提示、追问方式和课堂话术。";
   }
