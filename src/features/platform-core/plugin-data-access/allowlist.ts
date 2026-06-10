@@ -82,6 +82,7 @@ const allowlist = pluginDataAccessAllowlist as unknown as Record<
 
 const PLUGIN_DATA_ACCESS_ALIASES = {
   "builtin-teaching-step-quiz-sample": "quiz",
+  "builtin-teaching-step-homework": "homework",
 } as const satisfies Record<string, string>;
 
 function resolveAllowlistPluginKey(pluginKey: string) {

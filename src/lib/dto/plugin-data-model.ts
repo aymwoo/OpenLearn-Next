@@ -144,6 +144,36 @@ export const PluginDataModelSchema = z.strictObject({
 export const QuestionTypeSchema = z.enum(["single_choice", "multi_choice", "true_false", "fill_blank", "ordering"]);
 export type QuestionType = z.infer<typeof QuestionTypeSchema>;
 
+// ── homework plugin DTO schemas（Phase 75, MKT-EXT-03）──────────────────────
+// v4.0 strict pattern：z.strictObject + superRefine，拒额外字段。
+
+export const HomeworkAssignmentDTOSchema = z.strictObject({
+  classroomSession: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  attachmentUrl: z.string().optional(),
+});
+
+export const HomeworkSubmissionDTOSchema = z.strictObject({
+  classroomSession: z.string().min(1),
+  student: z.string().min(1),
+  assignment: z.string().min(1),
+  content: z.string().min(1),
+  attachmentUrl: z.string().optional(),
+});
+
+export const HomeworkGradeDTOSchema = z.strictObject({
+  classroomSession: z.string().min(1),
+  student: z.string().min(1),
+  submission: z.string().min(1),
+  score: z.number().int().min(0).max(100).optional(),
+  comment: z.string().optional(),
+});
+
+export type HomeworkAssignmentDTO = z.infer<typeof HomeworkAssignmentDTOSchema>;
+export type HomeworkSubmissionDTO = z.infer<typeof HomeworkSubmissionDTOSchema>;
+export type HomeworkGradeDTO = z.infer<typeof HomeworkGradeDTOSchema>;
+
 export type ColumnSpec = z.infer<typeof ColumnSpecSchema>;
 export type TableSpec = z.infer<typeof TableSpecSchema>;
 export type PluginDataModel = z.infer<typeof PluginDataModelSchema>;
