@@ -10,27 +10,36 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## Current Milestone: v4.1 Multi-Question Types & Teacher Live Dashboard
+## Current State
 
-**Goal:** 在 v4.0 互动答题样板（`plugin_owned_quiz_questions` + `plugin_owned_quiz_responses`、governed plugin key `quiz`、append-only/isLatest）之上扩展多题型能力，并交付教师在 `/classroom` 控制台只读查看的实时作答主流水嶀（按题聚合的选项分布随时间变化）。不重建 v4.0 marketplace / 受治理 / 单一 close gate baseline；继续用 `pnpm verify:phase` 作 milestone close gate。
+**Latest shipped milestone:** `v4.1 Multi-Question Types & Teacher Live Dashboard`（shipped 2026-06-09, archived 2026-06-10）
 
-**Target features:**
+**What is now validated (v4.1 layer):**
 
-- **多题型互动答题 (QUIZ-EXT-01)**: 老师能配置多选、判断、填空、排序题型，配置经与单选同样的受治理路径持久化（`plugin_owned_quiz_questions` 同一表 + 新 `questionType` 字段 + 各题型 payload JSON 子集）；学生在课堂运行链路提交对应 payload，append-only/isLatest 写入 `plugin_owned_quiz_responses`。
-- **教师只读实时作答主流水嶀 (QUIZ-EXT-02)**: 老师在 `/classroom` 教师控制台加一个 "作答实时" tab/section，可以看到全班实时作答流水（按题聚合的选项分布随时间变化 / 按时序的最近 N 条作答），复用 v2.2 WebSocket-first classroom transport + 可选 Redis fanout 作 delivery layer，**不创建新事实源**（真实数据仍在 SQLite + DAL）。
-- **close gate 复用**: `pnpm verify:phase` 同时作为 v4.1 的 authoritative close gate；新增多题型 + 实时主流水嶀的端到端验证。
+- 多题型互动答题（5 种题型：single_choice/multi_choice/true_false/fill_blank/ordering），全部走 append-only/isLatest 写入路径，与 v4.0 单选共用同一套受治理 DAL 动词。
+- `quiz.answer.received` WebSocket 事件，经 v2.2 classroom-ws 传输层推送到教师端，teacher-only 通道过滤，可选 Redis fanout delivery layer。
+- `/classroom` 控制室「作答实时」sibling tab，Zustand 客户端聚合（按题选项分布 + 最近 N 条作答流水），零写 Server Action 守卫。
+- 5 题型课后统计 discriminated union（countByOption/countByOptionSet/countByBool/topAnswers/topOrderings），按题型分组渲染。
+- v4.1 authoritative close gate：`verify:phase` 组合 alias `pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate`，7-stage gate，4-row Manual Surface Sign-Off Ledger 全部 `status: passed`。
 
-**Key context:**
+## Latest Archived Milestone: v4.1 Multi-Question Types & Teacher Live Dashboard
 
-- 复用 v4.0 baseline：`compile, don't execute` 范式、5 个受治理 verbs（`insert` / `upsert` / `getByIndex` / `count` / `aggregate`）、governed plugin key `quiz`、`plugin_owned_quiz_*` 表。
-- 复用 v2.2 baseline：WebSocket-first classroom transport + 可选 Redis fanout（仅作 delivery layer，不当业务真相源）。
-- 不重起 marketplace 架构：v4.1 是 v4.0 的纵深延展，不新增 plugin type、不改 marketplace 生命周期、不重新打开编译期 DDL 路径。
-- bundle 纪律（N≤2）：v4.1 同一里程碑内同时做多题型 + 教师实时仪表盘，二者均挂在 v4.0 quiz sample 之上；不再 bundle upgrade dry-run / 跨 pluginKey 恢复 / 非答题类插件 / 商店运营层等其它 scope。
-- 风格纪律：与 v3.2 N=1 强样板一致——同一 milestone 内不引入第三个独立用户价值切口。
-- v4.1 阶段的 phase 编号从 **73** 开始延续（v4.0 最后一个 phase 是 72.1）。
-- 计划 phase 数：1-2 phase 收口（先 broad multi-type + live dashboard MVP，再 close-out + 强化 close gate）。
+**Archive status:** Archived 2026-06-10, shipped 2026-06-09 after closure Phase 74.5
 
-## Latest Archived Milestone: v4.0 Plugin Marketplace & Plugin-Owned Data
+**Delivered scope:**
+
+- Phase 73-74, 7 plans, ~50 commits
+- 5 题型互动答题（QUIZ-EXT-01-A..E），共用 v4.0 append-only/isLatest 写入路径
+- 实时作答传输桥 + 「作答实时」只读仪表盘 tab（QUIZ-EXT-02-A..E）
+- v4.1 authoritative close gate（QUIZ-EXT-CLOSE-01..03），7-stage gate，组合 alias
+
+**Close posture:**
+
+- All 3 `v4.1` requirements marked Complete (QUIZ-EXT-01 / 02 / CLOSE).
+- Milestone audit 2026-06-10 returned `passed` (3/3 requirements, 2/2 phases, 4/4 integration, 2/2 flows).
+- `pnpm verify:phase` = `pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate`，4-row Manual Surface Sign-Off Ledger 全部 `status: passed`.
+
+## Previously Archived Milestone: v4.0 Plugin Marketplace & Plugin-Owned Data
 
 **Archive status:** Archived 2026-06-07 after closure Phase 72.1 hardened the authoritative `verify:phase` close gate and added formal verification + proof mapping + closeout artifacts.
 
@@ -53,6 +62,14 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 ## Current State
 
 **Latest shipped milestone:** `v4.0 Plugin Marketplace & Plugin-Owned Data`（archived 2026-06-07）
+
+**What is now validated (v4.1 layer):**
+
+- 多题型互动答题：5 种题型（单选/多选/判断/填空/排序）共用 v4.0 append-only/isLatest 写入路径与受治理 DAL 动词，`plugin_owned_quiz_questions.questionType` additive migration，5-type DTO discriminated union。
+- 实时作答传输桥：`quiz.answer.received` WebSocket 事件经 v2.2 classroom-ws 推送到教师端，teacher-only 通道过滤，可选 Redis fanout contract test 双分支。
+- 只读实时仪表盘：`/classroom` 控制室「作答实时」sibling tab，Zustand 客户端聚合，零写 Server Action 守卫，下课自动切 v4.0 recap。
+- 5 题型课后统计：`buildQuizSampleRecapStats` 扩展为 discriminated union，`ClassroomSessionRecapSurface` 按题型 badge + metric 分组渲染。
+- v4.1 authoritative close gate：`verify:phase` 组合 alias `pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate`，7-stage gate（v4.0 5 + 多题型 + 实时仪表盘），4-row Manual Surface Sign-Off Ledger 全部 `status: passed`。
 
 **What is now validated (v4.0 layer):**
 
@@ -152,17 +169,18 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ## Planning Posture
 
-当前没有 active milestone。下一里程碑应从已归档的 `v4.0` 插件 marketplace 闭环 + `v3.2` AI draft-loop truth + `v3.1` single-school pilot truth 出发，选择新的 committed 用户价值切口，而不是重开已完成 baseline。
+当前没有 active milestone。下一里程碑应从已归档的 `v4.1` 多题型 + 实时仪表盘 + `v4.0` 插件 marketplace 闭环 + `v3.2` AI draft-loop truth + `v3.1` single-school pilot truth 出发，选择新的 committed 用户价值切口，而不是重开已完成 baseline。
 
 **Next planning constraints:**
 
+- 把多题型互动答题 + 实时仪表盘 + v4.1 authoritative close gate 视为 v4.1 validated baseline。
 - 把声明式插件数据模型 + 受治理访问 + 互动答题样板 + marketplace 生命周期 + authoritative close gate 视为 v4.0 validated baseline。
 - 把 LessonAgent 起草闭环、classroom voting 样板链路、operator recovery、pilot deploy/release/restore 与 40/5 rehearsal 视为 v3.1/v3.2 validated baseline。
 - 保持既有 WebSocket-first、optional Redis fanout、BullMQ、SQLite + DAL truth posture，不把已交付能力重新描述为缺口。
 - 若下一里程碑要求真实 LLM 端到端验收，先显式纳入 provider/Redis bootstrap 或 staging proof lane，而不是在 close 时临时补环境。
-- 候选下一里程碑 scope：多题型（QUIZ-EXT-01）、实时大屏（QUIZ-EXT-02）、AI 出题（QUIZ-EXT-03）、upgrade dry-run（MKT-EXT-01）、跨 pluginKey 完整恢复（MKT-EXT-02）、非答题类插件二次泛化（MKT-EXT-03）、商店运营层（STORE-01）。
+- 候选下一里程碑 scope：AI 出题（QUIZ-EXT-03）、upgrade dry-run（MKT-EXT-01）、跨 pluginKey 完整恢复（MKT-EXT-02）、非答题类插件二次泛化（MKT-EXT-03）、商店运营层（STORE-01）。
 - 继续推迟多校多租户、PostgreSQL/pgvector cutover、重型 observability 平台迁移、Agent Runtime 扩张、runtime 动态建表 / eval / 任意第三方代码执行，除非新 milestone 明确承接。
-- 下一轮 scope 应通过 `/gsd-new-milestone` 正式建立，而不是直接恢复旧 `REQUIREMENTS.md`。
+- 下一轮 scope 应通过 `/gsd:new-milestone` 正式建立，而不是直接恢复旧 `REQUIREMENTS.md`。
 
 <details>
 <summary>Archived v2.2 milestone context</summary>
@@ -217,13 +235,18 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - [x] 已交付 marketplace 生命周期：external 插件 install 治理、semver backfill→verify→cutover 零丢失升级、retain/cleanup 卸载带确认 token 与影响面回显、active-session 阻断。（Validated in Phase 71 / v4.0, MKT-01..05）
 - [x] 已建立 `pnpm verify:phase` authoritative end-to-end close gate：6 stages / 49 checks / 208 vitest tests / 5 ordered upstream pnpm runners；hard-fail unless `72.1-CLOSEOUT.md` / `72.1-PROOF-MAPPING.md` / `72-VERIFICATION.md` 存在 + Manual Surface Sign-Off Ledger `status: passed`。（Validated in Phases 72-72.1 / v4.0, GATE-01）
 
+- [x] 多题型互动答题（QUIZ-EXT-01-A..E）—— v4.1
+- [x] 教师只读实时作答流水（QUIZ-EXT-02-A..E）—— v4.1
+- [x] v4.1 authoritative close gate（QUIZ-EXT-CLOSE-01..03）—— v4.1
+- [x] 声明式 `dataModel` DSL + compile/don't execute 范式物理证明 —— v4.0
+- [x] 5 个受治理数据访问动词 + dispatchPluginDataAccess facade —— v4.0
+- [x] 互动答题样板打穿「老师配置→学生作答→课后统计」全链 —— v4.0
+- [x] Marketplace 生命周期（install/upgrade/uninstall）—— v4.0
+- [x] `pnpm verify:phase` authoritative end-to-end close gate —— v4.0 + v4.1
+
 ### Active
 
-**v4.1 Multi-Question Types & Teacher Live Dashboard**
-
-- [ ] **QUIZ-EXT-01**: 多题型互动答题 —— 老师能配置多选、判断、填空、排序题型，配置经与单选同样的受治理路径持久化；学生提交对应 payload 写入同一 `plugin_owned_quiz_responses` 表，append-only/isLatest 行为不变。
-- [ ] **QUIZ-EXT-02**: 教师只读实时作答主流水嶀 —— 老师在 `/classroom` 教师控制台加一个 "作答实时" tab/section，可看到全班实时作答流水（按题聚合的选项分布随时间变化 + 最近 N 条作答）；复用 v2.2 WebSocket-first classroom transport + 可选 Redis fanout 作 delivery layer，不创建新事实源。
-- [ ] **QUIZ-EXT-CLOSE**: v4.1 close gate —— 复用 v4.0 `pnpm verify:phase` 作 milestone close gate；新增多题型 + 实时主流水嶀的端到端验证。
+_当前没有 active milestone。下一里程碑应由 `/gsd:new-milestone` 建立。_
 
 ### Out of Scope
 
@@ -314,6 +337,11 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 | Phase 71-04：`/settings/plugins` 走 preflight-first / recover / block reason 三段式 UI，不在升级 / 卸载前暴露"一键"破坏性动作 | 把治理边界变成操作者可见的实操反馈，而不是隐藏在内部 | ✓ Good（Phase 71）|
 | Phase 72.1：close gate 从「顺序编排器」升级为「authoritative milestone close gate」—— 必须 hard-fail unless `72.1-CLOSEOUT.md` / `72.1-PROOF-MAPPING.md` / `72-VERIFICATION.md` 存在 + Manual Surface Sign-Off Ledger `status: passed` + bridge / final-artifact / manual sign-off 三个独立阶段都绿 | milestone close 不能再依赖"verifier 跑通即完事"，必须把审计 artifact 的物理存在性 + 真实 UI 验收都纳入闸门 | ✓ Good（Phase 72.1）|
 | Phase 72.1：先 proof mapping 后 closeout、最后 gate wiring（D-72.1-16：conclusion never leads evidence） | 避免 milestone 闭环叙事在证据之前就锁定；任何 closeout 都先有 proof mapping | ✓ Good（Phase 72.1）|
+| v4.1 scope N=2 bundle (QUIZ-EXT-01 + QUIZ-EXT-02)，统一 `pluginKey = "quiz"`，复用 v4.0 单选样板 + v2.2 WebSocket-first transport | 小 scope 纵深延展，不重起 marketplace / governance / data-access verbs | ✓ Good（v4.1）|
+| v4.1 题型枚举 `single_choice` | `multi_choice` | `true_false` | `fill_blank` | `ordering`（5 种），全部走 D-72.1-04 append-only/isLatest 写入路径 | 在 v4.0 单选基线上 additive 扩展，不破坏既有唯一索引与写入契约 | ✓ Good（v4.1）|
+| `quiz.answer.received` 是新 WS event kind，遵循 v2.2 contract envelope，teacher-only channel | 复用已有 transport，不创建新 WS endpoint | ✓ Good（v4.1）|
+| v4.1 dashboard tab 是 `/classroom` 控制室内的 sibling tab，不创建新路由，零写 Server Action | 最小 blast radius，保持 v4.0 write-path discipline | ✓ Good（v4.1）|
+| v4.1 close gate 复用 v4.0 72.1 范式，stage 5→7，`verify:phase` 组合 alias | 单一权威入口不破，先 proof mapping 后 closeout 后 gate wiring discipline 跨 milestone 传承 | ✓ Good（v4.1）|
 
 ## Evolution
 
@@ -333,4 +361,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-07 after starting v4.1 Multi-Question Types & Teacher Live Dashboard*
+*Last updated: 2026-06-10 after v4.1 Multi-Question Types & Teacher Live Dashboard milestone*

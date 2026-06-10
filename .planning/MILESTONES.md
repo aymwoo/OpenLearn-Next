@@ -1,5 +1,26 @@
 # Milestones
 
+## v4.1 Multi-Question Types & Teacher Live Dashboard (Shipped: 2026-06-09)
+
+**Phases completed:** 2 phases (73-74), 7 plans, ~50 commits
+
+**Milestone audit:** `passed`（audited 2026-06-10）；3/3 requirements, 2/2 phases, 4/4 integration seams, 2/2 user flows。
+
+**Close posture:** `pnpm verify:phase` alias = `pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate` — 7-stage authoritative gate (v4.0 5 stages + multi-type + live dashboard), 4-row Manual Surface Sign-Off Ledger all `status: passed`.
+
+**Key accomplishments:**
+
+- 将 v4.0 quiz 样板从单选扩展到 5 种题型（single_choice/multi_choice/true_false/fill_blank/ordering），共用同一套 append-only/isLatest 写入路径与受治理 DAL 动词。
+- 新增 `quiz.answer.received` WebSocket 事件，经 v2.2 classroom-ws 传输层推送到教师端，teacher-only 通道过滤，可选 Redis fanout contract test 双分支。
+- 在 `/classroom` 控制室新增「作答实时」sibling tab，Zustand 客户端聚合（按题选项分布 + 最近 N 条作答流水），零写 Server Action 守卫，下课自动切 v4.0 recap。
+- 课后统计 `buildQuizSampleRecapStats` 扩展为 5 题型 discriminated union（countByOption/countByOptionSet/countByBool/topAnswers/topOrderings），`ClassroomSessionRecapSurface` 按题型分组渲染。
+- 复用 v4.0 72.1 authoritative close gate 范式：stage 5→7（多题型 + 实时仪表盘），组合 alias 顺序串联 `verify:phase72 && verify:phase73-v41-close-gate`，先 proof mapping 后 closeout 最后 gate wiring（conclusion never leads evidence）。
+- 真人课堂签核落档 + 证据链收口：PROOF-MAPPING / VERIFICATION / CLOSEOUT 三件套齐全，4-row Manual Surface Sign-Off Ledger 全部 `status: passed`（v4.0 2 行 + v4.1 2 行）。
+
+**Known deferred items at close:** 3 stale warnings (verify-phase73-v41-close-gate.test.ts stale expectation / 73-CLOSEOUT.md stale footer / 74-VALIDATION.md stale frontmatter) — non-blocking per audit; plus QUIZ-EXT-03 / MKT-EXT-01..03 / STORE-01 deferred to future milestones.
+
+---
+
 ## v4.0 Plugin Marketplace & Plugin-Owned Data (Shipped: 2026-06-07)
 
 **Phases completed:** 7 phases (67-72 + inserted 72.1), 25 plans, 11 executor commits (Phase 72.1) + 2 prep commits + 1 state commit on top of the 67-72 work.

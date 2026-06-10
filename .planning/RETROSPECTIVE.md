@@ -178,6 +178,45 @@
 
 ---
 
+## Milestone: v4.1 — Multi-Question Types & Teacher Live Dashboard
+
+**Shipped:** 2026-06-09
+**Phases:** 2 | **Plans:** 7 | **Sessions:** not tracked in repo artifacts
+
+### What Was Built
+- 5 题型互动答题（单选/多选/判断/填空/排序），全部走 append-only/isLatest 写入路径与受治理 DAL 动词，`questionType` additive migration。
+- `quiz.answer.received` WebSocket 事件经 v2.2 classroom-ws 推送到教师端，teacher-only 通道过滤，可选 Redis fanout contract test 双分支。
+- `/classroom` 控制室「作答实时」sibling tab，Zustand 客户端聚合，零写 Server Action 守卫。
+- `buildQuizSampleRecapStats` 扩展为 5 题型 discriminated union，`ClassroomSessionRecapSurface` 按题型分组渲染。
+- v4.1 authoritative close gate：`verify:phase` 组合 alias，7-stage gate，4-row Manual Surface Sign-Off Ledger 全部 `status: passed`。
+
+### What Worked
+- v4.1 作为 v4.0 的纵深延展（N=2 small bundle），不重起 marketplace/governance/data-access verbs，2 phases / 7 plans 就完成多题型 + 实时仪表盘两件主要功能 + close gate。
+- Phase 73 作为宽幅实施 phase，73-01（DAL/schema/stats）与 73-02（WS/dashboard/read-only）拆分为两个独立 plan，73-02 依赖 73-01 的 DAL write hook 点——这种拆法让每个 plan 各自 5-6 个任务即可收口。
+- Phase 74 close gate 沿用 v4.0 72.1 的 5-plan scaffold（proof mapping → outer gate → VERIFICATION → manual sign-off → final cutover），结构 discipline 完全复用，无需重新设计 close sequence。
+- 真人课堂签核（74-04）被固化为独立 phase artifact（`74-MANUAL-SIGNOFF.md`），供后续 proof mapping 回填——这种"先观察落档，再回填 ledger"的 handoff 模式避免了伪造 human sign-off。
+
+### What Was Inefficient
+- Phase 73-02 plan 引用 `src/app/(teacher)/classroom/*` 路径，但实际路由在 `src/app/(classroom)/classroom/*`，执行时才修正——route group 的路径推断应该在 plan 阶段就与 codebase 对齐。
+- 仓库级 `pnpm typecheck` 仍然充满无关历史错误，导致 close gate 必须继续依赖 targeted phase commands 而非全量 typecheck——这在前几个里程碑已是已知问题，但每次 close 都会重新碰到。
+- Phase 74-05 final cutover 时出现 3 个 blocking drift（phase72 verifier archive path / v4.1 close-gate alias posture / legacy verifier/test drift），需要在同一个 commit 中 inline 修复——这些 drift 应在 Plan 74-02（outer gate wiring）阶段就被更早发现。
+
+### Patterns Established
+- 「**N=2 small bundle, 同 pluginKey**」模式：v4.1 同一里程碑内同时做多题型 + 教师实时仪表盘，二者均挂在 v4.0 quiz sample 之上；不引入第三个独立用户价值切口。
+- 「**宽幅实施 phase + close gate phase**」二 phase 结构：Phase 73 打穿所有产品 seam，Phase 74 用复用的 close gate scaffold 收口；适合 scope 明确的纵深延展式 milestone。
+- 「**真人签核 artifact → proof mapping 回填**」handoff：先固化 `74-MANUAL-SIGNOFF.md`，再由后续 plan 回填 `73-PROOF-MAPPING.md` 的 manual rows——不伪造人类观察。
+
+### Key Lessons
+1. Close gate scaffold 复用的价值在于结构 discipline（stage ordering、artifact dependency、alias discipline），而不只是 script 复制。v4.1 的 Phase 74 几乎可以完全套用 v4.0 72.1 的 5-plan 拆法。
+2. route group 推断错误是 plan 阶段的常见问题，应该在 plan 生成时对 `/classroom` 和 `/(classroom)` 做路径解析确认，而不是在执行时才发现。
+
+### Cost Observations
+- Model mix: not tracked in repo artifacts
+- Sessions: not tracked in repo artifacts
+- Notable: v4.1 用 2 phases / 7 plans 完成多题型 + 实时仪表盘 + close gate，验证了"纵深延展 small bundle" + "复用 close gate scaffold" 的杠杆比。
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
