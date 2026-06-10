@@ -19,6 +19,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { quizDataModel } from "../plugins/quiz-sample/data-model";
+import { homeworkDataModel } from "../plugins/homework/data-model";
 import {
   PluginDataModelSchema,
   type ColumnSpec,
@@ -31,6 +32,7 @@ type ConstraintSpec = { columns: string[] };
 /** 待编译声明清单（model + 真实源文件路径，供生成头部如实标注 Source）。 */
 const MODELS = [
   { model: quizDataModel, source: "plugins/quiz-sample/data-model.ts" },
+  { model: homeworkDataModel, source: "plugins/homework/data-model.ts" },
 ] as const;
 
 const GENERATED_ROOT = path.join("src", "db", "schema", "generated");
