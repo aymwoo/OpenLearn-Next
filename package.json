@@ -84,6 +84,7 @@
     "pilot-host:restart": "bash ops/deploy/restart-local-pilot-host.sh",
     "db:generate": "drizzle-kit generate",
     "plugin:compile": "tsx scripts/compile-plugin-data-model.ts",
+    "verify:phase75": "pnpm vitest run src/plugins/quiz-sample/ && pnpm vitest run src/plugins/homework/",
     "db:migrate": "tsx --import ./scripts/node-shim.js scripts/prepare-dev-db.ts",
     "db:bootstrap:dev": "pnpm db:migrate && tsx --import ./scripts/node-shim.js scripts/bootstrap-dev-db.ts",
     "test": "vitest"

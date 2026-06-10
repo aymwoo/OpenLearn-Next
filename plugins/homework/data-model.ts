@@ -28,6 +28,7 @@ export const homeworkDataModel = {
         { name: "title", type: "text", notNull: true },
         { name: "description", type: "text", notNull: false },
         { name: "attachmentUrl", type: "text", notNull: false },
+        { name: "dueDate", type: "text", notNull: false },
       ],
       indexes: [{ columns: ["schoolId", "classroomSession"] }],
     },
