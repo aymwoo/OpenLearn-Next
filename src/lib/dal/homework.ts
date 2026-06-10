@@ -6,6 +6,7 @@ import { dispatchPluginDataAccess } from "@/features/platform-core/plugin-data-a
 import { getCurrentUserDTO } from "@/lib/dal/auth";
 import {
   HomeworkAssignmentDTOSchema,
+  HomeworkGradeDTOSchema,
   HomeworkSubmissionDTOSchema,
 } from "@/lib/dto/plugin-data-model";
 
@@ -134,4 +135,67 @@ export async function getHomeworkGrades(rawInput: unknown) {
   })) as Array<Record<string, unknown>>;
 
   return rows.find((row) => row.student === input.student) ?? null;
+}
+
+// ── 教师批改 ─────────────────────────────────────────────────────────────────
+
+const GetHomeworkSubmissionsInputSchema = z.strictObject({
+  classroomSession: z.string().min(1),
+});
+
+/**
+ * 获取课堂 session 下所有学生的最新提交（isLatest=true）。
+ * 走声明索引 ["schoolId","classroomSession","assignment"] 查询后过滤 isLatest。
+ */
+export async function getHomeworkSubmissions(rawInput: unknown) {
+  const input = GetHomeworkSubmissionsInputSchema.parse(rawInput);
+  const actor = await requireActorId();
+  const assignments = (await dispatchPluginDataAccess({
+    actor,
+    pluginKey: "homework",
+    verb: "getByIndex",
+    table: "plugin_owned_homework_assignments",
+    index: ["schoolId", "classroomSession"],
+    eq: { classroomSession: input.classroomSession },
+  })) as Array<Record<string, unknown>>;
+
+  const allSubmissions: Array<Record<string, unknown>> = [];
+  for (const assignment of assignments) {
+    const rows = (await dispatchPluginDataAccess({
+      actor,
+      pluginKey: "homework",
+      verb: "getByIndex",
+      table: "plugin_owned_homework_submissions",
+      index: ["schoolId", "classroomSession", "assignment"],
+      eq: {
+        classroomSession: input.classroomSession,
+        assignment: assignment.id as string,
+      },
+    })) as Array<Record<string, unknown>>;
+    allSubmissions.push(...rows.filter((row) => row.isLatest === true));
+  }
+  return allSubmissions;
+}
+
+/**
+ * 教师批改 homework 提交：走 upsert 动词，Command Bus 自动完成
+ * UPDATE isLatest=false → INSERT isLatest=true 的 append-only 事务。
+ * 教师可多次修改分数/评语，保留完整批改历史。
+ */
+export async function upsertHomeworkGrade(rawInput: unknown) {
+  const input = HomeworkGradeDTOSchema.parse(rawInput);
+  const actor = await requireActorId();
+  return dispatchPluginDataAccess({
+    actor,
+    pluginKey: "homework",
+    verb: "upsert",
+    table: "plugin_owned_homework_grades",
+    values: {
+      classroomSession: input.classroomSession,
+      student: input.student,
+      submission: input.submission,
+      score: input.score ?? null,
+      comment: input.comment ?? null,
+    },
+  });
 }

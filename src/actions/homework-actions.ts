@@ -8,6 +8,7 @@ import { cacheTags } from "@/lib/cache-policy";
 import {
   insertHomeworkAssignment,
   submitHomework,
+  upsertHomeworkGrade,
 } from "@/lib/dal/homework";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -92,6 +93,32 @@ export async function submitHomeworkAction(
   try {
     await requireStudent();
     const result = await submitHomework(parsed.data);
+    updateTag(cacheTags.classroom(parsed.data.classroomSession));
+    return { ok: true, data: result };
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+// ── submit homework grade ─────────────────────────────────────────────────────
+
+const SubmitGradeInputSchema = z.strictObject({
+  classroomSession: z.string().min(1),
+  student: z.string().min(1),
+  submission: z.string().min(1),
+  score: z.number().int().min(0).max(100).optional(),
+  comment: z.string().optional(),
+});
+
+export async function submitGradeAction(
+  input: FormData | Record<string, unknown>,
+): Promise<ActionResult> {
+  const parsed = SubmitGradeInputSchema.safeParse(normalizeInput(input));
+  if (!parsed.success) return validationError();
+
+  try {
+    await requireTeacher();
+    const result = await upsertHomeworkGrade(parsed.data);
     updateTag(cacheTags.classroom(parsed.data.classroomSession));
     return { ok: true, data: result };
   } catch (error) {

@@ -15,6 +15,8 @@ import { LiveAnswerDashboardSurface } from './live-answer-dashboard-surface'
 import { ClassroomConflictPanel } from './classroom-conflict-panel'
 import { ClassroomRosterPanel } from './classroom-roster-panel'
 import { ClassroomSessionHistoryPanel } from './classroom-session-history-panel'
+import { HomeworkGradingPanel } from './homework-grading-panel'
+import { HomeworkSubmissionList } from './homework-submission-list'
 import { ClassroomStudentDetailPanel } from './classroom-student-detail-panel'
 import { ClassroomTimelinePanel } from './classroom-timeline-panel'
 import { subscribeClassroomSocket } from './classroom-ws-client'
@@ -117,6 +119,9 @@ export function ClassroomControlPanel({
       : null)
   const runtimeInstanceId = useMemo(() => `teacher-runtime-${currentSnapshot.sessionId}-${currentStep?.id ?? 'stage'}`, [currentSnapshot.sessionId, currentStep?.id])
   const [namedResultsExpanded, setNamedResultsExpanded] = useState(false)
+  const [selectedHomeworkStudent, setSelectedHomeworkStudent] = useState<string | null>(null)
+  const [selectedHomeworkSubmission, setSelectedHomeworkSubmission] = useState<Record<string, unknown> | null>(null)
+  const [homeworkGradeMap, setHomeworkGradeMap] = useState<Record<string, { score?: number | null; comment?: string | null }>>({})
   const incidentHref = `/settings/labs/incidents/${currentSnapshot.sessionId}`
   const showEscalatedIncidentCta = currentSnapshot.transportStatus.degraded
     || (currentSnapshot.currentVotingRound?.failureCount ?? 0) > 0
@@ -707,14 +712,39 @@ export function ClassroomControlPanel({
           </TabsContent>
 
           <TabsContent value="homework-submissions">
-            <Card className="bg-surface-container-low p-5 sm:p-6">
-              <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-                <ClipboardList className="size-12 text-on-surface-variant/40" aria-hidden />
+            <Card className="bg-surface-container-low p-0 sm:p-0">
+              <div className="grid min-h-[400px] lg:grid-cols-[280px_minmax(0,1fr)]">
+                <div className="border-r border-surface-container-low">
+                  <HomeworkSubmissionList
+                    sessionId={currentSnapshot.sessionId}
+                    selectedStudentId={selectedHomeworkStudent}
+                    onSelectStudent={(studentId, submission) => {
+                      setSelectedHomeworkStudent(studentId)
+                      setSelectedHomeworkSubmission(submission as unknown as Record<string, unknown>)
+                    }}
+                    gradeMap={homeworkGradeMap}
+                  />
+                </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-on-surface">作业提交</h3>
-                  <p className="mt-2 text-sm text-on-surface-variant">
-                    学生提交后将在此处显示，教师可进行批改。
-                  </p>
+                  <HomeworkGradingPanel
+                    sessionId={currentSnapshot.sessionId}
+                    submission={selectedHomeworkSubmission as { id: string; student: string; studentName?: string; content: string; attachmentUrl?: string | null } | null}
+                    currentGrade={
+                      selectedHomeworkStudent && homeworkGradeMap[selectedHomeworkStudent]
+                        ? homeworkGradeMap[selectedHomeworkStudent]
+                        : null
+                    }
+                    onGradeSaved={() => {
+                      // 刷新 grade map
+                      const studentId = selectedHomeworkStudent
+                      if (!studentId) return
+                      // 标记已批改（分数从表单组件内部获取，这里只触发 UI 刷新）
+                      setHomeworkGradeMap((prev) => ({
+                        ...prev,
+                        [studentId]: { score: 0, comment: '' },
+                      }))
+                    }}
+                  />
                 </div>
               </div>
             </Card>
