@@ -195,4 +195,72 @@ pnpm vitest run src/plugins/homework/
 
 **可行性：高。** marketplace 基础设施的核心路径（allowlist 消费层、dataModel meta-schema、编译脚本、治理 gate）已经是 pluginKey 驱动的通用设计。泛化修复主要集中在外围：catalog 注册、step type 系统、UI 组件。homework 作为第二个非 quiz 插件类型，是验证 marketplace 通用性的理想候选——与 quiz 差异足够大（三表 vs 双表、人工批改 vs 自动判分），但复用完全相同的受治理数据访问路径。
 
+## Validation Architecture
+
+### Test Infrastructure
+
+| Property | Value |
+|----------|-------|
+| Framework | vitest |
+| Config file | `vitest.config.ts`（项目根目录，`@` → `src/` 路径别名） |
+| Quick run command | `pnpm vitest run src/plugins/homework/` |
+| Full suite command | `pnpm test run`（全量 vitest 单次运行） |
+| Cross-plugin regression | `pnpm vitest run src/plugins/quiz-sample/ && pnpm vitest run src/plugins/homework/` |
+| Estimated quick runtime | ~5-10 秒（homework 插件单测） |
+| Estimated full runtime | ~30-60 秒（全量 suite） |
+
+### Sampling Rate
+
+- **每个 task commit 后：** 运行 `pnpm vitest run src/plugins/homework/` + `pnpm vitest run src/plugins/quiz-sample/`
+- **每个 plan wave 后：** 运行 `pnpm test run` 全量 suite
+- **`/gsd:verify-work` 前：** 全量 suite 必须全绿（quiz + homework 双绿）
+- **关键里程碑检查点：** install 通过后 / classroom runtime 通过后 / upgrade 通过后 → 运行跨插件回归命令
+- **最大反馈延迟：** ~60 秒（全量 suite）
+
+### Marketplace Lifecycle 验证矩阵
+
+| 阶段 | 自动化验证 | 手动验证 |
+|------|-----------|----------|
+| Install | vitest: manifest 校验 + preflight + allowlist 注册 + Drizzle schema 生成 | — |
+| Authoring | vitest: 步骤创建/编辑/保存 + LexoRank 排序 | 教师端 UI：步骤编辑器交互验证 |
+| Classroom Runtime | vitest: 提交/读取 DAL 操作 + append-only 写入 | 学生端 UI：播放器中提交流程；教师端：classroom tab 批改交互 |
+| Semver Upgrade | vitest: backfill → verify → cutover 三阶段 + 数据零丢失断言 | 迁移后手动确认 quiz homework 数据完整性 |
+| Uninstall + 重装 | vitest: retain 软禁用 + cleanup token + 重装后功能正常 | — |
+
+### Wave 0 测试桩需求
+
+执行前需就位的测试基础设施：
+
+- [ ] `src/plugins/homework/__tests__/` 目录 — homework 插件测试目录
+- [ ] `src/plugins/homework/__tests__/data-model.test.ts` — dataModel 声明 + meta-schema 校验
+- [ ] `src/plugins/homework/__tests__/dal-operations.test.ts` — 5 动词 DAL 操作（create/read/update/delete/list）
+- [ ] `src/plugins/homework/__tests__/lifecycle.test.ts` — install → upgrade → uninstall 生命周期
+- [ ] `src/plugins/homework/__tests__/cross-plugin-regression.test.ts` — quiz + homework 双绿回归
+- [ ] 跨插件回归脚本：`pnpm verify:phase75`（alias: `pnpm vitest run src/plugins/quiz-sample/ && pnpm vitest run src/plugins/homework/`）
+
+### 手动验证项
+
+| 行为 | 原因 | 验证步骤 |
+|------|------|----------|
+| 教师 homework 步骤编辑器 | 富文本编辑器 + LexoRank 拖拽交互难以自动化 | 创建 lesson → 添加 homework 步骤 → 填写标题/描述 → 保存 → 拖拽排序 |
+| 学生 homework 提交流程 | 播放器内 step card 渲染 + 多次提交交互 | 进入 classroom → 查看作业描述 → 输入答案 → 提交 → 重新提交 |
+| 教师批改面板 | classroom tab 切换 + 学生列表 + 评分表单交互 | 打开 /classroom → 切换到 "作业提交" tab → 选择学生 → 打分 + 评语 → 保存 |
+| Upgrade 迁移后数据完整性 | 真实数据迁移的完整性需人工确认 | upgrade v1.0.0 → v1.1.0 → 确认已有 assignments/submissions/grades 不丢失 |
+| Uninstall 重装恢复 | 清理确认 token 交互 + 重装后功能回归 | uninstall → cleanup confirm → 同 pluginKey 重装 → 创建新作业验证功能正常 |
+
+### 跨插件回归检查点
+
+```
+Timeline:
+  Wave 1 (Install + Data Model)
+    ├─ 检查点 A: homework install 通过 → quiz 全绿 ✓
+    └─ 检查点 B: homework dataModel 编译生成 → quiz 全绿 ✓
+  Wave 2 (Authoring + Runtime)
+    ├─ 检查点 C: homework 步骤编辑器可用 → quiz + homework 双绿 ✓
+    └─ 检查点 D: classroom runtime 提交可用 → quiz + homework 双绿 ✓
+  Wave 3 (Upgrade + Uninstall)
+    ├─ 检查点 E: upgrade 迁移完成 → quiz + homework 双绿（数据零丢失） ✓
+    └─ 检查点 F: uninstall + 重装 → quiz + homework 双绿 ✓
+```
+
 ## RESEARCH COMPLETE
