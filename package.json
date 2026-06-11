@@ -73,6 +73,7 @@
     "verify:phase72": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase72-close-gate.ts",
     "verify:phase73": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase73-quiz-ext.ts",
     "verify:phase73-v41-close-gate": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase73-v41-close-gate.ts",
+    "verify:phase76": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-phase76-v42-close-gate.ts",
     "test:ci": "pnpm vitest run && pnpm test:live-answer-zero-write",
     "test:live-answer-zero-write": "tsx scripts/verify-live-answer-zero-write.ts",
     "verify:phase": "pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate",
