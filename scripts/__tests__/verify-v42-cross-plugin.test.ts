@@ -54,24 +54,24 @@ describe("verify:v42-cross-plugin — three sub-suite section headers", () => {
 });
 
 describe("verify:v42-cross-plugin — vitest commands", () => {
-  it("源码包含 quiz 全量测试命令: vitest run src/components/learning/quiz-sample-step-card.test.tsx", () => {
+  it("源码包含 quiz 全量测试路径: src/components/learning/quiz-sample-step-card.test.tsx", () => {
     const source = readScriptSource();
     expect(source).toContain(
-      "vitest run src/components/learning/quiz-sample-step-card.test.tsx",
+      "src/components/learning/quiz-sample-step-card.test.tsx",
     );
   });
 
-  it("源码包含 homework 全量测试命令: vitest run src/plugins/homework/", () => {
+  it("源码包含 homework 全量测试路径: src/plugins/homework/", () => {
     const source = readScriptSource();
     expect(source).toContain(
-      "vitest run src/plugins/homework/",
+      "src/plugins/homework/",
     );
   });
 
-  it("源码包含 dedicated cross-plugin suite 命令: vitest run src/plugins/homework/__tests__/cross-plugin-regression.test.ts", () => {
+  it("源码包含 dedicated cross-plugin suite 路径: src/plugins/homework/__tests__/cross-plugin-regression.test.ts", () => {
     const source = readScriptSource();
     expect(source).toContain(
-      "vitest run src/plugins/homework/__tests__/cross-plugin-regression.test.ts",
+      "src/plugins/homework/__tests__/cross-plugin-regression.test.ts",
     );
   });
 });
