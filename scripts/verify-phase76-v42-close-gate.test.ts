@@ -47,8 +47,13 @@ describe("verify-phase76-v42-close-gate", () => {
     const hasStage2Wire = stage2?.details.some((d) => d.includes("verify:phase73"));
     expect(hasStage2Wire).toBe(true);
 
-    // Stage 3-6: should be "blocked" in smoke mode
-    for (let i = 2; i < 6; i++) {
+    // Stage 3: verify:phase75 is registered and its pending check passes in smoke
+    const stage3 = result.stageStatuses[2];
+    expect(stage3).toBeDefined();
+    expect(stage3?.status).toBe("passed");
+
+    // Stage 4-6: should be "blocked" in smoke mode (scripts not yet registered / artifacts not yet present)
+    for (let i = 3; i < 6; i++) {
       const stage = result.stageStatuses[i];
       expect(stage).toBeDefined();
       expect(stage?.status).toBe("blocked");

@@ -142,8 +142,7 @@ function reportStage(stage: StageStatus) {
 }
 
 // ─── Stage 1: v4.0 gate regression ────────────────────────────────────────
-// Full implementation in wave 2 (plan 02).
-// Will run: pnpm verify:phase72
+// Wired: pnpm verify:phase72
 
 function verifyStage1V40Regression(smokeOnly: boolean): StaticCheck[] {
   const packageSource = read("package.json");
@@ -160,9 +159,9 @@ function verifyStage1V40Regression(smokeOnly: boolean): StaticCheck[] {
         passed: nonCommentIncludes(scripts["verify:phase72"] ?? "", "scripts/verify-phase72-close-gate.ts"),
       },
       {
-        label: `Stage 1: pnpm verify:phase72 execution — pending (implementation in wave 2)`,
-        passed: smokeOnly,
-        blocked: !smokeOnly,
+        label: "Stage 1: pnpm verify:phase72 — wired (skipped in smoke, executes in full mode)",
+        passed: !smokeOnly,
+        blocked: smokeOnly,
       },
     ];
   } catch {
@@ -175,9 +174,28 @@ function verifyStage1V40Regression(smokeOnly: boolean): StaticCheck[] {
   }
 }
 
+async function runStage1V40Regression(): Promise<StageStatus> {
+  console.log("    EXECUTING: pnpm verify:phase72...");
+  try {
+    run("pnpm", ["verify:phase72"], "Stage 1: v4.0 gate regression (verify:phase72)");
+    return {
+      label: STAGE_LABELS[0],
+      status: "passed",
+      details: ["- ✓ Stage 1: pnpm verify:phase72 — PASSED"],
+    };
+  } catch (error) {
+    return {
+      label: STAGE_LABELS[0],
+      status: "failed",
+      details: [
+        `- ✗ Stage 1: pnpm verify:phase72 — FAILED: ${error instanceof Error ? error.message : String(error)}`,
+      ],
+    };
+  }
+}
+
 // ─── Stage 2: v4.1 quiz multi-type verification ──────────────────────────
-// Full implementation in wave 2 (plan 02).
-// Will run: pnpm verify:phase73 && pnpm verify:phase73-v41-close-gate
+// Wired: pnpm verify:phase73 && pnpm verify:phase73-v41-close-gate
 
 function verifyStage2V41QuizMultiType(smokeOnly: boolean): StaticCheck[] {
   const packageSource = read("package.json");
@@ -194,9 +212,9 @@ function verifyStage2V41QuizMultiType(smokeOnly: boolean): StaticCheck[] {
         passed: typeof scripts["verify:phase73-v41-close-gate"] === "string" && scripts["verify:phase73-v41-close-gate"].length > 0,
       },
       {
-        label: `Stage 2: pnpm verify:phase73 && verify:phase73-v41-close-gate execution — pending (implementation in wave 2)`,
-        passed: smokeOnly,
-        blocked: !smokeOnly,
+        label: "Stage 2: pnpm verify:phase73 && pnpm verify:phase73-v41-close-gate — wired (skipped in smoke, executes in full mode)",
+        passed: !smokeOnly,
+        blocked: smokeOnly,
       },
     ];
   } catch {
@@ -206,6 +224,39 @@ function verifyStage2V41QuizMultiType(smokeOnly: boolean): StaticCheck[] {
         passed: false,
       },
     ];
+  }
+}
+
+async function runStage2V41QuizMultiType(): Promise<StageStatus> {
+  console.log("    EXECUTING: pnpm verify:phase73...");
+  try {
+    run("pnpm", ["verify:phase73"], "Stage 2: v4.1 quiz multi-type verification (verify:phase73)");
+  } catch (error) {
+    return {
+      label: STAGE_LABELS[1],
+      status: "failed",
+      details: [
+        `- ✗ Stage 2: pnpm verify:phase73 — FAILED: ${error instanceof Error ? error.message : String(error)}`,
+      ],
+    };
+  }
+
+  console.log("    EXECUTING: pnpm verify:phase73-v41-close-gate...");
+  try {
+    run("pnpm", ["verify:phase73-v41-close-gate"], "Stage 2: v4.1 quiz multi-type verification (verify:phase73-v41-close-gate)");
+    return {
+      label: STAGE_LABELS[1],
+      status: "passed",
+      details: ["- ✓ Stage 2: pnpm verify:phase73 && pnpm verify:phase73-v41-close-gate — PASSED"],
+    };
+  } catch (error) {
+    return {
+      label: STAGE_LABELS[1],
+      status: "failed",
+      details: [
+        `- ✗ Stage 2: pnpm verify:phase73-v41-close-gate — FAILED: ${error instanceof Error ? error.message : String(error)}`,
+      ],
+    };
   }
 }
 
@@ -408,41 +459,73 @@ export async function runPhase76V42CloseGate(options?: { smokeOnly?: boolean }):
   console.log(`Phase 76 v4.2 authoritative close-gate verification (${smokeOnly ? "smoke" : "full"}) starting...`);
   console.log("(D-01: 6-stage authoritative close gate for v4.2 milestone)");
   console.log("(D-03: 6-wave/6-plan structure — gate skeleton → verification stages → formal → sign-off)");
+  console.log("(D-06: sequential stage execution — any stage failure blocks all subsequent stages)");
   console.log("===============================================================");
 
   const stageStatuses: StageStatus[] = [];
 
-  // Stage 1: v4.0 gate regression
+  // ── Stage 1: v4.0 gate regression ──
   console.log(`\n[1/6] ${STAGE_LABELS[0]}...`);
-  const stage1 = summariseStage(STAGE_LABELS[0], verifyStage1V40Regression(smokeOnly), smokeOnly);
-  stageStatuses.push(stage1);
-  reportStage(stage1);
+  if (smokeOnly) {
+    const stage1 = summariseStage(STAGE_LABELS[0], verifyStage1V40Regression(smokeOnly), smokeOnly);
+    stageStatuses.push(stage1);
+    reportStage(stage1);
+  } else {
+    const stage1 = await runStage1V40Regression();
+    stageStatuses.push(stage1);
+    reportStage(stage1);
+    // D-06: Stage 1 failure blocks all subsequent stages
+    if (stage1.status === "failed") {
+      stageStatuses.push({ label: STAGE_LABELS[1], status: "blocked", details: ["- ↺ BLOCKED by Stage 1 failure"] });
+      stageStatuses.push({ label: STAGE_LABELS[2], status: "blocked", details: ["- ↺ BLOCKED by Stage 1 failure"] });
+      stageStatuses.push({ label: STAGE_LABELS[3], status: "blocked", details: ["- ↺ BLOCKED by Stage 1 failure"] });
+      stageStatuses.push({ label: STAGE_LABELS[4], status: "blocked", details: ["- ↺ BLOCKED by Stage 1 failure"] });
+      stageStatuses.push({ label: STAGE_LABELS[5], status: "blocked", details: ["- ↺ BLOCKED by Stage 1 failure"] });
+      reportBlockedStages(1);
+      return summaryReport(stageStatuses, "failed");
+    }
+  }
 
-  // Stage 2: v4.1 quiz multi-type verification
+  // ── Stage 2: v4.1 quiz multi-type verification ──
   console.log(`\n[2/6] ${STAGE_LABELS[1]}...`);
-  const stage2 = summariseStage(STAGE_LABELS[1], verifyStage2V41QuizMultiType(smokeOnly), smokeOnly);
-  stageStatuses.push(stage2);
-  reportStage(stage2);
+  if (smokeOnly) {
+    const stage2 = summariseStage(STAGE_LABELS[1], verifyStage2V41QuizMultiType(smokeOnly), smokeOnly);
+    stageStatuses.push(stage2);
+    reportStage(stage2);
+  } else {
+    const stage2 = await runStage2V41QuizMultiType();
+    stageStatuses.push(stage2);
+    reportStage(stage2);
+    // D-06: Stage 2 failure blocks all subsequent stages
+    if (stage2.status === "failed") {
+      stageStatuses.push({ label: STAGE_LABELS[2], status: "blocked", details: ["- ↺ BLOCKED by Stage 2 failure"] });
+      stageStatuses.push({ label: STAGE_LABELS[3], status: "blocked", details: ["- ↺ BLOCKED by Stage 2 failure"] });
+      stageStatuses.push({ label: STAGE_LABELS[4], status: "blocked", details: ["- ↺ BLOCKED by Stage 2 failure"] });
+      stageStatuses.push({ label: STAGE_LABELS[5], status: "blocked", details: ["- ↺ BLOCKED by Stage 2 failure"] });
+      reportBlockedStages(2);
+      return summaryReport(stageStatuses, "failed");
+    }
+  }
 
-  // Stage 3: Phase 75 homework full-chain verification
+  // ── Stage 3: Phase 75 homework full-chain verification ──
   console.log(`\n[3/6] ${STAGE_LABELS[2]}...`);
   const stage3 = summariseStage(STAGE_LABELS[2], verifyStage3HomeworkFullChain(smokeOnly), smokeOnly);
   stageStatuses.push(stage3);
   reportStage(stage3);
 
-  // Stage 4: Cross-plugin regression
+  // ── Stage 4: Cross-plugin regression ──
   console.log(`\n[4/6] ${STAGE_LABELS[3]}...`);
   const stage4 = summariseStage(STAGE_LABELS[3], verifyStage4CrossPluginRegression(smokeOnly), smokeOnly);
   stageStatuses.push(stage4);
   reportStage(stage4);
 
-  // Stage 5: Formal verification + proof mapping
+  // ── Stage 5: Formal verification + proof mapping ──
   console.log(`\n[5/6] ${STAGE_LABELS[4]}...`);
   const stage5 = summariseStage(STAGE_LABELS[4], verifyStage5FormalVerification(smokeOnly), smokeOnly);
   stageStatuses.push(stage5);
   reportStage(stage5);
 
-  // Stage 6: Manual Surface Sign-Off + closeout + audit + alias cutover
+  // ── Stage 6: Manual Surface Sign-Off + closeout + audit + alias cutover ──
   console.log(`\n[6/6] ${STAGE_LABELS[5]}...`);
   const stage6 = summariseStage(STAGE_LABELS[5], verifyStage6SignoffCloseout(smokeOnly), smokeOnly);
   stageStatuses.push(stage6);
@@ -458,6 +541,17 @@ export async function runPhase76V42CloseGate(options?: { smokeOnly?: boolean }):
       ? "passed"
       : "failed";
 
+  return summaryReport(stageStatuses, overallStatus);
+}
+
+function reportBlockedStages(fromStage: number) {
+  for (let i = fromStage + 1; i <= 6; i++) {
+    console.log(`\n[${i}/6] ${STAGE_LABELS[i - 1]}...`);
+    console.log(`  ↺ BLOCKED — upstream stage ${fromStage} failure stopped gate execution (D-06)`);
+  }
+}
+
+function summaryReport(stageStatuses: StageStatus[], overallStatus: CheckStatus): GateResult {
   console.log("\n===============================================================");
   console.log(
     `Phase 76 v4.2 authoritative close-gate verification ${overallStatus}.`,
