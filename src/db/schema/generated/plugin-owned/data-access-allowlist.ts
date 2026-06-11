@@ -114,6 +114,7 @@ export const pluginDataAccessAllowlist = {
         "title",
         "description",
         "attachmentUrl",
+        "dueDate",
         "createdAt",
         "updatedAt"
       ],
@@ -121,7 +122,8 @@ export const pluginDataAccessAllowlist = {
         "classroomSession",
         "title",
         "description",
-        "attachmentUrl"
+        "attachmentUrl",
+        "dueDate"
       ],
       "indexes": [
         [
@@ -133,7 +135,8 @@ export const pluginDataAccessAllowlist = {
         "classroomSession",
         "title",
         "description",
-        "attachmentUrl"
+        "attachmentUrl",
+        "dueDate"
       ],
       "uniques": [],
       "enumColumns": {}

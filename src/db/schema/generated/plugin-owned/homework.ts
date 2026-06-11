@@ -14,6 +14,7 @@ export const pluginOwnedHomeworkAssignments = sqliteTable(
     title: text("title").notNull(),
     description: text("description"),
     attachmentUrl: text("attachmentUrl"),
+    dueDate: text("dueDate"),
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
     updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   },
