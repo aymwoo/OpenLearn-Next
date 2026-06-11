@@ -4,14 +4,14 @@ milestone: v4.3
 milestone_name: System Commands Bus（第一批）
 status: executing
 stopped_at: context exhaustion at 75% (2026-06-11)
-last_updated: "2026-06-11T13:08:19.013Z"
-last_activity: 2026-06-11 -- Phase 77 planning complete
+last_updated: "2026-06-11T13:18:03.341Z"
+last_activity: 2026-06-11 -- Phase 77 Plan 01 complete
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 2
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 50
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-11 after v4.2 close)
 ## Current Position
 
 Phase: 77 of 79 (Manifest 声明 + Command Registry 注册)
-Plan: 0 of TBD in current phase
-Status: Ready to execute
-Last activity: 2026-06-11 -- Phase 77 planning complete
+Plan: 1 of 2 in current phase
+Status: Executing Phase 77 — Plan 01 complete, Plan 02 pending
+Last activity: 2026-06-11 -- Phase 77 Plan 01 complete
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -53,9 +53,10 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 77. Manifest 声明 + Command Registry 注册 | 0/2 | planning |
+| 77. Manifest 声明 + Command Registry 注册 | 1/2 | in progress |
 | 78. system.http.request HTTP 代理 | 0/0 | not started |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | 0/0 | not started |
+| Phase 77-manifest-command-registry P01 | 300 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,12 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Milestone v4.3]: Phase 编号从 77 开始延续
 - [Milestone v4.2]: D-06 阻断策略 — Stage 1-4 任一步失败即阻断后续全部 stage
 - [Milestone v4.2]: 跨插件隔离 — quiz/homework schema/allowlist/DAL 三重隔离
+- [Phase ?]: D-01: discriminated union with command discriminator field
+- [Phase ?]: D-02: Complete shape defined now (allowedDomains, allowedMethods, allowedKeys)
+- [Phase ?]: D-03: Schema in same file as PluginManifestSchema (resource-ai.ts)
+- [Phase ?]: D-04: systemCommands is .optional() for backward compatibility
+- [Phase ?]: D-05: Zod full validation (regex + enum + min constraints)
+- [Phase ?]: D-06: Named UPPER_SNAKE reason codes
 
 ### Pending Todos
 
@@ -107,7 +114,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-06-11T12:07:02.959Z
+Last session: 2026-06-11T13:18:03.337Z
 Stopped at: context exhaustion at 75% (2026-06-11)
 Resume file: None
 

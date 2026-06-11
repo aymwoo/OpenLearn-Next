@@ -28,7 +28,7 @@ Requirements for v4.3 System Commands Bus（第一批）. Each maps to roadmap p
 
 ### Manifest & Governance
 
-- [ ] **SYS-03**: `PluginManifest` 支持 `systemCommands` 声明段
+- [x] **SYS-03**: `PluginManifest` 支持 `systemCommands` 声明段
   - Zod schema：`systemCommands` 为 `.optional()` 的 discriminated union
   - `system.http.request` 声明：`allowedDomains` (string[]) + `allowedMethods` (enum[]) + `maxResponseSize` + `defaultTimeout`
   - `system.config` 声明：`allowedKeys` (string[]，支持前缀通配 `homework:*`) + `maxValueSize`
@@ -86,7 +86,7 @@ Deferred to future release. Tracked but not in v4.3 roadmap.
 |-------------|-------|--------|
 | SYS-01 | Phase 78 | Pending |
 | SYS-02 | Phase 79 | Pending |
-| SYS-03 | Phase 77 | Pending |
+| SYS-03 | Phase 77 | Complete |
 | SYS-04 | Phase 79 | Pending |
 | SYS-05 | Phase 77 | Pending |
 

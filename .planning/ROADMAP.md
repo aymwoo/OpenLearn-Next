@@ -85,7 +85,7 @@ See `.planning/milestones/` for full archives.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
+- [x] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
 - [ ] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
 
 **UI hint**: yes
@@ -209,7 +209,7 @@ Plans:
 | 74. v4.1 Authoritative Close Gate | v4.1 | 5/5 | Complete | 2026-06-09 |
 | 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 6/6 | Complete | 2026-06-11 |
 | 76. v4.2 Authoritative Close Gate | v4.2 | 6/6 | Complete | 2026-06-11 |
-| 77. Manifest 声明 + Command Registry 注册 | v4.3 | 0/2 | Planning | - |
+| 77. Manifest 声明 + Command Registry 注册 | v4.3 | 1/2 | In Progress|  |
 | 78. system.http.request HTTP 代理 | v4.3 | 0/0 | Not started | - |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 0/0 | Not started | - |
 
