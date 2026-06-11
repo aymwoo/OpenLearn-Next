@@ -107,4 +107,12 @@ None - no external service configuration required.
 
 ---
 *Phase: 76-v4-2-authoritative-close-gate*
+## Self-Check: PASSED
+
+- `scripts/verify-phase76-v42-close-gate.ts` — FOUND
+- `76-01-SUMMARY.md` — FOUND
+- Task commit `6ccd5ae` — FOUND
+- Summary commit `4026b25` — FOUND
+
+---
 *Completed: 2026-06-11*
