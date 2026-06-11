@@ -758,6 +758,81 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
 export type BuiltInTeachingStepDefinition = (typeof BUILT_IN_TEACHING_STEP_DEFINITIONS)[number];
 export type BuiltInTeachingPluginName = BuiltInTeachingStepDefinition["pluginName"];
 
+// ---------------------------------------------------------------------------
+// System Commands — Manifest declaration schemas (Phase 77)
+// ---------------------------------------------------------------------------
+
+/** Named reason codes for system command manifest validation failures (D-06). */
+export const SYSTEM_COMMAND_REASONS = [
+  "SYSTEM_COMMAND_DOMAIN_INVALID",
+  "SYSTEM_COMMAND_METHOD_INVALID",
+  "SYSTEM_COMMAND_KEY_INVALID",
+] as const;
+
+/** Allowed HTTP methods for system.http.request manifest declarations. */
+export const SYSTEM_HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"] as const;
+
+/**
+ * Domain validation pattern (D-02):
+ * - Plain domain: "api.example.com" (alphanumeric, hyphens, dots in labels)
+ * - Wildcard domain: "*.example.com" (exactly one leading "*." followed by a valid domain)
+ * Each label: starts/ends alphanumeric, may contain hyphens.
+ */
+const DOMAIN_PATTERN =
+  /^(?:(\*\.))?(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+
+/**
+ * Key validation pattern (D-02):
+ * - Plain key: "homework:deadline" — exactly one ":" separating two identifier segments
+ * - Prefix wildcard: "homework:*" — identifier prefix followed by ":*"
+ * - Single segment (no colon): "settings" — allowed as a root-level key
+ * Each segment before/after ":" must be a valid identifier (alphanumeric + underscores).
+ * Multiple colons (e.g. "a:b:c") are rejected.
+ * Bare ":" at end without "*" is rejected by the regex.
+ */
+const KEY_PATTERN =
+  /^[a-zA-Z_][a-zA-Z0-9_]*(?::(?:[a-zA-Z_][a-zA-Z0-9_]*|\*))?$/;
+
+/**
+ * Manifest declaration shape for `system.http.request` (Phase 77).
+ *
+ * Reused by Phase 78 for runtime manifest re-parsing and preflight validation.
+ */
+export const SystemCommandHttpRequestSchema = z.strictObject({
+  allowedDomains: z
+    .array(
+      z.string().regex(DOMAIN_PATTERN, {
+        message: "SYSTEM_COMMAND_DOMAIN_INVALID",
+      }),
+    )
+    .min(1, { message: "SYSTEM_COMMAND_DOMAIN_INVALID" }),
+  allowedMethods: z
+    .array(
+      z.enum(SYSTEM_HTTP_METHODS, {
+        error: () => ({ message: "SYSTEM_COMMAND_METHOD_INVALID" }),
+      }),
+    )
+    .min(1, { message: "SYSTEM_COMMAND_METHOD_INVALID" }),
+  maxResponseSize: z.number().int().positive().optional(),
+  defaultTimeout: z.number().int().positive().optional(),
+});
+
+/**
+ * Manifest declaration shape for `system.config` (Phase 77).
+ *
+ * Reused by Phase 79 for runtime manifest re-parsing and preflight validation.
+ */
+export const SystemCommandConfigSchema = z.strictObject({
+  allowedKeys: z
+    .array(
+      z.string().regex(KEY_PATTERN, {
+        message: "SYSTEM_COMMAND_KEY_INVALID",
+      }),
+    )
+    .min(1, { message: "SYSTEM_COMMAND_KEY_INVALID" }),
+  maxValueSize: z.number().int().positive().optional(),
+});
+
 export const PluginManifestSchema = z.object({
   id: z.string(),
   version: z.string(),
