@@ -1,215 +1,210 @@
 # Pitfalls Research
 
-**Domain:** 在既有 SQLite-first / DAL-only / migration-centralized / governed-plugin 单体平台上新增「声明式插件自有数据模型 + Marketplace 生命周期 + 互动答题统计样板」
-**Researched:** 2026-06-02
-**Confidence:** HIGH（grounded in existing repo schema + PROJECT.md 约束；非纯训练数据推测）
+**Domain:** System Commands Bus -- 为受治理插件系统新增 HTTP 代理 + KV 配置存储
+**Researched:** 2026-06-11
+**Confidence:** HIGH（基于 2026 CVE 实际案例 + OWASP SSRF 最佳实践 + 现有代码库治理模型分析）
 
-> **给 roadmap 作者的阅读说明**：本里程碑不是从零造插件系统。冻结的 `v2.4` 已经在 `src/db/schema.ts` 落地了 `pluginRegistrations`（含 `dbNamespace` / `pluginKey` / `sourceType` / `installSource` / `lifecycleState` / `uninstalledAt` / `uninstallRetentionMode: retain|cleanup`）、固定外键扩展表（`plugin_ext_lesson` / `plugin_ext_lesson_step` / `plugin_ext_resource`）以及一个**通用 key + payloadJson 袋子** `plugin_owned_business_data`（`(schoolId, pluginId, key)` 唯一）。`v3.0` 已落地 Command Bus / governed action registry / plugin lifecycle governance / governance audit。下面的 pitfalls 全部是在**这套已存在的接缝**上继续做时最容易翻车的点。Phase 标签用主题命名，便于 roadmap 映射，不绑定 phase 编号。
+> **给 roadmap 作者的阅读说明**：
+> 本里程碑在 v4.0/v4.2 已落地的受治理插件体系（`dispatchPluginDataAccess` facade、`assertActionExecutable` 治理门、`governanceAudits` 审计表、`PluginManifestSchema`、`Command Bus` + `pluginCommandRegistry`）之上新增两个 system 级命令。不是从零造安全模型，而是在**既有的 lifecycle/kill-switch/school-scope 三层防线上**叠加 HTTP 出口和 KV 存储的领域特有风险。以下 pitfalls 全部是在这套已存在的接缝上继续做时最容易翻车的点。Phase 编号从 77 开始。
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: 把「插件自有数据」继续塞进通用 `plugin_owned_business_data` JSON 袋子，再在上面做统计
+### Pitfall 1: SSRF -- WHATWG URL 解析器静默归一化绕过私有 IP 检查
 
 **What goes wrong:**
-互动答题的每条作答记录被写成 `plugin_owned_business_data` 里一行 `payloadJson`（或一个 key 下的大 JSON 数组）。做「每题正确率 / 选项分布 / 未作答人数」时，必须全表扫描 + 在应用层 `JSON.parse` 聚合，无法用 SQL `GROUP BY` / 索引。40 人 × 多题 × 多课堂下读取路径退化为 O(全校插件数据) 扫描，且无法保证「一人一题最新作答」唯一性。
+Node.js 内建 `fetch` 使用 WHATWG URL 解析器，它对"特殊 scheme"（`http`/`https`）的输入做**静默归一化**。攻击者手写一个私有 IP 表达的 URL（如 `http://[::ffff:127.0.0.1]/`），WHATWG 解析器会把它转为压缩 hex 形式 `[::ffff:7f00:1]`。如果私有 IP 过滤在**解析后**用正则或字符串匹配，IPv4-mapped IPv6、IPv6 loopback（`[::1]`）、十进制 IP（`http://2130706433` = `http://127.0.0.1`）均可绕过。
 
-**Why it happens:**
-通用袋子表「现成、不用写迁移」，看起来满足「插件自有数据」需求，于是样板插件直接复用它，省掉为答题设计真正的关系结构。
+**实际 CVE 验证（2026）：**
+- **CVE-2026-43929**（ssrfcheck，CVSS 8.2）：`isSSRFSafeURL()` 用正则匹配点分十进制私网 IP，但 WHATWG 先把它归一化成了 hex -- 所有 7 个 IANA 私有 IPv4 范围全部可绕过。
+- **CVE-2026-42260**（open-websearch）：`URL.hostname` 保留 `[...]` 括号包裹 IPv6 字面量，`isIP("[::1]")` 返回 `0`（不是 6），私有 IP 检查永不触发。
+- **MoFA Issue #675**：`[::ffff:127.0.0.1]`、`[::ffff:169.254.169.254]` 多处 bypass。
+
+**为什么在这个系统里特别危险：**
+插件通过 `system.http.request` 获得 HTTP 出口能力后，SSRF 不仅可访问 metadata 端点（AWS `169.254.169.254`、GCP `metadata.google.internal`），还可以：
+- 穿透学校网络内部服务（代码仓库、LDAP、监控面板）
+- 利用 DNS rebinding 的 TOCTOU（第一次解析到合法 IP，第二次解析到 `127.0.0.1`）
+- 通过 redirect 链二次跳转进入内网（`fetch` 默认跟随 redirect）
+- 利用 Node 18+ `fetch` 不支持 `http.Agent` 的特性（无法插入传统私网拦截层）
 
 **How to avoid:**
-- 区分两类存储：**(1) 低频、形态自由的插件配置/扩展** 可用 `plugin_ext_*` / 袋子；**(2) 高频、要统计、要唯一约束的业务事实**（答题记录）必须有**声明式但结构化**的插件自有表：固定列（`pluginId`、`schoolId`、`classroomSessionId`、`questionRef`、`studentId`、`choice`、`isCorrect`、`attemptNo`、`isLatest`、`createdAt`），由主仓库迁移生成、带覆盖统计查询的复合索引。
-- 答题记录沿用既有 `taskSubmissions` 的 **append-only + `isLatest`** 语义，而不是覆盖写 JSON。
-- 统计列（正确率、选项分布）必须能由 `GROUP BY` 直接算，不依赖应用层解析 JSON。
+1. **使用独立 DNS 解析器，而非信任 OS resolver**。Undici 的 `Dispatcher` 层支持 `connect.lookup` 函数注入 -- 先解析 DNS，验证所有返回 IP 不在私网范围内，然后将验证过的 IP **pin 到 TCP 连接**上（不再二次 DNS 查询）。关闭 TOCTOU 窗口。
+2. **IPv6 字面量必须在解析前剥离 `[]` 括号**，再用 `net.isIP()` 校验（不带括号的 `::1` 返回 6）。
+3. **IPv4-mapped IPv6**（`::ffff:x.x.x.x`）单独处理：解析 mapped IPv4 部分，用 IPv4 私网规则判定。
+4. **十进制/八进制/十六进制 IP 编码**：先检查 hostname 是否为纯数字/纯 hex 字符串，若是则按 IP 解析判定而非信任字符串形式。
+5. **禁用自动 redirect 跟踪**：每个 redirect 目标必须重新过完整校验链（URL parse → DNS resolve → IP validate → pin）。对 `fetch` 使用 `{ redirect: "manual" }` 然后手动按 `Location` header 逐个校验。
+6. **开放端口限制**：只允许 80/443，拒绝 dangerous ports（22/3306/6379/5432/27017/6443/2375/2376 等）。
 
-**Warning signs:**
-统计 DAL 里出现 `rows.map(r => JSON.parse(r.payloadJson))`、`.filter()` 聚合；答题写入用 `upsert` 覆盖同一行；统计页随课堂规模变慢。
+**检测信号：**
+- 单元测试中用 `http://[::ffff:127.0.0.1]:8080/` 发起请求 -- 若未被拒绝说明 SSRF 防线有漏洞
+- 单元测试中用 `http://2130706433/`（= `http://127.0.0.1/`）测试十进制编码绕过
+- 单元测试请求 DNS rebinding 场景（两次解析不同 IP）
+- 测试中设置 `http://example.com` redirect 到 `http://127.0.0.1/` -- fetch 应拒绝跟随
 
-**Phase to address:** Phase A（声明式插件数据 schema 契约）+ Phase D（答题样板数据模型）
+**Phase to address:** 78（`system.http.request`），SSRF 防线必须在 HTTP 代理首次可被插件调用前就绪。
 
 ---
 
-### Pitfall 2: 插件数据隔离只靠 `pluginId`，漏掉 `schoolId` / 课堂维度，导致跨租户、跨课程数据泄漏
+### Pitfall 2: Manifest `systemCommands` 白名单校验时机 TOCTOU
 
 **What goes wrong:**
-统计/读取 DAL 只 `where pluginId = ?`，没有同时 `schoolId` + `classroomSession`/`course` 约束。结果 A 校或 A 班的答题统计里混入 B 校/B 班数据；或一个 schoolId 安装的同一 pluginKey 读到了别校的 `plugin_owned_*` 行。已有唯一索引是 `(schoolId, pluginId, key)`，但**查询方如果不带 schoolId 就绕过了隔离意图**。
+`PluginManifest` 的 `systemCommands` 声明段在 **install 时校验一次**，但插件在运行时调用 `system.http.request`，这两个时间点之间插件版本可能已升级、manifest 可能已变更。如果运行时 governance gate 只检查 `projectionRow.executable`（lifecycle/kill-switch）而不重新验证 manifest 白名单，插件可通过 semver upgrade 扩权后用旧 session 调用新系统命令。
 
-**Why it happens:**
-插件维度（pluginId）被当成「足够细」的隔离键，开发者忘记 OpenLearn 的真相隔离一直是 **school + course/class 双层**；样板插件 demo 阶段只有一个 school，bug 不暴露。
+**在这个系统中的具体风险：**
+- v4.0 已建立 install 时 `manifestJson` 校验流程（`PluginManifestSchema.parse` + governance v2 superRefine）
+- v4.0 已有的 `assertActionExecutable` 治理门只检查 lifecycle/kill-switch/school scope，**不检查 manifest 白名单内容**
+- 如果 `dispatchSystemCommand` 复用既有 `assertActionExecutable` 模式而不额外加 manifest re-parse，插件安装后管理员修改 manifest（upgrade）即可在运行时绕过 system command 白名单
 
 **How to avoid:**
-- 所有插件数据表强制 `schoolId notNull` + cascade（schema 已这么做，要守住），**且 DAL 每个读写都必须显式带 schoolId + 课堂/课程 scope**，由 DAL 层而非调用方注入。
-- 把「插件数据访问」收口到专用 DAL（如 `lib/dal/plugin-data.ts`），统一从认证 session 推导 schoolId，禁止把 schoolId 当成可由插件/前端传入的自由参数。
-- 统计读取必须 scope 到 `classroomSessionId`（或 publishedLessonVersion + class），而不是「该插件所有数据」。
+1. **运行时逐请求校验 manifest**：`dispatchSystemCommand` 入口必须在每次调用时从 `pluginRegistrations` 反序列化 `manifestJson`，重新用 Zod schema parse，从 `systemCommands` 段中验证当前请求的 command + domain + method 仍在白名单内。
+2. **不依赖 install 时的缓存白名单**：install 时 parse 的 manifest 内容可能已过期（upgrade 后），必须从插件注册记录重新读取最新 `manifestJson`。
+3. **白名单校验必须发生在 governance gate 之后、command execution 之前**，顺序为：lifecycle/kill-switch → manifest 白名单 → 参数级校验（domain/method 匹配）→ 执行。任何一步失败都写 denial governance audit。
+4. **升级路径的权限缩小**：`plugin.upgrade` 命令在 backfill→verify→cutover 过程中应检查新 manifest 的 `systemCommands` 声明，如果白名单缩小（之前允许的 domain 不再允许），需要记录审计事件。
 
-**Warning signs:**
-DAL 查询里 schoolId 来自请求体而非 session；测试只在单 school 跑；统计接口签名只接受 `pluginId` 不接受 classroom/course scope。
+**检测信号：**
+- 安装 v1.0（允许 `api.example.com`）→ 升级到 v2.0（允许 `api.evil.com`）→ v1.0 创建但未完成的 session 能否调用 `api.evil.com`？应该被允许（因为 runtime 读取的是最新 manifest）。
+- 治理门返回 `executable=true` 但 manifest 中没有 `systemCommands` 段，`dispatchSystemCommand` 是否正确拒绝？
+- `system.http.request` 请求包含 manifest 中未声明的 method（manifest 声明 GET，实际调用 POST）是否被正确拒绝？
 
-**Phase to address:** Phase A（schema 隔离不变量）+ Phase E（统计读取路径，必须带 scope）+ close gate 的隔离测试
+**Phase to address:** 79（`dispatchSystemCommand` facade），运行时 manifest 白名单重新验证必须在 facade 入口实现。
 
 ---
 
-### Pitfall 3: 声明式 schema → 迁移之间出现「动态 DDL / 动态 SQL」偷渡，突破 no-dynamic-table 红线
+### Pitfall 3: 插件 KV 配置跨插件/跨学校数据隔离失败
 
 **What goes wrong:**
-为了让插件「声明自己的表」很灵活，实现成：读取插件 manifest 的字段声明 → 运行时拼 `CREATE TABLE` / `ALTER TABLE` / 动态列。这直接违反 PROJECT.md 明令 Out of Scope 的「runtime manifest 驱动动态建表、动态执行 SQL migration、schema-per-plugin」，并打开 SQL 注入与不可审计 schema 漂移。
+`system.config.get/set` 给每个插件分配 KV 存储，但键访问的隔离边界极易出错。常见失败模式：
+- **键名前缀不一致**：get 用 `pluginKey:` 前缀，set 用 `pluginId:` 前缀（或反过来），导致一个插件能读到另一个插件的数据。
+- **学校边界穿越**：`pluginOwnedBusinessData` 已有 `schoolId` 列，但如果 KV 操作使用全局唯一键名（如 `pluginConfig:{pluginKey}:{key}`）而**不在查询时强制 `schoolId` scope**，同一 pluginKey 安装在不同学校的实例可能读到彼此的配置。
+- **键枚举**：`system.config.get` 若支持通配符/前缀匹配（如 `get("*")` 返回所有键），攻击者插件可枚举自身所有键甚至推测其他插件的键名模式。
 
-**Why it happens:**
-「声明式数据模型」被错误理解为「插件运行时定义表结构」。真实约束是：声明式 = 插件**在源码内声明** schema，但**物理表与迁移由主仓库统一生成并 code review**，不是运行时生成。
+**在这个系统中的具体风险：**
+- `pluginOwnedBusinessData` 表按 `(pluginId, schoolId, key)` 三元组存储，school scope 已在数据模型中。
+- 但 `system.config` 的新 facade 如果只按 `pluginKey` 查找而不强制注入 `schoolId`（类似 `assertActionExecutable` 中 session-derived schoolId），学校边界就会破。
+- SQLite 的 `LIKE` 查询天然支持键前缀枚举，如果 `get` 接口接受 pattern 参数，攻击者可枚举所有其他插件的键。
 
 **How to avoid:**
-- 明确两段式：插件 schema 以 **代码内的 Drizzle 声明**（编译期）存在 → 走主仓库 `drizzle-kit generate` + 提交的 SQL 迁移 + code review。运行时**只有数据 CRUD，没有任何 DDL**。
-- 在 manifest 里只允许声明「逻辑数据形态/版本号 + 映射到哪张已迁移的物理表」，绝不允许声明可直接转成 DDL 的列定义被运行时执行。
-- 加一条 lint/test 守卫：仓库内禁止运行时 `CREATE TABLE` / `ALTER TABLE` / 字符串拼接 SQL（除迁移文件外）。
+1. **键名三重前缀隔离**：存储键统一格式为 `{schoolId}:{pluginId}:{key}`，查询时三个组件均由 facade 注入（`schoolId` 来自 session，`pluginId` 来自治理门投影，`key` 来自调用参数）。插件声明 `key` 部分不可包含 `:` 字符（在 Zod 层校验）。
+2. **禁止通配符/前缀查询**：`system.config.get` 仅支持精确键名查询，不接受 `*`/`?` pattern。如果需要列出所有键，返回的键列表必须先过 `schoolId` 过滤（但更好的是不提供 `list` 能力）。
+3. **配置大小 + 数量限制**：单个 key 的 value size ≤ 64KB，单个插件的总 key count ≤ 100 项，总存储 ≤ 512KB。这些限制在 `set` 调用时强制执行（先 count + sum，再 insert/update）。
+4. **Zod 边界校验**：`system.config` 入参 schema 中 `key` 字段用 `z.string().regex(/^[a-z][a-zA-Z0-9._-]{0,127}$/).refine(k => !k.includes(':'), "key must not contain namespace separator")`。
+5. **复用既有 `pluginOwnedBusinessData` 表**：该表已有 `schoolId` + `pluginId` + `key` 三元组隔离 + `value TEXT`，新增 KV 操作不需要新建表，只需扩展 DAL 层动词。
 
-**Warning signs:**
-代码里出现根据 manifest 拼接表名/列名的 SQL；出现 `db.run(sql.raw(...))` 带插件输入；新表不在迁移文件而是运行时出现。
+**检测信号：**
+- 安装同一 pluginKey 到两所学校，分别 set config，get 只返回自己学校的值。
+- plugin A set `key=secret`，plugin B get `key=secret` -- 必须被拒绝或返回空（因为键名前缀不同）。
+- `set` 一个 70KB 的 value -- 确认被拒绝（超过 64KB limit）。
 
-**Phase to address:** Phase A（确立「声明在代码、迁移在主仓库、运行时只 CRUD」契约）+ close gate 静态扫描
+**Phase to address:** 80（`system.config`），KV 隔离防线在 config 存储首次可被插件调用前就绪。
 
 ---
 
-### Pitfall 4: 升级时把声明式 schema 变更做成有损/不可逆迁移，丢失已有答题数据
+### Pitfall 4: Governance Audit 拒绝分支日志缺失
 
 **What goes wrong:**
-插件 v1→v2 改了数据形态。迁移直接 `DROP`/重建插件表，或改列类型导致 SQLite 走「重建表」路径时丢行；或 `payloadJson` 结构变了但旧行没回填，统计读到一半旧一半新数据，正确率算错。SQLite 对 `ALTER` 支持有限（不能改列类型/加约束），开发者容易用「建新表 + copy + drop 旧表」，一旦 copy 漏字段就静默丢数据。
+系统命令调用有多个拒绝点（lifecycle gate denial → manifest whitelist denial → per-request domain/method denial → SSRF private-ip denial → config key denial），但如果任何一个拒绝点在抛出错误前**忘了写 governance audit**，操作者将：
+- 看不到任何 `deny` 审计记录 -- 系统静默工作
+- 误以为"没有发生错误"而非"被拒绝"
+- 无法追溯哪个插件在尝试越权操作
 
-**Why it happens:**
-插件数据被当成「可丢的缓存」而非「学生真实学习证据」。升级在 demo 数据上测，没有「升级前有真实作答」的样本。
+**在这个系统中的具体风险：**
+- v4.0 `assertActionExecutable` 治理门在每个拒绝路径都调用了 `writeDenial`（见 `governance-gate.ts` L55-82），这是良好范例。
+- 但 `dispatchSystemCommand` 的新拒绝点（manifest 白名单不匹配、domain/method 不在白名单中、SSRF 防护拒绝）若沿用不同的抛错模式（只抛 Error 不写 audit），审计链就会断裂。
+- **最隐蔽的 gap**：deny 审计记录的 `payloadJson` 若缺少关键诊断信息（如被拒的 URL、被拒的方法、白名单的期望值），事后排查时会陷入"只知道被拒但不知道为什么"的困境。
 
 **How to avoid:**
-- 插件数据迁移遵循 **expand → migrate → contract**（先加列/新表并双写或回填，验证后再删旧），禁止单步 destructive 迁移。
-- 每个插件 schema 带显式 `dataVersion`，升级路径必须有**前向迁移 + 数据回填脚本 + 行数/校验和断言**（迁移前后行数对账）。
-- close gate 必须包含「带真实答题数据做一次插件升级，断言统计结果与 0 行丢失」的可重复测试。
-- 复用 `v3.1` 已建立的 backup/restore drill：升级前自动备份插件数据表。
+1. **统一拒绝审计写入器**：为 `dispatchSystemCommand` 新建一套 `writeSystemCommandDenial` 函数（与 `writePluginDataAccessAudit` 同级，复用同一 `governanceAudits` 表），每个拒绝点（lifecycle/manifest/domain/method/private-ip/config-key）都必须调用此写入器。
+2. **action 字段语义化**：`action` 字段设为 `system.http.request` 或 `system.config.get`（含动词），`reasonCode` 使用新枚举值（`not_allowlisted` / `domain_not_allowed` / `method_not_allowed` / `private_ip_blocked` / `config_key_denied`），`payloadJson` 包含诊断上下文（被拒 URL、请求 method、期望白名单值）。
+3. **deny 审计必须在抛错前完成**：拒绝路径的代码结构为 `await writeDenial(...) → throw SystemCommandError(...)`。任何先抛错后审计的路径都是 bug。
+4. **`commandId` 关联**：如果 system command 经过 Command Bus 写入，deny 审计记录中必须包含 `commandId`（即便命令最终未执行）。这要求 facade 在治理门前先生成 `commandId` 而非事后补。
 
-**Warning signs:**
-迁移文件里有 `DROP TABLE plugin_*` 不带数据迁移；升级测试只在空表上跑；没有 `dataVersion` 字段；没有升级前后行数对账。
+**检测信号：**
+- 用 `not_allowlisted` reasonCode 搜 `governanceAudits` 表 -- 确认 deny 记录数与实际拒绝调用次数一致。
+- `payloadJson` 中包含被拒的完整请求上下文而非空对象。
+- 用不同 reasonCode 各触发一次拒绝 -- 审计表中有对应行。
 
-**Phase to address:** Phase A（迁移安全契约 + dataVersion）+ Phase F（marketplace 升级生命周期）+ close gate 升级数据完整性测试
+**Phase to address:** 79（`dispatchSystemCommand` facade），统一的拒绝审计写入器作为 facade 的前置基础设施。
 
 ---
 
-### Pitfall 5: 卸载时「保留 vs 清理」治理语义含糊，造成误删学生证据或留下幽灵数据
+### Pitfall 5: Manifest Schema 演进破坏已有插件兼容性
 
 **What goes wrong:**
-schema 已有 `uninstallRetentionMode: retain|cleanup` 和 `uninstalledAt`，但生命周期实现没把它当成**带审计的治理决策**：要么卸载直接 cascade 删掉所有答题记录（老师课后复盘数据没了，且不可逆）；要么标记卸载但数据永久滞留、重装同 pluginKey 时与旧数据串味（`dbNamespace`/`pluginKey` 复用导致脏读）。
+`PluginManifest` 新增 `systemCommands` 可选字段后，已有插件（quiz、homework）的 manifest JSON **不包含**该字段。如果 Zod schema 设置不当（如 `systemCommands` 使用 `z.object().default()` 而非标记 `optional()` 或无默认值的可选），安装/升级已有插件时的 `PluginManifestSchema.parse()` 会抛错，阻止合法操作。
 
-**Why it happens:**
-卸载被当成「删一行 registration」。但插件自有数据是真实教学证据，删除是高 blast-radius 治理动作，需要明确策略、确认与审计——这层常被省略。
+**在这个系统中的具体风险：**
+- 已有 `PluginManifestSchema`（`src/lib/dto/resource-ai.ts` L761）使用 `z.object()` + `superRefine`，新增字段。
+- `PluginRegistrationDTO` 包含 `manifestJson: PluginManifestSchema`，说明 manifest JSON 从数据库读出后会再次 parse。
+- 如果新字段不是 `optional()` 或 `nullable()` 且有 `.default()`，已有数据库记录的 manifest JSON 解析会失败。
+- 更隐蔽的风险：`PluginManifestGovernanceV2Schema`（governance v2 superRefine）只验证 `manifestVersion === 2` 时 `governance` 字段存在，**不**处理 manifestVersion 1 的兼容。`systemCommands` 如果被误放进 governance v2 段内，v1 插件会被永久锁定。
 
 **How to avoid:**
-- 卸载分两阶段：**soft uninstall（停用 + 标记 `uninstalledAt` + 锁写）** 与 **数据处置（retain 归档 / cleanup 删除）**，二者都必须写 `governanceAudit`，带 actor、reason、retentionMode。
-- `cleanup` 必须显式确认 + 影响面提示（将删除 N 条作答、影响 M 个课堂复盘），不能是默认静默行为；`retain` 必须保证数据被隔离/只读，重装时不被新安装隐式读到。
-- 重装同 `pluginKey` 必须是**新 registration 身份**（或显式数据接管流程），避免靠 namespace 复用静默继承旧数据。
-- cascade delete 约束（项目硬约束）要在「确实选择 cleanup」时才触发，不能因为卸载就无条件 cascade。
+1. **纯 additive 变更**：`systemCommands` 作为**完全可选**的顶级字段添加到 `PluginManifestSchema`，使用 `z.object({ ..., systemCommands: SystemCommandsSchema.optional() })` 而非 `.default()`。
+2. **独立于 manifestVersion**：`systemCommands` 放在 `PluginManifestSchema` 顶级（与 `permissions`/`actions`/`anchors` 同级），不嵌套在 `governance` v2 段内。这样 manifest v1 和 v2 插件都受同一套 schema 校验。
+3. **数据库记录的 JSON 反序列化必须容错**：`manifestJson` column 存储的是安装时的原始 JSON，新增字段后读出必须能成功 parse。在 Zod schema 变更后，跑全量 `pluginRegistrations` 扫描测试 -- 确认所有已有 manifest 都能通过 `PluginManifestSchema.parse()`。
+4. **install 命令的参数化处理**：`plugin.install` handler 在最终落库前先 parse 新 schema，如果 parse 失败应返回具体错误信息，而非静默回退到旧 schema。
 
-**Warning signs:**
-卸载路径直接 `delete pluginRegistration`（靠 FK cascade 连带删数据）而没读 `uninstallRetentionMode`；retain 模式下数据仍可被新安装读到；卸载/清理没有 governance audit 行。
+**检测信号：**
+- 对已有 quiz plugin 的 manifest JSON 跑 `PluginManifestSchema.parse()` -- 确认不抛错。
+- 对已有 homework plugin 的 manifest JSON 跑 `PluginManifestSchema.parse()` -- 确认不抛错。
+- 对新 manifest（含 `systemCommands`）跑 parse -- 确认新字段被正确提取。
+- `pluginRegistrations` 表中的所有已有记录都能通过新 schema parse。
 
-**Phase to address:** Phase F（marketplace 卸载 + 数据保留/清理治理）+ close gate 卸载治理审计测试
+**Phase to address:** 77（manifest `systemCommands` 声明段定义），schema 定义就在此 phase 完成，必须在 schema 完成后立即执行已有插件兼容性扫描。
 
 ---
 
-### Pitfall 6: 在 no-arbitrary-code 约束下为追求「灵活数据访问」而偷偷打开任意执行/注入面
+### Pitfall 6: HTTP 代理无速率/并发/大小限制导致资源耗尽
 
 **What goes wrong:**
-为了让插件「灵活查询自有数据」，提供了一个看似声明式、实则图灵完备的查询接口：允许插件传入原始 SQL 片段、`where` 字符串、自定义聚合表达式、JSONPath/动态字段名，再由 host 拼接执行。等于在没有 `eval` 的字面下，重新打开了 SQL 注入 + 跨插件越权读取面。
+一个恶意（或被入侵的）插件利用 `system.http.request` 发起海量并发 HTTP 请求、超大响应体下载、无限重试循环，耗尽服务器网络带宽、内存和文件描述符。
 
-**Why it happens:**
-红线只写了「无 `eval`、无直连 DB」，团队以为「不直连 DB」就安全，但通过 host 转发任意查询字符串本质等价于直连。「灵活」需求压力下，受控 action 退化成「执行用户给的查询」。
+**在这个系统中的具体风险：**
+- Node.js 单线程 event loop 对并发 HTTP 请求的承压能力有限，过多的 in-flight 请求会导致所有其他请求排队。
+- 插件在 session 生命周期内可多次调用 `system.http.request` -- 没有跨请求的调用计数或速率限制。
+- 响应体大小无上限可能导致内存耗尽（例如插件请求一个 2GB 的文件）。
 
 **How to avoid:**
-- 插件对数据的访问必须是**白名单化的具名 action / 参数化查询**（如 `recordAnswer(questionRef, choice)`、`getQuestionStats(classroomSessionId)`），参数全部 Zod 校验、强类型、绑定参数化，**绝不接受 SQL 片段 / 自由字段名 / 自由 where**。
-- 所有插件数据访问经 Command Bus + governed action registry（`v3.0` 已有），带权限检查与审计，host 只暴露有限动词，不暴露「查询执行器」。
-- 字段名/表名永远来自服务端常量映射，绝不来自插件输入。
+1. **严格超时**：每个 HTTP 请求总超时 ≤ 10s（含 DNS 解析 + 连接 + 读取），使用 `AbortSignal.timeout(10000)`。
+2. **响应体大小限制**：`Content-Length` 头校验 + 流式读取时的累计字节计数。超出 5MB 时 abort 连接并返回 `response_size_exceeded` 错误。
+3. **每个插件实例的并发限制**：同一 pluginId 同时最多 3 个 in-flight `system.http.request` 调用。用内存 Map 计数（插件 3 次调用完成后 decrement），超并发立即拒绝。
+4. **单次 session 调用限制**：每个 runtime session 生命周期内最多 50 次 HTTP 调用。这个计数存储在 session state 中。
+5. **禁止 redirect looping**：最多允许 3 次 redirect，超过则中止。
+6. **请求头大小限制**：总请求头 ≤ 8KB，防止 header injection 攻击。
 
-**Warning signs:**
-出现 `executeQuery(sql)` / `find(where: string)` 类插件 API；action payload 里有 `sql` / `filter` / `orderBy` 自由字符串；host 用模板字符串拼 SQL；权限校验放在插件侧而非 host 侧。
+**检测信号：**
+- 并发触发 5 次 HTTP 请求同时 out -- 第 4/5 次被拒绝（并发限制 = 3）。
+- 在 session 中连续发起 51 次请求 -- 第 51 次被拒绝。
+- 请求一个 10MB 的响应 -- 在 5MB 处中止。
+- 请求需要 30 秒的超慢服务器 -- 10 秒后超时。
 
-**Phase to address:** Phase B（受控插件数据访问 action 契约）+ Phase C（治理边界/权限）+ close gate 注入与越权测试
+**Phase to address:** 78（`system.http.request`），速率和资源限制与 HTTP 代理核心实现一并交付。
 
 ---
 
-### Pitfall 7: 把 Marketplace 做成失控大工程，scope creep 到商店运营层 / 多插件类型 / 多 Agent
+### Pitfall 7: `dispatchSystemCommand` 与 `dispatchPluginDataAccess` 治理门异构化
 
 **What goes wrong:**
-「Marketplace」一词诱导团队去做评分评论、付费计费、公开开发者门户、自动审核流水线、多种插件类型、AI Agent 扩张——而 PROJECT.md 明确把这些列为 Out of Scope，本轮只要 **受治理的 发布→安装→升级→卸载 核心闭环 + 一个答题样板**。结果里程碑无法收口，红线和数据正确性反而没守住。
+两个 facade 分别实现自己版本的 governance gate、audit writer、school scope derivation 和 lifecycle check。表面看起来都"做了治理"，但内部实现细节不同（例如一个检查了 kill-switch+lifecycle，另一个只检查 lifecycle），导致系统命令和数据访问的安全态势不一致。操作者无法用统一的心智模型理解"什么情况下插件行为会被拒绝"。
 
-**Why it happens:**
-marketplace 是个天然「平台梦」放大器；加上历史上 `v2.4` 冻结过，团队有「这次一次做全」的冲动。`v3.0` 之后的 Agent/Skill/Capability 扩张诱惑也常被打包进来。
-
-**How to avoid:**
-- 把本里程碑成功定义钉死为**一个垂直切片**：单一「互动答题」样板插件，跑通 声明数据 → 安装 → 老师配置 → 学生作答 → 统计复盘 → 升级 → 卸载治理，全程不破红线。其余一律推迟。
-- 复用既有 governed marketplace surface（已存在），不重建商店 UI/运营层。
-- 每个 phase 必须挂靠真实答题课堂路径（延续 `v3.1` 的「样板优先、避免 infra-first 漂移」decision）。
-- 任何「顺便支持第二种插件类型/多 Agent/计费/评论」提案直接打到 Out of Scope backlog。
-
-**Warning signs:**
-出现 ratings/reviews/billing/developer-portal/审核流水线 任务；同时追多个插件类型；phase 标题里出现「通用」「平台化」而非具体答题链路；任务无法挂到「老师配置→学生作答→统计」上。
-
-**Phase to address:** Phase 0 / roadmap 定义阶段（scope 锁定）+ 每个 phase 的 success criteria 挂靠样板链路
-
----
-
-### Pitfall 8: 统计读取 / 课堂写入路径绕过 DAL / Command Bus，形成第二真相源
-
-**What goes wrong:**
-为了「快」，答题写入直接走 WebSocket 消息落库、或统计页直接读 Redis/内存聚合、或插件 host 自己持有一份计数。结果出现两套数字：课堂实时面板与课后统计面对不上；Redis/WS 被无意中变成业务真相源，违反 PROJECT.md「SQLite + DAL 唯一 durable truth，Redis/WS/BullMQ 不成为真相源」。
-
-**Why it happens:**
-实时课堂场景天然诱导「在传输层就地统计」；统计与实时面板由不同人/不同 phase 实现，各自取数，缺少单一聚合源。
+**在这个系统中的具体风险：**
+- `assertActionExecutable` 是 `dispatchPluginDataAccess` 的治理门，它包含完整的 lifecycle/kill-switch/school scope 校验 + denial audit。
+- 如果 `dispatchSystemCommand` 重新实现一套"简化版"治理门（例如只检查 `projectionRow.executable`），后续 lifecycle state machine 的变更（新增 `failed` 状态语义）可能只更新了一边。
+- 审计记录的 `action` 字段语义不一致：`plugin.data.insert` vs `system.http.request` 可以共存，但如果两者的 `reasonCode` 枚举不同、`payloadJson` 结构不同，dashboard 和操作者面板的渲染逻辑会分支爆炸。
 
 **How to avoid:**
-- **唯一写路径**：学生作答 → Command Bus / Server Action → DAL → SQLite（append-only + `isLatest`）。WebSocket 只做投递/通知，不是落库权威；任何实时计数都从 SQLite 投影或由权威写后广播。
-- **唯一读路径**：统计与课后复盘都从同一 DAL 聚合函数取数（同一 SQL 真相），实时面板与复盘共用同一聚合源，避免两套口径。
-- 缓存遵循项目约束：写后 `updateTag` / 失效，统计读用显式 cache tag（如 `quizStats:${classroomSessionId}`），写入答题时失效。
+1. **复用 `assertActionExecutable`**（governance gate）：`dispatchSystemCommand` 第一层调用与 `dispatchPluginDataAccess` 完全相同的治理门函数。这确保 lifecycle/kill-switch/school scope 校验逻辑零异构。
+2. **只在治理门通过后执行 manifest 白名单 + 参数级校验**：这些是 system command 独有的层，但在同一拒绝审计写入器之上。
+3. **审计记录共享同一 `governanceAudits` 表 + 统一 `action` 命名约定**：`system.http.request`、`system.config.get`、`system.config.set` 都使用同一张表，字段语义对齐。
+4. **`reasonCode` 枚举分层**：第一层（lifecycle/kill-switch/school scope）复用 `PluginDataAccessReason`。第二层（manifest/domain/method/private-ip/config-key）新增 `SystemCommandReason`，与第一层不冲突。
 
-**Warning signs:**
-答题落库发生在 WS handler 里且不经 DAL；统计来自 Redis/内存而非 SQLite；实时面板和复盘页数字不一致；存在两个地方各自累加正确率。
+**检测信号：**
+- 对 disabled 插件同时调用 `dispatchPluginDataAccess` 和 `dispatchSystemCommand` -- 两者返回的拒因应一致。
+- 对 kill-switch 启用的插件同时调用 -- 两者返回的拒因应一致。
+- 跨学校调用的拒绝语义一致。
 
-**Phase to address:** Phase D（答题写入路径，单一 DAL 写真相）+ Phase E（统计读取，单一聚合源 + 缓存失效）
-
----
-
-### Pitfall 9: `dbNamespace` / `pluginKey` 命名冲突与重装/升级时的身份漂移
-
-**What goes wrong:**
-schema 有 `(schoolId, pluginKey)` 和 `(schoolId, dbNamespace)` 唯一索引，但安装流程没在**安装时**校验冲突、或不同 school 间 namespace 复用却共享物理表（因为物理表是全局的，靠行级 `schoolId` 隔离）。两个插件声称同一 namespace / 同一逻辑表，统计与清理时互相串数据；卸载 A 误清 B。
-
-**Why it happens:**
-namespace 被当成「装饰性命名」，没被当成隔离主键的一部分参与所有读写与清理决策；物理表全局共享这点容易被忽视。
-
-**How to avoid:**
-- 安装审核（install governance）必须校验 `pluginKey` + `dbNamespace` 在 school 内唯一，冲突即拒绝并给出明确原因。
-- 物理表全局共享时，**每一行**都靠 `(schoolId, pluginId)` 隔离；清理/统计/迁移所有路径都必须带这两个维度，namespace 只作为人类可读标识与冲突校验键，不作为隔离的唯一依据。
-- 升级/重装保持稳定 `pluginId` 身份；新装产生新 `pluginId`，不靠 pluginKey 字符串相等隐式接管旧数据。
-
-**Warning signs:**
-安装时不校验 namespace 冲突；清理 SQL 只按 namespace 不按 pluginId；测试只覆盖单插件；不同 school 间数据出现串读。
-
-**Phase to address:** Phase C（安装审核/治理边界，含命名冲突校验）+ Phase F（升级/重装身份稳定性）
-
----
-
-### Pitfall 10: 默认/样板插件走特例后门，没真正复用插件数据治理模型
-
-**What goes wrong:**
-互动答题样板为了赶进度，直接读写 core 表或用 built-in 特权路径，而不是走「声明式插件自有表 + 受控 action + 治理生命周期」。结果插件架构「看起来成立」，但唯一的样板根本没验证这条路，红线/隔离/卸载治理全是空跑。这正是 PROJECT.md Key Decision 警告的：「默认插件必须复用正式插件数据治理模型，只有系统模块自己走通，插件架构才算真实成立。」
-
-**Why it happens:**
-样板由内部团队实现，天然有「我是自己人，可以走捷径」的特权倾向；core 表读写更熟更快。
-
-**How to avoid:**
-- 样板答题插件**必须**通过与第三方完全相同的路径：声明式数据表（主仓库迁移）、受控 action（Command Bus + governance）、生命周期（安装/升级/卸载）。
-- close gate 显式断言：样板插件不直接 import core DB client、不写 core 表、所有数据访问经 governed action 审计可见。
-- 把「样板即第一个真实第三方」当作验收口径，而不是「样板是内置特例」。
-
-**Warning signs:**
-样板代码 import `src/db` 直接读写；样板有不经 governance 的快捷写路径；样板数据进了 core 表而非插件自有表；审计里看不到样板的 action。
-
-**Phase to address:** Phase D（样板必须走治理路径实现）+ close gate（无后门断言）
+**Phase to address:** 79（`dispatchSystemCommand` facade），facade 的治理门复用必须在设计阶段就确立。
 
 ---
 
@@ -217,109 +212,121 @@ namespace 被当成「装饰性命名」，没被当成隔离主键的一部分�
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| 答题记录塞进 `plugin_owned_business_data` JSON 袋子 | 不用写新迁移，立刻能存 | 统计无法用 SQL 聚合/索引，规模化退化，唯一性无保障 | **Never**（高频可统计业务事实必须结构化表） |
-| 卸载直接靠 FK cascade 删数据 | 实现简单，一删干净 | 不可逆删除真实学习证据、无治理审计、违反 retain 语义 | **Never**（必须显式 retention 决策 + 审计） |
-| 升级用 drop+recreate 插件表 | SQLite ALTER 限制下最省事 | 静默丢数据、统计错算、不可回滚 | 仅当表确认无真实数据且有备份（基本=never on prod） |
-| 统计直接读 Redis/内存计数 | 实时快 | 第二真相源、与复盘对不上 | 仅作为 SQLite 投影上的非权威缓存，且可重建 |
-| 样板插件走 core 表特例 | demo 快 | 插件架构未被真实验证，红线空跑 | **Never**（样板=第一个真实第三方） |
-| host 提供通用查询接口给插件「灵活取数」 | 一个接口满足所有插件 | 等价 SQL 注入/越权面，破红线 | **Never**（只暴露白名单具名 action） |
+| SSRF 检查只用正则匹配 hostname（不解析 DNS）| 快速实现，无 DNS 依赖 | 所有 DNS rebinding / CNAME 链攻击可绕过 | NEVER |
+| Manifest 白名单只在 install 时检查 | 减少运行时开销 | upgrade 后白名单变更不生效，权限漂移 | NEVER |
+| KV 配置不校验 `schoolId` scope | 简化查询（全局唯一键） | 不同学校同 plugin 互相读写配置 | NEVER |
+| Deny 审计只在"关键拒绝点"写，local-only 抛错 | 减少审计表写入量 | 无法追溯越权尝试，安全事件无法复盘 | NEVER |
+| `systemCommands` schema 用 `.default()` 而非 `.optional()` | 避免 `undefined` 检查 | 所有已有插件 manifest 解析失败 | NEVER |
+| HTTP 时长/大小不设限 | 实现简单 | 一个恶意插件可打挂整个服务器 | NEVER |
+| 新 facade 重新实现治理门 | 更快交付，不碰已有代码 | 双层治理逻辑漂移，future 变更只更新一边 | NEVER |
+
+---
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Drizzle + SQLite 迁移 | 用 `drizzle-kit push` 改插件表/运行时 DDL | `generate` 出可 review 的 SQL 迁移，运行时只 CRUD，无 DDL |
-| Command Bus / governed action registry（v3.0） | 插件数据访问绕过 bus 直接调 DAL/DB | 所有插件数据读写经 governed action，带权限+审计 |
-| WebSocket classroom transport（v2.2） | 在 WS handler 里就地落库/统计 | WS 只投递；落库经 DAL，统计从 SQLite 投影 |
-| `governanceAudit` / `pluginActionAudit` 表 | 卸载/清理/升级不写审计 | 每个生命周期治理动作写审计（actor/reason/decision/retentionMode） |
-| Next.js 16 cache | 答题写入后不失效统计 tag | 写后 `updateTag('quizStats:${sessionId}')`；读用显式 tag |
-| backup/restore drill（v3.1） | 升级/清理前不备份插件数据 | 复用既有 drill，在 destructive 生命周期动作前自动备份 |
+| `dispatchSystemCommand` → `assertActionExecutable` | 跳过 governance gate 直接执行业务逻辑 | 与 `dispatchPluginDataAccess` 完全相同的治理门调用链 |
+| `system.http.request` → Node.js `fetch` | 直接 `fetch(url)` 不配置 dispatcher | 用 Undici `Agent` 的 `connect.lookup` 注入预验证 IP，pin 住连接 |
+| `system.config` → `pluginOwnedBusinessData` | 新建独立配置表 | 复用已有表（已有 schoolId+pluginId+key 三元组），新增 `key` 前缀约定 |
+| `systemCommands` manifest → `PluginManifestSchema` | 嵌套在 `governance` v2 字段内 | 放在顶级，与 `permissions`/`actions` 同级，独立于 manifestVersion |
+| Command Bus `system.*` 命令定义 | 跳过 `dedupe: "required"` 配置 | 保持与 `plugin.data.insert` 等命令同等级的幂等语义 |
+| Zod schema 新增字段 | 不测试已有数据库记录的反序列化 | `PluginManifestSchema.parse(dbRecord.manifestJson)` 全量扫描 |
+
+---
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| JSON 袋子上做答题聚合 | 统计页随课堂数变慢、CPU 高 | 结构化表 + `(classroomSessionId, questionRef)` 覆盖索引 + SQL `GROUP BY` | 40 人 × 多题 × 5 并发课堂即可显现 |
-| 统计每次全量扫描插件全部数据 | 复盘页 P95 上升 | 查询 scope 到 classroomSession，复合索引，缓存 tag | 历史课堂累积后 |
-| 缺 `isLatest` / 每次作答插入但聚合不去重 | 正确率分母被重复作答放大 | append-only + `isLatest` 标记 + 唯一索引 `(session, question, student)` 上 latest | 学生多次提交时立刻错 |
-| 卸载 cleanup 在大表上同步 cascade 删 | 卸载请求超时/锁库 | 大批量清理走 async task（既有 BullMQ 平台）+ 分批 | 数据量大的 school |
+| 每个 `system.http.request` 调用都用 `dns.resolve4` 做同步 DNS 解析 | 10s+ 的递增延迟 | 使用 Undici pinned dispatcher（DNS 解析一次，验证后 pin IP） | 10+ 插件同时调用 |
+| 每次 `system.config.get` 都扫全表 `pluginOwnedBusinessData` | 慢查询堆积 | 在 `(pluginId, schoolId, key)` 上建立联合索引 | 插件配置项 > 50 条 |
+| Governance gate 每次都加载全量 `governanceSnapshotRecords` | 每个插件调用都扫全表 | 缓存 `projectPluginGovernance` 结果（TTL 30s），仅在 lifecycle transition 后 invalidate | 5+ 插件频繁调用 |
+| KV config 值直接存大 JSON 字符串 | 100KB+ 的单行数据，Drizzle 序列化开销大 | 拆分大 JSON 为多个 key 或限制单 key ≤ 64KB | 插件试图存储复杂配置对象 |
+| HTTP 请求无并发控制 | event loop 被所有插件共享，一个插件占用所有 socket | 每个 pluginId 最高 3 并发 + session 级调用限制 | 5+ 插件同时发起请求 |
+
+---
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| host 转发插件传入的 SQL/where/字段名 | SQL 注入、跨插件/跨校越权读取 | 仅白名单具名 action + 参数化 + Zod；字段名服务端常量映射 |
-| schoolId 由插件/前端传入 | 跨租户数据读写 | schoolId 由认证 session 推导，DAL 注入，非自由参数 |
-| 插件读写不带 classroom/course scope | 跨课程数据泄漏 | 统计/读取强制 scope，DAL 校验权限 |
-| 安装不审核 manifest 权限/命名冲突 | 恶意/冲突插件落地 | 安装审核：Zod 校验 manifest、权限白名单、namespace 唯一 |
-| 卸载/清理无审计、无确认 | 误删/不可追责删除学习证据 | 治理审计 + 影响面确认 + retention 显式决策 |
-| 运行时动态建表/DDL | schema 漂移、不可审计、注入 | 声明在代码、迁移在主仓库 review、运行时无 DDL |
+| 直接信任 `URL.hostname` 做私有 IP 字串匹配 | 致命 -- IPv6/十进制/hex 编码全部可绕过 | DNS resolve → IP validate → pin connection，不信任字符串 hostname |
+| `fetch(url, { redirect: "follow" })` 默认跟踪 redirect | 高 -- redirect 可指向内网 `127.0.0.1` | `redirect: "manual"`，每个 redirect 重新过完整校验链 |
+| `system.config.set` 接受任意 key 名 | 中 -- 键名碰撞可覆盖其他插件配置 | key 名强制 `{schoolId}:{pluginId}:` 前缀，由 facade 注入不可控部分 |
+| `PluginManifest` 新字段无 Zod strict 模式 | 中 -- 攻击者可在 manifest 注入无法识别的额外字段 | `SystemCommandsSchema` 使用 `z.strictObject`，拒额外字段 |
+| Governance audit `payloadJson` 含原始 URL | 中 -- 审计表可能含私网地址或凭证参数 | URL 脱敏（只记录 hostname 和 method，不记录完整 path + query string） |
+| `system.http.request` 允许任意 port | 高 -- 可访问内网开放端口（数据库、Redis、Docker socket） | 只允许 80/443，显式拒绝 dangerous ports |
 
-## UX Pitfalls
-
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| 卸载时不提示数据影响面 | 老师误删全部作答与复盘 | 卸载前明确「将删除 N 条作答、影响 M 个课堂复盘」+ retain/cleanup 选择 |
-| 统计「未作答人数」口径不清 | 分母含/不含未到课学生，老师误判 | 明确定义：作答/未作答相对「该课堂在册参与者」，UI 注明口径 |
-| 实时面板与课后复盘数字不一致 | 老师不信任统计 | 同一 DAL 聚合源，单一口径 |
-| 升级后旧课堂统计悄悄变样 | 老师对历史复盘失去信任 | 升级保持历史数据不变 + dataVersion 可追溯 |
+---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **声明式插件数据表:** 常漏「运行时无 DDL」证明 — 验证新表只来自提交的迁移文件，无运行时 `CREATE/ALTER`。
-- [ ] **数据隔离:** 常漏跨校/跨课堂测试 — 验证有 ≥2 school、≥2 class 的隔离断言，无串读。
-- [ ] **升级:** 常漏「带真实作答数据升级」 — 验证升级前后行数对账 + 统计一致 + 0 丢失。
-- [ ] **卸载治理:** 常漏 retain/cleanup 两路径都有审计 — 验证 `governanceAudit` 两种 retentionMode 各有记录。
-- [ ] **受控访问:** 常漏注入/越权用例 — 验证插件无法传 SQL/字段名、无法读他校他班数据。
-- [ ] **样板无后门:** 常漏「样板不碰 core 表」断言 — 验证样板不 import core DB client、数据全在插件自有表。
-- [ ] **单一真相源:** 常漏 WS/Redis 真相源检查 — 验证落库只经 DAL，统计只从 SQLite。
-- [ ] **统计口径:** 常漏「未作答人数」分母定义 — 验证相对在册参与者且 UI 标注。
+- [ ] **SSRF 防线**: 经常缺失 IPv6 bypass 测试 -- 验证 `[::ffff:127.0.0.1]`、`[::1]`、`http://2130706433/` 都被拒
+- [ ] **SSRF 防线**: 经常缺失 redirect chain re-validation -- 验证 302 → `127.0.0.1` 被拒
+- [ ] **Manifest 白名单**: 经常缺失运行时 re-parse -- 验证 upgrade 后的 manifest 白名单在已有 session 中生效
+- [ ] **Governance audit**: 经常缺失 deny 路径的审计记录 -- 对每个 reasonCode 触发一次 deny，检查 audit 表存在
+- [ ] **KV 隔离**: 经常缺失跨学校隔离测试 -- 同一 pluginKey 在不同学校 set，交叉 get，确认不可见
+- [ ] **KV 隔离**: 经常缺失键枚举测试 -- `get("")` / `get("*")` 应返回 empty 而非列出所有键
+- [ ] **并发控制**: 经常缺失 session 级限流测试 -- 51 次调用后第 51 次被拒
+- [ ] **Schema 兼容**: 经常缺失已有 manifest 扫描 -- Drizzle query `pluginRegistrations` 所有行的 `manifestJson` 是否可通过新 `PluginManifestSchema`
+- [ ] **HTTP 超时**: 经常缺失超时响应测试 -- 模拟 30s 慢响应，确认 10s 后被 abort
+- [ ] **Governance gate 复用**: 经常缺失异构测试 -- disabled plugin 同时调用 `dispatchPluginDataAccess` 和 `dispatchSystemCommand`，拒因必须一致
+
+---
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| JSON 袋子已上线答题 | HIGH | 设计结构化表 → expand 迁移回填解析 JSON → 切读路径 → contract 删袋子用法 |
-| 卸载 cascade 误删数据 | HIGH | 从 backup/restore drill 恢复；事后补 soft-uninstall + retention 流程 |
-| 有损升级丢数据 | HIGH | 回滚到升级前备份；改用 expand→migrate→contract 重做 |
-| host 通用查询接口已暴露 | MEDIUM | 下线接口 → 替换为白名单具名 action → 审计历史调用排查越权 |
-| 第二真相源（WS/Redis 统计） | MEDIUM | 以 SQLite 聚合为唯一源重写统计 → WS/Redis 降为投影/通知 |
-| 跨租户泄漏 | MEDIUM | 给所有插件 DAL 补 schoolId+scope 强约束 → 回归隔离测试 → 审计历史访问 |
+| SSRF 绕过在生产环境被发现 | HIGH | 临时 disable 所有使用 `system.http.request` 的插件 → 修补 SSRF 防线 → 审计 `governanceAudits` 表确认是否有实际利用 → re-enable |
+| Manifest schema 破坏已有插件 | MEDIUM | 回滚 schema 变更（设为 `.optional()`）→ 全量扫描已有 manifest → 修复后重新部署 |
+| 跨插件 KV 数据泄漏 | HIGH | 立即暂停 `system.config` → 审计所有 config 读写记录 → 隔离受影响的配置数据 → 添加前缀隔离后恢复 |
+| 资源耗尽（HTTP 泛滥） | LOW | kill-switch 启用 → 隔离问题插件 → 添加并发/速率限制 → 重新启用 |
+| Audit gap 中有历史拒绝记录缺失 | LOW | 不可恢复（日志已丢失）-- 只能为未来调用的审计完整性做修补 |
+
+---
 
 ## Pitfall-to-Phase Mapping
 
-> Phase 标签为主题命名（v4.0 大致从 Phase 67 起），roadmap 作者可据此排序与编号。
-
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| 1 JSON 袋子做统计 | Phase A（声明式数据 schema）+ Phase D（答题模型） | 统计走 SQL `GROUP BY`、复合索引、规模化基准 |
-| 2 隔离/跨租户泄漏 | Phase A（schema 不变量）+ Phase E（scope 读取） | 多 school/多 class 隔离测试无串读 |
-| 3 动态 DDL 偷渡 | Phase A（声明/迁移/运行时三段契约） | 静态扫描：迁移外无 DDL/raw SQL |
-| 4 有损升级丢数据 | Phase A（dataVersion+迁移安全）+ Phase F（升级生命周期） | 带真实数据升级，行数对账 0 丢失 |
-| 5 卸载 retain/cleanup 治理 | Phase F（卸载治理） | 两种 retentionMode 各有 governance audit + 确认 |
-| 6 灵活访问打开注入面 | Phase B（受控数据 action）+ Phase C（权限治理） | 注入/越权用例全部拒绝 |
-| 7 marketplace scope creep | roadmap 定义阶段 + 各 phase success criteria | 无运营层任务；全部挂靠答题样板链路 |
-| 8 第二真相源 | Phase D（写路径）+ Phase E（读路径） | 落库仅经 DAL；实时与复盘同一聚合源 |
-| 9 namespace 冲突/身份漂移 | Phase C（安装审核）+ Phase F（升级身份） | 命名冲突被拒；清理仅按 pluginId+schoolId |
-| 10 样板走后门 | Phase D（样板治理实现） | 断言样板不碰 core 表、动作可审计 |
+| #1 SSRF -- URL 解析器归一化绕过 | 78 (`system.http.request`) | 5 个 SSRF bypass payload 的 vitest 测试，全部预期拒绝 |
+| #2 Manifest 白名单 TOCTOU | 79 (`dispatchSystemCommand`) | upgrade 后旧 session 调用新 domain 被拒，vitest |
+| #3 KV 配置跨插件隔离 | 80 (`system.config`) | 跨学校 + 跨插件交叉 get 测试，vitest |
+| #4 Audit deny 日志缺失 | 79 (`dispatchSystemCommand`) | 每个 reasonCode 的 deny 记录存在性验证，vitest |
+| #5 Manifest schema 兼容性 | 77 (manifest schema 定义) | 已有插件 manifest 全量 scan + parse，build 时检查 |
+| #6 HTTP 速率/资源耗尽 | 78 (`system.http.request`) | 并发/count/timeout/body-size 限制的边界测试，vitest |
+| #7 治理门异构化 | 79 (`dispatchSystemCommand`) | 对比 `dispatchPluginDataAccess` 和 `dispatchSystemCommand` 的拒因一致性，vitest |
 
-**建议 phase 主题序（供 roadmap 参考）：**
-- **Phase A** 声明式插件自有数据 schema + 迁移安全契约（dataVersion、隔离不变量、运行时无 DDL）— 最先，承载 1/2/3/4。
-- **Phase B** 受控插件数据访问 action 契约（白名单具名动作，复用 Command Bus）— 承载 6/8 写半边。
-- **Phase C** 安装审核与治理边界（manifest/权限/命名冲突）— 承载 6/9。
-- **Phase D** 互动答题样板插件数据写入（治理路径、append-only+isLatest、无后门）— 承载 1/8/10。
-- **Phase E** 基于插件数据的统计/复盘读取（单一聚合源、scope、缓存失效）— 承载 1/2/8。
-- **Phase F** Marketplace 升级/卸载生命周期 + 数据保留/清理治理 — 承载 4/5/9。
-- **close gate（verify:phase）**：迁移正确性、升级 0 丢失、隔离无串读、卸载治理审计、注入/越权拒绝、单一真相源、样板无后门，全部可重复跑通。
+---
 
 ## Sources
 
-- `.planning/PROJECT.md` — v4.0 milestone goal、Constraints、Out of Scope、Key Decisions（含「extension table + plugin-owned table 优先」「默认插件必须复用治理模型」「SQLite+DAL 唯一 durable truth」）。Confidence: HIGH。
-- `src/db/schema.ts` L1241-1264, 1266-1351, 1811-1903 — 既有 `pluginRegistrations`（dbNamespace/lifecycleState/uninstallRetentionMode）、`pluginLifecycleTransitions`、`pluginActionAudits`、`governanceAudits`、`plugin_ext_*`、`plugin_owned_business_data`。Confidence: HIGH（一手代码）。
-- `src/features/platform-core/*`、`src/features/runtime-platform/*` — 既有 Command Bus、governed action、plugin lifecycle/governance、WebSocket transport 接缝。Confidence: HIGH。
-- `scripts/prepare-dev-db.ts` — 既有迁移/列存在性校验模式，佐证 migration-centralized posture。Confidence: HIGH。
-- 项目历史决策（`v2.4` 冻结、`v3.0` 内核、`v3.1` 样板优先/避免 infra-first）— PROJECT.md Current State / Key Decisions。Confidence: HIGH。
+- CVE-2026-43929 -- ssrfcheck SSRF via IPv4-mapped IPv6 normalization: https://advisories.gitlab.com/npm/ssrfcheck/CVE-2026-43929/
+- CVE-2026-42260 -- open-websearch SSRF via bracketed IPv6 + non-resolving hostname bypass: https://advisories.gitlab.com/npm/open-websearch/CVE-2026-42260/
+- WHATWG URL Issue #893 -- malformed URL normalization introduces SSRF risks: https://lists.w3.org/Archives/Public/public-webapps-github/2026Jan/0013.html
+- OWASP SSRF Prevention in Node.js: https://owasp.org/www-community/pages/controls/SSRF_Prevention_in_Nodejs
+- ssrf-guard -- Undici-based SSRF prevention with pinned DNS: https://github.com/jonathanong/ssrf-guard
+- agent-fetch -- sandboxed HTTP client with Hickory DNS atomic resolution: https://github.com/Parassharmaa/agent-fetch
+- nullspace -- DNS cache floor + socket pinning for rebinding resistance: https://socket.dev/npm/package/nullspace
+- request-filtering-agent -- SSRF prevention via custom http.Agent (NOTE: not compat with fetch): https://github.com/azu/request-filtering-agent
+- TOCTOU of Trust -- why L3 point-in-time governance fails: https://dev.to/piiiico/toctou-of-trust-why-agent-governance-must-be-continuous-3270
+- MoFA HTTP request tool SSRF bypass Issue #675: https://github.com/mofa-org/mofa/issues/675
+- Astrid Plugins -- ScopedKvStore namespace isolation pattern: https://docs.rs/astrid-plugins/latest/astrid_plugins/
+- Splinter -- multi-tenant in-memory KV with per-tenant extension isolation (USENIX OSDI '18)
+- Michael F. Angelo Patent -- auditing coupled with authorization decision logic: US20080066146A1
+- MCP-Zero Epic 5 -- modern audit/logging with correlation IDs: https://github.com/abwaters/mcp-zero/issues/7
+- OpenLearn-Next 现有代码库：
+  - `dispatchPluginDataAccess` facade: `src/features/platform-core/plugin-data-access/facade.ts`
+  - `assertActionExecutable` governance gate: `src/features/platform-core/plugin-data-access/governance-gate.ts`
+  - `writePluginDataAccessAudit`: `src/features/platform-core/plugin-data-access/audit.ts`
+  - `PluginManifestSchema`: `src/lib/dto/resource-ai.ts` L761
+  - `PluginManifestGovernanceV2Schema`: `src/features/runtime-platform/contracts/descriptors.ts` L69
+  - `platformCommandRegistry`: `src/features/platform-core/commands/registry.ts`
+  - `projectPluginGovernance`: `src/features/platform-core/plugins/governance-projection.ts`
+  - `PluginDataModelSchema`: `src/lib/dto/plugin-data-model.ts`
 
 ---
-*Pitfalls research for: 既有平台新增声明式插件数据 + marketplace 生命周期 + 答题统计样板*
-*Researched: 2026-06-02*
+*Pitfalls research for: v4.3 System Commands Bus -- HTTP proxy + KV config for governed plugin system*
+*Researched: 2026-06-11*
