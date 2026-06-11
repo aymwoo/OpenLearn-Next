@@ -37,6 +37,10 @@ export const GovernanceDeniedReasonValues = [
   "school_mismatch",
   "kill_switch",
   "unsupported_action",
+  "domain_not_allowed",
+  "method_not_allowed",
+  "private_ip_blocked",
+  "config_key_denied",
 ] as const;
 export const PluginPermissionValues = [
   "lesson:write:suggestion",
