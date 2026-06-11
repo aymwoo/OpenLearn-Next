@@ -44,7 +44,7 @@ Requirements for v4.3 System Commands Bus（第一批）. Each maps to roadmap p
 
 ### Registry & Audit
 
-- [ ] **SYS-05**: Command Bus 注册与审计覆盖
+- [x] **SYS-05**: Command Bus 注册与审计覆盖
   - `platformCommandRegistry` 新增 2 个 commandType：`system.http.request` + `system.config.set`
   - `PlatformCommandTypeSchema` 新增 `SystemCommandTypes` 数组
   - `PlatformCommandSchema` discriminated union 追加 2 个变体
@@ -88,7 +88,7 @@ Deferred to future release. Tracked but not in v4.3 roadmap.
 | SYS-02 | Phase 79 | Pending |
 | SYS-03 | Phase 77 | Complete |
 | SYS-04 | Phase 79 | Pending |
-| SYS-05 | Phase 77 | Pending |
+| SYS-05 | Phase 77 | Complete |
 
 **Coverage:**
 - v4.3 requirements: 5 total

@@ -65,7 +65,7 @@ See `.planning/milestones/` for full archives.
 
 **Milestone Goal:** 在现有 Command Bus 骨架上新增 `system.*` 命令组，让插件经声明式白名单调用系统级能力，首发 `system.http.request`（HTTP 代理）和 `system.config`（KV 配置）两个命令，打穿 manifest 声明 → governance gate → execute → audit 完整链路。
 
-- [ ] **Phase 77: Manifest 声明 + Command Registry 注册** - `PluginManifest` 支持 `systemCommands` 声明段 + `platformCommandRegistry` 新增 system command 类型
+- [x] **Phase 77: Manifest 声明 + Command Registry 注册** - `PluginManifest` 支持 `systemCommands` 声明段 + `platformCommandRegistry` 新增 system command 类型 (completed 2026-06-11)
 - [ ] **Phase 78: system.http.request HTTP 代理** - 插件经白名单域名+方法代理 HTTP 调用，含 SSRF 防护、响应大小限制、超时控制
 - [ ] **Phase 79: system.config KV 配置 + dispatchSystemCommand facade** - 插件读/写自身 KV 配置 + 统一入口门面
 
@@ -86,7 +86,7 @@ See `.planning/milestones/` for full archives.
 
 Plans:
 - [x] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
-- [ ] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
+- [x] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
 
 **UI hint**: yes
 
@@ -107,7 +107,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
+- [x] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
 - [ ] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
 
 **UI hint**: yes
@@ -209,7 +209,7 @@ Plans:
 | 74. v4.1 Authoritative Close Gate | v4.1 | 5/5 | Complete | 2026-06-09 |
 | 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 6/6 | Complete | 2026-06-11 |
 | 76. v4.2 Authoritative Close Gate | v4.2 | 6/6 | Complete | 2026-06-11 |
-| 77. Manifest 声明 + Command Registry 注册 | v4.3 | 1/2 | In Progress|  |
+| 77. Manifest 声明 + Command Registry 注册 | v4.3 | 2/2 | Complete   | 2026-06-11 |
 | 78. system.http.request HTTP 代理 | v4.3 | 0/0 | Not started | - |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 0/0 | Not started | - |
 
