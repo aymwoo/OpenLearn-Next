@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v4.3
 milestone_name: System Commands Bus（第一批）
 status: planning
-last_updated: "2026-06-11T08:55:18.453Z"
+last_updated: "2026-06-11T09:30:00.000Z"
 last_activity: 2026-06-11
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-11 after v4.2 close)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** v4.2 收关完成 — 准备下一里程碑
+**Current focus:** v4.3 System Commands Bus（第一批）— Phase 77 ready to plan
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-06-11 — Milestone v4.3 started
+Phase: 77 of 79 (Manifest 声明 + Command Registry 注册)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-06-11 — v4.3 路线图已创建，3 个阶段 5 个需求全覆盖
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -46,24 +48,33 @@ Last activity: 2026-06-11 — Milestone v4.3 started
 | 75. 第二个 External 插件 + Marketplace 泛化 | 6/6 | complete |
 | 76. v4.2 Authoritative Close Gate | 6/6 | complete |
 
+**By v4.3 Phase:**
+
+| Phase | Plans | Status |
+|-------|-------|--------|
+| 77. Manifest 声明 + Command Registry 注册 | 0/0 | not started |
+| 78. system.http.request HTTP 代理 | 0/0 | not started |
+| 79. system.config KV 配置 + dispatchSystemCommand facade | 0/0 | not started |
+
 ## Accumulated Context
 
 ### Roadmap Evolution
 
-- v4.2 交付了第二个 external 插件（homework）全链路 + marketplace 泛化（7 项 quiz-only 假设消除）+ 跨插件隔离验证 + 6-stage v4.2 authoritative close gate。
-- `verify:phase` alias 已切到 v4.2 组合 gate：`pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate && pnpm verify:phase75 && pnpm verify:v42-cross-plugin`。
-- Manual Surface Sign-Off Ledger 8/8 rows passed。
-- v4.2-CLOSEOUT.md、v4.2-MILESTONE-AUDIT.md、v4.2-PROOF-MAP.md 已就位。
-- 下一里程碑通过 `/gsd:new-milestone` 启动。
+- v4.3 在现有 Command Bus 骨架上新增 `system.*` 命令组，与 `plugin.*` / `lesson.draft.*` / `plugin.data.*` / `quiz.answer.*` 并列。
+- 首发 `system.http.request`（HTTP 代理）和 `system.config`（KV 配置）两个命令。
+- 安全模型：严格声明式白名单（manifest 声明 → install 校验 → runtime 逐请求匹配）。
+- v4.2 基线已交付：homework 全链路 + marketplace 泛化 + 跨插件隔离 + 6-stage close gate。
+- `verify:phase` alias 当前指向 v4.2 组合 gate。
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
-- [Milestone v4.2]: homework 作为 builtin-teaching-step 插件（非独立 external-catalog 条目），builtInKey: "homework"
-- [Milestone v4.2]: v4.2 close gate 是 v4.1 的追加层，6-stage（Stage 1-4 自动化 + Stage 5 文档 + Stage 6 签核）
+- [Milestone v4.3]: system.* 命令组在现有 `platformCommandRegistry` 上 additive 扩展，不重做 Command Bus 架构
+- [Milestone v4.3]: `system.config.get` 纯读走 DAL 不声明为 PlatformCommandType，`system.config.set` 走 Command Bus producer
+- [Milestone v4.3]: schoolId 由认证 session 派生注入，绝不从 payload 读取
+- [Milestone v4.3]: Phase 编号从 77 开始延续
 - [Milestone v4.2]: D-06 阻断策略 — Stage 1-4 任一步失败即阻断后续全部 stage
-- [Milestone v4.2]: verify:phase alias 只有 D-04 predicates 全满足时才切到 v4.2 组合
 - [Milestone v4.2]: 跨插件隔离 — quiz/homework schema/allowlist/DAL 三重隔离
 
 ### Pending Todos
@@ -95,10 +106,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-06-11T07:00:00Z
-Stopped at: null
+Last session: 2026-06-11T09:30:00Z
+Stopped at: ROADMAP.md + STATE.md 已创建，v4.3 3 个阶段 5 个需求全覆盖，等待 `/gsd:plan-phase 77`
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- `/gsd:plan-phase 77` — 开始规划 Phase 77: Manifest 声明 + Command Registry 注册

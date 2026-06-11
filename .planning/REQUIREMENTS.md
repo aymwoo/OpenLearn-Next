@@ -85,7 +85,7 @@ Deferred to future release. Tracked but not in v4.3 roadmap.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SYS-01 | Phase 78 | Pending |
-| SYS-02 | Phase 78 | Pending |
+| SYS-02 | Phase 79 | Pending |
 | SYS-03 | Phase 77 | Pending |
 | SYS-04 | Phase 79 | Pending |
 | SYS-05 | Phase 77 | Pending |
@@ -97,4 +97,4 @@ Deferred to future release. Tracked but not in v4.3 roadmap.
 
 ---
 *Requirements defined: 2026-06-11*
-*Last updated: 2026-06-11 after v4.3 requirements definition*
+*Last updated: 2026-06-11 after v4.3 roadmap creation*
