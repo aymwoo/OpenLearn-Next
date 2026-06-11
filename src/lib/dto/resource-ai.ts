@@ -735,6 +735,24 @@ export const BUILT_IN_TEACHING_STEP_DEFINITIONS = [
       materialRefs: [],
     },
   },
+  {
+    builtInKey: "homework",
+    pluginKey: "builtin-teaching-step-homework",
+    pluginName: "作业",
+    title: "作业",
+    summary: "布置课后作业，学生提交文本内容，教师批改打分。",
+    stepType: "task",
+    initialTitle: "作业",
+    initialPayload: {
+      type: "task",
+      prompt: "请完成以下作业，提交你的答案或思考过程。",
+      submissionType: "text",
+      successCriteria: undefined,
+      allowRetry: true,
+      retryPolicy: "unlimited",
+      materialRefs: [],
+    },
+  },
 ] as const satisfies readonly BuiltInTeachingStepTemplatePayload[];
 
 export type BuiltInTeachingStepDefinition = (typeof BUILT_IN_TEACHING_STEP_DEFINITIONS)[number];

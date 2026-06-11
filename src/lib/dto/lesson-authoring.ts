@@ -14,6 +14,7 @@ const builtInTeachingStepKeys = [
   "inquiry",
   "inClassQuiz",
   "evaluation",
+  "homework",
 ] as const;
 
 const markdownRenderModeSchema = z.enum(["document", "reveal"]);
