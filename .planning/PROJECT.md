@@ -10,9 +10,9 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## Current Milestone: v4.2 Marketplace 泛化验证
+## Current Milestone: v4.2 Marketplace 泛化验证 ✅ SHIPPED 2026-06-11
 
-**Goal:** 构建第二个非 quiz 类型的 external 插件（如 homework），把它推过 v4.0 marketplace 的完整生命周期（install → authoring → classroom runtime → upgrade → uninstall），在过程中修复 quiz-only 的隐式假设，让 marketplace 从「被 quiz 验证过」升级为「多插件类型可重复使用」的通用基础设施。
+**Goal (achieved):** 构建第二个非 quiz 类型的 external 插件（homework），把它推过 v4.0 marketplace 的完整生命周期（install → authoring → classroom runtime → upgrade → uninstall），在过程中修复 quiz-only 的隐式假设，让 marketplace 从「被 quiz 验证过」升级为「多插件类型可重复使用」的通用基础设施。
 
 **Target features:**
 
@@ -30,7 +30,16 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ## Current State
 
-**Latest shipped milestone:** `v4.1 Multi-Question Types & Teacher Live Dashboard`（shipped 2026-06-09, archived 2026-06-10）
+**Latest shipped milestone:** `v4.2 Marketplace 泛化验证`（shipped 2026-06-11）
+
+**What is now validated (v4.2 layer):**
+
+- 第二个 external 插件（homework）全链路：三表 schema（assignments/submissions/grades），声明式 dataModel → 编译器确定性生成 Drizzle schema + allowlist，DTO 层完备，append-only/isLatest 写入路径。
+- Marketplace 泛化：消除 7 项 quiz-only 隐式假设（data-access-allowlist, DTO, external-catalog, allowlist alias, lesson-step-editor, classroom-runtime-client, upgrade migration），marketplace 不再是 quiz-only。
+- 跨插件隔离：quiz/homework schema/allowlist/DAL 三重隔离确认，跨插件回归 6 检查点全部通过。
+- homework 教师/学生 UI 链：lesson-step-editor homework 编辑区 + classroom HomeworkAssignmentCard + homework-grading-panel + homework-submission-list 10s 轮询。
+- v4.2 authoritative close gate：6-stage gate（Stage 1-4 自动化 + Stage 5 文档 + Stage 6 签核），`verify:phase` alias 切到 v4.2 组合 `pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate && pnpm verify:phase75 && pnpm verify:v42-cross-plugin`。
+- 8-row Manual Surface Sign-Off Ledger 全部 `status: passed`（Quiz 4 carry-forward + Homework 4 auto-approved）。
 
 **What is now validated (v4.1 layer):**
 
@@ -379,4 +388,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-10 after starting v4.2 Marketplace 泛化验证*
+*Last updated: 2026-06-11 after v4.2 Marketplace 泛化验证 milestone*

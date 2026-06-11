@@ -1,5 +1,33 @@
 # Milestones
 
+## v4.2 Marketplace 泛化验证 (Shipped: 2026-06-11)
+
+**Phases completed:** 4 phases, 19 plans, 49 tasks
+
+**Key accomplishments:**
+
+- Commit:
+- Teacher-only live quiz answer streaming now rides the existing classroom websocket transport and renders as a read-only dashboard tab inside `/classroom`.
+- Phase 73 proof mapping ledger 与独立 `verify:phase73` smoke verifier 已落地，同时全局 `verify:phase` 继续冻结在 phase72。
+- Thin v4.1 authoritative close gate around `verify:phase73` with 7-stage readiness reporting and frozen `verify:phase` alias.
+- Phase 73 formal verification now explains the multi-type recap chain and live dashboard chain from real code and smoke verifiers, with an explicit flow-to-gate crosswalk for close-gate auditing.
+- 真实 `/classroom` live-answer 与 ended recap 人工签核 payload 已持久化到独立 artifact，并与已观察 session URL 对齐。
+- 真人签核账本、phase73 closeout 最终 verdict、以及 `verify:phase` 组合 alias 已在真实 final gate 通过后一起收口。
+- homework 三表（assignments/submissions/grades）通过声明式 dataModel → 编译器确定性生成 Drizzle schema + allowlist，已在 external-catalog 注册，DTO 层完备。
+- 一句话总结:
+- 通过 dispatchPluginDataAccess facade 构建 homework DAL + Server Actions，教师 lesson-step-editor 新增作业编辑，学生 classroom player 中查看并提交作业
+- 在 /classroom 控制面板新增「作业提交」sibling tab，左侧学生提交列表 + 右侧批改面板（分数 + 评语），泛化修复逐项确认通过。
+- homework 插件全生命周期自动化测试（upgrade + uninstall + 重装）+ 跨插件回归体系 + pnpm verify:phase75 命令就位。
+- Gap closure 修复 UAT 发现的 2 个问题，使 verify:phase75 全部通过。
+- v4.2 6-stage outer gate skeleton with smoke mode readiness reporting, frozen v4.1 alias posture
+- 将 v4.0 gate 回归（Stage 1）和 v4.1 quiz 多题型验证（Stage 2）从占位 skeleton 升级为真实 shell 执行接线，并实现 D-06 阻断策略
+- 在 outer gate 中将 Stage 3 从占位 skeleton 升级为真实 shell 执行——消费 pnpm verify:phase75 的 exit code 判定 homework 全链路通过/失败，并在失败时阻断后续所有 stage。
+- 独立的 Stage 4 跨插件回归脚本 verify:v42-cross-plugin, 编排 quiz 全量 + homework 全量 + cross-plugin dedicated suite, 并在 outer gate 中接线完成
+- 产出 v4.2 formal verification report（7-section + 2 扩展）、proof mapping（8-row sign-off ledger）并在 outer gate Stage 5 中接线 artifact 存在性检查。
+- One-liner:
+
+---
+
 ## v4.1 Multi-Question Types & Teacher Live Dashboard (Shipped: 2026-06-09)
 
 **Phases completed:** 2 phases (73-74), 7 plans, ~50 commits

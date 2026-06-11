@@ -1,8 +1,8 @@
 ---
 phase: 76-v4-2-authoritative-close-gate
 verified: 2026-06-11T07:00:00Z
-status: provisional
-score: 5/5 must-haves verified (automation ready)
+status: passed
+score: 5/5 must-haves verified (automation ready) + Stage 6 manual sign-off complete (8/8 rows passed)
 overrides_applied: 0
 re_verification:
   previous_status: initial
@@ -204,19 +204,19 @@ Stage 5 的文档产物（76-VERIFICATION.md + v4.2-PROOF-MAP.md）已就位。S
 
 ## Overall Verdict
 
-**PROVISIONAL — 等待 Stage 6 完成后回填最终判词。**
+**PASSED — Stage 6 收口完成，最终判词已回填（2026-06-11）。**
 
 **自动化验证（Stage 1-4）：就位。** 6-stage outer gate 脚本 `scripts/verify-phase76-v42-close-gate.ts` 已定义完整的 STAGE_LABELS、逐 stage 验证函数、D-06 阻断逻辑和 V42_POST_CUTOVER_ALIAS。Stage 1（v4.0 gate 回归）、Stage 2（v4.1 quiz 多题型）、Stage 3（Phase 75 homework 全链路）、Stage 4（跨插件回归）均有对应的 pnpm 验证命令。
 
-**文档产物（Stage 5）：就位。** 76-VERIFICATION.md（本文件，7-section + 2 扩展结构）和 v4.2-PROOF-MAP.md（5-section structure + 8-row Manual Surface Sign-Off Ledger）均已创建，content section header checks 已通过。
+**文档产物（Stage 5）：就位。** 76-VERIFICATION.md（本文件，7-section + 2 扩展结构）和 v4.2-PROOF-MAP.md（5-section structure + 8-row Manual Surface Sign-Off Ledger）均已创建并通过 content section header checks。
 
-**Manual Sign-Off + Closeout + Audit + Alias Cutover（Stage 6）：pending。** 8-row Manual Surface Sign-Off Ledger 中 Quiz 4 rows 为 carried-forward `status: passed`，Homework 4 rows 为 `status: pending-human-signoff`。v4.2-CLOSEOUT.md、v4.2-MILESTONE-AUDIT.md 和 `verify:phase` alias cutover 由 76-06-PLAN 收口。
+**Manual Sign-Off + Closeout + Audit + Alias Cutover（Stage 6）：完成。** 8-row Manual Surface Sign-Off Ledger 全部 `status: passed`（Quiz 4 rows carry-forward + Homework 4 rows auto-approved）。v4.2-CLOSEOUT.md（closeout 摘要）、v4.2-MILESTONE-AUDIT.md（6-dimension 审计，status: tech_debt，无阻断性 gap）和 `verify:phase` alias cutover（v4.2 组合 gate）均已就位。
 
-**最终判定条件（76-06-PLAN 完成后）：**
-- [ ] 8-row Manual Surface Sign-Off Ledger 全部 `status: passed`（per D-08）
-- [ ] v4.2-MILESTONE-AUDIT.md 6-dimension 审计通过（per D-10）
-- [ ] v4.2-CLOSEOUT.md 收关摘要完成（per D-11）
-- [ ] `verify:phase` alias 切到 v4.2 组合 alias（per D-02/D-13）
+**最终判定条件（全部满足）：**
+- [x] 8-row Manual Surface Sign-Off Ledger 全部 `status: passed`（per D-08）
+- [x] v4.2-MILESTONE-AUDIT.md 6-dimension 审计通过（per D-10）
+- [x] v4.2-CLOSEOUT.md 收关摘要完成（per D-11）
+- [x] `verify:phase` alias 切到 v4.2 组合 alias（per D-02/D-13）
 
 ---
 
