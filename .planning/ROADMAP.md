@@ -19,8 +19,16 @@
 <details>
 <summary>🔄 v4.2 Marketplace 泛化验证 (Phases 75-76) — IN PROGRESS</summary>
 
-- [x] Phase 75: 第二个 External 插件 + Marketplace 泛化验证 (0/? plans) (completed 2026-06-11)
-- [ ] Phase 76: v4.2 Authoritative Close Gate (0/? plans)
+- [x] Phase 75: 第二个 External 插件 + Marketplace 泛化验证 (6/6 plans) (completed 2026-06-11)
+- [ ] Phase 76: v4.2 Authoritative Close Gate (6 plans)
+
+Plans:
+- [ ] 76-01-PLAN.md — Gate skeleton + alias target declaration (6-stage outer gate)
+- [ ] 76-02-PLAN.md — Stage 1+2 wiring: v4.0 gate regression + v4.1 quiz verification
+- [ ] 76-03-PLAN.md — Stage 3 wiring: Phase 75 homework full-chain verification
+- [ ] 76-04-PLAN.md — Stage 4: cross-plugin regression (verify:v42-cross-plugin)
+- [ ] 76-05-PLAN.md — Stage 5: formal verification + proof mapping
+- [ ] 76-06-PLAN.md — Stage 6: manual sign-off + closeout artifacts + audit + alias cutover
 
 </details>
 
@@ -59,7 +67,7 @@ See `.planning/milestones/` for full archives.
 | 73. Multi-Type Quiz & Live Dashboard | v4.1 | 2/2 | Complete | 2026-06-08 |
 | 74. v4.1 Authoritative Close Gate | v4.1 | 5/5 | Complete | 2026-06-09 |
 | 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 6/6 | Complete    | 2026-06-11 |
-| 76. v4.2 Authoritative Close Gate | v4.2 | 0/? | Planned | — |
+| 76. v4.2 Authoritative Close Gate | v4.2 | 0/6 | Planned | — |
 
 ---
 
