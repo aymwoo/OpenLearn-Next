@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v4.3
 milestone_name: System Commands Bus（第一批）
 status: planning
-stopped_at: Phase 77 context gathered
-last_updated: "2026-06-11T12:04:23.608Z"
+stopped_at: context exhaustion at 75% (2026-06-11)
+last_updated: "2026-06-11T12:07:02.963Z"
 last_activity: 2026-06-11 — v4.3 路线图已创建，3 个阶段 5 个需求全覆盖
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
+  total_plans: 2
   completed_plans: 0
   percent: 0
 ---
@@ -53,7 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 77. Manifest 声明 + Command Registry 注册 | 0/0 | not started |
+| 77. Manifest 声明 + Command Registry 注册 | 0/2 | planning |
 | 78. system.http.request HTTP 代理 | 0/0 | not started |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | 0/0 | not started |
 
@@ -107,9 +107,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-06-11T12:04:23.604Z
-Stopped at: Phase 77 context gathered
-Resume file: .planning/phases/77-manifest-command-registry/77-CONTEXT.md
+Last session: 2026-06-11T12:07:02.959Z
+Stopped at: context exhaustion at 75% (2026-06-11)
+Resume file: None
 
 ## Operator Next Steps
 

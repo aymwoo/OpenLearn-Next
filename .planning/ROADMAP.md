@@ -82,7 +82,11 @@ See `.planning/milestones/` for full archives.
   3. governance audit 新增 4 个 reasonCode（`domain_not_allowed` / `method_not_allowed` / `private_ip_blocked` / `config_key_denied`），每次 system command deny 至少产生 1 条 audit 记录
   4. 已有 quiz/homework manifest 全量兼容性扫描通过——`.optional()` 声明段不破既有的 install/upgrade 流程
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
+- [ ] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
 
 **UI hint**: yes
 
@@ -100,7 +104,11 @@ See `.planning/milestones/` for full archives.
   4. 请求强制 HTTPS-only（拒绝 plain HTTP），默认超时 30s，响应体上限 5MB 硬截断
   5. 成功调用返回响应状态码和 body（5MB 内），每次调用至少产生 1 条 governance audit 记录
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
+- [ ] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
 
 **UI hint**: yes
 
@@ -118,7 +126,11 @@ See `.planning/milestones/` for full archives.
   4. 所有 deny 点先写 governance audit 再抛错，schoolId 由认证 session 派生注入、绝不从 payload 读取
   5. `system.config.set` 写经 Command Bus producer → `pluginOwnedBusinessData` upsert，`system.config.get` 纯读走直接 governed DAL
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
+- [ ] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
 
 **UI hint**: yes
 
@@ -137,7 +149,11 @@ See `.planning/milestones/` for full archives.
   3. governance audit 新增 4 个 reasonCode（`domain_not_allowed` / `method_not_allowed` / `private_ip_blocked` / `config_key_denied`），每次 system command deny 至少产生 1 条 audit 记录
   4. 已有 quiz/homework manifest 全量兼容性扫描通过——`.optional()` 声明段不破既有的 install/upgrade 流程
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
+- [ ] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
 
 **UI hint**: yes
 
@@ -155,7 +171,11 @@ See `.planning/milestones/` for full archives.
   4. 请求强制 HTTPS-only（拒绝 plain HTTP），默认超时 30s，响应体上限 5MB 硬截断
   5. 成功调用返回响应状态码和 body（5MB 内），每次调用至少产生 1 条 governance audit 记录
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
+- [ ] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
 
 **UI hint**: yes
 
@@ -173,7 +193,11 @@ See `.planning/milestones/` for full archives.
   4. 所有 deny 点先写 governance audit 再抛错，schoolId 由认证 session 派生注入、绝不从 payload 读取
   5. `system.config.set` 写经 Command Bus producer → `pluginOwnedBusinessData` upsert，`system.config.get` 纯读走直接 governed DAL
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
+- [ ] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
 
 **UI hint**: yes
 
@@ -185,7 +209,7 @@ See `.planning/milestones/` for full archives.
 | 74. v4.1 Authoritative Close Gate | v4.1 | 5/5 | Complete | 2026-06-09 |
 | 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 6/6 | Complete | 2026-06-11 |
 | 76. v4.2 Authoritative Close Gate | v4.2 | 6/6 | Complete | 2026-06-11 |
-| 77. Manifest 声明 + Command Registry 注册 | v4.3 | 0/0 | Not started | - |
+| 77. Manifest 声明 + Command Registry 注册 | v4.3 | 0/2 | Planning | - |
 | 78. system.http.request HTTP 代理 | v4.3 | 0/0 | Not started | - |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 0/0 | Not started | - |
 
