@@ -10,27 +10,32 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## Current Milestone: v4.2 Marketplace 泛化验证 ✅ SHIPPED 2026-06-11
+## Current Milestone: v4.3 System Commands Bus（第一批）
 
-**Goal (achieved):** 构建第二个非 quiz 类型的 external 插件（homework），把它推过 v4.0 marketplace 的完整生命周期（install → authoring → classroom runtime → upgrade → uninstall），在过程中修复 quiz-only 的隐式假设，让 marketplace 从「被 quiz 验证过」升级为「多插件类型可重复使用」的通用基础设施。
+**Goal:** 在现有 Command Bus 骨架上新增 `system.*` 命令组，让插件经声明式白名单调用系统级能力，首发 `system.http.request`（HTTP 代理）和 `system.config`（KV 配置）两个命令，打穿 manifest 声明 → governance gate → execute → audit 完整链路。
 
 **Target features:**
 
-- **第二个 external 插件样板 (MKT-EXT-03)**: 选择与 quiz 差异足够大的插件类型（homework / resource / data-agent），构建为 external 插件，走与 quiz 完全相同的受治理路径（governed plugin key + `dispatchPluginDataAccess` + append-only/isLatest）。
-- **Marketplace 生命周期全链路验证**: 新插件 install → authoring → classroom runtime → semver upgrade（backfill→verify→cutover）→ retain/cleanup uninstall → 同 pluginKey 重装恢复，逐环节验证 marketplace 不是 quiz-only。
-- **泛化修复**: 在验证过程中暴露并修复 v4.0 marketplace 中 quiz-hardcoded 的隐式假设（如 plugin_owned_* 表的通用性、DTO/allowlist 的 quiz 默认值、upgrade migration 的题型耦合）。
-- **Close gate 扩展**: 在 v4.1 `verify:phase` 组合 alias 基础上增加第二个插件的跨插件回归（不破 quiz + 新插件全链路 green）。
+- **`system.http.request`**: 插件经白名单域名 + 方法的 HTTP 代理调用，含 SSRF 防护、响应大小限制、超时控制。插件在 manifest 中声明 `allowedDomains`（支持通配符）+ `allowedMethods`，运行时逐请求校验。
+- **`system.config`**: 插件级 KV 配置存储（`get`/`set`），插件可读写自身配置，不跨插件访问。配置持久化到 `plugin_owned_business_data` 或独立配置表。
+- **SystemCommands manifest 扩展**: `PluginManifest` 新增 `systemCommands` 声明段，install 时校验声明合法性，运行时 governance gate 匹配。
+- **`dispatchSystemCommand` facade**: 与 `dispatchPluginDataAccess` 同级的新入口，治理门前置（lifecycle + kill-switch + manifest 白名单），写经 Command Bus，记录 governance audit。
+- **Governance audit 覆盖**: 每次 system command 调用记录 governance audit，deny 时记录具名拒因（`not_allowlisted` / `domain_not_allowed` / `method_not_allowed` / `private_ip_blocked` / `config_key_denied`）。
 
 **Key context:**
 
-- 基于 v4.0 marketplace 闭环 + v4.1 quiz 多题型 + 实时仪表盘基线。
-- 不重做 marketplace 架构、不新建 plugin type、不新建第二 transport runtime。
-- 不涉及跨 pluginKey 数据恢复（MKT-EXT-02）、不涉及商店运营层（STORE-01）。
-- Phase 编号从 **75** 开始延续。
+- 基于 v4.2 marketplace 泛化基线 + Command Bus 现有骨架（`dispatchPlatformCommand` / `platformCommandRegistry` / `PlatformCommandStore`）。
+- 不重做 Command Bus 架构，只在 `platformCommandRegistry` 新增 `system.*` 命令组（与 `plugin.*` / `lesson.draft.*` / `plugin.data.*` / `quiz.answer.*` 并列）。
+- 不改变既有命令类型和行为。
+- 安全模型：严格声明式白名单（manifest 声明 → install 校验 → runtime 逐请求匹配）。
+- 不涉及插件间数据共享、不涉及商店运营层。
+- Phase 编号从 **77** 开始延续。
 
 ## Current State
 
-**Latest shipped milestone:** `v4.2 Marketplace 泛化验证`（shipped 2026-06-11）
+**Current milestone:** `v4.3 System Commands Bus（第一批）`（defining requirements）
+
+**Previous shipped milestone:** `v4.2 Marketplace 泛化验证`（shipped 2026-06-11）
 
 **What is now validated (v4.2 layer):**
 
@@ -273,7 +278,11 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ### Active
 
-_当前没有 active milestone。下一里程碑应由 `/gsd:new-milestone` 建立。_
+- [ ] **SYS-01**: 插件可通过 `system.http.request` 经白名单域名+方法代理 HTTP 调用
+- [ ] **SYS-02**: 插件可通过 `system.config.get/set` 读写自身 KV 配置
+- [ ] **SYS-03**: `PluginManifest` 支持 `systemCommands` 声明段，install 时校验
+- [ ] **SYS-04**: `dispatchSystemCommand` facade 作为统一入口，治理门前置
+- [ ] **SYS-05**: system command 调用全量记录 governance audit
 
 ### Out of Scope
 
@@ -388,4 +397,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-11 after v4.2 Marketplace 泛化验证 milestone*
+*Last updated: 2026-06-11 after v4.3 System Commands Bus milestone initiation*
