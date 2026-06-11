@@ -261,8 +261,7 @@ async function runStage2V41QuizMultiType(): Promise<StageStatus> {
 }
 
 // ─── Stage 3: Phase 75 homework full-chain verification ──────────────────
-// Full implementation in wave 3 (plan 03).
-// Will run: pnpm verify:phase75
+// Wired: pnpm verify:phase75
 
 function verifyStage3HomeworkFullChain(smokeOnly: boolean): StaticCheck[] {
   const packageSource = read("package.json");
@@ -278,9 +277,9 @@ function verifyStage3HomeworkFullChain(smokeOnly: boolean): StaticCheck[] {
         blocked: !phase75Registered,
       },
       {
-        label: `Stage 3: pnpm verify:phase75 execution — pending (implementation in wave 3)`,
-        passed: smokeOnly,
-        blocked: !smokeOnly,
+        label: `Stage 3: pnpm verify:phase75 — wired (skipped in smoke, executes in full mode)`,
+        passed: !smokeOnly,
+        blocked: smokeOnly,
       },
     ];
   } catch {
@@ -290,6 +289,26 @@ function verifyStage3HomeworkFullChain(smokeOnly: boolean): StaticCheck[] {
         passed: false,
       },
     ];
+  }
+}
+
+async function runStage3HomeworkFullChain(): Promise<StageStatus> {
+  console.log("    EXECUTING: pnpm verify:phase75...");
+  try {
+    run("pnpm", ["verify:phase75"], "Stage 3: Phase 75 homework full-chain verification (verify:phase75)");
+    return {
+      label: STAGE_LABELS[2],
+      status: "passed",
+      details: ["- ✓ Stage 3: pnpm verify:phase75 — PASSED"],
+    };
+  } catch (error) {
+    return {
+      label: STAGE_LABELS[2],
+      status: "failed",
+      details: [
+        `- ✗ Stage 3: pnpm verify:phase75 — FAILED: ${error instanceof Error ? error.message : String(error)}`,
+      ],
+    };
   }
 }
 
@@ -509,9 +528,23 @@ export async function runPhase76V42CloseGate(options?: { smokeOnly?: boolean }):
 
   // ── Stage 3: Phase 75 homework full-chain verification ──
   console.log(`\n[3/6] ${STAGE_LABELS[2]}...`);
-  const stage3 = summariseStage(STAGE_LABELS[2], verifyStage3HomeworkFullChain(smokeOnly), smokeOnly);
-  stageStatuses.push(stage3);
-  reportStage(stage3);
+  if (smokeOnly) {
+    const stage3 = summariseStage(STAGE_LABELS[2], verifyStage3HomeworkFullChain(smokeOnly), smokeOnly);
+    stageStatuses.push(stage3);
+    reportStage(stage3);
+  } else {
+    const stage3 = await runStage3HomeworkFullChain();
+    stageStatuses.push(stage3);
+    reportStage(stage3);
+    // D-06: Stage 3 failure blocks all subsequent stages
+    if (stage3.status === "failed") {
+      stageStatuses.push({ label: STAGE_LABELS[3], status: "blocked", details: ["- ↺ BLOCKED by Stage 3 failure"] });
+      stageStatuses.push({ label: STAGE_LABELS[4], status: "blocked", details: ["- ↺ BLOCKED by Stage 3 failure"] });
+      stageStatuses.push({ label: STAGE_LABELS[5], status: "blocked", details: ["- ↺ BLOCKED by Stage 3 failure"] });
+      reportBlockedStages(3);
+      return summaryReport(stageStatuses, "failed");
+    }
+  }
 
   // ── Stage 4: Cross-plugin regression ──
   console.log(`\n[4/6] ${STAGE_LABELS[3]}...`);
