@@ -833,6 +833,24 @@ export const SystemCommandConfigSchema = z.strictObject({
   maxValueSize: z.number().int().positive().optional(),
 });
 
+/**
+ * Discriminated union of system command manifest declarations (D-01).
+ *
+ * Uses `command` as the discriminator field. Each variant merges the literal
+ * discriminator with its command-specific shape via `z.strictObject.merge()`.
+ * Unknown command names are rejected by Zod's discriminated union mechanism (D-08).
+ *
+ * Exported for Phase 78/79 runtime manifest re-parsing.
+ */
+export const SystemCommandDiscriminatedSchema = z.discriminatedUnion("command", [
+  z.strictObject({ command: z.literal("system.http.request") }).merge(
+    SystemCommandHttpRequestSchema,
+  ),
+  z.strictObject({ command: z.literal("system.config") }).merge(
+    SystemCommandConfigSchema,
+  ),
+]);
+
 export const PluginManifestSchema = z.object({
   id: z.string(),
   version: z.string(),
@@ -845,6 +863,7 @@ export const PluginManifestSchema = z.object({
   nonDeletable: z.boolean().default(false),
   theme: ThemeTokenRegistrySchema.optional(),
   governance: PluginManifestGovernanceV2Schema.optional(),
+  systemCommands: z.array(SystemCommandDiscriminatedSchema).optional(),
 }).superRefine((manifest, ctx) => {
   if (manifest.manifestVersion === 2 && !manifest.governance) {
     ctx.addIssue({

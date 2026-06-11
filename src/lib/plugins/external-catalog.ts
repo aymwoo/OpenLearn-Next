@@ -11,7 +11,7 @@ export type ExternalMarketplaceCatalogEntry = {
   dataModel: PluginDataModel;
 };
 
-function buildExternalQuizManifest(version: string): PluginManifest {
+export function buildExternalQuizManifest(version: string): PluginManifest {
   return {
     id: "external-marketplace.quiz-sample",
     version,
@@ -38,7 +38,7 @@ function buildExternalQuizManifest(version: string): PluginManifest {
   };
 }
 
-function buildExternalHomeworkManifest(version: string): PluginManifest {
+export function buildExternalHomeworkManifest(version: string): PluginManifest {
   return {
     id: "external-marketplace.homework",
     version,
