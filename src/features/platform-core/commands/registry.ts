@@ -148,4 +148,26 @@ export const platformCommandRegistry = {
     authorize: quizAnswerReceivedHandler.authorize,
     execute: quizAnswerReceivedHandler.execute,
   }),
+  "system.http.request": createPlatformCommandDefinition({
+    commandType: "system.http.request",
+    payloadSchema: PlatformCommandPayloadSchemas["system.http.request"],
+    dedupe: "required",
+    // TODO Phase 78: validate manifest allowedDomains + allowedMethods against request payload
+    authorize: async () => {},
+    // TODO Phase 78: HTTP proxy implementation with SSRF protection
+    execute: async () => {
+      throw new Error("system.http.request handler not implemented — Phase 78");
+    },
+  }),
+  "system.config.set": createPlatformCommandDefinition({
+    commandType: "system.config.set",
+    payloadSchema: PlatformCommandPayloadSchemas["system.config.set"],
+    dedupe: "required",
+    // TODO Phase 79: validate manifest allowedKeys against configKey, schoolId injection
+    authorize: async () => {},
+    // TODO Phase 79: KV config write via Command Bus producer
+    execute: async () => {
+      throw new Error("system.config.set handler not implemented — Phase 79");
+    },
+  }),
 } satisfies Record<PlatformCommandType, PlatformCommandDefinition>;
