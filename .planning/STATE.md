@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.2
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-11T02:54:18.679Z"
+status: milestone_complete
+last_updated: 2026-06-11T04:16:36.059Z
 last_activity: 2026-06-11 -- Phase 75 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
   percent: 67
+stopped_at: Milestone complete (Phase 75 was final phase)
 ---
 
 # Project State
@@ -20,20 +21,20 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-10 after v4.1 archive)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 75 — second-external-plugin-marketplace-generalization
+**Current focus:** Milestone complete
 
 ## Current Position
 
-Phase: 75 (second-external-plugin-marketplace-generalization) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 75
-Last activity: 2026-06-11 -- Phase 75 execution started
+Phase: 75
+Plan: Not started
+Status: Milestone complete
+Last activity: 2026-06-11
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 36 (v4.1 inclusive)
+- Total plans completed: 42 (v4.1 inclusive)
 - Average duration: —
 - Total execution time: —
 

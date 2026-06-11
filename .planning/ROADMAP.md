@@ -19,7 +19,7 @@
 <details>
 <summary>🔄 v4.2 Marketplace 泛化验证 (Phases 75-76) — IN PROGRESS</summary>
 
-- [ ] Phase 75: 第二个 External 插件 + Marketplace 泛化验证 (0/? plans)
+- [x] Phase 75: 第二个 External 插件 + Marketplace 泛化验证 (0/? plans) (completed 2026-06-11)
 - [ ] Phase 76: v4.2 Authoritative Close Gate (0/? plans)
 
 </details>
@@ -58,7 +58,7 @@ See `.planning/milestones/` for full archives.
 |-------|-----------|---------------|--------|-----------|
 | 73. Multi-Type Quiz & Live Dashboard | v4.1 | 2/2 | Complete | 2026-06-08 |
 | 74. v4.1 Authoritative Close Gate | v4.1 | 5/5 | Complete | 2026-06-09 |
-| 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 6/6 | Complete   | 2026-06-11 |
+| 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 6/6 | Complete    | 2026-06-11 |
 | 76. v4.2 Authoritative Close Gate | v4.2 | 0/? | Planned | — |
 
 ---
