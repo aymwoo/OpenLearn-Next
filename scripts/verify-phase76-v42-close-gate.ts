@@ -313,10 +313,10 @@ async function runStage3HomeworkFullChain(): Promise<StageStatus> {
 }
 
 // ─── Stage 4: Cross-plugin regression ────────────────────────────────────
-// Full implementation in wave 4 (plan 04).
-// Will run: pnpm verify:v42-cross-plugin
+// Wired: pnpm verify:v42-cross-plugin
 // D-04: quiz full suite + homework full suite, independent runs & reports
 // D-05: dedicated cross-plugin regression script, orchestrating quiz + homework
+// D-06: any sub-suite failure blocks gate execution
 
 function verifyStage4CrossPluginRegression(smokeOnly: boolean): StaticCheck[] {
   const packageSource = read("package.json");
@@ -325,6 +325,9 @@ function verifyStage4CrossPluginRegression(smokeOnly: boolean): StaticCheck[] {
     const scripts = pkg.scripts ?? {};
     const crossPluginRegistered =
       typeof scripts["verify:v42-cross-plugin"] === "string" && scripts["verify:v42-cross-plugin"].length > 0;
+    const crossPluginScriptExists = existsSync(
+      path.join(process.cwd(), "scripts", "verify-v42-cross-plugin.ts"),
+    );
     return [
       {
         label: "verify:v42-cross-plugin script is registered in package.json",
@@ -332,9 +335,14 @@ function verifyStage4CrossPluginRegression(smokeOnly: boolean): StaticCheck[] {
         blocked: !crossPluginRegistered,
       },
       {
-        label: `Stage 4: pnpm verify:v42-cross-plugin execution — pending (implementation in wave 4)`,
-        passed: smokeOnly,
-        blocked: !smokeOnly,
+        label: "scripts/verify-v42-cross-plugin.ts exists",
+        passed: crossPluginScriptExists,
+        blocked: !crossPluginScriptExists,
+      },
+      {
+        label: "Stage 4: pnpm verify:v42-cross-plugin — wired (skipped in smoke, executes in full mode)",
+        passed: !smokeOnly,
+        blocked: smokeOnly,
       },
     ];
   } catch {
@@ -344,6 +352,26 @@ function verifyStage4CrossPluginRegression(smokeOnly: boolean): StaticCheck[] {
         passed: false,
       },
     ];
+  }
+}
+
+async function runStage4CrossPluginRegression(): Promise<StageStatus> {
+  console.log("    EXECUTING: pnpm verify:v42-cross-plugin...");
+  try {
+    run("pnpm", ["verify:v42-cross-plugin"], "Stage 4: Cross-plugin regression (verify:v42-cross-plugin)");
+    return {
+      label: STAGE_LABELS[3],
+      status: "passed",
+      details: ["- ✓ Stage 4: pnpm verify:v42-cross-plugin — PASSED"],
+    };
+  } catch (error) {
+    return {
+      label: STAGE_LABELS[3],
+      status: "failed",
+      details: [
+        `- ✗ Stage 4: pnpm verify:v42-cross-plugin — FAILED: ${error instanceof Error ? error.message : String(error)}`,
+      ],
+    };
   }
 }
 
@@ -548,9 +576,22 @@ export async function runPhase76V42CloseGate(options?: { smokeOnly?: boolean }):
 
   // ── Stage 4: Cross-plugin regression ──
   console.log(`\n[4/6] ${STAGE_LABELS[3]}...`);
-  const stage4 = summariseStage(STAGE_LABELS[3], verifyStage4CrossPluginRegression(smokeOnly), smokeOnly);
-  stageStatuses.push(stage4);
-  reportStage(stage4);
+  if (smokeOnly) {
+    const stage4 = summariseStage(STAGE_LABELS[3], verifyStage4CrossPluginRegression(smokeOnly), smokeOnly);
+    stageStatuses.push(stage4);
+    reportStage(stage4);
+  } else {
+    const stage4 = await runStage4CrossPluginRegression();
+    stageStatuses.push(stage4);
+    reportStage(stage4);
+    // D-06: Stage 4 failure blocks all subsequent stages
+    if (stage4.status === "failed") {
+      stageStatuses.push({ label: STAGE_LABELS[4], status: "blocked", details: ["- ↺ BLOCKED by Stage 4 failure"] });
+      stageStatuses.push({ label: STAGE_LABELS[5], status: "blocked", details: ["- ↺ BLOCKED by Stage 4 failure"] });
+      reportBlockedStages(4);
+      return summaryReport(stageStatuses, "failed");
+    }
+  }
 
   // ── Stage 5: Formal verification + proof mapping ──
   console.log(`\n[5/6] ${STAGE_LABELS[4]}...`);
