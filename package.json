@@ -86,6 +86,7 @@
     "db:generate": "drizzle-kit generate",
     "plugin:compile": "tsx scripts/compile-plugin-data-model.ts",
     "verify:phase75": "pnpm vitest run src/components/learning/quiz-sample-step-card.test.tsx && pnpm vitest run src/plugins/homework/",
+    "verify:v42-cross-plugin": "node --require ./scripts/server-only-node-shim.cjs --import tsx scripts/verify-v42-cross-plugin.ts",
     "db:migrate": "tsx --import ./scripts/node-shim.js scripts/prepare-dev-db.ts",
     "db:bootstrap:dev": "pnpm db:migrate && tsx --import ./scripts/node-shim.js scripts/bootstrap-dev-db.ts",
     "test": "vitest"
