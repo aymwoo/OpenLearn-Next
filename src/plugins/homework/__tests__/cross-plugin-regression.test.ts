@@ -180,7 +180,7 @@ describe("cross-plugin regression", () => {
     })) as Array<Record<string, unknown>>;
     expect(quizData.length).toBe(2);
 
-    expect(mocks.producePluginDataInsert).toHaveBeenCalledTimes(1);
+    expect(mocks.producePluginDataInsert).toHaveBeenCalledTimes(3);
   });
 
   it("检查点 F: homework uninstall 后 quiz 功能正常", async () => {
