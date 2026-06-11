@@ -376,16 +376,24 @@ async function runStage4CrossPluginRegression(): Promise<StageStatus> {
 }
 
 // ─── Stage 5: Formal verification + proof mapping ────────────────────────
-// Full implementation in wave 5 (plan 05).
-// Artifact paths:
-//   - .planning/phases/76-v4-2-authoritative-close-gate/76-VERIFICATION.md
-//   - .planning/milestones/v4.2-PROOF-MAP.md
-// D-09: VERIFICATION.md structure follows Phase 74 7-section template
-// D-11: proof mapping traces requirement → plan → commit → test
+// Close-truth artifact existence check:
+//   1. 76-VERIFICATION.md exists + contains "Goal Achievement" and "Overall Verdict" sections
+//   2. v4.2-PROOF-MAP.md exists + contains "Manual Surface Sign-Off Ledger" and "Final Proof Chain" sections
+// Per D-09: VERIFICATION.md structure follows Phase 74 7-section template
+// Per D-11: proof mapping traces requirement → plan → commit → test
+// Outer gate does NOT read full content or perform semantic checks —
+// only section header presence is verified (per Phase 74 Plan 02 Stage 5 crosswalk pattern).
 
 function verifyStage5FormalVerification(smokeOnly: boolean): StaticCheck[] {
   const verificationSource = read(FORMAL_VERIFICATION_PATHS.verification);
   const proofMapSource = read(FORMAL_VERIFICATION_PATHS.proofMap);
+
+  const verificationExists = verificationSource.length > 0;
+  const proofMapExists = proofMapSource.length > 0;
+  const verificationHasGoal = verificationExists && nonCommentIncludes(verificationSource, "Goal Achievement");
+  const verificationHasVerdict = verificationExists && nonCommentIncludes(verificationSource, "Overall Verdict");
+  const proofMapHasLedger = proofMapExists && nonCommentIncludes(proofMapSource, "Manual Surface Sign-Off Ledger");
+  const proofMapHasChain = proofMapExists && nonCommentIncludes(proofMapSource, "Final Proof Chain");
 
   if (smokeOnly) {
     return [
@@ -398,21 +406,53 @@ function verifyStage5FormalVerification(smokeOnly: boolean): StaticCheck[] {
         passed: FORMAL_VERIFICATION_PATHS.proofMap.length > 0,
       },
       {
-        label: "future formal verification artifact presence is tracked as readiness, not a smoke hard-fail",
-        passed: verificationSource.length > 0 && proofMapSource.length > 0,
-        blocked: true,
+        label: "76-VERIFICATION.md artifact presence",
+        passed: verificationExists,
+        blocked: !verificationExists,
+      },
+      {
+        label: "v4.2-PROOF-MAP.md artifact presence",
+        passed: proofMapExists,
+        blocked: !proofMapExists,
+      },
+      {
+        label: "76-VERIFICATION.md section header check (Goal Achievement + Overall Verdict)",
+        passed: verificationHasGoal && verificationHasVerdict,
+        blocked: !verificationHasGoal || !verificationHasVerdict,
+      },
+      {
+        label: "v4.2-PROOF-MAP.md section header check (Manual Surface Sign-Off Ledger + Final Proof Chain)",
+        passed: proofMapHasLedger && proofMapHasChain,
+        blocked: !proofMapHasLedger || !proofMapHasChain,
       },
     ];
   }
 
+  // full mode: concrete artifact existence checks — all 4 must pass for Stage 5 to pass
   return [
     {
       label: `${FORMAL_VERIFICATION_PATHS.verification} exists (formal verification report)`,
-      passed: verificationSource.length > 0,
+      passed: verificationExists,
     },
     {
       label: `${FORMAL_VERIFICATION_PATHS.proofMap} exists (requirement → plan → commit → test traceability)`,
-      passed: proofMapSource.length > 0,
+      passed: proofMapExists,
+    },
+    {
+      label: `76-VERIFICATION.md contains "Goal Achievement" section header`,
+      passed: verificationHasGoal,
+    },
+    {
+      label: `76-VERIFICATION.md contains "Overall Verdict" section header`,
+      passed: verificationHasVerdict,
+    },
+    {
+      label: `v4.2-PROOF-MAP.md contains "Manual Surface Sign-Off Ledger" section header`,
+      passed: proofMapHasLedger,
+    },
+    {
+      label: `v4.2-PROOF-MAP.md contains "Final Proof Chain" section header`,
+      passed: proofMapHasChain,
     },
   ];
 }
