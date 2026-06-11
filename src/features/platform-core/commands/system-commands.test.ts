@@ -1,11 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+vi.mock("next-auth", () => ({
+  default: () => ({ auth: () => {}, handlers: {} }),
+}));
 
 import {
   PlatformCommandTypeSchema,
   PlatformCommandSchema,
   PlatformCommandPayloadSchemas,
   SystemCommandTypes,
+  type PlatformCommandType,
+  type PlatformCommandDefinition,
 } from "./contracts";
+import { platformCommandRegistry } from "./registry";
+import { GovernanceDeniedReasonValues, GovernanceDeniedReasonSchema } from "@/features/runtime-platform/contracts/permissions";
 
 describe("SystemCommandTypes", () => {
   it("should equal [system.http.request, system.config.set]", () => {
@@ -203,5 +212,189 @@ describe("PlatformCommandSchema discriminated union", () => {
       payload: { url: "not-a-url", method: "INVALID" as const },
     };
     expect(() => PlatformCommandSchema.parse(cmd)).toThrow();
+  });
+});
+
+describe("platformCommandRegistry", () => {
+  it("should have exactly 21 entries", () => {
+    const keys = Object.keys(platformCommandRegistry);
+    expect(keys.length).toBe(21);
+  });
+
+  it("should satisfy Record<PlatformCommandType, PlatformCommandDefinition>", () => {
+    // TypeScript compile-time check; runtime verification that all known types are covered
+    const knownTypes: PlatformCommandType[] = [
+      "plugin.install",
+      "plugin.upgrade.preflight",
+      "plugin.upgrade",
+      "plugin.enable",
+      "plugin.disable",
+      "plugin.reconcile",
+      "plugin.retry",
+      "plugin.suspend",
+      "plugin.resume",
+      "plugin.uninstall.preflight",
+      "plugin.uninstall",
+      "plugin.kill_switch.set",
+      "lesson.draft.run",
+      "lesson.draft.persist",
+      "lesson.draft.accept",
+      "lesson.draft.discard",
+      "plugin.data.insert",
+      "plugin.data.upsert",
+      "quiz.answer.received",
+      "system.http.request",
+      "system.config.set",
+    ];
+    for (const type of knownTypes) {
+      expect(platformCommandRegistry[type]).toBeDefined();
+    }
+  });
+
+  describe("system.http.request entry", () => {
+    it("should exist in registry", () => {
+      expect(platformCommandRegistry["system.http.request"]).toBeDefined();
+    });
+
+    it("should have correct commandType", () => {
+      expect(platformCommandRegistry["system.http.request"].commandType).toBe("system.http.request");
+    });
+
+    it("should reference PlatformCommandPayloadSchemas[\"system.http.request\"]", () => {
+      expect(platformCommandRegistry["system.http.request"].payloadSchema).toBe(
+        PlatformCommandPayloadSchemas["system.http.request"]
+      );
+    });
+
+    it("should have dedupe: required", () => {
+      expect(platformCommandRegistry["system.http.request"].dedupe).toBe("required");
+    });
+
+    it("should have placeholder authorize (resolves)", async () => {
+      const entry = platformCommandRegistry["system.http.request"];
+      // Placeholder authorize accepts all — Phase 78 adds real validation
+      await expect(
+        entry.authorize({ command: {} as Parameters<typeof entry.authorize>[0]["command"] })
+      ).resolves.toBeUndefined();
+    });
+
+    it("should have placeholder execute (throws with Phase 78 message)", async () => {
+      const entry = platformCommandRegistry["system.http.request"];
+      await expect(
+        entry.execute({ command: {} as Parameters<typeof entry.execute>[0]["command"], attemptNumber: 1 })
+      ).rejects.toThrow("system.http.request handler not implemented — Phase 78");
+    });
+  });
+
+  describe("system.config.set entry", () => {
+    it("should exist in registry", () => {
+      expect(platformCommandRegistry["system.config.set"]).toBeDefined();
+    });
+
+    it("should have correct commandType", () => {
+      expect(platformCommandRegistry["system.config.set"].commandType).toBe("system.config.set");
+    });
+
+    it("should reference PlatformCommandPayloadSchemas[\"system.config.set\"]", () => {
+      expect(platformCommandRegistry["system.config.set"].payloadSchema).toBe(
+        PlatformCommandPayloadSchemas["system.config.set"]
+      );
+    });
+
+    it("should have dedupe: required", () => {
+      expect(platformCommandRegistry["system.config.set"].dedupe).toBe("required");
+    });
+
+    it("should have placeholder authorize (resolves)", async () => {
+      const entry = platformCommandRegistry["system.config.set"];
+      await expect(
+        entry.authorize({ command: {} as Parameters<typeof entry.authorize>[0]["command"] })
+      ).resolves.toBeUndefined();
+    });
+
+    it("should have placeholder execute (throws with Phase 79 message)", async () => {
+      const entry = platformCommandRegistry["system.config.set"];
+      await expect(
+        entry.execute({ command: {} as Parameters<typeof entry.execute>[0]["command"], attemptNumber: 1 })
+      ).rejects.toThrow("system.config.set handler not implemented — Phase 79");
+    });
+  });
+
+  it("should keep existing registry entries working (spot-check: plugin.install)", () => {
+    const entry = platformCommandRegistry["plugin.install"];
+    expect(entry.commandType).toBe("plugin.install");
+    expect(entry.dedupe).toBe("required");
+    expect(typeof entry.authorize).toBe("function");
+    expect(typeof entry.execute).toBe("function");
+  });
+
+  it("should keep existing registry entries working (spot-check: quiz.answer.received)", () => {
+    const entry = platformCommandRegistry["quiz.answer.received"];
+    expect(entry.commandType).toBe("quiz.answer.received");
+    expect(entry.dedupe).toBe("required");
+    expect(typeof entry.authorize).toBe("function");
+    expect(typeof entry.execute).toBe("function");
+  });
+});
+
+describe("GovernanceDeniedReasonValues", () => {
+  const originalReasons = [
+    "not_allowlisted",
+    "capability_missing",
+    "permission_denied",
+    "lifecycle_blocked",
+    "school_mismatch",
+    "kill_switch",
+    "unsupported_action",
+  ];
+
+  it("should include domain_not_allowed", () => {
+    expect(GovernanceDeniedReasonValues).toContain("domain_not_allowed");
+  });
+
+  it("should include method_not_allowed", () => {
+    expect(GovernanceDeniedReasonValues).toContain("method_not_allowed");
+  });
+
+  it("should include private_ip_blocked", () => {
+    expect(GovernanceDeniedReasonValues).toContain("private_ip_blocked");
+  });
+
+  it("should include config_key_denied", () => {
+    expect(GovernanceDeniedReasonValues).toContain("config_key_denied");
+  });
+
+  it("should still contain all 7 original reason codes", () => {
+    for (const reason of originalReasons) {
+      expect(GovernanceDeniedReasonValues).toContain(reason);
+    }
+  });
+
+  it("should have exactly 11 entries (7 original + 4 new)", () => {
+    expect(GovernanceDeniedReasonValues.length).toBe(11);
+  });
+
+  describe("GovernanceDeniedReasonSchema", () => {
+    it("should accept domain_not_allowed", () => {
+      expect(() => GovernanceDeniedReasonSchema.parse("domain_not_allowed")).not.toThrow();
+    });
+
+    it("should accept method_not_allowed", () => {
+      expect(() => GovernanceDeniedReasonSchema.parse("method_not_allowed")).not.toThrow();
+    });
+
+    it("should accept private_ip_blocked", () => {
+      expect(() => GovernanceDeniedReasonSchema.parse("private_ip_blocked")).not.toThrow();
+    });
+
+    it("should accept config_key_denied", () => {
+      expect(() => GovernanceDeniedReasonSchema.parse("config_key_denied")).not.toThrow();
+    });
+
+    it("should still accept all 7 original reason codes", () => {
+      for (const reason of originalReasons) {
+        expect(() => GovernanceDeniedReasonSchema.parse(reason)).not.toThrow();
+      }
+    });
   });
 });
