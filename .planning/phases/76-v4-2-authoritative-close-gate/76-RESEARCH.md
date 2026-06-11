@@ -323,19 +323,19 @@ pnpm vitest run src/components/learning/quiz-sample-step-card.test.tsx && \
 | A3 | 8-row sign-off ledger 中 homework 的 4 行需要类似的 observation target preparation 脚本（对标 Phase 74-04） | Pitfall 3 | MEDIUM — 如果 homework 表面可以直接观察而不需要 preparation，则 Wave 6 的 Plan 可以简化 |
 | A4 | v4.2 MILESTONE-AUDIT.md 的 audit 脚本命名为 `pnpm audit:v42` | Code Examples | LOW — 如果偏好不同命名（如 `pnpm audit:milestone-v42`），需调整 |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Observation target preparation for homework surfaces**
+1. **Observation target preparation for homework surfaces** RESOLVED: Plan 06 Task 1 creates observation targets directly in the sign-off payload template with `observed_url` fields and known product paths. Homework's "assign" and "grade" surfaces are observable in existing `/classroom` routes; no separate preparation script needed.
    - What we know: Phase 74-04 用了 `prepare-phase74-observation-targets.ts` 生成确定性 `/classroom?...` URL 供人工签核
    - What's unclear: homework 的 4 个 surface（assign/submit/grade/lifecycle）是否也需要类似的 preparation 脚本，还是在已有的 classroom session 中即可观察
    - Recommendation: 在 Wave 6 plan 中参照 Phase 74-04 创建 preparation 脚本，但 homework 的 "assign" 和 "grade" 表面在现有 `/classroom` 路由中即可观察，不需要新建 session
 
-2. **Stage 4 跨插件回归脚本的超时设置**
+2. **Stage 4 跨插件回归脚本的超时设置** RESOLVED: Plan 04 Task 1 adopts sequential execution (&& chain) per the recommendation, ensuring quiz and homework report independently in isolated environments with precise failure localization.
    - What we know: quiz 全量测试（~100+ tests）+ homework 全量（18 tests）+ dedicated suite（6 cases），单次运行预计 30-60 秒
    - What's unclear: D-05 中的"并发 vs 顺序"选择未锁定——vitest run 是顺序的，但 quiz 和 homework 可以并行 vitest run
    - Recommendation: 采用顺序执行（`&&` 链），确保 quiz 和 homework 在隔离环境中各自报告，失败时能精确定位
 
-3. **v4.2 audit 的 Nyquist compliance 检查**
+3. **v4.2 audit 的 Nyquist compliance 检查** RESOLVED: Plans 01-06 all include automated verify commands with no watch-mode flags. v4.2-MILESTONE-AUDIT.md will include Nyquist compliance section per Plan 06 Task 4, covering Phase 75 + Phase 76 (mirroring v4.1 coverage of Phase 73 + Phase 74).
    - What we know: Phase 75 有 VALIDATION.md（但未确认其存在性和状态），Phase 76 作为 close gate 需要产出自己的 VALIDATION.md
    - What's unclear: Phase 75 的 VALIDATION.md 是否完整、78 个 phase 中哪些需要被 audit 追溯
    - Recommendation: v4.2 audit 的 Nyquist 维度应至少覆盖 Phase 75 + Phase 76，与 v4.1 覆盖 Phase 73 + Phase 74 对应
