@@ -36,11 +36,15 @@ export const PluginDataCommandTypes = ["plugin.data.insert", "plugin.data.upsert
 
 export const QuizTransportCommandTypes = ["quiz.answer.received"] as const;
 
+export const SystemCommandTypes = ["system.http.request", "system.config.set"] as const;
+// Note: system.config.get is deliberately excluded — it is a pure DAL read, not a PlatformCommandType.
+
 export const PlatformCommandTypeSchema = z.enum([
   ...PlatformPluginGovernanceCommandTypes,
   ...LessonDraftCommandTypes,
   ...PluginDataCommandTypes,
   ...QuizTransportCommandTypes,
+  ...SystemCommandTypes,
 ]);
 
 export const PlatformCommandActorSchema = z.object({
@@ -230,6 +234,22 @@ const QuizAnswerReceivedPayloadSchema = z.object({
   classroomSessionId: z.string().min(1),
 }).strict();
 
+const SystemHttpRequestPayloadSchema = z.strictObject({
+  url: z.string().url(),         // target URL — Phase 78 validates against manifest allowedDomains
+  method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
+  headers: z.record(z.string(), z.string()).optional(),
+  body: z.string().optional(),
+  maxResponseSize: z.number().int().positive().optional(),
+  timeout: z.number().int().positive().optional(),
+});
+// Note: schoolId and pluginId are NOT in this payload — they are injected by the envelope scope.
+
+const SystemConfigSetPayloadSchema = z.strictObject({
+  configKey: z.string().min(1),   // Phase 79 validates against manifest allowedKeys
+  configValue: z.unknown(),       // Phase 79 validates JSON serializability and 64KB limit
+});
+// Note: schoolId and pluginId are NOT in this payload — injected by envelope scope.
+
 export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,
   "plugin.upgrade.preflight": PluginUpgradePreflightPayloadSchema,
@@ -250,6 +270,8 @@ export const PlatformCommandPayloadSchemas = {
   "plugin.data.insert": PluginDataInsertPayloadSchema,
   "plugin.data.upsert": PluginDataUpsertPayloadSchema,
   "quiz.answer.received": QuizAnswerReceivedPayloadSchema,
+  "system.http.request": SystemHttpRequestPayloadSchema,
+  "system.config.set": SystemConfigSetPayloadSchema,
 } as const;
 
 export const PlatformCommandSchema = z.discriminatedUnion("type", [
@@ -328,6 +350,14 @@ export const PlatformCommandSchema = z.discriminatedUnion("type", [
   PlatformCommandEnvelopeSchema.extend({
     type: z.literal("quiz.answer.received"),
     payload: QuizAnswerReceivedPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("system.http.request"),
+    payload: SystemHttpRequestPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("system.config.set"),
+    payload: SystemConfigSetPayloadSchema,
   }),
 ]);
 
