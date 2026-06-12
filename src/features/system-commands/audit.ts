@@ -14,6 +14,8 @@ type SystemCommandAuditInput = {
   decision: "allowed" | "denied";
   reasonCode?: string | null;
   payloadJson: Record<string, unknown>;
+  /** PHASE 79: commandType 参数化 action 字段，支持 system.http.request / system.config.set / system.config.get */
+  commandType: "system.http.request" | "system.config.set" | "system.config.get";
 };
 
 /**
@@ -25,7 +27,7 @@ type SystemCommandAuditInput = {
  *
  * Field mapping per D-08:
  *   - targetType: "plugin" (system commands operate on behalf of plugins)
- *   - action: "system.http.request"
+ *   - action: input.commandType (参数化，由调用方传入，不再是硬编码 "system.http.request")
  *   - requestedCapabilitiesJson / grantedCapabilitiesJson: empty arrays
  *   - requiredPermission: null
  *   - killSwitchEnabled: false
@@ -39,7 +41,7 @@ export async function writeSystemCommandAudit(
     pluginId: input.pluginId,
     schoolId: input.schoolId,
     commandId: input.commandId ?? null,
-    action: "system.http.request",
+    action: input.commandType,
     decision: input.decision,
     reasonCode: input.reasonCode ?? null,
     actorId: input.actorId,

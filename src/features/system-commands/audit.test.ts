@@ -38,6 +38,7 @@ describe("writeSystemCommandAudit", () => {
       correlationId: "corr-abc",
       decision: "allowed" as const,
       payloadJson: { url: "https://api.example.com/data", method: "GET", domain: "api.example.com" },
+      commandType: "system.http.request" as const,
     };
 
     await writeSystemCommandAudit(input);
@@ -84,6 +85,7 @@ describe("writeSystemCommandAudit", () => {
       decision: "denied" as const,
       reasonCode: "domain_not_allowed",
       payloadJson: { url: "https://evil.com/data", method: "POST", domain: "evil.com" },
+      commandType: "system.http.request" as const,
     };
 
     await writeSystemCommandAudit(input);
@@ -113,6 +115,7 @@ describe("writeSystemCommandAudit", () => {
       decision: "denied" as const,
       reasonCode: "not_allowlisted",
       payloadJson: { url: "", method: "GET", domain: "" },
+      commandType: "system.http.request" as const,
     };
 
     await writeSystemCommandAudit(input);
