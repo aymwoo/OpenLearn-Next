@@ -18,7 +18,7 @@ Requirements for v4.3 System Commands Bus（第一批）. Each maps to roadmap p
   - 请求/响应 header 白名单
   - 结构化拒因码：`domain_not_allowed` / `method_not_allowed` / `private_ip_blocked` / `redirect_denied`
 
-- [ ] **SYS-02**: 插件可通过 `system.config.get/set` 读写自身 KV 配置
+- [x] **SYS-02**: 插件可通过 `system.config.get/set` 读写自身 KV 配置
   - 键名：`{schoolId}:{pluginId}:{key}` 三重前缀隔离，facade 注入
   - 禁止 key 包含 `:` 字符（Zod 层拒绝）
   - 禁止通配符/list 枚举接口
@@ -35,7 +35,7 @@ Requirements for v4.3 System Commands Bus（第一批）. Each maps to roadmap p
   - Install preflight 校验声明合法性
   - 已有 quiz/homework manifest 全量兼容性扫描（`.optional()` 不破既有）
 
-- [ ] **SYS-04**: `dispatchSystemCommand` facade 作为统一入口
+- [x] **SYS-04**: `dispatchSystemCommand` facade 作为统一入口
   - 三段式结构：治理门 → 判别派发 → 结果返回
   - 治理门前置：复用 `assertActionExecutable`（lifecycle + kill-switch + school scope）
   - 运行时 manifest 白名单 re-parse（每次调用从 `pluginRegistrations.manifestJson` 重新解析）
@@ -85,9 +85,9 @@ Deferred to future release. Tracked but not in v4.3 roadmap.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SYS-01 | Phase 78 | Complete |
-| SYS-02 | Phase 79 | Pending |
+| SYS-02 | Phase 79 | Complete |
 | SYS-03 | Phase 77 | Complete |
-| SYS-04 | Phase 79 | Pending |
+| SYS-04 | Phase 79 | Complete |
 | SYS-05 | Phase 77 | Complete |
 
 **Coverage:**

@@ -162,7 +162,7 @@ Plans:
 | 76. v4.2 Authoritative Close Gate | v4.2 | 6/6 | Complete | 2026-06-11 |
 | 77. Manifest 声明 + Command Registry 注册 | v4.3 | 2/2 | Complete | 2026-06-11 |
 | 78. system.http.request HTTP 代理 | v4.3 | 2/2 | Complete    | 2026-06-12 |
-| 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 2/2 | Complete   | 2026-06-12 |
+| 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 2/2 | Complete    | 2026-06-12 |
 
 ---
 
