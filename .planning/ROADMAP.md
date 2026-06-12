@@ -68,7 +68,7 @@ See `.planning/milestones/` for full archives.
 
 - [x] **Phase 77: Manifest 声明 + Command Registry 注册** - `PluginManifest` 支持 `systemCommands` 声明段 + `platformCommandRegistry` 新增 system command 类型 (completed 2026-06-11)
 - [x] **Phase 78: system.http.request HTTP 代理** - 插件经白名单域名+方法代理 HTTP 调用，含 SSRF 防护、响应大小限制、超时控制 (completed 2026-06-12)
-- [ ] **Phase 79: system.config KV 配置 + dispatchSystemCommand facade** - 插件读/写自身 KV 配置 + 统一入口门面
+- [x] **Phase 79: system.config KV 配置 + dispatchSystemCommand facade** - 插件读/写自身 KV 配置 + 统一入口门面 (completed 2026-06-12)
 
 ### Phase 77: Manifest 声明 + Command Registry 注册
 
@@ -148,7 +148,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 79-02-PLAN.md — system.config.set/get handler + registry stub 替换 + facade 判别派发补全
+- [x] 79-02-PLAN.md — system.config.set/get handler + registry stub 替换 + facade 判别派发补全
 
 **UI hint**: yes
 
@@ -162,7 +162,7 @@ Plans:
 | 76. v4.2 Authoritative Close Gate | v4.2 | 6/6 | Complete | 2026-06-11 |
 | 77. Manifest 声明 + Command Registry 注册 | v4.3 | 2/2 | Complete | 2026-06-11 |
 | 78. system.http.request HTTP 代理 | v4.3 | 2/2 | Complete    | 2026-06-12 |
-| 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 1/2 | In Progress|  |
+| 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 2/2 | Complete   | 2026-06-12 |
 
 ---
 
