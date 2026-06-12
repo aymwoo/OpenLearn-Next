@@ -34,7 +34,7 @@ export async function writeSystemCommandAudit(
   input: SystemCommandAuditInput,
 ): Promise<void> {
   await db.insert(governanceAudits).values({
-    targetType: "plugin",
+    targetType: "plugin" as const,
     targetId: input.pluginId ?? "",
     pluginId: input.pluginId,
     schoolId: input.schoolId,
@@ -43,8 +43,21 @@ export async function writeSystemCommandAudit(
     decision: input.decision,
     reasonCode: input.reasonCode ?? null,
     actorId: input.actorId,
-    actorScope: input.actorScope,
-    lifecycleState: input.lifecycleState,
+    actorScope: input.actorScope as
+      | "host"
+      | "teacher"
+      | "student"
+      | "plugin"
+      | "operator"
+      | "system",
+    lifecycleState: input.lifecycleState as
+      | "installed"
+      | "enabled"
+      | "mounted"
+      | "ready"
+      | "suspended"
+      | "disabled"
+      | "failed",
     killSwitchEnabled: false,
     requestedCapabilitiesJson: [],
     grantedCapabilitiesJson: [],

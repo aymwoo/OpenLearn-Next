@@ -1,5 +1,6 @@
 import {
   PlatformCommandPayloadSchemas,
+  type PlatformCommand,
   type PlatformCommandDefinition,
   type PlatformCommandType,
 } from "./contracts";
@@ -7,6 +8,7 @@ import { pluginCommandHandlers } from "./handlers/plugins";
 import { lessonDraftCommandHandlers } from "./handlers/lesson-draft";
 import { pluginDataInsertHandler, pluginDataUpsertHandler } from "./handlers/plugin-data";
 import { quizAnswerReceivedHandler } from "./handlers/quiz-answer-received";
+import { systemHttpRequestHandler } from "@/features/system-commands/handler";
 
 export function createPlatformCommandDefinition<TType extends PlatformCommandType>(
   input: PlatformCommandDefinition<TType>,
@@ -152,12 +154,10 @@ export const platformCommandRegistry = {
     commandType: "system.http.request",
     payloadSchema: PlatformCommandPayloadSchemas["system.http.request"],
     dedupe: "required",
-    // TODO Phase 78: validate manifest allowedDomains + allowedMethods against request payload
-    authorize: async () => {},
-    // TODO Phase 78: HTTP proxy implementation with SSRF protection
-    execute: async () => {
-      throw new Error("system.http.request handler not implemented — Phase 78");
+    authorize: async (input: { command: PlatformCommand }) => {
+      await systemHttpRequestHandler["system.http.request"].authorize(input);
     },
+    execute: systemHttpRequestHandler["system.http.request"].execute,
   }),
   "system.config.set": createPlatformCommandDefinition({
     commandType: "system.config.set",

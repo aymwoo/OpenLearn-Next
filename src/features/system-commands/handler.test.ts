@@ -60,7 +60,7 @@ function buildCommand(overrides: {
   actorId?: string;
   actorScope?: string;
   correlationId?: string;
-}) {
+}): any {
   return {
     id: overrides.commandId ?? "cmd-test-1",
     type: "system.http.request" as const,
@@ -124,7 +124,7 @@ describe("authorize — manifest whitelist validation", () => {
       pluginId: "plugin-1",
     });
 
-    const result = await authorize({ command });
+    const result = await authorize({ command: command as any });
     expect(result).toBeDefined();
     expect(result.command).toBe("system.http.request");
     expect(result.allowedDomains).toEqual(["api.example.com"]);
@@ -157,7 +157,7 @@ describe("authorize — manifest whitelist validation", () => {
       pluginId: "plugin-1",
     });
 
-    await expect(authorize({ command })).rejects.toThrow();
+    await expect(authorize({ command: command as any })).rejects.toThrow();
     // Audit written before throw
     expect(mockWriteAudit).toHaveBeenCalledTimes(1);
     const auditCall = mockWriteAudit.mock.calls[0][0];
@@ -191,7 +191,7 @@ describe("authorize — manifest whitelist validation", () => {
       pluginId: "plugin-1",
     });
 
-    await expect(authorize({ command })).rejects.toThrow();
+    await expect(authorize({ command: command as any })).rejects.toThrow();
     expect(mockWriteAudit).toHaveBeenCalledTimes(1);
     const auditCall = mockWriteAudit.mock.calls[0][0];
     expect(auditCall.decision).toBe("denied");
@@ -224,7 +224,7 @@ describe("authorize — manifest whitelist validation", () => {
       pluginId: "plugin-1",
     });
 
-    const result = await authorize({ command });
+    const result = await authorize({ command: command as any });
     expect(result).toBeDefined();
   });
 
@@ -254,7 +254,7 @@ describe("authorize — manifest whitelist validation", () => {
       pluginId: "plugin-1",
     });
 
-    await expect(authorize({ command })).rejects.toThrow();
+    await expect(authorize({ command: command as any })).rejects.toThrow();
     expect(mockWriteAudit).toHaveBeenCalledTimes(1);
     expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("domain_not_allowed");
   });
@@ -285,7 +285,7 @@ describe("authorize — manifest whitelist validation", () => {
       pluginId: "plugin-1",
     });
 
-    await expect(authorize({ command })).rejects.toThrow();
+    await expect(authorize({ command: command as any })).rejects.toThrow();
     expect(mockWriteAudit).toHaveBeenCalledTimes(1);
     expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("domain_not_allowed");
   });
@@ -310,7 +310,7 @@ describe("authorize — manifest whitelist validation", () => {
       pluginId: "plugin-1",
     });
 
-    await expect(authorize({ command })).rejects.toThrow();
+    await expect(authorize({ command: command as any })).rejects.toThrow();
     expect(mockWriteAudit).toHaveBeenCalledTimes(1);
     expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("not_allowlisted");
   });
@@ -335,7 +335,7 @@ describe("authorize — manifest whitelist validation", () => {
       pluginId: "plugin-1",
     });
 
-    await expect(authorize({ command })).rejects.toThrow();
+    await expect(authorize({ command: command as any })).rejects.toThrow();
     expect(mockWriteAudit).toHaveBeenCalledTimes(1);
     expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("not_allowlisted");
   });
@@ -345,7 +345,7 @@ describe("authorize — manifest whitelist validation", () => {
 
     const command = buildCommand({ pluginId: "nonexistent" });
 
-    await expect(authorize({ command })).rejects.toThrow();
+    await expect(authorize({ command: command as any })).rejects.toThrow();
     expect(mockWriteAudit).toHaveBeenCalledTimes(1);
   });
 
@@ -382,7 +382,7 @@ describe("authorize — manifest whitelist validation", () => {
       return Promise.resolve();
     });
 
-    await expect(authorize({ command })).rejects.toThrow();
+    await expect(authorize({ command: command as any })).rejects.toThrow();
     expect(auditCalled).toBe(true);
     expect(mockWriteAudit).toHaveBeenCalledTimes(1);
   });
@@ -413,7 +413,7 @@ describe("authorize — manifest whitelist validation", () => {
       pluginId: "plugin-1",
     });
 
-    const result = await authorize({ command });
+    const result = await authorize({ command: command as any });
     expect(result).toBeDefined();
     expect(result.allowedDomains).toContain("cdn.example.com");
   });
@@ -449,7 +449,7 @@ describe("authorize — manifest whitelist validation", () => {
       pluginId: "plugin-1",
     });
 
-    const result = await authorize({ command });
+    const result = await authorize({ command: command as any });
     // Should match the first entry (wildcard), not the second
     expect(result.allowedDomains).toEqual(["*.example.com"]);
   });
