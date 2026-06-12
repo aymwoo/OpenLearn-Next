@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.3
 milestone_name: System Commands Bus（第一批）
 status: executing
-last_updated: "2026-06-12T04:39:03.265Z"
-last_activity: 2026-06-12 -- Phase 79 planning complete
+last_updated: "2026-06-12T04:40:26.261Z"
+last_activity: 2026-06-12 -- Phase 79 execution started
 progress:
   total_phases: 3
   completed_phases: 2
@@ -20,14 +20,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-11 after v4.2 close)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 79 — system.config kv 配置 + dispatchsystemcommand facade
+**Current focus:** Phase 79 — system-config-kv-dispatchsystemcommand-facade
 
 ## Current Position
 
-Phase: 79
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-06-12 -- Phase 79 planning complete
+Phase: 79 (system-config-kv-dispatchsystemcommand-facade) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 79
+Last activity: 2026-06-12 -- Phase 79 execution started
 
 Progress: [██████████] 100%
 

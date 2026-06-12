@@ -144,7 +144,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 79-01-PLAN.md — 治理门泛化（verb→string）+ audit 参数化 + dispatchSystemCommand facade 入口
+- [x] 79-01-PLAN.md — 治理门泛化（verb→string）+ audit 参数化 + dispatchSystemCommand facade 入口
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -162,7 +162,7 @@ Plans:
 | 76. v4.2 Authoritative Close Gate | v4.2 | 6/6 | Complete | 2026-06-11 |
 | 77. Manifest 声明 + Command Registry 注册 | v4.3 | 2/2 | Complete | 2026-06-11 |
 | 78. system.http.request HTTP 代理 | v4.3 | 2/2 | Complete    | 2026-06-12 |
-| 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 0/0 | Not started | - |
+| 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 1/2 | In Progress|  |
 
 ---
 
