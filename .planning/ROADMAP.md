@@ -108,7 +108,7 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 78-01-PLAN.md — SSRF guard (DNS pinning, IP detection, HTTPS-only) + governance audit helper
+- [x] 78-01-PLAN.md — SSRF guard (DNS pinning, IP detection, HTTPS-only) + governance audit helper
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 78-02-PLAN.md — system.http.request handler (authorize manifest whitelist + execute HTTP proxy) + registry wiring
@@ -146,7 +146,7 @@ Plans:
 | 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 6/6 | Complete | 2026-06-11 |
 | 76. v4.2 Authoritative Close Gate | v4.2 | 6/6 | Complete | 2026-06-11 |
 | 77. Manifest 声明 + Command Registry 注册 | v4.3 | 2/2 | Complete | 2026-06-11 |
-| 78. system.http.request HTTP 代理 | v4.3 | 0/2 | Planned | - |
+| 78. system.http.request HTTP 代理 | v4.3 | 1/2 | In Progress|  |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 0/0 | Not started | - |
 
 ---
