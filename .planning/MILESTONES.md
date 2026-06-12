@@ -1,5 +1,21 @@
 # Milestones
 
+## v4.3 System Commands Bus（第一批） (Shipped: 2026-06-12)
+
+**Phases completed:** 3 phases, 6 plans, 6 tasks
+**Known deferred items at close:** 3 (see STATE.md Deferred Items)
+
+**Key accomplishments:**
+
+- PluginManifestSchema 新增 .optional() systemCommands discriminated union（system.http.request + system.config），Zod regex/enum 校验，全量兼容已有 quiz/homework manifest
+- platformCommandRegistry 注册 system.http.request 和 system.config.set，追加 4 个 discriminated union 变体 + Zod payload 校验 + 4 个新治理审计拒因码
+- SSRF 防护层就位：DNS pinning（undici connect.lookup）+ HTTPS-only + IPv4/IPv6 内网 IP 检测 + redirect 链重校验，41 个单元测试全绿
+- system.http.request 完整链路：authorize（manifest 白名单校验）+ execute（安全 HTTP 代理）→ 替换 Phase 77 stub，56+ 测试覆盖
+- dispatchSystemCommand facade 三段式统一入口（治理门 → 判别派发 → 结果返回），verb 泛化 + audit 参数化，schoolId 由 session 派生注入
+- system.config.set/get 实现：三重前缀隔离（schoolId:pluginId:key），get 纯读 DAL / set 走 Command Bus producer → pluginOwnedBusinessData upsert
+
+---
+
 ## v4.2 Marketplace 泛化验证 (Shipped: 2026-06-11)
 
 **Phases completed:** 4 phases, 19 plans, 49 tasks

@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.3
 milestone_name: System Commands Bus（第一批）
-status: milestone_complete
-last_updated: 2026-06-12T11:13:28.198Z
-last_activity: 2026-06-12 -- Phase 79 execution started
+status: Awaiting next milestone
+last_updated: "2026-06-12T12:59:57.212Z"
+last_activity: 2026-06-12 — Milestone v4.3 completed and archived
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
   completed_plans: 6
-  percent: 67
-stopped_at: Milestone complete (Phase 79 was final phase)
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +24,10 @@ See: `.planning/PROJECT.md` (updated 2026-06-11 after v4.2 close)
 
 ## Current Position
 
-Phase: 79
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-06-12
-
-Progress: [██████████] 100%
+Phase: Milestone v4.3 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-12 — Milestone v4.3 completed and archived
 
 ## Performance Metrics
 
@@ -99,6 +96,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
+| v43_uat_gap | Phase 79: 79-HUMAN-UAT.md (4 scenarios partial) | accepted-risk | 2026-06-12 |
+| v43_verification_gap | Phase 78: 78-VERIFICATION.md (human_needed) | accepted-risk | 2026-06-12 |
+| v43_verification_gap | Phase 79: 79-VERIFICATION.md (human_needed) | accepted-risk | 2026-06-12 |
 | milestone_close | atp-22-resource-ingest-product-trigger | accepted-risk | 2026-05-20 |
 | milestone_close | atp-23-fourth-workload-proof-partial | accepted-risk | 2026-05-20 |
 | proof_gap | missing-phase39-verification-artifact | accepted-risk | 2026-05-20 |
@@ -122,4 +122,4 @@ Resume file: .planning/phases/79-system-config-kv-dispatchsystemcommand-facade/7
 
 ## Operator Next Steps
 
-- `/gsd:plan-phase 77` — 开始规划 Phase 77: Manifest 声明 + Command Registry 注册
+- Start the next milestone with /gsd-new-milestone

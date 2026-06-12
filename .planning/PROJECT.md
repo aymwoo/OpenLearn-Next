@@ -10,32 +10,36 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
 
-## Current Milestone: v4.3 System Commands Bus（第一批）
+## Latest Shipped Milestone: v4.3 System Commands Bus（第一批）
 
-**Goal:** 在现有 Command Bus 骨架上新增 `system.*` 命令组，让插件经声明式白名单调用系统级能力，首发 `system.http.request`（HTTP 代理）和 `system.config`（KV 配置）两个命令，打穿 manifest 声明 → governance gate → execute → audit 完整链路。
+**Shipped:** 2026-06-12 | **Phases:** 77-79 | **Plans:** 6 | **LOC:** +11,201 / -115（功能 3,584 + 测试 1,677）
 
-**Target features:**
+**Delivered scope:**
 
-- **`system.http.request`**: 插件经白名单域名 + 方法的 HTTP 代理调用，含 SSRF 防护、响应大小限制、超时控制。插件在 manifest 中声明 `allowedDomains`（支持通配符）+ `allowedMethods`，运行时逐请求校验。
-- **`system.config`**: 插件级 KV 配置存储（`get`/`set`），插件可读写自身配置，不跨插件访问。配置持久化到 `plugin_owned_business_data` 或独立配置表。
-- **SystemCommands manifest 扩展**: `PluginManifest` 新增 `systemCommands` 声明段，install 时校验声明合法性，运行时 governance gate 匹配。
-- **`dispatchSystemCommand` facade**: 与 `dispatchPluginDataAccess` 同级的新入口，治理门前置（lifecycle + kill-switch + manifest 白名单），写经 Command Bus，记录 governance audit。
-- **Governance audit 覆盖**: 每次 system command 调用记录 governance audit，deny 时记录具名拒因（`not_allowlisted` / `domain_not_allowed` / `method_not_allowed` / `private_ip_blocked` / `config_key_denied`）。
+- `PluginManifest` 新增 `.optional()` `systemCommands` 声明段（discriminated union），`system.http.request` + `system.config` 各有专用 shape 校验，install preflight 拒绝不合法声明
+- `platformCommandRegistry` 注册 `system.http.request` + `system.config.set`（2 个新 commandType），追加 discriminated union 变体 + Zod payload 校验 + 4 个新治理审计拒因码
+- SSRF 防护层：DNS pinning（undici `connect.lookup`）+ HTTPS-only + IPv4/IPv6 内网 IP 检测 + redirect 链重校验
+- `system.http.request` 完整链路：authorize（manifest 白名单校验）→ execute（安全 HTTP 代理）→ audit
+- `dispatchSystemCommand` facade 三段式统一入口（治理门 → 判别派发 → 结果返回），schoolId 由 session 派生注入
+- `system.config.set/get`：三重前缀隔离（`{schoolId}:{pluginId}:{key}`），get 纯读 DAL / set 走 Command Bus producer → `pluginOwnedBusinessData` upsert
 
-**Key context:**
-
-- 基于 v4.2 marketplace 泛化基线 + Command Bus 现有骨架（`dispatchPlatformCommand` / `platformCommandRegistry` / `PlatformCommandStore`）。
-- 不重做 Command Bus 架构，只在 `platformCommandRegistry` 新增 `system.*` 命令组（与 `plugin.*` / `lesson.draft.*` / `plugin.data.*` / `quiz.answer.*` 并列）。
-- 不改变既有命令类型和行为。
-- 安全模型：严格声明式白名单（manifest 声明 → install 校验 → runtime 逐请求匹配）。
-- 不涉及插件间数据共享、不涉及商店运营层。
-- Phase 编号从 **77** 开始延续。
+**Close posture:**
+- All 5 v4.3 requirements (SYS-01..05) marked Complete
+- 3 known deferred items at close: Phase 78/79 verification (human_needed) + Phase 79 UAT (4 scenarios partial)
 
 ## Current State
 
-**Current milestone:** `v4.3 System Commands Bus（第一批）`（defining requirements）
+**Latest shipped milestone:** `v4.3 System Commands Bus（第一批）`（shipped 2026-06-12）
 
 **Previous shipped milestone:** `v4.2 Marketplace 泛化验证`（shipped 2026-06-11）
+
+**What is now validated (v4.3 layer):**
+
+- `system.*` 命令组在 Command Bus 骨架上 additive 扩展，与 `plugin.*` / `lesson.draft.*` / `plugin.data.*` / `quiz.answer.*` 并列
+- 插件经声明式 manifest 白名单调用 `system.http.request`（HTTP 代理）和 `system.config`（KV 配置），全链路 manifest 声明 → governance gate → execute → audit
+- SSRF 多层防护：DNS pinning + HTTPS-only + 内网 IP 检测 + redirect 链重校验，响应上限 5MB，默认超时 30s
+- 插件级 KV 配置三重前缀隔离，跨插件不可访问，key 含 `:` 被 Zod 拒绝，单值上限 64KB
+- `dispatchSystemCommand` facade 统一入口，治理门前置复用 `assertActionExecutable`，schoolId 由 session 派生
 
 **What is now validated (v4.2 layer):**
 
@@ -91,52 +95,64 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - Milestone audit re-run on 2026-06-07 returned `passed` (18/18 requirements, 6/6 phases, 6/6 integration, 3/3 flows).
 - 8 partial/unsatisfied REQ-IDs that the 2026-06-05 audit had flagged were all closed by Phase 72.1's strengthened gate + formal verification + proof mapping + closeout artifacts.
 
-## Current State
+### Previously Validated Layers (still in baseline)
 
-**Latest shipped milestone:** `v4.0 Plugin Marketplace & Plugin-Owned Data`（archived 2026-06-07）
+<details>
+<summary>v4.2 Marketplace 泛化验证 — shipped 2026-06-11</summary>
 
-**What is now validated (v4.1 layer):**
+- 第二个 external 插件（homework）全链路：三表 schema（assignments/submissions/grades），声明式 dataModel → 编译器确定性生成 Drizzle schema + allowlist，DTO 层完备，append-only/isLatest 写入路径。
+- Marketplace 泛化：消除 7 项 quiz-only 隐式假设，marketplace 不再是 quiz-only。
+- 跨插件隔离：quiz/homework schema/allowlist/DAL 三重隔离确认，跨插件回归 6 检查点全部通过。
+- homework 教师/学生 UI 链 + homework-grading-panel + homework-submission-list。
+- v4.2 authoritative close gate：6-stage gate + `verify:phase` alias 切到 v4.2 组合。
+- 8-row Manual Surface Sign-Off Ledger 全部 `status: passed`。
 
-- 多题型互动答题：5 种题型（单选/多选/判断/填空/排序）共用 v4.0 append-only/isLatest 写入路径与受治理 DAL 动词，`plugin_owned_quiz_questions.questionType` additive migration，5-type DTO discriminated union。
-- 实时作答传输桥：`quiz.answer.received` WebSocket 事件经 v2.2 classroom-ws 推送到教师端，teacher-only 通道过滤，可选 Redis fanout contract test 双分支。
-- 只读实时仪表盘：`/classroom` 控制室「作答实时」sibling tab，Zustand 客户端聚合，零写 Server Action 守卫，下课自动切 v4.0 recap。
-- 5 题型课后统计：`buildQuizSampleRecapStats` 扩展为 discriminated union，`ClassroomSessionRecapSurface` 按题型 badge + metric 分组渲染。
-- v4.1 authoritative close gate：`verify:phase` 组合 alias `pnpm verify:phase72 && pnpm verify:phase73-v41-close-gate`，7-stage gate（v4.0 5 + 多题型 + 实时仪表盘），4-row Manual Surface Sign-Off Ledger 全部 `status: passed`。
+</details>
 
-**What is now validated (v4.0 layer):**
+<details>
+<summary>v4.1 Multi-Question Types & Teacher Live Dashboard — shipped 2026-06-09</summary>
 
-- 声明式插件数据模型：插件能在源码内声明结构化自有表（`dataModel` Zod meta-schema 校验），编译为独立 Drizzle 生成片段 + checked-in 迁移；运行时零 DDL，迁移-proof 闸门物理证明（PRAGMA / 级联 / foreign_key_check / 漂移四关）。
-- 受治理数据访问：白名单具名、Zod 校验、参数化的 `insert` / `upsert` / `getByIndex` / `count` / `aggregate` 五个动词；写动词经 Command Bus、读动词走 governed DAL；`schoolId` 由 session 派生，禁客户端注入；动词级 governance audit 单表复用。
-- 互动答题样板：`quiz` plugin key 走第三方同款治理路径，append-only / `isLatest` 写入 `plugin_owned_quiz_responses`，老师配置 / 学生作答 / 课堂 submit 全部受治理。
-- 题目统计 + 复盘：单一 SQL GROUP BY 聚合源，cache tag 失效，Stitch/DESIGN 对齐的 `ClassroomSessionRecapSurface` 题目复盘 section。
-- Marketplace 生命周期：external 插件 install preflight / semver backfill→verify→cutover / retain 软禁用 / cleanup token 确认 + 影响面回显 / active-session blocker；`/settings/plugins` UI 走 preflight-first / recover / block reason 三段式。
-- Authoritative close gate：`pnpm verify:phase` 是 v4.0 单一外部闸门，必须 hard-fail unless `72.1-CLOSEOUT.md` / `72.1-PROOF-MAPPING.md` / `72-VERIFICATION.md` 存在 + Manual Surface Sign-Off Ledger 记 `status: passed` + 5 ordered pnpm runners 全部绿。
+- 5 种题型（single_choice/multi_choice/true_false/fill_blank/ordering），共用 append-only/isLatest 写入路径。
+- `quiz.answer.received` WebSocket 事件，teacher-only 通道过滤。
+- `/classroom`「作答实时」sibling tab，Zustand 客户端聚合，下课自动切 recap。
+- 5 题型课后统计 discriminated union，按题型分组渲染。
+- v4.1 authoritative close gate：7-stage gate，4-row Manual Surface Sign-Off Ledger 全部 `status: passed`。
 
-**What is now validated (v3.2 layer, archived 2026-06-02 — still in baseline):**
+</details>
 
-- AI provider abstraction 已落地：server-only key posture、typed provider errors、双层限流、统一 `aiGenerateText` / `aiGenerateObject` facade。
-- LessonAgent typed tool / command path 已落地：`createDraftLessonStepTool`、`lesson.draft.run`、`draftLessonStep` facade、summary-only typed events。
-- AI 起草闭环已落地：teacher trigger → run → persist → review → accept/discard → publish 继续复用既有 lesson/version 真相源。
-- 教师审校面已对齐 Stitch + `DESIGN.md`：review mode、diff workspace、逐项编辑、玻璃提示与 gradient CTA。
-- Eval/guardrails/`verify:phase` 已成为 AI 起草链路的权威 close gate。
+<details>
+<summary>v4.0 Plugin Marketplace & Plugin-Owned Data — shipped 2026-06-07</summary>
 
-**v3.1 layer (archived 2026-05-30 — still in baseline):**
+- 声明式插件数据模型 + 受治理数据访问 + 互动答题样板 + marketplace 生命周期 + authoritative close gate。
+- 参见 `.planning/milestones/v4.0-ROADMAP.md`。
 
-- 课堂投票样板（plugin-first 端到端真实路径）已落地。
-- 40/5 容量口径 + restore drill + load/degrade rehearsal evidence 保留为 single-school pilot truth。
+</details>
 
-**Close note (v3.2 close, retained):** sandbox 不具备真实 OpenAI-compatible provider 和 Redis，v3.2 端到端生成走 mock-provider automated proof + Playwright 视觉验证；不改变生产代码路径，但提醒下一个里程碑若要求「真实生成验收」应先立可重复基础设施。
+<details>
+<summary>v3.2 / v3.1 / v3.0 / v2.x — earlier milestones</summary>
 
-- `v4.0 Plugin Marketplace & Plugin-Owned Data` 已于 2026-06-07 归档；声明式插件数据模型 + 受治理访问 + marketplace 生命周期 + authoritative close gate 已成为新 validated baseline。
-- `v3.2 AI LessonAgent 起草闭环` 已于 2026-06-02 归档；LessonAgent 起草、审校和发布主链仍为 validated baseline。
-- 当前 active planning 已清空，等待下一里程碑定义。后续规划必须把 `v4.0` 与 `v3.2` 一并视为已验证 baseline，而不是待补缺口。
-- `v3.0 AI Native Educational OS Upgrade` 已于 2026-05-23 归档；第一阶段平台内核升级已经完成。
-- `v2.2 WebSocket Classroom Transport Cutover` 已于 2026-05-18 归档。
-- `v2.3 Async Task Platform` 已于 2026-05-20 归档。
-- `v2.4 Plugin Data Architecture & Default Plugins` 在 Phase 44-48 planning / partial execution 后被冻结，v4.0 已收口为完整 baseline。
-- 当前 planning 主问题不再是「插件 marketplace 是否成立」或「平台内核是否存在」，而是下一轮 committed scope 要围绕哪条新用户价值切口推进。
+See `.planning/milestones/` for full archives.
 
-## Most Recently Archived Milestone: v3.2 AI LessonAgent 起草闭环
+</details>
+
+## Most Recently Archived Milestone: v4.3 System Commands Bus（第一批）
+
+**Archive status:** Archived 2026-06-12 after Phase 79 completion.
+
+**Delivered scope:**
+
+- Phase 77-79, 6 plans, 58 commits, ~1,677 test LOC
+- `PluginManifest` `systemCommands` 声明段 + `platformCommandRegistry` system 命令注册
+- `system.http.request` HTTP 代理（SSRF 防护 + 白名单校验 + 全链路审计）
+- `system.config` KV 配置（三重前缀隔离 + get DAL / set Command Bus）
+- `dispatchSystemCommand` facade 三段式统一入口
+
+**Close posture:**
+
+- All 5 v4.3 requirements (SYS-01..05) marked Complete.
+- 3 known deferred items: Phase 78/79 verification (human_needed) + Phase 79 UAT (4 scenarios partial).
+
+## Previously Archived Milestone: v3.2 AI LessonAgent 起草闭环
 
 **Archive status:** Archived 2026-06-02 after closure Phase 66 resolved the milestone audit's E2E gaps.
 
@@ -201,18 +217,16 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 
 ## Planning Posture
 
-当前没有 active milestone。下一里程碑应从已归档的 `v4.1` 多题型 + 实时仪表盘 + `v4.0` 插件 marketplace 闭环 + `v3.2` AI draft-loop truth + `v3.1` single-school pilot truth 出发，选择新的 committed 用户价值切口，而不是重开已完成 baseline。
+当前没有 active milestone。下一里程碑应从已归档的 v4.3 system commands bus + v4.2 marketplace 泛化 + v4.1 多题型 + v4.0 插件 marketplace 闭环出发，选择新的 committed 用户价值切口。
 
 **Next planning constraints:**
 
+- 把 `system.*` 命令组（`system.http.request` + `system.config`）视为 v4.3 validated baseline，后续 system 命令（notification/email/file/user/schedule 等）复用同一套 manifest → governance → audit 链路。
+- 把 marketplace 泛化（homework 全链路 + 跨插件隔离 + 6-stage close gate）视为 v4.2 validated baseline。
 - 把多题型互动答题 + 实时仪表盘 + v4.1 authoritative close gate 视为 v4.1 validated baseline。
 - 把声明式插件数据模型 + 受治理访问 + 互动答题样板 + marketplace 生命周期 + authoritative close gate 视为 v4.0 validated baseline。
-- 把 LessonAgent 起草闭环、classroom voting 样板链路、operator recovery、pilot deploy/release/restore 与 40/5 rehearsal 视为 v3.1/v3.2 validated baseline。
-- 保持既有 WebSocket-first、optional Redis fanout、BullMQ、SQLite + DAL truth posture，不把已交付能力重新描述为缺口。
-- 若下一里程碑要求真实 LLM 端到端验收，先显式纳入 provider/Redis bootstrap 或 staging proof lane，而不是在 close 时临时补环境。
-- 候选下一里程碑 scope：AI 出题（QUIZ-EXT-03）、upgrade dry-run（MKT-EXT-01）、跨 pluginKey 完整恢复（MKT-EXT-02）、非答题类插件二次泛化（MKT-EXT-03）、商店运营层（STORE-01）。
-- 继续推迟多校多租户、PostgreSQL/pgvector cutover、重型 observability 平台迁移、Agent Runtime 扩张、runtime 动态建表 / eval / 任意第三方代码执行，除非新 milestone 明确承接。
-- 下一轮 scope 应通过 `/gsd:new-milestone` 正式建立，而不是直接恢复旧 `REQUIREMENTS.md`。
+- 候选下一里程碑 scope：AI 出题（QUIZ-EXT-03）、upgrade dry-run（MKT-EXT-01）、跨 pluginKey 完整恢复（MKT-EXT-02）、非答题类插件二次泛化（MKT-EXT-03）、商店运营层（STORE-01）、system 命令扩展（SYS-F01..F09）。
+- 下一轮 scope 应通过 `/gsd:new-milestone` 正式建立。
 
 <details>
 <summary>Archived v2.2 milestone context</summary>
@@ -275,14 +289,15 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 - [x] 互动答题样板打穿「老师配置→学生作答→课后统计」全链 —— v4.0
 - [x] Marketplace 生命周期（install/upgrade/uninstall）—— v4.0
 - [x] `pnpm verify:phase` authoritative end-to-end close gate —— v4.0 + v4.1
+- [x] `PluginManifest` 支持 `systemCommands` 声明段（SYS-03）—— v4.3
+- [x] `platformCommandRegistry` 注册 `system.*` 命令类型 + 4 个新治理审计拒因码（SYS-05）—— v4.3
+- [x] 插件可通过 `system.http.request` 经白名单域名+方法代理 HTTP 调用（SYS-01）—— v4.3
+- [x] 插件可通过 `system.config.get/set` 读写自身 KV 配置（SYS-02）—— v4.3
+- [x] `dispatchSystemCommand` facade 作为统一入口，治理门前置（SYS-04）—— v4.3
 
 ### Active
 
-- [ ] **SYS-01**: 插件可通过 `system.http.request` 经白名单域名+方法代理 HTTP 调用
-- [x] **SYS-02**: 插件可通过 `system.config.get/set` 读写自身 KV 配置（Validated in Phase 79）
-- [ ] **SYS-03**: `PluginManifest` 支持 `systemCommands` 声明段，install 时校验
-- [x] **SYS-04**: `dispatchSystemCommand` facade 作为统一入口，治理门前置（Validated in Phase 79）
-- [ ] **SYS-05**: system command 调用全量记录 governance audit
+_下一里程碑需求通过 `/gsd:new-milestone` 定义。_
 
 ### Out of Scope
 
@@ -378,6 +393,10 @@ OpenLearn Next 的产品判断是：课堂应成为可编程系统，教学应�
 | `quiz.answer.received` 是新 WS event kind，遵循 v2.2 contract envelope，teacher-only channel | 复用已有 transport，不创建新 WS endpoint | ✓ Good（v4.1）|
 | v4.1 dashboard tab 是 `/classroom` 控制室内的 sibling tab，不创建新路由，零写 Server Action | 最小 blast radius，保持 v4.0 write-path discipline | ✓ Good（v4.1）|
 | v4.1 close gate 复用 v4.0 72.1 范式，stage 5→7，`verify:phase` 组合 alias | 单一权威入口不破，先 proof mapping 后 closeout 后 gate wiring discipline 跨 milestone 传承 | ✓ Good（v4.1）|
+| v4.3 `system.*` 命令组在现有 `platformCommandRegistry` 上 additive 扩展，不重做 Command Bus 架构 | 与 `plugin.*` / `lesson.draft.*` / `plugin.data.*` / `quiz.answer.*` 并列，blast radius 最小 | ✓ Good（v4.3）|
+| `system.config.get` 纯读走 DAL 不声明为 PlatformCommandType，`system.config.set` 走 Command Bus producer | get 不需要 governance gate 的 lifecycle/kill-switch 检查，set 需要全治理链路 | ✓ Good（v4.3）|
+| schoolId 由认证 session 派生注入，绝不从 payload 读取 | 防止插件伪造 schoolId 跨校访问 | ✓ Good（v4.3）|
+| SSRF 防护采用 DNS pinning（undici Agent `connect.lookup`），不依赖外部 DNS 解析器 | 在 undici 层拦截 DNS 解析，避免 DNS rebinding 攻击，不引入额外网络依赖 | ✓ Good（v4.3）|
 
 ## Evolution
 
