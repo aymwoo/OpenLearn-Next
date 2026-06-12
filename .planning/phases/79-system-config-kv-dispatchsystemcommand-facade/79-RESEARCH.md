@@ -604,20 +604,23 @@ function buildSystemCommandCorrelationId(input: { commandType: string; pluginKey
 |---|-------|---------|---------------|
 | (none) | -- | -- | -- |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`pluginOwnedBusinessData` 的 `key` 列是否支持 `:` 字符？**
    - What we know: 表定义为 `text("key").notNull()`，SQLite 对 text 列无字符限制。
    - What's unclear: 确认已有 marketplace 数据是否使用 `:` 作为 key 的一部分——如有冲突，需选择不同分隔符。
    - Recommendation: 在实现前检查 `pluginOwnedBusinessData` 表现有 key 值，确认 `{schoolId}:{pluginId}:` 前缀不与现有 key 冲突。如有冲突，可用 `::` 双冒号作为分隔符。
+   - **RESOLVED (D-06):** key 列支持 `:` 字符（SQLite text 无字符限制）。三重前缀构造为 `{schoolId}:{pluginId}:{configKey}`，configKey 已在 Zod 层拒绝含 `:` 字符，因此 `:` 仅作为前缀分隔符出现，不与现有 key 冲突。参考 CONTEXT.md D-06。
 
 2. **`system.config.get` 的 facade 入口参数是否需要 `configKey` Zod 校验？**
    - What we know: CONTEXT D-12 说 "key 含 `:` 字符在 Zod 层拒绝"。但 get 不过 Command Bus（没有 PlatformCommandSchema 的自动校验）。
+   - **RESOLVED (D-12):** 需要。facade 入口处使用 `ConfigKeySchema`（`z.string().min(1).max(256).refine(k => !k.includes(":"))`）对 configKey 做显式 Zod 校验，确保 set/get 两端边界一致。参考 CONTEXT.md D-12。
    - Recommendation: facade 入口处对 `configKey` 显式做 Zod 校验（使用 `ConfigKeySchema`），确保边界一致。
 
 3. **`dispatchSystemCommand` facade 是否需要为 `system.config.set` 构造 PlatformCommand envelope 并调用 `dispatchPlatformCommand`，而非直接操作 DAL？**
    - What we know: CONTEXT D-08 说 "handler.execute 中直接构造 PlatformCommand envelope，调用 dispatchPlatformCommand（与 Phase 78 system.http.request handler 模式一致）"。但 Phase 78 handler 实际是通过 registry 注册 + bus 管道调用的，不是 facade 内直接构造 envelope。
    - What's unclear: CONTEXT D-08 的真实意图是 facade 构造 envelope 后调 `dispatchPlatformCommand`，还是 facade 调 handler 而 handler 替换 registry 注册后经由 bus 自动调用？
+   - **RESOLVED (D-08 + D-04):** facade 构造 PlatformCommand envelope → 调用 `dispatchPlatformCommand` → bus 内部自动走 validate → dedupe → persist → authorize → execute 管道。handler 通过 registry 注册，bus 自动调用 handler.authorize + handler.execute。参考 CONTEXT.md D-08 和 D-04。
    - Recommendation: 采用与 Phase 78 一致的模式——handler 替换 registry 中的 stub，facade 构造 PlatformCommand envelope 后调用 `dispatchPlatformCommand`（与 plugin-data producer 的 `dispatchPluginDataWriteCommand` 模式一致）。这样 system.config.set 走完整的 Command Bus 管道（validate → dedupe → persist → authorize → execute）。
 
 ## Environment Availability
