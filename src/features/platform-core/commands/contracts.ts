@@ -244,11 +244,40 @@ const SystemHttpRequestPayloadSchema = z.strictObject({
 });
 // Note: schoolId and pluginId are NOT in this payload — they are injected by the envelope scope.
 
+/**
+ * Phase 79 (D-12/T-79-06/T-79-09): System config KV payload schema.
+ *
+ * - configKey: rejected if it contains `:` (triple-prefix isolation boundary), max 256 chars.
+ * - configValue: must be JSON-serializable and ≤64KB (DoS guard).
+ *
+ * Note: schoolId and pluginId are NOT in this payload — injected by envelope scope.
+ */
 const SystemConfigSetPayloadSchema = z.strictObject({
-  configKey: z.string().min(1),   // Phase 79 validates against manifest allowedKeys
-  configValue: z.unknown(),       // Phase 79 validates JSON serializability and 64KB limit
+  configKey: z.string().min(1).max(256).refine(
+    (k) => !k.includes(":"),
+    "config key must not contain colon (triple-prefix isolation: {schoolId}:{pluginId}:{key})",
+  ),
+  configValue: z.unknown().superRefine((val, ctx) => {
+    let serialized: string;
+    try {
+      serialized = JSON.stringify(val);
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "configValue must be JSON-serializable",
+      });
+      return;
+    }
+
+    const byteLength = new TextEncoder().encode(serialized).length;
+    if (byteLength > 65536) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `configValue size ${byteLength} exceeds 64KB limit`,
+      });
+    }
+  }),
 });
-// Note: schoolId and pluginId are NOT in this payload — injected by envelope scope.
 
 export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,

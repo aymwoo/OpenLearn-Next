@@ -8,7 +8,7 @@ import { pluginCommandHandlers } from "./handlers/plugins";
 import { lessonDraftCommandHandlers } from "./handlers/lesson-draft";
 import { pluginDataInsertHandler, pluginDataUpsertHandler } from "./handlers/plugin-data";
 import { quizAnswerReceivedHandler } from "./handlers/quiz-answer-received";
-import { systemHttpRequestHandler } from "@/features/system-commands/handler";
+import { systemHttpRequestHandler, systemConfigHandler } from "@/features/system-commands/handler";
 
 export function createPlatformCommandDefinition<TType extends PlatformCommandType>(
   input: PlatformCommandDefinition<TType>,
@@ -163,11 +163,9 @@ export const platformCommandRegistry = {
     commandType: "system.config.set",
     payloadSchema: PlatformCommandPayloadSchemas["system.config.set"],
     dedupe: "required",
-    // TODO Phase 79: validate manifest allowedKeys against configKey, schoolId injection
-    authorize: async () => {},
-    // TODO Phase 79: KV config write via Command Bus producer
-    execute: async () => {
-      throw new Error("system.config.set handler not implemented — Phase 79");
+    authorize: async (input: { command: PlatformCommand }) => {
+      await systemConfigHandler["system.config.set"].authorize(input);
     },
+    execute: systemConfigHandler["system.config.set"].execute,
   }),
 } satisfies Record<PlatformCommandType, PlatformCommandDefinition>;

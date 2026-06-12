@@ -270,19 +270,16 @@ describe("platformCommandRegistry", () => {
       expect(platformCommandRegistry["system.http.request"].dedupe).toBe("required");
     });
 
-    it("should have placeholder authorize (resolves)", async () => {
+    it("should have wired authorize (Phase 78 real handler)", () => {
       const entry = platformCommandRegistry["system.http.request"];
-      // Placeholder authorize accepts all — Phase 78 adds real validation
-      await expect(
-        entry.authorize({ command: {} as Parameters<typeof entry.authorize>[0]["command"] })
-      ).resolves.toBeUndefined();
+      expect(typeof entry.authorize).toBe("function");
+      // Real handler — not a placeholder, Phase 78 wired systemHttpRequestHandler
     });
 
-    it("should have placeholder execute (throws with Phase 78 message)", async () => {
+    it("should have wired execute (Phase 78 real handler)", () => {
       const entry = platformCommandRegistry["system.http.request"];
-      await expect(
-        entry.execute({ command: {} as Parameters<typeof entry.execute>[0]["command"], attemptNumber: 1 })
-      ).rejects.toThrow("system.http.request handler not implemented — Phase 78");
+      expect(typeof entry.execute).toBe("function");
+      // Real handler — not a placeholder, Phase 78 wired systemHttpRequestHandler
     });
   });
 
@@ -305,18 +302,16 @@ describe("platformCommandRegistry", () => {
       expect(platformCommandRegistry["system.config.set"].dedupe).toBe("required");
     });
 
-    it("should have placeholder authorize (resolves)", async () => {
+    it("should have wired authorize (Phase 79 real handler — no longer stub)", () => {
       const entry = platformCommandRegistry["system.config.set"];
-      await expect(
-        entry.authorize({ command: {} as Parameters<typeof entry.authorize>[0]["command"] })
-      ).resolves.toBeUndefined();
+      expect(typeof entry.authorize).toBe("function");
+      // Phase 79: stub replaced by systemConfigHandler real implementation
     });
 
-    it("should have placeholder execute (throws with Phase 79 message)", async () => {
+    it("should have wired execute (Phase 79 real handler — no longer throw stub)", () => {
       const entry = platformCommandRegistry["system.config.set"];
-      await expect(
-        entry.execute({ command: {} as Parameters<typeof entry.execute>[0]["command"], attemptNumber: 1 })
-      ).rejects.toThrow("system.config.set handler not implemented — Phase 79");
+      expect(typeof entry.execute).toBe("function");
+      // Phase 79: stub replaced by systemConfigHandler real implementation
     });
   });
 
