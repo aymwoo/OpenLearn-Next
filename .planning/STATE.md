@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.3
 milestone_name: System Commands Bus（第一批）
-status: executing
-last_updated: "2026-06-12T01:07:27.661Z"
+status: ready_to_plan
+last_updated: 2026-06-12T02:51:38.894Z
 last_activity: 2026-06-12 -- Phase 78 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 4
   percent: 33
+stopped_at: Phase 78 complete (2/2) — ready to discuss Phase 79
 ---
 
 # Project State
@@ -20,14 +21,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-11 after v4.2 close)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 78 — system.http.request HTTP 代理
+**Current focus:** Phase 79 — system.config kv 配置 + dispatchsystemcommand facade
 
 ## Current Position
 
-Phase: 78 (system.http.request HTTP 代理) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 78
-Last activity: 2026-06-12 -- Phase 78 execution started
+Phase: 79
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-12
 
 Progress: [██████████] 100%
 
@@ -35,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 61 (v4.2 inclusive: v4.0=20 + v4.1=7 + v4.2=19 + earlier milestones)
+- Total plans completed: 63 (v4.2 inclusive: v4.0=20 + v4.1=7 + v4.2=19 + earlier milestones)
 - Average duration: —
 - Total execution time: —
 

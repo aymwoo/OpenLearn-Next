@@ -9,7 +9,7 @@ Requirements for v4.3 System Commands Bus（第一批）. Each maps to roadmap p
 
 ### System Commands
 
-- [ ] **SYS-01**: 插件可通过 `system.http.request` 经白名单域名+方法代理 HTTP 调用
+- [x] **SYS-01**: 插件可通过 `system.http.request` 经白名单域名+方法代理 HTTP 调用
   - 域名白名单支持通配符匹配（`*.example.com`）
   - 方法白名单（GET/POST/PUT/DELETE/PATCH）
   - SSRF 防护：DNS pinning（undici Agent `connect.lookup`）+ IPv6/IPv4-mapped/十进制编码检测 + redirect 链重校验
@@ -84,7 +84,7 @@ Deferred to future release. Tracked but not in v4.3 roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SYS-01 | Phase 78 | Pending |
+| SYS-01 | Phase 78 | Complete |
 | SYS-02 | Phase 79 | Pending |
 | SYS-03 | Phase 77 | Complete |
 | SYS-04 | Phase 79 | Pending |

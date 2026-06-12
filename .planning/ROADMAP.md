@@ -66,7 +66,7 @@ See `.planning/milestones/` for full archives.
 **Milestone Goal:** 在现有 Command Bus 骨架上新增 `system.*` 命令组，让插件经声明式白名单调用系统级能力，首发 `system.http.request`（HTTP 代理）和 `system.config`（KV 配置）两个命令，打穿 manifest 声明 → governance gate → execute → audit 完整链路。
 
 - [x] **Phase 77: Manifest 声明 + Command Registry 注册** - `PluginManifest` 支持 `systemCommands` 声明段 + `platformCommandRegistry` 新增 system command 类型 (completed 2026-06-11)
-- [ ] **Phase 78: system.http.request HTTP 代理** - 插件经白名单域名+方法代理 HTTP 调用，含 SSRF 防护、响应大小限制、超时控制
+- [x] **Phase 78: system.http.request HTTP 代理** - 插件经白名单域名+方法代理 HTTP 调用，含 SSRF 防护、响应大小限制、超时控制 (completed 2026-06-12)
 - [ ] **Phase 79: system.config KV 配置 + dispatchSystemCommand facade** - 插件读/写自身 KV 配置 + 统一入口门面
 
 ### Phase 77: Manifest 声明 + Command Registry 注册
@@ -111,7 +111,7 @@ Plans:
 - [x] 78-01-PLAN.md — SSRF guard (DNS pinning, IP detection, HTTPS-only) + governance audit helper
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 78-02-PLAN.md — system.http.request handler (authorize manifest whitelist + execute HTTP proxy) + registry wiring
+- [x] 78-02-PLAN.md — system.http.request handler (authorize manifest whitelist + execute HTTP proxy) + registry wiring
 
 **UI hint**: yes
 
@@ -146,7 +146,7 @@ Plans:
 | 75. 第二个 External 插件 + Marketplace 泛化验证 | v4.2 | 6/6 | Complete | 2026-06-11 |
 | 76. v4.2 Authoritative Close Gate | v4.2 | 6/6 | Complete | 2026-06-11 |
 | 77. Manifest 声明 + Command Registry 注册 | v4.3 | 2/2 | Complete | 2026-06-11 |
-| 78. system.http.request HTTP 代理 | v4.3 | 1/2 | In Progress|  |
+| 78. system.http.request HTTP 代理 | v4.3 | 2/2 | Complete    | 2026-06-12 |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 0/0 | Not started | - |
 
 ---
