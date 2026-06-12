@@ -217,12 +217,90 @@
 
 ---
 
+## Milestone: v4.2 — Marketplace 泛化验证
+
+**Shipped:** 2026-06-11
+**Phases:** 2 (75-76) | **Plans:** 12
+
+### What Was Built
+- 第二个 external 插件（homework）全链路：三表 schema（assignments/submissions/grades），声明式 dataModel → 编译器确定性生成 Drizzle schema + allowlist，DTO 层完备，append-only/isLatest 写入路径。
+- Marketplace 泛化：消除 7 项 quiz-only 隐式假设（data-access-allowlist, DTO, external-catalog, allowlist alias, lesson-step-editor, classroom-runtime-client, upgrade migration），marketplace 不再是 quiz-only。
+- 跨插件隔离验证：quiz/homework schema/allowlist/DAL 三重隔离确认。
+- v4.2 authoritative close gate：6-stage outer gate + cross-plugin regression + `verify:phase` alias 切到 v4.2 组合。
+- 8-row Manual Surface Sign-Off Ledger 全部 `status: passed`。
+
+### What Worked
+- quiz→homework 泛化采用了"逐一消除隐式假设"的系统性方法，7 项 quiz-only bias 被逐个识别并修复，而非大爆炸式重写。
+- cross-plugin regression（verify:v42-cross-plugin）并行编排 quiz 全量 + homework 全量 + dedicated cross-plugin suite，单次运行验证多插件共存正确性。
+- 复用 v4.1 close gate scaffold（6-stage gate），Stage 1-4 自动化 + Stage 5 文档 + Stage 6 签核的结构 discipline 跨 milestone 保持一致。
+
+### What Was Inefficient
+- Nyquist VALIDATION.md 在 4/4 阶段全缺失——应该在 phase 执行完成时同步生成，而非在 close gate 时追溯发现。
+- REQUIREMENTS.md 在 v4.2 期间不存在（到 v4.3 roadmap 时才创建），导致 requirements→phase traceability 在 close 时无法交叉验证。
+
+### Patterns Established
+- 「消除隐式假设」泛化方法论：从单一样板（quiz）泛化到第二个插件（homework），逐个识别和消除 quiz-only 假设，可用于后续第三个、第四个插件的泛化。
+
+### Key Lessons
+1. 跨插件隔离验证应该在第一个 external 插件时就建立自动化回归——v4.2 的 cross-plugin 回归应该在 v4.0/4.1 就存在。
+2. close gate scaffold 复用度很高，每次只需替换具体的 pnpm runner 和 artifact 检查项即可。
+
+### Cost Observations
+- Model mix: not tracked
+- Sessions: not tracked
+- Notable: v4.2 用 2 phases / 12 plans 完成第二个插件 + 泛化 + close gate，泛化成本（7 项隐式假设修复）占主要工作量。
+
+---
+
+## Milestone: v4.3 — System Commands Bus（第一批）
+
+**Shipped:** 2026-06-12
+**Phases:** 3 (77-79) | **Plans:** 6 | **LOC:** +11,201 / -115（功能 3,584 + 测试 1,677）
+
+### What Was Built
+- `PluginManifest` 新增 `.optional()` `systemCommands` 声明段（discriminated union），`system.http.request` + `system.config` 各有专用 shape 校验。
+- `platformCommandRegistry` 注册 2 个新 commandType + 4 个 discriminated union 变体 + Zod payload 校验 + 4 个新治理审计拒因码。
+- SSRF 防护层：DNS pinning（undici `connect.lookup`）+ HTTPS-only + IPv4/IPv6 内网 IP 检测 + redirect 链重校验。
+- `system.http.request` 完整链路：authorize（manifest 白名单校验）→ execute（安全 HTTP 代理）→ audit。
+- `dispatchSystemCommand` facade 三段式统一入口（治理门 → 判别派发 → 结果返回），schoolId 由 session 派生。
+- `system.config.set/get`：三重前缀隔离，get 纯读 DAL / set 走 Command Bus producer。
+
+### What Worked
+- v4.3 在现有 Command Bus 骨架上 additive 扩展，不重做架构——`system.*` 与 `plugin.*` / `lesson.draft.*` / `plugin.data.*` / `quiz.answer.*` 并列，blast radius 最小。
+- Phase 78/79 可部分并行（78 依赖 77 的 manifest schema + registry；79 依赖 77 的 registry，不依赖 78），wave 设计允许高效执行。
+- SSRF 防护采用 undici Agent `connect.lookup` 在 DNS 解析层拦截，不引入外部依赖，测试可完全离线运行。
+- `dispatchSystemCommand` facade 复用 `assertActionExecutable` 治理门（lifecycle + kill-switch + school scope），与 `dispatchPluginDataAccess` 共享治理语义。
+
+### What Was Inefficient
+- Phase 77 的 registry stub 在 78/79 中需要替换为真实 handler，stub→real 替换模式增加了接缝复杂度——如果 handler 在注册时就存在，可以避免两阶段替换。
+- 人工验收（UAT）在 Phase 78/79 未能完全完成（undici 未安装、端到端流程需要运行中服务器），应该提前确保测试环境可运行。
+
+### Patterns Established
+- 「先 manifest schema + registry，再 handler」的三段式推进模式：Phase 77 定义契约 → Phase 78/79 实现 handler + facade，可作为后续 system 命令（notification/email/file 等）的标准模板。
+- `dispatchSystemCommand` facade 的"治理门 → 判别派发 → 结果返回"三段式结构可作为所有 system 命令的统一入口模式。
+- schoolId 由 session 派生注入、绝不从 payload 读取的安全原则在 v4.3 中得到严格执行。
+
+### Key Lessons
+1. "stub→real"替换模式适用于契约先行的场景，但在 handler 实现时就应直接注册到 registry，减少 stub 维护成本。
+2. manifest `.optional()` 声明段是实现向后兼容的正确方式——v4.3 新增 `systemCommands` 不破坏已有 quiz/homework manifest。
+3. 安全层（SSRF 防护、治理审计）应作为独立的 plan 先行实现（78-01），handler 层（78-02）在其基础上构建。
+
+### Cost Observations
+- Model mix: not tracked
+- Sessions: not tracked
+- Notable: v4.3 在 ~23h 内完成 3 phases / 6 plans / 58 commits / ~5,200 LOC，是执行效率最高的里程碑之一。
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
 
 | Milestone | Sessions | Phases | Key Change |
 |-----------|----------|--------|------------|
+| v4.3 | not tracked | 3 | Additive `system.*` command group on existing Command Bus skeleton: manifest declaration → governance gate → execute → audit. SSRF defense + KV config + dispatchSystemCommand facade. 5/5 requirements verified. |
+| v4.2 | not tracked | 2 | Marketplace generalization: second external plugin (homework), eliminated 7 quiz-only assumptions, cross-plugin regression. 6-stage outer gate. |
+| v4.1 | not tracked | 2 | Multi-question types (5 types) + teacher live dashboard. Reused v4.0 close gate scaffold for 7-stage authoritative gate. |
 | v4.0 | not tracked | 7 | Hardened `pnpm verify:phase` into the milestone-authoritative close gate; closed the plugin marketplace loop with declarative dataModel + governed verbs + lifecycle + close gate. 18/18 v1 requirements verified via artifact physical-existence + manual sign-off + ordered pnpm ladder. |
 | v3.2 | not tracked | 6 | Turned the AI-native platform contracts into a real LessonAgent draft/review/publish loop and established milestone-audit-driven closure for cross-phase seams. |
 | v3.0 | not tracked | 5 | Established the first-stage AI-native platform core: command bus, governed action and lifecycle model, persisted platform events, and machine-readable contracts. |
@@ -235,6 +313,9 @@
 
 | Milestone | Tests | Coverage | Zero-Dep Additions |
 |-----------|-------|----------|-------------------|
+| v4.3 | 56+ vitest (ssrf-guard ~41 + audit ~6 + handler ~12 + system.config ~ tests) | not tracked | undici (^8.4.1) for SSRF DNS pinning |
+| v4.2 | cross-plugin regression (quiz + homework + dedicated) + 6-stage gate checks | not tracked | not tracked |
+| v4.1 | focused suites + `verify:phase73-v41-close-gate` | not tracked | not tracked |
 | v4.0 | 208 vitest (114 phase-70 + 94 phase-71) + 6 stages / 49 checks / 5 ordered upstream pnpm runners | not tracked | not tracked |
 | v3.2 | focused suites + `verify:phase` + closure e2e + Playwright visual proof | not tracked | not tracked |
 | v3.0 | focused suites + `verify:phase52/53/54` + milestone audit | not tracked | not tracked |
