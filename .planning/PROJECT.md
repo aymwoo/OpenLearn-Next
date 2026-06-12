@@ -279,9 +279,9 @@ OpenLearn Next 是一个面向未来教育的 AI 原生开源操作系统，核�
 ### Active
 
 - [ ] **SYS-01**: 插件可通过 `system.http.request` 经白名单域名+方法代理 HTTP 调用
-- [ ] **SYS-02**: 插件可通过 `system.config.get/set` 读写自身 KV 配置
+- [x] **SYS-02**: 插件可通过 `system.config.get/set` 读写自身 KV 配置（Validated in Phase 79）
 - [ ] **SYS-03**: `PluginManifest` 支持 `systemCommands` 声明段，install 时校验
-- [ ] **SYS-04**: `dispatchSystemCommand` facade 作为统一入口，治理门前置
+- [x] **SYS-04**: `dispatchSystemCommand` facade 作为统一入口，治理门前置（Validated in Phase 79）
 - [ ] **SYS-05**: system command 调用全量记录 governance audit
 
 ### Out of Scope
@@ -397,4 +397,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-11 after v4.3 System Commands Bus milestone initiation*
+*Last updated: 2026-06-12 after Phase 79 completion*
