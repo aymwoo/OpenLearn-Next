@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const { mockFindFirst, mockWriteAudit } = vi.hoisted(() => ({
+  mockFindFirst: vi.fn(),
+  mockWriteAudit: vi.fn(),
+}));
+
 vi.mock("server-only", () => ({}));
 
-// Mock database
-const mockFindFirst = vi.fn();
 vi.mock("@/db", () => ({
   db: {
     query: {
@@ -14,8 +17,7 @@ vi.mock("@/db", () => ({
   },
 }));
 
-// Mock db/schema for pluginRegistrations table reference
-vi.mock("@/db/schema", async () => ({
+vi.mock("@/db/schema", () => ({
   pluginRegistrations: {
     id: { _: "pluginRegistrations.id" },
     schoolId: { _: "pluginRegistrations.schoolId" },
@@ -24,26 +26,22 @@ vi.mock("@/db/schema", async () => ({
   },
 }));
 
-// Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
   eq: (a: unknown, b: unknown) => ({ _type: "eq", a, b }),
   and: (...args: unknown[]) => ({ _type: "and", args }),
 }));
 
-// Mock ssrf-guard
 vi.mock("./ssrf-guard", () => ({
   validateUrl: (rawUrl: string) => {
     if (!rawUrl) throw new Error("SSRF_INVALID_URL");
     return new URL(rawUrl);
   },
-  createPinnedAgent: vi.fn(),
+  createPinnedAgent: () => ({ closed: false }),
   MAX_REDIRECTS: 5,
-  isHostnameRawIP: vi.fn(),
-  isPrivateIP: vi.fn(),
+  isHostnameRawIP: () => false,
+  isPrivateIP: () => false,
 }));
 
-// Mock audit
-const mockWriteAudit = vi.fn();
 vi.mock("./audit", () => ({
   writeSystemCommandAudit: mockWriteAudit,
 }));
