@@ -1,15 +1,17 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-// Mock Drizzle db
-const mockInsert = vi.fn().mockReturnValue({
-  values: vi.fn().mockResolvedValue(undefined),
+// Use vi.hoisted to make mocks available to the vi.mock factory (which is hoisted)
+const { mockValues, mockInsert } = vi.hoisted(() => {
+  const mv = vi.fn().mockResolvedValue(undefined);
+  const mi = vi.fn(() => ({ values: mv }));
+  return { mockValues: mv, mockInsert: mi };
 });
 
 vi.mock("@/db", () => ({
   db: {
-    insert: vi.fn(() => mockInsert()),
+    insert: mockInsert,
   },
 }));
 
@@ -18,10 +20,13 @@ vi.mock("@/db/schema", () => ({
 }));
 
 import { writeSystemCommandAudit } from "./audit";
-import { db } from "@/db";
 import { governanceAudits } from "@/db/schema";
 
 describe("writeSystemCommandAudit", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("writes audit record with decision=allowed and action=system.http.request", async () => {
     const input = {
       pluginId: "plugin-123",
@@ -38,12 +43,11 @@ describe("writeSystemCommandAudit", () => {
     await writeSystemCommandAudit(input);
 
     // Verify db.insert was called with governanceAudits table
-    expect(db.insert).toHaveBeenCalledWith(governanceAudits);
+    expect(mockInsert).toHaveBeenCalledWith(governanceAudits);
 
     // Verify .values() was called with correct fields
-    const valuesFn = mockInsert().values;
-    expect(valuesFn).toHaveBeenCalledTimes(1);
-    const valuesArg = valuesFn.mock.calls[0][0];
+    expect(mockValues).toHaveBeenCalledTimes(1);
+    const valuesArg = mockValues.mock.calls[0]![0];
 
     expect(valuesArg.targetType).toBe("plugin");
     expect(valuesArg.targetId).toBe("plugin-123");
@@ -84,8 +88,7 @@ describe("writeSystemCommandAudit", () => {
 
     await writeSystemCommandAudit(input);
 
-    const valuesFn = mockInsert().values;
-    const valuesArg = valuesFn.mock.calls[0][0];
+    const valuesArg = mockValues.mock.calls[0]![0];
 
     expect(valuesArg.decision).toBe("denied");
     expect(valuesArg.reasonCode).toBe("domain_not_allowed");
@@ -114,8 +117,7 @@ describe("writeSystemCommandAudit", () => {
 
     await writeSystemCommandAudit(input);
 
-    const valuesFn = mockInsert().values;
-    const valuesArg = valuesFn.mock.calls[0][0];
+    const valuesArg = mockValues.mock.calls[0]![0];
 
     expect(valuesArg.targetId).toBe("");
     expect(valuesArg.pluginId).toBeNull();
