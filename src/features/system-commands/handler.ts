@@ -1,8 +1,9 @@
 import "server-only";
+import { z } from "zod";
 import { db } from "@/db";
-import { pluginRegistrations } from "@/db/schema";
+import { pluginRegistrations, pluginOwnedBusinessData } from "@/db/schema";
 import { PluginManifestSchema } from "@/lib/dto/resource-ai";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import {
   PlatformCommandExecutionError,
   type PlatformCommand,
@@ -10,7 +11,6 @@ import {
 } from "@/features/platform-core/commands/contracts";
 import { validateUrl, createPinnedAgent, MAX_REDIRECTS } from "./ssrf-guard";
 import { writeSystemCommandAudit } from "./audit";
-import type { z } from "zod";
 import type { SystemCommandHttpRequestSchema } from "@/lib/dto/resource-ai";
 
 // ---------------------------------------------------------------------------
@@ -790,9 +790,398 @@ async function executeRequest(
 }
 
 // ---------------------------------------------------------------------------
-// Export
+// Export — system.http.request
 // ---------------------------------------------------------------------------
 
 export const systemHttpRequestHandler = {
   "system.http.request": { authorize, execute },
+};
+
+// ---------------------------------------------------------------------------
+// system.config — KV configuration (Phase 79)
+// ---------------------------------------------------------------------------
+
+// ── Types ──
+
+type SystemConfigSetCommand = Extract<PlatformCommand, { type: "system.config.set" }>;
+
+// ── Zod schemas ──
+
+/** Phase 79 (D-12): configKey must not contain colon (triple-prefix isolation guard). */
+const ConfigKeySchema = z.string().min(1).max(256)
+  .refine((k) => !k.includes(":"), "config key must not contain colon");
+
+// ── Key matching (D-11) ──
+
+/**
+ * Match a manifest allowedKey pattern against a config key.
+ *
+ * D-11 rules:
+ * - `prefix:*` matches `prefix:key` (exactly one segment after prefix)
+ * - `prefix:*` does NOT match `prefix:sub:key` (no deep nesting)
+ * - Plain patterns use exact string match
+ */
+function matchConfigKey(pattern: string, key: string): boolean {
+  if (pattern.endsWith(":*")) {
+    const prefix = pattern.slice(0, -2);
+    // prefix:* matches prefix:oneLevel — no deeper colons
+    return key.startsWith(prefix + ":") && !key.slice(prefix.length + 1).includes(":");
+  }
+  return pattern === key;
+}
+
+// ── Helpers ──
+
+/** Shared manifest lookup + parse for system.config authorize. */
+async function resolveSystemConfigManifestEntry(
+  pluginId: string,
+  schoolId: string,
+): Promise<{
+  row: typeof pluginRegistrations.$inferSelect;
+  manifest: z.infer<typeof PluginManifestSchema>;
+  configEntries: z.infer<typeof PluginManifestSchema>["systemCommands"] extends (infer E)[] | undefined
+    ? Extract<E, { command: "system.config" }>[]
+    : never;
+}> {
+  const row = await db.query.pluginRegistrations.findFirst({
+    where: and(
+      eq(pluginRegistrations.id, pluginId),
+      eq(pluginRegistrations.schoolId, schoolId),
+    ),
+  });
+
+  if (!row) {
+    throw { code: "registration_not_found" } as const;
+  }
+
+  const manifest = PluginManifestSchema.parse(row.manifestJson);
+  const systemCommands = manifest.systemCommands ?? [];
+  const configEntries = systemCommands.filter(
+    (entry): entry is typeof entry & { command: "system.config" } =>
+      entry.command === "system.config",
+  );
+
+  return { row, manifest, configEntries };
+}
+
+/** Build a PlatformCommandExecutionError for system.config with audit-before-throw. */
+async function denySystemConfig(params: {
+  pluginId: string;
+  schoolId: string;
+  commandId: string | null;
+  actorId: string;
+  actorScope: string;
+  lifecycleState: string;
+  correlationId: string;
+  reasonCode: string;
+  configKey: string;
+  commandType: "system.config.set" | "system.config.get";
+  recommendedRecoveryAction: string;
+}): Promise<never> {
+  await writeSystemCommandAudit({
+    pluginId: params.pluginId,
+    schoolId: params.schoolId,
+    commandId: params.commandId,
+    actorId: params.actorId,
+    actorScope: params.actorScope,
+    lifecycleState: params.lifecycleState,
+    correlationId: params.correlationId,
+    decision: "denied",
+    reasonCode: params.reasonCode,
+    payloadJson: { configKey: params.configKey },
+    commandType: params.commandType,
+  });
+
+  throw new PlatformCommandExecutionError({
+    message: `system.config denied: ${params.reasonCode}`,
+    failureAttribution: {
+      scope: "plugin",
+      pluginId: params.pluginId,
+      reasonCode: params.reasonCode,
+      recommendedRecoveryAction: params.recommendedRecoveryAction,
+    },
+    failureEvent: {
+      eventType: "platform.command.failed",
+      category: "outcome",
+      aggregateType: "plugin",
+      aggregateId: params.pluginId,
+      payload: {
+        commandType: params.commandType,
+        reasonCode: params.reasonCode,
+        failureAttribution: {
+          scope: "plugin",
+          pluginId: params.pluginId,
+          reasonCode: params.reasonCode,
+          recommendedRecoveryAction: params.recommendedRecoveryAction,
+        },
+      },
+      audit: {
+        delegatedActor: null,
+        approval: null,
+      },
+    },
+  });
+}
+
+// ── system.config.set — authorize ──
+
+/**
+ * system.config.set authorize (Phase 79 D-05/D-10).
+ *
+ * Mirror of system.http.request authorize: re-parse manifestJson, extract
+ * system.config entries, match allowedKeys against configKey. Returns void
+ * (unlike http.request which returns MatchedEntry for redirect re-validation).
+ *
+ * All deny paths write audit BEFORE throw.
+ */
+async function systemConfigSetAuthorize({
+  command,
+}: {
+  command: PlatformCommand;
+}): Promise<void> {
+  const sysCmd = command as SystemConfigSetCommand;
+  const configKey = sysCmd.payload.configKey;
+  const pluginId = command.scope.pluginId;
+  const schoolId = command.scope.schoolId;
+
+  try {
+    const { row, configEntries } = await resolveSystemConfigManifestEntry(pluginId, schoolId);
+    const lifecycleState = row.lifecycleState ?? "ready";
+
+    if (configEntries.length === 0) {
+      return void (await denySystemConfig({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState,
+        correlationId: command.correlation.correlationId,
+        reasonCode: "config_key_denied",
+        configKey,
+        commandType: "system.config.set",
+        recommendedRecoveryAction: "update_manifest_allowed_keys",
+      }));
+    }
+
+    // D-10: Iterate entries, first-match-wins
+    for (const entry of configEntries) {
+      for (const allowedKey of entry.allowedKeys) {
+        if (matchConfigKey(allowedKey, configKey)) {
+          return; // authorized
+        }
+      }
+    }
+
+    // No match
+    return void (await denySystemConfig({
+      pluginId, schoolId, commandId: command.id,
+      actorId: command.actor.actorId,
+      actorScope: command.actor.actorScope,
+      lifecycleState,
+      correlationId: command.correlation.correlationId,
+      reasonCode: "config_key_denied",
+      configKey,
+      commandType: "system.config.set",
+      recommendedRecoveryAction: "update_manifest_allowed_keys",
+    }));
+  } catch (e) {
+    if ((e as { code?: string }).code === "registration_not_found") {
+      return void (await denySystemConfig({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState: "ready",
+        correlationId: command.correlation.correlationId,
+        reasonCode: "not_allowlisted",
+        configKey,
+        commandType: "system.config.set",
+        recommendedRecoveryAction: "install_plugin",
+      }));
+    }
+    if (e instanceof PlatformCommandExecutionError) throw e;
+    throw e;
+  }
+}
+
+// ── system.config.set — execute ──
+
+/**
+ * system.config.set execute (Phase 79 D-09).
+ *
+ * Writes to pluginOwnedBusinessData with triple-prefix isolation
+ * ({schoolId}:{pluginId}:{configKey}) using ON CONFLICT DO UPDATE for atomic
+ * upsert. Writes allowed audit on success.
+ */
+async function systemConfigSetExecute({
+  command,
+  attemptNumber: _attemptNumber,
+}: {
+  command: PlatformCommand;
+  attemptNumber: number;
+}): Promise<PlatformCommandExecutionResult> {
+  const sysCmd = command as SystemConfigSetCommand;
+  const configKey = sysCmd.payload.configKey;
+  const configValue = sysCmd.payload.configValue;
+  const pluginId = command.scope.pluginId;
+  const schoolId = command.scope.schoolId;
+
+  // Construct isolation key: {schoolId}:{pluginId}:{configKey}
+  const storageKey = `${schoolId}:${pluginId}:${configKey}`;
+
+  await db
+    .insert(pluginOwnedBusinessData)
+    .values({
+      schoolId,
+      pluginId,
+      key: storageKey,
+      payloadJson: configValue,
+    })
+    .onConflictDoUpdate({
+      target: [
+        pluginOwnedBusinessData.schoolId,
+        pluginOwnedBusinessData.pluginId,
+        pluginOwnedBusinessData.key,
+      ],
+      set: {
+        payloadJson: sql`excluded.payloadJson`,
+        updatedAt: sql`excluded.updatedAt`,
+      },
+    });
+
+  await writeSystemCommandAudit({
+    pluginId,
+    schoolId,
+    commandId: command.id,
+    actorId: command.actor.actorId,
+    actorScope: command.actor.actorScope,
+    lifecycleState: "ready",
+    correlationId: command.correlation.correlationId,
+    decision: "allowed",
+    payloadJson: {
+      configKey,
+      byteLength: JSON.stringify(configValue).length,
+    },
+    commandType: "system.config.set",
+  });
+
+  return successResult({ configKey, pluginId, schoolId });
+}
+
+// ── system.config.get — authorize ──
+
+/**
+ * system.config.get authorize (Phase 79 D-06/D-10).
+ *
+ * Same manifest re-parse + allowedKeys matching as set authorize.
+ * Uses the same resolveSystemConfigManifestEntry helper.
+ * All deny paths write audit BEFORE throw.
+ */
+async function systemConfigGetAuthorize({
+  pluginId,
+  schoolId,
+  configKey,
+  actorId,
+  actorScope,
+  correlationId,
+}: {
+  pluginId: string;
+  schoolId: string;
+  configKey: string;
+  actorId: string;
+  actorScope: string;
+  correlationId: string;
+}): Promise<void> {
+  // Pre-validate configKey shape (D-12)
+  ConfigKeySchema.parse(configKey);
+
+  try {
+    const { row, configEntries } = await resolveSystemConfigManifestEntry(pluginId, schoolId);
+    const lifecycleState = row.lifecycleState ?? "ready";
+
+    if (configEntries.length === 0) {
+      return void (await denySystemConfig({
+        pluginId, schoolId,
+        commandId: null, // get has no command record
+        actorId, actorScope, lifecycleState,
+        correlationId,
+        reasonCode: "config_key_denied",
+        configKey,
+        commandType: "system.config.get",
+        recommendedRecoveryAction: "update_manifest_allowed_keys",
+      }));
+    }
+
+    for (const entry of configEntries) {
+      for (const allowedKey of entry.allowedKeys) {
+        if (matchConfigKey(allowedKey, configKey)) {
+          return; // authorized
+        }
+      }
+    }
+
+    return void (await denySystemConfig({
+      pluginId, schoolId,
+      commandId: null,
+      actorId, actorScope, lifecycleState,
+      correlationId,
+      reasonCode: "config_key_denied",
+      configKey,
+      commandType: "system.config.get",
+      recommendedRecoveryAction: "update_manifest_allowed_keys",
+    }));
+  } catch (e) {
+    if ((e as { code?: string }).code === "registration_not_found") {
+      return void (await denySystemConfig({
+        pluginId, schoolId,
+        commandId: null,
+        actorId, actorScope,
+        lifecycleState: "ready",
+        correlationId,
+        reasonCode: "not_allowlisted",
+        configKey,
+        commandType: "system.config.get",
+        recommendedRecoveryAction: "install_plugin",
+      }));
+    }
+    if (e instanceof PlatformCommandExecutionError) throw e;
+    throw e;
+  }
+}
+
+// ── system.config.get — execute ──
+
+/**
+ * system.config.get execute (Phase 79 D-06/D-07).
+ *
+ * Pure DAL read from pluginOwnedBusinessData with triple-prefix isolation.
+ * Does NOT go through Command Bus. Does NOT write audit.
+ * Returns payloadJson or null if key not found.
+ */
+async function systemConfigGetExecute({
+  pluginId,
+  schoolId,
+  configKey,
+}: {
+  pluginId: string;
+  schoolId: string;
+  configKey: string;
+}): Promise<unknown | null> {
+  const storageKey = `${schoolId}:${pluginId}:${configKey}`;
+
+  const row = await db.query.pluginOwnedBusinessData.findFirst({
+    where: and(
+      eq(pluginOwnedBusinessData.schoolId, schoolId),
+      eq(pluginOwnedBusinessData.pluginId, pluginId),
+      eq(pluginOwnedBusinessData.key, storageKey),
+    ),
+    columns: { payloadJson: true },
+  });
+
+  return row?.payloadJson ?? null;
+}
+
+// ── Export — system.config ──
+
+export const systemConfigHandler = {
+  "system.config.set": { authorize: systemConfigSetAuthorize, execute: systemConfigSetExecute },
+  "system.config.get": { authorize: systemConfigGetAuthorize, execute: systemConfigGetExecute },
 };
