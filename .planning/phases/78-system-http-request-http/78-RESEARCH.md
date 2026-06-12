@@ -698,27 +698,19 @@ function throwSystemCommandFailure(input: {
 | A6 | DNS resolution in `connect.lookup` only handles IPv4 (`resolve4`); IPv6 (`resolve6`) is an enhancement | SSRF Guard Pattern | IPv6-only hosts cannot be reached if only IPv4 is resolved |
 | A7 | SchoolId and pluginId for manifest query and audit are taken from `command.scope` (envelope) | Code Examples | D-04 says `command.scope.pluginId`; if scope contains wrong pluginId, validation is bypassed |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Header whitelist content**
-   - What we know: CONTEXT.md marks this as Claude's discretion. PITFALLS.md recommends allowing `Authorization`, `Content-Type`, `Accept`, `User-Agent`, custom `X-*` headers. Blocking `Host`, `Cookie`, `X-Forwarded-*`, `Proxy-Authorization`, `X-Real-IP`.
-   - What's unclear: Exact list not locked. Balance between security (tight allowlist) and utility (plenty of APIs need custom headers).
-   - Recommendation: Use the list from PITFALLS.md as a starting point: allow `Authorization`, `Content-Type`, `Accept`, `User-Agent`, and `X-*` (excluding reserved prefixes). Block all others.
+1. **Header whitelist content** — RESOLVED
+   - Decision: Allow `Authorization`, `Content-Type`, `Accept`, `User-Agent`, and `X-*` (excluding reserved prefixes `X-Forwarded-*`, `X-Real-IP`). Block all others including `Host`, `Cookie`, `Proxy-Authorization`.
 
-2. **Timeout and response size override behavior**
-   - What we know: Manifest `SystemCommandHttpRequestSchema` has `maxResponseSize` and `defaultTimeout` fields. Payload also has `maxResponseSize` and `timeout` fields.
-   - What's unclear: Does the payload value override the manifest value, or is the manifest value a ceiling that the payload cannot exceed?
-   - Recommendation: Manifest values are CEILINGS. Payload can request lower values but cannot exceed manifest-declared limits. This is safer.
+2. **Timeout and response size override behavior** — RESOLVED
+   - Decision: Manifest values are CEILINGS. Payload can request lower values but cannot exceed manifest-declared limits.
 
-3. **IPv6 DNS resolution support**
-   - What we know: The SSRF guard pattern in STACK.md only shows `dns.resolve4`. Full SSRF protection should cover IPv6 too.
-   - What's unclear: Whether v4.3 requires IPv6 SSRF coverage or if IPv4-only is acceptable initially.
-   - Recommendation: Include both `resolve4` and `resolve6` in the `connect.lookup` callback. IPv4-mapped IPv6 (`::ffff:`) is a known bypass vector that must be covered.
+3. **IPv6 DNS resolution support** — RESOLVED
+   - Decision: Include both `resolve4` and `resolve6` in `connect.lookup`. IPv4-mapped IPv6 (`::ffff:`) is a bypass vector that must be covered.
 
-4. **Response body encoding and content-type handling**
-   - What we know: The handler returns response body as a string in `resultSummary`. Binary or non-UTF8 responses need handling.
-   - What's unclear: Whether binary responses should be base64-encoded or rejected.
-   - Recommendation: Use `TextDecoder` with UTF-8. For non-UTF8 content types, decode as Latin-1 (lossless byte-to-char mapping). Binary responses (image/*, application/octet-stream) could be rejected or base64-encoded -- flag for user decision.
+4. **Response body encoding and content-type handling** — RESOLVED
+   - Decision: Use `TextDecoder` with UTF-8. For non-UTF8 content types, decode as Latin-1 (lossless byte-to-char mapping). Binary content types (`image/*`, `application/octet-stream`) are rejected with a clear error code.
 
 ## Metadata
 

@@ -107,7 +107,10 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
+**Wave 1**
 - [ ] 78-01-PLAN.md — SSRF guard (DNS pinning, IP detection, HTTPS-only) + governance audit helper
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 78-02-PLAN.md — system.http.request handler (authorize manifest whitelist + execute HTTP proxy) + registry wiring
 
 **UI hint**: yes

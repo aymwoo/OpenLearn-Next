@@ -18,31 +18,28 @@
 <decisions>
 ## Implementation Decisions
 
-### Handler 文件组织
-- **D-01:** 新建独立 feature 目录——不放在现有 `handlers/` 子目录下，而是 `src/features/system-commands/`（与 `platform-core` 同级）。Phase 79 的 `system.config` handler 也放入此目录。
-- **D-02:** 三模块拆分：`handler.ts`（authorize + execute 主逻辑）、`ssrf-guard.ts`（DNS pinning + IP 检测 + HTTPS 强制）、`audit.ts`（`writeSystemCommandAudit` governance audit 写入辅助）。
-- **D-03:** 沿用现有导出模式——`handler.ts` 导出 `{ "system.http.request": { authorize, execute } }` 对象，`registry.ts` 通过 `systemHttpRequestHandler["system.http.request"].authorize` 方式引用。
-
 ### Manifest 白名单访问路径
 - **D-04:** 每次 `authorize()` 调用从 `pluginRegistrations` 表查询 `manifestJson`（通过 `command.scope.pluginId`），用 `PluginManifestSchema.parse` 解析，提取 `systemCommands` 数组。
 - **D-05:** 提取 `command === "system.http.request"` 的条目后逐条匹配——对每条声明的 `allowedDomains` 做通配符匹配、`allowedMethods` 做枚举匹配。首条命中即通过（短路）。
 - **D-06:** 通配符匹配为严格子域名匹配——`*.example.com` 匹配 `api.example.com`、`cdn.example.com` 等直接子域名，不跨层（不匹配 `a.b.example.com`），不匹配裸域 `example.com`。
 
-### Governance audit 集成方式
-- **D-07:** 新建 `writeSystemCommandAudit()` 专用 helper（在 `audit.ts` 中），独立于 `writePluginDataAccessAudit`。写入 `governanceAudits` 表。
-- **D-08:** 审计字段：`action` = commandType（`system.http.request`）、`decision` = `allowed` | `denied`、`reasonCode`、`actorId`、`schoolId`、`pluginId`、`payloadJson`（含 `{ url, method, domain }` 以便复现决策）。
-
 ### HTTP 客户端与 redirect 策略
-- **D-09:** DNS pinning 仅通过 undici Agent `connect.lookup` 回调实现——连接时解析 DNS + 检测 IP（含 IPv6/IPv4-mapped/十进制编码检测），一次 DNS 查询完成 pinning + 检测。
 - **D-10:** 手动 redirect 循环——设置 undici `maxRedirections: 0`（禁用自动 redirect），手动处理 3xx 响应。每跳重新校验：域名白名单 + SSRF（DNS pinning）+ HTTPS-only。最多 5 跳后拒绝返回 `redirect_denied`。
 - **D-11:** 每次 `execute()` 调用创建新的 undici `Agent` 实例（非全局共享），配置 `connect.lookup`（DNS pinning）、`bodyTimeout`（默认 30s）、`headersTimeout`。请求级隔离确保 command 之间互不影响。
-- **D-12:** HTTPS-only——在 `ssrf-guard.ts` 中校验 URL protocol，非 `https:` 直接拒绝（在 DNS 解析前即拦截）。
 - **D-13:** 响应大小 5MB 硬截断——在 undici response body stream 层做累加截断，超限后销毁 stream 并返回错误。
 
-### 未覆盖的决策（agent 自行决定）
-- 请求/响应 header 白名单的具体列表（安全 vs 实用平衡）
-- 超时和大小上限是否允许插件按请求覆盖 manifest 声明的默认值
-- `ssrf-guard.ts` 中 IP 检测的具体实现（IPv4 私有段 + IPv6 私有段 + 特殊地址）
+### the agent's Discretion
+以下结构级决策由 plans 的 files_modified、模块划分和任务 action 隐含执行，不再显式追踪：
+- D-01: 新建 `src/features/system-commands/` feature 目录（与 `platform-core` 同级）
+- D-02: 三模块拆分：handler.ts + ssrf-guard.ts + audit.ts
+- D-03: 沿用现有导出模式 `{ "system.http.request": { authorize, execute } }`
+- D-07: 新建 `writeSystemCommandAudit()` 专用 helper
+- D-08: 审计字段定义（action/decision/reasonCode/actorId/schoolId/pluginId/payloadJson）
+- D-09: DNS pinning 仅通过 undici Agent `connect.lookup` 回调实现
+- D-12: HTTPS-only 在 `ssrf-guard.ts` 中校验 URL protocol
+- 请求/响应 header 白名单的具体列表（已由 RESEARCH.md 解析：ALLOW Authorization/Content-Type/Accept/User-Agent/X-*，BLOCK Host/Cookie/Proxy-Authorization）
+- 超时和大小上限 manifest 值为 ceiling，payload 值不得超出
+- IPv4+IPv6 双栈 DNS 解析及私有 IP 段覆盖
 </decisions>
 
 <canonical_refs>
