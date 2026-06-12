@@ -11,7 +11,6 @@ import {
 } from "../plugins/governance-projection";
 import { PluginDataAccessError, type PluginDataAccessReason } from "./allowlist";
 import { writePluginDataAccessAudit } from "./audit";
-import type { PluginDataAccessVerb } from "./contracts";
 
 /**
  * 治理门以 "plugin" actor scope 落库审计——动词执行代表受治理插件行为，
@@ -43,7 +42,7 @@ export type AssertActionExecutableResult = {
 export async function assertActionExecutable(input: {
   actorId: string;
   pluginKey: string;
-  verb: PluginDataAccessVerb;
+  verb: string;
   correlationId: string;
   commandId?: string | null;
 }): Promise<AssertActionExecutableResult> {
@@ -123,7 +122,7 @@ async function deriveActiveSchoolScope(): Promise<DerivedTeacherScope> {
 }
 
 async function writeDenial(
-  input: { actorId: string; pluginKey: string; verb: PluginDataAccessVerb; correlationId: string; commandId?: string | null },
+  input: { actorId: string; pluginKey: string; verb: string; correlationId: string; commandId?: string | null },
   detail: {
     schoolId: string;
     pluginId?: string | null;

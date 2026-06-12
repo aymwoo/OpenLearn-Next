@@ -152,6 +152,7 @@ async function authorize({
       decision: "denied",
       reasonCode: "not_allowlisted",
       payloadJson: { url: payload.url, method: payload.method },
+      commandType: "system.http.request" as const,
     });
     throw new PlatformCommandExecutionError({
       message: "Plugin registration not found",
@@ -204,6 +205,7 @@ async function authorize({
       decision: "denied",
       reasonCode: "not_allowlisted",
       payloadJson: { url: payload.url, method: payload.method },
+      commandType: "system.http.request" as const,
     });
     throw new PlatformCommandExecutionError({
       message: "system.http.request not allowlisted in plugin manifest",
@@ -287,6 +289,7 @@ async function authorize({
     decision: "denied",
     reasonCode,
     payloadJson: { url: payload.url, method: payload.method, domain: hostname },
+    commandType: "system.http.request" as const,
   });
 
   throw new PlatformCommandExecutionError({
@@ -398,6 +401,7 @@ async function execute({
       correlationId: command.correlation.correlationId,
       decision: "allowed",
       payloadJson: { url: payload.url, method: payload.method, domain: result.finalUrl },
+      commandType: "system.http.request" as const,
     });
 
     return successResult({
@@ -445,6 +449,7 @@ async function execute({
         method: payload.method,
         error: message.slice(0, 500),
       },
+      commandType: "system.http.request" as const,
     });
 
     throw new PlatformCommandExecutionError({
@@ -515,6 +520,7 @@ async function executeRequest(
       decision: "denied",
       reasonCode: "redirect_denied",
       payloadJson: { url: currentUrl, redirectCount },
+      commandType: "system.http.request" as const,
     });
     throw new PlatformCommandExecutionError({
       message: `Redirect denied: exceeded ${MAX_REDIRECTS} hops`,
@@ -570,6 +576,7 @@ async function executeRequest(
         domain: targetHostname,
         redirectCount,
       },
+      commandType: "system.http.request" as const,
     });
     throw new PlatformCommandExecutionError({
       message: `Redirect target method not in manifest allowedMethods: ${redirectMethod}`,
@@ -620,6 +627,7 @@ async function executeRequest(
         domain: targetHostname,
         redirectCount,
       },
+      commandType: "system.http.request" as const,
     });
     throw new PlatformCommandExecutionError({
       message: `Redirect target domain not in manifest whitelist: ${targetHostname}`,
@@ -685,6 +693,7 @@ async function executeRequest(
         decision: "denied",
         reasonCode: "redirect_denied",
         payloadJson: { url: currentUrl, statusCode: response.status, redirectCount },
+        commandType: "system.http.request" as const,
       });
       throw new PlatformCommandExecutionError({
         message: `Redirect without Location header (status ${response.status})`,

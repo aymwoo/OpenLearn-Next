@@ -5,7 +5,6 @@ import { governanceAudits } from "@/db/schema";
 import type { PluginLifecycleState, RuntimeActorScope } from "@/features/runtime-platform/contracts/permissions";
 
 import type { PluginDataAccessReason } from "./contracts";
-import type { PluginDataAccessVerb } from "./contracts";
 
 /**
  * tx-aware executor 形状（仅需 `insert`）。镜像 dal/plugins.ts 的 PluginDalTx，
@@ -31,7 +30,7 @@ export async function writePluginDataAccessAudit(input: {
   tx?: PluginDataAccessAuditExecutor;
   pluginId?: string | null;
   schoolId: string;
-  verb: PluginDataAccessVerb;
+  verb: string;
   decision: "allowed" | "denied";
   reasonCode?: PluginDataAccessReason | null;
   actorId: string;
