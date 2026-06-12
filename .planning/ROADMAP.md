@@ -132,8 +132,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 79-01-PLAN.md — system.config handler + dispatchSystemCommand facade (to be planned)
-- [ ] 79-02-PLAN.md — (to be planned)
+- [ ] 79-01-PLAN.md — 治理门泛化（verb→string）+ audit 参数化 + dispatchSystemCommand facade 入口
+- [ ] 79-02-PLAN.md — system.config.set/get handler + registry stub 替换 + facade 判别派发补全
 
 **UI hint**: yes
 
