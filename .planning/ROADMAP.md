@@ -24,6 +24,7 @@
 - [x] Phase 76: v4.2 Authoritative Close Gate (6 plans)
 
 Plans:
+
 - [x] 76-01-PLAN.md — Gate skeleton + alias target declaration (6-stage outer gate)
 - [x] 76-02-PLAN.md — Stage 1+2 wiring: v4.0 gate regression + v4.1 quiz verification
 - [x] 76-03-PLAN.md — Stage 3 wiring: Phase 75 homework full-chain verification
@@ -70,6 +71,7 @@ See `.planning/milestones/` for full archives.
 - [ ] **Phase 79: system.config KV 配置 + dispatchSystemCommand facade** - 插件读/写自身 KV 配置 + 统一入口门面
 
 ### Phase 77: Manifest 声明 + Command Registry 注册
+
 **Goal**: 插件可在 manifest 中声明所需 system 命令，install 时校验声明合法性；`platformCommandRegistry` 具备 `system.*` 命令类型的注册能力，governance audit 覆盖 system command denials。
 
 **Depends on**: v4.2 baseline（Phase 76 complete）
@@ -77,6 +79,7 @@ See `.planning/milestones/` for full archives.
 **Requirements**: SYS-03, SYS-05
 
 **Success Criteria** (what must be TRUE):
+
   1. `PluginManifest` 的 Zod schema 支持 `.optional()` 的 `systemCommands` 声明段，`system.http.request` 和 `system.config` 各有专用 shape 校验，不合法声明在 install preflight 时被拒绝并给出具名拒因
   2. `platformCommandRegistry` 新增 2 个 commandType（`system.http.request` + `system.config.set`），`PlatformCommandTypeSchema` 和 `PlatformCommandSchema` 的 discriminated union 已追加对应变体
   3. governance audit 新增 4 个 reasonCode（`domain_not_allowed` / `method_not_allowed` / `private_ip_blocked` / `config_key_denied`），每次 system command deny 至少产生 1 条 audit 记录
@@ -85,12 +88,14 @@ See `.planning/milestones/` for full archives.
 **Plans**: 2 plans
 
 Plans:
+
 - [x] 77-01-PLAN.md — PluginManifestSchema 扩展 systemCommands 声明段 + 全量兼容性扫描
 - [x] 77-02-PLAN.md — platformCommandRegistry 注册 system 命令 + GovernanceDeniedReasonValues 扩展
 
 **UI hint**: yes
 
 ### Phase 78: system.http.request HTTP 代理
+
 **Goal**: 插件可通过 `system.http.request` 经 manifest 声明的白名单域名+方法代理 HTTPS 调用，系统在运行时逐请求校验白名单、执行 SSRF 防护并审计。
 
 **Depends on**: Phase 77
@@ -98,6 +103,7 @@ Plans:
 **Requirements**: SYS-01
 
 **Success Criteria** (what must be TRUE):
+
   1. 插件在 manifest 的 `systemCommands.system.http.request` 中声明 `allowedDomains`（支持 `*.example.com` 通配符）和 `allowedMethods`（GET/POST/PUT/DELETE/PATCH），声明在 install preflight 时校验合法性
   2. 插件发起 `system.http.request` 调用时，系统逐请求校验目标域名匹配 `allowedDomains` + 方法匹配 `allowedMethods`，不匹配时拒绝并返回 `domain_not_allowed` / `method_not_allowed` audit
   3. SSRF 防护生效：DNS pinning（undici Agent `connect.lookup`）+ IPv6/IPv4-mapped/十进制编码检测 + redirect 链 re-validate，命中内网 IP 时拒绝并返回 `private_ip_blocked`
@@ -108,14 +114,17 @@ Plans:
 
 Plans:
 **Wave 1**
+
 - [x] 78-01-PLAN.md — SSRF guard (DNS pinning, IP detection, HTTPS-only) + governance audit helper
 
 **Wave 2** *(blocked on Wave 1 completion)*
+
 - [x] 78-02-PLAN.md — system.http.request handler (authorize manifest whitelist + execute HTTP proxy) + registry wiring
 
 **UI hint**: yes
 
 ### Phase 79: system.config KV 配置 + dispatchSystemCommand facade
+
 **Goal**: 插件可通过 `system.config.get/set` 读写自身 KV 配置（三重前缀隔离，不跨插件访问）；`dispatchSystemCommand` facade 作为统一入口，治理门前置，schoolId 由 session 派生。
 
 **Depends on**: Phase 77（可并行于 Phase 78）
@@ -123,6 +132,7 @@ Plans:
 **Requirements**: SYS-02, SYS-04
 
 **Success Criteria** (what must be TRUE):
+
   1. 插件可调用 `system.config.set` 写入自身 KV 配置，key 自动以 `{schoolId}:{pluginId}:{key}` 前缀隔离，key 名含 `:` 时被 Zod 层拒绝，单值上限 64KB
   2. 插件可调用 `system.config.get` 读取自身配置，返回 JSON 值，无权限读取其他插件的 key（跨插件隔离验证通过）
   3. `dispatchSystemCommand` facade 三段式结构生效：治理门（`assertActionExecutable` lifecycle + kill-switch + school scope）→ 判别派发（manifest 白名单 re-parse → 路由到对应 handler）→ 结果返回
@@ -132,7 +142,12 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 79-01-PLAN.md — 治理门泛化（verb→string）+ audit 参数化 + dispatchSystemCommand facade 入口
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 79-02-PLAN.md — system.config.set/get handler + registry stub 替换 + facade 判别派发补全
 
 **UI hint**: yes
