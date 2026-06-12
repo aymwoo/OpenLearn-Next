@@ -1181,6 +1181,9 @@ async function systemConfigGetExecute({
 
 // ── Export — system.config ──
 
+// Named exports for facade direct call (system.config.get does not go through Command Bus)
+export { systemConfigGetAuthorize, systemConfigGetExecute };
+
 export const systemConfigHandler = {
   "system.config.set": { authorize: systemConfigSetAuthorize, execute: systemConfigSetExecute },
   "system.config.get": { authorize: systemConfigGetAuthorize, execute: systemConfigGetExecute },
