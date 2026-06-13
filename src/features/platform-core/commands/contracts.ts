@@ -41,9 +41,11 @@ export const SystemCommandTypes = [
   "system.config.set",
   "system.file.upload",
   "system.file.delete",
+  "system.notification.send",
 ] as const;
-// Note: system.config.get, system.file.download, system.file.list, and system.file.metadata
-// are deliberately excluded — they are pure DAL reads, not PlatformCommandTypes.
+// Note: system.config.get, system.file.download, system.file.list, system.file.metadata,
+// and system.notification read operations are deliberately excluded —
+// they are pure DAL reads, not PlatformCommandTypes.
 
 export const PlatformCommandTypeSchema = z.enum([
   ...PlatformPluginGovernanceCommandTypes,
@@ -308,6 +310,20 @@ const SystemFileDeletePayloadSchema = z.strictObject({
   fileId: z.string().min(1),
 });
 
+/**
+ * Phase 81 (NOTIF-01): System notification send payload schema.
+ *
+ * Validated at the governance gate before the handler executes.
+ * recipientUserId + notificationType + title + body are all required
+ * with length constraints matching the DB schema.
+ */
+const SystemNotificationSendPayloadSchema = z.strictObject({
+  recipientUserId: z.string().min(1),
+  notificationType: z.string().min(1).max(64),
+  title: z.string().min(1).max(256),
+  body: z.string().min(1).max(2048),
+});
+
 export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,
   "plugin.upgrade.preflight": PluginUpgradePreflightPayloadSchema,
@@ -332,6 +348,7 @@ export const PlatformCommandPayloadSchemas = {
   "system.config.set": SystemConfigSetPayloadSchema,
   "system.file.upload": SystemFileUploadPayloadSchema,
   "system.file.delete": SystemFileDeletePayloadSchema,
+  "system.notification.send": SystemNotificationSendPayloadSchema,
 } as const;
 
 export const PlatformCommandSchema = z.discriminatedUnion("type", [
@@ -426,6 +443,10 @@ export const PlatformCommandSchema = z.discriminatedUnion("type", [
   PlatformCommandEnvelopeSchema.extend({
     type: z.literal("system.file.delete"),
     payload: SystemFileDeletePayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("system.notification.send"),
+    payload: SystemNotificationSendPayloadSchema,
   }),
 ]);
 
