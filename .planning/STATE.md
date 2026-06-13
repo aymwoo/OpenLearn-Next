@@ -2,9 +2,8 @@
 gsd_state_version: 1.0
 milestone: v4.4
 milestone_name: System Commands Bus（第二批）
-status: ready_to_plan
-stopped_at: Phase 80 complete (5/5) — ready to discuss Phase 81
-last_updated: 2026-06-13T08:36:28.809Z
+status: planning
+last_updated: "2026-06-13T11:15:38.765Z"
 last_activity: 2026-06-13
 progress:
   total_phases: 2
@@ -109,6 +108,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-06-13T08:32:43.422Z
-Stopped at: context exhaustion at 80% (2026-06-13)
-Resume file: None
+Last session: 2026-06-13T11:15:38.689Z
+Stopped at: Phase 81 context gathered
+Resume file: .planning/phases/81-system-notification/81-CONTEXT.md
