@@ -2,8 +2,9 @@
 gsd_state_version: 1.0
 milestone: v4.4
 milestone_name: System Commands Bus（第二批）
-status: executing
-last_updated: "2026-06-13T08:26:56.501Z"
+status: ready_to_plan
+stopped_at: Phase 80 complete (5/5) — ready to discuss Phase 81
+last_updated: 2026-06-13T08:36:28.809Z
 last_activity: 2026-06-13
 progress:
   total_phases: 2
@@ -20,13 +21,13 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-13 after v4.4 start)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 80 — system-file
+**Current focus:** Phase 81 — system.notification 应用内通知推送
 
 ## Current Position
 
-Phase: 80 (system-file) — EXECUTING
-Plan: 3 of 5
-Status: Ready to execute
+Phase: 81
+Plan: Not started
+Status: Ready to plan
 Last activity: 2026-06-13
 
 Progress: [██████████] 100%
@@ -35,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 71（v4.3 inclusive: v4.0=20 + v4.1=7 + v4.2=19 + v4.3=6 + earlier milestones）
+- Total plans completed: 76（v4.3 inclusive: v4.0=20 + v4.1=7 + v4.2=19 + v4.3=6 + earlier milestones）
 - Average duration: —
 - Total execution time: —
 
@@ -108,6 +109,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-06-13T08:26:56.489Z
+Last session: 2026-06-13T08:32:43.422Z
 Stopped at: context exhaustion at 80% (2026-06-13)
 Resume file: None

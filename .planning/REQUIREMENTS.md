@@ -15,7 +15,7 @@ Requirements for v4.4 System Commands Bus（第二批）— system.file + system
 - [x] **FILE-04**: 插件可通过 `system.file.list` 列出自身文件列表（按前缀过滤、分页）
 - [x] **FILE-05**: 插件可通过 `system.file.metadata` 获取单个文件的元数据（大小/MIME/SHA-256/创建时间）
 - [x] **FILE-06**: 文件存储以 `{schoolId}/{pluginKey}` 双重前缀物理隔离，跨插件/跨校不可访问
-- [ ] **FILE-07**: manifest `systemCommands.system.file` 声明 `allowedPaths` 白名单，runtime 逐请求匹配路径前缀
+- [x] **FILE-07**: manifest `systemCommands.system.file` 声明 `allowedPaths` 白名单，runtime 逐请求匹配路径前缀
 - [x] **FILE-08**: 路径穿越防护：多层校验覆盖 URL 编码变体（`%2e%2e%2f`）、null byte（`%00`）、parent reference（`..`）
 - [x] **FILE-09**: 文件大小配额：单文件上限 50MB + 每插件每校总容量上限可配置
 
@@ -71,7 +71,7 @@ Deferred to future milestones.
 | FILE-04 | Phase 80 | Complete |
 | FILE-05 | Phase 80 | Complete |
 | FILE-06 | Phase 80 | Complete |
-| FILE-07 | Phase 80 | Pending |
+| FILE-07 | Phase 80 | Complete |
 | FILE-08 | Phase 80 | Complete |
 | FILE-09 | Phase 80 | Complete |
 | NOTIF-01 | Phase 81 | Pending |
