@@ -23,6 +23,7 @@ import {
   upsertAsyncWorkerHeartbeat,
 } from "@/features/async-tasks/infra/heartbeat";
 import { enqueueDueScheduleReminderDispatches } from "@/features/schedule/reminders/server";
+import { registerNotificationCleanupScheduler } from "@/server/workers/notification-cleanup";
 
 import { buildAsyncTaskQueueProcessor } from "./registry";
 
@@ -182,6 +183,13 @@ class AsyncTaskWorkerRuntime {
     await this.writeHeartbeat("ready");
     this.startHeartbeatInterval();
     this.startDueDispatchSweepLoop();
+
+    registerNotificationCleanupScheduler().catch((error) => {
+      console.error(
+        "[async-task-worker] notification cleanup scheduler failed to register",
+        error,
+      );
+    });
 
     return this.getSnapshot();
   }
