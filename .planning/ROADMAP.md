@@ -102,7 +102,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 80-03-PLAN.md — Command Bus 集成（systemFileHandler + registry 注册 + facade 分支 + audit 扩展）
+- [x] 80-03-PLAN.md — Command Bus 集成（systemFileHandler + registry 注册 + facade 分支 + audit 扩展）
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -138,7 +138,7 @@ Plans:
 | 77. Manifest 声明 + Command Registry 注册 | v4.3 | 2/2 | Complete | 2026-06-11 |
 | 78. system.http.request HTTP 代理 | v4.3 | 2/2 | Complete | 2026-06-12 |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 2/2 | Complete | 2026-06-12 |
-| 80. system.file 文件存储代理 | v4.4 | 2/5 | In Progress|  |
+| 80. system.file 文件存储代理 | v4.4 | 3/5 | In Progress|  |
 | 81. system.notification 应用内通知推送 | v4.4 | 0/0 | Not started | - |
 
 ---
