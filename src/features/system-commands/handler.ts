@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { db } from "@/db";
-import { pluginRegistrations, pluginOwnedBusinessData } from "@/db/schema";
+import { pluginRegistrations, pluginOwnedBusinessData, memberships } from "@/db/schema";
 import { PluginManifestSchema } from "@/lib/dto/resource-ai";
 import { eq, and, sql } from "drizzle-orm";
 import {
@@ -13,6 +13,8 @@ import { validateUrl, createPinnedAgent, MAX_REDIRECTS } from "./ssrf-guard";
 import { writeSystemCommandAudit } from "./audit";
 import type { SystemCommandHttpRequestSchema } from "@/lib/dto/resource-ai";
 import { insertFileRecord, softDeleteFile } from "@/lib/dal/files";
+import { insertNotification } from "@/lib/dal/notification";
+import { checkPluginRateLimit, checkUserRateLimit } from "./rate-limiter";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1566,4 +1568,307 @@ async function systemFileDeleteExecute({
 export const systemFileHandler = {
   "system.file.upload": { authorize: systemFileUploadAuthorize, execute: systemFileUploadExecute },
   "system.file.delete": { authorize: systemFileDeleteAuthorize, execute: systemFileDeleteExecute },
+};
+
+// ── system.notification.send — types ──
+
+type SystemNotificationSendCommand = Extract<PlatformCommand, { type: "system.notification.send" }>;
+
+type ManifestNotificationEntry = {
+  command: "system.notification";
+  notificationTypes: string[];
+};
+
+// ── system.notification.send — manifest resolver ──
+
+/**
+ * Resolve the plugin registration and parse manifest to extract system.notification entries.
+ *
+ * Mirrors resolveSystemFileManifestEntry pattern.
+ */
+async function resolveSystemNotificationManifestEntry(
+  pluginId: string,
+  schoolId: string,
+): Promise<{
+  row: typeof pluginRegistrations.$inferSelect;
+  manifest: z.infer<typeof PluginManifestSchema>;
+  notificationEntries: ManifestNotificationEntry[];
+}> {
+  const row = await db.query.pluginRegistrations.findFirst({
+    where: and(
+      eq(pluginRegistrations.id, pluginId),
+      eq(pluginRegistrations.schoolId, schoolId),
+    ),
+  });
+
+  if (!row) {
+    throw { code: "registration_not_found" } as const;
+  }
+
+  const manifest = PluginManifestSchema.parse(row.manifestJson);
+  const systemCommands = manifest.systemCommands ?? [];
+  const notificationEntries = systemCommands.filter(
+    (entry): entry is typeof entry & { command: "system.notification" } =>
+      entry.command === "system.notification",
+  ) as unknown as ManifestNotificationEntry[];
+
+  return { row, manifest, notificationEntries };
+}
+
+// ── system.notification.send — deny helper ──
+
+/** Build a PlatformCommandExecutionError for system.notification with audit-before-throw. */
+async function denySystemNotification(params: {
+  pluginId: string;
+  schoolId: string;
+  commandId: string | null;
+  actorId: string;
+  actorScope: string;
+  lifecycleState: string;
+  correlationId: string;
+  reasonCode: string;
+  notificationType: string;
+  commandType: "system.notification.send";
+  recommendedRecoveryAction: string;
+}): Promise<never> {
+  await writeSystemCommandAudit({
+    pluginId: params.pluginId,
+    schoolId: params.schoolId,
+    commandId: params.commandId,
+    actorId: params.actorId,
+    actorScope: params.actorScope,
+    lifecycleState: params.lifecycleState,
+    correlationId: params.correlationId,
+    decision: "denied",
+    reasonCode: params.reasonCode,
+    payloadJson: { notificationType: params.notificationType },
+    commandType: params.commandType,
+  });
+
+  throw new PlatformCommandExecutionError({
+    message: `system.notification denied: ${params.reasonCode}`,
+    failureAttribution: {
+      scope: "plugin",
+      pluginId: params.pluginId,
+      reasonCode: params.reasonCode,
+      recommendedRecoveryAction: params.recommendedRecoveryAction,
+    },
+    failureEvent: {
+      eventType: "platform.command.failed",
+      category: "outcome",
+      aggregateType: "plugin",
+      aggregateId: params.pluginId,
+      payload: {
+        commandType: params.commandType,
+        reasonCode: params.reasonCode,
+        failureAttribution: {
+          scope: "plugin",
+          pluginId: params.pluginId,
+          reasonCode: params.reasonCode,
+          recommendedRecoveryAction: params.recommendedRecoveryAction,
+        },
+      },
+      audit: {
+        delegatedActor: null,
+        approval: null,
+      },
+    },
+  });
+}
+
+// ── system.notification.send — authorize ──
+
+/**
+ * system.notification.send authorize (Phase 81).
+ *
+ * Steps:
+ * 1. Resolve manifest → get notificationEntries (notificationTypes allowlist)
+ * 2. Check notificationType is in notificationTypes allowlist
+ * 3. Check recipientUserId is in schoolId (memberships table)
+ * 4. Check plugin rate limit (60/min)
+ * 5. Check user rate limit (30/hr)
+ *
+ * All deny paths write audit BEFORE throw.
+ */
+async function notificationSendAuthorize({
+  command,
+}: {
+  command: PlatformCommand;
+}): Promise<void> {
+  const sysCmd = command as SystemNotificationSendCommand;
+  const pluginId = command.scope.pluginId;
+  const schoolId = command.scope.schoolId;
+  const notificationType = sysCmd.payload.notificationType;
+  const recipientUserId = sysCmd.payload.recipientUserId;
+
+  try {
+    const { row, notificationEntries } = await resolveSystemNotificationManifestEntry(pluginId, schoolId);
+    const lifecycleState = row.lifecycleState ?? "ready";
+
+    // Step 1+2: manifest allowlist check
+    if (notificationEntries.length === 0) {
+      return void (await denySystemNotification({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState,
+        correlationId: command.correlation.correlationId,
+        reasonCode: "notification_type_not_allowed",
+        notificationType,
+        commandType: "system.notification.send",
+        recommendedRecoveryAction: "update_manifest_notification_types",
+      }));
+    }
+
+    // First-match-wins across all notification entries
+    let typeAllowed = false;
+    for (const entry of notificationEntries) {
+      if (entry.notificationTypes.includes(notificationType)) {
+        typeAllowed = true;
+        break;
+      }
+    }
+
+    if (!typeAllowed) {
+      return void (await denySystemNotification({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState,
+        correlationId: command.correlation.correlationId,
+        reasonCode: "notification_type_not_allowed",
+        notificationType,
+        commandType: "system.notification.send",
+        recommendedRecoveryAction: "update_manifest_notification_types",
+      }));
+    }
+
+    // Step 3: recipientUserId must be in schoolId (check memberships table)
+    const memberRow = await db.query.memberships.findFirst({
+      where: and(
+        eq(memberships.userId, recipientUserId),
+        eq(memberships.schoolId, schoolId),
+        eq(memberships.status, "active"),
+      ),
+    });
+
+    if (!memberRow) {
+      return void (await denySystemNotification({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState,
+        correlationId: command.correlation.correlationId,
+        reasonCode: "recipient_not_in_school",
+        notificationType,
+        commandType: "system.notification.send",
+        recommendedRecoveryAction: "verify_recipient_membership",
+      }));
+    }
+
+    // Step 4: plugin rate limit
+    const pluginAllowed = await checkPluginRateLimit(pluginId);
+    if (!pluginAllowed) {
+      return void (await denySystemNotification({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState,
+        correlationId: command.correlation.correlationId,
+        reasonCode: "rate_limit_exceeded",
+        notificationType,
+        commandType: "system.notification.send",
+        recommendedRecoveryAction: "retry_after_rate_limit_window",
+      }));
+    }
+
+    // Step 5: user rate limit
+    const userAllowed = await checkUserRateLimit(recipientUserId);
+    if (!userAllowed) {
+      return void (await denySystemNotification({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState,
+        correlationId: command.correlation.correlationId,
+        reasonCode: "rate_limit_exceeded",
+        notificationType,
+        commandType: "system.notification.send",
+        recommendedRecoveryAction: "retry_after_rate_limit_window",
+      }));
+    }
+
+    // All checks passed — authorization complete
+    return;
+  } catch (e) {
+    if ((e as { code?: string }).code === "registration_not_found") {
+      return void (await denySystemNotification({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState: "ready",
+        correlationId: command.correlation.correlationId,
+        reasonCode: "not_allowlisted",
+        notificationType,
+        commandType: "system.notification.send",
+        recommendedRecoveryAction: "install_plugin",
+      }));
+    }
+    if (e instanceof PlatformCommandExecutionError) throw e;
+    throw e;
+  }
+}
+
+// ── system.notification.send — execute ──
+
+/**
+ * system.notification.send execute (Phase 81).
+ *
+ * Inserts into pluginNotifications table via DAL. Writes allowed audit on success.
+ */
+async function notificationSendExecute({
+  command,
+  attemptNumber: _attemptNumber,
+}: {
+  command: PlatformCommand;
+  attemptNumber: number;
+}): Promise<PlatformCommandExecutionResult> {
+  const sysCmd = command as SystemNotificationSendCommand;
+  const { recipientUserId, notificationType, title, body } = sysCmd.payload;
+  const pluginId = command.scope.pluginId;
+  const schoolId = command.scope.schoolId;
+
+  const inserted = await insertNotification({
+    schoolId,
+    pluginId,
+    recipientUserId,
+    notificationType,
+    title,
+    body,
+  });
+
+  await writeSystemCommandAudit({
+    pluginId,
+    schoolId,
+    commandId: command.id,
+    actorId: command.actor.actorId,
+    actorScope: command.actor.actorScope,
+    lifecycleState: "ready",
+    correlationId: command.correlation.correlationId,
+    decision: "allowed",
+    payloadJson: {
+      recipientUserId,
+      notificationType,
+      title: title.substring(0, 100),
+    },
+    commandType: "system.notification.send",
+  });
+
+  return successResult({ notificationId: inserted?.id });
+}
+
+// ── Export — system.notification ──
+
+export const systemNotificationHandler = {
+  "system.notification.send": { authorize: notificationSendAuthorize, execute: notificationSendExecute },
 };

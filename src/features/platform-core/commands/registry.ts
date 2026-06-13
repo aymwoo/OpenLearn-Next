@@ -8,7 +8,7 @@ import { pluginCommandHandlers } from "./handlers/plugins";
 import { lessonDraftCommandHandlers } from "./handlers/lesson-draft";
 import { pluginDataInsertHandler, pluginDataUpsertHandler } from "./handlers/plugin-data";
 import { quizAnswerReceivedHandler } from "./handlers/quiz-answer-received";
-import { systemHttpRequestHandler, systemConfigHandler, systemFileHandler } from "@/features/system-commands/handler";
+import { systemHttpRequestHandler, systemConfigHandler, systemFileHandler, systemNotificationHandler } from "@/features/system-commands/handler";
 
 export function createPlatformCommandDefinition<TType extends PlatformCommandType>(
   input: PlatformCommandDefinition<TType>,
@@ -185,5 +185,14 @@ export const platformCommandRegistry = {
       await systemFileHandler["system.file.delete"].authorize(input);
     },
     execute: systemFileHandler["system.file.delete"].execute,
+  }),
+  "system.notification.send": createPlatformCommandDefinition({
+    commandType: "system.notification.send",
+    payloadSchema: PlatformCommandPayloadSchemas["system.notification.send"],
+    dedupe: "required",
+    authorize: async (input: { command: PlatformCommand }) => {
+      await systemNotificationHandler["system.notification.send"].authorize(input);
+    },
+    execute: systemNotificationHandler["system.notification.send"].execute,
   }),
 } satisfies Record<PlatformCommandType, PlatformCommandDefinition>;

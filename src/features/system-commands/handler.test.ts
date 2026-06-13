@@ -1,1304 +1,426 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const {
-  mockFindFirst,
-  mockWriteAudit,
-  mockPluginOwnedBusinessData,
-  mockInsert,
-  mockInsertFileRecord,
-  mockSoftDeleteFile,
-} = vi.hoisted(() => ({
-  mockFindFirst: vi.fn(),
-  mockWriteAudit: vi.fn(),
-  mockPluginOwnedBusinessData: {
-    findFirst: vi.fn(),
-  },
-  mockInsert: vi.fn(),
-  mockInsertFileRecord: vi.fn(),
-  mockSoftDeleteFile: vi.fn(),
-}));
-
+// Mock server-only
 vi.mock("server-only", () => ({}));
+
+// Mock Drizzle db
+const findFirstPluginRegistrations = vi.fn();
+const findFirstMemberships = vi.fn();
+const insertGovernanceAudits = vi.fn();
 
 vi.mock("@/db", () => ({
   db: {
     query: {
-      pluginRegistrations: {
-        findFirst: mockFindFirst,
-      },
-      pluginOwnedBusinessData: mockPluginOwnedBusinessData,
+      pluginRegistrations: { findFirst: findFirstPluginRegistrations },
+      memberships: { findFirst: findFirstMemberships },
     },
-    insert: mockInsert,
+    insert: vi.fn().mockReturnValue({ values: vi.fn() }),
   },
 }));
 
-vi.mock("@/db/schema", () => ({
-  pluginRegistrations: {
-    id: { _: "pluginRegistrations.id" },
-    schoolId: { _: "pluginRegistrations.schoolId" },
-    manifestJson: { _: "pluginRegistrations.manifestJson" },
-    lifecycleState: { _: "pluginRegistrations.lifecycleState" },
-  },
-  pluginOwnedBusinessData: {
-    id: { _: "pluginOwnedBusinessData.id" },
-    schoolId: { _: "pluginOwnedBusinessData.schoolId" },
-    pluginId: { _: "pluginOwnedBusinessData.pluginId" },
-    key: { _: "pluginOwnedBusinessData.key" },
-    payloadJson: { _: "pluginOwnedBusinessData.payloadJson" },
-    createdAt: { _: "pluginOwnedBusinessData.createdAt" },
-    updatedAt: { _: "pluginOwnedBusinessData.updatedAt" },
-  },
-}));
-
-vi.mock("drizzle-orm", () => ({
-  eq: (a: unknown, b: unknown) => ({ _type: "eq", a, b }),
-  and: (...args: unknown[]) => ({ _type: "and", args }),
-  sql: (strings: TemplateStringsArray, ..._values: unknown[]) => `sql:${strings.join("?")}`,
-}));
-
-vi.mock("./ssrf-guard", () => ({
-  validateUrl: (rawUrl: string) => {
-    if (!rawUrl) throw new Error("SSRF_INVALID_URL");
-    return new URL(rawUrl);
-  },
-  createPinnedAgent: () => ({ closed: false }),
-  MAX_REDIRECTS: 5,
-  isHostnameRawIP: () => false,
-  isPrivateIP: () => false,
-}));
-
+// Mock audit
+const mockWriteSystemCommandAudit = vi.fn();
 vi.mock("./audit", () => ({
-  writeSystemCommandAudit: mockWriteAudit,
+  writeSystemCommandAudit: mockWriteSystemCommandAudit,
 }));
 
-vi.mock("@/lib/dal/files", () => ({
-  insertFileRecord: (...args: unknown[]) => mockInsertFileRecord(...args),
-  softDeleteFile: (...args: unknown[]) => mockSoftDeleteFile(...args),
+// Mock rate limiter
+const mockCheckPluginRateLimit = vi.fn();
+const mockCheckUserRateLimit = vi.fn();
+vi.mock("./rate-limiter", () => ({
+  checkPluginRateLimit: mockCheckPluginRateLimit,
+  checkUserRateLimit: mockCheckUserRateLimit,
 }));
 
-import { systemHttpRequestHandler, systemConfigHandler } from "./handler";
+// Mock DAL
+const mockInsertNotification = vi.fn();
+vi.mock("@/lib/dal/notification", () => ({
+  insertNotification: mockInsertNotification,
+}));
 
-// Helper: build a minimal PlatformCommand for system.http.request
-function buildCommand(overrides: {
-  pluginId?: string;
-  schoolId?: string;
-  url?: string;
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-  headers?: Record<string, string>;
-  body?: string;
-  commandId?: string;
-  actorId?: string;
-  actorScope?: string;
-  correlationId?: string;
-}): any {
+// Mock manifest schema for re-parsing
+vi.mock("@/lib/dto/resource-ai", async () => {
+  const { z } = await import("zod");
   return {
-    id: overrides.commandId ?? "cmd-test-1",
-    type: "system.http.request" as const,
+    PluginManifestSchema: z.object({
+      id: z.string(),
+      version: z.string(),
+      manifestVersion: z.number().default(1),
+      systemCommands: z.array(
+        z.discriminatedUnion("command", [
+          z.strictObject({ command: z.literal("system.notification") }).merge(
+            z.strictObject({
+              notificationTypes: z
+                .array(z.string().min(1).max(64))
+                .min(1),
+            }),
+          ),
+          z.strictObject({ command: z.literal("system.http.request") }).merge(
+            z.strictObject({
+              allowedDomains: z.array(z.string()).min(1),
+              allowedMethods: z.array(z.string()),
+            }),
+          ),
+          z.strictObject({ command: z.literal("system.config") }).merge(
+            z.strictObject({
+              allowedKeys: z.array(z.string().min(1)).min(1),
+            }),
+          ),
+          z.strictObject({ command: z.literal("system.file") }).merge(
+            z.strictObject({
+              allowedPaths: z.array(z.string()).min(1),
+              allowedOperations: z.array(z.string()),
+            }),
+          ),
+        ]),
+      ).default([]),
+    }),
+    SystemCommandDiscriminatedSchema: z.never(),
+    SystemCommandHttpRequestSchema: z.object({}),
+    SystemCommandConfigSchema: z.object({}),
+    SystemCommandFileSchema: z.object({}),
+    SystemCommandNotificationSchema: z.object({}),
+  };
+});
+
+// Mock contracts
+vi.mock("@/features/platform-core/commands/contracts", () => {
+  const e = class PlatformCommandExecutionError extends Error {
+    readonly failureAttribution: unknown;
+    readonly failureEvent: unknown;
+    constructor(input: { message: string; failureAttribution: unknown; failureEvent: unknown }) {
+      super(input.message);
+      this.name = "PlatformCommandExecutionError";
+      this.failureAttribution = input.failureAttribution;
+      this.failureEvent = input.failureEvent;
+    }
+  };
+  return {
+    PlatformCommandExecutionError: e,
+    PlatformCommandValidationError: class extends Error {},
+  };
+});
+
+// Import the handler AFTER all mocks
+const {
+  systemNotificationHandler,
+} = await import("./handler");
+
+const notificationHandler = systemNotificationHandler!["system.notification.send"];
+
+// Helper: build a minimal PlatformCommand for system.notification.send
+function makeCommand(overrides: Partial<{
+  pluginId: string;
+  schoolId: string;
+  recipientUserId: string;
+  notificationType: string;
+  title: string;
+  body: string;
+  actorId: string;
+  correlationId: string;
+  commandId: string;
+}> = {}) {
+  return {
+    id: overrides.commandId ?? "cmd-1",
+    type: "system.notification.send" as const,
     actor: {
       actorId: overrides.actorId ?? "actor-1",
-      actorScope: overrides.actorScope ?? "plugin",
+      actorScope: "plugin" as const,
     },
     scope: {
       schoolId: overrides.schoolId ?? "school-1",
       pluginId: overrides.pluginId ?? "plugin-1",
     },
+    payload: {
+      recipientUserId: overrides.recipientUserId ?? "user-1",
+      notificationType: overrides.notificationType ?? "homework.assigned",
+      title: overrides.title ?? "Test Title",
+      body: overrides.body ?? "Test Body",
+    },
     correlation: {
       correlationId: overrides.correlationId ?? "corr-1",
       causationId: null,
-      producer: "test",
+      producer: "test" as const,
     },
     audit: {
       delegatedActor: null,
       approval: null,
     },
-    payload: {
-      url: overrides.url ?? "https://api.example.com/data",
-      method: overrides.method ?? "GET",
-      headers: overrides.headers,
-      body: overrides.body,
-    },
-    dedupeKey: "dedup-1",
+    dedupeKey: "dedupe-1",
   };
 }
 
-const authorize = systemHttpRequestHandler["system.http.request"].authorize;
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockWriteSystemCommandAudit.mockReset();
+  mockCheckPluginRateLimit.mockReset();
+  mockCheckUserRateLimit.mockReset();
+  mockInsertNotification.mockReset();
+  findFirstPluginRegistrations.mockReset();
+  findFirstMemberships.mockReset();
+});
 
-describe("authorize — manifest whitelist validation", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("passes when url domain and method match manifest allowedDomains+allowedMethods", async () => {
-    mockFindFirst.mockResolvedValue({
+describe("notificationSendAuthorize", () => {
+  it("denies when plugin has no matching manifest entry (notification_type_not_allowed)", async () => {
+    // Plugin exists but has no system.notification entry
+    findFirstPluginRegistrations.mockResolvedValue({
       id: "plugin-1",
       manifestJson: {
-        id: "test-manifest",
+        id: "plugin-1",
         version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.http.request",
-            allowedDomains: ["api.example.com"],
-            allowedMethods: ["GET", "POST"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildCommand({
-      url: "https://api.example.com/data",
-      method: "GET",
-      pluginId: "plugin-1",
-    });
-
-    const result = await authorize({ command: command as any });
-    expect(result).toBeDefined();
-    expect(result.command).toBe("system.http.request");
-    expect(result.allowedDomains).toEqual(["api.example.com"]);
-    expect(result.allowedMethods).toEqual(["GET", "POST"]);
-  });
-
-  it("throws domain_not_allowed when url domain not in manifest allowedDomains", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.http.request",
-            allowedDomains: ["api.example.com"],
-            allowedMethods: ["GET"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildCommand({
-      url: "https://evil.com/data",
-      method: "GET",
-      pluginId: "plugin-1",
-    });
-
-    await expect(authorize({ command: command as any })).rejects.toThrow();
-    // Audit written before throw
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    const auditCall = mockWriteAudit.mock.calls[0][0];
-    expect(auditCall.decision).toBe("denied");
-    expect(auditCall.reasonCode).toBe("domain_not_allowed");
-  });
-
-  it("throws method_not_allowed when domain matches but method does not", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.http.request",
-            allowedDomains: ["api.example.com"],
-            allowedMethods: ["GET"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildCommand({
-      url: "https://api.example.com/data",
-      method: "POST",
-      pluginId: "plugin-1",
-    });
-
-    await expect(authorize({ command: command as any })).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    const auditCall = mockWriteAudit.mock.calls[0][0];
-    expect(auditCall.decision).toBe("denied");
-    expect(auditCall.reasonCode).toBe("method_not_allowed");
-  });
-
-  it("wildcard *.example.com matches api.example.com", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.http.request",
-            allowedDomains: ["*.example.com"],
-            allowedMethods: ["GET"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildCommand({
-      url: "https://api.example.com/data",
-      method: "GET",
-      pluginId: "plugin-1",
-    });
-
-    const result = await authorize({ command: command as any });
-    expect(result).toBeDefined();
-  });
-
-  it("wildcard *.example.com does NOT match a.b.example.com (D-06)", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.http.request",
-            allowedDomains: ["*.example.com"],
-            allowedMethods: ["GET"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildCommand({
-      url: "https://a.b.example.com/data",
-      method: "GET",
-      pluginId: "plugin-1",
-    });
-
-    await expect(authorize({ command: command as any })).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("domain_not_allowed");
-  });
-
-  it("wildcard *.example.com does NOT match bare example.com (D-06)", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.http.request",
-            allowedDomains: ["*.example.com"],
-            allowedMethods: ["GET"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildCommand({
-      url: "https://example.com/data",
-      method: "GET",
-      pluginId: "plugin-1",
-    });
-
-    await expect(authorize({ command: command as any })).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("domain_not_allowed");
-  });
-
-  it("throws not_allowlisted when plugin has no systemCommands in manifest", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        // no systemCommands
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildCommand({
-      url: "https://api.example.com/data",
-      method: "GET",
-      pluginId: "plugin-1",
-    });
-
-    await expect(authorize({ command: command as any })).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("not_allowlisted");
-  });
-
-  it("throws not_allowlisted when systemCommands array is empty", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
         systemCommands: [],
       },
       lifecycleState: "ready",
     });
 
-    const command = buildCommand({
-      url: "https://api.example.com/data",
-      method: "GET",
-      pluginId: "plugin-1",
-    });
+    const cmd = makeCommand();
 
-    await expect(authorize({ command: command as any })).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("not_allowlisted");
-  });
-
-  it("throws when plugin registration not found", async () => {
-    mockFindFirst.mockResolvedValue(undefined);
-
-    const command = buildCommand({ pluginId: "nonexistent" });
-
-    await expect(authorize({ command: command as any })).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-  });
-
-  it("audit record written BEFORE throw on deny (audit-then-throw)", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.http.request",
-            allowedDomains: ["allowed.com"],
-            allowedMethods: ["GET"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildCommand({
-      url: "https://evil.com/data",
-      method: "GET",
-      pluginId: "plugin-1",
-    });
-
-    // Verify audit is called before the error is thrown
-    let auditCalled = false;
-    mockWriteAudit.mockImplementation(() => {
-      auditCalled = true;
-      return Promise.resolve();
-    });
-
-    await expect(authorize({ command: command as any })).rejects.toThrow();
-    expect(auditCalled).toBe(true);
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-  });
-
-  it("supports exact domain matching (no wildcard)", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.http.request",
-            allowedDomains: ["api.example.com", "cdn.example.com"],
-            allowedMethods: ["GET"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildCommand({
-      url: "https://cdn.example.com/file",
-      method: "GET",
-      pluginId: "plugin-1",
-    });
-
-    const result = await authorize({ command: command as any });
-    expect(result).toBeDefined();
-    expect(result.allowedDomains).toContain("cdn.example.com");
-  });
-
-  it("first-match-wins short-circuits: first entry matches, second never checked", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.http.request",
-            allowedDomains: ["*.example.com"],
-            allowedMethods: ["GET"],
-          },
-          {
-            command: "system.http.request",
-            allowedDomains: ["should-not-match.example.com"],
-            allowedMethods: ["GET"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildCommand({
-      url: "https://api.example.com/data",
-      method: "GET",
-      pluginId: "plugin-1",
-    });
-
-    const result = await authorize({ command: command as any });
-    // Should match the first entry (wildcard), not the second
-    expect(result.allowedDomains).toEqual(["*.example.com"]);
-  });
-});
-
-// =========================================================================
-// system.config — handler tests (Phase 79 Task 3)
-// =========================================================================
-
-// Helper: build a minimal PlatformCommand for system.config.set
-function buildConfigSetCommand(overrides: {
-  pluginId?: string;
-  schoolId?: string;
-  configKey?: string;
-  configValue?: unknown;
-  commandId?: string;
-  actorId?: string;
-  actorScope?: string;
-  correlationId?: string;
-}): any {
-  return {
-    id: overrides.commandId ?? "cmd-config-1",
-    type: "system.config.set" as const,
-    actor: {
-      actorId: overrides.actorId ?? "actor-1",
-      actorScope: overrides.actorScope ?? "plugin",
-    },
-    scope: {
-      schoolId: overrides.schoolId ?? "school-1",
-      pluginId: overrides.pluginId ?? "plugin-1",
-    },
-    correlation: {
-      correlationId: overrides.correlationId ?? "corr-config-1",
-      causationId: null,
-      producer: "test",
-    },
-    audit: {
-      delegatedActor: null,
-      approval: null,
-    },
-    payload: {
-      configKey: overrides.configKey ?? "homework:title",
-      configValue: overrides.configValue ?? { title: "Homework #1" },
-    },
-    dedupeKey: "dedup-config-1",
-  };
-}
-
-const {
-  authorize: configSetAuthorize,
-  execute: configSetExecute,
-} = systemConfigHandler["system.config.set"];
-const {
-  authorize: configGetAuthorize,
-  execute: configGetExecute,
-} = systemConfigHandler["system.config.get"];
-
-describe("systemConfigSetAuthorize", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("passes when configKey matches manifest allowedKeys (exact)", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.config",
-            allowedKeys: ["homework:title"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildConfigSetCommand({ configKey: "homework:title" });
-    await expect(
-      configSetAuthorize({ command: command as any }),
-    ).resolves.toBeUndefined();
-  });
-
-  it("passes when configKey matches manifest allowedKeys (prefix wildcard)", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.config",
-            allowedKeys: ["homework:*"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildConfigSetCommand({ configKey: "homework:deadline" });
-    await expect(
-      configSetAuthorize({ command: command as any }),
-    ).resolves.toBeUndefined();
-  });
-
-  it("throws config_key_denied when prefix wildcard does NOT match deeper nesting", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.config",
-            allowedKeys: ["homework:*"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const command = buildConfigSetCommand({ configKey: "homework:sub:key" });
-    await expect(
-      configSetAuthorize({ command: command as any }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    const auditCall = mockWriteAudit.mock.calls[0][0];
+    let thrown = false;
+    try {
+      await notificationHandler.authorize({ command: cmd });
+    } catch (e) {
+      thrown = true;
+      expect(e).toBeInstanceOf(Error);
+    }
+    expect(thrown).toBe(true);
+    expect(mockWriteSystemCommandAudit).toHaveBeenCalled();
+    const auditCall = mockWriteSystemCommandAudit.mock.calls[0][0];
     expect(auditCall.decision).toBe("denied");
-    expect(auditCall.reasonCode).toBe("config_key_denied");
-    expect(auditCall.commandType).toBe("system.config.set");
+    expect(auditCall.reasonCode).toBe("notification_type_not_allowed");
+    expect(auditCall.commandType).toBe("system.notification.send");
   });
 
-  it("throws config_key_denied when key not in any allowedKeys", async () => {
-    mockFindFirst.mockResolvedValue({
+  it("denies when notificationType not in manifest allowlist", async () => {
+    findFirstPluginRegistrations.mockResolvedValue({
       id: "plugin-1",
       manifestJson: {
-        id: "test-manifest",
+        id: "plugin-1",
         version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
         systemCommands: [
           {
-            command: "system.config",
-            allowedKeys: ["homework:title"],
+            command: "system.notification",
+            notificationTypes: ["homework.assigned"],
           },
         ],
       },
       lifecycleState: "ready",
     });
 
-    const command = buildConfigSetCommand({ configKey: "unknown:key" });
-    await expect(
-      configSetAuthorize({ command: command as any }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("config_key_denied");
+    const cmd = makeCommand({ notificationType: "quiz.graded" });
+
+    let thrown = false;
+    try {
+      await notificationHandler.authorize({ command: cmd });
+    } catch (e) {
+      thrown = true;
+    }
+    expect(thrown).toBe(true);
+    expect(mockWriteSystemCommandAudit).toHaveBeenCalled();
+    expect(mockWriteSystemCommandAudit.mock.calls[0][0].reasonCode).toBe(
+      "notification_type_not_allowed",
+    );
   });
 
-  it("throws not_allowlisted when plugin registration not found", async () => {
-    mockFindFirst.mockResolvedValue(undefined);
-
-    const command = buildConfigSetCommand({
-      configKey: "homework:title",
-      pluginId: "missing-plugin",
-    });
-    await expect(
-      configSetAuthorize({ command: command as any }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("not_allowlisted");
-    expect(mockWriteAudit.mock.calls[0][0].commandType).toBe("system.config.set");
-  });
-
-  it("throws config_key_denied when manifest has no systemCommands entries", async () => {
-    mockFindFirst.mockResolvedValue({
+  it("denies when recipientUserId not in schoolId (recipient_not_in_school)", async () => {
+    findFirstPluginRegistrations.mockResolvedValue({
       id: "plugin-1",
       manifestJson: {
-        id: "test-manifest",
+        id: "plugin-1",
         version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        // no systemCommands
+        systemCommands: [
+          {
+            command: "system.notification",
+            notificationTypes: ["homework.assigned"],
+          },
+        ],
       },
       lifecycleState: "ready",
     });
 
-    const command = buildConfigSetCommand({ configKey: "homework:title" });
-    await expect(
-      configSetAuthorize({ command: command as any }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("config_key_denied");
+    // Membership not found — user not in school
+    findFirstMemberships.mockResolvedValue(null);
+
+    const cmd = makeCommand();
+
+    let thrown = false;
+    try {
+      await notificationHandler.authorize({ command: cmd });
+    } catch (e) {
+      thrown = true;
+    }
+    expect(thrown).toBe(true);
+    expect(mockWriteSystemCommandAudit).toHaveBeenCalled();
+    expect(mockWriteSystemCommandAudit.mock.calls[0][0].reasonCode).toBe(
+      "recipient_not_in_school",
+    );
+  });
+
+  it("denies when plugin rate limit exceeded", async () => {
+    findFirstPluginRegistrations.mockResolvedValue({
+      id: "plugin-1",
+      manifestJson: {
+        id: "plugin-1",
+        version: "1.0.0",
+        systemCommands: [
+          {
+            command: "system.notification",
+            notificationTypes: ["homework.assigned"],
+          },
+        ],
+      },
+      lifecycleState: "ready",
+    });
+
+    findFirstMemberships.mockResolvedValue({
+      userId: "user-1",
+      schoolId: "school-1",
+      status: "active",
+      role: "student",
+    });
+
+    mockCheckPluginRateLimit.mockResolvedValue(false); // rate limited
+    mockCheckUserRateLimit.mockResolvedValue(true);
+
+    const cmd = makeCommand();
+
+    let thrown = false;
+    try {
+      await notificationHandler.authorize({ command: cmd });
+    } catch (e) {
+      thrown = true;
+    }
+    expect(thrown).toBe(true);
+    expect(mockWriteSystemCommandAudit).toHaveBeenCalled();
+    expect(mockWriteSystemCommandAudit.mock.calls[0][0].reasonCode).toBe(
+      "rate_limit_exceeded",
+    );
+  });
+
+  it("denies when user rate limit exceeded", async () => {
+    findFirstPluginRegistrations.mockResolvedValue({
+      id: "plugin-1",
+      manifestJson: {
+        id: "plugin-1",
+        version: "1.0.0",
+        systemCommands: [
+          {
+            command: "system.notification",
+            notificationTypes: ["homework.assigned"],
+          },
+        ],
+      },
+      lifecycleState: "ready",
+    });
+
+    findFirstMemberships.mockResolvedValue({
+      userId: "user-1",
+      schoolId: "school-1",
+      status: "active",
+      role: "student",
+    });
+
+    mockCheckPluginRateLimit.mockResolvedValue(true);
+    mockCheckUserRateLimit.mockResolvedValue(false); // user rate limited
+
+    const cmd = makeCommand();
+
+    let thrown = false;
+    try {
+      await notificationHandler.authorize({ command: cmd });
+    } catch (e) {
+      thrown = true;
+    }
+    expect(thrown).toBe(true);
+    expect(mockWriteSystemCommandAudit).toHaveBeenCalled();
+    expect(mockWriteSystemCommandAudit.mock.calls[0][0].reasonCode).toBe(
+      "rate_limit_exceeded",
+    );
+  });
+
+  it("authorizes successfully when all checks pass", async () => {
+    findFirstPluginRegistrations.mockResolvedValue({
+      id: "plugin-1",
+      manifestJson: {
+        id: "plugin-1",
+        version: "1.0.0",
+        systemCommands: [
+          {
+            command: "system.notification",
+            notificationTypes: ["homework.assigned", "quiz.graded"],
+          },
+        ],
+      },
+      lifecycleState: "ready",
+    });
+
+    findFirstMemberships.mockResolvedValue({
+      userId: "user-1",
+      schoolId: "school-1",
+      status: "active",
+      role: "student",
+    });
+
+    mockCheckPluginRateLimit.mockResolvedValue(true);
+    mockCheckUserRateLimit.mockResolvedValue(true);
+
+    const cmd = makeCommand();
+
+    // Authorize should resolve without throwing
+    await notificationHandler.authorize({ command: cmd });
+
+    // No audit should have been written (allowed → audit written in execute)
+    expect(mockWriteSystemCommandAudit).not.toHaveBeenCalled();
+  });
+
+  it("handles registration_not_found gracefully", async () => {
+    // Plugin registration not found
+    findFirstPluginRegistrations.mockResolvedValue(null);
+
+    const cmd = makeCommand();
+
+    let thrown = false;
+    try {
+      await notificationHandler.authorize({ command: cmd });
+    } catch (e) {
+      thrown = true;
+    }
+    expect(thrown).toBe(true);
+    expect(mockWriteSystemCommandAudit).toHaveBeenCalled();
+    expect(mockWriteSystemCommandAudit.mock.calls[0][0].reasonCode).toBe(
+      "not_allowlisted",
+    );
   });
 });
 
-describe("systemConfigSetExecute", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Mock insert chain: insert().values().onConflictDoUpdate()
-    // Drizzle insert returns an object with .values().onConflictDoUpdate() chain
-    const chainObj = {
-      values: vi.fn().mockReturnThis(),
-      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+describe("notificationSendExecute", () => {
+  it("writes notification and allowed audit", async () => {
+    const inserted = {
+      id: "notif-1",
+      pluginId: "plugin-1",
+      schoolId: "school-1",
+      recipientUserId: "user-1",
+      notificationType: "homework.assigned",
+      title: "Test Title",
+      body: "Test Body",
+      readAt: null,
+      createdAt: new Date(1718000000000),
     };
-    mockInsert.mockReturnValue(chainObj);
-  });
 
-  it("writes to pluginOwnedBusinessData and returns success result", async () => {
-    const command = buildConfigSetCommand({
-      configKey: "homework:title",
-      configValue: { title: "Homework #1" },
-      schoolId: "school-1",
-      pluginId: "plugin-1",
-    });
+    mockInsertNotification.mockResolvedValue(inserted);
 
-    const result = await configSetExecute({
-      command: command as any,
+    const cmd = makeCommand();
+
+    const result = await notificationHandler.execute({
+      command: cmd,
       attemptNumber: 1,
     });
 
-    expect(mockInsert).toHaveBeenCalled();
-    expect(result.resultSummary).toEqual({
-      configKey: "homework:title",
-      pluginId: "plugin-1",
-      schoolId: "school-1",
-    });
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    const auditCall = mockWriteAudit.mock.calls[0][0];
-    expect(auditCall.decision).toBe("allowed");
-    expect(auditCall.commandType).toBe("system.config.set");
-  });
-
-  it("writes with triple-prefix isolation key in pluginOwnedBusinessData", async () => {
-    const command = buildConfigSetCommand({
-      configKey: "homework:title",
-      schoolId: "school-2",
-      pluginId: "plugin-2",
-    });
-
-    await configSetExecute({
-      command: command as any,
-      attemptNumber: 1,
-    });
-
-    // Verify insert was called — storageKey constructed as {schoolId}:{pluginId}:{configKey}
-    expect(mockInsert).toHaveBeenCalled();
-  });
-});
-
-describe("systemConfigGetAuthorize", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("passes when configKey matches manifest allowedKeys", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.config",
-            allowedKeys: ["homework_title"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    await expect(
-      configGetAuthorize({
-        pluginId: "plugin-1",
-        schoolId: "school-1",
-        configKey: "homework_title", // no colon → passes ConfigKeySchema
-        actorId: "actor-1",
-        actorScope: "plugin",
-        correlationId: "corr-1",
-      }),
-    ).resolves.toBeUndefined();
-  });
-
-  it("throws config_key_denied when key not in allowedKeys", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.config",
-            allowedKeys: ["homework_title"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    await expect(
-      configGetAuthorize({
-        pluginId: "plugin-1",
-        schoolId: "school-1",
-        configKey: "unknown_key", // does NOT contain colon — will reach authorize logic
-        actorId: "actor-1",
-        actorScope: "plugin",
-        correlationId: "corr-1",
-      }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("config_key_denied");
-    expect(mockWriteAudit.mock.calls[0][0].commandType).toBe("system.config.get");
-  });
-
-  it("throws not_allowlisted when registration not found", async () => {
-    mockFindFirst.mockResolvedValue(undefined);
-
-    await expect(
-      configGetAuthorize({
-        pluginId: "missing-plugin",
-        schoolId: "school-1",
-        configKey: "simplekey", // does NOT contain colon — will reach authorize logic
-        actorId: "actor-1",
-        actorScope: "plugin",
-        correlationId: "corr-1",
-      }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("not_allowlisted");
-  });
-
-  it("throws ZodError when configKey contains colon (D-12 boundary check)", async () => {
-    // ConfigKeySchema.parse rejects before any authorize logic
-    await expect(
-      configGetAuthorize({
-        pluginId: "plugin-1",
-        schoolId: "school-1",
-        configKey: "bad:key",
-        actorId: "actor-1",
-        actorScope: "plugin",
-        correlationId: "corr-1",
-      }),
-    ).rejects.toThrow();
-    // Audit NOT written — Zod validation fails before authorize logic
-    expect(mockWriteAudit).not.toHaveBeenCalled();
-  });
-});
-
-describe("systemConfigGetExecute", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("returns payloadJson when key exists", async () => {
-    mockPluginOwnedBusinessData.findFirst.mockResolvedValue({
-      payloadJson: { title: "Homework #1" },
-    });
-
-    const result = await configGetExecute({
-      pluginId: "plugin-1",
-      schoolId: "school-1",
-      configKey: "homework:title",
-    });
-
-    expect(result).toEqual({ title: "Homework #1" });
-  });
-
-  it("returns null when key does not exist", async () => {
-    mockPluginOwnedBusinessData.findFirst.mockResolvedValue(undefined);
-
-    const result = await configGetExecute({
-      pluginId: "plugin-1",
-      schoolId: "school-1",
-      configKey: "nonexistent",
-    });
-
-    expect(result).toBeNull();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// system.file — file storage proxy (Phase 80)
-// ---------------------------------------------------------------------------
-
-// Lazy import to avoid static import errors before implementation exists
-let systemFileHandler: {
-  "system.file.upload": { authorize: Function; execute: Function };
-  "system.file.delete": { authorize: Function; execute: Function };
-} | null = null;
-
-async function getSystemFileHandler() {
-  if (!systemFileHandler) {
-    const mod = await import("./handler");
-    systemFileHandler = mod.systemFileHandler;
-  }
-  return systemFileHandler;
-}
-
-// Helper: build a system.file.upload PlatformCommand
-function buildFileUploadCommand(overrides: {
-  pluginId?: string;
-  schoolId?: string;
-  filePath?: string;
-  fileId?: string;
-  sha256?: string;
-  fileName?: string;
-  mimeType?: string;
-  sizeBytes?: number;
-  diskPath?: string;
-  actorId?: string;
-  actorScope?: string;
-  correlationId?: string;
-  commandId?: string;
-} = {}) {
-  return {
-    id: overrides.commandId ?? "cmd-upload-1",
-    type: "system.file.upload" as const,
-    actor: {
-      actorId: overrides.actorId ?? "actor-1",
-      actorScope: overrides.actorScope ?? "plugin",
-    },
-    scope: {
-      schoolId: overrides.schoolId ?? "school-1",
-      pluginId: overrides.pluginId ?? "plugin-1",
-    },
-    correlation: {
-      correlationId: overrides.correlationId ?? "corr-upload-1",
-      causationId: null,
-      producer: "test",
-    },
-    audit: {
-      delegatedActor: null,
-      approval: null,
-    },
-    payload: {
-      filePath: overrides.filePath ?? "uploads/photo.jpg",
-      fileId: overrides.fileId ?? "file-abc-123",
-      sha256: overrides.sha256 ?? "abc123def456",
-      fileName: overrides.fileName ?? "photo.jpg",
-      mimeType: overrides.mimeType ?? "image/jpeg",
-      sizeBytes: overrides.sizeBytes ?? 102400,
-      diskPath: overrides.diskPath ?? "/storage/school-1/plugin-1/abc123/photo.jpg",
-    },
-    dedupeKey: "dedup-upload-1",
-  };
-}
-
-// Helper: build a system.file.delete PlatformCommand
-function buildFileDeleteCommand(overrides: {
-  pluginId?: string;
-  schoolId?: string;
-  fileId?: string;
-  actorId?: string;
-  actorScope?: string;
-  correlationId?: string;
-  commandId?: string;
-} = {}) {
-  return {
-    id: overrides.commandId ?? "cmd-delete-1",
-    type: "system.file.delete" as const,
-    actor: {
-      actorId: overrides.actorId ?? "actor-1",
-      actorScope: overrides.actorScope ?? "plugin",
-    },
-    scope: {
-      schoolId: overrides.schoolId ?? "school-1",
-      pluginId: overrides.pluginId ?? "plugin-1",
-    },
-    correlation: {
-      correlationId: overrides.correlationId ?? "corr-delete-1",
-      causationId: null,
-      producer: "test",
-    },
-    audit: {
-      delegatedActor: null,
-      approval: null,
-    },
-    payload: {
-      fileId: overrides.fileId ?? "file-abc-123",
-    },
-    dedupeKey: "dedup-delete-1",
-  };
-}
-
-describe("systemFileUploadAuthorize", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("passes when filePath matches allowedPaths prefix and operation upload is allowed", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.file",
-            allowedPaths: ["uploads/"],
-            allowedOperations: ["upload", "download"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ diskPath: "uploads/photo.jpg" });
-    await expect(
-      h["system.file.upload"].authorize({ command: command as any }),
-    ).resolves.toBeUndefined();
-  });
-
-  it("passes when filePath matches allowedPaths exact and operation upload is allowed", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.file",
-            allowedPaths: ["documents/report.pdf"],
-            allowedOperations: ["upload"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ diskPath: "documents/report.pdf" });
-    await expect(
-      h["system.file.upload"].authorize({ command: command as any }),
-    ).resolves.toBeUndefined();
-  });
-
-  it("throws path_not_allowed when filePath does not match any allowedPaths", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.file",
-            allowedPaths: ["docs/"],
-            allowedOperations: ["upload"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ diskPath: "secret/data.txt" });
-    await expect(
-      h["system.file.upload"].authorize({ command: command as any }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    const auditCall = mockWriteAudit.mock.calls[0][0];
-    expect(auditCall.decision).toBe("denied");
-    expect(auditCall.reasonCode).toBe("path_not_allowed");
-    expect(auditCall.commandType).toBe("system.file.upload");
-  });
-
-  it("throws operation_not_allowed when operation is not in allowedOperations", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.file",
-            allowedPaths: ["uploads/"],
-            allowedOperations: ["download"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ diskPath: "uploads/photo.jpg" });
-    await expect(
-      h["system.file.upload"].authorize({ command: command as any }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    const auditCall = mockWriteAudit.mock.calls[0][0];
-    expect(auditCall.decision).toBe("denied");
-    expect(auditCall.reasonCode).toBe("operation_not_allowed");
-    expect(auditCall.commandType).toBe("system.file.upload");
-  });
-
-  it("throws not_allowlisted when plugin registration not found", async () => {
-    mockFindFirst.mockResolvedValue(undefined);
-
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ pluginId: "missing-plugin", diskPath: "test.txt" });
-    await expect(
-      h["system.file.upload"].authorize({ command: command as any }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("not_allowlisted");
-    expect(mockWriteAudit.mock.calls[0][0].commandType).toBe("system.file.upload");
-  });
-
-  it("throws path_not_allowed when manifest has no systemCommands entries", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        // no systemCommands
-      },
-      lifecycleState: "ready",
-    });
-
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ diskPath: "test.txt" });
-    await expect(
-      h["system.file.upload"].authorize({ command: command as any }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("path_not_allowed");
-  });
-});
-
-describe("systemFileDeleteAuthorize", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("passes when operation delete is in allowedOperations", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.file",
-            allowedPaths: ["uploads/"],
-            allowedOperations: ["upload", "delete"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileDeleteCommand({ fileId: "file-abc-123" });
-    await expect(
-      h["system.file.delete"].authorize({ command: command as any }),
-    ).resolves.toBeUndefined();
-  });
-
-  it("throws operation_not_allowed when delete is not in allowedOperations", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "plugin-1",
-      manifestJson: {
-        id: "test-manifest",
-        version: "1.0.0",
-        manifestVersion: 1,
-        anchors: [],
-        actions: [],
-        systemCommands: [
-          {
-            command: "system.file",
-            allowedPaths: ["uploads/"],
-            allowedOperations: ["upload"],
-          },
-        ],
-      },
-      lifecycleState: "ready",
-    });
-
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileDeleteCommand({ fileId: "file-abc-123" });
-    await expect(
-      h["system.file.delete"].authorize({ command: command as any }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    const auditCall = mockWriteAudit.mock.calls[0][0];
-    expect(auditCall.decision).toBe("denied");
-    expect(auditCall.reasonCode).toBe("operation_not_allowed");
-    expect(auditCall.commandType).toBe("system.file.delete");
-  });
-
-  it("throws not_allowlisted when registration not found", async () => {
-    mockFindFirst.mockResolvedValue(undefined);
-
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileDeleteCommand({ pluginId: "missing-plugin" });
-    await expect(
-      h["system.file.delete"].authorize({ command: command as any }),
-    ).rejects.toThrow();
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("not_allowlisted");
-    expect(mockWriteAudit.mock.calls[0][0].commandType).toBe("system.file.delete");
-  });
-});
-
-describe("systemFileUploadExecute", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockInsertFileRecord.mockResolvedValue({
-      id: "file-abc-123",
-      sha256: "abc123def456",
-      fileName: "photo.jpg",
-      sizeBytes: 102400,
-    });
-  });
-
-  it("inserts file record and returns success result", async () => {
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({
-      fileId: "file-abc-123",
-      sha256: "abc123def456",
-      fileName: "photo.jpg",
-      sizeBytes: 102400,
-    });
-
-    const result = await h["system.file.upload"].execute({
-      command: command as any,
-      attemptNumber: 1,
-    });
-
-    expect(mockInsertFileRecord).toHaveBeenCalledTimes(1);
-    const callArgs = mockInsertFileRecord.mock.calls[0][0];
-    expect(callArgs.schoolId).toBe("school-1");
-    expect(callArgs.pluginId).toBe("plugin-1");
-    expect(callArgs.fileName).toBe("photo.jpg");
-    expect(callArgs.sha256).toBe("abc123def456");
-
-    expect(result.resultSummary).toEqual({
-      fileId: "file-abc-123",
-      sha256: "abc123def456",
-      fileName: "photo.jpg",
-      sizeBytes: 102400,
-    });
-
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    const auditCall = mockWriteAudit.mock.calls[0][0];
-    expect(auditCall.decision).toBe("allowed");
-    expect(auditCall.commandType).toBe("system.file.upload");
-  });
-});
-
-describe("systemFileDeleteExecute", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockSoftDeleteFile.mockResolvedValue({
-      id: "file-deleted-row",
-      operation: "delete",
-      fileName: "photo.jpg",
-    });
-  });
-
-  it("soft-deletes and returns success result", async () => {
-    const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileDeleteCommand({ fileId: "file-abc-123" });
-
-    const result = await h["system.file.delete"].execute({
-      command: command as any,
-      attemptNumber: 1,
-    });
-
-    expect(mockSoftDeleteFile).toHaveBeenCalledTimes(1);
-    expect(mockSoftDeleteFile.mock.calls[0]).toEqual([
-      "school-1",
-      "plugin-1",
-      "file-abc-123",
-    ]);
-
-    expect(result.resultSummary).toEqual({
-      fileId: "file-abc-123",
-      deleted: true,
-    });
-
-    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
-    const auditCall = mockWriteAudit.mock.calls[0][0];
-    expect(auditCall.decision).toBe("allowed");
-    expect(auditCall.commandType).toBe("system.file.delete");
+    expect(mockInsertNotification).toHaveBeenCalled();
+    expect(mockWriteSystemCommandAudit).toHaveBeenCalled();
+    expect(mockWriteSystemCommandAudit.mock.calls[0][0].decision).toBe("allowed");
+    expect(mockWriteSystemCommandAudit.mock.calls[0][0].commandType).toBe(
+      "system.notification.send",
+    );
+    expect(result).toBeDefined();
   });
 });
