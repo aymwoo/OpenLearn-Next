@@ -1949,6 +1949,56 @@ export const pluginFiles = sqliteTable(
   ],
 );
 
+// ---------------------------------------------------------------------------
+// Phase 81: system.notification — plugin notification table (NOTIF-01)
+// ---------------------------------------------------------------------------
+
+/**
+ * Plugin-originated in-app notifications for users within a school.
+ *
+ * Each row represents a single notification sent by a plugin to a specific
+ * recipient. Notifications are append-only — reads are filtered by
+ * recipientUserId and ordered by createdAt. The nullable readAt column
+ * implements the unread/read state machine (D-03: NULL = unread).
+ */
+export const pluginNotifications = sqliteTable(
+  "pluginNotification",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    pluginId: text("pluginId")
+      .notNull()
+      .references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    recipientUserId: text("recipientUserId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    notificationType: text("notificationType").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    readAt: integer("readAt", { mode: "timestamp_ms" }),
+    createdAt: integer("createdAt", { mode: "timestamp_ms" })
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("pluginNotif_user_read_idx").on(
+      table.recipientUserId,
+      table.readAt,
+    ),
+    index("pluginNotif_user_created_idx").on(
+      table.recipientUserId,
+      table.createdAt,
+    ),
+    index("pluginNotif_cleanup_idx").on(
+      table.readAt,
+      table.createdAt,
+    ),
+  ],
+);
+
 // 受治理的 plugin-owned 生成表（由 scripts/compile-plugin-data-model.ts 编译）。
 // 手写主体永不被 codegen 改写；此处仅 re-export，让 drizzle-kit 经 schema.ts 看见全部生成表。
 export * from "./schema/generated";
