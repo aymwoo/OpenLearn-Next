@@ -1,639 +1,406 @@
-# Architecture Research: System Commands Bus (v4.3)
+# Architecture Research: system.file + system.notification 集成
 
-**Domain:** Platform Command Bus extension -- `system.*` command group integration
-**Researched:** 2026-06-11
-**Confidence:** HIGH（所有引用基于现有代码库现场审计；实存文件路径、行号已逐一核验）
+**Domain:** 插件系统命令总线扩展（文件存储代理 + 应用内通知推送）
+**Researched:** 2026-06-13
+**Confidence:** HIGH
 
-## 研究范围
+## System Overview
 
-本文档回答六个具体问题：
-1. `system.http.request` 和 `system.config` 在 `PlatformCommandType` 层级中的位置
-2. `dispatchSystemCommand` facade 的设计模式
-3. manifest `systemCommands` 声明的结构与校验策略
-4. system commands 的授权流程
-5. `system.config` 的数据流与持久化策略
-6. governance audit 的集成模式
-
----
-
-## 1. 系统全景：System Commands 在现有架构中的位置
+### system.file 和 system.notification 在现有架构中的位置
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        UI / Surface 层 (Server Actions)                       │
-│  plugin-actions.ts / classroom-actions.ts / lesson-authoring-actions.ts      │
+│                          Plugin (manifest.json)                              │
+│  systemCommands: [                                                           │
+│    { command: "system.file"     → allowedPaths, allowedOps, maxFileSize }    │
+│    { command: "system.notification" → allowedTypes, targetRoles }            │
+│  ]                                                                           │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                               │
-│  ┌──────────────────────┐  ┌──────────────────────┐  ┌─────────────────────┐ │
-│  │ dispatchPluginGover- │  │ dispatchPluginData-   │  │ dispatchSystem-     │ │
-│  │ nanceCommand         │  │ Access                │  │ Command  **[NEW]**  │ │
-│  │ (producers/plugin-   │  │ (plugin-data-access/  │  │ (facades/system.ts) │ │
-│  │  governance.ts)      │  │  facade.ts)           │  │                     │ │
-│  └──────────┬───────────┘  └──────────┬────────────┘  └──────────┬──────────┘ │
-│             │                         │                            │           │
-│             │     ┌───────────────────┼────────────────────────────┘           │
-│             │     │                   │                                        │
-│             ▼     ▼                   ▼                                        │
-│  ┌──────────────────────────────────────────────────────────────────────┐    │
-│  │                    dispatchPlatformCommand (bus.ts)                   │    │
-│  │  validate → resolveDedupe → persist → authorize → execute →          │    │
-│  │  updateSummary → publishEvents                                       │    │
-│  └──────────────────────────────┬───────────────────────────────────────┘    │
-│                                 │                                              │
-│                                 ▼                                              │
-│  ┌──────────────────────────────────────────────────────────────────────┐    │
-│  │               platformCommandRegistry (registry.ts)                  │    │
-│  │  plugin.* (12) | lesson.draft.* (4) | plugin.data.* (2) |             │    │
-│  │  quiz.answer.* (1) | system.* (3) **[NEW]**                          │    │
-│  └──────────────────────────────────────────────────────────────────────┘    │
-│                                 │                                              │
-│                                 ▼                                              │
-│  ┌──────────────────────────────────────────────────────────────────────┐    │
-│  │                     PlatformCommandStore                              │    │
-│  │  表: platformCommand + platformCommandAttempt (Drizzle/SQLite)        │    │
-│  │  现有实现: producers/plugin-governance.ts 内 platformCommandStore     │    │
-│  └──────────────────────────────────────────────────────────────────────┘    │
-│                                                                               │
+│                           dispatchSystemCommand facade                        │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │  ① governance-gate: assertActionExecutable(verb, pluginKey)          │   │
+│  │     → schoolId derived from session, lifecycle/kill-switch check     │   │
+│  │  ② discriminate: system.file.* / system.notification.*               │   │
+│  │  ③ route:                                                            │   │
+│  │     - system.file.upload/download/delete  → Command Bus (PRODUCER)   │   │
+│  │     - system.file.list/info/metadata       → DAL (READ, no audit)    │   │
+│  │     - system.notification.send             → Command Bus (PRODUCER)  │   │
+│  │     - system.notification.list/unread      → DAL (READ, no audit)    │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                           Governance & Audit Layer                            │
-│  ┌──────────────────────────────────────────────────────────────────────┐    │
-│  │  governanceAudit 表 (src/db/schema.ts:1325)                           │    │
-│  │  targetType, targetId, pluginId, schoolId, action, decision,          │    │
-│  │  reasonCode, actorId, actorScope, lifecycleState, killSwitchEnabled,  │    │
-│  │  requestedCapabilitiesJson, grantedCapabilitiesJson,                  │    │
-│  │  correlationId, payloadJson                                           │    │
-│  │  — actorScope 枚举已含 "system" (schema.ts:1338)                      │    │
-│  └──────────────────────────────────────────────────────────────────────┘    │
-│                                                                               │
+│                      platformCommandRegistry (contracts.ts)                   │
+│  ┌──────────────────┐  ┌──────────────────────────┐                         │
+│  │ system.file.     │  │ system.notification.      │                         │
+│  │ upload/download  │  │ send                      │                         │
+│  │ delete           │  │                           │                         │
+│  │ (Command Types)  │  │ (Command Type)            │                         │
+│  └────────┬─────────┘  └────────────┬─────────────┘                         │
+│           │ handler.authorize       │ handler.authorize                      │
+│           │ handler.execute         │ handler.execute                        │
+├───────────┴─────────────────────────┴───────────────────────────────────────┤
+│                              Data Layer                                       │
+│  ┌─────────────────────┐  ┌──────────────────────────────────────┐         │
+│  │ systemFiles (SQLite)│  │ Local Disk (data/uploads/{schoolId}/ │         │
+│  │ - metadata table    │  │           {pluginKey}/...)            │         │
+│  │ - file records      │  │ - binary content on disk             │         │
+│  │ - plugin+school     │  │ - metadata + reference in SQLite     │         │
+│  │   isolation         │  │ - path: {schoolId}/{pluginKey}/...   │         │
+│  └─────────────────────┘  │ - filename: hash-based UUID          │         │
+│                           └──────────────────────────────────────┘         │
+│  ┌──────────────────────────────────────────────────────────────────┐     │
+│  │ notifications (SQLite)                                            │     │
+│  │ - id, userId, schoolId, pluginId, type, title, body, payloadJson │     │
+│  │ - isRead, readAt, createdAt                                      │     │
+│  │ - indexed: (userId, isRead, createdAt DESC)                      │     │
+│  └──────────────────────────────────────────────────────────────────┘     │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                           Data / Persistence Layer                            │
-│  ┌──────────────────────────────┐  ┌────────────────────────────────────┐    │
-│  │ pluginOwnedBusinessData      │  │ systemPluginConfig **[NEW]**        │    │
-│  │ (schema.ts:1884)             │  │ 新独立表:                            │    │
-│  │ - schoolId, pluginId, key,   │  │ - pluginRegistrationId →            │    │
-│  │   payloadJson                │  │   pluginRegistrations (FK cascade)  │    │
-│  │ - 唯一(schoolId,pluginId,key)│  │ - schoolId → schools (FK cascade)   │    │
-│  │                              │  │ - configKey TEXT NOT NULL           │    │
-│  │                              │  │ - configValueJson TEXT (JSON mode)  │    │
-│  │                              │  │ - createdAt, updatedAt              │    │
-│  │                              │  │ - 唯一(pluginRegistrationId,        │    │
-│  │                              │  │   schoolId, configKey)              │    │
-│  └──────────────────────────────┘  └────────────────────────────────────┘    │
+│                            Realtime Delivery                                 │
+│  ┌──────────────────────────────────────────────────────────────────┐     │
+│  │ notification.send execute → DB write → WS push (via publishTran  │     │
+│  │ sportEvent or new user-specific channel)                         │     │
+│  │                                                                  │     │
+│  │ 推送通道：复用现有 WebSocket transport boundary                  │     │
+│  │ 新 message kind: "notification.received"                         │     │
+│  │ 用户级 channel: user:{userId} (与 classroom-session channel 不同)│     │
+│  └──────────────────────────────────────────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+### 关键设计问题解答
 
-## 2. 组件间交互与集成点
+**Q1: 文件二进制数据如何通过 Command Bus？**
 
-### 2.1 PlatformCommandType 层级：SystemCommandTypes 的新增位置
+答案：**不通过。** JSON Command Bus envelope 不适合承载二进制数据。策略如下：
 
-**现状**（contracts.ts）：
+- `system.file.upload`: 通过独立的 **API Route** (`/api/system/file/upload`) 接收 multipart/form-data，然后内部调用 `dispatchSystemCommand` 传递**元数据引用**（文件名、大小、MIME 类型、目标路径）但不传递文件二进制本体。
+- `system.file.download`: 通过 **API Route** (`/api/system/file/[fileId]/download`) 直接流式响应文件内容，不走 Command Bus。
+- `system.file.delete/list/info`: 元数据操作走 Command Bus 或 DAL 读路径。
+
+**Q2: 文件存储：文件内容在磁盘 vs SQLite？**
+
+答案：**文件元数据在 SQLite，文件内容在磁盘。** SQLite 不适宜存储大文件二进制（性能退化，DB 膨胀）。磁盘路径结构：
 ```
-PlatformPluginGovernanceCommandTypes (12 个: plugin.install ... plugin.kill_switch.set)
-LessonDraftCommandTypes             (4 个:  lesson.draft.run|persist|accept|discard)
-PluginDataCommandTypes              (2 个:  plugin.data.insert|upsert)
-QuizTransportCommandTypes           (1 个:  quiz.answer.received)
-  → PlatformCommandTypeSchema = z.enum([...全部拼接...])
-  → PlatformCommandSchema = z.discriminatedUnion("type", [...全部 variants...])
+data/uploads/{schoolId}/{pluginKey}/{hash-based-uuid}.{ext}
 ```
-每个 type 组的 pattern 是：
-1. 声明 `as const` 字符串数组
-2. 加入 `z.enum` 
-3. 定义对应 `PayloadSchema`
-4. 注册到 `PlatformCommandPayloadSchemas`
-5. 添加到 `PlatformCommandSchema` 的 discriminated union
+路径隔离即安全隔离：每个文件路径天然包含 schoolId 和 pluginKey，不可跨 school/plugin 访问。
 
-**推荐新增**：
+**Q3: 通知是实时推送还是轮询？**
+
+答案：**两者兼备。** 写入路径走 Command Bus → DB 持久化 → WebSocket 推送（实时）。客户端也提供 HTTP 轮询回退（`system.notification.list` 只读 DAL）用于离线恢复和补拉。
+
+## Component Boundaries
+
+### 新增组件
+
+| 组件 | 职责 | 通信对象 |
+|------|------|---------|
+| `system.file` handler (`src/features/system-commands/handler.file.ts`) | authorize: 解析 manifest 白名单，校验 allowedPaths/allowedOps/maxFileSize；execute: 文件 CRUD 逻辑 | `systemCommandStore`, `systemFiles` DAL, disk I/O |
+| `system.notification` handler (`src/features/system-commands/handler.notification.ts`) | authorize: 解析 manifest，校验 allowedTypes/targetRoles；execute: 写入 notifications 表 + WS 发布 | `systemCommandStore`, `notifications` DAL, transport gateway |
+| `systemFiles` 表 + DAL | 文件元数据持久化（路径、大小、MIME、上传者、schoolId、pluginId） | Drizzle, handler |
+| `notifications` 表 + DAL | 通知持久化（userId、类型、标题、正文、已读状态） | Drizzle, handler, transport |
+| API Routes: `/api/system/file/upload`, `/api/system/file/[fileId]/download` | 接收/发送二进制文件数据，与 handler 解耦 | handler, disk |
+| `notification.received` WS message kind | 新增 WebSocket 消息类型，用户级推送 | ws-envelope, ws-connection-registry |
+
+### 修改组件
+
+| 组件 | 修改内容 | 影响范围 |
+|------|---------|---------|
+| `SystemCommandTypes` in `contracts.ts` | 追加 `system.file.upload`, `system.file.download`, `system.file.delete`, `system.notification.send` | discriminated union 扩增，所有现有 handler 不受影响 |
+| `SystemCommandDiscriminatedSchema` in `resource-ai.ts` | 追加 `system.file` 和 `system.notification` 的 manifest 声明 shape | plugin install preflight 需要新校验 |
+| `dispatchSystemCommand` facade | 追加判别分支：`system.file.*` → Command Bus/DAL, `system.notification.*` → Command Bus/DAL | additive 扩展 |
+| `platformCommandRegistry` | 注册新 commandType handler | 与现有 registry 模式一致 |
+| `GovernanceDeniedReasonValues` in `permissions.ts` | 可能需要加 `file_path_denied`、`file_size_exceeded`、`notification_type_denied` | additive 扩展 |
+| `writeSystemCommandAudit` in `audit.ts` | `commandType` 联合类型追加新类型 | additive 扩展 |
+| `ws-envelope.ts` `ClassroomWebSocketMessageKindSchema` | 追加 `"notification.received"` | 少量扩展 |
+| `cache-policy.ts` | 追加 `systemFiles` 和 `notifications` 相关 tag | additive |
+
+### 不修改组件
+
+- `assertActionExecutable` (governance-gate.ts) — schoolId 派生逻辑不变，verb 已泛化为 string
+- `publishTransportEvent` — 复用现有 transport seam
+- `pluginRegistrations` 表结构 — manifestJson 已支持 `systemCommands` optional array
+- `governanceAudits` 表 — `writeSystemCommandAudit` 已写入此表，commandType 参数化
+
+## Data Flow
+
+### system.file.upload 完整流程
+
+```
+Client (plugin runtime)
+    ↓ multipart/form-data
+POST /api/system/file/upload                    ← API Route (不经过 Command Bus)
+    ↓
+  1. 解析 File + metadata (fileName, path hint)
+  2. 调用 dispatchSystemCommand({              
+      commandType: "system.file.upload",        
+      pluginKey, actorId,                        
+      metadata: { fileName, mimeType, size,     
+                   targetPath, ... }             
+     })                                           
+    ↓                                              
+dispatchSystemCommand facade                     
+    ↓ ① governance-gate                          
+assertActionExecutable(verb="system.file.upload") 
+    ↓ ② payload validation (Shape校验)          
+Zod 拒绝：非法 path/mimeType/size/ops            
+    ↓ ③ Command Bus execute                      
+handler.file.ts: execute()                       
+    ├── authorize: manifest 白名单匹配 allowedPaths + allowedOps
+    ├── 生成 UUID 文件名 + 磁盘路径              
+    ├── 写入文件到 data/uploads/{schoolId}/{pluginKey}/...
+    ├── 写入 systemFiles 元数据记录               
+    ├── 写 governanceAudit (allowed)             
+    └── 返回 resultSummary: { fileId, url, name, size }
+```
+
+### system.file.download 流程
+
+```
+Client
+    ↓
+GET /api/system/file/[fileId]/download           ← API Route (不经过 Command Bus)
+    ↓
+  1. 直接调用 file DAL 查询元数据 (纯读)
+  2. 校验 schoolId/pluginKey 隔离
+  3. 流式响应文件内容 (stream pipeline)
+  4. 写只读 audit (denied-but-recorded, 不需要 Command Bus)
+```
+
+### system.notification.send 完整流程
+
+```
+Client (plugin runtime)
+    ↓
+dispatchSystemCommand({                          
+  commandType: "system.notification.send",        
+  pluginKey, actorId,                             
+  notification: { userId, type, title, body }      
+})                                                 
+    ↓ ① governance-gate                            
+assertActionExecutable(verb="system.notification.send")
+    ↓ ② payload validation                         
+    ↓ ③ Command Bus execute                        
+handler.notification.ts: execute()                  
+    ├── authorize: manifest 白名单匹配 allowedTypes + targetRoles
+    ├── 校验 targetUserId 在 plugin 所在 school
+    ├── 写入 notifications 表
+    ├── 写 governanceAudit (allowed)
+    ├── 调用 publishTransportEvent({              
+    │     sessionId: null,                         
+    │     channel: "user:" + targetUserId,         ← 用户级 channel
+    │     kind: "notification.received",           ← 新 WS kind
+    │     payload: { notificationId, type, title, body }
+    │   })
+    └── 返回 resultSummary
+```
+
+### system.notification.list 流程 (只读)
+
+```
+Client (user)
+    ↓
+GET /api/notifications?unreadOnly=true&limit=20    ← 直接 DAL 读，不走 Command Bus
+    ↓
+DAL: 查询 notifications WHERE userId = ? AND (isRead = 0) ORDER BY createdAt DESC LIMIT 20
+```
+
+## Architectural Patterns
+
+### Pattern 1: Write-via-Command-Bus, Read-direct-DAL
+
+**来自:** v4.3 `system.config.set` (Command Bus) vs `system.config.get` (DAL)
+
+**新应用:**
+- `system.file.upload` / `system.file.download` / `system.file.delete` → Command Bus
+- `system.file.list` / `system.file.info` / `system.file.metadata` → DAL (纯读)
+- `system.notification.send` → Command Bus
+- `system.notification.list` / `system.notification.unreadCount` → DAL (纯读)
+
+**原则:** 只有**写入或副作用操作**进入 Command Bus。纯读取走 DAL，不触发治理审计写入、不占用命令记录。
+
+### Pattern 2: Binary Bypass — API Route Bridge
+
+**新引入:** Command Bus envelope 是 JSON，不能承载二进制。对于 file upload/download，引入 API Route 作为二进制桥梁。
+
+```
+Plugin → API Route (multipart/stream) → dispatchSystemCommand (metadata only) → Command Bus → execute
+```
+
+Download 反过来：客户端请求 API Route，API Route 直接读 DAL + 磁盘后流式响应。
+
+### Pattern 3: Notification Delivery — DB + WS Dual Write
+
+**复用:** `quiz.answer.received` 的 `publishTransportEvent` 模式。
+
+通知写入：先写 DB（durable truth），再推 WS（best-effort delivery）。WS 失败不影响 DB 写入成功，客户端可通过轮询 DAL 补拉。
 
 ```typescript
-// contracts.ts 新增 — SystemCommandTypes
-export const SystemCommandTypes = [
-  "system.http.request",
-  "system.config.get",
-  "system.config.set",
-] as const;
-
-// PlatformCommandTypeSchema 扩编
-export const PlatformCommandTypeSchema = z.enum([
-  ...PlatformPluginGovernanceCommandTypes,
-  ...LessonDraftCommandTypes,
-  ...PluginDataCommandTypes,
-  ...QuizTransportCommandTypes,
-  ...SystemCommandTypes,  // ★ 新增
-]);
-```
-
-**为什么 system.config.get 要声明为命令类型？**
-- `get` 是纯读操作，**不**走 Command Bus 的 write 路径
-- 但是 `PlatformCommandTypeSchema` 是一个类型域——声明它使得 facade 的类型签名可以统一使用 `PlatformCommandType` 作为判别键
-- 实际派发时 facade 会区分：`get` → 直接 DAL 读取（不走 Command Bus）；`set` / `http.request` → 经 producer 走 Command Bus
-- 这与 `plugin.data.*` 的模式一致：insert/upsert 声明了类型，但读动词（getByIndex/count/aggregate）并不声明为命令类型，因为读不走 Command Bus
-- **修正**：参照 plugin.data.* 的既有范式，**system.config.get 不应声明为 PlatformCommandType**。它只在 facade 层做类型判别，不需要进入 Command Bus。实际需要声明的只有两个：
-
-```typescript
-export const SystemCommandTypes = [
-  "system.http.request",
-  "system.config.set",
-] as const;
-```
-
-| 文件 | 修改类型 | 改动内容 |
-|------|----------|----------|
-| `contracts.ts` | 修改 | 新增 `SystemCommandTypes`、`SystemHttpRequestPayloadSchema`、`SystemConfigSetPayloadSchema`，追加到 `PlatformCommandPayloadSchemas`，追加 discriminated union 两个 variants |
-| `contracts.ts` | 修改 | `PlatformCommandTypeSchema` 扩展包含 `...SystemCommandTypes` |
-| `registry.ts` | 修改 | 新增 2 条 registry entries，引用新 handler |
-
-### 2.2 dispatchSystemCommand facade 设计
-
-**参照模板**：`src/features/platform-core/plugin-data-access/facade.ts` (`dispatchPluginDataAccess`)
-
-**现有 facade 的三段式结构**（facade.ts:43-118）：
-```
-① 治理门前置：assertActionExecutable({actorId, pluginKey, verb, correlationId})
-   → 返回 {schoolId, projectionRow}
-② 判别派发：
-   - 写动词 (insert/upsert) → producePluginData* (经 Command Bus)
-   - 读动词 (getByIndex/count/aggregate) → 直接 DAL 读取
-③ 结果返回
-```
-
-**新增 facade 的三段式结构**：
-
-```
-dispatchSystemCommand (新文件: src/features/platform-core/commands/facades/system.ts):
-  ① 治理门前置：assertSystemActionExecutable({actorId, pluginKey, correlationId})
-     → 返回 {schoolId, pluginId, manifestSystemCommands}
-     → 内部复用 deriveActiveSchoolScope + projectPluginGovernance
-  ② 判别派发：
-     - system.http.request → produceSystemHttpRequest (经 Command Bus)
-     - system.config.set     → produceSystemConfigSet (经 Command Bus)
-     - system.config.get     → 直接 DAL 读取 system_plugin_config 表
-  ③ 结果返回
-```
-
-**类型签名**：
-```typescript
-// 读操作（system.config.get）不走 Command Bus，只做 governance gate
-type SystemCommandInput =
-  | { type: "system.http.request"; pluginKey: string; url: string; method: string; headers?: Record<string,string>; body?: string; timeout?: number }
-  | { type: "system.config.set"; pluginKey: string; configKey: string; configValue: unknown }
-  | { type: "system.config.get"; pluginKey: string; configKey: string }
-
-// 输入不携带 schoolId/pluginId——由 governance gate 从 session 派生注入
-```
-
-**关键不变式**（镜像 facade.ts:30-35 的注释契约）：
-- **schoolId 唯一权威**：由治理门从认证 session 派生注入，facade 绝不读取 `input.schoolId`
-- **治理前置**：gate 抛错时 producer/DAL 均不被调用
-- **actor scope = "plugin"**：命令执行代表受治理插件行为
-
-### 2.3 manifest systemCommands 声明
-
-**存储策略**：声明存储于 `pluginRegistrations.manifestJson` 内作为 JSON 字段的一部分，不单独建表。
-
-**Zod Schema**（新文件：`src/features/runtime-platform/contracts/system-commands.ts`）：
-
-```typescript
-import { z } from "zod";
-
-// 允许精确域名 + 通配符子域名模式
-const SystemHttpDomainPatternSchema = z.string().min(1).superRefine((val, ctx) => {
-  // *.example.com 或 api.example.com
-  if (!/^(\*\.)?[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/.test(val)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "invalid domain pattern" });
-  }
-  // 拒绝裸通配符 "*"（过于宽松）
-  if (val === "*" || val === "*.") {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "wildcard-only domain not allowed" });
-  }
-});
-
-const SystemHttpMethodSchema = z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]);
-
-const SystemHttpRequestDeclarationSchema = z.strictObject({
-  allowedDomains: z.array(SystemHttpDomainPatternSchema).min(1),
-  allowedMethods: z.array(SystemHttpMethodSchema).min(1),
-  maxResponseSize: z.number().int().positive().max(5242880).default(1048576), // 最大5MB，默认1MB
-  defaultTimeout: z.number().int().positive().max(30000).default(10000),      // 最大30s，默认10s
-});
-
-const SystemConfigDeclarationSchema = z.strictObject({
-  // system.config.get/set 不需要额外白名单——插件只能读写自身的 config
-  // 声明此节点仅作为显式 opt-in
-  maxValueSize: z.number().int().positive().max(65536).default(65536), // 最大64KB
-});
-
-export const SystemCommandsDeclarationSchema = z.strictObject({
-  "system.http.request": SystemHttpRequestDeclarationSchema.optional(),
-  "system.config": SystemConfigDeclarationSchema.optional(),
-});
-```
-
-**追加到 PluginManifestSchema**（修改 `src/lib/dto/resource-ai.ts:761`）：
-
-```typescript
-export const PluginManifestSchema = z.object({
-  id: z.string(),
-  version: z.string(),
-  manifestVersion: z.literal(1).or(z.literal(2)).default(1),
-  permissions: z.array(PluginPermissionSchema).default([]),
-  anchors: z.array(PluginHookAnchorSchema),
-  actions: z.array(PluginActionSchema),
-  builtIn: z.boolean().default(false),
-  defaultEnabled: z.boolean().default(false),
-  nonDeletable: z.boolean().default(false),
-  theme: ThemeTokenRegistrySchema.optional(),
-  governance: PluginManifestGovernanceV2Schema.optional(),
-  systemCommands: SystemCommandsDeclarationSchema.optional(),  // ★ 新增
-}).superRefine(/* ... existing superRefine ... */);
-```
-
-**校验时机**：
-
-| 阶段 | 校验内容 | 调用位置 |
-|------|----------|----------|
-| **install** | `SystemCommandsDeclarationSchema` 结构校验（域名格式、方法枚举在 Zod 边界就被拒） | `registerPluginManifestAction` → `PluginManifestSchema.parse()` |
-| **upgrade** | 与新 manifest 一同校验（整个 manifestJson 替换） | `producePluginUpgradeCommand` → `PluginManifestSchema.parse()` |
-| **runtime** | 逐请求域名匹配、方法匹配、SSRF 检查 | `dispatchSystemCommand` → governance gate |
-
-**优势**：
-- Install 时完成声明合法性校验，runtime 只做逐请求匹配，不做重复的结构校验
-- 与 `governance` 字段（`PluginManifestGovernanceV2Schema`）并列，形成 manifest 的「治理声明」层
-- 存储在 manifestJson 内，升级时原子替换，无独立表同步问题
-
-### 2.4 授权流程
-
-**5 层逐层把守**，任一失败即写 denial audit 并抛出具名错误：
-
-```
-插件调用 dispatchSystemCommand({type: "system.http.request", pluginKey, url, method, ...})
-    │
-    ▼
-第 1 层：身份认证
-    deriveActiveSchoolScope() → 获取 schoolId + userId
-    失败 → denial: "non_school_actor_rejected"
-    │
-    ▼
-第 2 层：Lifecycle + Kill-Switch
-    projectPluginGovernance(snapshots) → 判定 executable
-    失败 → denial: "lifecycle_not_executable" | "kill_switch_rejected"
-    │
-    ▼
-第 3 层：Manifest 声明存在性
-    manifestJson.systemCommands?.[commandGroup] 存在？
-    - "system.http.request" → systemCommands["system.http.request"]
-    - "system.config.set"/"system.config.get" → systemCommands["system.config"]
-    失败 → denial: "not_allowlisted"
-    │
-    ▼
-第 4 层：白名单逐请求匹配
-    对 system.http.request:
-      ├── 解析 URL hostname → 匹配 allowedDomains（含 *.example.com 通配符语义）
-      ├── 检查 method ∈ allowedMethods
-      └── SSRF 防护：DNS resolve → 检查 IP 为非 private/loopback/link-local
-    失败 → denial: "domain_not_allowed" | "method_not_allowed" | "private_ip_blocked"
-    │
-    对 system.config.get/set:
-      └── 检查 configKey 隔离（自动添加 pluginKey 前缀或校验前缀归属）
-    失败 → denial: "config_key_denied"
-    │
-    ▼
-第 5 层：Execute
-    system.http.request → fetch(url, {method, headers, body, signal: AbortSignal.timeout(timeout)})
-    system.config.set → INSERT OR REPLACE INTO systemPluginConfig
-    system.config.get → SELECT FROM systemPluginConfig (直接 DAL)
-    失败 → event: "platform.command.failed"
-```
-
-**新增 reason code**（追加到 `GovernanceDeniedReasonValues`, permissions.ts:32）：
-
-```typescript
-export const GovernanceDeniedReasonValues = [
-  // ... 已有的 7 个 ...
-  "not_allowlisted",
-  "capability_missing",
-  "permission_denied",
-  "lifecycle_blocked",
-  "school_mismatch",
-  "kill_switch",
-  "unsupported_action",
-  // ★ 新增 4 个
-  "domain_not_allowed",
-  "method_not_allowed",
-  "private_ip_blocked",
-  "config_key_denied",
-] as const;
-```
-
-**第 4 层 SSRF 防护详细设计**：
-
-```typescript
-// 在 system.http.request handler 的 authorize 中
-const PRIVATE_IP_RANGES = [
-  /^127\./, /^10\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./,
-  /^0\./, /^169\.254\./, /^::1$/, /^fc00:/, /^fd00:/, /^fe80:/,
-];
-
-async function checkSsrfRisk(hostname: string): Promise<void> {
-  // 使用 dns.promises.resolve4 / resolve6（Node.js 内置）
-  const addresses = await dns.promises.resolve4(hostname).catch(() => []);
-  for (const addr of addresses) {
-    if (PRIVATE_IP_RANGES.some((re) => re.test(addr))) {
-      throw new Error("private_ip_blocked");
-    }
-  }
+// handler.notification.ts execute() 伪代码
+await db.insert(notifications).values({...notification});
+// Best-effort: WS 推送失败不抛错
+try {
+  await publishTransportEvent({
+    channel: `user:${targetUserId}`,
+    kind: "notification.received",
+    payload: { notificationId, type, title, body }
+  });
+} catch {
+  // 客户端会通过轮询补拉
 }
 ```
 
-### 2.5 system.config 数据流
+### Pattern 4: Path-Based Isolation (system.file)
 
-**推荐方案：新增独立 SQLite 表 `systemPluginConfig`。**
+**来自:** `system.config` 的三重前缀隔离 (`{schoolId}:{pluginId}:{key}`)
 
-**与 `pluginOwnedBusinessData` 的对比**：
+**新应用:** 文件系统路径隔离：
+```
+data/uploads/{schoolId}/{pluginKey}/{category?}/{uuid}.{ext}
+```
+- `schoolId` 和 `pluginKey` 由 facade 注入（来自 governance-gate），绝不从 payload 读取
+- 所有文件操作 path resolution 基于注入的 schoolId/pluginKey 做 prefix guard
+- 禁止 `..` 路径穿越
 
-| 维度 | pluginOwnedBusinessData (schema.ts:1884) | systemPluginConfig (新表) |
-|------|-------------------------------------------|----------------------------|
-| 用途 | 通用业务数据——marketplace 生命周期的 misc 数据 | system.config 语义——插件声明式 KV 配置 |
-| 主键/唯一约束 | `(schoolId, pluginId, key)` | `(pluginRegistrationId, schoolId, configKey)` |
-| 值类型 | payloadJson (任意 JSON) | configValueJson (任意 JSON，但有 maxValueSize 限制) |
-| 生命周期 | 跟随 uninstall retain/cleanup 策略 | 跟随插件注册 (ON DELETE CASCADE) |
-| 访问模式 | 通用 key-value 查询 | configKey 命名隔离 (auto-prefix pluginKey) |
+## Anti-Patterns to Avoid
 
-**不复用 `pluginOwnedBusinessData` 的核心原因**：
-1. 语义不同——business data 是 marketplace 操作的附属数据，system.config 是插件运行时配置
-2. 生命周期不同——business data 受 retain/cleanup 策略控制，system.config 应始终 ON DELETE CASCADE
-3. 隔离边界不同——business data 的 key 不强制 pluginKey 前缀，configKey 必须隔离
+### Anti-Pattern 1: 文件二进制进 Command Bus
 
-**新表 Drizzle 定义**（追加到 `src/db/schema.ts`）：
+**错误:** 把文件的 Buffer/Uint8Array 放进 `PlatformCommand.payload`
+**为什么错:** Command Bus envelope 经过 JSON 序列化 → Drizzle `payloadJson` 列，二进制数据会导致内存爆炸和 JSON 序列化失败
+**正确做法:** 文件内容通过 API Route 直接写入磁盘，Command Bus 只传元数据引用
 
-```typescript
-export const systemPluginConfig = sqliteTable(
-  "system_plugin_config",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    pluginRegistrationId: text("pluginRegistrationId")
-      .notNull()
-      .references(() => pluginRegistrations.id, { onDelete: "cascade" }),
-    schoolId: text("schoolId")
-      .notNull()
-      .references(() => schools.id, { onDelete: "cascade" }),
-    configKey: text("configKey").notNull(),
-    configValueJson: text("configValueJson", { mode: "json" }).notNull(),
-    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
-    updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex("system_plugin_config_plugin_key_unique").on(
-      table.pluginRegistrationId, table.schoolId, table.configKey
-    ),
-  ]
-);
+### Anti-Pattern 2: 文件元数据和二进制存储在同一列
+
+**错误:** 把文件内容以 base64 或 blob 存入 SQLite
+**为什么错:** SQLite 大二进制存储性能退化；备份/迁移困难；写入时锁竞争严重
+**正确做法:** 文件内容在磁盘，SQLite 只存元数据 + 磁盘路径引用
+
+### Anti-Pattern 3: 通知写入和 WS 推送强绑定
+
+**错误:** WS 推送失败 → 整个 send 命令回滚
+**为什么错:** WS 是 best-effort delivery，不能因为网络问题阻止 DB 持久化。通知必须先落地（durable truth），再推送。
+**正确做法:** DB write 成功即命令成功，WS 推送失败只记 warning 日志。
+
+### Anti-Pattern 4: 为通知创建新的 transport channel
+
+**错误:** 新建独立的 `/api/ws/notification` WebSocket endpoint
+**为什么错:** 现有 WebSocket server 已有鉴权、连接注册、session 管理、Redis fanout。新建 endpoint 重复这些层。
+**正确做法:** 在现有 Classroom WebSocket 中新增 `notification.received` message kind，channel 收窄到 `user:{userId}`。
+
+### Anti-Pattern 5: notification targetUserId 从 payload 读取
+
+**错误:** payload 中直接包含 `targetUserId`，由插件指定
+**为什么错:** 破坏 school scoping，插件可以跨校推送
+**正确做法:** targetUserId 必须在 authorize 阶段校验其在 plugin 所在的 school(s) 中有有效 membership。仅允许向同校用户推送。
+
+## Scalability Considerations
+
+| 关注点 | 单机/SQLite (当前) | 多实例扩展方向 |
+|--------|-------------------|--------------|
+| 文件存储 | 本地磁盘 `data/uploads/` | S3-compatible object storage (MinIO/R2)，文件 ID 映射到 object key |
+| 文件并发写入 | SQLite WAL 足够 (单写锁) | 对象存储天然分布式，无需锁 |
+| 通知查询 | SQLite `(userId, isRead, createdAt)` 索引，<1000 用户无压力 | PostgreSQL read replica 分担查询 |
+| 通知实时推送 | 单机 WS 直推 | Redis fanout (已有 `redis-fanout-manager.ts`)，广播到所有 WS 实例 |
+| 通知保留 | 后台清理 job，保留最近 100 条/用户 | 同样策略，批量 DELETE |
+| 文件大小 | 上限由 maxFileSize manifest 声明控制 | 相同逻辑，上限由对象存储 SLA 决定 |
+
+## Recommended Project Structure
+
+```
+src/features/system-commands/
+├── handler.ts                    # 现有 system.http.request + system.config (不变)
+├── handler.file.ts               # [NEW] system.file 的 authorize/execute
+├── handler.notification.ts       # [NEW] system.notification 的 authorize/execute
+├── facade.ts                     # 扩增 (追加判别分支)
+├── audit.ts                      # 小改 (commandType 联合类型追加)
+├── ssrf-guard.ts                 # 不变
+├── file-storage.ts               # [NEW] 磁盘 I/O 工具 (writeFile, readFile, deleteFile)
+├── file-dal.ts                   # [NEW] systemFiles 表 DAL (insert/get/delete/list)
+├── notification-dal.ts           # [NEW] notifications 表 DAL (insert/list/markRead)
+├── *.test.ts                     # 对应测试
+
+src/app/api/system/file/
+├── upload/route.ts               # [NEW] POST multipart/form-data upload endpoint
+├── [fileId]/download/route.ts    # [NEW] GET 文件下载流式响应
+
+src/app/api/notifications/
+├── route.ts                      # [NEW] GET 当前用户通知列表
+├── [notificationId]/mark-read/
+│   └── route.ts                  # [NEW] PATCH 标记已读
+
+src/db/schema.ts                  # [NEW] systemFiles + notifications 表定义
+src/lib/cache-policy.ts           # [NEW] systemFiles + notifications cache tags
 ```
 
-**数据流**：
+## Suggested Build Order
 
-```
-system.config.set:
-  → dispatchSystemCommand({type: "system.config.set", pluginKey, configKey, configValue})
-  → 治理门 (5 层通过)
-  → produceSystemConfigSet → dispatchPlatformCommand({type: "system.config.set", ...})
-  → handler.authorize: configKey 归属校验, configValue 大小校验 (≤ maxValueSize)
-  → handler.execute:
-      INSERT INTO system_plugin_config (...) VALUES (...)
-      ON CONFLICT (pluginRegistrationId, schoolId, configKey) DO UPDATE
-      SET configValueJson = excluded.configValueJson, updatedAt = excluded.updatedAt
-  → resultSummary: { pluginKey, configKey, byteLength }
+1. **Phase: system.file (基础 CRUD)**
+   - DB migration: `systemFiles` 表
+   - DAL: `file-dal.ts` (insert/getById/list/delete)
+   - 磁盘工具: `file-storage.ts`
+   - manifest shape: `SystemCommandFileSchema` 追加到 discriminated union
+   - contracts: `system.file.upload`, `system.file.download`, `system.file.delete` 命令类型 + payload schemas
+   - handler: `handler.file.ts` authorize + execute
+   - API Routes: `/api/system/file/upload` (接收 multipart), `/api/system/file/[fileId]/download` (流式)
+   - registry 注册 + facade 判别
+   - governance audit 审计记录
+   
+2. **Phase: system.file (只读操作)**
+   - `system.file.list` / `system.file.info` / `system.file.metadata`: 纯 DAL 读
+   - facade 判别分支（读路径不写 audit）
 
-system.config.get:
-  → dispatchSystemCommand({type: "system.config.get", pluginKey, configKey})
-  → 治理门 (5 层通过)
-  → 直接 DAL 读取 (不经 Command Bus):
-      SELECT configValueJson FROM system_plugin_config
-      WHERE pluginRegistrationId = ? AND schoolId = ? AND configKey = ?
-  → 不存在返回 null，不抛错
-  → 记录 allowed audit（无 command record）
-```
+3. **Phase: system.notification (写入)**
+   - DB migration: `notifications` 表
+   - DAL: `notification-dal.ts` (insert/markRead/list)
+   - manifest shape: `SystemCommandNotificationSchema`
+   - contracts: `system.notification.send` 命令类型
+   - handler: `handler.notification.ts`
+   - WS envelope: 新增 `notification.received` message kind
+   - publishTransportEvent with user-level channel
+   - registry 注册 + facade 判别
 
-### 2.6 Governance Audit 集成
+4. **Phase: system.notification (读取 + 收件箱 UI)**
+   - API Route: `/api/notifications` (GET)
+   - `markRead` API Route
+   - 前端通知面板组件（可选，如产品需要）
 
-**复用 `governanceAudit` 表**（schema.ts:1325），追加新的 reasonCode 枚举值。
+**理由:** system.file 是 system.notification 的前置（无依赖关系但 file 涉及的二进制处理更复杂，先验证磁盘 IO/API Route bridge 模式，再复用类似模式到 notification 的 DB+WS write pattern）。system.file 的基础 CRUD 和只读分两个 phase 降低 blast radius。
 
-**每次 system command 调用产生的审计记录**：
+## Integration Points Summary
 
-| 场景 | governanceAudit 记录 | platformCommand 记录 | platformEvent 记录 |
-|------|---------------------|---------------------|-------------------|
-| governance gate 拒绝 | 1 条 (denied, reasonCode) | 0 条 | 0 条 |
-| write (http.request/set) 成功 | 1 条 (allowed) | 1 条 (succeeded) | N 条 (command.succeeded + domain events) |
-| write (http.request/set) 失败 | 1 条 (allowed) | 1 条 (failed) | 1 条 (command.failed) |
-| read (config.get) 成功 | 1 条 (allowed) | 0 条 | 0 条 |
+| 集成点 | 接口 | 数据格式 | 新增/修改 |
+|--------|------|---------|----------|
+| PluginManifest → install preflight | `systemCommands[]` discriminated union | JSON (manifest.json) | 修改: 追加 `system.file` + `system.notification` variant |
+| Plugin → dispatchSystemCommand | facade 函数调用 | TypeScript typed params | 修改: 追加判别分支 |
+| dispatchSystemCommand → Command Bus | `dispatchPlatformCommand(envelope, ...)` | PlatformCommand discriminated union | 修改: 追加 commandType |
+| Command Bus → handler.authorize | manifest re-parse + allowedPaths/allowedOps 白名单匹配 | manifest entry → boolean | 新增 |
+| Command Bus → handler.execute | `execute({command, attemptNumber})` | PlatformCommand → resultSummary | 新增 |
+| handler.execute → governanceAudits | `writeSystemCommandAudit(input)` | audit record (DB row) | 小改: commandType 联合 |
+| handler.execute → 文件磁盘 | `file-storage.ts` 工具函数 | Node.js fs API | 新增 |
+| handler.execute → WebSocket | `publishTransportEvent(...)` | RuntimeTransportEnvelope | 修改: 新 channel `user:{id}` + 新 kind |
+| 客户端 → 文件上传 | `POST /api/system/file/upload` | multipart/form-data | 新增 API Route |
+| 客户端 → 文件下载 | `GET /api/system/file/[fileId]/download` | binary stream | 新增 API Route |
+| 客户端 → 通知查询 | `GET /api/notifications` | JSON | 新增 API Route |
+| systemFiles table | Drizzle query via file-dal.ts | Drizzle query | 新增 DB 表 |
+| notifications table | Drizzle query via notification-dal.ts | Drizzle query | 新增 DB 表 |
 
-**Denial audit 示例**：
+## Sources
 
-```typescript
-// domain_not_allowed 拒绝
-{
-  targetType: "plugin",
-  targetId: pluginId,
-  pluginId: pluginId,
-  schoolId: schoolId,
-  action: "system.http.request",
-  decision: "denied",
-  reasonCode: "domain_not_allowed",
-  actorId: teacherUserId,
-  actorScope: "plugin",      // 代表插件行为
-  lifecycleState: "ready",
-  killSwitchEnabled: false,
-  requestedCapabilitiesJson: [],
-  grantedCapabilitiesJson: [],
-  correlationId: "system-cmd:sha256...",
-  payloadJson: {
-    pluginKey: "my-plugin",
-    commandType: "system.http.request",
-    url: "https://evil.com/data",
-    method: "GET",
-    manifestAllowedDomains: ["api.example.com"],
-    deniedReason: "hostname evil.com not in allowed domains"
-  }
-}
-```
-
-**与 Command Event 的关联**：
-- 治理 audit 与 Command Event 通过 `correlationId` 关联
-- 联查路径：`governanceAudit.correlationId → platformCommands.correlationJson.correlationId → platformEvents.correlationId`
+- 项目内部代码分析 (HIGH confidence)
+  - `src/features/platform-core/commands/contracts.ts` — Command Bus envelope + discriminated union 模式
+  - `src/features/system-commands/facade.ts` — dispatchSystemCommand facade + governance-gate 集成
+  - `src/features/system-commands/handler.ts` — system.http.request / system.config 的 authorize/execute 模式
+  - `src/features/platform-core/plugin-data-access/governance-gate.ts` — schoolId 派生 + assertActionExecutable
+  - `src/db/schema.ts` — pluginOwnedBusinessData, governanceAudits, platformCommands 表结构
+  - `src/lib/dto/resource-ai.ts` — SystemCommandDiscriminatedSchema + PluginManifest schema
+  - `src/features/runtime-platform/seams/transport/ws-envelope.ts` — ClassroomWebSocketMessageKind
+  - `src/features/runtime-platform/contracts/permissions.ts` — notification:create:stub 已存在
+  - `src/features/platform-core/commands/handlers/quiz-answer-received.ts` — transport publish 模式
+- Web 研究 (MEDIUM confidence)
+  - Next.js App Router file upload best practices — multipart/form-data via API Route or Server Action
+  - In-app notification DB schema — userId + type + payload + isRead pattern with composite indexes
+  - SQLite WAL mode for concurrent read/write performance
 
 ---
-
-## 3. 组件设计
-
-### 3.1 新增文件清单（7 个）
-
-| 文件 | 层 | 职责 |
-|------|-----|------|
-| `src/features/runtime-platform/contracts/system-commands.ts` | Contract | `SystemCommandsDeclarationSchema`、`SystemHttpRequestDeclarationSchema`、`SystemConfigDeclarationSchema` |
-| `src/features/platform-core/commands/handlers/system-http-request.ts` | Handler | `system.http.request` 的 authorize (白名单匹配 + SSRF) + execute (HTTP fetch) |
-| `src/features/platform-core/commands/handlers/system-config.ts` | Handler | `system.config.set` 的 authorize + execute (DB upsert)；`get` 不注册为 handler |
-| `src/features/platform-core/commands/producers/system.ts` | Producer | `produceSystemHttpRequest` / `produceSystemConfigSet`，镜像 `producers/plugin-data.ts` |
-| `src/features/platform-core/commands/facades/system.ts` | Facade | `dispatchSystemCommand` 统一入口——治理门 + 判别派发 |
-| `src/lib/dal/system-config.ts` | DAL | `system_plugin_config` 表的直接读取（get 用）+ 写入辅助 |
-| `src/lib/dto/system-command.ts` | DTO | `SystemCommandInputSchema` + 类型导出（纯 DTO，无服务端边界） |
-
-### 3.2 修改文件清单（6 个）
-
-| 文件 | 修改幅度 | 改动内容 |
-|------|----------|----------|
-| `src/features/platform-core/commands/contracts.ts` | 中等 | 新增 `SystemCommandTypes`、2 个 payload schemas、2 个 discriminated union variants、扩展 `PlatformCommandTypeSchema` |
-| `src/features/platform-core/commands/registry.ts` | 小 | 新增 2 条 registry entries |
-| `src/features/runtime-platform/contracts/permissions.ts` | 小 | `GovernanceDeniedReasonValues` 追加 4 个 reason code |
-| `src/lib/dto/resource-ai.ts` | 小 | `PluginManifestSchema` 追加 `systemCommands` 可选字段 |
-| `src/db/schema.ts` | 小 | 新增 `systemPluginConfig` 表 + 导出 |
-| `src/actions/plugin-actions.ts` | 极小 | import 新类型（如需在 action 层暴露 system command 入口） |
-
-### 3.3 不动文件（明确排除）
-
-以下组件零修改：
-- **`bus.ts`** (`dispatchPlatformCommand`) — 不修改，`system.*` 走同一 bus，通过 type 区分
-- **`platformCommandStore`** — system producer 创建自己的 store 实例，使用同样的 Drizzle 表
-- **`plugin-governance.ts` / `plugin-data.ts` producers** — 不变
-- **`plugin-data-access/facade.ts`** — 不变
-- **`governanceAudit` 表结构** — 不变，仅追加 reasonCode 枚举值
-- **`pluginRegistrations` 表结构** — 不变，manifestJson 内新增字段不需要 schema 变更
-- **`RuntimeCapabilityValues`** — 不变，system commands 不经过 capability gate（走 manifest 白名单 gate）
-
----
-
-## 4. 架构模式
-
-### 模式 1：Facade-Producer-Handler 三层派发（既有模式镜像）
-
-```
-dispatchSystemCommand (facade)
-  → governance gate (lifecycle + kill-switch + manifest allowlist)
-  → discriminate:
-      - write (http.request / config.set) → producer → Command Bus → handler.authorize → handler.execute
-      - read  (config.get)             → 直接 DAL 读取
-```
-
-对标 `dispatchPluginDataAccess` → `producePluginData*` → `plugin-data handlers`，已在 v4.0 验证稳定。
-
-### 模式 2：Manifest 声明 → Install 校验 → Runtime 逐请求匹配
-
-```
-Plugin manifest.json:
-  { "systemCommands": {
-      "system.http.request": {
-        "allowedDomains": ["*.example.com", "api.github.com"],
-        "allowedMethods": ["GET", "POST"],
-        "maxResponseSize": 1048576
-      },
-      "system.config": {}
-    }
-  }
-      │（install 时）
-      ▼
-  PluginManifestSchema.parse() 
-    → SystemCommandsDeclarationSchema 边界校验（域名格式、方法枚举）
-    → 存入 pluginRegistrations.manifestJson（JSON 字段）
-      │（runtime 时）
-      ▼
-  dispatchSystemCommand()
-    → 从 manifestJson 提取 systemCommands 声明
-    → URL hostname vs allowedDomains 通配符匹配
-    → method vs allowedMethods 枚举匹配
-    → SSRF DNS rebinding 检测
-```
-
-### 反模式：避免的架构选择
-
-**反模式 1：给 `system.*` 创建独立的 Command Bus**
-- 为什么不：分裂命令总线破坏统一审计和事件流
-- 正确做法：复用 `dispatchPlatformCommand`，通过新增 `SystemCommandTypes` 区分
-
-**反模式 2：`system.config.get` 走 Command Bus 的 write 路径**
-- 为什么不：纯读操作不应产生 command record（污染 `platformCommands` 表），也不应进入 dedupe 逻辑
-- 正确做法：governance gate 后直接 DAL 读取（参照 `getByIndex`/`count`/`aggregate` 不声明命令类型的模式）
-
-**反模式 3：`systemCommands` 声明单独建表**
-- 为什么不：manifestJson 已经是完整、已校验的声明文件，单独建表会产生双份真相和同步问题
-- 正确做法：存储于 manifestJson 内，升级时原子替换
-
-**反模式 4：无 SSRF 防护的 HTTP 代理**
-- 为什么不：插件声明的白名单域名可能经 DNS rebinding 指向内网地址
-- 正确做法：resolve DNS → 检查返回 IP 是否私有/回环/链路本地 → 拒绝
-
----
-
-## 5. 构建顺序与依赖
-
-```
-Phase 77: Schema & Contract Layer（零业务依赖）
-  ├── 77.1: systemPluginConfig 表（schema.ts）
-  ├── 77.2: SystemCommandTypes + payload schemas（contracts.ts）
-  ├── 77.3: SystemCommandsDeclarationSchema（system-commands.ts）
-  ├── 77.4: PluginManifestSchema 追加 systemCommands（resource-ai.ts）
-  └── 77.5: GovernanceDeniedReasonValues 追加 4 个 reason code（permissions.ts）
-      │
-      ▼
-Phase 78: Core Infrastructure（依赖 Phase 77 的 schema/contract）
-  ├── 78.1: system.config DAL（system-config.ts — 读写 systemPluginConfig）
-  ├── 78.2: system.http.request handler（authorize + execute）
-  ├── 78.3: system.config set handler（authorize + execute）
-  ├── 78.4: system command producers（producers/system.ts）
-  └── 78.5: Registry entries（registry.ts）
-      │
-      ▼
-Phase 79: Facade & Governance Gate（依赖 Phase 78 的 handler/producer）
-  ├── 79.1: dispatchSystemCommand facade（facades/system.ts）
-  ├── 79.2: Governance gate extension（system-specific allowlist matching + SSRF check）
-  └── 79.3: Audit writer（system access audit 的 writeSystemAccessAudit）
-      │
-      ▼
-Phase 80: End-to-End Validation
-  ├── 80.1: system.http.request SSRF 防护测试
-  ├── 80.2: system.config 跨插件隔离测试
-  ├── 80.3: Manifest install-time 校验测试
-  └── 80.4: Governance audit 覆盖验证
-```
-
-**依赖链关键约束**：
-- Phase 78 依赖 Phase 77 的完整 schema/contract（handlers 需要 payload schema 来定义 authorize/execute 签名）
-- Phase 79 依赖 Phase 78 的 handler + producer（facade 需要调用 producer + 直接 DAL）
-- Phase 80 依赖 Phase 79（e2e 测试需要 facade 入口）
-
----
-
-## 6. 不变式与回归防护
-
-实施时必须保证以下不变式不破：
-
-| # | 不变式 | 来源 |
-|---|--------|------|
-| 1 | **schoolId 唯一权威**：system commands 的 schoolId 不由 payload 注入，由 governance gate 从 session 派生 | facade.ts:30-32 |
-| 2 | **Command Bus 统一**：所有写操作经 `dispatchPlatformCommand`，不引入第二个 bus | bus.ts |
-| 3 | **插件数据隔离**：插件 A 不能读插件 B 的 system.config；不能以插件 B 的身份发 HTTP 请求 | governance-gate.ts |
-| 4 | **读写路径分离**：读操作（config.get）不经 Command Bus 写入路径 | facade.ts:86-118 |
-| 5 | **审计完备**：每个 system command 调用至少 1 条 governanceAudit 记录 | audit 契约 |
-| 6 | **既有命令零影响**：`plugin.*` / `lesson.draft.*` / `plugin.data.*` / `quiz.answer.*` 行为不变，测试全部绿 | 回归约束 |
-| 7 | **Manifest 单信源**：systemCommands 声明只存在于 manifestJson 内，无独立表同步 | install action |
-| 8 | **SSRF 防护**：所有 system.http.request 的 URL 在 handler.authorize 中做 DNS resolve + IP 检查 | 安全约束 |
-
----
-
-## 来源
-
-所有架构引用来源于实存代码审计（2026-06-11）：
-
-- **Command contracts**：`src/features/platform-core/commands/contracts.ts` — `PlatformCommandTypeSchema` (L39-44)、`PlatformCommandSchema` discriminated union (L255-332)、`PlatformCommandPayloadSchemas` (L233-253)
-- **Command registry**：`src/features/platform-core/commands/registry.ts` — `platformCommandRegistry` (L17-151)、四组命令组的 handler 引入
-- **Command Bus**：`src/features/platform-core/commands/bus.ts` — `dispatchPlatformCommand` (L241-378)、`PlatformCommandStore` interface (L36-66)、dedupe 逻辑 (L105-123)
-- **Plugin governance producer**：`src/features/platform-core/commands/producers/plugin-governance.ts` — `dispatchPluginGovernanceCommand` (L264-283)、`platformCommandStore` 实现 (L166-252)、BaseProducerInput 类型
-- **Plugin data producer**：`src/features/platform-core/commands/producers/plugin-data.ts` — 写动词 produce/BaseProducerInput 模式
-- **Plugin data facade**：`src/features/platform-core/plugin-data-access/facade.ts` — `dispatchPluginDataAccess` 三段式 (L43-118)
-- **Governance gate**：`src/features/platform-core/plugin-data-access/governance-gate.ts` — `assertActionExecutable` (L43-102)、`deriveActiveSchoolScope` (L104-123)
-- **DB schema**：`src/db/schema.ts` — `governanceAudits` (L1325-1352)、`platformCommands` (L370-410)、`pluginOwnedBusinessData` (L1884-1904)
-- **Manifest schema**：`src/lib/dto/resource-ai.ts:761` (`PluginManifestSchema`)
-- **Permissions**：`src/features/runtime-platform/contracts/permissions.ts:30` (`RuntimeActorScopeValues`)、:32 (`GovernanceDeniedReasonValues`)
-
----
-*Architecture research for: v4.3 System Commands Bus*
-*Researched: 2026-06-11*
+*Architecture research for: v4.4 system.file + system.notification integration*
+*Researched: 2026-06-13*

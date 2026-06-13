@@ -1,167 +1,253 @@
-# Project Research Summary
+# 项目研究总结
 
-**Project:** OpenLearn Next
-**Milestone:** v4.0 — Plugin Marketplace & Plugin-Owned Data (SUBSEQUENT milestone, builds onto a validated platform)
-**Domain:** Declarative, governed third-party plugin data model + marketplace lifecycle (publish → install → upgrade → uninstall) + interactive-quiz sample plugin + question stats / post-class recap, on an existing Next.js 16 / Drizzle / SQLite educational OS
-**Researched:** 2026-06-02
-**Confidence:** HIGH
+**项目:** OpenLearn Next v4.4 — System Commands Bus 第二批
+**领域:** 系统命令扩展 — 本地文件存储代理 (system.file) + 应用内通知推送 (system.notification)
+**研究日期:** 2026-06-13
+**置信度:** HIGH
 
-## Executive Summary
+## 执行摘要
 
-**All four research streams converge on one thesis: v4.0 is ~90% completing and generalizing frozen scaffolding, not building a plugin system from scratch.** The platform kernel (Command Bus, governed action registry, event ledger, plugin lifecycle/governance audit, runtime host) and the data primitives (`pluginRegistrations` with `dbNamespace`/`lifecycleState`/`sourceType`/`uninstallRetentionMode: retain|cleanup`, the `plugin_ext_*` extension tables, the generic `plugin_owned_business_data` KV table, the `backfill → verify → cutover` DML-only migration discipline in `plugin-migration.ts`, the cleanup-confirmation-token pattern in `plugins.ts`) **already exist in the codebase and must be reused, not re-introduced.** The job is to assemble these seams into one repeatable end-to-end vertical slice with governance-visible behavior and a stats surface.
+本里程碑在 v4.3 已落地的 `dispatchSystemCommand` facade、`assertActionExecutable` 治理门、`PluginManifestSchema` 声明式白名单体系之上，扩展两个新的系统命令类型。**核心结论：零新依赖——所有能力均可由 Node.js 24 内置模块 + Drizzle ORM + Zod 4 + Next.js 16 现有栈提供，无需引入任何第三方 npm 包。**
 
-The architecture team pinpoints exactly **three real gaps**: (1) **declarative per-plugin STRUCTURED owned tables** — today there is only the generic `key + payloadJson` KV bag, missing the "declare → compile into checked-in Drizzle migration" link; (2) **marketplace lifecycle UX for external (non-built-in) plugins** — the current marketplace surface `.filter(builtIn)`s and only does enable/disable, with no semver install/upgrade or retain/cleanup uninstall flow; (3) **the interactive-quiz sample plugin's persistence + stats** — answer recording into owned data, plus question correctness-rate / option-distribution / answered-vs-unanswered counts and a post-class recap. The recommended pattern is **"compile, don't execute"**: plugin-declared tables are compiled at dev/publish time into checked-in Drizzle migrations applied via the existing `db:migrate` path. **No runtime DDL, no second migration engine, no dynamic SQL.**
+`system.file` 提供插件隔离的本地文件 CRUD（上传/下载/删除/列举/移动/复制/元数据）。文件二进制内容走独立路径（API Route 流式传输），绝不会进入 JSON 化的 Command Bus envelope，这是架构级决策——避免二进制数据序列化膨胀、SQLite 性能退化、以及审计表污染。文件以内容寻址（SHA-256 hash 命名）存储于 `data/files/{schoolId}/{pluginId}/blobs/{sha256}`，逻辑文件名到内容 hash 的映射走 `pluginOwnedBusinessData` 的 append-only/isLatest 模式，天然防篡改、去重、与既有数据写入路径完全对齐。
 
-**The dominant risk is red-line erosion under "flexibility" pressure.** The pitfalls research is emphatic and consistent: do not stuff queryable quiz answers into the JSON KV bag (kills SQL aggregation and uniqueness); do not let the marketplace scope-creep into store-operations (billing/ratings/dev-portal/auto-review — all explicitly Out of Scope); do not reach for runtime `CREATE TABLE`/`umzug`/`knex`/`ajv` (each breaks a stated red line); do not open a "flexible query" host API that is SQL injection by another name; and **the sample quiz plugin must travel the SAME governed path as a third-party plugin** — no built-in back door — or the architecture is never actually proven. Mitigation is a single vertical slice gated by `verify:phase`: migration correctness, zero-loss upgrade, multi-school/multi-class isolation, uninstall governance audit, injection/over-reach rejection, single-truth-source, and no-back-door assertions.
+`system.notification` 提供应用内通知推送，首发采用 DB 写入 + WebSocket best-effort 推送 + 客户端轮询回退模式。通知严格定义为应用内（in-app）通知，不做 Email/SMS/WebPush 等多渠道推送——这是刻意选择，避免过度设计。通知投递语义为"best-effort, database-native"：INSERT 进 `notifications` 表即投递成功，不引入 outbox/Redis queue。
 
-## Key Findings
+**关键风险：** 文件系统路径穿越攻击、TOCTOU 竞态条件、通知跨校隐私泄漏、二进制数据误入 Command Bus。所有风险均有明确预防措施和测试验证策略，最核心的防护原则是：路径校验在 Zod schema 层 + 文件系统层双重生效，内容与元数据严格分离，schoolId 永不从 payload 读取而由治理门从 session 注入。
 
-### Recommended Stack
+## 关键发现
 
-The substrate is **entirely already in `package.json`** and is the fixed integration surface: `drizzle-orm@0.45.2` (defines the compiled owned `sqliteTable`s and runs the parameterized query verbs), `drizzle-kit@0.31.10` (generates checked-in SQL migrations — this *is* the "main-repo migration system"), `@libsql/client@0.17.3` (SQLite driver; `json_extract` + generated columns + indexes cover quiz stats with no new storage engine), `zod@4.4.3` (meta-schema validating the new `dataModel` manifest section), and Next 16 / React 19 Server Actions + DAL. **Do not add or bump any of these.**
+### 推荐技术栈
 
-**Add exactly two libraries (and only two):**
+零新依赖。两个命令完全基于现有 Stack 实现：
 
-- **`semver` (`^7.8.1`) + `@types/semver`** — plugin version parse/compare/range-satisfy; resolve which upgrade migration chain to run, reject downgrades/illegal jumps. Hand-rolled version math is a classic upgrade-bug source; `semver` is npm's own canonical implementation.
-- **`drizzle-zod` (`^0.8.3` stable — NOT the `1.0.0-beta`)** — derive `createInsertSchema`/`createSelectSchema` from the *compiled* plugin tables so declared schema ↔ physical table ↔ runtime validation never drift. Peer deps verified compatible with the repo's drizzle-orm 0.45.2 and zod 4.4.3.
+- **`node:fs/promises`（Node 24 内置）** — 所有文件操作。`writeFile`、`readFile`、`unlink`、`readdir`、`rename`、`copyFile`、`mkdir({recursive:true})`、`stat`、`access`、`createReadStream` 完整覆盖需求，API 稳定。
+- **`node:crypto`（Node 24 内置）** — `crypto.randomUUID()` 生成唯一文件名与通知 ID。SHA-256 用于内容寻址存储的文件命名和完整性校验。
+- **`node:path`（Node 24 内置）** — `path.normalize` + `path.join` 防止路径遍历攻击。
+- **`node:stream`（Node 24 内置）** — `fs.createReadStream` → `Readable.toWeb()` 流式下载大文件，避免全量加载到内存。
+- **mime-types 3.0.2（已安装）** — Content-Type 检测，Express 生态事实标准。
+- **Drizzle ORM ~0.45.2** — `pluginFiles` 元数据表与 `notifications` 表 CRUD。与现有 Schema + migration 体系一致。
+- **Zod ~4.4.3** — Payload 校验、manifest 白名单校验。复用项目既有 `z.strictObject` + `z.discriminatedUnion` 模式。
+- **SQLite/libSQL（@libsql/client ^0.17.3）** — 持久化，支持事务原子性（配额检查→写入→计数更新在同一事务中）。
 
-**Self-build (no library — required to satisfy red lines):** the declarative `dataModel` DSL + Zod meta-schema (enforces `dbNamespace` prefixing, allowed column types only, no FK into core tables, `schoolId`-scoped + cascade); the schema compiler (`dataModel` JSON → Drizzle `sqliteTable` TS → `drizzle-kit generate` → checked-in migration); the governed declarative data-access verbs (`insert`/`upsert`/`getByIndex`/`count`/`aggregate` — the "no plugin direct DB" boundary IS this layer); the semver upgrade-migration planner (reusing `backfill → verify → cutover`); and the uninstall retain/cleanup executor (the enum + cascade already exist).
+**明确不用的库：** multer（Express 耦合，与 Next.js App Router Web API 不兼容）、formidable/busboy（Next.js 16 内部已解析 multipart）、sharp（图片处理超出 scope）、S3 SDK（云存储超出 scope）、nanoid/uuid 包（`crypto.randomUUID()` 零依赖）、BullMQ（通知无队列语义需求）、Redis pub/sub（通知量级不需要独立中间件）、Firebase FCM/OneSignal/Web Push API（通知严格为应用内，非平台推送）。
 
-### Expected Features
+### 功能范围
 
-The feature research frames v4.0 as **proving the data-governance model with one real plugin (interactive quiz) + filling in marketplace lifecycle visibility + the stats face** — not "can we build a data layer."
+**Table Stakes（必须实现）：**
 
-**Must have (table stakes / v4.0 committed vertical slice):**
-- Declarative manifest `dataModel` (owned entities + relations) + install-time Zod/governance validation + cascade cleanup — proves "no core-table pollution, no runtime DDL."
-- Classroom path writes answers into plugin-owned data via governed action/DAL (idempotent, school/plugin-scoped).
-- Marketplace governed loop: publish → install (preflight: permissions + data declaration + compatibility) → upgrade (`backfill → verify → cutover`, rollback-safe) → uninstall (retain/cleanup selectable + visible), full audit.
-- Destructive-op protection for in-progress classrooms (extend `getPluginUninstallBlockReason` to active sessions).
-- Interactive-quiz sample: single-choice config + student classroom answering + append-only answer records (`isLatest`) in plugin-owned data.
-- Stats face: per-question correctness rate / option distribution / answered-vs-unanswered counts (from plugin data, DAL→DTO, cache-invalidated on write) + post-class recap entry (Stitch/DESIGN-aligned).
-- `verify:phase` close gate holding migration correctness + governance boundary + repeatable sample chain.
+system.file:
+- 文件上传（multipart/form-data，≤50MB，magic bytes 检测）
+- 文件下载（流式响应，Content-Type/Content-Disposition header）
+- 文件删除（软删除 + 审计）
+- 文件列表（按 prefix 过滤，分页）
+- 文件元数据查询（大小/MIME/创建时间）
+- 插件级路径隔离（`{schoolId}/{pluginKey}/...`，schoolId 由治理门注入）
+- Manifest 声明白名单（安装时声明 allowedPaths + allowedOperations）
+- 全链路治理审计（每次操作写 governanceAudit）
 
-**Should have (differentiators):**
-- Upgrade dry-run / migration rehearsal (verify before cutover).
-- Uninstall-retain → reinstall recovery promise (the actual value of retain mode).
-- Operator-side lifecycle observability (extends v3.1 recovery posture).
+system.notification:
+- 创建通知（走 Command Bus，治理门 + manifest 白名单）
+- 通知列表查询（按 userId，分页）
+- 未读计数
+- 单条/批量已读标记
+- 通知类型定义（`{pluginKey}:{eventName}`）
+- 双重隔离（school 从 session 注入，pluginId 从 manifest 注入）
 
-**Defer (v4.x / v5+):** multi-question-types (multi-choice/true-false/short-answer); real-time answer-progress broadcast; per-student recap / stats export; LessonAgent question generation; cross-classroom trend stats / AI diagnosis. **Explicitly Out of Scope (never this milestone):** store-operations layer (paid/billing, ratings/reviews, public developer portal, automated review pipeline), one-click install-from-arbitrary-URL, silent background auto-upgrade, multi-tenant SaaS.
+**差异化能力（Phase 2）：**
 
-### Architecture Approach
+system.file:
+- 声明式路径白名单（manifest 集成，安装时 review，运行时自动校验）
+- 强制 magic bytes 类型检测（防止伪装 MIME 类型）
+- 存储配额分级告警（80% 软配额通知，95% 硬配额拒绝写入）
+- 文件移动/复制（rename + copy 原子操作）
 
-A four-layer governed monolith already exists (UI/Surface → platform-core kernel → DAL as sole write-truth → SQLite/Drizzle centralized migration). v4.0 threads three new strands through it: a compile-time `lib/plugins/owned-schema/` (declaration → Zod validation → generated migration fragment), a `plugin-owned-exam.ts` (scope-asserted owned-table read/write + stats aggregation, reusing `plugin-data.ts`'s `assertTeacherManagerScope`/`assertPluginBelongsToSchool` patterns), and `plugins/exam/persistence/` stitching the existing pure-function scorer + runtime submit chain into "declared data → runtime write → stats read."
+system.notification:
+- 未读/已读双态 + unseen 计数
+- 通知偏好（per-plugin on/off 开关）
+- 通知持久化 + 90 天清理策略
 
-**Major components:**
-1. **Declarative owned-schema registry + compiler** (`lib/plugins/owned-schema/`) — NEW; the heart of the milestone. Declaration is compile-time only; output is a reviewed, checked-in migration.
-2. **Governed declarative data-access verbs** (DAL) — NEW; the "no plugin direct DB / no arbitrary code" boundary. Plugins emit declarative intents; DAL executes parameterized Drizzle.
-3. **Command-Bus lifecycle transactions** (`handlers/plugins.ts` + `plugins.ts` `*WithTx`) — EXISTS; atomic install/upgrade/uninstall + audit + lifecycle transition; v4.0 extends cleanup-token counting to owned tables and adds semver upgrade planning.
-4. **Runtime append-only submit bridge** (`runtime-host` → `submitRuntimeState` → `taskSubmissions`, `isLatest`) — EXISTS; exam reuses the proven voting path.
-5. **Marketplace surface** — EXISTS but `.filter(builtIn)`-limited; extend to expose `external` plugins with install/upgrade/uninstall/cleanup UX.
+**明确延后（v2+）：**
 
-### Critical Pitfalls
+system.file: 云存储后端 (S3/MinIO)、公开 URL / pre-signed URL、文件版本控制、大文件分片上传、目录 mkdir/rmdir、全文搜索、插件跨目录访问。
+system.notification: 多渠道推送 (Email/SMS/WebPush)、实时 WebSocket 直推（首发走轮询）、已读回执、通知分组/折叠、定时发送/延迟队列、富文本 HTML 通知、三维偏好矩阵。
 
-1. **JSON-bag stats** — recording quiz answers as `payloadJson` rows forces full-table scan + app-layer `JSON.parse` aggregation, no SQL `GROUP BY`/index, no "one student-one question latest" uniqueness. → Structured per-plugin owned table with composite covering index; append-only + `isLatest`.
-2. **Runtime DDL smuggling** — interpreting "declarative" as "plugin defines tables at runtime" and string-building `CREATE TABLE` from manifest. → Two-stage: declaration in code (compile-time) → `drizzle-kit generate` → reviewed migration; runtime is CRUD-only. Add a static-scan gate forbidding non-migration DDL/raw SQL.
-3. **Lossy upgrade** — `DROP`/recreate plugin tables or change column types (SQLite's table-rebuild path silently drops rows). → `expand → migrate → contract`, explicit `dataVersion`, row-count/checksum reconciliation, and a close-gate test that upgrades WITH real answer data asserting zero loss.
-4. **Uninstall retain/cleanup ambiguity** — unconditional FK cascade on uninstall (deletes irreversible learning evidence) OR retained data leaking into a same-`pluginKey` reinstall. → Two-phase (soft-uninstall + data disposition), both audited; `cleanup` needs explicit count-derived confirmation token + impact display; reinstall is a NEW `pluginId` identity, never implicit takeover by key string.
-5. **"Flexible query" injection face** — a host API accepting raw SQL fragments / free `where` / free field names = SQL injection + cross-tenant over-reach without literal `eval`. → Whitelisted named, Zod-validated, parameterized verbs only; table/column names from server-side constant maps; `schoolId` from session, never plugin input.
-6. **Sample-plugin back door** — the quiz sample reading/writing core tables or a built-in privileged path instead of the governed path, leaving the architecture unproven. → Sample MUST travel the identical third-party path; close gate asserts it doesn't import the core DB client and its actions are audit-visible.
+### 架构方法
 
-(Also flagged: isolation by `pluginId` alone missing `schoolId`+classroom scope; marketplace scope-creep; second-truth-source via WS/Redis counters; `dbNamespace`/`pluginKey` identity drift on reinstall.)
+复用 v4.3 建立的三段式模式：**dispatchSystemCommand facade → Command Bus → governance audit**。文件操作和通知操作通过扩展现有 facade 的判别分支实现，不新建独立授权路径。
 
-## Implications for Roadmap
+**二进制分离策略（核心架构决策）：**
+- 文件写入：API Route (`POST /api/system/file/upload`) 接收 multipart/form-data → 内部调用 `dispatchSystemCommand` 传元数据引用 → Command Bus 中仅记录操作元数据 → handler 执行时写磁盘 + 记数据库
+- 文件下载：API Route (`GET /api/system/file/[fileId]/download`) 直接流式响应，不走 Command Bus
+- 通知发送：走完整 Command Bus 路径（治理门前置 → authorize → execute → audit）
+- 通知查询：直接 DAL 读（`GET /api/notifications`），不走 Command Bus
 
-All four researchers independently produce **the same build order** (STACK "Stack Patterns + Upgrade flow", ARCHITECTURE "Build Order" 1–6, PITFALLS "Phase A–F", FEATURES "Feature Dependencies"). Phase themes below (numbering open; pitfalls research suggests v4.0 starts ~Phase 67):
+**关键模式：**
+1. **Write-via-Command-Bus, Read-direct-DAL** — 只有写入/副作用操作进入 Command Bus，纯读取走 DAL（镜像 v4.3 `system.config.get` vs `system.config.set`）
+2. **Binary Bypass** — JSON Command Bus envelope 不承载二进制数据
+3. **DB + WS Dual Write** — 通知先写 DB（durable truth），再推 WS（best-effort），WS 失败不影响命令成功
+4. **Path-Based Isolation** — 学校+插件隔离在路径和数据库层双重生效
 
-### Phase A: Declarative owned-schema DSL + Zod meta-schema + schema compiler
-**Rationale:** No dependencies; defines the compile contract that everything else stands on. Carries Pitfalls 1/2/3/4 (structured-table contract, no-runtime-DDL, `dataVersion` + migration safety, isolation invariants).
-**Delivers:** `manifestVersion: 3` `dataModel` section, Zod meta-validation (namespace prefix, allowed types, no core-table FK, `schoolId`+cascade), schema compiler emitting `p_<namespace>_<table>` Drizzle tables → `drizzle-kit generate` → checked-in migration. Extend the `sqlite-migration-proof` gate (`verify:phaseNN`) to cover new owned tables.
-**Uses:** `zod`, `drizzle-kit`, `drizzle-zod`, existing `deriveDbNamespace`.
+**新增组件：**
+- handler.file.ts / handler.notification.ts — authorize + execute
+- file-storage.ts — 磁盘 I/O 工具
+- file-dal.ts / notification-dal.ts — DAL 层
+- API Routes: /api/system/file/upload、/api/system/file/[fileId]/download、/api/notifications
+- DB 表: pluginFiles（元数据）+ notifications
 
-### Phase B: Governed declarative data-access verbs
-**Rationale:** Depends on A's compiled tables. This layer IS the "no plugin direct DB / no arbitrary code" boundary. Carries Pitfalls 6/8 (write half).
-**Delivers:** fixed whitelisted verbs (`insert`/`upsert`/`getByIndex`/`count`/`aggregate`) over owned tables, Zod-validated via `drizzle-zod`, routed through Command Bus + governed action registry with audit. No SQL fragments / free field names accepted.
+### 关键陷阱与防范
 
-### Phase C: Install governance + boundary (manifest / permissions / naming-conflict)
-**Rationale:** Depends on the schema + access contract. Carries Pitfalls 6/9.
-**Delivers:** install preflight validating manifest, permission whitelist, and `(schoolId, pluginKey)` + `(schoolId, dbNamespace)` uniqueness (reject conflicts with a clear reason); stable `pluginId` identity rules.
+1. **路径穿越攻击（Critical）** — Zod schema 层拒绝 `..`、`/`、`\`、`%`、`\0`；文件系统层 `fs.realpath()` 消解符号链接后校验以 storageRoot 开头；`O_NOFOLLOW` 标志禁止 symlink 跟随。测试必须覆盖 `%2e%2e%2f` 等 URL 编码变体。
 
-### Phase D: Interactive-quiz sample — governed answer write (no back door)
-**Rationale:** Depends on A–C. Proves the model with a real plugin via the IDENTICAL third-party path. Carries Pitfalls 1/8/10.
-**Delivers:** single-choice question config + student classroom answering + append-only `isLatest` answer records in plugin-owned tables, via governed action/DAL, reusing the voting/`taskSubmissions` submit bridge. Close gate asserts no core-DB import, no core-table writes, all actions audited.
+2. **TOCTOU 竞态条件（Critical）** — 文件描述符锚定（预打开根目录 fd，所有操作相对该 fd）；先写临时文件再原子 rename；禁止符号链接（`lstat` 检测）；配额操作加 SQLite 事务锁；不使用 `fs.access() + fs.open()` 组合。
 
-### Phase E: Stats / recap read from plugin data (single aggregation source)
-**Rationale:** Depends on D's answer data. Carries Pitfalls 1/2/8.
-**Delivers:** per-question correctness rate / option distribution / answered-vs-unanswered (rostered against `classroomParticipants`), single DAL aggregation source (SQL `GROUP BY` over composite index), DTO out (no UI→DB), write-time cache invalidation (`updateTag('quizStats:${sessionId}')`), post-class recap entry aligned to Stitch/DESIGN.
+3. **二进制数据误入 Command Bus（Critical）** — 架构级决策：文件内容绝不进 Command Bus。上传走 API Route bridging，Command Bus 只传元数据。验证手段：`platformCommands.payloadJson` 和 `governanceAudits.payloadJson` 中无任何 Buffer/二进制引用。
 
-### Phase F: Marketplace upgrade/uninstall lifecycle + retain/cleanup governance
-**Rationale:** Depends on A–E's governance semantics; the hardest, highest-blast-radius work last. Carries Pitfalls 4/5/9.
-**Delivers:** `semver` upgrade planner driving `backfill → verify → cutover` (dry-run, rollback-safe, additive-only, row-count reconciliation); retain/cleanup uninstall with count-derived confirmation token + impact display + governance audit on both modes; destructive-op block for active classroom sessions; external-plugin marketplace surface UX (lift the `builtIn` filter).
+4. **通知跨校隐私泄漏（Critical）** — schoolId 从治理门注入，绝不从 payload 读取；投递端双重校验 `recipientUserId` 的 schoolId 一致性（查询 `memberships` 表）；Zod schema 限制 payload 为纯文本（禁止 HTML 和嵌套对象）。
 
-### close gate: verify:phase
-Repeatable, asserting: migration correctness; zero-loss upgrade with real answer data; ≥2-school/≥2-class isolation with no cross-read; uninstall governance audit on both retention modes; injection/over-reach rejection; single-truth-source (DAL/SQLite only); sample-plugin no-back-door.
+5. **治理门未复用（Critical）** — 所有新命令统一经过 `dispatchSystemCommand` facade 和 `assertActionExecutable` 治理门。新拒因码统一注册在 system-commands feature 的命名空间中。
 
-### Phase Ordering Rationale
-- **Strict dependency chain:** data contract (A) → access boundary (B) → install governance (C) → sample write (D) → stats read (E) → lifecycle/migration (F). D requires A (answers need a governed place to land); E requires D (stats are a projection of answers); F's upgrade requires A's migration tooling and is most dangerous, so it lands once the rest is proven.
-- **Vertical-slice discipline (Pitfall 7):** every phase must hang on the real "teacher configures → student answers → stats recap" chain; no infra-first drift, no second plugin type, no store-operations.
-- **Red lines guarded by gates, not conventions:** static scan (no runtime DDL/raw SQL), isolation tests, zero-loss upgrade test, no-back-door assertion are wired into `verify:phase`.
+6. **通知轰炸与疲劳（Moderate）** — manifest 声明频率上限 + SQLite 滑动窗口计数器执行层强制 + 通知重要性分级（urgent/normal/low）+ 课堂静默模式。
 
-### Research Flags
+7. **内容寻址 vs 覆盖模式选型（Moderate）** — 推荐内容寻址（SHA-256 命名 blobs + pluginOwnedBusinessData 映射），实现 append-only 不可变性。如果时间吃紧可降级为覆盖模式 + 文件操作日志。
 
-**Phases likely needing deeper `/gsd-research-phase` during planning:**
-- **Phase A** — the schema-compiler codegen boundary (separate generated file vs main `schema.ts` merge) and how `drizzle-kit generate` diffs compiler output are the milestone's novel mechanics; worth a focused spike.
-- **Phase F** — `semver`-driven upgrade-chain planning + `expand→migrate→contract` under SQLite's limited `ALTER` (table-rebuild data-loss risk) is the highest-risk surface; needs a real-data migration rehearsal design.
+## 路线图影响
 
-**Phases with standard / well-baselined patterns (skip research-phase):**
-- **Phase B / C** — governed action registry, install preflight, and naming-conflict checks extend existing v3.0/v3.1 patterns directly.
-- **Phase D** — reuses the validated v3.1 voting authoring + `taskSubmissions` append-only/`isLatest` submit bridge.
-- **Phase E** — reuses the existing evaluation/analysis page IA + `cacheTag` invalidation; standard DAL aggregation.
+基于研究，建议分四个 Phase：
 
-## Confidence Assessment
+### Phase 1: system.file 核心实现
 
-| Area | Confidence | Notes |
-|------|------------|-------|
-| Stack | HIGH | Versions verified on npm 2026-06-02; peer-dep compatibility checked; existing deps read from `package.json`. Only LOW spot: future re-pin of `drizzle-zod` beta if a Drizzle major lands mid-milestone. |
-| Features | HIGH for baseline/constraint judgments; MEDIUM for quiz/stats "typical expectations" | Baseline grounded in first-hand code; quiz UX expectations referenced from Kahoot/Mentimeter/Wooclap/Plickers as an industry analog (not freshly fetched). |
-| Architecture | HIGH | Conclusions verified against actual repo files (DAL, command handlers, runtime host, marketplace surface, migration scripts), not training data. |
-| Pitfalls | HIGH | Grounded in existing schema + PROJECT.md constraints; each pitfall maps to a concrete existing seam and a verification. |
+**理由:** system.file 的二进制分离策略、内容寻址存储、路径安全防护是整个里程碑中技术复杂度最高的部分。先验证"API Route bridge → Command Bus → handler → 磁盘 + 数据库"的完整链路，为后续通知的 DB+WS 模式提供集成范例。文件和通知之间无强依赖，可分 phase 独立开发。
 
-**Overall confidence:** HIGH
+**交付物:**
+- DB migration: pluginFiles 表
+- 磁盘工具: file-storage.ts（内容寻址存储，SHA-256 命名 blobs）
+- DAL: file-dal.ts（insert/getById/list/delete/updateMetadata）
+- Manifest shape 扩展: SystemCommandDiscriminatedSchema 新增 system.file 变体
+- PlatformCommandType 扩展: system.file.upload、system.file.delete
+- Handler: handler.file.ts authorize + execute
+- API Routes: POST /api/system/file/upload、GET /api/system/file/[fileId]/download
+- Registry 注册 + facade 判别分支
+- Governance audit 审计记录
+- 路径穿越防护（双重校验）+ TOCTOU 防御（fd 锚定 + 原子 rename）
 
-### Cross-Cutting Agreements (all 4 docs)
-- v4.0 = complete/generalize frozen v2.4 scaffolding, NOT greenfield.
-- Generic `plugin_owned_business_data` KV is fine for opaque config but MUST NOT carry queryable quiz answers — structured per-plugin tables required.
-- "Compile, don't execute": declaration in code → checked-in Drizzle migration → `db:migrate`; runtime is CRUD-only.
-- Single ORM / single migration truth (`drizzle-kit`); no second engine, no second validator (`zod` only).
-- Sample quiz plugin must use the identical governed third-party path — no back door (Key Decision, echoed by all four).
-- Marketplace scope is the publish→install→upgrade→uninstall core loop only; store-operations Out of Scope.
-- `verify:phase` close gate is the enforcement mechanism for every red line.
+**处理的 Pitfalls:** #1 路径穿越、#2 TOCTOU 竞态、#3 配额基础、#4 二进制分离、#5 文件类型校验、#6 append-only 冲突（内容寻址选型）
 
-### Disagreements / Tensions to Resolve
-- **Generic-table-with-generated-columns fallback vs per-plugin compiled tables for the FIRST sample slice.** STACK explicitly offers the `plugin_owned_business_data` + SQLite `generatedAlwaysAs(json_extract(...))` + index path as a "zero-new-DDL, lower-blast-radius first slice," then graduate hot plugins to compiled tables. ARCHITECTURE and PITFALLS push the opposite: lead with structured per-plugin tables immediately and treat the JSON bag as a Pitfall #1 anti-pattern for stats. **Both agree the canonical end state is compiled per-plugin tables; they disagree on whether the v4.0 quiz answers may *start* on generated columns.** REQUIREMENTS must pick one for the sample slice (recommendation leans to the structured table per ARCHITECTURE/PITFALLS, since the sample's whole purpose is to prove the structured-table path).
+### Phase 2: system.file 只读 + 配额 + 移动/复制
 
-## Open Questions for REQUIREMENTS / Roadmap to Resolve
+**理由:** 读操作无副作用，不写 governance audit，可直接 DAL 查询。配额功能依赖 Phase 1 的上传计量基础。两者可合并在一个 phase 中——读操作极低成本，配额是上传安全闭环的必要补充。
 
-1. **Answer-record relational modeling for stats** — exact owned-table shape and indexes: which of `classroomSessionId` / `questionRef` / `studentId` / `choice` / `isCorrect` / `attemptNo` / `isLatest` are first-class columns vs how the `key` encodes the relation; what composite covering index backs `GROUP BY` (Pitfall 1).
-2. **Single-choice-only vs multi question types for the first slice** — FEATURES recommends single-choice ONLY for v4.0 (multi-type deferred to v4.x); confirm so the stats and migration surface stay minimal.
-3. **Uninstall-retain → reinstall recovery promise** — is retained data recoverable on reinstall, and via what identity (new `pluginId` + explicit data-takeover flow vs implicit `pluginKey` reuse)? FEATURES marks the recovery promise P2; PITFALLS demands new-identity-by-default. Decide the v4.0 commitment level.
-4. **Owned-schema codegen boundary** — does the compiler emit a SEPARATE generated file or merge into the main `schema.ts`, and how does `drizzle-kit generate` diff that output? (Phase A research flag.)
-5. **Whether `verify:phase` migration-proof MUST extend to the new owned tables** — STACK and ARCHITECTURE both assume yes (extend `sqlite-migration-proof` to assert owned-table migration correctness); confirm this is a hard close-gate requirement.
-6. **(from the tension above) Sample-slice storage decision** — structured per-plugin compiled table vs generic-KV-plus-generated-columns fallback for the v4.0 quiz answers.
+**交付物:**
+- system.file.list / system.file.metadata 纯 DAL 读路径
+- system.file.move / system.file.copy（同 school+plugin 内原子操作）
+- 存储配额（school+plugin 二维）：manifest 声明 quota → SQLite 事务内检查→写入→更新计数
+- 全局磁盘水位告警（80% 拒绝新写入）
+- Magic bytes 检测加强
 
-## Sources
+**处理的 Pitfalls:** #3 配额耗尽（事务化配额锁 + 全局水位）
 
-### Primary (HIGH confidence)
-- `.planning/research/STACK.md` — recommended stack additions (`semver`, `drizzle-zod`), self-build capabilities, "compile-don't-execute" pattern, What-NOT-to-Use red lines, version compatibility.
-- `.planning/research/ARCHITECTURE.md` — first-hand repo verification: existing kernel/DAL/runtime/marketplace seams, three real gaps, Build Order 1–6, anti-patterns.
-- `.planning/research/PITFALLS.md` — 10 critical pitfalls grounded in existing schema + PROJECT.md, Phase A–F mapping, "Looks Done But Isn't" checklist, recovery strategies.
-- `.planning/research/FEATURES.md` — frozen-scaffolding inventory, feature landscape (4 domains), MVP vertical slice, Out-of-Scope, prioritization matrix.
-- `src/db/schema.ts`, `src/lib/dal/{plugins,plugin-data,plugin-migration}.ts`, `src/features/platform-core/*`, `src/features/runtime-platform/*`, `scripts/verify-phase4*`, `.planning/PROJECT.md`, `AGENTS.md` — direct code/constraint reads cited across all four files.
-- npm registry (2026-06-02) + Context7 `/drizzle-team/drizzle-orm-docs` — version + SQLite feature verification (generated columns, `generate --custom`, drizzle-zod).
+### Phase 3: system.notification 核心实现
 
-### Secondary (MEDIUM confidence)
-- Kahoot / Mentimeter / Wooclap / Plickers — industry analog for classroom-quiz "typical expected behavior" (not freshly fetched; informs quiz/stats expectations only).
+**理由:** 通知功能独立于文件存储，无依赖。通知写入走 Command Bus 的完整路径，是对 v4.3 facade 模式的又一次验证。选择在 system.file 之后做，避免两个新命令的实现复杂度并行叠加。
+
+**交付物:**
+- DB migration: notifications 表（含 expiresAt、idempotencyKey 字段）
+- DAL: notification-dal.ts（insert/list/markRead/countUnread）
+- Manifest shape 扩展: SystemCommandDiscriminatedSchema 新增 system.notification 变体
+- PlatformCommandType 扩展: system.notification.send
+- Handler: handler.notification.ts authorize + execute
+- WebSocket envelope 扩展: 新增 notification.received message kind + user-level channel
+- 频率限制（SQLite 滑动窗口计数器，per-plugin + per-user 双重限制）
+- 投递路径 schoolId 双重校验（查询 memberships 表验证 recipientUserId）
+- Governance audit 审计记录
+
+**处理的 Pitfalls:** #7 通知轰炸、#8 跨校隐私泄漏、#9 投递保证适度设计、#10 通知表增长（expiresAt + 索引）
+
+### Phase 4: system.notification 读取 + 集成收尾
+
+**理由:** 通知的查询/标记已读是纯 DAL 读操作，成本低。与 Phase 3 可分但保持功能完整。此 Phase 同时完成两者的集成收尾工作。
+
+**交付物:**
+- API Route: GET /api/notifications（分页查询，支持 unreadOnly 过滤）
+- API Route: PATCH /api/notifications/[id]/mark-read、PUT /api/notifications/mark-all-read
+- 通知偏好（per-plugin on/off，pluginOwnedBusinessData 存储）
+- 90 天清理 job（复用 asyncTask 表基础设施）
+- 配额告警 → notification.send 交叉集成
+- 端到端集成测试（跨 school 场景、并发场景、配额场景）
+
+**处理的 Pitfalls:** #10 通知无限增长（清理 job）、#11 治理门复用验证（集成测试覆盖）
+
+### Phase 排序理由
+
+1. **system.file 优先** — 技术复杂度最高（二进制分离、内容寻址存储、路径安全）。先验证"API Route bridge + Command Bus"模式，再复用到通知的"DB + WS"模式。
+2. **读操作紧跟写操作** — 写操作验证安全模型后（路径隔离、治理门集成），读操作自然跟随。而且读操作成本极低，快速产出完整功能闭环。
+3. **通知在文件之后** — 避免两个新命令的并行复杂度叠加。且通知的 DB + WS pattern 可以借鉴文件操作中已验证的 Command Bus 集成经验。
+4. **每个 Phase 控制在 3-5 天** — 符合既有的短迭代节奏。
+
+### 研究标记
+
+**需要深度研究的 Phase:**
+- **Phase 1 (system.file 核心)** — 内容寻址存储策略的具体实现细节（blobs 目录组织、GC 算法、hash 映射的 isLatest 行管理）需要设计 review。路径安全校验的边界条件需要编码前确认。
+- **Phase 3 (system.notification 核心)** — WebSocket user-level channel 与现有 classroom session channel 的连接管理隔离需要确认。频率限制的 SQLite 滑动窗口实现方案需要设计 review。
+
+**标准模式，可跳过研究的 Phase:**
+- **Phase 2 (system.file 只读 + 配额)** — 纯 DAL 读路径（镜像 system.config.get）；配额实现本质是 SQLite 事务 + 计数更新（镜像现有 DAL 模式）。
+- **Phase 4 (system.notification 读取 + 集成)** — 纯 DAL 读 + 已有 asyncTask 基础设施 + 常规 API Route。Pattern 明确。
+
+## 信心评估
+
+| 领域 | 信心 | 说明 |
+|------|------|------|
+| Stack | HIGH | 所有技术栈均为内置模块或已安装依赖，经项目既有代码验证。mime-types 已安装（3.0.2），Node 24 所有 API 稳定。零新依赖风险。 |
+| Features | HIGH | 核心特征经多源验证（Novu/Knock 通知系统 + Drivebase/OpenStack Manila 文件代理），P1/P2/P3 优先级有明确矩阵。现有 v4.3 system.* 架构已验证可扩展性。 |
+| Architecture | HIGH | 集成模式直接复用 v4.3 facade、治理门、Command Bus 三段式结构。二进制分离策略在多个研究中一致推荐。Discriminated union 扩展已验证。 |
+| Pitfalls | HIGH | 陷阱基于 2024-2026 实际 CVE 案例（CVE-2025-23084、CVE-2024-21891、CVE-2025-67124）+ Node.js 安全最佳实践 + 现有代码库治理模型分析。每个陷阱有具体测试验证策略。 |
+
+**整体信心:** HIGH — 所有研究均基于官方文档、实际 CVE、和项目既有代码库的直接分析，无推测性结论。
+
+### 需要关注的问题
+
+- **内容寻址存储 vs 覆盖模式的选择** — 研究推荐内容寻址（SHA-256 命名 blobs + pluginOwnedBusinessData 映射），但增加实现复杂度。如果 Phase 1 时间吃紧，可降级为覆盖模式 + 文件操作日志（"可追溯但不可恢复"），明确记录技术债务。
+- **通知投递：轮询 vs WebSocket** — 研究建议首发 DB 写入 + WS best-effort 推送（对齐 ARCHITECTURE 的 Pattern 3），客户端同时支持轮询回退（用于离线恢复）。WS 推送复用现有 publishTransportEvent 模式，成本低。
+- **文件扩展黑白名单的完整列表** — 研究建议"拒绝 SVG、HTML、JavaScript、WebAssembly"，但完整拒绝清单需要在实现阶段与安全 review 确定。
+- **notifications 表的 expiresAt 清理策略** — 研究建议 90 天过期 + 30 天宽限期，需与产品确认是否合适。
+
+## 数据来源
+
+### 主要（HIGH confidence）
+- Node.js 24 官方文档 — fs/promises、stream、crypto.randomUUID() API 稳定性确认
+- mime-types 3.0.2 npm — MIME 类型映射表，Express 生态标准
+- Next.js 16 官方文档 — serverActions.bodySizeLimit + FormData + Route Handlers + 流式响应
+- Drivebase Storage Providers (deepwiki.com/drivebase) — IStorageProvider interface + capabilities 声明范式
+- Knock In-App Notifications (docs.knock.app) — seen/read states, feed UI, badge counts
+- Novu Inbox (docs.novu.co/platform/inbox) — multi-channel, templates, preference center
+- OpenStack Glance Per-Tenant Quotas — 配额资源类型与执行模式
+- CVE-2025-23084 — Node.js path.join Windows 盘符穿越
+- CVE-2024-21891 — Node.js Permission Model 路径穿越绕过
+- CVE-2025-67124 — miniserve TOCTOU + symlink race
+- h3 serveStatic 安全公告 (GHSA-wr4h-v87w-p3r7) — 百分号编码路径穿越
+- Node.js Permission Model 稳定化 PR #56201 — TOCTOU 不可完全解决
+- GitLab Notifications ADR-001 — 通知 DB schema 设计
+- Dependency Track Notification Outbox ADR — outbox 模式的反面教材
+- 项目既有代码库（直接源码分析）：
+  - src/features/system-commands/facade.ts — dispatchSystemCommand facade
+  - src/features/system-commands/handler.ts — handler authorize/execute 模式
+  - src/features/system-commands/audit.ts — writeSystemCommandAudit
+  - src/features/platform-core/commands/contracts.ts — Command Bus 契约 + discriminated union
+  - src/features/platform-core/commands/registry.ts — platformCommandRegistry
+  - src/features/platform-core/plugin-data-access/governance-gate.ts — assertActionExecutable
+  - src/lib/dto/resource-ai.ts — SystemCommandDiscriminatedSchema + PluginManifest
+  - src/db/schema.ts — 表结构风格参考
+
+### 次要（MEDIUM confidence）
+- Next.js file upload patterns — Web 搜索 + 社区讨论确认接口模式
+- SQLite in-app notification polling — PRAGMA data_version 轮询方案
+- BlueSky Proxy (USENIX) — Write-back caching, log-structured layout
+- OpenStack Manila Multi-Tenant Gateway — FSAL plugin architecture
+- TOCTOU 学术共识综述 — Dean & Hu (2004)
+- CVE-2025-32959 — CUBA Platform 无限制文件上传 DoS
+- Appcues "In-app notifications best practices" — UX 指南
 
 ---
-*Research completed: 2026-06-02*
-*Ready for roadmap: yes*
+*研究完成: 2026-06-13*
+*准备进入路线图: 是*
