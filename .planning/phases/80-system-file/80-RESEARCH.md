@@ -586,7 +586,7 @@ export const pluginFiles = sqliteTable(
 | A2 | Node.js `Request.body` ReadableStream 可以直接 pipe 到 `crypto.createHash` | Architecture Patterns | 如果 Next.js 16 App Router 的 Request API 对流式 multipart 解析有特殊限制，可能需要额外的解析层（如 busboy） |
 | A3 | `stream.pipeline` 在 Next.js App Router 的 Route Handler 中正常工作 | Code Examples | 如果 Next.js Edge Runtime 被使用（当前所有 system API Route 使用 Node.js runtime），stream pipeline 不可用。需要通过 `export const runtime = 'nodejs'` 显式声明 |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Next.js 16 App Router 中 multipart 流式解析的最佳方式**
    - What we know: CONTEXT.md 指定使用 `multipart/form-data`。Node.js Web Streams API 支持 `ReadableStream`，但 multipart 的 boundary 解析需要手动实现或借助库。

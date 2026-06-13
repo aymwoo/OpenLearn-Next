@@ -77,35 +77,53 @@ See `.planning/milestones/` for full archives.
 **Milestone Goal:** 扩展 system.* 命令组，新增 `system.file`（文件存储代理）和 `system.notification`（应用内通知推送）两个系统命令，复用 v4.3 三段式链路。
 
 ### Phase 80: system.file 文件存储代理
+
 **Goal**: 插件可通过 `system.file.*` 命令安全地进行文件存储与管理，文件以内容寻址（SHA-256）存储于本地文件系统，元数据写入 SQLite，插件+学校双重隔离，全链路治理审计
 **Depends on**: Phase 79（v4.3 dispatchSystemCommand facade + assertActionExecutable 治理门）
 **Requirements**: FILE-01, FILE-02, FILE-03, FILE-04, FILE-05, FILE-06, FILE-07, FILE-08, FILE-09
 **Success Criteria** (what must be TRUE):
+
   1. 插件可通过 API Route 上传文件，文件以 SHA-256 内容寻址存储，元数据写入 pluginFiles 表，Command Bus 只传元数据引用（二进制不进 envelope）
   2. 插件可通过独立 API Route 流式下载文件，支持 Range 请求和正确的 Content-Type/Content-Disposition 头
   3. 插件可删除文件（标记 isLatest=false）并列出/查询自身文件（按前缀过滤、分页、元数据）
   4. 文件存储以 `{schoolId}/{pluginKey}` 双重前缀物理隔离，跨插件/跨校访问被拒绝
   5. manifest 声明白名单生效：安装时声明 allowedPaths + allowedOperations，runtime 逐请求匹配路径前缀；路径穿越防护覆盖 URL 编码变体和 parent reference；单文件 50MB + 每插件每校总容量配额生效
+
 **Plans**: 5 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 80-01-PLAN.md — 类型/契约/数据模型基础层（pluginFiles 表 + DTO schemas + Command Bus 类型系统 + 拒因码）
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 80-02-PLAN.md — DAL 层 + 工具库（文件 CRUD + 路径穿越防护 + 存储路径 + 配额检查 + MIME 回退）
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 80-03-PLAN.md — Command Bus 集成（systemFileHandler + registry 注册 + facade 分支 + audit 扩展）
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 80-04-PLAN.md — API Routes（upload Binary Bypass + download Range 支持 + delete/list/metadata）
 - [ ] 80-05-PLAN.md — GC 垃圾回收脚本（isLatest=false 扫描 + 物理文件删除 + 统计输出）
+
 **UI hint**: yes
 
 ### Phase 81: system.notification 应用内通知推送
+
 **Goal**: 插件可通过 `system.notification.*` 命令向指定用户推送应用内通知，用户可查看通知列表、标记已读、查看未读计数，全链路治理审计，复用 v4.3 三段式链路
 **Depends on**: Phase 80
 **Requirements**: NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06, NOTIF-07, NOTIF-08, SYS-06
 **Success Criteria** (what must be TRUE):
+
   1. 插件可通过 `system.notification.send` 向指定用户发送通知，走完整 Command Bus 路径（治理门 → authorize → execute → audit），manifest 声明 notificationTypes 白名单生效
   2. 用户可查看通知列表（分页、倒序），标记单条或全部已读，查看未读计数
   3. 频率限制生效：每插件每分钟 60 条、每用户每小时 30 条上限；recipientUserId 经 schoolId 归属校验防跨校隐私泄漏
   4. 超过 90 天的已读通知自动清理（保留未读通知）
   5. `system.file.*` 和 `system.notification.*` 完整复用 v4.3 三段式链路：manifest 声明 → governance gate（assertActionExecutable）→ audit（writeSystemCommandAudit），Command Bus facade 判别分支扩展正确
+
 **Plans**: TBD
 **UI hint**: yes
 
