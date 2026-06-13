@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.4
 milestone_name: System Commands Bus（第二批）
-status: milestone_complete
-last_updated: 2026-06-13T12:34:48.414Z
-last_activity: 2026-06-13 -- Phase 81 execution started
+status: completed
+stopped_at: context exhaustion at 75% (2026-06-13)
+last_updated: "2026-06-13T12:39:14.638Z"
+last_activity: 2026-06-13
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
   completed_plans: 8
-  percent: 50
-stopped_at: Milestone complete (Phase 81 was final phase)
+  percent: 100
 ---
 
 # Project State
@@ -109,6 +109,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-06-13T11:51:49.999Z
-Stopped at: Phase 81 UI-SPEC approved
-Resume file: .planning/phases/81-system-notification/81-UI-SPEC.md
+Last session: 2026-06-13T12:39:14.633Z
+Stopped at: context exhaustion at 75% (2026-06-13)
+Resume file: None
