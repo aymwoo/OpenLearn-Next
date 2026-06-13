@@ -38,7 +38,7 @@ describe("POST /api/system/file/delete", () => {
   });
 
   it("should return 401 when not authenticated", async () => {
-    mockedAuth.mockResolvedValue(null);
+    mockedAuth.mockResolvedValue(null as any);
     const { POST } = await import("./delete/route");
     const req = new Request("http://localhost/api/system/file/delete", {
       method: "POST",
@@ -113,7 +113,7 @@ describe("GET /api/system/file/list", () => {
   });
 
   it("should return 401 when not authenticated", async () => {
-    mockedAuth.mockResolvedValue(null);
+    mockedAuth.mockResolvedValue(null as any);
     const { GET } = await import("./list/route");
     const req = new Request("http://localhost/api/system/file/list");
     const res = await GET(req as any);
@@ -179,7 +179,7 @@ describe("GET /api/system/file/metadata", () => {
   });
 
   it("should return 401 when not authenticated", async () => {
-    mockedAuth.mockResolvedValue(null);
+    mockedAuth.mockResolvedValue(null as any);
     const { GET } = await import("./metadata/route");
     const req = new Request("http://localhost/api/system/file/metadata?fileId=f1");
     const res = await GET(req as any);
