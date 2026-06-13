@@ -58,7 +58,7 @@ Exceptions:
 |------|------|--------|-------------|
 | Body | 14px (text-sm) | 400 (regular) | 1.5 |
 | Label | 12px (text-xs) | 400 (regular) | 1.5 |
-| Title | 16px (text-base) | 500 (medium) | 1.4 |
+| Title | 16px (text-base) | 400 (regular) | 1.4 |
 | Heading | 20px (text-xl) | 600 (semibold) | 1.2 |
 
 Font family: Lexend (project standard, `font-lexend` in globals.css Line 6).
@@ -159,8 +159,8 @@ Accent reserved for: "标记全部已读" button, "查看全部" link hover stat
 **Dropdown item layout (each, 5 items max):**
 - Height: min 56px, padding: md (16px)
 - Left: notificationType icon (optional, 40px circle `surface-container-low`)
-- Center column: title (14px medium, max 2 lines truncated) + body (12px regular, max 1 line truncated)
-- Right: relative time label (11px, `on-surface-variant`)
+- Center column: title (14px regular, max 2 lines truncated) + body (12px regular, max 1 line truncated)
+- Right: relative time label (12px, `on-surface-variant`)
 - Unread indicator: 8px `primary` dot at top-left of item (or left border accent)
 - Click on item: mark as read + dismiss dropdown (no navigation)
 
@@ -178,6 +178,8 @@ Accent reserved for: "标记全部已读" button, "查看全部" link hover stat
 | Empty | Centered illustration/icon placeholder + "暂无通知" + body text |
 | Loading | Skeleton list (3 items with shimmer) |
 | Error | Error message card with "重试" button |
+
+**Focal point:** The "通知中心" heading (20px semibold, `on-surface`) at top-left is the primary visual anchor, establishing the page identity and browsing context. The "全部标为已读" action button (top-right, secondary style) is the secondary focal point, drawing attention when unread notifications exist. The notification list occupies the main content area below the header, with unread items distinguished by a 4px `primary` left-edge dot.
 
 **Pagination:**
 - "加载更多" button at bottom of list (loads next 20 items via cursor)
