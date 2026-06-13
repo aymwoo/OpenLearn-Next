@@ -98,7 +98,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 80-02-PLAN.md — DAL 层 + 工具库（文件 CRUD + 路径穿越防护 + 存储路径 + 配额检查 + MIME 回退）
+- [x] 80-02-PLAN.md — DAL 层 + 工具库（文件 CRUD + 路径穿越防护 + 存储路径 + 配额检查 + MIME 回退）
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -138,7 +138,7 @@ Plans:
 | 77. Manifest 声明 + Command Registry 注册 | v4.3 | 2/2 | Complete | 2026-06-11 |
 | 78. system.http.request HTTP 代理 | v4.3 | 2/2 | Complete | 2026-06-12 |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 2/2 | Complete | 2026-06-12 |
-| 80. system.file 文件存储代理 | v4.4 | 1/5 | In Progress|  |
+| 80. system.file 文件存储代理 | v4.4 | 2/5 | In Progress|  |
 | 81. system.notification 应用内通知推送 | v4.4 | 0/0 | Not started | - |
 
 ---
