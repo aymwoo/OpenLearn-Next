@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.4
 milestone_name: System Commands Bus（第二批）
 status: executing
-last_updated: "2026-06-13T02:51:12.407Z"
-last_activity: 2026-06-13 -- Phase 80 planning complete
+last_updated: "2026-06-13T02:52:35.042Z"
+last_activity: 2026-06-13 -- Phase 80 execution started
 progress:
   total_phases: 2
   completed_phases: 0
@@ -20,14 +20,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-13 after v4.4 start)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** v4.4 — system.file + system.notification 路线图就绪
+**Current focus:** Phase 80 — system-file
 
 ## Current Position
 
-Phase: 80 of 2（system.file 文件存储代理）
-Plan: —
-Status: Ready to execute
-Last activity: 2026-06-13 -- Phase 80 planning complete
+Phase: 80 (system-file) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 80
+Last activity: 2026-06-13 -- Phase 80 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
