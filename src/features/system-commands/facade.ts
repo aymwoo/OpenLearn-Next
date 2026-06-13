@@ -11,6 +11,7 @@ import {
   systemConfigGetAuthorize,
   systemConfigGetExecute,
   systemConfigHandler,
+  systemFileHandler,
 } from "./handler";
 import {
   dispatchPlatformCommand,
@@ -181,6 +182,17 @@ export async function dispatchSystemCommand(input: {
   configKey?: string;
   /** config 操作的 value（system.config.set 时使用） */
   configValue?: unknown;
+  /** file 操作的 fileId（system.file.delete 时使用） */
+  fileId?: string;
+  /** file 操作的上传元数据（system.file.upload 时使用） */
+  fileMeta?: {
+    sha256: string;
+    fileName: string;
+    mimeType: string;
+    sizeBytes: number;
+    diskPath: string;
+    fileId: string;
+  };
 }) {
   const correlationId = buildSystemCommandCorrelationId({
     commandType: input.commandType,
@@ -315,6 +327,137 @@ export async function dispatchSystemCommand(input: {
     };
   }
 
+  // --- system.file.upload: 经 Command Bus（Phase 80，仅元数据）---
+  if (input.commandType === "system.file.upload") {
+    if (!input.fileMeta) {
+      throw new Error(
+        "system.file.upload requires fileMeta (metadata envelope)",
+      );
+    }
+
+    const pluginId = projectionRow.pluginId;
+    const { fileId, sha256, fileName, mimeType, sizeBytes, diskPath } = input.fileMeta;
+
+    const commandId = buildSystemCommandId({
+      commandType: "system.file.upload",
+      correlationId,
+    });
+
+    const dedupeKey = buildFileCommandDedupeKey({
+      commandType: "system.file.upload",
+      schoolId,
+      pluginId,
+      key: fileId,
+    });
+
+    const envelope = {
+      id: commandId,
+      type: "system.file.upload" as const,
+      actor: {
+        actorId: input.actorId,
+        actorScope: "plugin" as const,
+      },
+      scope: {
+        schoolId,
+        pluginId,
+      },
+      payload: {
+        filePath: diskPath,  // Plugin-declared logical path for authorize matching
+        fileId,
+        sha256,
+        fileName,
+        mimeType,
+        sizeBytes,
+        diskPath,
+      },
+      correlation: {
+        correlationId,
+        causationId: null,
+        producer: "dispatchSystemCommand",
+      },
+      audit: {
+        delegatedActor: null,
+        approval: null,
+      },
+      dedupeKey,
+    };
+
+    const result = await dispatchPlatformCommand(envelope, {
+      definitions: platformCommandRegistry,
+      store: systemCommandStore,
+      publicationPort: defaultInProcessPlatformEventAdapter,
+    });
+
+    return {
+      success: result.status === "succeeded",
+      data: result.resultSummary,
+      commandId: result.commandId,
+      attemptNumber: result.attemptNumber,
+    };
+  }
+
+  // --- system.file.delete: 经 Command Bus（Phase 80）---
+  if (input.commandType === "system.file.delete") {
+    if (!input.fileId) {
+      throw new Error(
+        "system.file.delete requires fileId",
+      );
+    }
+
+    const pluginId = projectionRow.pluginId;
+
+    const commandId = buildSystemCommandId({
+      commandType: "system.file.delete",
+      correlationId,
+    });
+
+    const dedupeKey = buildFileCommandDedupeKey({
+      commandType: "system.file.delete",
+      schoolId,
+      pluginId,
+      key: input.fileId,
+    });
+
+    const envelope = {
+      id: commandId,
+      type: "system.file.delete" as const,
+      actor: {
+        actorId: input.actorId,
+        actorScope: "plugin" as const,
+      },
+      scope: {
+        schoolId,
+        pluginId,
+      },
+      payload: {
+        fileId: input.fileId,
+      },
+      correlation: {
+        correlationId,
+        causationId: null,
+        producer: "dispatchSystemCommand",
+      },
+      audit: {
+        delegatedActor: null,
+        approval: null,
+      },
+      dedupeKey,
+    };
+
+    const result = await dispatchPlatformCommand(envelope, {
+      definitions: platformCommandRegistry,
+      store: systemCommandStore,
+      publicationPort: defaultInProcessPlatformEventAdapter,
+    });
+
+    return {
+      success: result.status === "succeeded",
+      data: result.resultSummary,
+      commandId: result.commandId,
+      attemptNumber: result.attemptNumber,
+    };
+  }
+
   // system.http.request 已由 Phase 78 经 Command Bus 独立实现，不经过本 facade。
 
   // --- unknown commandType → audit + throw ---
@@ -379,5 +522,20 @@ function buildSystemCommandDedupeKey(input: {
   configKey: string;
 }): string {
   const base = `${input.commandType}:${input.schoolId}:${input.pluginId}:${input.configKey}`;
+  return createHash("sha256").update(base).digest("hex");
+}
+
+/**
+ * 构造 file 命令的 dedupeKey：防止同一 fileId 在同一 school/plugin 下被重放。
+ *
+ * 接受泛化的 key 参数（fileId 或 sha256 作为去重组件）。
+ */
+function buildFileCommandDedupeKey(input: {
+  commandType: string;
+  schoolId: string;
+  pluginId: string;
+  key: string;
+}): string {
+  const base = `${input.commandType}:${input.schoolId}:${input.pluginId}:${input.key}`;
   return createHash("sha256").update(base).digest("hex");
 }
