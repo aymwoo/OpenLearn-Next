@@ -41,6 +41,9 @@ export const GovernanceDeniedReasonValues = [
   "method_not_allowed",
   "private_ip_blocked",
   "config_key_denied",
+  "path_not_allowed",
+  "operation_not_allowed",
+  "quota_exceeded",
 ] as const;
 export const PluginPermissionValues = [
   "lesson:write:suggestion",

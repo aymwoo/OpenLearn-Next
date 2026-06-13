@@ -17,8 +17,13 @@ import { platformCommandRegistry } from "./registry";
 import { GovernanceDeniedReasonValues, GovernanceDeniedReasonSchema } from "@/features/runtime-platform/contracts/permissions";
 
 describe("SystemCommandTypes", () => {
-  it("should equal [system.http.request, system.config.set]", () => {
-    expect(SystemCommandTypes).toEqual(["system.http.request", "system.config.set"]);
+  it("should equal [system.http.request, system.config.set, system.file.upload, system.file.delete]", () => {
+    expect(SystemCommandTypes).toEqual([
+      "system.http.request",
+      "system.config.set",
+      "system.file.upload",
+      "system.file.delete",
+    ]);
   });
 
   it("should NOT include system.config.get", () => {
@@ -68,14 +73,20 @@ describe("PlatformCommandTypeSchema", () => {
     }
   });
 
-  it("should have exactly 21 command types (19 existing + 2 system)", () => {
+  it("should have exactly 23 command types (19 existing + 2 system v4.3 + 2 system.file)", () => {
     // z.enum options are enumerable; count total accepted values
-    const all = [...existingTypes, "system.http.request", "system.config.set"];
+    const all = [
+      ...existingTypes,
+      "system.http.request",
+      "system.config.set",
+      "system.file.upload",
+      "system.file.delete",
+    ];
     for (const t of all) {
       expect(() => PlatformCommandTypeSchema.parse(t)).not.toThrow();
     }
     // Verify total count by checking all parses pass
-    expect(all.length).toBe(21);
+    expect(all.length).toBe(23);
   });
 });
 
@@ -216,8 +227,9 @@ describe("PlatformCommandSchema discriminated union", () => {
 });
 
 describe("platformCommandRegistry", () => {
-  it("should have exactly 21 entries", () => {
+  it("should have exactly 21 entries (system.file.* registry entries added in Plan 03)", () => {
     const keys = Object.keys(platformCommandRegistry);
+    // system.file.upload and system.file.delete will be registered in Plan 80-03
     expect(keys.length).toBe(21);
   });
 
@@ -365,8 +377,8 @@ describe("GovernanceDeniedReasonValues", () => {
     }
   });
 
-  it("should have exactly 11 entries (7 original + 4 new)", () => {
-    expect(GovernanceDeniedReasonValues.length).toBe(11);
+  it("should have exactly 14 entries (7 original + 4 v4.3 + 3 system.file)", () => {
+    expect(GovernanceDeniedReasonValues.length).toBe(14);
   });
 
   describe("GovernanceDeniedReasonSchema", () => {
