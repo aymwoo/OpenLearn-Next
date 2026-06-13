@@ -5,6 +5,8 @@ const {
   mockWriteAudit,
   mockPluginOwnedBusinessData,
   mockInsert,
+  mockInsertFileRecord,
+  mockSoftDeleteFile,
 } = vi.hoisted(() => ({
   mockFindFirst: vi.fn(),
   mockWriteAudit: vi.fn(),
@@ -12,6 +14,8 @@ const {
     findFirst: vi.fn(),
   },
   mockInsert: vi.fn(),
+  mockInsertFileRecord: vi.fn(),
+  mockSoftDeleteFile: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -65,6 +69,11 @@ vi.mock("./ssrf-guard", () => ({
 
 vi.mock("./audit", () => ({
   writeSystemCommandAudit: mockWriteAudit,
+}));
+
+vi.mock("@/lib/dal/files", () => ({
+  insertFileRecord: (...args: unknown[]) => mockInsertFileRecord(...args),
+  softDeleteFile: (...args: unknown[]) => mockSoftDeleteFile(...args),
 }));
 
 import { systemHttpRequestHandler, systemConfigHandler } from "./handler";
@@ -865,5 +874,431 @@ describe("systemConfigGetExecute", () => {
     });
 
     expect(result).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// system.file — file storage proxy (Phase 80)
+// ---------------------------------------------------------------------------
+
+// Lazy import to avoid static import errors before implementation exists
+let systemFileHandler: {
+  "system.file.upload": { authorize: Function; execute: Function };
+  "system.file.delete": { authorize: Function; execute: Function };
+} | null = null;
+
+async function getSystemFileHandler() {
+  if (!systemFileHandler) {
+    const mod = await import("./handler");
+    systemFileHandler = mod.systemFileHandler;
+  }
+  return systemFileHandler;
+}
+
+// Helper: build a system.file.upload PlatformCommand
+function buildFileUploadCommand(overrides: {
+  pluginId?: string;
+  schoolId?: string;
+  filePath?: string;
+  fileId?: string;
+  sha256?: string;
+  fileName?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  diskPath?: string;
+  actorId?: string;
+  actorScope?: string;
+  correlationId?: string;
+  commandId?: string;
+} = {}) {
+  return {
+    id: overrides.commandId ?? "cmd-upload-1",
+    type: "system.file.upload" as const,
+    actor: {
+      actorId: overrides.actorId ?? "actor-1",
+      actorScope: overrides.actorScope ?? "plugin",
+    },
+    scope: {
+      schoolId: overrides.schoolId ?? "school-1",
+      pluginId: overrides.pluginId ?? "plugin-1",
+    },
+    correlation: {
+      correlationId: overrides.correlationId ?? "corr-upload-1",
+      causationId: null,
+      producer: "test",
+    },
+    audit: {
+      delegatedActor: null,
+      approval: null,
+    },
+    payload: {
+      filePath: overrides.filePath ?? "uploads/photo.jpg",
+      fileId: overrides.fileId ?? "file-abc-123",
+      sha256: overrides.sha256 ?? "abc123def456",
+      fileName: overrides.fileName ?? "photo.jpg",
+      mimeType: overrides.mimeType ?? "image/jpeg",
+      sizeBytes: overrides.sizeBytes ?? 102400,
+      diskPath: overrides.diskPath ?? "/storage/school-1/plugin-1/abc123/photo.jpg",
+    },
+    dedupeKey: "dedup-upload-1",
+  };
+}
+
+// Helper: build a system.file.delete PlatformCommand
+function buildFileDeleteCommand(overrides: {
+  pluginId?: string;
+  schoolId?: string;
+  fileId?: string;
+  actorId?: string;
+  actorScope?: string;
+  correlationId?: string;
+  commandId?: string;
+} = {}) {
+  return {
+    id: overrides.commandId ?? "cmd-delete-1",
+    type: "system.file.delete" as const,
+    actor: {
+      actorId: overrides.actorId ?? "actor-1",
+      actorScope: overrides.actorScope ?? "plugin",
+    },
+    scope: {
+      schoolId: overrides.schoolId ?? "school-1",
+      pluginId: overrides.pluginId ?? "plugin-1",
+    },
+    correlation: {
+      correlationId: overrides.correlationId ?? "corr-delete-1",
+      causationId: null,
+      producer: "test",
+    },
+    audit: {
+      delegatedActor: null,
+      approval: null,
+    },
+    payload: {
+      fileId: overrides.fileId ?? "file-abc-123",
+    },
+    dedupeKey: "dedup-delete-1",
+  };
+}
+
+describe("systemFileUploadAuthorize", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("passes when filePath matches allowedPaths prefix and operation upload is allowed", async () => {
+    mockFindFirst.mockResolvedValue({
+      id: "plugin-1",
+      manifestJson: {
+        id: "test-manifest",
+        version: "1.0.0",
+        manifestVersion: 1,
+        anchors: [],
+        actions: [],
+        systemCommands: [
+          {
+            command: "system.file",
+            allowedPaths: ["uploads/"],
+            allowedOperations: ["upload", "download"],
+          },
+        ],
+      },
+      lifecycleState: "ready",
+    });
+
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileUploadCommand({ diskPath: "uploads/photo.jpg" });
+    await expect(
+      h["system.file.upload"].authorize({ command: command as any }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("passes when filePath matches allowedPaths exact and operation upload is allowed", async () => {
+    mockFindFirst.mockResolvedValue({
+      id: "plugin-1",
+      manifestJson: {
+        id: "test-manifest",
+        version: "1.0.0",
+        manifestVersion: 1,
+        anchors: [],
+        actions: [],
+        systemCommands: [
+          {
+            command: "system.file",
+            allowedPaths: ["documents/report.pdf"],
+            allowedOperations: ["upload"],
+          },
+        ],
+      },
+      lifecycleState: "ready",
+    });
+
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileUploadCommand({ diskPath: "documents/report.pdf" });
+    await expect(
+      h["system.file.upload"].authorize({ command: command as any }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("throws path_not_allowed when filePath does not match any allowedPaths", async () => {
+    mockFindFirst.mockResolvedValue({
+      id: "plugin-1",
+      manifestJson: {
+        id: "test-manifest",
+        version: "1.0.0",
+        manifestVersion: 1,
+        anchors: [],
+        actions: [],
+        systemCommands: [
+          {
+            command: "system.file",
+            allowedPaths: ["docs/"],
+            allowedOperations: ["upload"],
+          },
+        ],
+      },
+      lifecycleState: "ready",
+    });
+
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileUploadCommand({ diskPath: "secret/data.txt" });
+    await expect(
+      h["system.file.upload"].authorize({ command: command as any }),
+    ).rejects.toThrow();
+    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
+    const auditCall = mockWriteAudit.mock.calls[0][0];
+    expect(auditCall.decision).toBe("denied");
+    expect(auditCall.reasonCode).toBe("path_not_allowed");
+    expect(auditCall.commandType).toBe("system.file.upload");
+  });
+
+  it("throws operation_not_allowed when operation is not in allowedOperations", async () => {
+    mockFindFirst.mockResolvedValue({
+      id: "plugin-1",
+      manifestJson: {
+        id: "test-manifest",
+        version: "1.0.0",
+        manifestVersion: 1,
+        anchors: [],
+        actions: [],
+        systemCommands: [
+          {
+            command: "system.file",
+            allowedPaths: ["uploads/"],
+            allowedOperations: ["download"],
+          },
+        ],
+      },
+      lifecycleState: "ready",
+    });
+
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileUploadCommand({ diskPath: "uploads/photo.jpg" });
+    await expect(
+      h["system.file.upload"].authorize({ command: command as any }),
+    ).rejects.toThrow();
+    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
+    const auditCall = mockWriteAudit.mock.calls[0][0];
+    expect(auditCall.decision).toBe("denied");
+    expect(auditCall.reasonCode).toBe("operation_not_allowed");
+    expect(auditCall.commandType).toBe("system.file.upload");
+  });
+
+  it("throws not_allowlisted when plugin registration not found", async () => {
+    mockFindFirst.mockResolvedValue(undefined);
+
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileUploadCommand({ pluginId: "missing-plugin", diskPath: "test.txt" });
+    await expect(
+      h["system.file.upload"].authorize({ command: command as any }),
+    ).rejects.toThrow();
+    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
+    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("not_allowlisted");
+    expect(mockWriteAudit.mock.calls[0][0].commandType).toBe("system.file.upload");
+  });
+
+  it("throws path_not_allowed when manifest has no systemCommands entries", async () => {
+    mockFindFirst.mockResolvedValue({
+      id: "plugin-1",
+      manifestJson: {
+        id: "test-manifest",
+        version: "1.0.0",
+        manifestVersion: 1,
+        anchors: [],
+        actions: [],
+        // no systemCommands
+      },
+      lifecycleState: "ready",
+    });
+
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileUploadCommand({ diskPath: "test.txt" });
+    await expect(
+      h["system.file.upload"].authorize({ command: command as any }),
+    ).rejects.toThrow();
+    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
+    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("path_not_allowed");
+  });
+});
+
+describe("systemFileDeleteAuthorize", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("passes when operation delete is in allowedOperations", async () => {
+    mockFindFirst.mockResolvedValue({
+      id: "plugin-1",
+      manifestJson: {
+        id: "test-manifest",
+        version: "1.0.0",
+        manifestVersion: 1,
+        anchors: [],
+        actions: [],
+        systemCommands: [
+          {
+            command: "system.file",
+            allowedPaths: ["uploads/"],
+            allowedOperations: ["upload", "delete"],
+          },
+        ],
+      },
+      lifecycleState: "ready",
+    });
+
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileDeleteCommand({ fileId: "file-abc-123" });
+    await expect(
+      h["system.file.delete"].authorize({ command: command as any }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("throws operation_not_allowed when delete is not in allowedOperations", async () => {
+    mockFindFirst.mockResolvedValue({
+      id: "plugin-1",
+      manifestJson: {
+        id: "test-manifest",
+        version: "1.0.0",
+        manifestVersion: 1,
+        anchors: [],
+        actions: [],
+        systemCommands: [
+          {
+            command: "system.file",
+            allowedPaths: ["uploads/"],
+            allowedOperations: ["upload"],
+          },
+        ],
+      },
+      lifecycleState: "ready",
+    });
+
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileDeleteCommand({ fileId: "file-abc-123" });
+    await expect(
+      h["system.file.delete"].authorize({ command: command as any }),
+    ).rejects.toThrow();
+    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
+    const auditCall = mockWriteAudit.mock.calls[0][0];
+    expect(auditCall.decision).toBe("denied");
+    expect(auditCall.reasonCode).toBe("operation_not_allowed");
+    expect(auditCall.commandType).toBe("system.file.delete");
+  });
+
+  it("throws not_allowlisted when registration not found", async () => {
+    mockFindFirst.mockResolvedValue(undefined);
+
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileDeleteCommand({ pluginId: "missing-plugin" });
+    await expect(
+      h["system.file.delete"].authorize({ command: command as any }),
+    ).rejects.toThrow();
+    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
+    expect(mockWriteAudit.mock.calls[0][0].reasonCode).toBe("not_allowlisted");
+    expect(mockWriteAudit.mock.calls[0][0].commandType).toBe("system.file.delete");
+  });
+});
+
+describe("systemFileUploadExecute", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockInsertFileRecord.mockResolvedValue({
+      id: "file-abc-123",
+      sha256: "abc123def456",
+      fileName: "photo.jpg",
+      sizeBytes: 102400,
+    });
+  });
+
+  it("inserts file record and returns success result", async () => {
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileUploadCommand({
+      fileId: "file-abc-123",
+      sha256: "abc123def456",
+      fileName: "photo.jpg",
+      sizeBytes: 102400,
+    });
+
+    const result = await h["system.file.upload"].execute({
+      command: command as any,
+      attemptNumber: 1,
+    });
+
+    expect(mockInsertFileRecord).toHaveBeenCalledTimes(1);
+    const callArgs = mockInsertFileRecord.mock.calls[0][0];
+    expect(callArgs.schoolId).toBe("school-1");
+    expect(callArgs.pluginId).toBe("plugin-1");
+    expect(callArgs.fileName).toBe("photo.jpg");
+    expect(callArgs.sha256).toBe("abc123def456");
+
+    expect(result.resultSummary).toEqual({
+      fileId: "file-abc-123",
+      sha256: "abc123def456",
+      fileName: "photo.jpg",
+      sizeBytes: 102400,
+    });
+
+    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
+    const auditCall = mockWriteAudit.mock.calls[0][0];
+    expect(auditCall.decision).toBe("allowed");
+    expect(auditCall.commandType).toBe("system.file.upload");
+  });
+});
+
+describe("systemFileDeleteExecute", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSoftDeleteFile.mockResolvedValue({
+      id: "file-deleted-row",
+      operation: "delete",
+      fileName: "photo.jpg",
+    });
+  });
+
+  it("soft-deletes and returns success result", async () => {
+    const { systemFileHandler: h } = await import("./handler");
+    const command = buildFileDeleteCommand({ fileId: "file-abc-123" });
+
+    const result = await h["system.file.delete"].execute({
+      command: command as any,
+      attemptNumber: 1,
+    });
+
+    expect(mockSoftDeleteFile).toHaveBeenCalledTimes(1);
+    expect(mockSoftDeleteFile.mock.calls[0]).toEqual([
+      "school-1",
+      "plugin-1",
+      "file-abc-123",
+    ]);
+
+    expect(result.resultSummary).toEqual({
+      fileId: "file-abc-123",
+      deleted: true,
+    });
+
+    expect(mockWriteAudit).toHaveBeenCalledTimes(1);
+    const auditCall = mockWriteAudit.mock.calls[0][0];
+    expect(auditCall.decision).toBe("allowed");
+    expect(auditCall.commandType).toBe("system.file.delete");
   });
 });

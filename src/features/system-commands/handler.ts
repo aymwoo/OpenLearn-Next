@@ -12,6 +12,7 @@ import {
 import { validateUrl, createPinnedAgent, MAX_REDIRECTS } from "./ssrf-guard";
 import { writeSystemCommandAudit } from "./audit";
 import type { SystemCommandHttpRequestSchema } from "@/lib/dto/resource-ai";
+import { insertFileRecord, softDeleteFile } from "@/lib/dal/files";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1187,4 +1188,382 @@ export { systemConfigGetAuthorize, systemConfigGetExecute };
 export const systemConfigHandler = {
   "system.config.set": { authorize: systemConfigSetAuthorize, execute: systemConfigSetExecute },
   "system.config.get": { authorize: systemConfigGetAuthorize, execute: systemConfigGetExecute },
+};
+
+// ---------------------------------------------------------------------------
+// system.file — file storage proxy (Phase 80)
+// ---------------------------------------------------------------------------
+
+// ── Types ──
+
+type SystemFileUploadCommand = Extract<PlatformCommand, { type: "system.file.upload" }>;
+type SystemFileDeleteCommand = Extract<PlatformCommand, { type: "system.file.delete" }>;
+
+type ManifestFileEntry = {
+  command: "system.file";
+  allowedPaths: string[];
+  allowedOperations: string[];
+  maxSingleFileSize?: number;
+  maxTotalStorage?: number;
+};
+
+// ── Path matching ──
+
+/**
+ * Match a manifest allowedPaths pattern against a file path.
+ *
+ * Rules (RESEARCH.md lines 296-300):
+ * - If pattern ends with "/" → prefix match (directory): filePath.startsWith(pattern)
+ * - Otherwise → exact match: filePath === pattern
+ */
+function matchFilePath(pattern: string, filePath: string): boolean {
+  if (pattern.endsWith("/")) {
+    return filePath.startsWith(pattern);
+  }
+  return filePath === pattern;
+}
+
+// ── Helpers ──
+
+/** Shared manifest lookup + parse for system.file authorize. */
+async function resolveSystemFileManifestEntry(
+  pluginId: string,
+  schoolId: string,
+): Promise<{
+  row: typeof pluginRegistrations.$inferSelect;
+  manifest: z.infer<typeof PluginManifestSchema>;
+  fileEntries: ManifestFileEntry[];
+}> {
+  const row = await db.query.pluginRegistrations.findFirst({
+    where: and(
+      eq(pluginRegistrations.id, pluginId),
+      eq(pluginRegistrations.schoolId, schoolId),
+    ),
+  });
+
+  if (!row) {
+    throw { code: "registration_not_found" } as const;
+  }
+
+  const manifest = PluginManifestSchema.parse(row.manifestJson);
+  const systemCommands = manifest.systemCommands ?? [];
+  const fileEntries = systemCommands.filter(
+    (entry): entry is typeof entry & { command: "system.file" } =>
+      entry.command === "system.file",
+  );
+
+  return { row, manifest, fileEntries };
+}
+
+/** Build a PlatformCommandExecutionError for system.file with audit-before-throw. */
+async function denySystemFile(params: {
+  pluginId: string;
+  schoolId: string;
+  commandId: string | null;
+  actorId: string;
+  actorScope: string;
+  lifecycleState: string;
+  correlationId: string;
+  reasonCode: string;
+  filePath: string;
+  commandType: "system.file.upload" | "system.file.delete";
+  recommendedRecoveryAction: string;
+}): Promise<never> {
+  await writeSystemCommandAudit({
+    pluginId: params.pluginId,
+    schoolId: params.schoolId,
+    commandId: params.commandId,
+    actorId: params.actorId,
+    actorScope: params.actorScope,
+    lifecycleState: params.lifecycleState,
+    correlationId: params.correlationId,
+    decision: "denied",
+    reasonCode: params.reasonCode,
+    payloadJson: { filePath: params.filePath },
+    commandType: params.commandType,
+  });
+
+  throw new PlatformCommandExecutionError({
+    message: `system.file denied: ${params.reasonCode}`,
+    failureAttribution: {
+      scope: "plugin",
+      pluginId: params.pluginId,
+      reasonCode: params.reasonCode,
+      recommendedRecoveryAction: params.recommendedRecoveryAction,
+    },
+    failureEvent: {
+      eventType: "platform.command.failed",
+      category: "outcome",
+      aggregateType: "plugin",
+      aggregateId: params.pluginId,
+      payload: {
+        commandType: params.commandType,
+        reasonCode: params.reasonCode,
+        failureAttribution: {
+          scope: "plugin",
+          pluginId: params.pluginId,
+          reasonCode: params.reasonCode,
+          recommendedRecoveryAction: params.recommendedRecoveryAction,
+        },
+      },
+      audit: {
+        delegatedActor: null,
+        approval: null,
+      },
+    },
+  });
+}
+
+// ── system.file.upload — authorize ──
+
+/**
+ * system.file.upload authorize (Phase 80).
+ *
+ * Re-parses manifestJson, extracts system.file entries, applies first-match-wins
+ * on allowedPaths + allowedOperations. Returns void on success.
+ * All deny paths write audit BEFORE throw.
+ */
+async function systemFileUploadAuthorize({
+  command,
+}: {
+  command: PlatformCommand;
+}): Promise<void> {
+  const sysCmd = command as SystemFileUploadCommand;
+  // diskPath serves as the logical file path for manifest authorization matching
+  const filePath = sysCmd.payload.diskPath;
+  const pluginId = command.scope.pluginId;
+  const schoolId = command.scope.schoolId;
+
+  try {
+    const { row, fileEntries } = await resolveSystemFileManifestEntry(pluginId, schoolId);
+    const lifecycleState = row.lifecycleState ?? "ready";
+
+    if (fileEntries.length === 0) {
+      return void (await denySystemFile({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState,
+        correlationId: command.correlation.correlationId,
+        reasonCode: "path_not_allowed",
+        filePath,
+        commandType: "system.file.upload",
+        recommendedRecoveryAction: "update_manifest_allowed_paths",
+      }));
+    }
+
+    // First-match-wins: iterate entries, check allowedPaths + allowedOperations
+    for (const entry of fileEntries) {
+      const hasUploadOp = entry.allowedOperations.includes("upload");
+      if (!hasUploadOp) continue;
+
+      for (const allowedPath of entry.allowedPaths) {
+        if (matchFilePath(allowedPath, filePath)) {
+          return; // authorized
+        }
+      }
+    }
+
+    // If we got here: either no entry had "upload" op, or no path matched
+    // Check if any entry at all has upload op to distinguish reason codes
+    const anyUploadEntry = fileEntries.some((e) => e.allowedOperations.includes("upload"));
+    const reasonCode = anyUploadEntry ? "path_not_allowed" : "operation_not_allowed";
+
+    return void (await denySystemFile({
+      pluginId, schoolId, commandId: command.id,
+      actorId: command.actor.actorId,
+      actorScope: command.actor.actorScope,
+      lifecycleState,
+      correlationId: command.correlation.correlationId,
+      reasonCode,
+      filePath,
+      commandType: "system.file.upload",
+      recommendedRecoveryAction: reasonCode === "operation_not_allowed"
+        ? "update_manifest_allowed_operations"
+        : "update_manifest_allowed_paths",
+    }));
+  } catch (e) {
+    if ((e as { code?: string }).code === "registration_not_found") {
+      return void (await denySystemFile({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState: "ready",
+        correlationId: command.correlation.correlationId,
+        reasonCode: "not_allowlisted",
+        filePath,
+        commandType: "system.file.upload",
+        recommendedRecoveryAction: "install_plugin",
+      }));
+    }
+    if (e instanceof PlatformCommandExecutionError) throw e;
+    throw e;
+  }
+}
+
+// ── system.file.delete — authorize ──
+
+/**
+ * system.file.delete authorize (Phase 80).
+ *
+ * Same manifest re-parse + first-match-wins pattern as upload authorize,
+ * but checks allowedOperations for "delete" instead of "upload".
+ */
+async function systemFileDeleteAuthorize({
+  command,
+}: {
+  command: PlatformCommand;
+}): Promise<void> {
+  const sysCmd = command as SystemFileDeleteCommand;
+  const pluginId = command.scope.pluginId;
+  const schoolId = command.scope.schoolId;
+
+  try {
+    const { row, fileEntries } = await resolveSystemFileManifestEntry(pluginId, schoolId);
+    const lifecycleState = row.lifecycleState ?? "ready";
+
+    if (fileEntries.length === 0) {
+      return void (await denySystemFile({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState,
+        correlationId: command.correlation.correlationId,
+        reasonCode: "operation_not_allowed",
+        filePath: sysCmd.payload.fileId,
+        commandType: "system.file.delete",
+        recommendedRecoveryAction: "update_manifest_allowed_operations",
+      }));
+    }
+
+    // First-match-wins: any entry with "delete" operation → authorized
+    const hasDeleteOp = fileEntries.some((e) => e.allowedOperations.includes("delete"));
+    if (hasDeleteOp) {
+      return; // authorized
+    }
+
+    return void (await denySystemFile({
+      pluginId, schoolId, commandId: command.id,
+      actorId: command.actor.actorId,
+      actorScope: command.actor.actorScope,
+      lifecycleState,
+      correlationId: command.correlation.correlationId,
+      reasonCode: "operation_not_allowed",
+      filePath: sysCmd.payload.fileId,
+      commandType: "system.file.delete",
+      recommendedRecoveryAction: "update_manifest_allowed_operations",
+    }));
+  } catch (e) {
+    if ((e as { code?: string }).code === "registration_not_found") {
+      return void (await denySystemFile({
+        pluginId, schoolId, commandId: command.id,
+        actorId: command.actor.actorId,
+        actorScope: command.actor.actorScope,
+        lifecycleState: "ready",
+        correlationId: command.correlation.correlationId,
+        reasonCode: "not_allowlisted",
+        filePath: sysCmd.payload.fileId,
+        commandType: "system.file.delete",
+        recommendedRecoveryAction: "install_plugin",
+      }));
+    }
+    if (e instanceof PlatformCommandExecutionError) throw e;
+    throw e;
+  }
+}
+
+// ── system.file.upload — execute ──
+
+/**
+ * system.file.upload execute (Phase 80).
+ *
+ * Inserts into pluginFiles table via DAL. Only metadata goes through the Bus
+ * (Binary Bypass invariant). Writes allowed audit on success.
+ */
+async function systemFileUploadExecute({
+  command,
+  attemptNumber: _attemptNumber,
+}: {
+  command: PlatformCommand;
+  attemptNumber: number;
+}): Promise<PlatformCommandExecutionResult> {
+  const sysCmd = command as SystemFileUploadCommand;
+  const { fileId, sha256, fileName, mimeType, sizeBytes, diskPath } = sysCmd.payload;
+  const pluginId = command.scope.pluginId;
+  const schoolId = command.scope.schoolId;
+
+  await insertFileRecord({
+    schoolId,
+    pluginId,
+    sha256,
+    fileName,
+    mimeType,
+    diskPath,
+    sizeBytes,
+  });
+
+  await writeSystemCommandAudit({
+    pluginId,
+    schoolId,
+    commandId: command.id,
+    actorId: command.actor.actorId,
+    actorScope: command.actor.actorScope,
+    lifecycleState: "ready",
+    correlationId: command.correlation.correlationId,
+    decision: "allowed",
+    payloadJson: {
+      fileId,
+      sha256,
+      fileName,
+      sizeBytes,
+    },
+    commandType: "system.file.upload",
+  });
+
+  return successResult({ fileId, sha256, fileName, sizeBytes });
+}
+
+// ── system.file.delete — execute ──
+
+/**
+ * system.file.delete execute (Phase 80).
+ *
+ * Performs append-only soft delete via DAL. Called through Command Bus.
+ * Writes allowed audit on success.
+ */
+async function systemFileDeleteExecute({
+  command,
+  attemptNumber: _attemptNumber,
+}: {
+  command: PlatformCommand;
+  attemptNumber: number;
+}): Promise<PlatformCommandExecutionResult> {
+  const sysCmd = command as SystemFileDeleteCommand;
+  const fileId = sysCmd.payload.fileId;
+  const pluginId = command.scope.pluginId;
+  const schoolId = command.scope.schoolId;
+
+  await softDeleteFile(schoolId, pluginId, fileId);
+
+  await writeSystemCommandAudit({
+    pluginId,
+    schoolId,
+    commandId: command.id,
+    actorId: command.actor.actorId,
+    actorScope: command.actor.actorScope,
+    lifecycleState: "ready",
+    correlationId: command.correlation.correlationId,
+    decision: "allowed",
+    payloadJson: { fileId },
+    commandType: "system.file.delete",
+  });
+
+  return successResult({ fileId, deleted: true });
+}
+
+// ── Export — system.file ──
+
+export const systemFileHandler = {
+  "system.file.upload": { authorize: systemFileUploadAuthorize, execute: systemFileUploadExecute },
+  "system.file.delete": { authorize: systemFileDeleteAuthorize, execute: systemFileDeleteExecute },
 };
