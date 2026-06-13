@@ -107,7 +107,7 @@ Plans:
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [x] 80-04-PLAN.md — API Routes（upload Binary Bypass + download Range 支持 + delete/list/metadata）
-- [ ] 80-05-PLAN.md — GC 垃圾回收脚本（isLatest=false 扫描 + 物理文件删除 + 统计输出）
+- [x] 80-05-PLAN.md — GC 垃圾回收脚本（isLatest=false 扫描 + 物理文件删除 + 统计输出）
 
 **UI hint**: yes
 
@@ -138,7 +138,7 @@ Plans:
 | 77. Manifest 声明 + Command Registry 注册 | v4.3 | 2/2 | Complete | 2026-06-11 |
 | 78. system.http.request HTTP 代理 | v4.3 | 2/2 | Complete | 2026-06-12 |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 2/2 | Complete | 2026-06-12 |
-| 80. system.file 文件存储代理 | v4.4 | 4/5 | In Progress|  |
+| 80. system.file 文件存储代理 | v4.4 | 5/5 | Complete   | 2026-06-13 |
 | 81. system.notification 应用内通知推送 | v4.4 | 0/0 | Not started | - |
 
 ---
