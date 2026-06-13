@@ -44,6 +44,9 @@ export const GovernanceDeniedReasonValues = [
   "path_not_allowed",
   "operation_not_allowed",
   "quota_exceeded",
+  "notification_type_not_allowed",
+  "rate_limit_exceeded",
+  "recipient_not_in_school",
 ] as const;
 export const PluginPermissionValues = [
   "lesson:write:suggestion",

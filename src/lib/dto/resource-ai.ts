@@ -871,6 +871,26 @@ export const SystemCommandFileSchema = z.strictObject({
 });
 
 /**
+ * Manifest declaration shape for `system.notification` (Phase 81, NOTIF-05).
+ *
+ * Validates the `systemCommands` entry for notification operations in plugin manifests.
+ * The `notificationTypes` array serves as an allowlist — plugins declare which
+ * notification types they may emit, and the governance gate enforces the allowlist
+ * at runtime. Type names must follow the `lowercase.dotted` convention enforced by
+ * the regex to prevent injection or namespace collision.
+ */
+export const SystemCommandNotificationSchema = z.strictObject({
+  notificationTypes: z
+    .array(
+      z.string().min(1).max(64).regex(
+        /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/,
+        { message: "SYSTEM_COMMAND_NOTIFICATION_TYPE_INVALID" },
+      ),
+    )
+    .min(1, { message: "SYSTEM_COMMAND_NOTIFICATION_TYPE_INVALID" }),
+});
+
+/**
  * Discriminated union of system command manifest declarations (D-01).
  *
  * Uses `command` as the discriminator field. Each variant merges the literal
@@ -888,6 +908,9 @@ export const SystemCommandDiscriminatedSchema = z.discriminatedUnion("command", 
   ),
   z.strictObject({ command: z.literal("system.file") }).merge(
     SystemCommandFileSchema,
+  ),
+  z.strictObject({ command: z.literal("system.notification") }).merge(
+    SystemCommandNotificationSchema,
   ),
 ]);
 
