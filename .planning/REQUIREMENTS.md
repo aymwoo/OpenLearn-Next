@@ -21,18 +21,18 @@ Requirements for v4.4 System Commands Bus（第二批）— system.file + system
 
 ### Notifications (NOTIF)
 
-- [ ] **NOTIF-01**: 插件可通过 `system.notification.send` 向指定用户发送应用内通知
-- [ ] **NOTIF-02**: 用户可查看通知列表（分页，按时间倒序，默认每页 20 条）
-- [ ] **NOTIF-03**: 用户可标记通知为已读（单条 / 全部已读）
-- [ ] **NOTIF-04**: 用户可查看未读通知计数
-- [ ] **NOTIF-05**: manifest `systemCommands.system.notification` 声明 `notificationTypes` 白名单，runtime 逐请求匹配
-- [ ] **NOTIF-06**: 频率限制：每插件每分钟 60 条 + 每用户每小时 30 条上限
-- [ ] **NOTIF-07**: `recipientUserId` 必须经 `schoolId` 归属校验（查 memberships 表），防止跨校隐私泄漏
-- [ ] **NOTIF-08**: 通知自动清理：超过 90 天的已读通知定期清除（保留未读通知）
+- [x] **NOTIF-01**: 插件可通过 `system.notification.send` 向指定用户发送应用内通知
+- [x] **NOTIF-02**: 用户可查看通知列表（分页，按时间倒序，默认每页 20 条）
+- [x] **NOTIF-03**: 用户可标记通知为已读（单条 / 全部已读）
+- [x] **NOTIF-04**: 用户可查看未读通知计数
+- [x] **NOTIF-05**: manifest `systemCommands.system.notification` 声明 `notificationTypes` 白名单，runtime 逐请求匹配
+- [x] **NOTIF-06**: 频率限制：每插件每分钟 60 条 + 每用户每小时 30 条上限
+- [x] **NOTIF-07**: `recipientUserId` 必须经 `schoolId` 归属校验（查 memberships 表），防止跨校隐私泄漏
+- [x] **NOTIF-08**: 通知自动清理：超过 90 天的已读通知定期清除（保留未读通知）
 
 ### Cross-Command (SYS)
 
-- [ ] **SYS-06**: `system.file.*` 和 `system.notification.*` 复用 v4.3 三段式链路：manifest 声明 → governance gate（`assertActionExecutable`）→ 全链路审计（`writeSystemCommandAudit`）
+- [x] **SYS-06**: `system.file.*` 和 `system.notification.*` 复用 v4.3 三段式链路：manifest 声明 → governance gate（`assertActionExecutable`）→ 全链路审计（`writeSystemCommandAudit`）
 
 ## vNext Requirements
 
@@ -74,15 +74,15 @@ Deferred to future milestones.
 | FILE-07 | Phase 80 | Complete |
 | FILE-08 | Phase 80 | Complete |
 | FILE-09 | Phase 80 | Complete |
-| NOTIF-01 | Phase 81 | Pending |
-| NOTIF-02 | Phase 81 | Pending |
-| NOTIF-03 | Phase 81 | Pending |
-| NOTIF-04 | Phase 81 | Pending |
-| NOTIF-05 | Phase 81 | Pending |
-| NOTIF-06 | Phase 81 | Pending |
-| NOTIF-07 | Phase 81 | Pending |
-| NOTIF-08 | Phase 81 | Pending |
-| SYS-06 | Phase 81 | Pending |
+| NOTIF-01 | Phase 81 | Complete |
+| NOTIF-02 | Phase 81 | Complete |
+| NOTIF-03 | Phase 81 | Complete |
+| NOTIF-04 | Phase 81 | Complete |
+| NOTIF-05 | Phase 81 | Complete |
+| NOTIF-06 | Phase 81 | Complete |
+| NOTIF-07 | Phase 81 | Complete |
+| NOTIF-08 | Phase 81 | Complete |
+| SYS-06 | Phase 81 | Complete |
 
 **Coverage:**
 - v4.4 requirements: 17 total

@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.4
 milestone_name: System Commands Bus（第二批）
-status: executing
-last_updated: "2026-06-13T12:00:28.831Z"
-last_activity: 2026-06-13 -- Phase 81 planning complete
+status: milestone_complete
+last_updated: 2026-06-13T12:34:48.414Z
+last_activity: 2026-06-13 -- Phase 81 execution started
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 8
   percent: 50
+stopped_at: Milestone complete (Phase 81 was final phase)
 ---
 
 # Project State
@@ -20,14 +21,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-13 after v4.4 start)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Phase 81 — system.notification 应用内通知推送
+**Current focus:** Milestone complete
 
 ## Current Position
 
 Phase: 81
 Plan: Not started
-Status: Ready to execute
-Last activity: 2026-06-13 -- Phase 81 planning complete
+Status: Milestone complete
+Last activity: 2026-06-13
 
 Progress: [██████████] 100%
 
@@ -35,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 76（v4.3 inclusive: v4.0=20 + v4.1=7 + v4.2=19 + v4.3=6 + earlier milestones）
+- Total plans completed: 79（v4.3 inclusive: v4.0=20 + v4.1=7 + v4.2=19 + v4.3=6 + earlier milestones）
 - Average duration: —
 - Total execution time: —
 
