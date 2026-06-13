@@ -37,6 +37,7 @@ export const cacheTags = {
   scheduleAssistantProposal: (proposalId: string) => `schedule:assistant-proposal:${proposalId}`,
   homeworkAssignments: (sessionId: string) => `homework:assignments:${sessionId}`,
   homeworkSubmissions: (sessionId: string) => `homework:submissions:${sessionId}`,
+  notifications: (userId: string) => `notifications:userId:${userId}`,
 } as const
 
 export const routeCacheBoundaries = [
