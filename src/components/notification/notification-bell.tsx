@@ -35,7 +35,7 @@ export function NotificationBell() {
         await fetch("/api/notification/mark-read", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ notificationId: id }),
+          body: JSON.stringify({ markAll: false, notificationId: id }),
         });
         closeDropdown();
       } catch {

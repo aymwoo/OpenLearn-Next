@@ -17,7 +17,7 @@ export function NotificationList() {
         await fetch("/api/notification/mark-read", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ notificationId: id }),
+          body: JSON.stringify({ markAll: false, notificationId: id }),
         });
         // 刷新列表以反映已读状态
         void mutate();
