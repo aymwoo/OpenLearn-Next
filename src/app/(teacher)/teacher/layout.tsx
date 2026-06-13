@@ -9,7 +9,8 @@ import { getUserMembershipsDTO } from "@/lib/dal/membership";
 import { resolveTeacherThemeRouteSurface } from "@/lib/theme-layout/route-surface-registry";
 import { getShellSurfaceConfig } from "@/lib/theme-layout/shell-surface-resolver";
 import { Button } from "@/components/ui/button";
-import { Bell, Search, CalendarDays } from "lucide-react";
+import { Search, CalendarDays } from "lucide-react";
+import { NotificationBell } from "@/components/notification/notification-bell";
 import { DEFAULT_THEME_LAYOUT_RUNTIME } from "@/server/themes/tokens";
 
 export default function TeacherLayout({
@@ -59,10 +60,7 @@ async function TeacherLayoutContent({
           <Button asChild className="px-5 text-sm">
             <Link href="/teacher/launch">开启新课堂</Link>
           </Button>
-          <button className="relative rounded-full bg-surface-container-lowest p-2.5 text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/40">
-            <Bell className="size-5" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500"></span>
-          </button>
+          <NotificationBell />
           <button className="rounded-full bg-surface-container-lowest p-2.5 text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary/40">
             <Search className="size-5" />
           </button>
