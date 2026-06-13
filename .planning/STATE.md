@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v4.4
 milestone_name: System Commands Bus（第二批）
-status: planning
-last_updated: "2026-06-13T01:14:56.205Z"
+status: roadmap_ready
+last_updated: "2026-06-13T01:30:00.000Z"
 last_activity: 2026-06-13
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,72 +17,63 @@ progress:
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-06-11 after v4.2 close)
+See: `.planning/PROJECT.md` (updated 2026-06-13 after v4.4 start)
 
 **Core value:** 教师可以用可编程步骤编排一节课，并让学生端按进度可追踪地完成课堂流程。
-**Current focus:** Milestone complete
+**Current focus:** v4.4 — system.file + system.notification 路线图就绪
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 80 of 2（system.file 文件存储代理）
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-13 — Milestone v4.4 started
+Status: Ready to plan
+Last activity: 2026-06-13 — v4.4 ROADMAP.md 创建完成，2 phases（80-81），17 requirements 全量覆盖
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 65 (v4.2 inclusive: v4.0=20 + v4.1=7 + v4.2=19 + earlier milestones)
+- Total plans completed: 71（v4.3 inclusive: v4.0=20 + v4.1=7 + v4.2=19 + v4.3=6 + earlier milestones）
 - Average duration: —
 - Total execution time: —
-
-**By v4.2 Phase:**
-
-| Phase | Plans | Status |
-|-------|-------|--------|
-| 73. Multi-Type Quiz & Live Dashboard | 2/2 | complete |
-| 74. v4.1 Authoritative Close Gate | 5/5 | complete |
-| 75. 第二个 External 插件 + Marketplace 泛化 | 6/6 | complete |
-| 76. v4.2 Authoritative Close Gate | 6/6 | complete |
 
 **By v4.3 Phase:**
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 77. Manifest 声明 + Command Registry 注册 | 1/2 | in progress |
-| 78. system.http.request HTTP 代理 | 0/0 | not started |
-| 79. system.config KV 配置 + dispatchSystemCommand facade | 0/0 | not started |
-| Phase 77-manifest-command-registry P01 | 300 | 3 tasks | 3 files |
-| Phase 77-manifest-command-registry P02 | ~1h | 3 tasks | 4 files |
+| 77. Manifest 声明 + Command Registry 注册 | 2/2 | complete |
+| 78. system.http.request HTTP 代理 | 2/2 | complete |
+| 79. system.config KV 配置 + dispatchSystemCommand facade | 2/2 | complete |
+
+**v4.4 Phases (current):**
+
+| Phase | Plans | Status |
+|-------|-------|--------|
+| 80. system.file 文件存储代理 | 0/0 | not started |
+| 81. system.notification 应用内通知推送 | 0/0 | not started |
 
 ## Accumulated Context
 
-### Roadmap Evolution
+### Roadmap Decisions
 
-- v4.3 在现有 Command Bus 骨架上新增 `system.*` 命令组，与 `plugin.*` / `lesson.draft.*` / `plugin.data.*` / `quiz.answer.*` 并列。
-- 首发 `system.http.request`（HTTP 代理）和 `system.config`（KV 配置）两个命令。
-- 安全模型：严格声明式白名单（manifest 声明 → install 校验 → runtime 逐请求匹配）。
-- v4.2 基线已交付：homework 全链路 + marketplace 泛化 + 跨插件隔离 + 6-stage close gate。
-- `verify:phase` alias 当前指向 v4.2 组合 gate。
+- v4.4 分 2 个 Phase：Phase 80 (system.file 全量) + Phase 81 (system.notification 全量 + SYS-06 复用验证)
+- 压缩至 2 Phase 的理由：coarse granularity 下两个独立子系统各形成一个完整交付边界，phase 内写操作验证安全模型后读操作自然跟随
+- Phase 80 先于 Phase 81：system.file 的 Binary Bypass 架构复杂度最高，先验证 API Route bridge + Command Bus 模式，notification 的 DB+轮询 模式可借鉴
+- 零新依赖：两个命令完全基于 Node 24 内置模块 + Drizzle + Zod 实现
+- system.file 二进制不进 Command Bus（Binary Bypass）：upload 走 API Route → 内部调 Command Bus（仅元数据），download 走独立 API Route 流式返回
+- 内容寻址存储（SHA-256）：{schoolId}/{pluginKey}/{sha256}.{ext}
+- system.notification 首发 DB 写入 + 客户端轮询（对齐现有 10s polling pattern），WS best-effort 推送可选增强
+- 文件配额：单文件 50MB + 每插件每校总容量上限
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
+Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecting current work:
 
-- [Milestone v4.3]: system.* 命令组在现有 `platformCommandRegistry` 上 additive 扩展，不重做 Command Bus 架构
-- [Milestone v4.3]: `system.config.get` 纯读走 DAL 不声明为 PlatformCommandType，`system.config.set` 走 Command Bus producer
-- [Milestone v4.3]: schoolId 由认证 session 派生注入，绝不从 payload 读取
-- [Milestone v4.3]: Phase 编号从 77 开始延续
-- [Milestone v4.2]: D-06 阻断策略 — Stage 1-4 任一步失败即阻断后续全部 stage
-- [Milestone v4.2]: 跨插件隔离 — quiz/homework schema/allowlist/DAL 三重隔离
-- [Phase ?]: D-01: discriminated union with command discriminator field
-- [Phase ?]: D-02: Complete shape defined now (allowedDomains, allowedMethods, allowedKeys)
-- [Phase ?]: D-03: Schema in same file as PluginManifestSchema (resource-ai.ts)
-- [Phase ?]: D-04: systemCommands is .optional() for backward compatibility
-- [Phase ?]: D-05: Zod full validation (regex + enum + min constraints)
-- [Phase ?]: D-06: Named UPPER_SNAKE reason codes
-- [Phase ?]: 77-02-SUMMARY.md
+- [v4.4 roadmap]: Phase 编号从 80 开始（v4.3 截止于 79）
+- [v4.4 roadmap]: 17 个 v4.4 requirements 全量映射：FILE-01..09 → Phase 80，NOTIF-01..08 + SYS-06 → Phase 81
+- [v4.4 roadmap]: coarse granularity 下压缩到 2 Phase，两个独立子系统各自形成完整交付边界
 
 ### Pending Todos
 
@@ -116,10 +107,6 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-06-12T04:18:35.068Z
-Stopped at: Phase 79 context gathered
-Resume file: .planning/phases/79-system-config-kv-dispatchsystemcommand-facade/79-CONTEXT.md
-
-## Operator Next Steps
-
-- Start the next milestone with /gsd-new-milestone
+Last session: 2026-06-13T01:30:00.000Z
+Stopped at: v4.4 ROADMAP.md 创建完成，2 phases 就绪，等待 /gsd:plan-phase 80
+Resume file: None

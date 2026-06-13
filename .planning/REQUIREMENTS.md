@@ -65,30 +65,30 @@ Deferred to future milestones.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FILE-01 | — | Pending |
-| FILE-02 | — | Pending |
-| FILE-03 | — | Pending |
-| FILE-04 | — | Pending |
-| FILE-05 | — | Pending |
-| FILE-06 | — | Pending |
-| FILE-07 | — | Pending |
-| FILE-08 | — | Pending |
-| FILE-09 | — | Pending |
-| NOTIF-01 | — | Pending |
-| NOTIF-02 | — | Pending |
-| NOTIF-03 | — | Pending |
-| NOTIF-04 | — | Pending |
-| NOTIF-05 | — | Pending |
-| NOTIF-06 | — | Pending |
-| NOTIF-07 | — | Pending |
-| NOTIF-08 | — | Pending |
-| SYS-06 | — | Pending |
+| FILE-01 | Phase 80 | Pending |
+| FILE-02 | Phase 80 | Pending |
+| FILE-03 | Phase 80 | Pending |
+| FILE-04 | Phase 80 | Pending |
+| FILE-05 | Phase 80 | Pending |
+| FILE-06 | Phase 80 | Pending |
+| FILE-07 | Phase 80 | Pending |
+| FILE-08 | Phase 80 | Pending |
+| FILE-09 | Phase 80 | Pending |
+| NOTIF-01 | Phase 81 | Pending |
+| NOTIF-02 | Phase 81 | Pending |
+| NOTIF-03 | Phase 81 | Pending |
+| NOTIF-04 | Phase 81 | Pending |
+| NOTIF-05 | Phase 81 | Pending |
+| NOTIF-06 | Phase 81 | Pending |
+| NOTIF-07 | Phase 81 | Pending |
+| NOTIF-08 | Phase 81 | Pending |
+| SYS-06 | Phase 81 | Pending |
 
 **Coverage:**
 - v4.4 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-13*
-*Last updated: 2026-06-13 after milestone v4.4 requirements definition*
+*Last updated: 2026-06-13 after v4.4 roadmap creation*
