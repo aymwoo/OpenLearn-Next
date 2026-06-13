@@ -1903,6 +1903,52 @@ export const pluginOwnedBusinessData = sqliteTable(
   ]
 );
 
+// ---------------------------------------------------------------------------
+// Phase 80: system.file — plugin-level file storage metadata (FILE-01)
+// ---------------------------------------------------------------------------
+
+/**
+ * Append-only ledger of plugin file operations.
+ *
+ * Each row records a single file event (upload or delete). The append-only
+ * isLatest pattern preserves the full history while the uniqueIndex on
+ * (schoolId, pluginId, sha256) ensures idempotent upload deduplication.
+ */
+export const pluginFiles = sqliteTable(
+  "pluginFile",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    schoolId: text("schoolId")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    pluginId: text("pluginId")
+      .notNull()
+      .references(() => pluginRegistrations.id, { onDelete: "cascade" }),
+    operation: text("operation", { enum: ["upload", "delete"] }).notNull(),
+    sha256: text("sha256"), // null for delete operations
+    fileName: text("fileName").notNull(),
+    mimeType: text("mimeType"),
+    diskPath: text("diskPath"), // relative path from FILE_STORAGE_ROOT
+    sizeBytes: integer("sizeBytes"),
+    isLatest: integer("isLatest", { mode: "boolean" }).notNull().default(true),
+    previousRowId: text("previousRowId"), // append-only chain
+    createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("pluginFiles_school_plugin_latest_idx").on(
+      table.schoolId,
+      table.pluginId,
+      table.isLatest,
+    ),
+    index("pluginFiles_sha256_idx").on(table.sha256),
+    uniqueIndex("pluginFiles_school_plugin_sha256_upload_unique").on(
+      table.schoolId,
+      table.pluginId,
+      table.sha256,
+    ),
+  ],
+);
+
 // 受治理的 plugin-owned 生成表（由 scripts/compile-plugin-data-model.ts 编译）。
 // 手写主体永不被 codegen 改写；此处仅 re-export，让 drizzle-kit 经 schema.ts 看见全部生成表。
 export * from "./schema/generated";

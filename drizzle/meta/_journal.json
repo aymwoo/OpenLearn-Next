@@ -64,6 +64,13 @@
       "when": 1781146533744,
       "tag": "0023_phase75_homework_upgrade",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1781319418851,
+      "tag": "0024_phase80_plugin_files",
+      "breakpoints": true
     }
   ]
 }

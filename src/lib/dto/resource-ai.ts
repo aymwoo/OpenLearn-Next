@@ -767,6 +767,8 @@ export const SYSTEM_COMMAND_REASONS = [
   "SYSTEM_COMMAND_DOMAIN_INVALID",
   "SYSTEM_COMMAND_METHOD_INVALID",
   "SYSTEM_COMMAND_KEY_INVALID",
+  "SYSTEM_COMMAND_PATH_INVALID",
+  "SYSTEM_COMMAND_OPERATION_INVALID",
 ] as const;
 
 /** Allowed HTTP methods for system.http.request manifest declarations. */
@@ -834,6 +836,41 @@ export const SystemCommandConfigSchema = z.strictObject({
 });
 
 /**
+ * Path validation pattern (Phase 80, FILE-02):
+ * - Safe path characters only: alphanumeric, underscore, hyphen, dot, slash
+ * - Rejects directory traversal `..` and null byte encodings `%00`
+ */
+const PATH_PATTERN =
+  /^(?!.*\.\.)[a-zA-Z0-9_\-.\\/]+$/;
+
+/**
+ * Manifest declaration shape for `system.file` (Phase 80).
+ *
+ * Validates the `systemCommands` entry for file operations in plugin manifests.
+ * The `allowedPaths` array supports directory prefix matching (e.g. "documents/"
+ * matches "documents/report.pdf"). The `allowedOperations` array gates which
+ * file operations the plugin may perform.
+ */
+export const SystemCommandFileSchema = z.strictObject({
+  allowedPaths: z
+    .array(
+      z.string().min(1).regex(PATH_PATTERN, {
+        message: "SYSTEM_COMMAND_PATH_INVALID",
+      }),
+    )
+    .min(1, { message: "SYSTEM_COMMAND_PATH_INVALID" }),
+  allowedOperations: z
+    .array(
+      z.enum(["upload", "download", "delete", "list", "metadata"], {
+        error: () => ({ message: "SYSTEM_COMMAND_OPERATION_INVALID" }),
+      }),
+    )
+    .min(1),
+  maxSingleFileSize: z.number().int().positive().optional(),
+  maxTotalStorage: z.number().int().positive().optional(),
+});
+
+/**
  * Discriminated union of system command manifest declarations (D-01).
  *
  * Uses `command` as the discriminator field. Each variant merges the literal
@@ -848,6 +885,9 @@ export const SystemCommandDiscriminatedSchema = z.discriminatedUnion("command", 
   ),
   z.strictObject({ command: z.literal("system.config") }).merge(
     SystemCommandConfigSchema,
+  ),
+  z.strictObject({ command: z.literal("system.file") }).merge(
+    SystemCommandFileSchema,
   ),
 ]);
 

@@ -36,8 +36,14 @@ export const PluginDataCommandTypes = ["plugin.data.insert", "plugin.data.upsert
 
 export const QuizTransportCommandTypes = ["quiz.answer.received"] as const;
 
-export const SystemCommandTypes = ["system.http.request", "system.config.set"] as const;
-// Note: system.config.get is deliberately excluded — it is a pure DAL read, not a PlatformCommandType.
+export const SystemCommandTypes = [
+  "system.http.request",
+  "system.config.set",
+  "system.file.upload",
+  "system.file.delete",
+] as const;
+// Note: system.config.get, system.file.download, system.file.list, and system.file.metadata
+// are deliberately excluded — they are pure DAL reads, not PlatformCommandTypes.
 
 export const PlatformCommandTypeSchema = z.enum([
   ...PlatformPluginGovernanceCommandTypes,
@@ -279,6 +285,29 @@ const SystemConfigSetPayloadSchema = z.strictObject({
   }),
 });
 
+/**
+ * Phase 80 (FILE-01): System file upload payload schema (metadata-only).
+ *
+ * The actual file binary bypasses the Command Bus — only metadata is carried
+ * in the payload. Note: schoolId and pluginId are NOT in this payload —
+ * injected by envelope scope.
+ */
+const SystemFileUploadPayloadSchema = z.strictObject({
+  fileId: z.string().min(1),
+  sha256: z.string().min(1),
+  fileName: z.string().min(1),
+  mimeType: z.string().min(1),
+  sizeBytes: z.number().int().positive(),
+  diskPath: z.string().min(1),
+});
+
+/**
+ * Phase 80 (FILE-01): System file delete payload schema.
+ */
+const SystemFileDeletePayloadSchema = z.strictObject({
+  fileId: z.string().min(1),
+});
+
 export const PlatformCommandPayloadSchemas = {
   "plugin.install": PluginInstallPayloadSchema,
   "plugin.upgrade.preflight": PluginUpgradePreflightPayloadSchema,
@@ -301,6 +330,8 @@ export const PlatformCommandPayloadSchemas = {
   "quiz.answer.received": QuizAnswerReceivedPayloadSchema,
   "system.http.request": SystemHttpRequestPayloadSchema,
   "system.config.set": SystemConfigSetPayloadSchema,
+  "system.file.upload": SystemFileUploadPayloadSchema,
+  "system.file.delete": SystemFileDeletePayloadSchema,
 } as const;
 
 export const PlatformCommandSchema = z.discriminatedUnion("type", [
@@ -387,6 +418,14 @@ export const PlatformCommandSchema = z.discriminatedUnion("type", [
   PlatformCommandEnvelopeSchema.extend({
     type: z.literal("system.config.set"),
     payload: SystemConfigSetPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("system.file.upload"),
+    payload: SystemFileUploadPayloadSchema,
+  }),
+  PlatformCommandEnvelopeSchema.extend({
+    type: z.literal("system.file.delete"),
+    payload: SystemFileDeletePayloadSchema,
   }),
 ]);
 
