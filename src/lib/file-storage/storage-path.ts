@@ -1,14 +1,24 @@
+import { resolve, join } from "node:path";
+
+const STORAGE_ROOT = process.env.FILE_STORAGE_ROOT || "data/files";
+
+/**
+ * 构建文件存储的绝对路径。
+ * 格式: {FILE_STORAGE_ROOT}/{schoolId}/{pluginKey}/{sha256}.{ext}
+ */
 export function buildStoragePath(
-  _schoolId: string,
-  _pluginKey: string,
-  _sha256: string,
-  _extension: string,
+  schoolId: string,
+  pluginKey: string,
+  sha256: string,
+  extension: string,
 ): string {
-  // TODO: implement
-  return "";
+  return resolve(join(STORAGE_ROOT, schoolId, pluginKey, `${sha256}.${extension}`));
 }
 
-export function resolveStoragePath(_relativePath: string): string {
-  // TODO: implement
-  return "";
+/**
+ * 将相对于 FILE_STORAGE_ROOT 的路径解析为绝对路径。
+ * 用于 download Route 将 DB 中存储的 diskPath 转换为文件系统路径。
+ */
+export function resolveStoragePath(relativePath: string): string {
+  return resolve(join(STORAGE_ROOT, relativePath));
 }
