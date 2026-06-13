@@ -9,15 +9,15 @@ Requirements for v4.4 System Commands Bus（第二批）— system.file + system
 
 ### File Storage (FILE)
 
-- [ ] **FILE-01**: 插件可通过 `system.file.upload` 上传文件，文件以内容寻址（SHA-256）存储，元数据写入 SQLite
-- [ ] **FILE-02**: 插件可通过 `system.file.download` 下载文件，经独立 API Route 流式返回（支持 Range 请求）
-- [ ] **FILE-03**: 插件可通过 `system.file.delete` 删除文件（标记 isLatest=false，内容保留至 GC）
-- [ ] **FILE-04**: 插件可通过 `system.file.list` 列出自身文件列表（按前缀过滤、分页）
-- [ ] **FILE-05**: 插件可通过 `system.file.metadata` 获取单个文件的元数据（大小/MIME/SHA-256/创建时间）
-- [ ] **FILE-06**: 文件存储以 `{schoolId}/{pluginKey}` 双重前缀物理隔离，跨插件/跨校不可访问
+- [x] **FILE-01**: 插件可通过 `system.file.upload` 上传文件，文件以内容寻址（SHA-256）存储，元数据写入 SQLite
+- [x] **FILE-02**: 插件可通过 `system.file.download` 下载文件，经独立 API Route 流式返回（支持 Range 请求）
+- [x] **FILE-03**: 插件可通过 `system.file.delete` 删除文件（标记 isLatest=false，内容保留至 GC）
+- [x] **FILE-04**: 插件可通过 `system.file.list` 列出自身文件列表（按前缀过滤、分页）
+- [x] **FILE-05**: 插件可通过 `system.file.metadata` 获取单个文件的元数据（大小/MIME/SHA-256/创建时间）
+- [x] **FILE-06**: 文件存储以 `{schoolId}/{pluginKey}` 双重前缀物理隔离，跨插件/跨校不可访问
 - [ ] **FILE-07**: manifest `systemCommands.system.file` 声明 `allowedPaths` 白名单，runtime 逐请求匹配路径前缀
-- [ ] **FILE-08**: 路径穿越防护：多层校验覆盖 URL 编码变体（`%2e%2e%2f`）、null byte（`%00`）、parent reference（`..`）
-- [ ] **FILE-09**: 文件大小配额：单文件上限 50MB + 每插件每校总容量上限可配置
+- [x] **FILE-08**: 路径穿越防护：多层校验覆盖 URL 编码变体（`%2e%2e%2f`）、null byte（`%00`）、parent reference（`..`）
+- [x] **FILE-09**: 文件大小配额：单文件上限 50MB + 每插件每校总容量上限可配置
 
 ### Notifications (NOTIF)
 
@@ -65,15 +65,15 @@ Deferred to future milestones.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FILE-01 | Phase 80 | Pending |
-| FILE-02 | Phase 80 | Pending |
-| FILE-03 | Phase 80 | Pending |
-| FILE-04 | Phase 80 | Pending |
-| FILE-05 | Phase 80 | Pending |
-| FILE-06 | Phase 80 | Pending |
+| FILE-01 | Phase 80 | Complete |
+| FILE-02 | Phase 80 | Complete |
+| FILE-03 | Phase 80 | Complete |
+| FILE-04 | Phase 80 | Complete |
+| FILE-05 | Phase 80 | Complete |
+| FILE-06 | Phase 80 | Complete |
 | FILE-07 | Phase 80 | Pending |
-| FILE-08 | Phase 80 | Pending |
-| FILE-09 | Phase 80 | Pending |
+| FILE-08 | Phase 80 | Complete |
+| FILE-09 | Phase 80 | Complete |
 | NOTIF-01 | Phase 81 | Pending |
 | NOTIF-02 | Phase 81 | Pending |
 | NOTIF-03 | Phase 81 | Pending |
