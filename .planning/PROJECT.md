@@ -215,9 +215,19 @@ See `.planning/milestones/` for full archives.
 - `ATP-23`: 第 4 类 workload 因产品触发闭环缺失，只能算 partial proof。
 - Phase 39 / 40 / 41 仍缺 `VERIFICATION.md` proof artifacts；Phase 40 还缺 `verify:phase40` npm entry。
 
+## Current Milestone: v4.4 System Commands Bus（第二批）
+
+**Goal:** 扩展 system.* 命令组，新增 `system.file` 文件存储代理和 `system.notification` 应用内通知推送
+
+**Target features:**
+- `system.file` — 本地文件存储代理，完整文件管理（upload / download / delete / list / move / copy / metadata），插件+学校双重隔离，manifest 声明白名单
+- `system.notification` — 应用内通知推送，插件可向用户发送站内通知
+
+**Started:** 2026-06-13
+
 ## Planning Posture
 
-当前没有 active milestone。下一里程碑应从已归档的 v4.3 system commands bus + v4.2 marketplace 泛化 + v4.1 多题型 + v4.0 插件 marketplace 闭环出发，选择新的 committed 用户价值切口。
+当前 active milestone 为 v4.4，在已归档的 v4.3 system commands bus + v4.2 marketplace 泛化 + v4.1 多题型 + v4.0 插件 marketplace 闭环基础上继续扩展系统命令能力。
 
 **Next planning constraints:**
 
@@ -297,7 +307,10 @@ See `.planning/milestones/` for full archives.
 
 ### Active
 
-_下一里程碑需求通过 `/gsd:new-milestone` 定义。_
+- [ ] 插件可通过 `system.file` 进行安全文件存储与管理（upload / download / delete / list / move / copy / metadata），本地文件系统后端，插件+学校双重隔离（FILE-01）
+- [ ] 插件可通过 `system.file` manifest 声明白名单控制可访问的文件路径和操作类型（FILE-02）
+- [ ] 插件可通过 `system.notification` 向用户推送应用内通知（NOTIF-01）
+- [ ] `system.file` 和 `system.notification` 复用 v4.3 的 manifest → governance → audit 链路（SYS-06）
 
 ### Out of Scope
 
@@ -416,4 +429,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-12 after Phase 79 completion*
+*Last updated: 2026-06-13 after milestone v4.4 start*

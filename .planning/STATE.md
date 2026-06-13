@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.3
-milestone_name: System Commands Bus（第一批）
-status: Awaiting next milestone
-last_updated: "2026-06-12T12:59:57.212Z"
-last_activity: 2026-06-12 — Milestone v4.3 completed and archived
+milestone: v4.4
+milestone_name: System Commands Bus（第二批）
+status: planning
+last_updated: "2026-06-13T01:14:56.205Z"
+last_activity: 2026-06-13
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: `.planning/PROJECT.md` (updated 2026-06-11 after v4.2 close)
 
 ## Current Position
 
-Phase: Milestone v4.3 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-12 — Milestone v4.3 completed and archived
+Status: Defining requirements
+Last activity: 2026-06-13 — Milestone v4.4 started
 
 ## Performance Metrics
 
