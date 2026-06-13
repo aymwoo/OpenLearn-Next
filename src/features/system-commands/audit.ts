@@ -15,7 +15,7 @@ type SystemCommandAuditInput = {
   reasonCode?: string | null;
   payloadJson: Record<string, unknown>;
   /** PHASE 79: commandType 参数化 action 字段，支持 system.http.request / system.config.set / system.config.get */
-  commandType: "system.http.request" | "system.config.set" | "system.config.get" | "system.file.upload" | "system.file.delete";
+  commandType: "system.http.request" | "system.config.set" | "system.config.get" | "system.file.upload" | "system.file.delete" | "system.notification.send";
 };
 
 /**

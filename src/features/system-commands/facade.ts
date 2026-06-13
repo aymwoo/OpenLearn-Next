@@ -193,6 +193,13 @@ export async function dispatchSystemCommand(input: {
     diskPath: string;
     fileId: string;
   };
+  /** notification 操作的 payload（system.notification.send 时使用） */
+  notifPayload?: {
+    recipientUserId: string;
+    notificationType: string;
+    title: string;
+    body: string;
+  };
 }) {
   const correlationId = buildSystemCommandCorrelationId({
     commandType: input.commandType,
@@ -431,6 +438,72 @@ export async function dispatchSystemCommand(input: {
       },
       payload: {
         fileId: input.fileId,
+      },
+      correlation: {
+        correlationId,
+        causationId: null,
+        producer: "dispatchSystemCommand",
+      },
+      audit: {
+        delegatedActor: null,
+        approval: null,
+      },
+      dedupeKey,
+    };
+
+    const result = await dispatchPlatformCommand(envelope, {
+      definitions: platformCommandRegistry,
+      store: systemCommandStore,
+      publicationPort: defaultInProcessPlatformEventAdapter,
+    });
+
+    return {
+      success: result.status === "succeeded",
+      data: result.resultSummary,
+      commandId: result.commandId,
+      attemptNumber: result.attemptNumber,
+    };
+  }
+
+  // --- system.notification.send: 经 Command Bus（Phase 81）---
+  if (input.commandType === "system.notification.send") {
+    if (!input.notifPayload) {
+      throw new Error(
+        "system.notification.send requires notifPayload (recipientUserId, notificationType, title, body)",
+      );
+    }
+
+    const pluginId = projectionRow.pluginId;
+    const { recipientUserId, notificationType, title, body } = input.notifPayload;
+
+    const commandId = buildSystemCommandId({
+      commandType: "system.notification.send",
+      correlationId,
+    });
+
+    const dedupeKey = buildFileCommandDedupeKey({
+      commandType: "system.notification.send",
+      schoolId,
+      pluginId,
+      key: `${recipientUserId}:${notificationType}`,
+    });
+
+    const envelope = {
+      id: commandId,
+      type: "system.notification.send" as const,
+      actor: {
+        actorId: input.actorId,
+        actorScope: "plugin" as const,
+      },
+      scope: {
+        schoolId,
+        pluginId,
+      },
+      payload: {
+        recipientUserId,
+        notificationType,
+        title,
+        body,
       },
       correlation: {
         correlationId,
