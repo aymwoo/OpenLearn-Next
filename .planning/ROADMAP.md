@@ -86,7 +86,14 @@ See `.planning/milestones/` for full archives.
   3. 插件可删除文件（标记 isLatest=false）并列出/查询自身文件（按前缀过滤、分页、元数据）
   4. 文件存储以 `{schoolId}/{pluginKey}` 双重前缀物理隔离，跨插件/跨校访问被拒绝
   5. manifest 声明白名单生效：安装时声明 allowedPaths + allowedOperations，runtime 逐请求匹配路径前缀；路径穿越防护覆盖 URL 编码变体和 parent reference；单文件 50MB + 每插件每校总容量配额生效
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 80-01-PLAN.md — 类型/契约/数据模型基础层（pluginFiles 表 + DTO schemas + Command Bus 类型系统 + 拒因码）
+- [ ] 80-02-PLAN.md — DAL 层 + 工具库（文件 CRUD + 路径穿越防护 + 存储路径 + 配额检查 + MIME 回退）
+- [ ] 80-03-PLAN.md — Command Bus 集成（systemFileHandler + registry 注册 + facade 分支 + audit 扩展）
+- [ ] 80-04-PLAN.md — API Routes（upload Binary Bypass + download Range 支持 + delete/list/metadata）
+- [ ] 80-05-PLAN.md — GC 垃圾回收脚本（isLatest=false 扫描 + 物理文件删除 + 统计输出）
 **UI hint**: yes
 
 ### Phase 81: system.notification 应用内通知推送
@@ -113,7 +120,7 @@ See `.planning/milestones/` for full archives.
 | 77. Manifest 声明 + Command Registry 注册 | v4.3 | 2/2 | Complete | 2026-06-11 |
 | 78. system.http.request HTTP 代理 | v4.3 | 2/2 | Complete | 2026-06-12 |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 2/2 | Complete | 2026-06-12 |
-| 80. system.file 文件存储代理 | v4.4 | 0/0 | Not started | - |
+| 80. system.file 文件存储代理 | v4.4 | 0/5 | Planned | - |
 | 81. system.notification 应用内通知推送 | v4.4 | 0/0 | Not started | - |
 
 ---
