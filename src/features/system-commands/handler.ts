@@ -1329,7 +1329,8 @@ async function systemFileUploadAuthorize({
   command: PlatformCommand;
 }): Promise<void> {
   const sysCmd = command as SystemFileUploadCommand;
-  const filePath = sysCmd.payload.filePath;
+  // diskPath serves as the logical file path for manifest authorization matching
+  const filePath = sysCmd.payload.diskPath;
   const pluginId = command.scope.pluginId;
   const schoolId = command.scope.schoolId;
 

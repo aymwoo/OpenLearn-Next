@@ -1007,7 +1007,7 @@ describe("systemFileUploadAuthorize", () => {
     });
 
     const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ filePath: "uploads/photo.jpg" });
+    const command = buildFileUploadCommand({ diskPath: "uploads/photo.jpg" });
     await expect(
       h["system.file.upload"].authorize({ command: command as any }),
     ).resolves.toBeUndefined();
@@ -1034,7 +1034,7 @@ describe("systemFileUploadAuthorize", () => {
     });
 
     const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ filePath: "documents/report.pdf" });
+    const command = buildFileUploadCommand({ diskPath: "documents/report.pdf" });
     await expect(
       h["system.file.upload"].authorize({ command: command as any }),
     ).resolves.toBeUndefined();
@@ -1061,7 +1061,7 @@ describe("systemFileUploadAuthorize", () => {
     });
 
     const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ filePath: "secret/data.txt" });
+    const command = buildFileUploadCommand({ diskPath: "secret/data.txt" });
     await expect(
       h["system.file.upload"].authorize({ command: command as any }),
     ).rejects.toThrow();
@@ -1093,7 +1093,7 @@ describe("systemFileUploadAuthorize", () => {
     });
 
     const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ filePath: "uploads/photo.jpg" });
+    const command = buildFileUploadCommand({ diskPath: "uploads/photo.jpg" });
     await expect(
       h["system.file.upload"].authorize({ command: command as any }),
     ).rejects.toThrow();
@@ -1108,7 +1108,7 @@ describe("systemFileUploadAuthorize", () => {
     mockFindFirst.mockResolvedValue(undefined);
 
     const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ pluginId: "missing-plugin", filePath: "test.txt" });
+    const command = buildFileUploadCommand({ pluginId: "missing-plugin", diskPath: "test.txt" });
     await expect(
       h["system.file.upload"].authorize({ command: command as any }),
     ).rejects.toThrow();
@@ -1132,7 +1132,7 @@ describe("systemFileUploadAuthorize", () => {
     });
 
     const { systemFileHandler: h } = await import("./handler");
-    const command = buildFileUploadCommand({ filePath: "test.txt" });
+    const command = buildFileUploadCommand({ diskPath: "test.txt" });
     await expect(
       h["system.file.upload"].authorize({ command: command as any }),
     ).rejects.toThrow();
