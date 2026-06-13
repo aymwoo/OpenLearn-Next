@@ -124,7 +124,18 @@ Plans:
   4. 超过 90 天的已读通知自动清理（保留未读通知）
   5. `system.file.*` 和 `system.notification.*` 完整复用 v4.3 三段式链路：manifest 声明 → governance gate（assertActionExecutable）→ audit（writeSystemCommandAudit），Command Bus facade 判别分支扩展正确
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+**Wave 1**
+- [ ] 81-01-PLAN.md — 数据模型与类型契约基础层（pluginNotifications 表 + manifest schema + DTO + commands 类型系统 + 拒因码）
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 81-02-PLAN.md — Command Bus 集成 + 用户读路径（handler authorize/execute + facade 分支 + registry 注册 + audit 扩展 + DAL + Redis 频率限制 + API Routes）
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 81-03-PLAN.md — UI 组件（Bell icon + dropdown + /notifications 页面 + hooks + relative-time）+ BullMQ 通知清理 worker + DB schema push
+
 **UI hint**: yes
 
 ## Progress
@@ -139,8 +150,8 @@ Plans:
 | 78. system.http.request HTTP 代理 | v4.3 | 2/2 | Complete | 2026-06-12 |
 | 79. system.config KV 配置 + dispatchSystemCommand facade | v4.3 | 2/2 | Complete | 2026-06-12 |
 | 80. system.file 文件存储代理 | v4.4 | 5/5 | Complete    | 2026-06-13 |
-| 81. system.notification 应用内通知推送 | v4.4 | 0/0 | Not started | - |
+| 81. system.notification 应用内通知推送 | v4.4 | 0/3 | Ready to execute | - |
 
 ---
 
-_For current project status and next milestone planning, see `.planning/PROJECT.md`_
+*For current project status and next milestone planning, see `.planning/PROJECT.md`*
