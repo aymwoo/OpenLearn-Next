@@ -8,7 +8,7 @@ import { pluginCommandHandlers } from "./handlers/plugins";
 import { lessonDraftCommandHandlers } from "./handlers/lesson-draft";
 import { pluginDataInsertHandler, pluginDataUpsertHandler } from "./handlers/plugin-data";
 import { quizAnswerReceivedHandler } from "./handlers/quiz-answer-received";
-import { systemHttpRequestHandler, systemConfigHandler } from "@/features/system-commands/handler";
+import { systemHttpRequestHandler, systemConfigHandler, systemFileHandler } from "@/features/system-commands/handler";
 
 export function createPlatformCommandDefinition<TType extends PlatformCommandType>(
   input: PlatformCommandDefinition<TType>,
@@ -167,5 +167,23 @@ export const platformCommandRegistry = {
       await systemConfigHandler["system.config.set"].authorize(input);
     },
     execute: systemConfigHandler["system.config.set"].execute,
+  }),
+  "system.file.upload": createPlatformCommandDefinition({
+    commandType: "system.file.upload",
+    payloadSchema: PlatformCommandPayloadSchemas["system.file.upload"],
+    dedupe: "required",
+    authorize: async (input: { command: PlatformCommand }) => {
+      await systemFileHandler["system.file.upload"].authorize(input);
+    },
+    execute: systemFileHandler["system.file.upload"].execute,
+  }),
+  "system.file.delete": createPlatformCommandDefinition({
+    commandType: "system.file.delete",
+    payloadSchema: PlatformCommandPayloadSchemas["system.file.delete"],
+    dedupe: "required",
+    authorize: async (input: { command: PlatformCommand }) => {
+      await systemFileHandler["system.file.delete"].authorize(input);
+    },
+    execute: systemFileHandler["system.file.delete"].execute,
   }),
 } satisfies Record<PlatformCommandType, PlatformCommandDefinition>;
