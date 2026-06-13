@@ -238,7 +238,7 @@ describe("GET /api/system/file/metadata", () => {
   it("should return 404 when file not found", async () => {
     mockedAuth.mockResolvedValue({ user: { id: "actor-1" } } as any);
     mockedGetSchoolIds.mockResolvedValue(["school-1"]);
-    mockedGetFileMetadata.mockResolvedValue(null);
+    mockedGetFileMetadata.mockResolvedValue(null as any);
 
     const { GET } = await import("./metadata/route");
     const req = new Request(

@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { and, eq, count, sum } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth/auth";
 import { db } from "@/db";
 import { pluginFiles } from "@/db/schema";
