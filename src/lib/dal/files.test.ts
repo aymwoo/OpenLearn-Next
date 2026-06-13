@@ -264,9 +264,6 @@ describe("softDeleteFile", () => {
       createdAt: new Date(),
     };
 
-    // Mock findFirst to return the original row
-    findFirstPluginFiles.mockResolvedValue(originalRow);
-
     const deletedRow = {
       id: "delete-id",
       schoolId: "school-a",
@@ -282,15 +279,21 @@ describe("softDeleteFile", () => {
       createdAt: new Date(),
     };
 
+    const txFindFirst = vi.fn().mockResolvedValue(originalRow);
     const insertReturning = vi.fn().mockResolvedValue([deletedRow]);
     const txInsertValues = vi.fn(() => ({ returning: insertReturning }));
     const txInsert = vi.fn(() => ({ values: txInsertValues }));
 
-    // Mock transaction: callback receives tx with update and insert
+    // Mock transaction: callback receives tx with update, insert, AND query.pluginFiles.findFirst
     transactionMock.mockImplementation(async (cb: Function) => {
       return cb({
         update: dbUpdate,
         insert: txInsert,
+        query: {
+          pluginFiles: {
+            findFirst: txFindFirst,
+          },
+        },
       });
     });
 
@@ -305,7 +308,18 @@ describe("softDeleteFile", () => {
   });
 
   it("should enforce schoolId + pluginId in delete query", async () => {
-    findFirstPluginFiles.mockResolvedValue(null);
+    const txFindFirst = vi.fn().mockResolvedValue(null);
+
+    transactionMock.mockImplementation(async (cb: Function) => {
+      return cb({
+        update: dbUpdate,
+        query: {
+          pluginFiles: {
+            findFirst: txFindFirst,
+          },
+        },
+      });
+    });
 
     const result = await softDeleteFile("wrong-school", "wrong-plugin", "file-1");
     // When the file is not found, should return null
